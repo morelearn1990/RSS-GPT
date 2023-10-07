@@ -48,3 +48,4 @@ I will consider hosting more feeds in the future. Email me or submit an issue if
 - https://meta.appinn.net/tag/chrome.rss, https://meta.appinn.net/tag/ios.rss, https://meta.appinn.net/tag/macos.rss -> https://morelearn1990.github.io/RSS-GPT/appinn.xml
 - https://rsshub.app/sspai/index -> https://morelearn1990.github.io/RSS-GPT/sspai.xml
 - https://rknight.me/feed.xml -> https://morelearn1990.github.io/RSS-GPT/robb-knight.xml
+- https://v2ex.com/index.xml, https://v2ex.com/feed/tab/tech.xml, https://v2ex.com/feed/tab/creative.xml, https://v2ex.com/feed/tab/play.xml, https://v2ex.com/feed/tab/apple.xml, https://v2ex.com/feed/tab/jobs.xml -> https://morelearn1990.github.io/RSS-GPT/v2ex.xml
