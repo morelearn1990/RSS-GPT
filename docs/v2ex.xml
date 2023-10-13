@@ -5,14 +5,412 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[iCloud] 关于 iCloud keychain 同步机制的一些疑问，希望有高手来解惑。</title>
+<link>https://www.v2ex.com/t/981853</link>
+<guid>https://www.v2ex.com/t/981853</guid>
+<content:encoded><![CDATA[
+<div> V站、iOS APP、keychain、锁定和追踪、隐藏记录<br><br>总结: 本文探讨了iOS APP在keychain中留下隐藏记录来锁定和追踪用户身份的方式以及iCloud keychain的同步机制。文章提到，同步信任圈是由多台设备的同步身份公钥组成的，关闭同步后，设备将退出信任圈。在双重认证帐户中，担保设备需用私钥签名新设备的同步信任圈和列表。新设备加入同步信任圈需要旧设备进行配对，并进行签名认证。文章还提到一些项目必须在设备上保留，而开发者需要设置属性使第三方APP的项目能够同步。同时，如果iCloud存储空间已满，新增的keychain项目将无法同步到iCloud。 <div>
+<p>很多 V 站网友应该都知道，有些 iOS APP 会通过在 iOS 的 keychain 里留下隐藏记录的方式来锁定和追踪用户身份。
+典型的比如 uber ，如果只是删除 APP 再安装，即使换一个 ID 登录，uber 还是可以通过 keychain 记录的方式把用户的不同 ID 关联起来。
+我一直不清楚这种情况下，app 的隐藏记录会不会通过 keychain 同步的方式跑到同一个 apple id 的其它登录设备上。</p>
+<p>然后前一阵打算把一个长期怎么用的 apple ID 登入到一台闲置的 mac 的某个账户上，结果在登录 icloud 时，要求我输入这个 apple id 之前登录并开启过 keychain 同步的 ipad 的锁屏 code 。这是 icloud 登录过程中验证 keychain 同步的一个步骤。ok 这没有问题，结果我输入 ok 以后，它又继续要我输入这个 apple id 之前登录过的一台更旧的 MAC 上的账户密码，这个我就完全想不起来了。结果输入不正确，它就不让我整个 icloud 登录过程完成。我完全没办法绕过，而且即使 icloud 登录完成，我也没打算开启 keychain 同步，它竟然也没办法让我在登录前就选择不同步 keychain 。
+结果就因为多个旧设备其中一个设备的 passcode 想不起来导致 apple id 的登录无法完成。</p>
+<h2>这之后我就想了解下 apple 的 iCloud keychain 同步机制到底是如何工作的。到 apple 官方找了一下文档说明。看完以后还是有一些不确定的地方，就贴出来，看有没有高手帮我解解惑。</h2>
+<p>假设有已经登入同一 apple id 并开启 icloud keychain sync 的旧设备 B 和 C ，以及准备新登入此 apple id 并开启 icloud keychain sync 的新设备 A</p>
+<p>以下情形里，背后实际发生的流程是否如我理解？</p>
+<p>官方原始文档（中文）
+<a href="https://support.apple.com/zh-cn/guide/security/sec0a319b35f/web" rel="nofollow">https://support.apple.com/zh-cn/guide/security/sec0a319b35f/web</a></p>
+<p>(一)
+按文档：
+“钥匙串安全同步
+当用户首次启用 iCloud 钥匙串时，设备将建立信任圈并为自己创建同步身份。同步身份包括私钥和公钥，且储存在设备的钥匙串中。同步身份的公钥放置在信任圈中，该信任圈已签名两次：第一次由同步身份的私钥签署，第⼆次由来自用户 iCloud 帐户密码的非对称椭圆密钥（使用 P-256 ）签署。随信任圈一起储存的还有参数（随机盐和迭代次数），用于创建基于用户 iCloud 密码的密钥。
+对于双重认证的帐户，还会额外创建一个相似的同步信任圈并存储在 CloudKit 中。此系统中的设备身份由两对非对称椭圆密钥（使用 P-384 ）组成，且储存在钥匙串中。每台设备均维护本机信任的身份列表，且使用其中一个身份密钥为此列表签名。”</p>
+<p>我理解是：
+1.也就是说在 icloud 里同步的信任圈(syncing circle)包括多台设备的同步身份(syncing identity)的公钥，是一个全体设备的同步身份(syncing identity)公钥的集合。当某个设备（假如是 C ）关闭 keychain sync 后，这设备（这里是 C ）的同步身份（ syncing identity ）是不是就是会退出信任圈了。
+2.双重认证的账户，额外存一个同步信任圈在 CloudKit ，而代表设备身份的两对密钥存在钥匙串中,每个设备都有存在本机的信任设备身份列表，这个列表应该是选择钥匙串中有列的全部或部分设备身份密钥，组成一个 lists 。也就是每台设备都选择在钥匙串中登记过的设备身份清单，组成本机信任的 lists,并用本设备的一个身份密钥为此 Lists 列表签名，确保是认证不可篡改的本机信任 lists 。</p>
+<p>(二)
+“iCloud 储存同步信任圈
+已签名的同步信任圈储存在用户的 iCloud 键值存储区域。如果不知道用户的 iCloud 密码，就无法对其进行读取；如果没有信任圈成员同步身份的私钥，就无法对其进行有效地修改。
+对于双重认证的帐户，每台设备的同步列表会存储在 CloudKit 中。如果不知道用户的 iCloud 密码，就无法读取列表；如果没有已拥有设备的私钥，就无法修改私钥。”
+"For two-factor authentication accounts, each device’s syncing list is stored in CloudKit. The lists can’t be read without knowing the user’s iCloud password, and they can’t be modified without having the private keys of the owning device."</p>
+<p>我理解是：
+中文翻译有误，应该是说：对于双重认证的帐户，没有对应已拥有的设备(如旧设备 B,C)的私钥，就无法修改对应的 lists(大概是通过签名验证有效性的验证方式来限制生效)。我理解大概的过程是读取每个旧设备对应的 syncing lists,比如 B 设备的 lists ，然后想把新设备 A 加入这个 lists ，以后就能和 B 点对点 sync 了。这样就需要调用 B 设备对应的私钥给加了 A 的新 lists 签名，才会真正有效并被 B 设备接纳。</p>
+<p>(三)
+按文档：
+“用户的其他设备如何添加到同步信任圈
+新设备登录 iCloud 时，可通过这两种方式之一加入 iCloud 钥匙串同步信任圈：与现有的 iCloud 钥匙串设备配对并获得其担保，或者使用 iCloud 钥匙串恢复。</p>
+<p>在配对流程中，申请设备为同步信任圈和同步列表（针对双重认证帐户）新建同步身份，并将其出示给担保设备。担保设备将新成员的公钥添加至同步信任圈，并且使用其同步身份和派生自用户 iCloud 密码的密钥再次签名。新的同步信任圈放置在 iCloud 中，该信任圈的新成员也是在此处对其进行签名。在双重认证帐户中，担保设备还为加入设备提供使用其身份密钥签名的凭证，表明申请设备应被信任。然后，它会更新其受信任同步身份的单独列表，以包括申请设备。</p>
+<p>现在，签名信任圈有两个成员，并且每个成员拥有另一个成员的公钥。它们现在开始通过 iCloud 键值存储交换各个钥匙串项或将其储存在 CloudKit 中，视情境而定。如果两个信任圈成员都更新了相同的项目，其中一个会被选中，最终获得一致的结果。每个同步的项目都会加密，使只有用户信任圈内的设备才能解密，任何其他设备或 Apple 都无法解密。</p>
+<p>新设备加入同步信任圈时会重复此“加入流程”。例如，第三台设备加入时，可与其中任一台现有设备进行配对。随着新的同级设备加入，每台同级设备均与新设备进行同步。此设计旨在确保所有成员拥有相同的钥匙串项。”</p>
+<p>我理解是：
+意思就是新加入的设备 A 想要把自己的同步身份的公钥加入 icloud 里同步的信任圈(syncing circle)中，那么：
+1.A 设备把自己的同步身份加入 icloud keychain 里的信任圈(syncing circle)，然后让所有的旧设备用自己的同步身份（ syncing identity ）的私钥签名以使之生效。比如针对 B 设备的，新设备 A 需要 B 调用 B 自己的同步身份的私钥对修改后的包含 A 的新信任圈(syncing circle)去签名，以使之生效。同理对于 C 设备也是这么个过程，因此过程中可能会调动每个旧设备的登入密码以启用私钥签名的动作。
+也即是说，新设备要加入 icloud 里同步的信任圈(syncing circle)。新设备 A 需要一个旧成员，比如设备 B ，调用 B 自己的同步身份的私钥，对添加了 A 设备同步身份(syncing identity)公钥后的新信任圈(syncing circle)去签名，以使之生效。是否仅需要一个旧成员签名即可，还是需要全体旧成员都签名。签名的过程，是否需要输入旧设备的 passcode ，比如 B 设备的密码，才能调用相应设备的私钥做签名动作。</p>
+<p>2.双重认证帐户时除了把把自己 A 设备身份的密钥存到 icloud 钥匙串的同步信任圈，还要让其它设备 B,C 都把 A 的设备身份加入到 B,C 设备的本机信任 list 里，并让 B,C 设备各自用自己的设备身份密钥给这个新加入了 A 设备的 list 签名认证。这样的话就必须要调用每一个加入过 keychain 的设备（ B 和 C ）的密钥来让它们各自给加入 A 设备的新 list 签名，也就需要输入 B 和 C 设备的登入密码来解锁和启用签名流程。</p>
+<p>3.这里讨论的流程没有包括“iCloud 钥匙串恢复”的流程，仅是讨论新旧设备配对的问题，核心就是是否需要每一台旧设备的配对（授权），还是仅需要其中一台的。</p>
+<p>这里有一个疑问，实际情况好像是第三台设备 A 加入时,必须与每一台旧设备(B 和 C)都配对（输入设备登入密码），而不是只与其中任一台（ B 或者 C ）配对就可。如果没有配对完成，新设备上的 apple id 登录流程都无法正常走完。</p>
+<p>(四)
+按文档：
+“仅同步部分项目
+部分钥匙串项特定于设备，如 iMessage 信息密钥，因而必须保留在设备上。因此，每个将要同步的项目都必须使用 kSecAttrSynchronizable 属性明确标记。</p>
+<p>Apple 为 Safari 浏览器用户数据（包括用户名、密码和信用卡号）、无线局域网密码、HomeKit 加密密钥以及其他支持端对端 iCloud 加密的钥匙串项设置了该属性。</p>
+<p>另外，在默认情况下，第三方 App 添加的钥匙串项不会进行同步。将项目添加至钥匙串时，开发者必须设置 kSecAttrSynchronizable 属性。”</p>
+<p>我理解是：
+不知道 reset keychain 能不能清除这些第三方存在钥匙串里的内容。设置 kSecAttrSynchronizable 属性并能被 keychain 同步的第三方 APP 的数据项，是否能在 keychain 里被观察到。
+又或者它们除了能在设备本地 keychain 不可见的情况下，在网络同步的 keychain 里也不可见。但即使在网络同步的 keychain 里也不可见，应该也能被 reset keychain 的操作给清除？</p>
+<p>哦，对了，还有一种特殊情况：如果 icloud 存储空间已满,新增的 keychain 项目是不是就不会同步到 icloud 上了？</p>
+]]></content:encoded>
+<pubDate>2023-10-13T14:14:35Z</pubDate>
+<pubDate>2023-10-12T22:14:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 练习英语听力，有什么 APP 可以听的吗</title>
+<link>https://www.v2ex.com/t/981852</link>
+<guid>https://www.v2ex.com/t/981852</guid>
+<content:encoded><![CDATA[
+<div> 耳机、APP、听、新闻、视频 
+<br><br>
+总结:
+使用耳机打开APP听新闻等内容，比起打开视频听更为方便。 <div>
+平时戴个耳机打开 APP 就可以听，比如新闻这些，而不是打开视频，打开视频听有时候不太方便。
+]]></content:encoded>
+<pubDate>2023-10-13T13:58:51Z</pubDate>
+<pubDate>2023-10-12T01:59:45Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 目前不上台且兼顾打电话和上网长期持有香港号码低成本方案</title>
+<link>https://www.v2ex.com/t/981851</link>
+<guid>https://www.v2ex.com/t/981851</guid>
+<content:encoded><![CDATA[
+
+背景<br />香港运营商的预付费套餐，在内地使用时，不是很完美，要么流量便宜但是通话费贵，要么通话便宜但是流量贵。<br />后付费的大湾区套餐，一般都包含中港澳的通用语音和流量，用起来很爽，但是价格太高。<br /><br />对于需要打电话，同时也需要上网的人来说，有没有更好的方案呢？<br /><br /><br />香港上台套餐大湾区资费列举：<br />1 ） CMHK 中国移动香港：<br />资费：168HKD 每月 （需携号转台，如果直接上台还需要增加 18HKD 的行政费）<br />流量：10GB 大湾区（中港澳）流量，超过之后限速 384kbps<br />接听电话：中港澳免费<br />拨出电话：中港澳内 0.65HKD/分钟<br />接受短信：免费<br />发短信：網內：每月首 500 個免費，其後每個$0.3 網外：每個$0.6<br />支持一卡多号，增加一个内地号码。<br /><br />CMHK 大湾区 50GB 流量的上台套餐，月费 468HKD.<br /><br />2 ） Cuniq HK 中国联通香港：<br />资费：165HKD 每月（绑定信用卡自动扣款可以免除 18HKD 每月的行政费）<br />流量：10GB 大湾区流量，赠送单独 10GB HK 流量。超量之后 HK 限速到 384kbps 、内地限速到 128kbps<br />內地接聽/致電內地號碼$0.5/分鐘<br />短信接收：免费<br />支持一卡多号，增加一个内地号码。<br /><br />CUniq HK 大湾区 40GB 流量的上台套餐，月费 395HKD.<br /><br /><br />预付费卡——3HK DIY<br />流量：268HKD 45G 大湾区（中港澳）流量， 一年有效期，用完可以续订。充值 200HKD 从充值那天起计算，增加 1 年有效期<br /><br />通话、短信资费：<br />内地接电话：8HKD 每分钟<br />内地打给 HK：8HKD 每分钟<br />内地打给内地：6HKD 每分钟<br />内地短信发送：3.5 HKD 每条<br />内地接收短信：免费<br />完整可以查看： <a href="https://www.three.com.hk/prepaid/DIY/tc/faq/pp02/" rel="nofollow noopener" target="_blank">https://www.three.com.hk/prepaid/DIY/tc/faq/pp02/</a><br /><br />预付费卡——CUniq HK 月神卡<br />取消月费组合之后是 9HKD/月 （取消之前最低 98HKD/月，包含 5G 内地和香港共用流量）<br />通话、短信资费：<br />内地拨给内地和香港：0.3HKD/分钟<br />内地接听：0.3HKD/分钟<br />接收短信：免费<br />内地发送短信给内地和香港：0.5HKD/条<br />免费赠送一个内地号码，可以自己选择是否需要。在内地拨打内地电话是显示内地号码。<br /><br /><br />综合以上套餐资费，对于同时需要电话、上网，但是又不想办理高昂的上台套餐资费的朋友，一个相对来说低成本的方案，就是同时办理 CUniq GO 月神卡套餐 + 3HK DIY 套餐。<br /><br />CMHK 大湾区 50GB 流量的上台套餐，月费 468HKD.<br />CUniq HK 大湾区 40GB 流量的上台套餐，月费 395HKD.<br />3HK DIY 大湾区 45G 流量为 268HKD 一年有效期.<br /><br />办理门槛：<br />CMHK 上台：亲临 HK 门市，需要地址证明 + 内地人需要 1000HKD 押金；<br />CUniq HK 上台：亲临 HK 门市，内地人需要 1000HKD 押金，<br />CUniq GO 月神卡：在线办理即可。可以使用 esim 手机，或者 5ber sim 卡，将 esim 转化为实体 sim 。<br />3HK DIY：同月神卡，在线办理即可。<br /><br />到这里，相信大家已经有了自己的选择了。<br />具体哪个套餐适合自己，需要您根据自己的需求自己做出选择，如果您对于上面的观点持有不一样的意见，那以您为准，您是对的。<br /><br />更多内容，可以来这里探讨哈：<br /><br />境外卡测速数据分享/订阅/讨论群组<br />📣官方频道: <a href="https://t.me/speedtests" rel="nofollow noopener" target="_blank">https://t.me/speedtests</a><br />👥官方群组: <a href="https://t.me/speedtests_chat" rel="nofollow noopener" target="_blank">https://t.me/speedtests_chat</a><br /><br /><br />附录：<br />3HK DIY 介绍以及使用体验（非常全面和详细,20230917 更新）<br /><a href="https://www.txrjy.com/thread-1297221-1-1.html" rel="nofollow noopener" target="_blank">https://www.txrjy.com/thread-1297221-1-1.html</a><br /><br />CUniq GO 月神卡介绍和办理：<br /><a href="https://www.cuniq.com/global/Service-plan/detail/PlanCardDetail?goodsId=900777" rel="nofollow noopener" target="_blank">https://www.cuniq.com/global/Service-plan/detail/PlanCardDetail?goodsId=900777</a>
+]]></content:encoded>
+<pubDate>2023-10-13T13:57:57Z</pubDate>
+<pubDate>2023-10-13T13:57:57Z</pubDate>
+</item>
+<item>
+<title>[程序员] clang 使用 mingw 头文件编译时不出现部分警告</title>
+<link>https://www.v2ex.com/t/981850</link>
+<guid>https://www.v2ex.com/t/981850</guid>
+<content:encoded><![CDATA[
+
+<p>最近在 vscode 中配置了 clangd 插件，发现不会提示 printf/scanf 相关的警告，于是测试了一下</p>
+<pre><code class="language-C">#include &lt;stdio.h&gt;
+
+int main() {
+    int i;
+    scanf("%f", &amp;i);
+    printf("%d", i, i ,2);
+
+    return 0;
+}
+</code></pre>
+<pre><code>clang -Wall .\warn.c
+.\warn.c:5:5: warning: 'scanf' is deprecated: This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use      _CRT_SECURE_NO_WARNINGS. See online help for details. [-Wdeprecated-declarations]
+    scanf("%f", &amp;i);
+    ^
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\ucrt\stdio.h:1275:20: note: 'scanf' has been explicitly marked deprecated here
+    _Check_return_ _CRT_INSECURE_DEPRECATE(scanf_s)
+                   ^
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.36.32532\include\vcruntime.h:355:55: note: expanded from macro
+      '_CRT_INSECURE_DEPRECATE'
+        #define _CRT_INSECURE_DEPRECATE(_Replacement) _CRT_DEPRECATE_TEXT(    \
+                                                      ^
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.36.32532\include\vcruntime.h:345:47: note: expanded from macro
+      '_CRT_DEPRECATE_TEXT'
+#define _CRT_DEPRECATE_TEXT(_Text) __declspec(deprecated(_Text))
+                                              ^
+.\warn.c:5:17: warning: format specifies type 'float *' but the argument has type 'int *' [-Wformat]
+    scanf("%f", &amp;i);
+           ~~   ^~
+           %d
+.\warn.c:6:21: warning: data argument not used by format string [-Wformat-extra-args]
+    printf("%d", i, i ,2);
+           ~~~~     ^
+3 warnings generated.
+</code></pre>
+<pre><code>clang -Wall --target=x86_64-w64-mingw32 .\warn.c
+
+</code></pre>
+<p>gcc 使用相同头文件会显示警告</p>
+<pre><code> gcc -Wall .\warn.c
+.\warn.c: In function 'main':
+.\warn.c:5:13: warning: format '%f' expects argument of type 'float *', but argument 2 has type 'int *' [-Wformat=]
+    5 |     scanf("%f", &amp;i);
+      |            ~^   ~~
+      |             |   |
+      |             |   int *
+      |             float *
+      |            %d
+.\warn.c:6:12: warning: too many arguments for format [-Wformat-extra-args]
+    6 |     printf("%d", i, i ,2);
+      |        
+      
+</code></pre>
+<p>想知道有没有办法配置 clang 显示相同警告</p>
+]]></content:encoded>
+<pubDate>2023-10-13T13:56:07Z</pubDate>
+<pubDate>2023-10-13T13:53:07Z</pubDate>
+</item>
+<item>
+<title>[Apple] 难绷</title>
+<link>https://www.v2ex.com/t/981849</link>
+<guid>https://www.v2ex.com/t/981849</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="1" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/13/NhbYla9sgy2kfL8.png" /></p>
+<p><img alt="2" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/13/foRGEanBPgq5Tpd.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-13T13:52:28Z</pubDate>
+<pubDate>2023-10-13T13:51:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有想过如果有一天失业找不到工作了</title>
+<link>https://www.v2ex.com/t/981843</link>
+<guid>https://www.v2ex.com/t/981843</guid>
+<content:encoded><![CDATA[
+
+<p>你还能做什么？想找点后路，却不知道找什么？</p>
+]]></content:encoded>
+<pubDate>2023-10-13T13:27:57Z</pubDate>
+<pubDate>2023-10-13T09:27:57Z</pubDate>
+</item>
+<item>
+<title>[Apple] 我心中想要的 iPad mini 的配置</title>
+<link>https://www.v2ex.com/t/981842</link>
+<guid>https://www.v2ex.com/t/981842</guid>
+<content:encoded><![CDATA[
+
+<p>m 系 cpu ；<br />
+搭载黑色不发光的屏幕，oled 或 mini-led ；<br />
+120hz 高刷；  </p>
+<p>换上这些，直接卖爆</p>
+]]></content:encoded>
+<pubDate>2023-10-13T13:27:45Z</pubDate>
+<pubDate>2023-10-13T14:00:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] 我眼花了吗？</title>
+<link>https://www.v2ex.com/t/981841</link>
+<guid>https://www.v2ex.com/t/981841</guid>
+<content:encoded><![CDATA[
+
+<p>Material Theme Ul 这个插件怎么反向升级了...</p>
+<p><img alt="image-20231013212100160" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20231013/dHLjNe.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-13T13:22:03Z</pubDate>
+<pubDate>2023-10-13T13:21:03Z</pubDate>
+</item>
+<item>
+<title>[Surge] 120 一个，转让 2 个 surge Mac 5 授权</title>
+<link>https://www.v2ex.com/t/981840</link>
+<guid>https://www.v2ex.com/t/981840</guid>
+<content:encoded><![CDATA[
+
+TG： <a href="https://t.me/skywo0" rel="nofollow noopener" target="_blank">https://t.me/skywo0</a>
+]]></content:encoded>
+<pubDate>2023-10-13T13:16:41Z</pubDate>
+<pubDate>2023-10-13T13:15:41Z</pubDate>
+</item>
+<item>
+<title>[Apple] M2 MBA 外接硬盘偶尔掉盘</title>
+<link>https://www.v2ex.com/t/981839</link>
+<guid>https://www.v2ex.com/t/981839</guid>
+<content:encoded><![CDATA[
+
+外接了一个 WD Passport SSD ，时不时掀开盖子之后就会看到提示硬盘没有正常推出，这个问题是系统的问题，还是电脑的问题，或者是硬盘的问题呢😭
+]]></content:encoded>
+<pubDate>2023-10-13T13:07:19Z</pubDate>
+<pubDate>2023-10-13T13:28:34Z</pubDate>
+</item>
+<item>
+<title>[HTML] 关于正则表达式的问题，批量修改有相同内容的行</title>
+<link>https://www.v2ex.com/t/981838</link>
+<guid>https://www.v2ex.com/t/981838</guid>
+<content:encoded><![CDATA[
+
+想做个 epub 的电子书，有什么办法能批量的给每章章节名两边加上[h1] [/h1]的标签<br /><br />章节名格式是这样的<br /><br />第一章 xxxxxxx<br /><br />批量把章节名加上标题的标签，变成[h1] 第一章 xxxxxxx[/h1]
+]]></content:encoded>
+<pubDate>2023-10-13T13:05:59Z</pubDate>
+<pubDate>2023-10-13T13:13:47Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPad mini6 和 ipad9 选哪个好呢</title>
+<link>https://www.v2ex.com/t/981837</link>
+<guid>https://www.v2ex.com/t/981837</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-13T13:02:38Z</pubDate>
+<pubDate>2023-10-13T13:02:38Z</pubDate>
+</item>
+<item>
+<title>[Apple] AppleCare 换个屏都要经理审批+返厂 3 周了，强烈不推荐买 AC，严重歧视中国消费者</title>
+<link>https://www.v2ex.com/t/981835</link>
+<guid>https://www.v2ex.com/t/981835</guid>
+<content:encoded><![CDATA[
+
+<p>苹果把买 AC 的顾客外玻璃就裂一点都当成骗保的，很难说是故意歧视中国消费者。以打击骗保的名义随意拒保正常的消费者。都要成骗子公司了。中国买的车险等保险哪有随意拒保还说商业机密不说原因。</p>
+]]></content:encoded>
+<pubDate>2023-10-13T12:59:23Z</pubDate>
+<pubDate>2023-10-13T13:41:49Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 这样的苹果笔记本还有没有维修的必要？</title>
+<link>https://www.v2ex.com/t/981834</link>
+<guid>https://www.v2ex.com/t/981834</guid>
+<content:encoded><![CDATA[
+
+mba2017 （ macOS Ventura ），用着用着突然黑屏，键盘灯还亮着，开关机也有声音，外接显示器只显示壁纸和鼠标，没有任何菜单，联系苹果客服说没有正常进入系统，做了各种什么系统重置依然黑屏。问了一个维修商报价 850 元修好，还说苹果官方要 2000+，不知真假，如果这样还有维修的必要吗？
+]]></content:encoded>
+<pubDate>2023-10-13T12:57:45Z</pubDate>
+<pubDate>2023-10-13T14:03:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] 入职两年，下班时间由九点延到 11 点，日常宣贯凌晨上线</title>
+<link>https://www.v2ex.com/t/981830</link>
+<guid>https://www.v2ex.com/t/981830</guid>
+<content:encoded><![CDATA[
+
+刚来的时候觉的九点还可以接受，995 ，毕竟之前读研全面午休，老板很 push ，有点逃出虎穴的感觉。<br /><br />随着加班时间一年延长一小时，11 点多下班，早上 10 点到，半夜还有些电话报警，需要起来排查。<br /><br />今年开始统计报警接听率，要求 90%，报警多了还得梳理原因、解决方案、deadline ，从每月每周到每天通晒，填表格，各种指标，昨天发出来，今天就必须完成的事数不胜数，甚至上午发下午就要结果。<br /><br />来自刚通完宵，又要凌晨上线的吐槽，早上七点走，八点睡着，下午三点多又要来上班，周末又要加班，互联网大厂偏年轻化，未尝不是年轻人不经事，不懂得加班对身心的过度侵占，没得丝毫生活<br /><br /><br /><br />只要退第一步，就意味着别人就可以前进更多步，离开就是自然而然的事
+]]></content:encoded>
+<pubDate>2023-10-13T12:36:36Z</pubDate>
+<pubDate>2023-10-13T14:16:06Z</pubDate>
+</item>
+<item>
+<title>[Chrome] 2023 年了 chorme 还是有 youtube 右侧推荐视频的标题与视频不匹配</title>
+<link>https://www.v2ex.com/t/981829</link>
+<guid>https://www.v2ex.com/t/981829</guid>
+<content:encoded><![CDATA[
+
+<p>自带翻译插件翻译后 youtube 右侧推荐视频的标题与视频不匹配</p>
+]]></content:encoded>
+<pubDate>2023-10-13T12:35:48Z</pubDate>
+<pubDate>2023-10-13T12:33:48Z</pubDate>
+</item>
+<item>
+<title>Casdoor: 具有 Web UI 界面的开源身份认证、单点登录平台，支持 GitHub、Gitee、QQ、微信、钉钉登录等</title>
+<link>https://www.v2ex.com/t/803669</link>
+<guid>https://www.v2ex.com/t/803669</guid>
+<content:encoded><![CDATA[
+
+<div><h1>UI 优先的统一身份认证系统 Casdoor</h1>
+<h2>Casdoor 是什么？</h2>
+<p>Casdoor 是一个基于 OAuth 2.0 / OIDC 的 UI 优先集中认证 / 单点登录 (SSO) 平台，简单点说，就是 Casdoor 可以帮你解决 <strong>用户管理</strong> 的难题，你无需开发用户登录注册等与用户鉴权相关的一系列功能，只需几个步骤，简单配置，与你的主应用配合，便可完全托管你的用户模块，简单省心，功能强大。</p>
+<p>仓库地址： <a href="https://github.com/casbin/casdoor" rel="nofollow">https://github.com/casbin/casdoor</a></p>
+<p>演示地址： <a href="https://door.casbin.com/" rel="nofollow">https://door.casbin.com/</a></p>
+<p>官网文档： <a href="https://casdoor.org/" rel="nofollow">https://casdoor.org/</a></p>
+<p>Casdoor 目前作为 Casbin 社区项目统一使用的鉴权平台，项目已开源，希望得到大家的一些建议和 Star~，我们会及时跟进反馈并改正问题哒。</p>
+<h2>为什么要用 Casdoor ？</h2>
+<p>用户管理一直是项目中非常令人头疼的一个问题，不仅要确保安全性，功能是否完整，方便使用也十分重要。目前大多数应用已从过去单一的账号密码登录，逐渐升级为允许通过第三方平台登录，例如 GitHub 、微信、QQ 等。但是这一套逻辑依然需要开发者去实现，大多数功能偏离了业务。</p>
+<p>Casdoor 就是替开发者们解决这个难题，即 <strong>提供一套统一的鉴权平台，只需要简单配置便可完全托管用户模块</strong>。</p>
+<p>使用的理由也非常简单，总结概括为三句话：</p>
+<ul>
+<li>功能完备，操作简单。作为一个需要完全托管用户模块的项目，功能完备必不可少，Casdoor 支持常见用户模块所需要的各种功能。并且配置简单，上手难度低。</li>
+<li>开源可控，社区活跃。能否快速得到社区的反馈，解决实际应用中出现的问题也十分重要，否则出了 Bug 没人管岂不是尴尬？ Casdoor 有自己的讨论社区 Casnode，也有 QQ 群，均可及时活跃地解决实际应用中的问题。</li>
+<li>性能强大，耦合良好。采用 Golang 开发，并发性支持良好，并且内部模块耦合度低，代码易懂，热插拔性好。</li>
+</ul>
+<h2>Casdoor 又有哪些特性？</h2>
+<ul>
+<li>支持普通的账户密码注册登录，也支持各种常见的第三方认证，例如 GitHub 、Facebook 、Google 、Wechat 、QQ 、LinkedIn 等等，截止目前共 9 个平台，并在不断听取用户建议对更多的平台提供支持。</li>
+<li>管理方便。Casdoor 内部将模块分为了 5 大类，Organization 、User 、Application 、Token 和 Provider 。可以同时接入多个组织，组织下有不同应用，用户可以通过应用或组织分类，单独管理任何组织、应用或用户的 Token 令牌，轻松管理复杂系统，目前已部署在 Casbin 社区各种系统当作鉴权平台。</li>
+<li>自定义程度高。Casdoor 可以随意修改登录方式，例如是否允许密码或第三方登录，自定义应用的注册项数量，是否启用两步验证，以及是否允许各个 Provider 登录、注册等等，高度可插拔。</li>
+<li>具备 Swagger API 文档。清晰的 API 介绍，无需阅读源代码即可直接方便调用各个 API 接口，提供定制化功能。</li>
+<li>前后端分离架构，部署简单。作为统一认证平台，除了性能，稳定性，新特性之外，易用性也是考量的重要标准，Casdoor 后端使用 Golang 语言开发，前端使用 React.js 框架，使用者只需启动后端服务，并将前端工程文件打包，即可直接使用，操作简单，上手难度低。</li>
+<li>...</li>
+</ul>
+<h2>总结</h2>
+<p>我们希望 Casdoor 能帮助广大开发者们解决用户管理的难题，更专注主要业务，提高开发效率。</p>
+<p>同时作为一个开源项目，我们也非常希望获得大家的使用建议，帮助我们更好地改善项目质量，从功能、易用性等方面更好地满足大家的需求。</p>
+<p>如果使用过程中有任何疑问，欢迎加入社区 QQ 群交流，提 Issues 。当然，提 PR 也是十分欢迎的！</p>
+<ul>
+<li>
+<p>QQ 群：645200447</p>
+</li>
+</ul>
+</div>
+]]></content:encoded>
+<pubDate>2021-09-23T07:24:06Z</pubDate>
+<pubDate>2023-10-13T08:41:55Z</pubDate>
+</item>
+<item>
+<title>[送会员] 追女孩的沟通话术参考 App，让回复不再那么“直男”</title>
+<link>https://www.v2ex.com/t/980605</link>
+<guid>https://www.v2ex.com/t/980605</guid>
+<content:encoded><![CDATA[
+
+<p>开发了一款「恋爱话术宝」 App ，其价值是帮助很多不懂怎么跟异性聊天的小伙伴做一个聊天参考。软件内收集了许多有趣、温暖的聊天话术，让聊天对话不再尬住。</p>
+<h1>[恋爱话术宝能帮你]</h1>
+<ul>
+<li>提供破冰技巧，避免尬聊，让你更具魅力，让他对你更加关注；</li>
+<li>避免无意义的聊天，节省时间，让你和对方的关系得到进展；</li>
+<li>扩大你的社交圈，跟社恐说拜拜，学会如何结交心仪对象；</li>
+<li>教你如何哄好你的伴侣，让恋爱更加顺利；</li>
+<li>解决恋爱中两个人相处难的问题。</li>
+</ul>
+<h1>[怎么下载]</h1>
+<p>直接应用商店搜索🔍  [恋爱话术宝] 就可以
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://3o.hk/images/2023/10/10/image.png" /></p>
+<h1>[福利时间]</h1>
+<p>在 10 月 15 日 18 点前在帖子下面回复恋爱话术宝 ID 的，都将赠送 1 个月的 VIP 会员，以感谢 V 友们支持。</p>
+<p>欢迎大家在使用过程中遇到什么问题，帮忙反馈及解决，感恩 V 友们</p>
+]]></content:encoded>
+<pubDate>2023-10-10T05:59:13Z</pubDate>
+<pubDate>2023-10-12T18:11:35Z</pubDate>
+</item>
+<item>
+<title>[送码] XPTV - Apple TV 视频播放器，支持 IPTV、阿里云盘、厂长等</title>
+<link>https://www.v2ex.com/t/980604</link>
+<guid>https://www.v2ex.com/t/980604</guid>
+<content:encoded><![CDATA[
+
+XPTV ，多功能播放器<br /><br />支持 m3u 、txt 格式的直播源<br />支持阿里云盘 vod://aliyun<br />支持厂长、低端等播放源 vod://czzy<br /><br />送出 20 个兑换码<br /><br />9PY6AXAJLWL6<br />39M76TA4XP6M<br />LMJAAWY4M3FN<br />RARHEKAHMLRF<br />JM3HEM76TT3T<br />JTPF67A79PT4<br />KRWYEJW34LRR<br />E6ALNJ94KXTW<br />YRJJNR9E6EPX<br />RRKR76AX6MJM<br />WWAYHKEPMLP3<br />XL74AMJNRJKF<br />W4MA3XPR6TKP<br />MNYKE7HLWETR<br />FFN6XHY3TRR9<br />J3PJYM9TFTY9<br />PKY6KTJA7E7K
+]]></content:encoded>
+<pubDate>2023-10-10T05:57:30Z</pubDate>
+<pubDate>2023-10-11T05:49:00Z</pubDate>
+</item>
+<item>
+<title>10 年失业 Java 求外包团队或者私活</title>
+<link>https://www.v2ex.com/t/981831</link>
+<guid>https://www.v2ex.com/t/981831</guid>
+<content:encoded><![CDATA[
+
+<p>坐标杭州，wx bXl4aWFvcmliZW5n 谢谢</p>
+]]></content:encoded>
+<pubDate>2023-10-13T12:39:25Z</pubDate>
+<pubDate>2023-10-13T12:36:25Z</pubDate>
+</item>
+<item>
+<title>远程工作 200 天了，感觉还是有点迷茫。# iOS 开发</title>
+<link>https://www.v2ex.com/t/980628</link>
+<guid>https://www.v2ex.com/t/980628</guid>
+<content:encoded><![CDATA[
+
+<p>总包大概在 40 ，创业团队阶段，还是挺忙的。项目在美国，我和中国的公司签劳动和同，合同注明不限制工作地点。</p>
+<p>App 项目，我入职之前老板亲自贡献了 大概 100W 代码，这 200 天，我们的贡献差不多。</p>
+<p>初期的三个月，老板经常说我的效率不行，平心而论，我确实觉得老板的思考速度非常快，编码速度也非常块。</p>
+<p>我很久都没理解项目的写法，倒没有什么复杂架构和模式之类的，项目中大量使用单例和 Storyboard 和继承，这些和我以前写项目的方式完全是相反的。</p>
+<p>初期我的负责的新功能和旧模块重构我全部都是想着要和现有代码隔离开来，所以使用了一些模式和 wrapper 类，这样确实能隔离一些代码，但是带来了代码行数，类和文件的增加，也增加了复杂度和理解难度和上下文切换的时间。</p>
+<p>这是我自己总结的我的效率上不去的原因。</p>
+<p>近期 我全部是重写和重构之前的代码，逐步地。现在完全沿用老板的风格写代码，速度确实快了很多很多。老板对 Storyboard 的用法之重确实是我之前难以想象的，现在看来确实是真的快。</p>
+<p>但是这么久的工作，自信心确实备受打击，老板自身美国某名校的 CS 博士的背景平时沟通中似乎有一种道不明的优越存在，也可能是我想多了。感觉平时的工作处在一中被动状态中，要说学到了什么，确实没有什么特别的东西。</p>
+<p>工作强度在前三个月真的堪比 996 ，好在老婆回国的一个月我买了个小破车 我们一起自驾来回老家 过了个暑假。但是那段事件，每天抽时间写代码，都冒出了白头发，想起来都很疲劳。</p>
+<p>每天的工作都有点提心吊胆，不知道老板什么时候又会对我说一些让人难受的话。</p>
+<p>有时候我想，如果我是管理者，我肯定能比老板做的好。但是这时候我又会想，可能这也就是我成不了老板这样的人的原因？</p>
+]]></content:encoded>
+<pubDate>2023-10-10T06:48:42Z</pubDate>
+<pubDate>2023-10-12T02:34:54Z</pubDate>
+</item>
+
+<item>
 <title>[Vue.js] 新开发的极简设计 vue3 组件库 —— Yike Design，不来看看吗？</title>
 <link>https://www.v2ex.com/t/981828</link>
 <guid>https://www.v2ex.com/t/981828</guid>
 <content:encoded><![CDATA[
-<div> Yike Design, 组件库, vue3, vite, 外观多样, 文档链接, 仓库地址<br><br>总结: Yike Design是一个基于vue3 + vite的全新组件库，外观多样且极简，目前已基本完成。欢迎大家体验并查看文档和仓库地址。 <div>
+<div> Yike Design, 组件库, vue3, vite, 外观多样, 文档链接, 仓库地址<br /><br />总结: Yike Design是一个基于vue3 + vite的全新组件库，外观多样且极简，目前已基本完成。欢迎大家体验并查看文档和仓库地址。 <div>
 <a href="https://i.imgur.com/dmNy680.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/dmNy680.png" /></a><br /><br />Yike Design 是一个全新的组件库，基于 vue3 + vite ，拥有极简多样的外观，目前处于基本完成的状态。<br /><br />文档链接： https://yike.design<br />仓库地址： <a href="https://github.com/ecaps1038/yike-design-dev" rel="nofollow noopener" target="_blank">https://github.com/ecaps1038/yike-design-dev</a><br /><br />欢迎大家体验。
 ]]></content:encoded>
-<pubDate>2023-10-13T12:30:54Z</pubDate>
 <pubDate>2023-10-13T12:27:54Z</pubDate>
 </item>
 <item>
@@ -20,11 +418,10 @@
 <link>https://www.v2ex.com/t/981825</link>
 <guid>https://www.v2ex.com/t/981825</guid>
 <content:encoded><![CDATA[
-<div> 社会治安、围栏、拆除、敞亮、居住环境<br><br>总结:
+<div> 社会治安、围栏、拆除、敞亮、居住环境<br /><br />总结:
 最近有人突发奇想，认为目前社会治安较好，而小区的围栏可能会造成不便，因此提出拆除围栏的想法。拆除围栏可能会使小区环境更加开放明亮，提升居住环境。 <div>
 最近在遛弯的时候突发奇想，感觉目前社会治安算是比较好了，小区的围栏有时候挺不方便的，感觉应该拆掉？拆掉的话感觉会变得敞亮一点儿，也显得居住环境大。
 ]]></content:encoded>
-<pubDate>2023-10-13T12:27:56Z</pubDate>
 <pubDate>2023-10-13T12:34:03Z</pubDate>
 </item>
 <item>
@@ -32,13 +429,11 @@
 <link>https://www.v2ex.com/t/981824</link>
 <guid>https://www.v2ex.com/t/981824</guid>
 <content:encoded><![CDATA[
-
 <p>微信太拉了，有时候行业群里会分享一些报告啥的，当时不一定有空阅读，有空的时候也经常忘了再翻去看，而且微信收藏的容量也已经满了，所以想找一个能够直接把文档传进去的稍后阅读应用。</p>
 <p>目前在用 omnivore ，功能不太行，在手机上加入进去以后，虽然手机上能看，但其他端不能打开，感觉实际上并没有把文档传到云端，无法多端同步。</p>
 <p>求大佬推荐能 match 这个需求的稍后阅读应用，开源或能自托管的应用优先。</p>
 <p>谢谢各位大佬！🙏</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T12:26:25Z</pubDate>
 <pubDate>2023-10-13T12:26:25Z</pubDate>
 </item>
 <item>
@@ -46,10 +441,8 @@
 <link>https://www.v2ex.com/t/981823</link>
 <guid>https://www.v2ex.com/t/981823</guid>
 <content:encoded><![CDATA[
-
 <p>前天尝试坐公交硬顶 50 公里路程结果吐了，晚上回去都 10 点多了😫😫😫，真没想到公交这么颠</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T12:23:28Z</pubDate>
 <pubDate>2023-10-13T12:20:28Z</pubDate>
 </item>
 <item>
@@ -57,10 +450,8 @@
 <link>https://www.v2ex.com/t/981821</link>
 <guid>https://www.v2ex.com/t/981821</guid>
 <content:encoded><![CDATA[
-
 <p>哪里的运营商干扰最小，线路最好，连香港。</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T12:15:48Z</pubDate>
 <pubDate>2023-10-13T12:31:15Z</pubDate>
 </item>
 <item>
@@ -68,10 +459,8 @@
 <link>https://www.v2ex.com/t/981820</link>
 <guid>https://www.v2ex.com/t/981820</guid>
 <content:encoded><![CDATA[
-
 <p>比较喜欢这种半入耳,戴着很舒服, 试了下插台式机前置的 c 口没问题,但是插在红米 k50u 就完全没反应</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:59:05Z</pubDate>
 <pubDate>2023-10-13T12:13:00Z</pubDate>
 </item>
 <item>
@@ -79,10 +468,8 @@
 <link>https://www.v2ex.com/t/981819</link>
 <guid>https://www.v2ex.com/t/981819</guid>
 <content:encoded><![CDATA[
-
 <p>最近从老家翻出来一个，b 站 4k 卡正常吗</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:56:22Z</pubDate>
 <pubDate>2023-10-13T12:10:24Z</pubDate>
 </item>
 <item>
@@ -90,7 +477,6 @@
 <link>https://www.v2ex.com/t/981818</link>
 <guid>https://www.v2ex.com/t/981818</guid>
 <content:encoded><![CDATA[
-
 <p>在有公网的服务器上使用 Docker 搭建了 frp server ，并且使用 Watchtower 自动更新 Docker 容器；</p>
 <p>家里的内网服务器上也用 Docker 搭建了 frp client ，并且使用 Watchtower 自动更新 Docker 容器，将内网的电脑穿透出来</p>
 <p>使用的镜像是这个： <a href="https://github.com/snowdreamtech/frp" rel="nofollow">https://github.com/snowdreamtech/frp</a></p>
@@ -105,7 +491,6 @@
 <p>INI 已弃用，并将在未来版本中删除，估计就是这么个问题导致的。。。但看 Features ，好像也不是直接就不支持了吧，可能是个 BUG ？</p>
 <p>现在的问题是，我在老家还有台服务器，常年无人值守，通过 frp 穿透出来，也使用了 Watchtower 自动更新 Docker 容器，现在失联了。。。没人能够处理，希望下一个版本自动更新后可以重新上线吧，现在已经把 Watchtower 给删了，不敢用了</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:53:50Z</pubDate>
 <pubDate>2023-10-13T12:22:59Z</pubDate>
 </item>
 <item>
@@ -113,10 +498,8 @@
 <link>https://www.v2ex.com/t/981817</link>
 <guid>https://www.v2ex.com/t/981817</guid>
 <content:encoded><![CDATA[
-
 <p>这功能不错，不过恶心的是更换后不能卸载联想电脑管家，一卸载就给还原了……</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:52:55Z</pubDate>
 <pubDate>2023-10-13T12:23:47Z</pubDate>
 </item>
 <item>
@@ -124,10 +507,8 @@
 <link>https://www.v2ex.com/t/981816</link>
 <guid>https://www.v2ex.com/t/981816</guid>
 <content:encoded><![CDATA[
-
 你好，我是猫哥。这里每周分享优质的 Python 、AI 及通用技术内容，大部分为英文。标题取自其中一则分享，不代表全部内容都是该主题，特此声明。<br /><br />本周刊由 **Python 猫** 出品，精心筛选国内外的 250+ 信息源，为你挑选最值得分享的文章、教程、开源项目、软件工具、播客和视频、热门话题等内容。愿景：帮助所有读者精进 Python 技术，并增长职业和副业的收入。<br /><br />[微信]( <a href="https://img.pythoncat.top/python_cat.jpg" rel="nofollow noopener" target="_blank">https://img.pythoncat.top/python_cat.jpg</a>) | [博客]( <a href="https://pythoncat.top" rel="nofollow noopener" target="_blank">https://pythoncat.top</a>) | [邮件]( <a href="https://pythoncat.substack.com" rel="nofollow noopener" target="_blank">https://pythoncat.substack.com</a>) | [Github]( <a href="https://github.com/chinesehuazhou/python-weekly" rel="nofollow noopener" target="_blank">https://github.com/chinesehuazhou/python-weekly</a>) | [Telegram]( <a href="https://t.me/pythontrendingweekly" rel="nofollow noopener" target="_blank">https://t.me/pythontrendingweekly</a>) | [Twitter]( <a href="https://twitter.com/chinesehuazhou" rel="nofollow noopener" target="_blank">https://twitter.com/chinesehuazhou</a>) <br /><br />本周刊开通 Telegram 频道后，已有 770+ 小伙伴加入，欢迎你的加入：[<a href="https://t.me/pythontrendingweekly" rel="nofollow noopener" target="_blank">https://t.me/pythontrendingweekly</a>]( <a href="https://t.me/pythontrendingweekly" rel="nofollow noopener" target="_blank">https://t.me/pythontrendingweekly</a>)<br /><br />## 🦄文章&amp;教程<br /><br />1 、[Python 3.12.0 版本发布了]( <a href="https://www.python.org/downloads/release/python-3120/" rel="nofollow noopener" target="_blank">https://www.python.org/downloads/release/python-3120/</a>)<br /><br />Python 最新大版本 3.12 发布了！包含许多新功能和优化，本期周刊有几篇文章涉及相关内容。（附：[Python 3.12 新功能的详细介绍]( <a href="https://realpython.com/python312-new-features/)）" rel="nofollow noopener" target="_blank">https://realpython.com/python312-new-features/)）</a><br /><br />2 、[Python 3.12 速览：子解释器]( <a href="https://realpython.com/python312-subinterpreters/" rel="nofollow noopener" target="_blank">https://realpython.com/python312-subinterpreters/</a>)<br /><br />Python 子解释器是什么？ 3.12 版本的 PEP-684 做了什么？ 3.13 版本可能会出现什么变化？<br /><br />3 、[聊聊 Python 3.12 中 perf 的原生支持]( <a href="https://www.manjusaka.blog/posts/2023/10/05/the-perf-feature-python-312/" rel="nofollow noopener" target="_blank">https://www.manjusaka.blog/posts/2023/10/05/the-perf-feature-python-312/</a>)<br /><br />介绍了 Python 的栈帧基本知识、3.12 之前对于 trace 和 perf 的实现、以及 3.12 新引入的 Linux 原生 perf 的实现。<br /><br />4 、[Python 3.12 速览：静态类型的改进]( <a href="https://realpython.com/python312-typing/" rel="nofollow noopener" target="_blank">https://realpython.com/python312-typing/</a>)<br /><br />3.12 版本带来了一些调整和改进：使用类型变量来注释泛型类和函数、类型变量的新语法、使用新的 @<a href="https://www.v2ex.com/member/override" rel="nofollow noopener" target="_blank">override</a> 装饰器作模型继承、用类型化的字典更精确注解 \*\*kwargs 。<br /><br />5 、[FastAPI 中的依赖注入：构建可维护的高性能 Web 应用]( <a href="https://juejin.cn/post/7283461184514572349" rel="nofollow noopener" target="_blank">https://juejin.cn/post/7283461184514572349</a>) <br /><br />依赖注入是一种强大的设计模式，FastAPI 中如何利用依赖注入来构建可维护的高性能 Web 应用？涉及内容：使用依赖注入管理配置、数据库访问和 ORM 的依赖注入、高级依赖注入技巧、测试依赖注入、性能优化和缓存的依赖注入、安全性和依赖注入等。<br /><br />6 、[深入理解 python 虚拟机：原来虚拟机是这么实现闭包的]( <a href="https://juejin.cn/post/7286670786563244090" rel="nofollow noopener" target="_blank">https://juejin.cn/post/7286670786563244090</a>)<br /><br />文章介绍了闭包的使用例子和使用原理，主要从虚拟机层面讨论函数闭包是如何实现的？<br /><br />7 、[探索 Pexpect 库：深入理解 expect_list 方法]( <a href="https://juejin.cn/post/7287418444647677986" rel="nofollow noopener" target="_blank">https://juejin.cn/post/7287418444647677986</a>)<br /><br />[pexpect]( <a href="https://github.com/pexpect/pexpect" rel="nofollow noopener" target="_blank">https://github.com/pexpect/pexpect</a>) 可用于交互式应用的自动化，如 ssh 、ftp 、passwd 、telnet 等，Github star 2.4K 。文章介绍了它的 expect_list 方法的使用。<br /><br />8 、[介绍 textual-plotext ，在终端里绘图]( <a href="https://textual.textualize.io/blog/2023/10/04/announcing-textual-plotext/" rel="nofollow noopener" target="_blank">https://textual.textualize.io/blog/2023/10/04/announcing-textual-plotext/</a>)<br /><br />介绍了 textual-plotext 库的用法，它可以在终端里用 [Plotext]( <a href="https://github.com/piccolomo/plotext" rel="nofollow noopener" target="_blank">https://github.com/piccolomo/plotext</a>) 绘图。<br /><br />9 、[Python Asyncio 系列文章 5 篇]( <a href="https://bbc.github.io/cloudfit-public-docs/" rel="nofollow noopener" target="_blank">https://bbc.github.io/cloudfit-public-docs/</a>)<br /><br />BBC R&amp;D Cloudfit 团队的系列博客文章，Asyncio 系列已更新 5 篇，内容有基础概念及模式、异步上下文管理器和异步迭代器、库支持、混合异步和同步代码。<br /><br />10 、[使用 eBPF 分析 Python 和 Ruby]( <a href="https://www.polarsignals.com/blog/posts/2023/10/04/profiling-python-and-ruby-with-ebpf" rel="nofollow noopener" target="_blank">https://www.polarsignals.com/blog/posts/2023/10/04/profiling-python-and-ruby-with-ebpf</a>)<br /><br />使用 eBPF 从内存结构中读取抽象堆栈数据，实现堆栈跟踪及代码执行分析。<br /><br />11 、[Python 3.12: 不那么热门的改动]( <a href="https://www.bitecode.dev/p/python-312-what-didnt-make-the-headlines" rel="nofollow noopener" target="_blank">https://www.bitecode.dev/p/python-312-what-didnt-make-the-headlines</a>)<br /><br />文章介绍了 3.12 版本中不那么引入关注的改动：pathlib 库的改进、更好的调试体验、切片对象现在是可哈希的、意外出现的 math.sumprod()、新的命令行界面。<br /><br />12 、[从供应链安全角度看 Python 3.12.0]( <a href="https://sethmlarson.dev/security-developer-in-residence-weekly-report-13" rel="nofollow noopener" target="_blank">https://sethmlarson.dev/security-developer-in-residence-weekly-report-13</a>)<br /><br />Python 版本的发布流程是怎样的？版本构建的过程有哪些可改进的地方？文章另外介绍了用软件物料清单 （ SBOM ） 来跟踪软件分发的子组件以及它们在版本之间的变化。<br /><br />🎁**Python 潮流周刊**🎁已免费发布了 22 期，访问下方链接，即可查看全部内容：[<a href="https://pythoncat.top/tags/weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/tags/weekly</a>]( <a href="https://pythoncat.top/tags/weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/tags/weekly</a>) <br /><br />原文：[<a href="https://pythoncat.top/posts/2023-10-12-weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/posts/2023-10-12-weekly</a>]( <a href="https://pythoncat.top/posts/2023-10-12-weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/posts/2023-10-12-weekly</a>)<br /><br />## 🐿️项目&amp;资源<br /><br />1 、[mwmbl：用 Python 实现的开源非营利搜索引擎]( <a href="https://github.com/mwmbl/mwmbl" rel="nofollow noopener" target="_blank">https://github.com/mwmbl/mwmbl</a>)<br /><br />一个非营利、无广告、免费的搜索引擎，专注于可用性和速度。目前仅是概念验证版本，索引的页面还比较少。（ star 1K ）<br /><br />2 、[dataherald：自然语言转 SQL 引擎]( <a href="https://github.com/Dataherald/dataherald" rel="nofollow noopener" target="_blank">https://github.com/Dataherald/dataherald</a>)<br /><br />基于结构化数据进行企业级问答，允许设置一个 API ，可用简单的英语回答问题。<br /><br />3 、[dspy：使用基础模型编程的框架]( <a href="https://github.com/stanfordnlp/dspy" rel="nofollow noopener" target="_blank">https://github.com/stanfordnlp/dspy</a>)<br /><br />一个使用语言模型 （ LM ） 和检索模型 （ RM ） 解决高级任务的框架。它统一了提示和微调 LM 的技术，以及推理、自我改进和使用检索和工具增强的方法。（ star 3.5K ）<br /><br />4 、[TTS：文本到语音转换的深度学习工具包]( <a href="https://github.com/coqui-ai/TTS" rel="nofollow noopener" target="_blank">https://github.com/coqui-ai/TTS</a>)<br /><br />一个用高级文本生成语音的库，使用 1100 中语言的预训练模型，可用于训练新模型和微调任何语言的现有模型。（ star 20.3K ）<br /><br />5 、[rustworkx：用 Rust 实现的高性能 Python 图形库]( <a href="https://github.com/Qiskit/rustworkx" rel="nofollow noopener" target="_blank">https://github.com/Qiskit/rustworkx</a>)<br /><br />用 Rust 编写的通用 Python 图形库，拥有高性能和安全性。<br /><br />6 、[faststream：构建与事件流交互的异步服务]( <a href="https://github.com/airtai/faststream" rel="nofollow noopener" target="_blank">https://github.com/airtai/faststream</a>)<br /><br />一个用于构建与 Apache Kafka 、RabbitMQ 和 NATS 等事件流交互的异步服务框架，简化了为消息队列编写生产者和使用者的过程。<br /><br />7 、[aiohttp：异步 HTTP 客户端/服务器框架]( <a href="https://github.com/aio-libs/aiohttp" rel="nofollow noopener" target="_blank">https://github.com/aio-libs/aiohttp</a>)<br /><br />流行的异步 HTTP 框架，主要特点：支持客户端和服务端的 HTTP 协议、开箱即用的 Websocket 、支持中间件和可插拔路由。（ star 14K ）<br /><br />8 、[panther：高性能的 Python Web 框架]( <a href="https://github.com/AliRn76/Panther" rel="nofollow noopener" target="_blank">https://github.com/AliRn76/Panther</a>)<br /><br />基于 Python 3.11 的 Web 框架，特点有面向文档的数据库 ODM 、支持 Websocket 、提供缓存 API 、内置身份验证类、内置权限类、自定义中间件、可视化的 API 监控等。<br /><br />9 、[qiskit：用于量子计算机的开源 SDK]( <a href="https://github.com/Qiskit/qiskit" rel="nofollow noopener" target="_blank">https://github.com/Qiskit/qiskit</a>)<br /><br />未来有可能人人都可以轻松使用量子计算机么？[Qiskit]( <a href="https://qiskit.org/documentation/" rel="nofollow noopener" target="_blank">https://qiskit.org/documentation/</a>) 项目的目标是这样。这个库是 Qiskit 的核心组件，包含用于创建和使用量子电路、量子算子和基元函数的构建块。（ star 3.9K ）<br /><br />10 、[vizro：用于创建模块化数据可视化应用的工具包]( <a href="https://github.com/mckinsey/vizro" rel="nofollow noopener" target="_blank">https://github.com/mckinsey/vizro</a>)<br /><br />使用几行简单的配置就能创建复杂的仪表板，利用 Plotly 和 Dash 等库绘图。支持多种格式编写配置，包括 Pydantic 模型、JSON 、YAML 或 Python 字典。（ star 1.5K ）<br /><br />11 、[numpy-ml：用 numpy 作机器学习]( <a href="https://github.com/ddbourgin/numpy-ml" rel="nofollow noopener" target="_blank">https://github.com/ddbourgin/numpy-ml</a>)<br /><br />这是一个由大量机器学习模型、算法和工具组成的集合，专门用 NumPy 和 Python 标准库编写。（ star 14K ）<br /><br />12 、[pdfplumber：PDF 解析库]( <a href="https://github.com/jsvine/pdfplumber" rel="nofollow noopener" target="_blank">https://github.com/jsvine/pdfplumber</a>)<br /><br />可解析 PDF 每个文本字符、矩形和线条的详细信息，支持提取表格和可视化调试。（ star 4.6K ）<br /><br />## 🐢播客&amp;视频<br /><br />1 、[Mojo 编程语言的新手入门教程]( <div class="embedded_video_wrapper"></div>)<br /><br />FreeCodeCamp 推出的一个 Mojo 入门学习视频，已接近 10 万播放量。<br /><br />2 、[Python 3.12: 你需要知道的新特性]( <div class="embedded_video_wrapper"></div>)<br /><br />探讨 Python 3.12 中令人兴奋的新功能和改进，也讨论了即将发布的版本将删除的一些元素。<br /><br />原文：[<a href="https://pythoncat.top/posts/2023-10-12-weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/posts/2023-10-12-weekly</a>]( <a href="https://pythoncat.top/posts/2023-10-12-weekly" rel="nofollow noopener" target="_blank">https://pythoncat.top/posts/2023-10-12-weekly</a>)<br /><br />## 🐱赞助&amp;支持<br /><br />如果你喜欢周刊，请分享给其他需要的同学，让更多人可以从中受益～<br /><br />如果你觉得周刊有价值，请随意[赞赏]( <a href="https://img.pythoncat.top/wechat_code.png" rel="nofollow noopener" target="_blank">https://img.pythoncat.top/wechat_code.png</a>) 或 [买杯咖啡]( <a href="https://www.buymeacoffee.com/pythoncat" rel="nofollow noopener" target="_blank">https://www.buymeacoffee.com/pythoncat</a>) 进行支持！<br /><br />如果你想帮助周刊办得更好，欢迎向我们投稿或提出建议：[投稿/建议通道]( <a href="https://github.com/chinesehuazhou/python-weekly/issues/new" rel="nofollow noopener" target="_blank">https://github.com/chinesehuazhou/python-weekly/issues/new</a>)<br /><br />如果你是品牌方或广告主，欢迎私信我，洽谈赞助与合作事项。<br /><br />## 🐼欢迎订阅<br /><br />- [微信公众号]( <a href="https://img.pythoncat.top/python_cat.jpg)：除更新周刊外，还发布其它原创作品，并转载一些优质文章。（可加好友，可加读者交流群）" rel="nofollow noopener" target="_blank">https://img.pythoncat.top/python_cat.jpg)：除更新周刊外，还发布其它原创作品，并转载一些优质文章。（可加好友，可加读者交流群）</a><br />- [博客]( <a href="https://pythoncat.top" rel="nofollow noopener" target="_blank">https://pythoncat.top</a>) 及 [RSS]( <a href="https://pythoncat.top/rss.xml)：我的独立博客，上面有历年原创/翻译的技术文章，以及从" rel="nofollow noopener" target="_blank">https://pythoncat.top/rss.xml)：我的独立博客，上面有历年原创/翻译的技术文章，以及从</a> 2009 年以来的一些随笔。<br />- [Github]( <a href="https://github.com/chinesehuazhou/python-weekly)：你可以获取本周刊的" rel="nofollow noopener" target="_blank">https://github.com/chinesehuazhou/python-weekly)：你可以获取本周刊的</a> Markdown 源文件，做任何想做的事！<br />- [邮件]( <a href="https://pythoncat.substack.com" rel="nofollow noopener" target="_blank">https://pythoncat.substack.com</a>)：在 Substack 上开通的频道，满足你通过邮件阅读时事通讯的诉求。<br />- [Telegram]( <a href="https://t.me/pythontrendingweekly)：除了发布周刊的通知外，我将它视为一个“副刊”，补充发布更加丰富的资讯。" rel="nofollow noopener" target="_blank">https://t.me/pythontrendingweekly)：除了发布周刊的通知外，我将它视为一个“副刊”，补充发布更加丰富的资讯。</a><br />- [Twitter]( <a href="https://twitter.com/chinesehuazhou)：我的关注列表里有大量" rel="nofollow noopener" target="_blank">https://twitter.com/chinesehuazhou)：我的关注列表里有大量</a> Python 相关的开发者与组织的账号。
 ]]></content:encoded>
-<pubDate>2023-10-13T11:49:38Z</pubDate>
 <pubDate>2023-10-13T07:49:38Z</pubDate>
 </item>
 <item>
@@ -135,11 +516,9 @@
 <link>https://www.v2ex.com/t/981815</link>
 <guid>https://www.v2ex.com/t/981815</guid>
 <content:encoded><![CDATA[
-
 <p>在指定手机号码范围内，根据支付宝头像、真实姓名、昵称这些怎样查询对应的手机号（手机号范围在文本文件里，总共 100 万个手机号）？
 文本文件链接： <a href="https://www.123pan.com/s/J78kjv-5mafd.html" rel="nofollow">https://www.123pan.com/s/J78kjv-5mafd.html</a> 提取码:Y1If</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:45:36Z</pubDate>
 <pubDate>2023-10-13T07:45:36Z</pubDate>
 </item>
 <item>
@@ -147,12 +526,10 @@
 <link>https://www.v2ex.com/t/981813</link>
 <guid>https://www.v2ex.com/t/981813</guid>
 <content:encoded><![CDATA[
-
 <p>首次在中东发现石油是 1908 年，不敢想象要是当时的中国要是也被发现石油，而且储量也这么大的话，中国会被帝国们蹂躏成什么样……</p>
 <p>现在看来资本主义所宣传的自由平等和天赋人权，并不是针对所有人的，它只是帝国主义的内部宣传。</p>
 <p>操了。整个地球就 tm 没有一个正义的地方，就奇了怪了，——为什么会有正义啊？为什么向往正义啊？</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:36:47Z</pubDate>
 <pubDate>2023-10-12T19:36:47Z</pubDate>
 </item>
 <item>
@@ -160,10 +537,8 @@
 <link>https://www.v2ex.com/t/981811</link>
 <guid>https://www.v2ex.com/t/981811</guid>
 <content:encoded><![CDATA[
-
 同一地点，celcom 、CTM 漫入中国移动<br />CUniq HK 漫入中国联通<br /><br />celcom   下载 125Mbps 、ping 123ms<br />CTM  下载 152Mbps 、ping 30ms<br />CUniq HK  下载 117Mbps 、ping 35ms<br /><br />就下载速度和 ping 而言，CTM 取胜。CTM🐂<br /><br />运营商：#澳门电讯 #CTM #CUHK #中国联通香港  #CUniq HK  <br />套餐：CTM：上台套餐，CUHK:月神卡，celcom：prepaid<br />测速日期：2023 年 10 月 11 日晚<br />测速地点：深圳<br /><br /><br />测速图片：<br /> <a href="https://t.me/speedtests/31" rel="nofollow noopener" target="_blank">https://t.me/speedtests/31</a> <br /><br /><br />另，可以加入 tg 的频道和群组一起交流：<br />境外卡测速数据分享/订阅/讨论群组<br />📣官方频道:  <a href="https://t.me/speedtests" rel="nofollow noopener" target="_blank">https://t.me/speedtests</a><br />👥官方群组:  <a href="https://t.me/speedtests_chat" rel="nofollow noopener" target="_blank">https://t.me/speedtests_chat</a>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:28:02Z</pubDate>
 <pubDate>2023-10-13T11:28:02Z</pubDate>
 </item>
 <item>
@@ -171,10 +546,8 @@
 <link>https://www.v2ex.com/t/981810</link>
 <guid>https://www.v2ex.com/t/981810</guid>
 <content:encoded><![CDATA[
-
 如题呀 机缘巧合 得到了 1000 块钱的 OpenAI Credit 能干嘛呀？但是不知道能干嘛只有 3 个月的有效期哦
 ]]></content:encoded>
-<pubDate>2023-10-13T11:17:17Z</pubDate>
 <pubDate>2023-10-13T11:14:17Z</pubDate>
 </item>
 <item>
@@ -182,10 +555,8 @@
 <link>https://www.v2ex.com/t/981809</link>
 <guid>https://www.v2ex.com/t/981809</guid>
 <content:encoded><![CDATA[
-
 当下这种一日游行情。。。只能抄下小赛道，芯片和教育好像起来了。已经不想取追了。
 ]]></content:encoded>
-<pubDate>2023-10-13T11:15:29Z</pubDate>
 <pubDate>2023-10-13T03:15:29Z</pubDate>
 </item>
 <item>
@@ -193,7 +564,6 @@
 <link>https://www.v2ex.com/t/981808</link>
 <guid>https://www.v2ex.com/t/981808</guid>
 <content:encoded><![CDATA[
-
 <p>刚刚准备下班前最后摸一次鱼<br />
 突然发现论坛有两个帖子 </p>
 <p>关于保险的问题，有不清楚的都可以在这篇帖子下提问<br />
@@ -203,7 +573,6 @@ VIM &amp; Python   </p>
 还是多重宇宙卡 bug 了</p>
 <p>如果是卡 bug 了,我想我还有机会回到过去做些未尽之事...</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:07:05Z</pubDate>
 <pubDate>2023-10-13T12:24:09Z</pubDate>
 </item>
 <item>
@@ -211,7 +580,6 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981807</link>
 <guid>https://www.v2ex.com/t/981807</guid>
 <content:encoded><![CDATA[
-
 <div>
  新闻原文： 
  <a href="https://cj.sina.com.cn/articles/view/1686546714/6486a91a02001yh7v" rel="nofollow">https://cj.sina.com.cn/articles/view/1686546714/6486a91a02001yh7v</a>
@@ -221,7 +589,6 @@ VIM &amp; Python   </p>
 <br />居然只罚款八万元？？？
 </div>
 ]]></content:encoded>
-<pubDate>2023-10-13T11:03:46Z</pubDate>
 <pubDate>2023-10-13T11:40:15Z</pubDate>
 </item>
 <item>
@@ -229,10 +596,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981806</link>
 <guid>https://www.v2ex.com/t/981806</guid>
 <content:encoded><![CDATA[
-
 国行三星可以启用 fcm 的。<br />两个条件满足就可以：<br />1.系统能连上 Google （因为国行系统当连不上 Google 后就会断开 FCM 连接）<br />2.想要接收 fcm 通知的应用，智能管理器里面允许自启动（因为只有允许自启动，app 才能进缓存，fcm 需要 app 有缓存才能广播成功推送消息）<br />可以用我开发的工具查看哪些应用支持 FCM 推送，并且可以调出系统 FCM 日志界面。<br /><a href="https://github.com/HappyMax0/FCMPushViewer" rel="nofollow noopener" target="_blank">https://github.com/HappyMax0/FCMPushViewer</a><br /><br />国内其它 rom 要用 fcm 也要注意想要走 fcm 的应用给开启自启动权限，确保应用的电池选项最少为“优化”。<br />这里有一篇文章详细解释了 FCM：<br /><a href="https://www.j000e.com/Android/Android_battery_optimization-fcm_working_conditions.html" rel="nofollow noopener" target="_blank">https://www.j000e.com/Android/Android_battery_optimization-fcm_working_conditions.html</a><br /><br />根据我的经验，微软全家桶（废话）走的是 FCM ，比如需要 Outlook 、微软验证器、XBOX 、Teams 推送的需要 FCM 。<br />还有国产应用里支持并且能推送的有：Play 版知乎、Bilibili 、闲鱼（玄学）、小红书（最新版，玄学）、钉钉，非 Play 版的飞书。<br /><br />其实中国大陆安卓机处于一种不公平状态，只有华为、小米、OPPO 、VIVO 有大量应用接入厂商的消息推送服务。<br />其它小众品牌比如三星、索尼、moto 、努比亚这些，虽然有和极光推送&amp;个推合作的统一推送服务，但几乎没有 app 接入，即使接入了也只会推送广告（三星就是），不会推送正经消息。<br />其实从技术层面很容易解决，就是 app 开发商不作为。（只能自己安装第三方 mipush/hms 解决，或者良心应用接入 FCM 推送）
 ]]></content:encoded>
-<pubDate>2023-10-13T11:00:00Z</pubDate>
 <pubDate>2023-10-13T12:30:03Z</pubDate>
 </item>
 <item>
@@ -240,7 +605,6 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981805</link>
 <guid>https://www.v2ex.com/t/981805</guid>
 <content:encoded><![CDATA[
-
 <p>账号地区土耳其 付款资料也是土耳其  之前订阅过多邻国没有问题</p>
 <p>最近想开个迪士尼订阅  打开 app 注册账号 结果账号密码填完直接显示这个图  没有订阅价格</p>
 <p><a href="https://i.mji.rip/2023/10/13/145f0f382f6f8dad4bcfa998dc0ee100.jpeg" rel="nofollow">https://i.mji.rip/2023/10/13/145f0f382f6f8dad4bcfa998dc0ee100.jpeg</a></p>
@@ -249,7 +613,6 @@ VIM &amp; Python   </p>
 <p>为了验证是不是被风控了  于是开了个 spotify 订阅 结果正常</p>
 <p>有没有大佬帮忙分析下哪里出问题了</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T10:54:53Z</pubDate>
 <pubDate>2023-10-13T10:58:23Z</pubDate>
 </item>
 <item>
@@ -257,10 +620,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981804</link>
 <guid>https://www.v2ex.com/t/981804</guid>
 <content:encoded><![CDATA[
-
 关于我，一名保险经纪人<br />保险经纪人，是和很多保险公司合作的关系，市面上绝大部分的产品都有，可以真正的按照需求，再去匹配产品，相对于保险公司代理人，产品的选择范围会广很多。<br /><br />简单科普下保险的种类，大体分成两种，一种是保障类，一种是储蓄类<br /><br />保障类：<br />意外险，主要责任是身故/全残赔付，综合意外险还会有意外医疗、自驾、公共交通的责任。<br /><br />医疗险，根据就医的医院范围/地理范围/医疗责任等，简单分为百万医疗险（公立医院普通部）、中端医疗（公立医院普通部+特需部+国际部/少部分私立医院）、高端医疗（普通部+特需部+国际部/绝大部分私立医院/地理范围不限在中国，可全球就医）<br /><br />重疾险，一次性赔付，罹患约定重疾赔一笔钱，用于医疗意外的费用，比如说生病无法上班期间的生活开支、车贷房贷等，当然这只是简单举例，实际还会有很多责任，比如多次赔、癌症二次赔、特定疾病额外赔等等<br /><br />寿险，分为定期寿险/终身寿险，定期寿险主要是赚钱阶段万一出现意外，能够赔付家属一笔钱，用来维持生活，偿还债务；终身寿险，因为是终身的，总归百年之后这笔钱都会赔付给家属，所以主要是通过杠杆的方式，把财富传承到下一代，完成所有缴费的情况下，大概杠杆 3-4 倍（ 30 万左右总保费撬动 100 万保额）<br /><br />储蓄类：<br />增额终身寿，简单说就是一个带封闭期长期存款，缴费期间退保会有损失，过了缴费期后现金价值（退保给的钱）稳定增长，传统型的增额寿现在复利能到 2.9%左右，分红型的有的复利甚至能超过 3.5%，为什么说是复利？因为现金价值增长以后，之后都会按照增长后的现金价值去计算，不像银行比如 1 万存 5 年，这 5 年都是按 1 万的本金去算<br /><br />年金险，分为快返型年金/养老年金，快返型也就是交费后，几年后开始返还保费，一直返还或者返还一段时间；养老年金，其实就是养老金了，对比社保养老金，交同样的钱会比社保最少多领 1 倍养老金<br /><br />大家有什么保险的问题，都可以留言，我定期都会回复大家，欢迎关注我全平台（抖音、小红书、b 站、视频号等）自媒体账号：王瑞说保险/小王说保险，也可以+V 咨询：WSJianBao
 ]]></content:encoded>
-<pubDate>2023-10-13T10:52:58Z</pubDate>
 <pubDate>2023-10-13T12:31:19Z</pubDate>
 </item>
 <item>
@@ -268,10 +629,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981803</link>
 <guid>https://www.v2ex.com/t/981803</guid>
 <content:encoded><![CDATA[
-
 10010 说 22 年 3 月发了个文件，之后家宽就不给开通公网 ip 了，如果有需要必须转商宽。这种有啥办法搞定吗
 ]]></content:encoded>
-<pubDate>2023-10-13T10:49:28Z</pubDate>
 <pubDate>2023-10-12T18:48:28Z</pubDate>
 </item>
 <item>
@@ -279,10 +638,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981801</link>
 <guid>https://www.v2ex.com/t/981801</guid>
 <content:encoded><![CDATA[
-
 在用 vim 写花括号语言的时候，光标在函数体内，可以在 normal mode 里`vi{` 或者 `va{`来选中整个函数体。当然，这里只是举例，不限于函数体。<br /><br />但是到了 python 里，我很好奇各位都是怎么快速选择一个函数体的？或者快速选择整个 class ？
 ]]></content:encoded>
-<pubDate>2023-10-13T10:36:57Z</pubDate>
 <pubDate>2023-10-13T12:32:38Z</pubDate>
 </item>
 <item>
@@ -290,10 +647,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981799</link>
 <guid>https://www.v2ex.com/t/981799</guid>
 <content:encoded><![CDATA[
-
 <p>限流一般都是针对 ip ，用户来做，这样如果频繁换 ip ，实际理论上也是可以突破服务器最大吞吐的，如果需要再加一个总限流一般怎么搞？</p>
 ]]></content:encoded>
-<pubDate>2023-10-13T10:34:34Z</pubDate>
 <pubDate>2023-10-13T11:54:26Z</pubDate>
 </item>
 <item>
@@ -302,9 +657,7 @@ VIM &amp; Python   </p>
 <guid>https://www.v2ex.com/t/981798</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-13T10:31:32Z</pubDate>
 <pubDate>2023-10-13T10:28:32Z</pubDate>
 </item>
 <item>
@@ -312,10 +665,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981796</link>
 <guid>https://www.v2ex.com/t/981796</guid>
 <content:encoded><![CDATA[
-
 他这个大模型学习是怎么个方式流程 技术路线和其他厂商的有什么不一样?
 ]]></content:encoded>
-<pubDate>2023-10-13T10:29:45Z</pubDate>
 <pubDate>2023-10-13T11:32:03Z</pubDate>
 </item>
 <item>
@@ -323,10 +674,8 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981794</link>
 <guid>https://www.v2ex.com/t/981794</guid>
 <content:encoded><![CDATA[
-
 最近平台工程比较火，想搞一个大的平台，然后各个开发组在上面注册模块自行开发维护。<br />用户登录到这个大平台，可以一站式使用到各个模块。<br />之前都是写单个的工程，没搞过这种，请问有啥好的思路没？
 ]]></content:encoded>
-<pubDate>2023-10-13T10:19:28Z</pubDate>
 <pubDate>2023-10-13T10:19:28Z</pubDate>
 </item>
 <item>
@@ -334,7 +683,6 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/980539</link>
 <guid>https://www.v2ex.com/t/980539</guid>
 <content:encoded><![CDATA[
-
 <h2>简介</h2>
 <ol>
 <li>尺寸和引脚的排列与官方保持一致</li>
@@ -349,7 +697,6 @@ VIM &amp; Python   </p>
 <p><img alt="正面" class="embedded_image" rel="noreferrer" src="https://static.rymcu.com/article/1696906658495.png" />
 <img alt="背面" class="embedded_image" rel="noreferrer" src="https://static.rymcu.com/article/1696906776730.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-10T03:02:38Z</pubDate>
 <pubDate>2023-10-10T16:08:12Z</pubDate>
 </item>
 <item>
@@ -357,7 +704,6 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/980512</link>
 <guid>https://www.v2ex.com/t/980512</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://webfollow.cc" rel="nofollow">webfollow.cc</a> </p>
 <p>又又又更新了</p>
 <p>本次主要更新 </p>
@@ -372,7 +718,6 @@ VIM &amp; Python   </p>
 <li>3.PWA ，响应式</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-10-10T02:12:12Z</pubDate>
 <pubDate>2023-10-10T13:22:24Z</pubDate>
 </item>
 <item>
@@ -380,7 +725,6 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/980554</link>
 <guid>https://www.v2ex.com/t/980554</guid>
 <content:encoded><![CDATA[
-
 <h1>支持多关键词筛选</h1>
 <p>之前 ReadBot 实现了自定义关键词，文章更新时会自动识别关键词，最近更新了关键词筛选的功能：</p>
 <ol>
@@ -416,7 +760,6 @@ VIM &amp; Python   </p>
 <p>多关键词筛选</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/tMFJ1zW1.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-10T03:27:39Z</pubDate>
 <pubDate>2023-10-10T11:47:11Z</pubDate>
 </item>
 <item>
@@ -424,13 +767,10 @@ VIM &amp; Python   </p>
 <link>https://www.v2ex.com/t/981797</link>
 <guid>https://www.v2ex.com/t/981797</guid>
 <content:encoded><![CDATA[
-
 项目需求:<br /><br />一、大数据采集工具<br /><br />(一)采集工具配置:对采集对象，采集频率，错误或故障等条件进行设置<br />(二)采集数据管理:对采集的数据进展搜索查看，进行删除等操作<br /><br />二、数据清洗工具套件<br /><br />(一)数据提取:用于对公共网站采集的信息进行关键信息抽取，获得有价值数据<br />(二)数据判断和剔除:对错误数据，重复数据，失效数据进行判断和剔除<br />(三)工具配置:对工具相关参数进行设置，保障采集数据清洗的准确性<br /><br />三、数据治理工具套件(ETL)<br /><br />(一)数据换算:1 、计量数据换算为能耗数据<br /><br />2 、数据采集提取的关键数据换算为能耗数据<br /><br />3 、能耗计算结果与采集换算后的能耗数据对比判断;<br />(二)数据报告数值:为数据自动报告提供数据字段值<br /><br />项目要求:1.需提供源码交付<br /><br />2.支持二开<br /><br />3.公司所在地在杭州及附近<br /><br />4.可提供 demo 演示<br /><br />5.同时提供该模块相关验收文档<br /><br />6.具体价格可根据 demo 演示结果面议<br /><br />7.工期比较紧<br /><br />8.联系 V:bHZsaW54aWFvMjAyMw==
 ]]></content:encoded>
 <pubDate>2023-10-13T10:30:52Z</pubDate>
-<pubDate>2023-10-13T10:30:52Z</pubDate>
 </item>
-
 <item>
 <title>[Java] spring boot 项目 maven 打包问题请教</title>
 <link>https://www.v2ex.com/t/981793</link>
@@ -15099,561 +15439,6 @@ YouTube Premium + Google One 2 TB （平分下来每人 333G ），美国家庭�
 <p>电脑就是为人服务的，工欲善其事必先利其器，要的是提升工作效率，而不是折腾，它的定位就只能是道法术器中器的角色，不要被器所累，每天想着下载各种应用，升级啊，更新啊，换壁纸啊，这些会有瘾，像吸烟一样，结果被器所累，不值得不值得，花更多的时间在生活和学习上挺好，个人观点勿喷</p>
 ]]></content:encoded>
 <pubDate>2023-10-10T08:20:51Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 找份区块链相关的远程前端开发工作，技术栈： react/vue/web3/ethers/node/metamask</title>
-<link>https://www.v2ex.com/t/980634</link>
-<guid>https://www.v2ex.com/t/980634</guid>
-<content:encoded><![CDATA[
-1 、三年区块链从业经验、做过 DAO 、NFT 、Defi 、GameFi 相关应用产品。<br /><br />2 、做事情有头有尾，快速迭代，能够独立完成各种前端产品的开发工作。<br />TG:super199511
-]]></content:encoded>
-<pubDate>2023-10-10T06:57:23Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] M2 Pro WiFi 列表为空，搜不到任何 WiFi</title>
-<link>https://www.v2ex.com/t/980633</link>
-<guid>https://www.v2ex.com/t/980633</guid>
-<content:encoded><![CDATA[
-<p>重启才解决，遇到好几次了，你们有过这种情况吗？</p>
-<p>就是有时合盖休眠后，打开会出现</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:54:39Z</pubDate>
-</item>
-<item>
-<title>[Linux] 求助：如何阻止 rpmbuild 往动态库文件“投毒” (在 meson/ninja 构建时强行将 libgcc_s.so.1 加入动态库)</title>
-<link>https://www.v2ex.com/t/980632</link>
-<guid>https://www.v2ex.com/t/980632</guid>
-<content:encoded><![CDATA[
-<h1>症状</h1>
-<p>我需要单独构建一个 <a href="http://libsystemd.so" rel="nofollow">libsystemd.so</a> ，但我发现手动构建和编写 spec 文件后用 rpmbuild 构建出来的 libsystemd.so.0.35.0 不同，rpmbuild 构建出来始终多一个 libgcc_s.so.1 的依赖：</p>
-<pre><code class="language-bash">build/libsystemd.so.0.35.0:
-        linux-vdso.so.1 (0x0000ffffb5d77000)
-        libcap.so.2 =&gt; /lib64/libcap.so.2 (0x0000ffffb5ab0000)
-        liblzma.so.5 =&gt; /lib64/liblzma.so.5 (0x0000ffffb5a50000)
-        libzstd.so.1 =&gt; /lib64/libzstd.so.1 (0x0000ffffb5980000)
-        libc.so.6 =&gt; /lib64/libc.so.6 (0x0000ffffb57b0000)
-        /lib/ld-linux-aarch64.so.1 (0x0000ffffb5d2a000)
-
-# 以上是手动构建效果，没有 libgcc_s.so.1
-# 以下是 rpmbuild 构建效果，强行塞了个 libgcc_s.so.1 进去
-
-../BUILD/systemd-252/build/libsystemd.so.0.35.0:
-        linux-vdso.so.1 (0x0000ffff92396000)
-        libcap.so.2 =&gt; /lib64/libcap.so.2 (0x0000ffff921f0000)
-        liblzma.so.5 =&gt; /lib64/liblzma.so.5 (0x0000ffff92190000)
-        libzstd.so.1 =&gt; /lib64/libzstd.so.1 (0x0000ffff920c0000)
-        libgcc_s.so.1 =&gt; /lib64/libgcc_s.so.1 (0x0000ffff92060000)
-        libc.so.6 =&gt; /lib64/libc.so.6 (0x0000ffff91e90000)
-        /lib/ld-linux-aarch64.so.1 (0x0000ffff92349000)
-</code></pre>
-<p>这对于想构建一个只依赖于 glibc 和其他文件体积不大的必备依赖的 libsystemd.so.0.35.0 来说是不可接受的。</p>
-<p>既然手动构建没有添加 libgcc_s.so.1 ，那么问题应该出在 rpmbuild 上，他会用某种方式向 meson 或 ninja 构建时传递了什么参数或选项导致（应该不是往构建规则文件中写入内容），我上网查找了下，可能导致 libgcc 被添加的是一些 gcc 构建选项比如：</p>
-<pre><code class="language-c">-Wl,--no-whole-archive
--Wl,--no-as-needed
---with-pie=no
-...
-</code></pre>
-<p>但网上查了下，如果不往 meson 有关构建文件添加这类信息的话，不会出现构建出来多一个依赖的情况，我对这东西不太了解，网上查了半天测试半天没什么头绪，有没有熟悉这方面的大佬解惑？提前感谢！</p>
-<hr />
-<h1>手动复现</h1>
-<p>我试了下还挺好复现问题的<strong>（后文涉及的很多段命令挂好代理后可以全选直接复制运行）:</strong></p>
-<ul>
-<li>vmware 装的系统：fedora server 38 就是最新版，安装系统时指定最小化安装，安装时创建一个能 sudo 提权的 build 用户</li>
-<li>进系统后配置源和安装必要软件包（ python 后面那版本号根据系统实际情况填写，我这是存在 3.12 版本的）：</li>
-</ul>
-<pre><code class="language-bash">systemctl stop dnf-makecache.timer
-systemctl disable dnf-makecache.timer
-sed -e 's|^metalink=|#metalink=|g' \
-    -e 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://mirrors.ustc.edu.cn/fedora|g' \
-    -i.bak \
-    /etc/yum.repos.d/fedora.repo \
-    /etc/yum.repos.d/fedora-modular.repo \
-    /etc/yum.repos.d/fedora-updates.repo \
-    /etc/yum.repos.d/fedora-updates-modular.repo
-dnf makecache
-
-dnf update
-dnf install wget nano tree -y
-dnf groupinstall "Development Tools" -y
-dnf install texinfo gcc-c++ perl -y
-[ -f /usr/bin/yacc ] &amp;&amp; mv /usr/bin/yacc /usr/bin/yacc.bak
-ln -s /usr/bin/bison /usr/bin/yacc
-dnf install meson gperf python3.12 python3-pip libcap-devel libmount-devel cmake -y
-dnf install fedora-packager rpmdevtools -y
-</code></pre>
-<ul>
-<li>之后所有操作切到普通用户下： <code>su - build</code></li>
-<li>创建 rpmbuild 打包环境：</li>
-</ul>
-<pre><code class="language-bash">cd /home/build
-rpmdev-setuptree
-rpmdev-newspec -o ~/rpmbuild/SPECS/test.spec
-</code></pre>
-<ul>
-<li>编写 spec 文件(这里面所有行全部复制,一次性粘贴到命令行运行)</li>
-</ul>
-<pre><code class="language-bash">cat &gt; ~/rpmbuild/SPECS/test.spec &lt;&lt; EOF
-Name:              aaa
-Version:           1.0.0
-Release:           1%{?dist}
-Summary:           aaa
-License:           GPLv3
-
-%global s0_dir systemd-252
-Source0:           %{s0_dir}.tar.gz
-#Source1:         systemd-252-security_fix-1.patch
-
-%description
-%prep
-rm -rf %{_builddir}/%{s0_dir}
-%setup -q -T -D -n %{s0_dir} -b 0
-
-%build
-cd %{_builddir}/%{s0_dir}
-#patch -Np1 -i %{S:1}
-meson build
-soName=\$(find build -maxdepth 1 -type d -name libsystemd.so* | sed  's#build/##; s#.p\$##')
-ninja -C build \${soName}
-# 这里加上退出是到构建操作结束直接停止，减少后续不必要的构建 rpm 软件包时的大量内容输出
-exit 123
-
-%install
-%pre
-%post
-%preun
-%postun
-%files
-%changelog
-%autochangelog
-EOF
-</code></pre>
-<ul>
-<li>下载源码包和补丁并分别为手动和 rpmbuild 构建各准备一份(多行命令，可全选一次性粘贴进命令行执行，最好挂个代理，下载慢)</li>
-</ul>
-<pre><code class="language-bash">wget -P ~ https://github.com/systemd/systemd/archive/v252/systemd-252.tar.gz
-cp -rp ~/systemd-252.tar.gz ~/rpmbuild/SOURCES
-
-</code></pre>
-<ul>
-<li>到此开始构建：</li>
-</ul>
-<pre><code class="language-bash">cd ~
-rm -rf ~/systemd-252
-tar xfv ~/systemd-252.tar.gz
-cd ~/systemd-252
-meson build
-soName=$(find build -maxdepth 1 -type d -name libsystemd.so* | sed  's#build/##; s#.p$##')
-ninja -C build ${soName}
-
-# 以上手动构建
-# 以下自动构建
-
-rpmbuild -D '_topdir /home/build/rpmbuild'  -bb ~/rpmbuild/SPECS/test.spec
-</code></pre>
-<ul>
-<li>检查结果(会出现开头的症状)：</li>
-</ul>
-<pre><code class="language-bash">ldd ~/systemd-252/build/libsystemd.so*
-
-# 以上手动构建检查
-# 以下自动构建检查
-
-ldd ~/rpmbuild/BUILD/systemd-252/build/libsystemd.so*
-</code></pre>
-<hr />
-<h1>运行输出信息</h1>
-<p>输出信息多还没高亮，而且超两万字限制了发不出来，建议本地复现检查</p>
-]]></content:encoded>
-<pubDate>2023-10-10T07:09:40Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 发现一个 E5 提升 OneDrive 存储的方法，最高 125TB</title>
-<link>https://www.v2ex.com/t/980631</link>
-<guid>https://www.v2ex.com/t/980631</guid>
-<content:encoded><![CDATA[
-<p>通过将其他账户 OneDrive 添加快捷方式到自己的 OneDrive 来变相增加存储<br />
-<br /></p>
-<ol>
-<li>
-<p>登入<a href="http://admin.microsoft.com/" rel="nofollow">Microsoft 365 管理中心</a></p>
-</li>
-<li>
-<p>在左侧菜单栏中选择 Users -&gt; Active users</p>
-</li>
-<li>
-<p>点击一个用户，在 OneDrive 页签中点击 Create link to files
-<img alt="ufLCuoU.png (930×653) (imgur.com)" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ufLCuoU.png" /></p>
-</li>
-<li>
-<p>打开链接后，Add shortcut to My files
-<img alt="C3RNvH9.png (795×182) (imgur.com)" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/C3RNvH9.png" /> </p>
-</li>
-</ol>
-<br />
-<p>之后在这个用户文件夹内上传的文件都算作他的空间而不算你的<br />
-E5 最多可以创建 25 个用户，每个用户 5TB ，所以一轮操作后最多可以获得 125TB 的存储</p>
-]]></content:encoded>
-<pubDate>2023-10-10T08:22:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问实现 Web 版本的送货单打印软件有什么技术上的门槛吗？</title>
-<link>https://www.v2ex.com/t/980629</link>
-<guid>https://www.v2ex.com/t/980629</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-10T06:51:03Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 远程工作 200 天了，感觉还是有点迷茫。# iOS 开发</title>
-<link>https://www.v2ex.com/t/980628</link>
-<guid>https://www.v2ex.com/t/980628</guid>
-<content:encoded><![CDATA[
-<p>总包大概在 40 ，创业团队阶段，还是挺忙的。项目在美国，我和中国的公司签劳动和同，合同注明不限制工作地点。</p>
-<p>App 项目，我入职之前老板亲自贡献了 大概 100W 代码，这 200 天，我们的贡献差不多。</p>
-<p>初期的三个月，老板经常说我的效率不行，平心而论，我确实觉得老板的思考速度非常快，编码速度也非常块。</p>
-<p>我很久都没理解项目的写法，倒没有什么复杂架构和模式之类的，项目中大量使用单例和 Storyboard 和继承，这些和我以前写项目的方式完全是相反的。</p>
-<p>初期我的负责的新功能和旧模块重构我全部都是想着要和现有代码隔离开来，所以使用了一些模式和 wrapper 类，这样确实能隔离一些代码，但是带来了代码行数，类和文件的增加，也增加了复杂度和理解难度和上下文切换的时间。</p>
-<p>这是我自己总结的我的效率上不去的原因。</p>
-<p>近期 我全部是重写和重构之前的代码，逐步地。现在完全沿用老板的风格写代码，速度确实快了很多很多。老板对 Storyboard 的用法之重确实是我之前难以想象的，现在看来确实是真的快。</p>
-<p>但是这么久的工作，自信心确实备受打击，老板自身美国某名校的 CS 博士的背景平时沟通中似乎有一种道不明的优越存在，也可能是我想多了。感觉平时的工作处在一中被动状态中，要说学到了什么，确实没有什么特别的东西。</p>
-<p>工作强度在前三个月真的堪比 996 ，好在老婆回国的一个月我买了个小破车 我们一起自驾来回老家 过了个暑假。但是那段事件，每天抽时间写代码，都冒出了白头发，想起来都很疲劳。</p>
-<p>每天的工作都有点提心吊胆，不知道老板什么时候又会对我说一些让人难受的话。</p>
-<p>有时候我想，如果我是管理者，我肯定能比老板做的好。但是这时候我又会想，可能这也就是我成不了老板这样的人的原因？</p>
-]]></content:encoded>
-<pubDate>2023-10-10T07:59:44Z</pubDate>
-</item>
-<item>
-<title>[生活] 买菜做饭真省钱</title>
-<link>https://www.v2ex.com/t/980625</link>
-<guid>https://www.v2ex.com/t/980625</guid>
-<content:encoded><![CDATA[
-<div>
- 这几天吃素
- <br />买了包菜 冬瓜 茭白 洋葱 芽白
- <br />够两个人吃两三天的量 加一袋盐
- <br />总花费 27.8
- <br />
-<br />冬瓜好便宜 一块钱一斤
- <br />
-<br />平时随便点外卖 一顿都要 50 以上 一份醋溜土豆丝都要 14 块钱
- <br />自己做饭 真划得来
-</div>
-]]></content:encoded>
-<pubDate>2023-10-10T08:15:38Z</pubDate>
-</item>
-<item>
-<title>[程序员] 想换个垂直鼠标，目前看中 Lift，有其它选择不？</title>
-<link>https://www.v2ex.com/t/980623</link>
-<guid>https://www.v2ex.com/t/980623</guid>
-<content:encoded><![CDATA[
-要能换电池的，不要内置锂电的。<br /><br />最近鼠标用着手腕不舒服，想换个垂直鼠标。<br /><br />手里的罗技 M705 便宜又耐用，一副电池用 3 年，这一点我特别喜欢。于是又去看了看罗技的鼠标，垂直鼠标有两款，一款 vertical 充电的，一款 lift 用电池的。后者一节电池能用 24 个月，最低价 299 。<br /><br />有没有其它选择？
-]]></content:encoded>
-<pubDate>2023-10-10T08:05:58Z</pubDate>
-</item>
-<item>
-<title>[职场话题] v2 里有自由职业者吗 想在工作日“city walk”（意义借用）</title>
-<link>https://www.v2ex.com/t/980622</link>
-<guid>https://www.v2ex.com/t/980622</guid>
-<content:encoded><![CDATA[
-<p>具体的工作内容是什么，职业前景如何，能否实现终身自雇</p>
-]]></content:encoded>
-<pubDate>2023-10-10T07:25:59Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] GPT5 发布时，会有 GPT4 的热度吗？</title>
-<link>https://www.v2ex.com/t/980619</link>
-<guid>https://www.v2ex.com/t/980619</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-10T06:25:19Z</pubDate>
-</item>
-<item>
-<title>Casdoor: 具有 Web UI 界面的开源身份认证、单点登录平台，支持 GitHub、Gitee、QQ、微信、钉钉登录等</title>
-<link>https://www.v2ex.com/t/803669</link>
-<guid>https://www.v2ex.com/t/803669</guid>
-<content:encoded><![CDATA[
-<div><h1>UI 优先的统一身份认证系统 Casdoor</h1>
-<h2>Casdoor 是什么？</h2>
-<p>Casdoor 是一个基于 OAuth 2.0 / OIDC 的 UI 优先集中认证 / 单点登录 (SSO) 平台，简单点说，就是 Casdoor 可以帮你解决 <strong>用户管理</strong> 的难题，你无需开发用户登录注册等与用户鉴权相关的一系列功能，只需几个步骤，简单配置，与你的主应用配合，便可完全托管你的用户模块，简单省心，功能强大。</p>
-<p>仓库地址： <a href="https://github.com/casbin/casdoor" rel="nofollow">https://github.com/casbin/casdoor</a></p>
-<p>演示地址： <a href="https://door.casbin.com/" rel="nofollow">https://door.casbin.com/</a></p>
-<p>官网文档： <a href="https://casdoor.org/" rel="nofollow">https://casdoor.org/</a></p>
-<p>Casdoor 目前作为 Casbin 社区项目统一使用的鉴权平台，项目已开源，希望得到大家的一些建议和 Star~，我们会及时跟进反馈并改正问题哒。</p>
-<h2>为什么要用 Casdoor ？</h2>
-<p>用户管理一直是项目中非常令人头疼的一个问题，不仅要确保安全性，功能是否完整，方便使用也十分重要。目前大多数应用已从过去单一的账号密码登录，逐渐升级为允许通过第三方平台登录，例如 GitHub 、微信、QQ 等。但是这一套逻辑依然需要开发者去实现，大多数功能偏离了业务。</p>
-<p>Casdoor 就是替开发者们解决这个难题，即 <strong>提供一套统一的鉴权平台，只需要简单配置便可完全托管用户模块</strong>。</p>
-<p>使用的理由也非常简单，总结概括为三句话：</p>
-<ul>
-<li>功能完备，操作简单。作为一个需要完全托管用户模块的项目，功能完备必不可少，Casdoor 支持常见用户模块所需要的各种功能。并且配置简单，上手难度低。</li>
-<li>开源可控，社区活跃。能否快速得到社区的反馈，解决实际应用中出现的问题也十分重要，否则出了 Bug 没人管岂不是尴尬？ Casdoor 有自己的讨论社区 Casnode，也有 QQ 群，均可及时活跃地解决实际应用中的问题。</li>
-<li>性能强大，耦合良好。采用 Golang 开发，并发性支持良好，并且内部模块耦合度低，代码易懂，热插拔性好。</li>
-</ul>
-<h2>Casdoor 又有哪些特性？</h2>
-<ul>
-<li>支持普通的账户密码注册登录，也支持各种常见的第三方认证，例如 GitHub 、Facebook 、Google 、Wechat 、QQ 、LinkedIn 等等，截止目前共 9 个平台，并在不断听取用户建议对更多的平台提供支持。</li>
-<li>管理方便。Casdoor 内部将模块分为了 5 大类，Organization 、User 、Application 、Token 和 Provider 。可以同时接入多个组织，组织下有不同应用，用户可以通过应用或组织分类，单独管理任何组织、应用或用户的 Token 令牌，轻松管理复杂系统，目前已部署在 Casbin 社区各种系统当作鉴权平台。</li>
-<li>自定义程度高。Casdoor 可以随意修改登录方式，例如是否允许密码或第三方登录，自定义应用的注册项数量，是否启用两步验证，以及是否允许各个 Provider 登录、注册等等，高度可插拔。</li>
-<li>具备 Swagger API 文档。清晰的 API 介绍，无需阅读源代码即可直接方便调用各个 API 接口，提供定制化功能。</li>
-<li>前后端分离架构，部署简单。作为统一认证平台，除了性能，稳定性，新特性之外，易用性也是考量的重要标准，Casdoor 后端使用 Golang 语言开发，前端使用 React.js 框架，使用者只需启动后端服务，并将前端工程文件打包，即可直接使用，操作简单，上手难度低。</li>
-<li>...</li>
-</ul>
-<h2>总结</h2>
-<p>我们希望 Casdoor 能帮助广大开发者们解决用户管理的难题，更专注主要业务，提高开发效率。</p>
-<p>同时作为一个开源项目，我们也非常希望获得大家的使用建议，帮助我们更好地改善项目质量，从功能、易用性等方面更好地满足大家的需求。</p>
-<p>如果使用过程中有任何疑问，欢迎加入社区 QQ 群交流，提 Issues 。当然，提 PR 也是十分欢迎的！</p>
-<ul>
-<li>
-<p>QQ 群：645200447</p>
-</li>
-</ul>
-</div>
-]]></content:encoded>
-<pubDate>2023-10-10T08:23:05Z</pubDate>
-</item>
-<item>
-<title>[推广] 虽迟但到，美味的大闸蟹</title>
-<link>https://www.v2ex.com/t/980618</link>
-<guid>https://www.v2ex.com/t/980618</guid>
-<content:encoded><![CDATA[
-<div> 螃蟹, 秋风起, 价格, 优惠, 联系方式 <br /><br />总结: 这篇文章分享了螃蟹的价格优惠和购买方式，并提供了联系方式。秋风起时正是吃螃蟹的好时机，小伙伴们可以趁此机会品尝美味的螃蟹。 <div>
-<h3>秋风起，蟹脚痒</h3>
-<h3>双节已过，螃蟹的价格也应声而落，今年还没吃上或者想吃的小伙伴可以上车了。死了包赔，包邮（淘宝之类电商包的，我们基本都包）</h3>
-<h3>每盒都是<code>10 只</code>装</h3>
-<table>
-<thead>
-<tr>
-<th>规格</th>
-<th>价格</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>4 两母 或 5 公 4 母</td>
-<td>¥580/盒</td>
-</tr>
-<tr>
-<td>4.5 公 3.5 母 或 3.5 母</td>
-<td>¥500/盒</td>
-</tr>
-<tr>
-<td>4 公 3 母</td>
-<td>¥450/盒</td>
-</tr>
-</tbody></table><h2>图片介绍</h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6524ec19c458853aef97b4b9.jpg" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6524eb57c458853aef9793d2.jpg" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6524ebe3c458853aef97ad55.jpg" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6524ebfdc458853aef97b04a.jpg" /></p>
-<h2>也很重的事情</h2>
-<p>盒子是买的市面上的。所以可能看起来眼熟</p>
-<p>联系方式 wx: angel+942+23+9(把+去掉）</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:23:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 表妹开学了,因为是学广告艺术设计, 需要一台笔记本,预算在 6000 左右 想问下 amd 还是 intel 的 u 比较好呢,帮忙推荐一下~ 谢谢</title>
-<link>https://www.v2ex.com/t/980617</link>
-<guid>https://www.v2ex.com/t/980617</guid>
-<content:encoded><![CDATA[
-<div> 拯救者 r7000, 性价比, 天选4, 样子好看, 总结:
-拯救者 r7000在性价比方面不太高，但天选4外观好看。 <div>
-<p>目前看了 拯救者 r7000 感觉性价比不高啊 还有天选 4 样子是好看</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:19:07Z</pubDate>
-</item>
-<item>
-<title>[服务器] 大家好，我有一个关于服务器的问题想请教</title>
-<link>https://www.v2ex.com/t/980616</link>
-<guid>https://www.v2ex.com/t/980616</guid>
-<content:encoded><![CDATA[
-<h3>因问题被移动到另一个感觉不相关的节点下，我没法编辑，希望能点击下面链接查看，感谢</h3>
-<p>V2EX 问题链接：
-<a href="https://v2ex.com/t/980534#reply0" rel="nofollow">https://v2ex.com/t/980534#reply0</a></p>
-<h3>感谢 V 友们耐心看完我的问题，如果有擅长或了解这块的朋友，麻烦给个建议，感谢</h3>
-]]></content:encoded>
-<pubDate>2023-10-10T06:19:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 招行信用卡大家一般薅什么羊毛？</title>
-<link>https://www.v2ex.com/t/980615</link>
-<guid>https://www.v2ex.com/t/980615</guid>
-<content:encoded><![CDATA[
-我知道的主要就是周三半价抢券，其他的还有比较不错的羊毛吗？<br />我是经典白金那张，似乎权益能用上的机会也不多，只有旅游的时候可以用，其他时候都是薅羊毛，问问还有没有什么优惠能用的？
-]]></content:encoded>
-<pubDate>2023-10-10T06:23:42Z</pubDate>
-</item>
-<item>
-<title>[上海] 看到这么多人在喷保姆，其实装修，汽修，保姆都是一样的</title>
-<link>https://www.v2ex.com/t/980614</link>
-<guid>https://www.v2ex.com/t/980614</guid>
-<content:encoded><![CDATA[
-<p>月嫂贵且不靠谱，完完全全的开盲盒。从需要预约这个行为来看，现在月嫂市场还是没有饱和的。  在小区里，好的保姆都是业主之间彼此介绍，不出小区就把下个业主也续上了。好保姆根本不用到市场上找活，在外面找活的多多少少都是有些。。。。。 能好脾气的说话，会做一些餐食，知道一些会导致孩子哼唧唧的原因就已经算是不错的月嫂了。 </p>
-<p>而且，根据我的经验，小朋友 10 个月以内，就吃了睡 ，睡了吃。偶尔出来遛风也因为体重轻比较好抱。  一岁多之后，那才叫鸡飞狗跳。</p>
-<p>感觉装修市场也是这样的，你对他们根本不能用 100 分去要求他们，他们能给你按照标准去做就已经是一个非常好的师傅了。</p>
-<p>汽修也是，就赌你不懂，什么都给你狮子大开口。</p>
-<p>反过头来， 我觉得保姆和装修，还是有机会进入的。   我一直想拉一波老家的亲戚过来。老家亲戚在那种记件的小作坊上班，从早八点到晚八点也就一天一百来块钱。哎，月嫂不必记件舒服多了。</p>
-]]></content:encoded>
-<pubDate>2023-10-10T00:16:10Z</pubDate>
-</item>
-<item>
-<title>[求职] 本不该发在求职节点的求职贴</title>
-<link>https://www.v2ex.com/t/980613</link>
-<guid>https://www.v2ex.com/t/980613</guid>
-<content:encoded><![CDATA[
-<p>本来是想再过一半月，等产品 <a href="https://github.com/toeverything/AFFiNE" rel="nofollow">AFFiNE</a> 再稳定些后发布这个帖子来作为 <a href="https://www.v2ex.com/t/654180" rel="nofollow">准备写个富文本编辑器，各位有什么想法？</a> 的结束，没想到辛苦大半，国庆节前几天通知我：你可以走了。</p>
-<p>不过有始有终（虽然不是善始善终），总归还是发个贴做个回应，当然现在更算是求职贴了。</p>
-<p>这大半年的工作：<a href="https://github.com/toeverything/AFFiNE" rel="nofollow">AFFiNE</a></p>
-<p>简历：<a href="https://github.com/QiShaoXuan/resume" rel="nofollow">https://github.com/QiShaoXuan/resume</a></p>
-<p>路过的大佬们能捞，或者想聊聊的话，可加 VX：Demonqsx</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:17:10Z</pubDate>
-</item>
-<item>
-<title>[Android] apk 文件 格式</title>
-<link>https://www.v2ex.com/t/980612</link>
-<guid>https://www.v2ex.com/t/980612</guid>
-<content:encoded><![CDATA[
-某个 apk 文件用十六进制工具查看 第一个 zip entry 是这样的<br /><br />0000000    4b50    0403    0000    0000    0000    0821    0221    0000<br />0000010    0000    0000    0000    0000    0000    0000    0066    0000<br />0000020    0000    0000    0000    0000    0000    0000    0000    0000<br />0000030    0000    0000    0000    0000    0000    0000    0000    0000<br />0000040    0000    0000    0000    0000    0000    0000    0000    0000<br />0000050    0000    0000    0000    0000    0000    0000    0000    0000<br />0000060    0000    0000    0000    0000    0000    0000    0000    0000<br />0000070    0000    0000    0000    0000    0000    0000    0000    0000<br />0000080    0000    0000    <br /><br />有人知道什么情况下 会出现这种现象吗
-]]></content:encoded>
-<pubDate>2023-10-10T06:15:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 生日到底能薅多少羊毛</title>
-<link>https://www.v2ex.com/t/980611</link>
-<guid>https://www.v2ex.com/t/980611</guid>
-<content:encoded><![CDATA[
-<p>就我知道的</p>
-<p>1 、海底捞有生日券，还可以有小蛋糕，表演</p>
-<p>2 、一鸣有一张生日优惠券</p>
-<p>其余的交给老哥们来补充。</p>
-]]></content:encoded>
-<pubDate>2023-10-10T03:09:10Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 最近一直在考虑，作为技术人员（非牛人）的出路在哪？</title>
-<link>https://www.v2ex.com/t/980610</link>
-<guid>https://www.v2ex.com/t/980610</guid>
-<content:encoded><![CDATA[
-一、对于工作的考虑：这块是对我来说现在是获取收入维持生活最简单的方式。<br />1 、如果在比较好的大厂能干到一定年龄有些积累然后可以安心的干些自己喜欢的事情。<br />2 、做副业？确实打问号，一般来说副业很少能做的能替代主业的。<br />3 、最后可以去相对稳定的企业（国企）或者进体制内？哪有这么好的事，能有几人能进去<br /><br />二、做理财投资？创业？等这块风险高相对收益也高，感觉最后还得走这条路<br />       指望上班能生活无忧的机会很小
-]]></content:encoded>
-<pubDate>2023-10-10T06:22:22Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有几个问题需要咨询一下，做了个查询美元人民币汇率查询的简单网站 http://www.freehuilv.com ？</title>
-<link>https://www.v2ex.com/t/980609</link>
-<guid>https://www.v2ex.com/t/980609</guid>
-<content:encoded><![CDATA[
-<p>花了一天时间搞了一个简单查询美元人民币汇率的网站。网站地址是
-<a href="https://www.freehuilv.com" rel="nofollow">汇率免费查</a> 。现在遇到几个小问题，请跟各位技术大拿学习一下。</p>
-<ol>
-<li>从哪些能获取免费的及时的汇率数据信息，该如何获取？用爬虫技术还是购买 api 接口？</li>
-<li>如何将获取的最新的汇率数据静态化，这样不用每次都去请求数据？</li>
-<li>除了 vercel 部署静态代码的服务器外，还有哪些比较好的网站能提供物美价廉的服务器，方便部署后端服务？</li>
-<li>这种美元人民币比汇率查询的网站怎么才能快速优化 seo ，其中有哪些是比较关键的技术点？</li>
-<li>美元人民币汇率查询这种业务简单的汇率查询的网站，怎么做才能挖掘出更深一些的用户需求，让我的“汇率免费查”工具站能增加粘性。</li>
-<li>当查询美元人民币的人多起来的时候，我该如何扩充服务器？</li>
-<li>有哪些广告联盟可以挂接银行信用卡产品？查美元人民币汇率的人应该都关注金融吧，他们会更关注如何汇款还是更关注如何理财？</li>
-</ol>
-<p>作为一个新人小白，有很多技术和业务的问题。还请各位大佬给我的“汇率免费查”提提意见。另外小站刚上线，没做安全防护，各位大佬别攻击我哈。</p>
-]]></content:encoded>
-<pubDate>2023-10-10T02:04:53Z</pubDate>
-</item>
-<item>
-<title>[程序员] node v.s. deno v.s. bun 最终谁会胜出？</title>
-<link>https://www.v2ex.com/t/980607</link>
-<guid>https://www.v2ex.com/t/980607</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-10T06:01:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 利率一再降低，目前还有稳 3.x%的收益吗？</title>
-<link>https://www.v2ex.com/t/980606</link>
-<guid>https://www.v2ex.com/t/980606</guid>
-<content:encoded><![CDATA[
-大概 50w ，接受 3 三年内锁定<br /><br />上半年国债还有 3.x%的收益呢，这个月就只有 2.75%了<br /><br />就这利率，国债还得靠抢，基本上一分钟之内就抢完了<br /><br />小银行实在不敢存，还有稳一点的吗
-]]></content:encoded>
-<pubDate>2023-10-10T06:22:43Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [送会员] 追女孩的沟通话术参考 App，让回复不再那么“直男”</title>
-<link>https://www.v2ex.com/t/980605</link>
-<guid>https://www.v2ex.com/t/980605</guid>
-<content:encoded><![CDATA[
-<p>开发了一款「恋爱话术宝」 App ，其价值是帮助很多不懂怎么跟异性聊天的小伙伴做一个聊天参考。软件内收集了许多有趣、温暖的聊天话术，让聊天对话不再尬住。</p>
-<h1>[恋爱话术宝能帮你]</h1>
-<ul>
-<li>提供破冰技巧，避免尬聊，让你更具魅力，让他对你更加关注；</li>
-<li>避免无意义的聊天，节省时间，让你和对方的关系得到进展；</li>
-<li>扩大你的社交圈，跟社恐说拜拜，学会如何结交心仪对象；</li>
-<li>教你如何哄好你的伴侣，让恋爱更加顺利；</li>
-<li>解决恋爱中两个人相处难的问题。</li>
-</ul>
-<h1>[怎么下载]</h1>
-<p>直接应用商店搜索🔍  [恋爱话术宝] 就可以
-<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://3o.hk/images/2023/10/10/image.png" /></p>
-<h1>[福利时间]</h1>
-<p>在 10 月 15 日 18 点前在帖子下面回复恋爱话术宝 ID 的，都将赠送 1 个月的 VIP 会员，以感谢 V 友们支持。</p>
-<p>欢迎大家在使用过程中遇到什么问题，帮忙反馈及解决，感恩 V 友们</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:18:57Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [送码] XPTV - Apple TV 视频播放器，支持 IPTV、阿里云盘、厂长等</title>
-<link>https://www.v2ex.com/t/980604</link>
-<guid>https://www.v2ex.com/t/980604</guid>
-<content:encoded><![CDATA[
-XPTV ，多功能播放器<br /><br />支持 m3u 、txt 格式的直播源<br />支持阿里云盘 vod://aliyun<br />支持厂长、低端等播放源 vod://czzy<br /><br />送出 20 个兑换码<br /><br />9PY6AXAJLWL6<br />39M76TA4XP6M<br />LMJAAWY4M3FN<br />RARHEKAHMLRF<br />JM3HEM76TT3T<br />JTPF67A79PT4<br />KRWYEJW34LRR<br />E6ALNJ94KXTW<br />YRJJNR9E6EPX<br />RRKR76AX6MJM<br />WWAYHKEPMLP3<br />XL74AMJNRJKF<br />W4MA3XPR6TKP<br />MNYKE7HLWETR<br />FFN6XHY3TRR9<br />J3PJYM9TFTY9<br />PKY6KTJA7E7K
-]]></content:encoded>
-<pubDate>2023-10-10T06:21:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 微信小程序，有什么办法可以防止别人破解我的接口？</title>
-<link>https://www.v2ex.com/t/980603</link>
-<guid>https://www.v2ex.com/t/980603</guid>
-<content:encoded><![CDATA[
-<p>目前有 2 种想法，一种是每次请求弄个加密的签名，不过我记得好像是可以拿到小程序的源码，前端的东西，肯定会被人拿到加密算法；第二种是小程序云开发，走微信自己的协议，转发一下请求，这种就是太麻烦，绕一圈，求教各位大佬还有别的招术吗？</p>
-]]></content:encoded>
-<pubDate>2023-10-10T06:21:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] TG iOS 客户端评论区经常性加载不出来，需要重启 App</title>
-<link>https://www.v2ex.com/t/980602</link>
-<guid>https://www.v2ex.com/t/980602</guid>
-<content:encoded><![CDATA[
-RT ，这问题困扰我很久了，但是网上似乎没太多相关的讨论，想来问问各位 V 友有没有遇到类似问题。<br /><br />连接、聊天、接收消息一切正常，相同网络下的桌面网页端一切正常，重装、使用不同的爬梯工具/节点/机场、走路由器代理、全局代理都没法解决。<br /><br />唯二的办法，一是等待，后面指不定突然就好了，二是划掉 TG App ，重进，立杆见效。
-]]></content:encoded>
-<pubDate>2023-10-10T05:54:14Z</pubDate>
-</item>
-<item>
-<title>[Apple] 支持 Passkey 的网站</title>
-<link>https://www.v2ex.com/t/980601</link>
-<guid>https://www.v2ex.com/t/980601</guid>
-<content:encoded><![CDATA[
-<p><a href="https://passkeys.directory/" rel="nofollow">https://passkeys.directory/</a></p>
-]]></content:encoded>
-<pubDate>2023-10-10T05:53:08Z</pubDate>
-</item>
-<item>
-<title>[武汉] 这个榜单的意义，外包公司不要太多</title>
-<link>https://www.v2ex.com/t/980600</link>
-<guid>https://www.v2ex.com/t/980600</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/JINcH8U.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2023-10-09T13:51:50Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [急招！] 区块链行业，诚聘 iOS 资深开发工程师 [远程]</title>
-<link>https://www.v2ex.com/t/980599</link>
-<guid>https://www.v2ex.com/t/980599</guid>
-<content:encoded><![CDATA[
-我们的产品是一款基于 MPC 技术的钱包应用，现根据产品开发及上线需求，诚聘几位 iOS 资深开发工程师负责产品开发及 APP 上线等工作。<br /><br />岗位职责：<br />1 、负责移动 iOS 相关软件的开发工作；<br />2 、具备独立模块的设计和开发工作；<br />3 、负责项目中技术难点( 性能、稳定性）攻坚工作；<br />4 、参与跨平台方案制定<br /><br />任职要求：<br />1 、全日制计算机或相关专业本科以上学历，熟悉各种主流手机特性，深刻理解手机客户端软件开发特点；<br />2 、深入理解 iOS 系统，丰富的 Swift 及 C/C++ 开发经验；精通各种 UI 控件，能够实现复杂的界面交互；<br />3 、熟悉 Javascript HTML CSS ；<br />4 、iOS 性能调优，熟悉 Framework 源码经验加分；<br />5 、具有性能（如启动、功耗、卡顿、内存等）优化相关的实践经验；<br />6 、有 web3 行业经验<br />7 、有马甲包开发经验及 App Store 上架经验<br />8 、熟悉区块链技术及相关加密技术，具有钱包相关开发经验者优先。<br /><br /><br />我们提供的薪资具备行业竞争力，全年 15 薪，团队以技术开发人员为主，没有复杂的人际关系，人员架构扁平，沟通简单直接有效。有意者请将简历发送至 hr@openblock.com<br /><br />为提高工作效率，我们仅会联系简历经过初筛进入面试邀约阶段的候选人，请大家见谅。<br /><br />祝各位求职顺利！
-]]></content:encoded>
-<pubDate>2023-10-10T05:48:35Z</pubDate>
 </item>
 </channel>
 </rss>
