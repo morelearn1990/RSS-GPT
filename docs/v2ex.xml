@@ -5,6 +5,777 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[云计算] 腾讯云 Lighthouse 同地域组建 Kubernetes 集群</title>
+<link>https://www.v2ex.com/t/982152</link>
+<guid>https://www.v2ex.com/t/982152</guid>
+<content:encoded><![CDATA[
+<div> 脚本、腾讯云、Kubernetes集群、优化、Lighthouse服务器<br><br>总结: 本文介绍了如何通过脚本优化腾讯云上同地域的Kubernetes集群的部署和配置。使用腾讯云的Lighthouse服务器购买和配置轻量应用服务器，设置防火墙规则，然后在主节点和子节点上执行脚本来部署K3S集群。最后，通过验证集群的节点和容器状态来确认集群部署成功。这篇文章提供了完整的步骤和指南，帮助用户快速搭建优化的Kubernetes集群。 <div>
+<p>本文中的脚本针对同地域的腾讯云服务器组建 Kubernetes 集群进行优化。腾讯云多地域请参考 <a href="https://www.rehiy.com/post/548/" rel="nofollow">腾讯云多地域组建 Kubernetes 集群</a>，跨云多地域请参考 <a href="https://www.rehiy.com/post/547/" rel="nofollow">跨云多地域组建 Kubernetes 集群(k3s)</a>。</p>
+<h2>环境要求</h2>
+<ul>
+<li>所有节点须为全新安装的<strong>Debian11/12</strong>或<strong>Ubuntu22.04</strong>操作系统</li>
+<li>脚本使用了腾讯云的 metadata 获取 IP ，所有节点部署在腾讯云上同个地域（ CVM 、Lighthouse 均可）</li>
+</ul>
+<blockquote>
+<p>多账号、CVM 、Lighthouse 混用，请先使用云联网打通内网</p>
+</blockquote>
+<h2>使用的组件</h2>
+<ul>
+<li><strong>K3s</strong> 一个轻量级的 Kubernetes 发行版，专为生产环境而设计</li>
+<li><strong>Flannel</strong> 一个虚拟网络层，用于为容器化工作负载创建网络隔离和通信</li>
+<li><strong>Flannel-vxlan</strong> 通过使用 Virtual Extensible LAN 技术创建一个虚拟的二层网络</li>
+</ul>
+<h2>购买并配置 Lighthouse 服务器</h2>
+<p>Lighthouse 是腾讯云推出的一款轻量应用服务器产品，它提供了高性价比、高可用性、高安全性和高灵活性的云端计算服务。具体信息参阅官方文档：<a href="https://cloud.tencent.com/document/product/1207/44361" rel="nofollow">轻量应用服务器概述</a>。</p>
+<p>为了部署 Kubernetes 集群，我们需要至少 2 台轻量应用服务器，并配置好相关的环境和依赖。购买步骤参见官方文档：<a href="https://cloud.tencent.com/document/product/1207/56823" rel="nofollow">快速创建 Linux 实例</a>，<strong>操作系统选 Debian 或 Ubuntu 最新版本</strong>。</p>
+<h2>设置防火墙</h2>
+<p>参考下面的列表在腾讯云控制台设置防火墙规则。若无需精细控制的，可以设置为允许所有节点间 TCP/UPD 协议的全部端口互访。</p>
+<p>本文中将 k8s 默认的<strong>Node Port</strong>端口<code>30000-32767</code>更改为了常用的<code>5432-9876</code>，读者朋友也可以根据自己的情况重新定义，只要保持<code>service-node-port-range</code>参数和防火墙放开的端口对应即可。</p>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>端口</th>
+<th>源</th>
+<th>目标</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TCP</td>
+<td>6443</td>
+<td>子节点</td>
+<td>主节点</td>
+<td>K8s API Server</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>10250</td>
+<td>所有节点</td>
+<td>所有节点</td>
+<td>Kubelet 指标收集</td>
+</tr>
+<tr>
+<td>UDP</td>
+<td>8472</td>
+<td>所有节点</td>
+<td>所有节点</td>
+<td>Flannel vxlan</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>5432-9876</td>
+<td>所有地址</td>
+<td>所有节点</td>
+<td>自定义 Node Port ，可选</td>
+</tr>
+<tr>
+<td>UDP</td>
+<td>5432-9876</td>
+<td>所有地址</td>
+<td>所有节点</td>
+<td>自定义 Node Port ，可选</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>80,443</td>
+<td>所有地址</td>
+<td>所有节点</td>
+<td>Web 服务，可选</td>
+</tr>
+</tbody></table><h2>部署 K3S 主节点</h2>
+<p>下面这段代码在<strong>主节点</strong>服务器上执行，注意替换<code>SERVER_TOKEN</code>为一个不少于 32 个字母的随机字符串。</p>
+<pre><code class="language-shell">export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
+
+export INSTALL_K3S_SKIP_DOWNLOAD=true
+export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
+
+if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
+   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
+fi
+
+curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
+chmod a+x /usr/local/bin/k3s
+
+curl -Ls https://get.k3s.io | sh -s - server \
+    --cluster-init \
+    --token $SERVER_TOKEN \
+    --service-node-port-range 5432-9876
+</code></pre>
+<h2>部署 K3S 子节点</h2>
+<p>下面这段代码在子节点服务器上执行，注意替换<code>SERVER_TOKEN</code>为和主节点相同的随机字符串，<code>SERVER_IP</code>为主节点的内网 IP 地址（在主节点执行命令<code>curl -Ls <a href="http://metadata.tencentyun.com/latest/meta-data/local-ipv4" rel="nofollow">http://metadata.tencentyun.com/latest/meta-data/local-ipv4</a></code>即可获取）。</p>
+<pre><code class="language-shell">export SERVER_IP=10.0.12.6
+export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
+
+export INSTALL_K3S_SKIP_DOWNLOAD=true
+export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
+
+if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
+   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
+fi
+
+curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
+chmod a+x /usr/local/bin/k3s
+
+curl -Ls https://get.k3s.io | sh -s - agent \
+    --server https://$SERVER_IP:6443 \
+    --token $SERVER_TOKEN
+</code></pre>
+<h2>验证集群</h2>
+<p>在主节点执行下面的命令，查看节点和容器状态</p>
+<pre><code class="language-shell">kubectl get node
+kubectl top node
+
+kubectl get pods -A
+</code></pre>
+<p><img alt="集群概况" class="embedded_image" rel="noreferrer" src="https://img-blog.csdnimg.cn/img_convert/5225b25d681115110f3d15117a2271b2.jpeg" /></p>
+<p><strong>须知</strong>：本文同步自<a href="https://www.rehiy.com" rel="nofollow">若海の技术写真</a>，如有错漏请到<a href="https://www.rehiy.com/post/548/" rel="nofollow">原文</a>下留言反馈。</p>
+]]></content:encoded>
+<pubDate>2023-10-15T08:12:08Z</pubDate>
+<pubDate>2023-10-15T08:10:08Z</pubDate>
+</item>
+<item>
+<title>[投资] 我的投资学习路径 roadmap</title>
+<link>https://www.v2ex.com/t/982151</link>
+<guid>https://www.v2ex.com/t/982151</guid>
+<content:encoded><![CDATA[
+<div> 投资群, 知识点, 投资预期, 金融工具, 基础概念
+技术分析, 基本面分析, 财务知识, 长期投资, 情绪化投资者
+
+总结:
+文章介绍了一个投资群建立以及作者分享的投资学习路线图。其中包括投资预期、金融工具、基本概念、理论知识、财务知识、行业知识等方面的内容。文章强调了投资者需要保持理性，避免情绪化投资，并提供了一些建议书籍供投资者进一步学习。最终总结了作者为什么决定学习投资并取得满意的投资业绩。
+ <div>
+<p>上周建了个 V 站投资群<br />
+陆续有二十多位 V 友加入<br />
+说好给大家分享我的投资学习 roadmap<br />
+忙了一下午写了个初稿<br />
+献丑了</p>
+<hr />
+<ul>
+<li>版本信息：</li>
+<li>作者: 刘不思 （程序员/CFA/FRM/健身教练）</li>
+<li>反馈: 微信 timeismoney2099</li>
+<li>2023-10-15: V0.1 版本：初稿</li>
+</ul>
+<hr />
+<p>说明：</p>
+<ul>
+<li>这里列举的所有知识点和书籍，都无法直接告诉你买哪只股票能赚钱</li>
+<li>这些内容一定会有疏漏和错误，希望通过逐步迭代完善，帮助新人减少学习过程中的弯路</li>
+<li>这里的推荐书籍，有些我读过，有些我准备读，后续会<strong>不断添加</strong></li>
+<li>欢迎更多的 V 友加入投资群</li>
+</ul>
+<h2>1 基础</h2>
+<h3>1.1 投资预期</h3>
+<ul>
+<li>保持<strong>敬畏之心</strong>，不要把股票市场当做提款机，中国股市 <strong>7 亏 2 平 1 赚</strong></li>
+<li>巴菲特的平均年化收益率是 <strong>20%</strong></li>
+<li>年化收益率超过 <strong>8%</strong> 的理财产品，就要做好<strong>收不回本金</strong>的心理准备</li>
+<li>周期：在市场好的时候一切都安全，在市场差的时候什么都可能发生</li>
+<li>
+投资理财思维推荐书籍（看一本即可）<ul>
+<li>《穷爸爸富爸爸》</li>
+<li>《小狗钱钱》</li>
+</ul>
+</li>
+</ul>
+<h3>1.2 基本概念</h3>
+<h4>1.2.1 金融工具</h4>
+<ol>
+<li>股票</li>
+<li>可转债</li>
+<li>
+基金<ol>
+<li>按照投资标的划分：股票型、债券型、混合型</li>
+<li>按交易场所划分：场外基金、场内基金（ ETF ）</li>
+<li>按交易策略划分：主动基金（纯看基金经理的能力）、指数基金（跟踪某一个指数，基金经理作用不大）</li>
+</ol>
+</li>
+<li><del>债券：需要合格投资者身份（ 500 万资金门槛），不建议 （可以通过债券型基金参与）</del></li>
+<li><del>期货：杠杠较高，需要相关实体行业的知识，不建议</del></li>
+<li><del>期权：需要金融知识较多，不建议</del></li>
+</ol>
+<h4>1.2.2 基本术语</h4>
+<ul>
+<li>
+股票和市场基础:<ul>
+<li>股票 (Stock): 表示持有者对公司的所有权份额。</li>
+<li>股价 (Stock Price): 在特定时间点上股票的价格。</li>
+<li>股票市场 (Stock Market): 交易股票和其他证券的市场。</li>
+<li>IPO: 公司的股票首次在交易所上市，以便公众买卖。</li>
+<li>交易所 (Exchange): 股票交易平台，如上交所、深交所。</li>
+</ul>
+</li>
+<li>
+投资和交易:<ul>
+<li>长期投资 (Long-term Investing)	</li>
+<li>短期交易 (Short-term Trading)</li>
+<li>日内交易 (Day Trading): 在同一交易日内买入并卖出股票，避免持有隔夜风险。</li>
+</ul>
+</li>
+<li>
+分析方法:<ul>
+<li>技术分析</li>
+<li>基本面分析</li>
+</ul>
+</li>
+<li>
+财务指标:<ul>
+<li>市值 MV</li>
+<li>市盈率 PE</li>
+<li>市净率 PB</li>
+<li>每股收益 EPS</li>
+<li>股息率</li>
+</ul>
+</li>
+<li>
+指数:<ul>
+<li>上证指数、深证成指、创业板指</li>
+<li>沪深 300</li>
+<li>中证 500 、中证 800 、中证 1000 、中证 2000</li>
+</ul>
+</li>
+<li>
+投资策略:<ul>
+<li>价值投资 (Value Investing): 寻找被市场低估的股票，并期待它们的价格回到合理水平。</li>
+<li>增长投资 (Growth Investing): 投资于预期将以高于平均水平增长的公司。</li>
+</ul>
+</li>
+<li>
+风险管理:<ul>
+<li>分散投资 (Diversification): 通过投资于不同类别的资产来降低投资组合的风险。</li>
+<li>止损 (Stop Loss): 为了限制损失，在股票价格下跌到一定程度时自动卖出的订单。</li>
+</ul>
+</li>
+<li>
+订单和交易:<ul>
+<li>市价单 (Market Order): 以当前市场价格买卖股票的订单。</li>
+<li>限价单 (Limit Order): 只有当股票价格达到指定价格时才买卖的订单。</li>
+<li>止损单 (Stop Order): 当股票价格达到指定价格时，将订单转换为市价单。</li>
+</ul>
+</li>
+</ul>
+<h4>1.2.3 推荐书籍</h4>
+<ul>
+<li>《证券市场基础知识》：国家证券从业资格考试的官方教材，很厚一本，可以作为了解中国股票市场的科普书籍</li>
+</ul>
+<h2>2 理论知识</h2>
+<ul>
+<li>
+说明：<ul>
+<li>这些知识点都不难</li>
+<li>
+经济金融属于人文学科，并不像理科只有一个正确答案，所以对于程序员需要转变一下思维方式<ul>
+<li>2013 年诺贝尔经济学奖颁给三个人，其中一个人是有效市场理论，还一个人是研究行为经济学，这两套理论其实是相反的：一个是市场有效，一个是市场无效</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+经济知识<ul>
+<li>了解宏观经济指标如何影响股票市场</li>
+<li>
+能看到财经新闻<ul>
+<li>央行下调利率对市场的影响</li>
+<li>美联储加息为什么对 A 股是负面影响</li>
+<li>人民币升值贬值对进出口的影响</li>
+</ul>
+</li>
+<li>
+推荐书籍：<ul>
+<li>《微观经济学》、《宏观经济学》</li>
+<li><strong>《经济学的思维方式》</strong>上下两册：如果你觉得上面两本大学教材看起来枯燥，试试这一本，虽然比较厚，但是通俗易懂，美国人写的</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+金融知识<ul>
+<li>货币的时间价值</li>
+<li>一价定律</li>
+<li>无套利定价理论</li>
+<li>有效市场理论</li>
+<li>投资组合理论</li>
+<li>
+书籍<ul>
+<li>博迪或者夏普写的《投资学》太过理论</li>
+<li>博迪的<strong>《投资学精要》</strong>更合适</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+财务知识<ul>
+<li>
+能看懂上市公司财报<ul>
+<li>基本的财务术语，例如收益，利润，负债，资产等。</li>
+<li>财务报表的基本结构和内容</li>
+</ul>
+</li>
+<li>不需要成为财务专家，也不要妄想从财报中发现明显的错误</li>
+<li>
+<strong>推荐书籍</strong><ul>
+<li><strong>《初级会计实务》</strong>：初级会计资格考试的教材</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+行业知识<ul>
+<li>例如：投资是生猪养殖行业的股票，就需要了解各家养猪公司的养殖模式、存栏量、能繁母猪的数量、每头利润等重要指标</li>
+<li>例如：投资游戏行业的股票，就需要了解国家的版号限制政策、各家游戏公司的现有产品的运营数据、在研产品的进展等</li>
+<li>
+<strong>学习资料</strong><ul>
+<li>行业研究报告、关注行业新闻</li>
+<li>手机 App：Choice 数据、同花顺、Wind 金融终端，熟悉使用一款即可</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2>3 长期</h2>
+<ul>
+<li>形成自己的投资框架，找到自己擅长的投资方式需要大量的时间、精力、试错</li>
+<li>
+保持对市场的关注<ul>
+<li>2007 年，大部分的股票都不具有投资价值，被炒得太高了</li>
+<li>2008 年，大部分的股票都具有投资价值，市场恐慌性的卖出，价格很低</li>
+<li>所以需要保持对市场的关注</li>
+</ul>
+</li>
+<li>远离情绪化的投资者</li>
+<li>
+耐心，多看少动<ul>
+<li>大部分时候，市场都不会有很好的买入</li>
+<li>芒格的说法，一年中平均有两三次好的买入时机，这是芒格每天研究市场的结论。我觉得 A 股好的买入时间，两三年遇到一次</li>
+</ul>
+</li>
+<li>用闲钱投资，最好是三年内不会用到的钱，否则用钱时可能在市场低位时被迫卖出</li>
+<li>保持理性，投资是一件平和的事情，当你的股票让你产生担心，把仓位再降一些</li>
+<li>
+推荐书籍<ul>
+<li>《聪明的投资者》注疏版：原书内容已经有些年代了，虽然道理仍然没变，但是看书中案例分析可能会比较陌生，所以注疏版更好</li>
+<li>霍华德·马克思的书</li>
+<li>帕特·多尔西的书</li>
+<li>塔勒布的书</li>
+<li>达里奥的书</li>
+<li>《赢得输家的游戏》</li>
+<li>《巴菲特致股东的信》</li>
+</ul>
+</li>
+</ul>
+<hr />
+<p>我当初为什么会决定学习投资：</p>
+<ul>
+<li>以前，我不太攒钱，我爸叫我"钱不剩"</li>
+<li>十年前，我第一套房贷月供 7000 多，我每个月向还房贷的卡转入 10000 元</li>
+<li>两年后，我发现还房贷的卡里的钱比我主卡的还要多，我意识到<strong>攒钱</strong>的重要性</li>
+<li>攒着攒着就觉得这钱放银行太亏了，需要<strong>投资增值</strong>，从此便走上了这条路</li>
+<li>我先去读了<strong>经济学</strong>专业在职研究生</li>
+<li>期间觉得反正都是学习，顺带考个证吧，就考了 <strong>中级经济师</strong>、 <strong>CFA</strong> 和 <strong>FRM</strong></li>
+<li>一路走来小心翼翼稳扎稳打，投资业绩算是满意</li>
+<li><img alt="收益" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WqUjTpd.jpg" /></li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-10-15T08:08:51Z</pubDate>
+<pubDate>2023-10-15T08:06:51Z</pubDate>
+</item>
+<item>
+<title>[iCloud] 土区 iCloud 2T (400G ¥100/人/年) 差 3</title>
+<link>https://www.v2ex.com/t/982150</link>
+<guid>https://www.v2ex.com/t/982150</guid>
+<content:encoded><![CDATA[
+
+<p>稳定，自己已经开了两年的美区 Apple One （可看证据）。现在换土区。</p>
+<p>年付，或者半年付 50 ；跳车不退；翻车按时间退；</p>
+<p>WeChat ID: Andrey-Tarkovsky</p>
+]]></content:encoded>
+<pubDate>2023-10-15T08:05:17Z</pubDate>
+<pubDate>2023-10-15T08:05:17Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 从零开始的日本落地说明书</title>
+<link>https://www.v2ex.com/t/982149</link>
+<guid>https://www.v2ex.com/t/982149</guid>
+<content:encoded><![CDATA[
+
+<p>详情麻烦看外链： <a href="https://jormungandr.hashnode.dev/5luo6zu25bya5ael55qe5pel5pys6jc95zyw6k05pio5lmm" rel="nofollow">https://jormungandr.hashnode.dev/5luo6zu25bya5ael55qe5pel5pys6jc95zyw6k05pio5lmm</a></p>
+<p>为什么不发在 v2 ，因为我在这里编辑完直接给我电脑 ip 封掉了，触发什么关键词一概不知，有什么想法欢迎在帖子里交流</p>
+]]></content:encoded>
+<pubDate>2023-10-15T07:57:09Z</pubDate>
+<pubDate>2023-10-15T08:18:18Z</pubDate>
+</item>
+<item>
+<title>[问与答] 这是什么情况？一直不断的收到脸书发来的账号找回密码的验证码邮件。</title>
+<link>https://www.v2ex.com/t/982148</link>
+<guid>https://www.v2ex.com/t/982148</guid>
+<content:encoded><![CDATA[
+
+这是什么情况？一直不断的收到脸书发来的账号找回密码的验证码邮件。    <br /><br />一天好几封，验证码一直是同一个，这样下去岂不是总有一次被它懵对？  <br /><br />发信人是 security@facebookmail.com ， 查了下这个域名的 whois ，  <br /><br />从注册时间和是所用的 DNS 来说， 确实估计是脸书的。  <br /><br /><br /><a href="https://i.imgur.com/Ys3j8KO.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Ys3j8KO.png" /></a>
+]]></content:encoded>
+<pubDate>2023-10-15T07:42:52Z</pubDate>
+<pubDate>2023-10-15T07:47:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] UML 需求征集</title>
+<link>https://www.v2ex.com/t/982147</link>
+<guid>https://www.v2ex.com/t/982147</guid>
+<content:encoded><![CDATA[
+
+<h3>需求征集</h3>
+<p>在做业务架构设计的时候，或多或少都要使用到 UML 。虽然 Uml 相关的理论知识，网上有很多，但是比较分散，通常是这里一篇博客，那里一篇博客，不够系统化。我想做一个 Uml 相关的垂直类网站。问下大家对于 UML 都想了解哪些内容，或者针对 UML 相关的事情，有哪些痛点。</p>
+<p>我能想到的需求点有下面几个：</p>
+<ul>
+<li>UML 相关的基础理论知识</li>
+<li>UML 使用体验比较好的画图工具</li>
+<li>常见的业务系统，如何使用 UML 做架构设计</li>
+</ul>
+<p>大家有没有其他的需求点，可以尽情的提出来</p>
+]]></content:encoded>
+<pubDate>2023-10-15T07:37:55Z</pubDate>
+<pubDate>2023-10-15T07:45:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] 闲鱼面交被骗，实时更新，老铁们有什么好的建议吗？目前准备起诉了</title>
+<link>https://www.v2ex.com/t/982146</link>
+<guid>https://www.v2ex.com/t/982146</guid>
+<content:encoded><![CDATA[
+
+原帖： <a href="https://www.v2ex.com/t/981997" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/981997</a><br /><br />节前面交的，当时没有发现问题，点了确认收货。<br />大概半小时后发现无法连接 5G wifi （因为公司 wifi 双频合一），很有意思的问题，找了 apple 的客服，刷机重置，弄了一天未解决问题。准备退货。<br />第二天对方才回信息，说出去旅游了，不在。<br />13 号刚刚休假回来（家里有人住院），14 日去天才吧，本来想换个电池，检测到主板维修（卖家说无拆无修）。<br /><br />今天有个好消息和一个坏消息：<br />1 、好消息是找闲鱼客服一下就同意给对方的信息纰漏申请，5 个工作日内给我。<br />2 、坏消息是只能起诉。交易纠纷警察不立案，说是工商管，但是工商对个人几乎没有约束，再就是起诉。
+]]></content:encoded>
+<pubDate>2023-10-15T07:35:56Z</pubDate>
+<pubDate>2023-10-15T07:40:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 外区 kybook 3 内购用国区账号购买有风险吗？</title>
+<link>https://www.v2ex.com/t/982145</link>
+<guid>https://www.v2ex.com/t/982145</guid>
+<content:encoded><![CDATA[
+
+网上查了一下目前苹果端的 djvu 电子书阅读器里面 kybook 3 应该是最好的(虽然也有 4 年没更新了😂)。这个应用国区没上架，我就用小号去外区下载了，但小号没有绑定过支付方式。转回到国区之后发现内购价格显示成人民币了，不知道是不是就表示用国区账号可以支付内购，又担心有封号风险。请问各位大佬这种情况是否有风险?非常感谢🙏
+]]></content:encoded>
+<pubDate>2023-10-15T07:32:01Z</pubDate>
+<pubDate>2023-10-15T07:32:01Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 请教: 透明代理中特定网站间歇性断流问题</title>
+<link>https://www.v2ex.com/t/982142</link>
+<guid>https://www.v2ex.com/t/982142</guid>
+<content:encoded><![CDATA[
+
+<h2>1. 问题描述</h2>
+<h3>1.1 网络配置</h3>
+<p>路由器 R (openwrt, 10.0.0.1) 中继移动 WIFI (172.x.x.x)</p>
+<p>R 上通过 mosdns 进行 dns 分流, 国内流量交给上游运营商, 国外流量交给 sing-box 通过 fakeDNS 解析, fakeDNS ip segment 为 <code>198.18.0.0/15</code></p>
+<p>使用 iptables 将 target 为 <code>198.18.0.0/15</code> 的流量通过 TProxy 转发到 sing-box 监听端口进行代理请求</p>
+<h3>1.2 断流现象</h3>
+<ol>
+<li>chrome 浏览器观看 youtube 视频, 间断性断流；</li>
+<li>此时 <a href="http://google.com" rel="nofollow">google.com</a>, <a href="http://store.steampowered.com" rel="nofollow">store.steampowered.com</a> 等网页空白返回;</li>
+<li>duckduckgo 能正常使用;</li>
+<li>打开无痕模式, 能观看同一个 youtube 视频;</li>
+<li>切换 windows 自带 Edge, 能正常访问 youtube;</li>
+<li>等待一段时间 (5min 以上, 不到 30min), 恢复正常;</li>
+<li>断流期间, 本地直连 VPS ssh 无法连通; 先 ssh 到国内服务器, 再通过那个服务器能通过 ssh 连接到 VPS;</li>
+<li>断流期间, 手机电信网络, 使用 v2rayNG, 同一配置, 可正常访问 (手机无移动卡);</li>
+<li>上述情况多次出现;</li>
+</ol>
+<h3>1.3 测试手段</h3>
+<p><strong>tcping, itdogs, 探针</strong></p>
+<p>均显示国内可达 VPS 端口</p>
+<p>值得说明的是通过 <a href="https://www.elifulkerson.com/projects/tcping.php" rel="nofollow">tcping</a>, 可以测得到服务器 ssh 端口的延时, 但无法成功连接登录 shell. (通过 <code>ssh host -vv</code> 能看到密钥交换, 下面的抓包也证明这点)</p>
+<p><strong>VPS tcpdump</strong></p>
+<p>通过 <code>tcpdump port ${ssh_port} and host ${host}</code> 命令抓包</p>
+<p>能看到 VPS 对本地 ssh 请求的响应</p>
+<p><strong>代理软件 log</strong></p>
+<p>本地和服务器都没有 warning 以上的 log, 且能看到断流时本地的 youtube, steam 的请求记录</p>
+<h2>2. 原因猜测</h2>
+<ul>
+<li>
+<p>由于无痕模式及手机电信下能正常访问并且 <a href="http://itdogs.cn" rel="nofollow">itdogs.cn</a> 等测试 VPS 可达, 基本可以排除 GFW 的问题</p>
+</li>
+<li>
+<p>可能是 VPS 有我不知道的网络限制, 某 IP 请求或请求某 IP 多次限制连接</p>
+</li>
+</ul>
+<p>VPS 是 VPS 商家提供的 Debian11 , 开启 UFW, 没做其他网络配置</p>
+<ul>
+<li>透明代理配置错误</li>
+</ul>
+<p>很难解释为什么无痕模式能访问, 通过 chrome://net-internals/#dns 查询, 请求的地址是同一个</p>
+<h2>3. 配置</h2>
+<p>(一周有效)</p>
+<ul>
+<li><a href="https://paste.org.cn/TThAEoJo4s" rel="nofollow">xray 服务端</a></li>
+<li><a href="https://paste.org.cn/EKVKJczLbK" rel="nofollow">sing-box 客户端</a></li>
+<li><a href="https://paste.org.cn/mKuQFTn8go" rel="nofollow">iptables</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-10-15T06:58:41Z</pubDate>
+<pubDate>2023-10-15T06:56:41Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 做了个跨平台文件传输助手，“闪电藤”，立志还原微信文件传输助手的使用体验</title>
+<link>https://www.v2ex.com/t/982141</link>
+<guid>https://www.v2ex.com/t/982141</guid>
+<content:encoded><![CDATA[
+
+<p>相信大家在传输文件的时候都是用的微信传输助手，是否还是很方便的，但在很多场景下，微信显得非常不方便，在见过 LocalSend 的神奇之后，因为它在使用体验上有诸多别扭，所以我在其之上做了二开，立志想让它变成国内文件传输的最佳工具，下面是我写的一个简介。</p>
+<h1>简介</h1>
+<p>闪电藤是基于 LocalSend 二次开发的一款局域网文件传输工具，完全兼容 LocalSend ，在它的基础上进行 UI 交互的重新设计，以及功能上的增强和删减，使其更加符合中国用户的使用体验。</p>
+<p>有了 LocalSend ，还要开发闪电藤，在于 LocalSend 的更新迭代速度较慢，并且它的使用体验更多的是按国外的来设计的，国内很多需求反馈无法实现，所以我重新设计 LocalSend ，并且向所有人无广告免费开放使用，并征集大家的需求，共同建设一个更完美的 LocalSend 。</p>
+<p>您可以关注我们的微信公众号，向我们反馈需求 or BUG
+<img class="embedded_image" rel="noreferrer" src="https://lightningvine.s3.bitiful.net/docs/gzh.jpg" /></p>
+<h2>我们为什么需要闪电藤/localsend ？</h2>
+<p>先问大家一个问题，你们在多个设备传输文件的时候都用什么工具呢？
+答案似乎很明显，是微信，但微信有明显的问题。</p>
+<h3>微信文件助手的问题</h3>
+<p>主要是 5 个方面：</p>
+<p><strong>必须联网：</strong>
+某些工作，基于安全考虑，是不允许办公设备连接外网的，那么微信就无法登录，更别提传输文件了。</p>
+<p><strong>不安全：</strong>
+微信文件传输是将文件传输到微信服务器的，这些文件都是要经过微信扫描的，所以有些隐私性强一些的文件最好不要走微信文件传输助手。</p>
+<p><strong>文件大小限制：</strong>
+如无法发送超过 60 分钟的视频，见下图：
+<img class="embedded_image" rel="noreferrer" src="https://lightningvine.s3.bitiful.net/docs/1.mm.jpg" /></p>
+<p><strong>传输速度慢：</strong>
+因为微信传输是基于网络的，因此它的传输速度取决于您自家的网络宽度以及微信服务器的稳定等诸多因素，对稍大（超过 100M ）的文件都不适宜用微信作为传输工具。</p>
+<p><strong>设备限制：</strong>
+微信的机制，决定了它同一类型设备只能登录一个账户（当然安卓可以双开，但也仅仅只能登录 2 个账户），比如 iOS 给 iOS 传输文件，或者 windows 给 windows 传输文件就非常尴尬，只能 A 设备登录后将文件发个文件助手，然后在 B 设备上再次登录去下载，就非常的不方便。</p>
+<p>并且微信在某些设备上不支持，比如机顶盒、Linux 等</p>
+<p><strong>微信文件助手事宜的场景：</strong>
+有网络的环境且网络环境很好，且文件不大、视频不超过 1 小时，且文件无私密性，不需要 2 个外更多设备传输，在这些严格环境下，它的使用是非常方便的，这样子的场景我建议大家用微信就好。</p>
+<h3>闪电藤的优势</h3>
+<p><strong>微信的劣势，就是闪电藤的优势</strong>，因为它<strong>基于局域网内的传输，安全稳定且不限速</strong>。</p>
+<p>同时，我们在使用体验上尽量<strong>还原用户在微信文件传输助手上的使用体验</strong>，让大家在使用上更顺畅。</p>
+<p>闪电藤临时官网： <a href="https://lightningvine.zishu.life/" rel="nofollow">https://lightningvine.zishu.life/</a><br />
+正式官网是：<a href="http://lightningvine.cn" rel="nofollow">lightningvine.cn</a> ，临时官网后续可能会下线</p>
+]]></content:encoded>
+<pubDate>2023-10-15T06:46:23Z</pubDate>
+<pubDate>2023-10-15T08:15:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有关 Synology DS923+ 上使用 Container Manager 的问题</title>
+<link>https://www.v2ex.com/t/982140</link>
+<guid>https://www.v2ex.com/t/982140</guid>
+<content:encoded><![CDATA[
+
+<p>最近搞了一台 DS923+，企图在上面用 Container Manager 安装一个 Wiki.js 的时候出现了一些疑难。使用 Wiki.js 官方提供的 <a href="https://docs.requarks.io/install/docker" rel="nofollow">Compose 文件</a>，直接运行提示数据库找不到。</p>
+<p>我朋友帮我折腾半天之后，新的（能跑的） Docker compose 文件如下：</p>
+<pre><code class="language-yaml">version: "3"
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_PASSWORD: wikijsrocks
+      POSTGRES_USER: wikijs
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - wiki-network
+    extra_hosts:
+      - "domain.com:host-gateway"
+    ports:
+      - "3002:3000"
+
+  wiki:
+    image: ghcr.io/requarks/wiki:2
+    depends_on:
+      - db
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    restart: unless-stopped
+    network_mode: "service:db"
+    networks:
+      - wiki-network
+    
+
+volumes:
+  db-data:
+
+networks:
+  wiki-network:
+    driver: bridge
+
+</code></pre>
+<p>能跑起来，但是所有的文本变成了本地化字符串，而且无法通过 OAuth 使用 DSM 帐户登录，提示密码和/或邮箱地址错误。</p>
+<p>想问问各位对这个问题有没有什么头猪……</p>
+]]></content:encoded>
+<pubDate>2023-10-15T06:30:10Z</pubDate>
+<pubDate>2023-10-15T06:48:08Z</pubDate>
+</item>
+<item>
+<title>腾讯云 Lighthouse 组建跨地域 Kubernetes 集群</title>
+<link>https://www.v2ex.com/t/980933</link>
+<guid>https://www.v2ex.com/t/980933</guid>
+<content:encoded><![CDATA[
+
+<p>腾讯云轻量服务器 3 周年刚过，买买买完后，发现手里又多了好几台轻量服务器，拿来干什么还没想好，那就先来个“分布式吃灰”吧。</p>
+<h2>环境要求</h2>
+<ul>
+<li>所有节点须为全新安装的<strong>Debian11/12</strong>或<strong>Ubuntu22.04</strong>操作系统</li>
+<li>脚本使用了腾讯云的 metadata 获取 IP ，所有节点部署在腾讯云上不同的地域（ CVM 、Lighthouse 均可）</li>
+</ul>
+<blockquote>
+<p>跨云集群请参考本站另一篇文章：<a href="https://www.rehiy.com/post/547/" rel="nofollow">跨云多地域组建 Kubernetes 集群(k3s)</a></p>
+</blockquote>
+<h2>使用的组件</h2>
+<ul>
+<li><strong>K3s</strong> 一个轻量级的 Kubernetes 发行版，专为生产环境而设计</li>
+<li><strong>Flannel</strong> 一个虚拟网络层，用于为容器化工作负载创建网络隔离和通信</li>
+<li><strong>WireGuard</strong> 一种轻量级、高性能、安全的虚拟专用网络（ VPN ）协议，旨在提供安全的通信</li>
+<li><strong>Flannel-WireGuard</strong> Flannel 网络插件的一种后端，使用 WireGuard 加密和隧道技术来保护网络通信</li>
+</ul>
+<h2>购买并配置 Lighthouse 服务器</h2>
+<p>Lighthouse 是腾讯云推出的一款轻量应用服务器产品，它提供了高性价比、高可用性、高安全性和高灵活性的云端计算服务。具体信息参阅官方文档：<a href="https://cloud.tencent.com/document/product/1207/44361" rel="nofollow">轻量应用服务器概述</a>。</p>
+<p>为了部署 Kubernetes 集群，我们需要至少 2 台轻量应用服务器，并配置好相关的环境和依赖。购买步骤参见官方文档：<a href="https://cloud.tencent.com/document/product/1207/56823" rel="nofollow">快速创建 Linux 实例</a>，<strong>操作系统选 Debian 或 Ubuntu 最新版本</strong>。</p>
+<h2>在腾讯云控制台设置防火墙</h2>
+<p>参考下面的列表在腾讯云控制台设置防火墙规则。若无需精细控制的，可以设置为允许所有节点间 TCP/UPD 协议的全部端口互访。</p>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>端口</th>
+<th>源</th>
+<th>目标</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TCP</td>
+<td>6443</td>
+<td>子节点</td>
+<td>主节点</td>
+<td>Kubernetes API Server</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>10250</td>
+<td>所有节点</td>
+<td>所有节点</td>
+<td>Kubelet 指标收集</td>
+</tr>
+<tr>
+<td>UDP</td>
+<td>51820</td>
+<td>所有节点</td>
+<td>所有节点</td>
+<td>Flannel WireGuard</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>5432-9876</td>
+<td>所有地址</td>
+<td>所有节点</td>
+<td>自定义的 Node Port</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>80,443</td>
+<td>所有地址</td>
+<td>所有节点</td>
+<td>Web 服务才需要</td>
+</tr>
+</tbody></table><h2>部署 K3S 主节点</h2>
+<p>下面这段代码在<strong>主节点</strong>服务器上执行，注意替换<code>SERVER_TOKEN</code>为一个不少于 32 个字母的随机字符串。</p>
+<pre><code class="language-shell">apt update
+apt install -y wireguard
+
+echo "net.ipv4.ip_forward = 1" &gt;/etc/sysctl.d/ip_forward.conf
+sysctl -p /etc/sysctl.d/ip_forward.conf
+
+export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
+
+export PUBLIC_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/public-ipv4)
+export PRIVATE_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/local-ipv4)
+
+export INSTALL_K3S_SKIP_DOWNLOAD=true
+export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
+
+if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
+   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
+fi
+
+curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
+chmod a+x /usr/local/bin/k3s
+
+curl -Ls https://get.k3s.io | sh -s - server \
+    --cluster-init \
+    --token $SERVER_TOKEN \
+    --node-ip $PRIVATE_IP \
+    --node-external-ip $PUBLIC_IP \
+    --advertise-address $PRIVATE_IP \
+    --service-node-port-range 5432-9876 \
+    --flannel-backend wireguard-native \
+    --flannel-external-ip
+</code></pre>
+<h2>部署 K3S 子节点</h2>
+<p>下面这段代码在子节点服务器上执行，注意替换<code>SERVER_TOKEN</code>为和主节点相同的随机字符串，<code>SERVER_IP</code>为主节点的公网 IP 地址（在主节点执行命令<code>curl -Ls <a href="http://metadata.tencentyun.com/latest/meta-data/public-ipv4" rel="nofollow">http://metadata.tencentyun.com/latest/meta-data/public-ipv4</a></code>即可获取）。</p>
+<pre><code class="language-shell">apt update
+apt install -y wireguard
+
+echo "net.ipv4.ip_forward = 1" &gt;/etc/sysctl.d/ip_forward.conf
+sysctl -p /etc/sysctl.d/ip_forward.conf
+
+export SERVER_IP=43.129.195.33
+export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
+
+export PUBLIC_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/public-ipv4)
+export PRIVATE_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/local-ipv4)
+
+export INSTALL_K3S_SKIP_DOWNLOAD=true
+export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
+
+if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
+   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
+fi
+
+curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
+chmod a+x /usr/local/bin/k3s
+
+curl -Ls https://get.k3s.io | sh -s - agent \
+    --server https://$SERVER_IP:6443 \
+    --token $SERVER_TOKEN \
+    --node-ip $PRIVATE_IP \
+    --node-external-ip $PUBLIC_IP
+</code></pre>
+<h2>验证集群</h2>
+<pre><code class="language-shell">kubectl get node
+kubectl top node
+
+kubectl get pods -A
+</code></pre>
+<p><img alt="集群概况" class="embedded_image" rel="noreferrer" src="https://developer.qcloudimg.com/http-save/8695233/97b3df16cfffcab707c153626acfd7ae.jpg?qc_blockWidth=620&amp;qc_blockHeight=145" /></p>
+<p><strong>须知</strong>：本文同步自<a href="https://www.rehiy.com" rel="nofollow">若海の技术写真</a>，如有错漏请到<a href="https://www.rehiy.com/post/548/" rel="nofollow">原文</a>下留言反馈。</p>
+]]></content:encoded>
+<pubDate>2023-10-11T03:59:37Z</pubDate>
+<pubDate>2023-10-13T22:29:19Z</pubDate>
+</item>
+<item>
+<title>搞了一个文字转换向量数据的工具 WordToVector</title>
+<link>https://www.v2ex.com/t/980923</link>
+<guid>https://www.v2ex.com/t/980923</guid>
+<content:encoded><![CDATA[
+
+<p>最近学习 NPL 和 AI 的基础知识，发现线上没有文本转向量的在线工具，就随手撸了一个，不知道有没有用。</p>
+<p><a href="http://word-to-vector.com" rel="nofollow">word-to-vector.com</a>, 旨在轻松将你的文本和词汇转换成 NLP 和 AI 能识别的格式。作为一名独立开发者，我知道处理文本数据有时候会让人头疼，所以我希望这个小工具能为你节省些时间和精力。</p>
+<p>无论你是在搞机器学习、数据分析，或是单纯喜欢折腾文字，这个站点都可能会有些用处。它简单、快捷，不需要任何复杂的设置。你只需几下点击，即可将你的文本转换成向量，然后投入到你的项目中。</p>
+<p>工具地址： <a href="https://word-to-vector.com" rel="nofollow">https://word-to-vector.com</a></p>
+]]></content:encoded>
+<pubDate>2023-10-11T03:44:38Z</pubDate>
+<pubDate>2023-10-11T11:50:15Z</pubDate>
+</item>
+
+<item>
 <title>[ WATCH] 听说 apple watch s9 续航炸天，充满睡一夜醒来只掉了 5%</title>
 <link>https://www.v2ex.com/t/982138</link>
 <guid>https://www.v2ex.com/t/982138</guid>
@@ -16,7 +787,6 @@
 大伙儿都来说说自己 Apple Watch 充满睡一夜醒来的续航呗<br /><br />我的是 S7 45mm 健康度 98%，蜂窝版，睡前 0 点充满 100%，7 点起来一般还剩 83-87%左右。<br /><br />睡眠期间有开睡眠模式（会熄屏）和睡眠记录<br /><br />之前没开 eSIM 套餐，后来开了发现续航也没影响，因为平时都是跟手机连接着并不会启用蜂窝<br /><br />平时开的常亮显示，一天上班下来一般还剩 35-40%，问了身边几个 S7/S8 同事都是如此<br /><br />听说 S9 这代换了芯片续航有显著提升，在🍠上看到几个评论说睡觉一晚才掉电 5%-10%，而且比如今天晚上充满，可以用到三天中午还剩 50%，觉得太不可思议了，S7/S8 新买时都没这么强。<br /><br />#苹果 watch #Apple Watch S9 #Apple Watch S8 #Apple Watch S7 #Apple Watch Series 7 #Apple Watch Series 8 #Apple Watch Series 9
 ]]></content:encoded>
 <pubDate>2023-10-15T06:16:42Z</pubDate>
-<pubDate>2023-10-15T06:16:42Z</pubDate>
 </item>
 <item>
 <title>[问与答] 外置移动硬盘如何让它始终处于运行状态 macOS ？</title>
@@ -24,7 +794,7 @@
 <guid>https://www.v2ex.com/t/982137</guid>
 <content:encoded><![CDATA[
 <div> 硬盘、运转、休眠、外置、一些素材
-总结:<br><br>问题描述了在剪视频时使用西数14T移动硬盘时的困扰，硬盘在一段时间后停止运转，需要等待几秒钟才能重新运行。作者已经在电源选项中设置了只有在用电池的时候才休眠外置硬盘，希望找到一种方法使硬盘始终保持运行状态。 <div>
+总结:<br /><br />问题描述了在剪视频时使用西数14T移动硬盘时的困扰，硬盘在一段时间后停止运转，需要等待几秒钟才能重新运行。作者已经在电源选项中设置了只有在用电池的时候才休眠外置硬盘，希望找到一种方法使硬盘始终保持运行状态。 <div>
 <p>遇到个问题，我在剪视频的时候，有一些素材是在移动硬盘上的。<br />
 这个硬盘是西数 14T 的<br />
 过一段时间之后硬盘好像就停了，当我再用到它的时候又需要等几秒钟等它运转起来 。已经在电源选项中设置了只有在用电池的时候才休眠外置硬盘。</p>
@@ -32,7 +802,6 @@
 <p><img alt="disk list" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/HGIOXB9.png" /></p>
 <p><img alt="battery option" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/nLwilRa.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-15T06:11:38Z</pubDate>
 <pubDate>2023-10-15T06:10:38Z</pubDate>
 </item>
 <item>
@@ -40,10 +809,8 @@
 <link>https://www.v2ex.com/t/982136</link>
 <guid>https://www.v2ex.com/t/982136</guid>
 <content:encoded><![CDATA[
-
 我一般在 YouTube 上听 ASMR 、周杰伦、或者 lofi girl
 ]]></content:encoded>
-<pubDate>2023-10-15T06:07:36Z</pubDate>
 <pubDate>2023-10-15T06:21:16Z</pubDate>
 </item>
 <item>
@@ -51,12 +818,10 @@
 <link>https://www.v2ex.com/t/982135</link>
 <guid>https://www.v2ex.com/t/982135</guid>
 <content:encoded><![CDATA[
-
 <p>坐标北京，4 万公里的保养，一共 2000 多，请教下这个价格正常吗？</p>
 <p>感谢！</p>
 <p><img alt="WechatIMG15.jpg" class="embedded_image" rel="noreferrer" src="https://p.sda1.dev/13/e999327771317935f8515a6e49c360be/WechatIMG15.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-15T06:05:15Z</pubDate>
 <pubDate>2023-10-15T06:05:15Z</pubDate>
 </item>
 <item>
@@ -64,10 +829,8 @@
 <link>https://www.v2ex.com/t/982133</link>
 <guid>https://www.v2ex.com/t/982133</guid>
 <content:encoded><![CDATA[
-
 [临港新城地铁口宝藏房✨麦冬路 555 弄三房直租免中介！]<br /><br />[刚才没有正确带图抱歉添麻烦了，现在重发]<br /><br />📍只需 100 米，临港大道地铁站就在眼前，出行再也不是问题！<br /><br />🛍猜猜谁是你的邻居？ 5 万平爱琴海购物中心，23 年年内与你相见，吃喝玩乐，再也不用跑这跑那！<br /><br />✈️Wifi 全覆盖光纤入户，配置全屋魔法，机顶盒支持油管网飞。<br /><br />🏢2023 年全新交付的电梯房，每一处都是对生活的极致追求。<br /><br />🎨93 平三房两卫，木棉风格装修，像踏进自然的怀抱，舒适、温暖、时尚，这都不足以形容它的完美。<br /><br />📺全新 55 寸大电视，随时随地，享受影视盛宴！<br /><br />🌬四季如春，各房间空调全配，让你随心所欲调节温度。<br /><br />🪑全新木制家具，每一件都充满了生活的温度。<br /><br />🛋洗、冲、煮、烤...家电齐全，让生活更简单。小米扫地机器人定时清扫。<br /><br />小区中心位置，每天都能享受宁静的夜晚，梦里都是甜的。<br /><br />这不仅仅是一个住所，更是生活品质的升级！🔥🔥🔥<br /><br />好房不等人，走过路过不要错过！<br /><br />房东本人直租，感兴趣加微信:apango 联系！请注明来自 V2EX 。<br /><br />#地铁口宝藏房# #生活从此升级# #临港新城租房#<br /><br />客厅：<br /><a href="https://i.imgur.com/a8r9Wgy.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/a8r9Wgy.jpg" /></a><br />厨房：<br /><a href="https://i.imgur.com/YOEqw7I.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/YOEqw7I.jpg" /></a><br /><a href="https://i.imgur.com/OOADDf6.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OOADDf6.jpg" /></a><br />主卫：<br /><a href="https://i.imgur.com/1GQI33j.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/1GQI33j.jpg" /></a><br />次卫：<br /><a href="https://i.imgur.com/1GQI33j.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/1GQI33j.jpg" /></a><br />主卧：<br /><a href="https://i.imgur.com/Nq520kN.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Nq520kN.jpg" /></a><br />次卧：<br /><a href="https://i.imgur.com/NnxyoZQ.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/NnxyoZQ.jpg" /></a><br />书房，也可放一个单人床做卧室：<br /><a href="https://i.imgur.com/wR5sEwn.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/wR5sEwn.jpg" /></a><br />阳台：<br /><a href="https://i.imgur.com/hF96dca.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/hF96dca.jpg" /></a><br />小区外景：<br /><a href="https://i.imgur.com/w1szCUS.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/w1szCUS.jpg" /></a><br /><a href="https://i.imgur.com/NzdIJIP.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/NzdIJIP.jpg" /></a><br /><a href="https://i.imgur.com/lyLz85V.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/lyLz85V.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:53:02Z</pubDate>
 <pubDate>2023-10-15T05:52:02Z</pubDate>
 </item>
 <item>
@@ -75,10 +838,8 @@
 <link>https://www.v2ex.com/t/982132</link>
 <guid>https://www.v2ex.com/t/982132</guid>
 <content:encoded><![CDATA[
-
 <a href="https://github.com/raidendotai/openv0" rel="nofollow noopener" target="_blank">https://github.com/raidendotai/openv0</a>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:39:32Z</pubDate>
 <pubDate>2023-10-15T05:36:32Z</pubDate>
 </item>
 <item>
@@ -86,7 +847,6 @@
 <link>https://www.v2ex.com/t/982131</link>
 <guid>https://www.v2ex.com/t/982131</guid>
 <content:encoded><![CDATA[
-
 <p>服务器：R630 2680V4x2 16Gx12 希捷 600G 10K6 SASx4 H730P 阵列卡 双电源 750W</p>
 <p>路由器：MikroTik RB750Gr3</p>
 <p>目前托管在镇江机房，托管费 1 年 2800 元，20M 保底带宽 100M 峰值 带一个 IP ，2023-11-25 到期</p>
@@ -94,7 +854,6 @@
 <p>可以远程装系统，虚拟化，可以给小伙伴每人分几十个 G 的内存跑虚机玩，可以上班摸鱼，可以搭建 k8s 学习环境。</p>
 <p>价格 2800 元</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:34:27Z</pubDate>
 <pubDate>2023-10-15T06:00:06Z</pubDate>
 </item>
 <item>
@@ -102,7 +861,6 @@
 <link>https://www.v2ex.com/t/982130</link>
 <guid>https://www.v2ex.com/t/982130</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/27515/6180249e-9a23-4ae1-a0d4-7999faf42614.jpg" /></p>
 <p>转载周爱民老师《告前端同学书》，有些思绪需要发散，随联想到自己的过往。</p>
 <p>文中提到'领域'一词，用在前端，个人认为非常合适。领域一词在我印象中，还需追溯到初中时期，我读的一本叫《吞噬星空》的小说，书籍大概 400 多万字，读起来却是昼夜不分（这也是我唯一看完的一本小说），此书也提到了领域，行星级武者可以展开自己的领域。我个人所理解的领域，用大白话通俗解释，就是当你的本领到达一定阶段时，你会在这个范围拥有一定的话语权。类似的阿里技术等级序列也是，通常来说，P7 一般拥有自己的领域。</p>
@@ -121,7 +879,6 @@
 <p>在这个行业待了很久，见识了很多人转到其他行业。互联网的发展非常迅速，如果做不到持之以恒的学习，那将会被慢慢淘汰。以汽车为例，燃油车"固若金汤"，谁会想到互联网 + 纯电，基本上算是革了燃油车的命，这些传统燃油车商，也要做出相应的改变，以应对时代的变化。</p>
 <p>眼光高远而脚踏实地</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:26:25Z</pubDate>
 <pubDate>2023-10-15T06:09:42Z</pubDate>
 </item>
 <item>
@@ -129,10 +886,8 @@
 <link>https://www.v2ex.com/t/982129</link>
 <guid>https://www.v2ex.com/t/982129</guid>
 <content:encoded><![CDATA[
-
 [临港新城地铁口宝藏房✨房东直租免中介！] <br /><br />📍只需 100 米，临港大道地铁站就在眼前，出行再也不是问题！<br /><br />🛍猜猜谁是你的邻居？ 5 万平爱琴海购物中心，23 年年内与你相见，吃喝玩乐，再也不用跑这跑那！<br /><br />✈️Wifi 全覆盖光纤入户，配置全屋魔法，机顶盒支持油管网飞。<br /><br />🏢2023 年全新交付的电梯房，每一处都是对生活的极致追求。<br /><br />🎨93 平三房两卫，木棉风格装修，像踏进自然的怀抱，舒适、温暖、时尚，这都不足以形容它的完美。<br /><br />📺全新 55 寸大电视，随时随地，享受影视盛宴！<br /><br />🌬四季如春，各房间空调全配，让你随心所欲调节温度。<br /><br />🪑全新木制家具，每一件都充满了生活的温度。<br /><br />🛋洗、冲、煮、烤...家电齐全，让生活更简单。小米扫地机器人定时清扫。<br /><br />小区中心位置，每天都能享受宁静的夜晚，梦里都是甜的。<br /><br />这不仅仅是一个住所，更是生活品质的升级！🔥🔥🔥<br /><br />好房不等人，走过路过不要错过！<br /><br />房东本人直租，感兴趣站内私信联系！ <br /><br />#地铁口宝藏房# #生活从此升级# #临港新城租房#<br /><br /><a href="https://imgur.com/Tipkkbg" rel="nofollow noopener" target="_blank">https://imgur.com/Tipkkbg</a>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:23:01Z</pubDate>
 <pubDate>2023-10-05T05:34:09Z</pubDate>
 </item>
 <item>
@@ -140,10 +895,8 @@
 <link>https://www.v2ex.com/t/982128</link>
 <guid>https://www.v2ex.com/t/982128</guid>
 <content:encoded><![CDATA[
-
 群晖 DS3622xs+ 12 盘 18thc550 组 raid6 ，写入只有 200MB/s...万兆网卡<br /><br />始终找不到原因<br />我手上有 3 台 nas ，全部没用 ssd 缓存<br />都是万兆网卡，1 台 ds3622xs+，两台 1821+<br />1821 都是正常的，ds3622+就不行，写入就是低<br /><br />ds3622xs+ 写入始终只能在 200mb/s<br />1821+ 可以写入在 600-800mb/s<br /><br />同样的测试环境，同样的电脑，同样的网络，都在一个交换机下，应该不是网卡的事情，因为读的速度可以达到 1000mb/s ，说明万兆网口没问题，而且 2 个万兆网口都换过了，交换机口也都换过了。<br /><br />同样一个大文件，往 1821 里面写入的速度大概就是 600mb/s 以上，但是在 ds3622+只有 200mb/s<br /><br />都没有 ssd 缓存，ds3622 内存还更大，cpu 更强，都是 raid6 ，而且都没有进行磁盘整理这些操作。。<br /><br />有木有大神给点思路？找不到问题所在。机器都是全新系统，没有什么负载。
 ]]></content:encoded>
-<pubDate>2023-10-15T05:17:02Z</pubDate>
 <pubDate>2023-10-15T06:12:37Z</pubDate>
 </item>
 <item>
@@ -151,7 +904,6 @@
 <link>https://www.v2ex.com/t/982126</link>
 <guid>https://www.v2ex.com/t/982126</guid>
 <content:encoded><![CDATA[
-
 <p>我一直觉得超频的收益不高，而且费电。临近双十一，准备升级下电脑，在考虑买锁频 U ，然后不配散热了。</p>
 <p>缘起是我看到京东的产品页面里标的超频版需要配散热。我就想难道这个级别的 CPU ，只要锁频真的可以不配散热吗？有试过的兄弟吗？</p>
 <p>主要需求：</p>
@@ -164,7 +916,6 @@
 <p>总的来讲，我愿意通过锁频牺牲点性能，换取少装一个散热。但是如果锁频也压不住，导致降频，那我还不如一步到位。</p>
 <p>为什么这么在意少装散热？因为每次装机我都手疼。有点怕了。</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T05:12:57Z</pubDate>
 <pubDate>2023-10-15T06:20:38Z</pubDate>
 </item>
 <item>
@@ -172,10 +923,8 @@
 <link>https://www.v2ex.com/t/982125</link>
 <guid>https://www.v2ex.com/t/982125</guid>
 <content:encoded><![CDATA[
-
 []( <a href="https://i.imgur.com/gcJJO2t.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/gcJJO2t.jpg" /></a>&gt;)<br /><br />[]( <a href="https://i.imgur.com/8ybahwj.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/8ybahwj.jpg" /></a>)<br /><br /><br /><br />左边上下 l1 l2 <br /><br />再往右 l<br /><br />再往右 l<br /><br />再往右接地<br /><br />再往右 n<br /><br /><br /><br />刚才每个火线接口都尝试接了火线 零线接 n<br /><br /> 开关都没用
 ]]></content:encoded>
-<pubDate>2023-10-15T05:07:06Z</pubDate>
 <pubDate>2023-10-15T06:17:42Z</pubDate>
 </item>
 <item>
@@ -183,10 +932,8 @@
 <link>https://www.v2ex.com/t/982124</link>
 <guid>https://www.v2ex.com/t/982124</guid>
 <content:encoded><![CDATA[
-
 我收到一个泰国人用我的 gmail 注册了 Apple ID 并登陆 iPad 的邮件提醒。想问申请 Apple ID 什么时候开始不用确认邮箱了？居然没有收到任何关于需要确认这个 ID 邮件提醒。<br /><br />我去 Apple 网页，想把它注销了或者更改密码，这个 ID 还绑定着手机号，操作不下去。<br /><br />另外这个 gmail ，用 dot 作为分割号的邮箱是我主力 Apple 帐户。找客服不会骚操作，把我主力号干掉吧？<br /><br />也不知是哪个大头虾，注册的时候不用核对的吗。
 ]]></content:encoded>
-<pubDate>2023-10-15T04:59:29Z</pubDate>
 <pubDate>2023-10-15T05:01:06Z</pubDate>
 </item>
 <item>
@@ -194,13 +941,11 @@
 <link>https://www.v2ex.com/t/982123</link>
 <guid>https://www.v2ex.com/t/982123</guid>
 <content:encoded><![CDATA[
-
 <p>隔壁车主 <a href="https://www.v2ex.com/t/981134#reply2" rel="nofollow">https://www.v2ex.com/t/981134#reply2</a> 联系得知人满，所以打算自己开一辆。自用车，常用稳定。</p>
 <p>暂定车友 iCloud 每人 450G （我没啥照片，就 200G 得了），季付 31¥，年付 110¥。不放心走小黄鱼，本人信用极好。</p>
 <p>车友主号加入家庭组即可共享 iCloud ，自备土区账号以切换 App Store 使用 apple music 。</p>
 <p>联系+V：Wick_Chin ，贴在就还有位置。</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:59:16Z</pubDate>
 <pubDate>2023-10-15T00:59:16Z</pubDate>
 </item>
 <item>
@@ -208,11 +953,9 @@
 <link>https://www.v2ex.com/t/982121</link>
 <guid>https://www.v2ex.com/t/982121</guid>
 <content:encoded><![CDATA[
-
 <p>最近关掉了下载 App 自动出现在主屏幕的功能，随后新烦恼出现了：大量的 App 被放到了资源库里，没有出现在桌面。</p>
 <p>有可能有些 App 我下载后就不会再使用了，出于我的强迫症，不希望出现这样的情况。有什么办法可以找到这些在桌面上隐藏起来的 App ？或者各位有什么其他方法时间类似的功能吗？先行谢过！</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:52:39Z</pubDate>
 <pubDate>2023-10-15T05:37:07Z</pubDate>
 </item>
 <item>
@@ -220,7 +963,6 @@
 <link>https://www.v2ex.com/t/982120</link>
 <guid>https://www.v2ex.com/t/982120</guid>
 <content:encoded><![CDATA[
-
 <p>我在加拿大买的电视默认是 youtube 网飞，我妈看不懂，我想从国内买个电视盒子。</p>
 <p>要求：
 1 、可以插 U 盘、播放 U 盘里的电视、电影
@@ -229,7 +971,6 @@
 4 、质量好</p>
 <p>谢谢！</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:49:03Z</pubDate>
 <pubDate>2023-10-15T06:00:10Z</pubDate>
 </item>
 <item>
@@ -237,10 +978,8 @@
 <link>https://www.v2ex.com/t/982119</link>
 <guid>https://www.v2ex.com/t/982119</guid>
 <content:encoded><![CDATA[
-
 <p>直接给用户转账。。前后转账了 3200 了 然后打电话过来说贷款啥的。。有人遇到过吗？不知道是不是点击了啥泄露了信息 这相当于白赚 3200 吗 还是说这笔钱应该咋办呢</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:47:27Z</pubDate>
 <pubDate>2023-10-15T05:43:27Z</pubDate>
 </item>
 <item>
@@ -248,10 +987,8 @@
 <link>https://www.v2ex.com/t/982118</link>
 <guid>https://www.v2ex.com/t/982118</guid>
 <content:encoded><![CDATA[
-
 本人现在使用的是台区 Spotify ，车是本田 inspire ，中配 1.5T 型号，开车播放音乐歌词不显示，请问有什么解决办法？其他车歌词可以显示吗？
 ]]></content:encoded>
-<pubDate>2023-10-15T04:31:16Z</pubDate>
 <pubDate>2023-10-15T05:02:40Z</pubDate>
 </item>
 <item>
@@ -259,7 +996,6 @@
 <link>https://www.v2ex.com/t/982116</link>
 <guid>https://www.v2ex.com/t/982116</guid>
 <content:encoded><![CDATA[
-
 <p>1.没事跑个神经网络
 2.综合下 FPGA
 3.跑大型工程.码农一个。
@@ -270,7 +1006,6 @@
 8.问题要少，动不动出问题，烦都要烦死，主打一个省心。
 9.内存要 32G 往上。</p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:24:52Z</pubDate>
 <pubDate>2023-10-15T05:02:53Z</pubDate>
 </item>
 <item>
@@ -278,7 +1013,6 @@
 <link>https://www.v2ex.com/t/982115</link>
 <guid>https://www.v2ex.com/t/982115</guid>
 <content:encoded><![CDATA[
-
 <h1>公司介绍</h1>
 <p>我们是一家还处于秘密开发阶段的 AI 创业公司，产品路线是端到端从模型到应用的方向。我们同时在预训练专属模型并基于这个模型开发面向消费者的应用。</p>
 <p>我们能够提供的是</p>
@@ -352,10 +1086,8 @@ ChatGPT 上线后的一年以来深度应用过各种 AI 应用，比如：<ul>
 <p>工作地点：上海，江湾五角场附近
 联系邮箱： <a href="mailto:recruit@starquest.ai">recruit@starquest.ai</a></p>
 ]]></content:encoded>
-<pubDate>2023-10-15T04:22:22Z</pubDate>
 <pubDate>2023-10-15T04:39:47Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 车门经常被其他车开门的时候暴力磕到掉漆，特别是在露天停车场。</title>
 <link>https://www.v2ex.com/t/982114</link>
@@ -15314,377 +16046,6 @@ flex 布局：<ol>
 <p>售后直接让我别修了，趁做活动再买个更划算。</p>
 ]]></content:encoded>
 <pubDate>2023-10-11T02:16:13Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 吐槽下 rfc7692 permessage-deflate</title>
-<link>https://www.v2ex.com/t/980936</link>
-<guid>https://www.v2ex.com/t/980936</guid>
-<content:encoded><![CDATA[
-<p>槽点 1：
-允许 server_context_takeover 和 client_context_takeover 不一致</p>
-<p>槽点 2:
-允许 server_max_window_bits 和 client_max_window_bits 不一致</p>
-<p>在我看来这 4 个参数完全可以合并为 2 个，参数越多越让使用者迷惑。而且让握手协商变得啰嗦复杂许多，给 compressor/decompressor 内存复用带来麻烦。</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:15:29Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [坐标大阪] [不需要日语] unity、游戏策划、 Java 、前端 共计 17 个 HC 均需要 3 年以上工作经验 可以直接高度人才签证</title>
-<link>https://www.v2ex.com/t/980935</link>
-<guid>https://www.v2ex.com/t/980935</guid>
-<content:encoded><![CDATA[
-感兴趣哪个岗位可以留言 我发岗位介绍<br />联络方式 wechat：weoffer99 或者 549258011
-]]></content:encoded>
-<pubDate>2023-10-11T04:10:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 老哥们都是去哪找高清的影视资源？主要看美剧&amp;国外电影</title>
-<link>https://www.v2ex.com/t/980934</link>
-<guid>https://www.v2ex.com/t/980934</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-11T04:19:37Z</pubDate>
-</item>
-<item>
-<title>[云计算] 腾讯云 Lighthouse 组建跨地域 Kubernetes 集群</title>
-<link>https://www.v2ex.com/t/980933</link>
-<guid>https://www.v2ex.com/t/980933</guid>
-<content:encoded><![CDATA[
-<p>腾讯云轻量服务器 3 周年刚过，买买买完后，发现手里又多了好几台轻量服务器，拿来干什么还没想好，那就先来个“分布式吃灰”吧。</p>
-<h2>环境要求</h2>
-<ul>
-<li>所有节点须为全新安装的<strong>Debian11/12</strong>或<strong>Ubuntu22.04</strong>操作系统</li>
-<li>脚本使用了腾讯云的 metadata 获取 IP ，所有节点部署在腾讯云上不同的地域（ CVM 、Lighthouse 均可）</li>
-</ul>
-<blockquote>
-<p>跨云集群请参考本站另一篇文章：<a href="https://www.rehiy.com/post/547/" rel="nofollow">跨云多地域组建 Kubernetes 集群(k3s)</a></p>
-</blockquote>
-<h2>使用的组件</h2>
-<ul>
-<li><strong>K3s</strong> 一个轻量级的 Kubernetes 发行版，专为生产环境而设计</li>
-<li><strong>Flannel</strong> 一个虚拟网络层，用于为容器化工作负载创建网络隔离和通信</li>
-<li><strong>WireGuard</strong> 一种轻量级、高性能、安全的虚拟专用网络（ VPN ）协议，旨在提供安全的通信</li>
-<li><strong>Flannel-WireGuard</strong> Flannel 网络插件的一种后端，使用 WireGuard 加密和隧道技术来保护网络通信</li>
-</ul>
-<h2>购买并配置 Lighthouse 服务器</h2>
-<p>Lighthouse 是腾讯云推出的一款轻量应用服务器产品，它提供了高性价比、高可用性、高安全性和高灵活性的云端计算服务。具体信息参阅官方文档：<a href="https://cloud.tencent.com/document/product/1207/44361" rel="nofollow">轻量应用服务器概述</a>。</p>
-<p>为了部署 Kubernetes 集群，我们需要至少 2 台轻量应用服务器，并配置好相关的环境和依赖。购买步骤参见官方文档：<a href="https://cloud.tencent.com/document/product/1207/56823" rel="nofollow">快速创建 Linux 实例</a>，<strong>操作系统选 Debian 或 Ubuntu 最新版本</strong>。</p>
-<h2>在腾讯云控制台设置防火墙</h2>
-<p>参考下面的列表在腾讯云控制台设置防火墙规则。若无需精细控制的，可以设置为允许所有节点间 TCP/UPD 协议的全部端口互访。</p>
-<table>
-<thead>
-<tr>
-<th>协议</th>
-<th>端口</th>
-<th>源</th>
-<th>目标</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>TCP</td>
-<td>6443</td>
-<td>子节点</td>
-<td>主节点</td>
-<td>Kubernetes API Server</td>
-</tr>
-<tr>
-<td>TCP</td>
-<td>10250</td>
-<td>所有节点</td>
-<td>所有节点</td>
-<td>Kubelet 指标收集</td>
-</tr>
-<tr>
-<td>UDP</td>
-<td>51820</td>
-<td>所有节点</td>
-<td>所有节点</td>
-<td>Flannel WireGuard</td>
-</tr>
-<tr>
-<td>TCP</td>
-<td>5432-9876</td>
-<td>所有地址</td>
-<td>所有节点</td>
-<td>自定义的 Node Port</td>
-</tr>
-<tr>
-<td>TCP</td>
-<td>80,443</td>
-<td>所有地址</td>
-<td>所有节点</td>
-<td>Web 服务才需要</td>
-</tr>
-</tbody></table><h2>部署 K3S 主节点</h2>
-<p>下面这段代码在<strong>主节点</strong>服务器上执行，注意替换<code>SERVER_TOKEN</code>为一个不少于 32 个字母的随机字符串。</p>
-<pre><code class="language-shell">apt update
-apt install -y wireguard
-
-echo "net.ipv4.ip_forward = 1" &gt;/etc/sysctl.d/ip_forward.conf
-sysctl -p /etc/sysctl.d/ip_forward.conf
-
-export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
-
-export PUBLIC_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/public-ipv4)
-export PRIVATE_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/local-ipv4)
-
-export INSTALL_K3S_SKIP_DOWNLOAD=true
-export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
-
-if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
-   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
-fi
-
-curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
-chmod a+x /usr/local/bin/k3s
-
-curl -Ls https://get.k3s.io | sh -s - server \
-    --cluster-init \
-    --token $SERVER_TOKEN \
-    --node-ip $PRIVATE_IP \
-    --node-external-ip $PUBLIC_IP \
-    --advertise-address $PRIVATE_IP \
-    --service-node-port-range 5432-9876 \
-    --flannel-backend wireguard-native \
-    --flannel-external-ip
-</code></pre>
-<h2>部署 K3S 子节点</h2>
-<p>下面这段代码在子节点服务器上执行，注意替换<code>SERVER_TOKEN</code>为和主节点相同的随机字符串，<code>SERVER_IP</code>为主节点的公网 IP 地址（在主节点执行命令<code>curl -Ls <a href="http://metadata.tencentyun.com/latest/meta-data/public-ipv4" rel="nofollow">http://metadata.tencentyun.com/latest/meta-data/public-ipv4</a></code>即可获取）。</p>
-<pre><code class="language-shell">apt update
-apt install -y wireguard
-
-echo "net.ipv4.ip_forward = 1" &gt;/etc/sysctl.d/ip_forward.conf
-sysctl -p /etc/sysctl.d/ip_forward.conf
-
-export SERVER_IP=43.129.195.33
-export SERVER_TOKEN=r83nui54eg8wihyiteshuo3o43gbf7u9er63o43gbf7uitujg8wihyitr6
-
-export PUBLIC_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/public-ipv4)
-export PRIVATE_IP=$(curl -Ls http://metadata.tencentyun.com/latest/meta-data/local-ipv4)
-
-export INSTALL_K3S_SKIP_DOWNLOAD=true
-export DOWNLOAD_K3S_BIN_URL=https://github.com/k3s-io/k3s/releases/download/v1.28.2%2Bk3s1/k3s
-
-if [ $(curl -Ls http://ipip.rehi.org/country_code) == "CN" ]; then
-   DOWNLOAD_K3S_BIN_URL=https://ghproxy.com/${DOWNLOAD_K3S_BIN_URL}
-fi
-
-curl -Lo /usr/local/bin/k3s $DOWNLOAD_K3S_BIN_URL
-chmod a+x /usr/local/bin/k3s
-
-curl -Ls https://get.k3s.io | sh -s - agent \
-    --server https://$SERVER_IP:6443 \
-    --token $SERVER_TOKEN \
-    --node-ip $PRIVATE_IP \
-    --node-external-ip $PUBLIC_IP
-</code></pre>
-<h2>验证集群</h2>
-<pre><code class="language-shell">kubectl get node
-kubectl top node
-
-kubectl get pods -A
-</code></pre>
-<p><img alt="集群概况" class="embedded_image" rel="noreferrer" src="https://developer.qcloudimg.com/http-save/8695233/97b3df16cfffcab707c153626acfd7ae.jpg?qc_blockWidth=620&amp;qc_blockHeight=145" /></p>
-<p><strong>须知</strong>：本文同步自<a href="https://www.rehiy.com" rel="nofollow">若海の技术写真</a>，如有错漏请到<a href="https://www.rehiy.com/post/548/" rel="nofollow">原文</a>下留言反馈。</p>
-]]></content:encoded>
-<pubDate>2023-10-11T03:57:37Z</pubDate>
-</item>
-<item>
-<title>[深圳] 请教一下，长时间不开车，大家停车都是怎么处理的</title>
-<link>https://www.v2ex.com/t/980932</link>
-<guid>https://www.v2ex.com/t/980932</guid>
-<content:encoded><![CDATA[
-<p>由于种种原因，这两个月大概率会买车。</p>
-<p>平时车基本都不会开，可能一个月开个一次的频率，或者更少。</p>
-<p>所以想找个相对划算的停车方案或者停车场地。</p>
-<p>最近研究了下停车相关内容，感觉停车月卡基本很难办到，稍微价格合适的，通过正常价格几乎办不到，都需要排队或者给喝茶费。</p>
-<p>想问问大家停车都是怎么处理的，或者有什么停车建议，虚心请教下各位兄弟。</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:19:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 闲置的安卓手机有没有什么变为私有云手机的方案</title>
-<link>https://www.v2ex.com/t/980931</link>
-<guid>https://www.v2ex.com/t/980931</guid>
-<content:encoded><![CDATA[
-<p>有个闲置手机，希望变为云手机</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:08:16Z</pubDate>
-</item>
-<item>
-<title>[杭州] 杭州周末找搭子出游</title>
-<link>https://www.v2ex.com/t/980930</link>
-<guid>https://www.v2ex.com/t/980930</guid>
-<content:encoded><![CDATA[
-自我介绍：INFJ, 程序员, 目前独居, 不宅，喜欢到处溜达；大部分周末都会选择约朋友周边游玩，或者一个人没有目的性地到处闲逛；近期经常一起出行的朋友在外出差，长时间不在杭州。问问在杭州的 v 友们，你们的周末都是咋过的？希望找些能路上说说话的一起出行的朋友，一个人出行太孤独 -- <br /><br />如果你没有目的地或懒得规划，我可以选择目的地、做规划。
-]]></content:encoded>
-<pubDate>2023-10-11T04:04:03Z</pubDate>
-</item>
-<item>
-<title>[生活] 相亲记录</title>
-<link>https://www.v2ex.com/t/980929</link>
-<guid>https://www.v2ex.com/t/980929</guid>
-<content:encoded><![CDATA[
-<p>国庆相了一个 00 后女孩，本人 95 ，年龄勉强匹配，谈了几天，对方是一个十足的圣母，怎么办，还能继续下去吗？
-首先是异地恋，需要找话题，然后她给我发的永远是猫和狗，本人不爱宠物，但也不讨厌，一开始还好，多了也烦了，最让我排斥的是她自己工作 2 、3k ，却和 2 个 50 多岁的大妈 租了一个房子救助流浪猫，主要是猫
-最近因为一个救助的事发生了争吵，感觉坚持不下去了。三观不合，感觉对方也没有为自己、为未来的家庭负责，虽然救助猫这事本身是好事，但感觉做的过了，对自己的人生没有规划，也不负责任。
-目前已经冷战 2 天了，没找她也没找我，如果我不主动估计就是分了，怎么办？ 欢迎谭友打醒我，</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:18:38Z</pubDate>
-</item>
-<item>
-<title>[深圳] 哭死求建议，失业才发现工作日上班时间出租屋里这么吵</title>
-<link>https://www.v2ex.com/t/980928</link>
-<guid>https://www.v2ex.com/t/980928</guid>
-<content:encoded><![CDATA[
-噪音来源：同楼栋或隔壁楼栋装修的电钻声、锤墙声<br /><br />本来想着能趁着这段时间好好躺平，奈何总是有装修的噪音。吵得头晕脑胀，甚至还能感受到电钻带来的震动。每个工作日 8 ～ 12 点、14 ～ 17 点，时不时就给你来点震撼。过去问了两次要装到啥时候，就说“明天”、“这周”就结束，然后并不是。<br /><br />1. 第一反应是报警，但去网上一搜，说的是工作日时间指定时段内装修是合法的。<br />2. 也想过出去待，比如去附近饮品店坐坐，但一两次之后就放弃了，毕竟在外面也不方便午休、打游戏啥的。而且我都不用上班了，凭啥还得按照上班作息出门呢？<br />3. 换房子？下一份工作没定，换房子的成本和风险太高了。<br /><br />最崩溃的是，好不容易熬完一家装完，另一家又开始了，真想爆粗口。这小区都破成这样了，不要再装修了吧求求了。<br /><br />有啥好的应对办法吗？
-]]></content:encoded>
-<pubDate>2023-10-11T04:10:03Z</pubDate>
-</item>
-<item>
-<title>[程序员] Obsidian 思维导图集成 Anki</title>
-<link>https://www.v2ex.com/t/980927</link>
-<guid>https://www.v2ex.com/t/980927</guid>
-<content:encoded><![CDATA[
-<p>推荐一个 obsidian-markmind 思维导图和 anki 集成的分支项目. 支持将思维导图的节点集成到 anki,非常方便.</p>
-<h1>演示如下</h1>
-<p><a href="https://imgur.com/a/wrhhxY2" rel="nofollow">https://imgur.com/a/wrhhxY2</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://joplin-1254297830.cos.ap-guangzhou.myqcloud.com/obimg/play.gif" /></p>
-<h1>介绍</h1>
-<p>这个项目基于<code>MarkMindCkm/obsidian-markmind</code>,项目地址是
-<a href="https://github.com/yonggithub/obsidian-markmind-integrates-anki" rel="nofollow">yonggithub/obsidian-markmind-integrates-anki</a>,这个项目实现了在 obsidian 的思维导图实时同步到 anki 的功能.希望更多人关注和参与!!</p>
-]]></content:encoded>
-<pubDate>2023-10-11T03:50:52Z</pubDate>
-</item>
-<item>
-<title>[职场话题] Offer 纠结（非程序员）</title>
-<link>https://www.v2ex.com/t/980926</link>
-<guid>https://www.v2ex.com/t/980926</guid>
-<content:encoded><![CDATA[
-行业是跨境电商，具体是亚马逊，面试已经拿到 offer ，公司是自己研发生产并销售汽车播放器，安卓系统，支持 Carplay 等，下面说下公司的优缺点<br /><br />优点：<br />· 福利待遇算不错，底薪 7.5 ，绩效包括提成 1k+，工资 5 号发，一年一次体检，一次外出旅游，季度 200/人团建费<br />· 接收老店铺，试用期第二月就有绩效+提成<br />· 只做一个类目产品，比较专一<br />· 公司在香港有分公司，实力不错<br />· 老员工比较多，HR 待了 10 年，运营主管也待了十多年<br />· HR 给人感觉不错<br /><br />缺点<br />· 亚马逊部门人少，只有两个女生，主管主要是负责 Eaby 平台<br />· 从主管的面试问题来看，他对亚马逊并不是很了解<br />· 去前台看了销售情况，店铺一个月在 500 单样子，客单价都比较高，但是 SKU 会比较多<br />· 对个人的成长发展可能不利，从主管的亚马逊运营水平来判断<br /><br />以上是纠结的点，现在也没有面试其他公司，看了一圈跨境电商公司，很多都不怎么样，主动投递的看都不看。所以现在不知道是先入职，还是慢慢找自己觉得更好的<br /><br />补充，上一份工作离职是因为产品线太乱，新品不给力，业绩难提升，在公司能学到的东西有限，薪资一年没涨，综合决定换一家公司
-]]></content:encoded>
-<pubDate>2023-10-11T03:45:14Z</pubDate>
-</item>
-<item>
-<title>[Java] jwt 如何做在线踢人功能？</title>
-<link>https://www.v2ex.com/t/980925</link>
-<guid>https://www.v2ex.com/t/980925</guid>
-<content:encoded><![CDATA[
-<p>不依赖第三方中间件（比如 redis ）</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:19:24Z</pubDate>
-</item>
-<item>
-<title>[游戏] 2023 年 10 月，关于 PS5 上的艾尔登法环的帧率表现</title>
-<link>https://www.v2ex.com/t/980924</link>
-<guid>https://www.v2ex.com/t/980924</guid>
-<content:encoded><![CDATA[
-<p>最近买了 [艾尔登法环 PS5 版本]  的实体盘，昨晚回去高高兴兴安装&amp;更新到最新版本&amp;启动，遇到一些疑惑。</p>
-<p>过程：</p>
-<ol>
-<li>游戏内置了光追模式，打开光追之后发现是画质优先，帧率只有 15-20 帧数；</li>
-<li>于是我关闭了光追模式，选择帧数优先，但发现室内场景能稳定 60 帧，但野外场景、跑马过快还是能感觉有些掉帧，貌似不能稳定 60 帧。</li>
-</ol>
-<p>想问大家：</p>
-<ol>
-<li>如何保证 PS5 版本的艾尔登法环在 PS5 稳定 60 帧运行？</li>
-<li>如果问题 1 无解，听说目前艾尔登法环在 PS5 主机上最佳方案是运行 PS4 版本的游戏，但貌似 PS4 版本的画质和渲染‘很差’，真的很差么？</li>
-<li>目前艾尔登法环这款游戏的最佳体验是在哪个平台？</li>
-</ol>
-<p>谢谢大家～</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:19:22Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 搞了一个文字转换向量数据的工具 WordToVector</title>
-<link>https://www.v2ex.com/t/980923</link>
-<guid>https://www.v2ex.com/t/980923</guid>
-<content:encoded><![CDATA[
-<p>最近学习 NPL 和 AI 的基础知识，发现线上没有文本转向量的在线工具，就随手撸了一个，不知道有没有用。</p>
-<p><a href="http://word-to-vector.com" rel="nofollow">word-to-vector.com</a>, 旨在轻松将你的文本和词汇转换成 NLP 和 AI 能识别的格式。作为一名独立开发者，我知道处理文本数据有时候会让人头疼，所以我希望这个小工具能为你节省些时间和精力。</p>
-<p>无论你是在搞机器学习、数据分析，或是单纯喜欢折腾文字，这个站点都可能会有些用处。它简单、快捷，不需要任何复杂的设置。你只需几下点击，即可将你的文本转换成向量，然后投入到你的项目中。</p>
-<p>工具地址： <a href="https://word-to-vector.com" rel="nofollow">https://word-to-vector.com</a></p>
-]]></content:encoded>
-<pubDate>2023-10-11T03:44:38Z</pubDate>
-</item>
-<item>
-<title>[Xbox 360] 请教 xbox 的 PC Game Pass 购买问题</title>
-<link>https://www.v2ex.com/t/980922</link>
-<guid>https://www.v2ex.com/t/980922</guid>
-<content:encoded><![CDATA[
-<p>RT ，看到 9 月 PC Game Pass 新增了匹诺曹，那是不是我订阅了那就能玩匹诺曹的谎言？ 还是需要再付费买匹诺曹的谎言？ </p>
-<p>背景： 纯小白没用过 xbox ，也没 xbox 主机，有 PC 。</p>
-]]></content:encoded>
-<pubDate>2023-10-11T03:43:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] AWS 服务器日本节点今天大规模被封了吗？</title>
-<link>https://www.v2ex.com/t/980921</link>
-<guid>https://www.v2ex.com/t/980921</guid>
-<content:encoded><![CDATA[
-买的 Lightsail 来做代理，也没有很大的流量，也就前天从 huggingface 拉模型，跑了 50G 。今天就用不了了，静态 ip 、动态 ip 全部被墙
-]]></content:encoded>
-<pubDate>2023-10-11T03:40:56Z</pubDate>
-</item>
-<item>
-<title>[Apple] 买表了，有啥新奇的玩法？</title>
-<link>https://www.v2ex.com/t/980920</link>
-<guid>https://www.v2ex.com/t/980920</guid>
-<content:encoded><![CDATA[
-<p>买了 Apple Watch S9 ，想打听一下有什么好用/有意思/必用的功能？</p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:16:50Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 多模态识别验证码？ 大家有啥好的提示词能稳定破解不</title>
-<link>https://www.v2ex.com/t/980919</link>
-<guid>https://www.v2ex.com/t/980919</guid>
-<content:encoded><![CDATA[
-<p>ChatGPT 的视觉多模态能力出来后，拿来试着破解验证码，发现基本不可用。</p>
-<p>做了一些提示词尝试，效果也很一般。</p>
-<p>具体可以看文章
-<a href="https://selfboot.cn/2023/10/11/chatgpt_recaptcha/" rel="nofollow">ChatGPT 多模态图像识别可以破解验证码？</a></p>
-<p>试了下面一些验证码：</p>
-<ol>
-<li>数字字母验证</li>
-<li>文字点选</li>
-<li>图标点选</li>
-<li>空间推理</li>
-<li>Google 验证码</li>
-</ol>
-<p>大家有试过一些提示词，可以用来很好破解验证码吗？</p>
-]]></content:encoded>
-<pubDate>2023-10-10T23:36:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 中国联通扣流量费糊弄人，哪位大侠帮忙看看这是啥操作？</title>
-<link>https://www.v2ex.com/t/980918</link>
-<guid>https://www.v2ex.com/t/980918</guid>
-<content:encoded><![CDATA[
-<p>大家好，给你们说个事儿，莫名其妙被联通扣了一堆流量费！ 10 月 9 号晚上吃个饭回来，发现手机流量直接少了 5GB ！关键是每次都是扣了 499.91MB ，一共十次，都是连着个叫 189smarthome 的域名。这啥玩意儿？难道是直播？告诉你，我连直播软件都没装！</p>
-<p>投诉去了，客服跟我说没问题，扣得对。我说你们有毛病吧？就算我看直播，也不可能每次都用掉这么“精确”的 499.91MB 流量啊。网速这快那慢的，流量怎么可能一模一样？客服就给我来句“不清楚”，我说那行，不清楚就继续投诉，搞不定就转网。</p>
-<p>截图都在下面，哪位大侠帮忙看看这是怎么回事？多谢了！</p>
-<p>（附图：流量和域名截图）</p>
-<p>谢谢！有知道的赶紧说说，别让联通再忽悠人了！
-谢谢大家的关注和帮助。
-<a href="https://imgur.com/a/vO2LjKd" rel="nofollow">https://imgur.com/a/vO2LjKd</a>
-<a href="https://imgur.com/92DC6JS" rel="nofollow">https://imgur.com/92DC6JS</a>
-<a href="https://imgur.com/eTewrLR" rel="nofollow">https://imgur.com/eTewrLR</a></p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:05:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国产软件果然是业界毒瘤</title>
-<link>https://www.v2ex.com/t/980917</link>
-<guid>https://www.v2ex.com/t/980917</guid>
-<content:encoded><![CDATA[
-<p>用了 6 年的电脑，没重装过系统，roaming 文件 2.92G ，钉钉和腾讯占 2.69G
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/11/2VWZwh3un4MRlHi.png" /></p>
-]]></content:encoded>
-<pubDate>2023-10-11T04:14:53Z</pubDate>
 </item>
 </channel>
 </rss>
