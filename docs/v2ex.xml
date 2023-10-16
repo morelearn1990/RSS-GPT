@@ -5,19 +5,134 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[macOS] 开了三指拖动以后,返回桌面和 launchpad 的三加一指手势经常被识别成三指拖动 怎么破</title>
+<link>https://www.v2ex.com/t/982614</link>
+<guid>https://www.v2ex.com/t/982614</guid>
+<content:encoded><![CDATA[
+<div> 关键词: 集体智慧, 网络平台, 众包, 信息技术, 创新<br><br>总结:<br>网络平台的兴起为集体智慧的发展提供了机会。众包是一种通过网络平台将大量的智力资源聚集起来解决问题或完成任务的方式。利用信息技术，众包可以实现创新并带来巨大的经济效益。网络平台和众包的结合为创新提供了更加开放和高效的途径，使得集体智慧的力量得以充分发挥。通过不断推动信息技术的发展和应用，我们可以进一步发掘和利用集体智慧，促进创新的不断涌现。 <div>
+
+]]></content:encoded>
+<pubDate>2023-10-16T20:35:34Z</pubDate>
+<pubDate>2023-10-16T16:34:34Z</pubDate>
+</item>
+<item>
+<title>[Java] springBoot Cache + aop self-invocation 问题</title>
+<link>https://www.v2ex.com/t/982613</link>
+<guid>https://www.v2ex.com/t/982613</guid>
+<content:encoded><![CDATA[
+<div> SpringBoot、Java17、starter-cache、starter-data-redis、查询数据，缓存到redis中。<br><br>总结: 这篇文章介绍了在Spring Boot中使用缓存与数据查询的实现。文章提到了使用AOP来实现动态代理和自身注入的方法，并讨论了不同的解决方案，包括Compile-time weaver和Load-time weaver。然而，作者遇到了一些问题，如Java9的modules和JDK17的兼容性问题。最后，作者提到了使用Spring的原始Load-time weaver作为最佳方案。总的来说，这篇文章对于使用缓存与数据查询在Spring Boot中的实现提供了一些有价值的思路和经验。 <div>
+<ul>
+<li>
+SpringBoot:3.0.1 + Java17 + starter-cache + starter-data-redis<ul>
+<li>简单的 jpa 查询数据，缓存到 redis 中</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-java">@EnableAspectJAutoProxy(exposeProxy = true, proxyTargetClass = true)
+@EnableCaching
+public class StartupApplication { }
+
+@Service
+public class AccountService {
+
+    @Cacheable(cacheNames = "accountsActivated", sync = true)
+    public List&lt;AccountDto&gt; retrieveActivatedCacheable() { }
+    
+    public AccountDto retrieveActivatedByName(String name) { 
+    // 这里 call retrieveActivatedCacheable() 不会从缓存中查询
+    }
+</code></pre>
+<ul>
+<li>原因是 spring aop 实现原理是动态代理，同一个类中调用切点方法，advise 失效</li>
+</ul>
+<hr />
+<ol>
+<li>
+aopContext.getCurrentProxy	<ul>
+<li>
+((AccountService) AopContext.currentProxy()).retrieveActivatedCacheable()<ul>
+<li>java.lang.IllegalStateException: Cannot find current proxy: Set 'exposeProxy' property on Advised to 'true' to make it available, and ensure that AopContext.currentProxy() is invoked in the same thread as the AOP invocation context.</li>
+</ul>
+</li>
+<li><a href="https://github.com/spring-projects/spring-boot/issues/16516" rel="nofollow">exposeProxy = true not in effect · Issue #16516 · spring-projects/spring-boot</a> 跟这个 issue 基本一样，没有解决方案</li>
+</ul>
+</li>
+</ol>
+<hr />
+<ol>
+<li>
+两个方法放不同类<ul>
+<li>最终方案，业务关联性强，放不同类没意义</li>
+</ul>
+</li>
+</ol>
+<hr />
+<ol>
+<li>self-inject 和 Compile-time weaver <a href="https://www.baeldung.com/spring-invoke-cacheable-other-method-same-bean" rel="nofollow">Invoke Spring @Cacheable from Another Method of Same Bean | Baeldung</a></li>
+</ol>
+<pre><code class="language-java">@Scope(proxyMode = ScopedProxyMode.TARGET_CLASS) 
+public class AccountService
+    @Autowired
+    private AccountService self;
+
+    @Cacheable(cacheNames = "accountsActivated", sync = true)
+    public List&lt;AccountDto&gt; retrieveActivatedCacheable() { }
+    
+    public AccountDto retrieveActivatedByName(String name) {
+       self.retrieveActivatedCacheable().....
+</code></pre>
+<ul>
+<li>报错完全搞不懂发生了什么，貌似和 java9 的 modules 有关，</li>
+</ul>
+<blockquote>
+<p>java.lang.ClassCastException: class java.util.LinkedHashMap cannot be cast to class demo.usul.dto.AccountDto (java.util.LinkedHashMap is in module java.base of loader 'bootstrap'; demo.usul.dto.AccountDto is in unnamed module of loader org.springframework.boot.devtools.restart.classloader.RestartClassLoader @<a href="https://www.v2ex.com/member/5d339696">5d339696</a>)</p>
+</blockquote>
+<ul>
+<li>但是我已经设置了 vm options, 或者 spring.devtools.restart.enabled=false 都没用</li>
+</ul>
+<pre><code>--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+</code></pre>
+<ul>
+<li>关键 self-inject ，或者想办法在自己内部拿到自己 bean 的方法都有点奇怪</li>
+<li>compile-time weaver 更不推荐，要引入 aspectj 的 weaver 来编译，好像在编译过程多了一个 weaver compiler 的过程，尝试用 aspectj-maven-plugin ，但是搞不定，貌似跟 jdk17 不兼容</li>
+</ul>
+<hr />
+<ul>
+<li>
+load-time weaver 使用 spring 提供的 LTW, 不需要引入 aspectj 的 weaver ，貌似是最推荐的方案, spring 原生 LTW<ul>
+<li>还是失败, startupApplication 上添加注解 @EnableCaching(mode = AdviceMode.ASPECTJ)和 @EnableLoadTimeWeaving </li>
+<li>
+其余不变，vm 参数加上 -javaagent:/path/to/spring-instrument-6.0.13.jar<ul>
+<li>没用</li>
+</ul>
+</li>
+<li>
+如果换成 -javaagent:/path/to/aspectjweaver-1.9.19.jar<ul>
+<li>起不来，看不懂的报错</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-10-16T20:31:36Z</pubDate>
+<pubDate>2023-10-16T21:23:12Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 962110 反诈中心打给我美国号码？</title>
 <link>https://www.v2ex.com/t/982612</link>
 <guid>https://www.v2ex.com/t/982612</guid>
 <content:encoded><![CDATA[
-<div> 号码、反诈知识、诈骗电话、冒充、提醒<br><br>总结: 文中提到接到一个凌晨以美国号码冒充反诈知识宣导的电话，作者怀疑是诈骗电话冒充反诈，并提醒大家遇到类似情况立即挂断电话。 <div>
+<div> 号码、反诈知识、诈骗电话、冒充、提醒<br /><br />总结: 文中提到接到一个凌晨以美国号码冒充反诈知识宣导的电话，作者怀疑是诈骗电话冒充反诈，并提醒大家遇到类似情况立即挂断电话。 <div>
 <p>国内凌晨给我美国号码打电话，非要给我宣导反诈知识，我说不需要，他还要晚点打回来。他一口就能叫上来姓，有可能是当初给大使馆填的表，不过这个 Google Voice 号码泄露的地方很多，也不一定。</p>
 <p>感觉很匪夷所思，冒充呼出号码应该不是很难，感觉可能是诈骗电话冒充反诈。还是大意了，应该直接挂断，提醒下大家。</p>
 <p><a href="https://www.mfa.gov.cn/wjbzwfwpt/kzx/tzgg/202304/t20230407_11055885.html" rel="nofollow">https://www.mfa.gov.cn/wjbzwfwpt/kzx/tzgg/202304/t20230407_11055885.html</a></p>
 ]]></content:encoded>
 <pubDate>2023-10-16T18:56:35Z</pubDate>
-<pubDate>2023-10-16T18:56:35Z</pubDate>
 </item>
-
 <item>
 <title>[机械键盘] 矮轴键盘怎么选？ Nuphy / 洛斐小顺</title>
 <link>https://www.v2ex.com/t/982611</link>
@@ -15437,19 +15552,6 @@ vmiss 与 akile 各买了一家，用工具检查国内外的 ICMP 与 TCP 都�
 
 ]]></content:encoded>
 <pubDate>2023-10-12T09:59:04Z</pubDate>
-</item>
-<item>
-<title>[成都] 请教一下，在成都自费体检相关问题。</title>
-<link>https://www.v2ex.com/t/981405</link>
-<guid>https://www.v2ex.com/t/981405</guid>
-<content:encoded><![CDATA[
-<p>万能的 V2EX 大佬多，相信我的问题一定能够得到答案。
-诚心请教：
-1 、私立体检机构（美年、慈铭之类）和三甲医院（省医院、华西等）体检从性价比、准确的、负责性等方面对比，哪个更好呢？我自己了解三甲的比私立的贵不少。不知道是否真是一分钱一分货。</p>
-<p>2 、如果选择三甲医院体检，那么有没有推荐呢？</p>
-<p>3 、如果三甲医院体检，医保个人账户余额是否可以给直系亲属支付体检费用呢？</p>
-]]></content:encoded>
-<pubDate>2023-10-12T10:07:43Z</pubDate>
 </item>
 </channel>
 </rss>
