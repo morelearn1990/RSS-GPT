@@ -5,15 +5,216 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 三叉神经痛？</title>
+<link>https://www.v2ex.com/t/983901</link>
+<guid>https://www.v2ex.com/t/983901</guid>
+<content:encoded><![CDATA[
+<div> leetcode, Java项目, 技术书, 右脑敲打, 三叉神经<br><br>总结: 这篇文章描述了作者最近感觉到右脸部和右脑有不适感，需要不停用手敲打。可能是作者之前一个半月过度劳累，从事了刷题、做项目和看技术书等活动。作者还提到了耳朵太阳穴附近脑静脉突出的情况，并查到了与剧痛相关的三叉神经。 <div>
+这两天右脸 右额角 右颧骨 右后脑 右眼需要我不停用手敲打 甚至整个右脑都不好 <br /><br />也不是剧烈疼痛 需要我自发地不停敲打<br /><br />原因可能是过去一个半月搞得太累了 刷 leetcode 做 java 项目 <br /><br />看技术书 <br /><br />这样一段时间忙着停下来后发现 耳朵太阳穴附近脑静脉有点突出 <br /><br />我查了下网上三叉神经是剧痛
+]]></content:encoded>
+<pubDate>2023-10-20T12:30:49Z</pubDate>
+<pubDate>2023-10-20T12:29:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] RxJS 为什么设计成抛出错误后直接关闭 Observer，不再发出值？</title>
+<link>https://www.v2ex.com/t/983900</link>
+<guid>https://www.v2ex.com/t/983900</guid>
+<content:encoded><![CDATA[
+<div> RxJS, 设计, map, catchError, switchMap <br>
+<br>
+总结: 在RxJS中，由于触发错误会导致Observable关闭，因此在处理错误时需要进行特殊处理。通常情况下，我们会使用catchError来捕获错误并返回一个空的Observable，以保持Observable的继续运行。此外，为了保持Observable的稳定，还可以使用retry来重新订阅Observable。在实际业务中，我们可以根据具体需求来选择是否使用这些操作符，并根据需要对数据进行map操作，以便进行错误处理和转换数据。 <div>
+<p>例如下面这段代码</p>
+<pre><code>fromEvent(document, 'click').pipe(
+  map(i =&gt; {
+    console.log('click')
+    throw new Error('error')
+  })
+).subscribe({
+  next: console.log,
+  complete: () =&gt; console.log('complete'),
+  error: (err) =&gt; console.log(err)
+})
+</code></pre>
+<p>我以为的输出：点一下输出 click 和 error ，再点还输出 click 和 error<br />
+实际上的输出：点一下输出 click 和 error ，再点就没反应了<br />
+就算用 catchError 也一样会被关闭</p>
+<p>事件倒还好，加个 retry 就行了，of 之类还得用 map 包起来
+例如想输出 1 3 不能这么写</p>
+<pre><code>of(1, 2, 3).pipe(
+  map(i =&gt; {
+    if (i === 2) {
+      throw new Error('error')
+    }
+    return i;
+  }),
+  catchError(err =&gt; EMPTY)
+).subscribe({
+  next: console.log,
+  complete: () =&gt; console.log('complete'),
+  error: (err) =&gt; console.log(err)
+})
+</code></pre>
+<p>要这么写用 map 包起来</p>
+<pre><code>of(1, 2, 3).pipe(
+  switchMap(i =&gt; {
+    return of(i).pipe(
+      map(i =&gt; {
+        if (i === 2) {
+          throw new Error('error')
+        }
+        return i;
+      }),
+      catchError(i =&gt; EMPTY)
+    )
+  })
+).subscribe({
+  next: console.log,
+  complete: () =&gt; console.log('complete'),
+  error: (err) =&gt; console.log(err)
+})
+</code></pre>
+<p>想问下为啥要这么设计的？<br />
+RxJS 实际的业务都是怎么写的，都加 retry 或者拿 map 包起来吗？</p>
+]]></content:encoded>
+<pubDate>2023-10-20T12:30:46Z</pubDate>
+<pubDate>2023-10-20T12:30:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求助后端如何存取算法执行结果以及如何和前端交互</title>
+<link>https://www.v2ex.com/t/983899</link>
+<guid>https://www.v2ex.com/t/983899</guid>
+<content:encoded><![CDATA[
+
+最近遇到一个业务场景，后端服务接入了一个算法， 算法跑出来的结果是一个时序数据，也就是给出每一个时间单位（可能是 1 秒或者 0.1 秒，是确定的）的整个系统的状态，整个结果可能是包含了几十分钟甚至几十个小时，整个算法结果很大（ dump 成 json 字符串存到文件里可能有几百兆（几十分钟的），或者几个 G （几个小时的））<br />现在的业务需求是，需要在算法跑完之后把数据慢慢给前端展示，且还需要支持快进和到指定时间点。算法结果需要存储，随时可以“播放”。<br />其实整个需求和生成一个视频然后让前端播放差不多。<br />我的问题是：<br />1.后端怎么存算法结果，按秒存到数据库？这样的话读起来会不会数据库压力很大<br />2.怎么和前端交互效率高点（目前和前端商讨是让前端给定一个时间区间，然后直接返回这个时间区间内的所有数据）<br />3.怎么做快进<br /><br />技术栈：<br />后端是 springboot ，postgre14 数据库，也有 redis<br />前端是 react
+]]></content:encoded>
+<pubDate>2023-10-20T12:11:28Z</pubDate>
+<pubDate>2023-10-20T12:08:28Z</pubDate>
+</item>
+<item>
+<title>[Apple] 旧手机还原了但忘了在 watch 取消配对 aw 怎么办？</title>
+<link>https://www.v2ex.com/t/983898</link>
+<guid>https://www.v2ex.com/t/983898</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>现在手表还是和旧手机配对着，显示手机不在身边。</li>
+<li>就算将旧手机重新登录原来的 apple id ，watch 应用里面没有显示配对过的手表。</li>
+</ol>
+<p>请问一下，我应该直接在手表上面还原吗？</p>
+]]></content:encoded>
+<pubDate>2023-10-20T12:03:13Z</pubDate>
+<pubDate>2023-10-20T12:24:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 怎么能把某个微软账号从设备上永久 remove 掉</title>
+<link>https://www.v2ex.com/t/983897</link>
+<guid>https://www.v2ex.com/t/983897</guid>
+<content:encoded><![CDATA[
+
+不知道大家有没有类似情况，只要你登陆过一次微软账号，那个账号就像阴魂不散一样出现在同设备的每个微软产品上。<br /><br />比如公司的 outlook 已经离职不用了，但当我打开任何一个微软产品，即使从来没用这个 outlook 登陆过，它也主动 offer 你用这个账号登陆。<br /><br />还有淘宝买的共享 365 账号，只登陆过一次就退出再也不用了，可是当我打开 teams ，它是推荐我用这个淘宝账号登陆。<br /><br />除此之外还有两个我自己主动注销的 outlook ，每次打开微软家产品，一堆废弃的微软账号就跳出来让我登陆，而且根本没有 remove 的选项，真的烦死了😡
+]]></content:encoded>
+<pubDate>2023-10-20T11:56:09Z</pubDate>
+<pubDate>2023-10-20T12:26:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 烦死了这些 app 天天要求打开通知</title>
+<link>https://www.v2ex.com/t/983896</link>
+<guid>https://www.v2ex.com/t/983896</guid>
+<content:encoded><![CDATA[
+
+<p>随便点个啥就弹出让打开通知权限，拒绝了反复问，真烦啊，为了给用户弹广告真是无所不用其极。有没有办法给它假权限？</p>
+]]></content:encoded>
+<pubDate>2023-10-20T11:47:02Z</pubDate>
+<pubDate>2023-10-20T11:50:54Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 开源-基于 tun 和 clash 的桌面代理客户端</title>
+<link>https://www.v2ex.com/t/983895</link>
+<guid>https://www.v2ex.com/t/983895</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/igoogolx/lux" rel="nofollow">Github</a></p>
+<p><a href="https://igoogolx.github.io/lux-docs/docs/intro/" rel="nofollow">文档</a></p>
+<ul>
+<li>通过 tun 代理系统所有流量</li>
+<li>内置代理分流规则和 DNS 配置</li>
+<li>支持从 clash 配置导入代理</li>
+<li>轻量，内存占用小，图形化优先</li>
+<li>跨平台，支持 Windows 和 MacOS</li>
+</ul>
+<p>文档和代码已<strong>全部</strong>开源，
+核心实现基于 <a href="https://github.com/SagerNet/sing-tun.git" rel="nofollow">sTun</a> 和 <a href="https://github.com/Dreamacro/clash.git" rel="nofollow">clash</a>，感兴趣可以参考源码。个人精力有限，项目仍有许多可以待完善的地方，
+欢迎在 <a href="https://github.com/igoogolx/lux/issues" rel="nofollow">Issues</a> 讨论。</p>
+]]></content:encoded>
+<pubDate>2023-10-20T11:40:51Z</pubDate>
+<pubDate>2023-10-20T12:34:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有 discord 的替代品，主要使用论坛（forum）和多开服务器，以及标签功能，信息内容最好可以储存在本地</title>
+<link>https://www.v2ex.com/t/983893</link>
+<guid>https://www.v2ex.com/t/983893</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-20T11:15:57Z</pubDate>
+<pubDate>2023-10-20T07:15:57Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iOS app 可以获取到相册的哪些数据</title>
+<link>https://www.v2ex.com/t/983892</link>
+<guid>https://www.v2ex.com/t/983892</guid>
+<content:encoded><![CDATA[
+
+如果相册给了 app 完全访问的权限，是不是 app 运行时可以获取到用户的全部照片，可以上传等操作？
+]]></content:encoded>
+<pubDate>2023-10-20T10:53:10Z</pubDate>
+<pubDate>2023-10-20T11:42:59Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] Apple Watch 重置后，重新配对完，发现右上角的天气不显示温度数字了～</title>
+<link>https://www.v2ex.com/t/983890</link>
+<guid>https://www.v2ex.com/t/983890</guid>
+<content:encoded><![CDATA[
+
+<p>昨天换手机，手表配对卡住了，重置了手表配对成功后，发现表盘上的天气信息 不显示温度数字了 变成了两个--</p>
+<p>这个有什么办法解决吗 点进天气 app 里各种信息是正常的。</p>
+]]></content:encoded>
+<pubDate>2023-10-20T10:46:28Z</pubDate>
+<pubDate>2023-10-20T11:06:48Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2023Fall 了，为什么 win 平台还是没有三指（全局）查词的软件？</title>
+<link>https://www.v2ex.com/t/983889</link>
+<guid>https://www.v2ex.com/t/983889</guid>
+<content:encoded><![CDATA[
+
+目前用的是欧路平替方案，但是弹窗大小不正常，用着很别扭。
+]]></content:encoded>
+<pubDate>2023-10-20T10:44:02Z</pubDate>
+<pubDate>2023-10-12T10:44:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 建站的学习成本有多高？</title>
+<link>https://www.v2ex.com/t/983887</link>
+<guid>https://www.v2ex.com/t/983887</guid>
+<content:encoded><![CDATA[
+
+我不是程序员，只是对数码产品和互联网比较感兴趣，自己有一个用傻瓜式建站工具搭的独立站，用来卖虚拟产品，收款没有调用支付方式的 API ，而是在后直接绑定了自己的 stripe 账号收款，很简单。<br /><br />现在随着业务的扩展，这个傻瓜式建站工具已经不能满足我的需求了，比如我希望我的网站能根据访客输入的内容生成 pdf 可供下载，希望能有账号注册和留言等功能，希望点击某个模块就可以播放音频，希望能接入 AI 功能等等。<br /><br />我听说 wordpress 等高级建站工具可以实现上述的一些功能，就想自己学着试试建站。<br /><br />那么现在问题来了，我一行代码都不会写，但是学习能力还行，比如跟着教程会买 VPS 自己搭梯子，会部署 nas, 会在 github 上找一些自己感兴趣的项目玩玩，那我要实现这一目标，需要多少学习成本呢？<br /><br />有想过雇一个技术人员，但是我有 trust issue ，比较担心他给自己留个后门卷款跑路。<br /><br />网站建成后，我是不是还要考虑服务器的维护，反爬虫，DNS 攻击，SEO 等等运维方面的问题，这个对我来说会是天方夜谭吗？
+]]></content:encoded>
+<pubDate>2023-10-20T10:35:03Z</pubDate>
+<pubDate>2023-10-20T12:02:42Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 特斯拉 V 友群</title>
 <link>https://www.v2ex.com/t/983883</link>
 <guid>https://www.v2ex.com/t/983883</guid>
 <content:encoded><![CDATA[
-<div> 特斯拉车友群，互联网，闲聊，工作，技术。<br><br>总结: 这是一个混迹互联网的特斯拉车友群，成员们可在群内自由地闲聊，讨论工作、技术，或者消遣娱乐。 <div>
+<div> 特斯拉车友群，互联网，闲聊，工作，技术。<br /><br />总结: 这是一个混迹互联网的特斯拉车友群，成员们可在群内自由地闲聊，讨论工作、技术，或者消遣娱乐。 <div>
 <p>这是一群混迹互联网的特斯拉车友群，可随便闲聊，工作，技术，吃瓜……</p>
 <p><a href="https://imgse.com/i/piF3BAP" rel="nofollow"><img alt="piF3BAP.jpg" class="embedded_image" rel="noreferrer" src="https://z1.ax1x.com/2023/10/20/piF3BAP.jpg" /></a></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T10:10:13Z</pubDate>
 <pubDate>2023-10-17T10:10:13Z</pubDate>
 </item>
 <item>
@@ -21,10 +222,9 @@
 <link>https://www.v2ex.com/t/983880</link>
 <guid>https://www.v2ex.com/t/983880</guid>
 <content:encoded><![CDATA[
-<div> CMake, Pybind11, Python, 封装, 版本不兼容<br><br>总结:使用CMake和Pybind11进行Python接口封装时，遇到了版本不兼容的问题，需要在支持多个版本的Python上运行。需要找到一个解决办法来处理这个问题。 <div>
+<div> CMake, Pybind11, Python, 封装, 版本不兼容<br /><br />总结:使用CMake和Pybind11进行Python接口封装时，遇到了版本不兼容的问题，需要在支持多个版本的Python上运行。需要找到一个解决办法来处理这个问题。 <div>
 <p>目前我使用 CMake+Pybind11 来封装 Python 接口，在封装过程中我发现一个问题，如果我使用的 python 环境为 3.7 ，那么封装后的 pyd 库只能在 3.7 的解释器下面运行，如果在 3.8 或者其他版本下 import 的时候会报 DLL 错误。目前打算支持 3.7 以上的 python 版本，那么请教各位大佬如何处理这种版本不兼容的问题？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:59:55Z</pubDate>
 <pubDate>2023-10-20T10:07:26Z</pubDate>
 </item>
 <item>
@@ -32,10 +232,8 @@
 <link>https://www.v2ex.com/t/983879</link>
 <guid>https://www.v2ex.com/t/983879</guid>
 <content:encoded><![CDATA[
-
 <p>听说上海 pdd 可以没有限制，进行落户。请问有搞过的吗？楼主专科</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:55:16Z</pubDate>
 <pubDate>2023-10-20T10:15:11Z</pubDate>
 </item>
 <item>
@@ -43,10 +241,8 @@
 <link>https://www.v2ex.com/t/983877</link>
 <guid>https://www.v2ex.com/t/983877</guid>
 <content:encoded><![CDATA[
-
 <p>买了一个舞力全开 2022 ，试用会员 1 个月，发现会员歌曲都没有手柄震动？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:49:49Z</pubDate>
 <pubDate>2023-10-20T09:47:49Z</pubDate>
 </item>
 <item>
@@ -54,10 +250,8 @@
 <link>https://www.v2ex.com/t/983876</link>
 <guid>https://www.v2ex.com/t/983876</guid>
 <content:encoded><![CDATA[
-
 <p>最能拉开同学之间差距的。</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:45:31Z</pubDate>
 <pubDate>2023-10-20T10:09:47Z</pubDate>
 </item>
 <item>
@@ -65,10 +259,8 @@
 <link>https://www.v2ex.com/t/983875</link>
 <guid>https://www.v2ex.com/t/983875</guid>
 <content:encoded><![CDATA[
-
 好一段时间没用的机子，composer 也好一段时间没用，composer install 提示这个<br />Authentication required (<a href="http://mirrors.aliyun.com" rel="nofollow noopener" target="_blank">mirrors.aliyun.com</a>):<br />      Username:<br /><br />自己 google 了半天都是之前的回答了（就是让我换阿里云的源，但现在已经是了），注册了个阿里云账号登录好像也失败。是要认证吗？我只注册了啥也没干没认证。<br /><br />谢谢
 ]]></content:encoded>
-<pubDate>2023-10-20T09:43:18Z</pubDate>
 <pubDate>2023-10-20T09:59:00Z</pubDate>
 </item>
 <item>
@@ -76,14 +268,12 @@
 <link>https://www.v2ex.com/t/983874</link>
 <guid>https://www.v2ex.com/t/983874</guid>
 <content:encoded><![CDATA[
-
 <p>路由器拨号是公网 IP DMZ 到本机</p>
 <p>本机开了两个 web 端口</p>
 <p>可能第一次两次访问时能成功，但是之后就不行了</p>
 <p>可以看到请求 IP 记录，但是没有响应！</p>
 <p>就像是被挡住了，请求准进不准出……</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:38:23Z</pubDate>
 <pubDate>2023-10-20T10:05:30Z</pubDate>
 </item>
 <item>
@@ -91,10 +281,8 @@
 <link>https://www.v2ex.com/t/983873</link>
 <guid>https://www.v2ex.com/t/983873</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/R90d96G.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/R90d96G.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:37:40Z</pubDate>
 <pubDate>2023-10-20T05:37:40Z</pubDate>
 </item>
 <item>
@@ -102,10 +290,8 @@
 <link>https://www.v2ex.com/t/983872</link>
 <guid>https://www.v2ex.com/t/983872</guid>
 <content:encoded><![CDATA[
-
 散户集中在医药，新能源和芯片比较多，目前医药已经有底部回升迹象，芯片也有止跌迹象，新能源目前已经放量两次（不大）。<br /><br />期待散户解套，A 股是散户多的地方，散户解套才可能涨，否则大家都没钱，凭啥涨呢。
 ]]></content:encoded>
-<pubDate>2023-10-20T09:37:30Z</pubDate>
 <pubDate>2023-10-20T01:37:30Z</pubDate>
 </item>
 <item>
@@ -113,10 +299,8 @@
 <link>https://www.v2ex.com/t/983871</link>
 <guid>https://www.v2ex.com/t/983871</guid>
 <content:encoded><![CDATA[
-
 我现在发现需要频繁切换线路来规避无法访问 github ，很烦躁
 ]]></content:encoded>
-<pubDate>2023-10-20T09:31:14Z</pubDate>
 <pubDate>2023-10-20T09:44:16Z</pubDate>
 </item>
 <item>
@@ -125,9 +309,7 @@
 <guid>https://www.v2ex.com/t/983870</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-20T09:22:46Z</pubDate>
 <pubDate>2023-10-20T09:57:28Z</pubDate>
 </item>
 <item>
@@ -135,7 +317,6 @@
 <link>https://www.v2ex.com/t/983869</link>
 <guid>https://www.v2ex.com/t/983869</guid>
 <content:encoded><![CDATA[
-
 <h3>岗位职责</h3>
 <p>1.负责分布式存储相关方向的技术的规划及相关人员指导；
 2.负责腾讯分布式存储服务的架构设计和研发；
@@ -147,17 +328,14 @@
 <p>有感兴趣的同学可以联系我哈   bW9yYXhoYW5AdGVuY2VudC5jb20=</p>
 ]]></content:encoded>
 <pubDate>2023-10-20T09:17:38Z</pubDate>
-<pubDate>2023-10-20T09:17:38Z</pubDate>
 </item>
 <item>
 <title>[问与答] ubuntu2204_03lts 网络 ping 不通是怎么回事？</title>
 <link>https://www.v2ex.com/t/983868</link>
 <guid>https://www.v2ex.com/t/983868</guid>
 <content:encoded><![CDATA[
-
 虚拟机，刚新装的这个版本，我选择了简洁，不装那些办公的东西。一切都正常，能上网。<br /><br />等配置得差不多了，忽然感觉没有 ifconfig ，不太顺手，于是就 apt 安装了 net-tools ，但好久都没装完，似乎卡在了那里，于是我就终止。然后就上不了网。我又是配置静态 ip ，又是重置网络，改 nat ，修复之类，都不行。。。当然，主机和虚拟机都重启，依然无解。<br /><br />然而我的另外一个旧的虚拟机 ubuntu2204_01,去年装的，不仅前段时间装好了 net-tools ，有 ifconfig ，也还能上网。<br /><br />想请教下到底哪里出了问题。<br /><br /><br />（之所以装新的，是感觉旧的实在太大了，没想到又又又折腾出问题。。。）<br /><br />网上的方法找得差不多，都是说修改 dns 之类的，但文件改来改去感觉都不行<br />v2 之前有一个老哥似乎问题和我挺相似的<br /><a href="https://www.v2ex.com/t/755255" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/755255</a>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:17:04Z</pubDate>
 <pubDate>2023-10-20T09:59:24Z</pubDate>
 </item>
 <item>
@@ -165,10 +343,8 @@
 <link>https://www.v2ex.com/t/983867</link>
 <guid>https://www.v2ex.com/t/983867</guid>
 <content:encoded><![CDATA[
-
 欢迎有经验的分享
 ]]></content:encoded>
-<pubDate>2023-10-20T09:14:33Z</pubDate>
 <pubDate>2023-10-20T10:10:58Z</pubDate>
 </item>
 <item>
@@ -176,13 +352,11 @@
 <link>https://www.v2ex.com/t/983865</link>
 <guid>https://www.v2ex.com/t/983865</guid>
 <content:encoded><![CDATA[
-
 <p>在 Deployment 创建 15 个 pod 实例压测无法跑满 cpu ，最多只用到了分配 cpu 的 40%，性能就同比例下降。
 如果只创建几个 pod 比如 1 ，2 个，再做压测就不会出现 cpu 跑不满的问题。</p>
 <p>对于 yaml 文件里 limits 和 requests 都配置了，负载均衡也看过没有问题。
 所以这个是什么问题造成的呢，是 k8s 哪里的配置导致的吗？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:11:05Z</pubDate>
 <pubDate>2023-10-20T10:02:51Z</pubDate>
 </item>
 <item>
@@ -190,10 +364,8 @@
 <link>https://www.v2ex.com/t/983864</link>
 <guid>https://www.v2ex.com/t/983864</guid>
 <content:encoded><![CDATA[
-
 帮转，朋友工作原因急需转租,条件可谈，可补贴<br /><br />位置：南昌第二新村，固戍地铁站 600 米，菜鸟驿站 20 米，楼下有超市、小吃、早餐店，买菜方便<br />户型：大单间，步梯 6 楼<br />价格：1460 网 50 电 1.5 水 8<br />中介费：无，直接跟房东签合同<br />家电设施：洗衣机、冰箱、空调、热水器、油烟机、沙发、茶几、衣柜（家具基本齐全）<br />时间：下周即可入住，本月租金已缴<br />剩余租期：2024-05-06<br />看房可联系，绿色：ZWRmazIwMTI=
 ]]></content:encoded>
-<pubDate>2023-10-20T09:10:09Z</pubDate>
 <pubDate>2023-10-20T09:10:09Z</pubDate>
 </item>
 <item>
@@ -201,10 +373,8 @@
 <link>https://www.v2ex.com/t/983863</link>
 <guid>https://www.v2ex.com/t/983863</guid>
 <content:encoded><![CDATA[
-
 <p>看了极空间新发布的 z423 感觉不错，但是对它那个系统不太放心，所以打算装别的系统，理论上应该可以，毕竟就是台电脑，但是网上没搜到啥相关的信息怕是有什么坑，因此想问下各位</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:07:27Z</pubDate>
 <pubDate>2023-10-20T06:07:27Z</pubDate>
 </item>
 <item>
@@ -212,10 +382,8 @@
 <link>https://www.v2ex.com/t/983862</link>
 <guid>https://www.v2ex.com/t/983862</guid>
 <content:encoded><![CDATA[
-
 就是那种聚合平台，输入一个问题，bing ，chatgp ，claude ，bard 都能同时给出答案。
 ]]></content:encoded>
-<pubDate>2023-10-20T09:06:58Z</pubDate>
 <pubDate>2023-10-20T09:22:02Z</pubDate>
 </item>
 <item>
@@ -223,7 +391,6 @@
 <link>https://www.v2ex.com/t/983861</link>
 <guid>https://www.v2ex.com/t/983861</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://www.thinkphp.cn/uploads/images/20231019/a49817bbb826f5a5ed60049b20c4a018.png" /></p>
 <h2>主要更新</h2>
 <p>本版本为修正版本，主要完善了 PSR 规范的兼容性</p>
@@ -243,7 +410,6 @@
 <p>官方<a href="https://www.topthink.com/product/ai" rel="nofollow">启智 AI 服务</a>上线，为企业提供基于大模型的 AI 数据训练和机器人智能对话服务，助力企业数智化转型。
 <img alt="" class="embedded_image" rel="noreferrer" src="https://www.thinkphp.cn/uploads/images/20231019/9f4642f96fcc022fed26f6cd856d45d0.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:02:51Z</pubDate>
 <pubDate>2023-10-20T09:35:47Z</pubDate>
 </item>
 <item>
@@ -251,12 +417,10 @@
 <link>https://www.v2ex.com/t/983860</link>
 <guid>https://www.v2ex.com/t/983860</guid>
 <content:encoded><![CDATA[
-
 <p>iOS 系统更新 QQ 邮箱 app6.4.8 版本后，进入收件箱界面顶部广告条可以看到邮箱会员开通介绍，关键是曾经开通 QQ 会员赠送的 @<a href="https://www.v2ex.com/member/vip">vip</a>.qq.com 后缀现在变成 QQ 邮箱会员的特权了，不知道后续是共存还是怎么处理。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/A6a2T02Y.jpeg" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/74CsR52o.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T09:01:46Z</pubDate>
 <pubDate>2023-10-20T10:18:50Z</pubDate>
 </item>
 <item>
@@ -264,7 +428,6 @@
 <link>https://www.v2ex.com/t/983859</link>
 <guid>https://www.v2ex.com/t/983859</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="python-version" class="embedded_image" rel="noreferrer" src="https://img.shields.io/badge/python-3.9+-blue.svg" />
 <a href="https://github.com/python-telegram-bot/python-telegram-bot/releases/tag/v20.3" rel="nofollow"><img alt="python-telegram-bot-version" class="embedded_image" rel="noreferrer" src="https://img.shields.io/badge/PythonTelegramBot-20.3+-critical.svg" /></a>
 <img alt="db" class="embedded_image" rel="noreferrer" src="https://img.shields.io/badge/db-MySQL8-ff69b4.svg" />
@@ -285,7 +448,6 @@
 <p>[✓] 支持中/英双语切换</p>
 <p>[✓] More ...</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:58:43Z</pubDate>
 <pubDate>2023-10-20T08:57:43Z</pubDate>
 </item>
 <item>
@@ -293,7 +455,6 @@
 <link>https://www.v2ex.com/t/983858</link>
 <guid>https://www.v2ex.com/t/983858</guid>
 <content:encoded><![CDATA[
-
 <p>思路：</p>
 <ul>
 <li>语音转文本</li>
@@ -308,7 +469,6 @@
 <p>小程序二维码：
 <img alt="RUNOOB 图标" class="embedded_image" rel="noreferrer" src="https://img1.imgtp.com/2023/10/20/mo6fOIIz.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:55:00Z</pubDate>
 <pubDate>2023-10-20T09:06:00Z</pubDate>
 </item>
 <item>
@@ -316,7 +476,6 @@
 <link>https://www.v2ex.com/t/983857</link>
 <guid>https://www.v2ex.com/t/983857</guid>
 <content:encoded><![CDATA[
-
 <p>你们有啥性价比高的好物推荐，都来说说，我先来</p>
 <ol>
 <li>macmini m2</li>
@@ -325,7 +484,6 @@
 <li>最新的华为 watch</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:54:54Z</pubDate>
 <pubDate>2023-10-20T10:12:23Z</pubDate>
 </item>
 <item>
@@ -334,9 +492,7 @@
 <guid>https://www.v2ex.com/t/983855</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-20T08:52:27Z</pubDate>
 <pubDate>2023-10-20T08:49:27Z</pubDate>
 </item>
 <item>
@@ -344,13 +500,11 @@
 <link>https://www.v2ex.com/t/983854</link>
 <guid>https://www.v2ex.com/t/983854</guid>
 <content:encoded><![CDATA[
-
 <p>巨硬的 bing 可以直接生成图片了</p>
 <p><a href="https://www.bing.com/images/create" rel="nofollow">https://www.bing.com/images/create</a></p>
 <p>效果图：</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZOp1P9i.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:49:47Z</pubDate>
 <pubDate>2023-10-20T08:49:47Z</pubDate>
 </item>
 <item>
@@ -358,12 +512,10 @@
 <link>https://www.v2ex.com/t/983853</link>
 <guid>https://www.v2ex.com/t/983853</guid>
 <content:encoded><![CDATA[
-
 <p>家里的宽带是电信千兆，用手机热点可以稳定连接 vps</p>
 <p>难道是 gfw 的什么特殊规则，故意让我觉得 ip 没有被墙但是就是连接不上去？</p>
 <p>还是 dmit 没有把线路优化好？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:46:02Z</pubDate>
 <pubDate>2023-10-20T08:44:02Z</pubDate>
 </item>
 <item>
@@ -371,14 +523,12 @@
 <link>https://www.v2ex.com/t/983852</link>
 <guid>https://www.v2ex.com/t/983852</guid>
 <content:encoded><![CDATA[
-
 <p>一直是裸奔，以前用的 iPhoneX ，iPhone13Pro 是不锈钢边框，没有这个问题</p>
 <p>现在用的是 iPhone13mini ，铝合金边框太滑了，特别是手干的时候，摸着渗人。</p>
 <p>现在的解决方案是贴了边框磨砂膜，以前还试过贴电工胶带。
 问题是边框膜会稍微有点割手，摸着不够丝滑。</p>
 <p>大家有没有什么好的解决办法？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:43:50Z</pubDate>
 <pubDate>2023-10-20T09:50:53Z</pubDate>
 </item>
 <item>
@@ -386,10 +536,8 @@
 <link>https://www.v2ex.com/t/983850</link>
 <guid>https://www.v2ex.com/t/983850</guid>
 <content:encoded><![CDATA[
-
 欢迎大家体验：<br /><a href="https://ai.7rp.cn" rel="nofollow noopener" target="_blank">https://ai.7rp.cn</a><br /><br />目前整合 ChatGPT&amp;MJ ，后续新增文心一言、讯飞等模型。
 ]]></content:encoded>
-<pubDate>2023-10-20T08:37:31Z</pubDate>
 <pubDate>2023-10-20T16:49:01Z</pubDate>
 </item>
 <item>
@@ -398,9 +546,7 @@
 <guid>https://www.v2ex.com/t/983849</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-20T08:33:50Z</pubDate>
 <pubDate>2023-10-20T05:33:50Z</pubDate>
 </item>
 <item>
@@ -408,14 +554,12 @@
 <link>https://www.v2ex.com/t/983848</link>
 <guid>https://www.v2ex.com/t/983848</guid>
 <content:encoded><![CDATA[
-
 <p>八月份买了暗影精灵 9 ，32G+2T ，因爲之前电脑太卡了，所以买了游戏本，买回来发现只办公用不到游戏本，不过一万元买的电脑打算用十年了，没有后悔药，整体体验很好，就是风扇噪音一直困扰我。</p>
 <p>用 Omen Gaming Hub 风扇手动调整风扇曲綫最低只能调整到 2000WPM ，自动和 ECO 模式最低也是 2000WPM ，但是风扇 2000WPM 办公依然很吵，想要把风扇调整到 1000WPM 噪音才可以接受，2000WPM 让人烦躁，所以寻找第三方风扇调速软体。</p>
 <p>处理器电源管理已经把最大处理器状态调整为 99%，关闭了睿频，尝试过 XTU 等降频软件，但是风扇仍然 2000WPM 。</p>
 <p>找到 NoteBook FanControl 这个軟件，但是里面自带的配置没有暗影精灵 9 这个型号，需要自己写配置文件，自己用 RwEverything 軟件寻找控制风扇的寄存器值，貌似是风扇转动时 17 和 20 号地址变动，但是尝试 17 和 20 号作爲寄存器读写进行配置仍然无法控制风扇速度。</p>
 <p>如果有会 NoteBook FanControl 配置的大佬，可向 V 站大佬有偿求助，或者有用暗影精灵 9 的大佬是如何控制风扇转速的，如果大佬能把风扇转速调整为 1000WPM 以下，我将不胜感激。</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:30:00Z</pubDate>
 <pubDate>2023-10-20T09:03:51Z</pubDate>
 </item>
 <item>
@@ -423,10 +567,8 @@
 <link>https://www.v2ex.com/t/983847</link>
 <guid>https://www.v2ex.com/t/983847</guid>
 <content:encoded><![CDATA[
-
 <p>微软 azure 的虚拟机和 google cloud 的虚拟机那个可以选择固定带宽固定流量，希望知道的大佬可以分享下。目前感觉都是计费计量，流量耗不起啊。怎么选和调整才能选个固定带宽的，或者说这两家本身就没有固定带宽？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:29:32Z</pubDate>
 <pubDate>2023-10-20T08:26:32Z</pubDate>
 </item>
 <item>
@@ -434,7 +576,6 @@
 <link>https://www.v2ex.com/t/983846</link>
 <guid>https://www.v2ex.com/t/983846</guid>
 <content:encoded><![CDATA[
-
 <p>目前还在看松下的等离子电视 55 寸，最高分辨率 1080P ，用的小米盒子 4 海外版，平时在家主要看看油管，电视直播，阿里网盘的高清影视，B 站。（从不看国内这些垃圾平台的伪高清，阉割版节目）</p>
 <p>虽然是 11 年前，2012 年买的等离子，当时最贵 2 万多，这画质依旧秒杀市面上 99%的液晶电视。</p>
 <p>最近关注了很多 appleTV 的信息，有几个疑问想跟群里大神请教下：</p>
@@ -443,7 +584,6 @@
 <p>2 ，我这个老电视，并不支持 HDR10,7 代默认要 128GB 版本才有网络接口，128GB 对于不玩游戏感觉是不是太浪费空间了</p>
 <p>3 ，综合来看，第六代 64GB 版本似乎是最优？</p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:27:03Z</pubDate>
 <pubDate>2023-10-20T10:17:22Z</pubDate>
 </item>
 <item>
@@ -451,7 +591,6 @@
 <link>https://www.v2ex.com/t/983844</link>
 <guid>https://www.v2ex.com/t/983844</guid>
 <content:encoded><![CDATA[
-
 <p>Hi, I am Andy from TOPCHIP ELECTRONICS. Today I will introduce the STMicroelectronics 32-bit MCU microcontroller STM32L152RCT6. This microcontroller combines the Universal Serial Bus (USB) with the high-performance ARM® Cortex®-M3 32-bit RISC core. connectivity capabilities with an operating frequency of 32MHz (33.3 DMIPS), high-speed embedded memory (up to 256 KB of Flash and up to 32 KB of RAM) and a wide range of enhanced I/O and peripherals connected to two APB buses. The STM32L152RCT6 provides two op amps, a 12-bit ADC, two DACs, two ultra-low power comparators, a general-purpose 32-bit timer, six general-purpose 16-bit timers and two basic timers, which can be used as time base.</p>
 <p>Functional features of STM32L152RCT6</p>
 <ol>
@@ -520,10 +659,8 @@ Brand: STMicroelectronics</p>
 <p>Number of pins: 64Pin</p>
 <p>source： <a href="https://www.topchipelec.com/news/details/stm32l152rct6-st-32-bit-mcu-pin-diagram-and-parameter-introduction.html" rel="nofollow">https://www.topchipelec.com/news/details/stm32l152rct6-st-32-bit-mcu-pin-diagram-and-parameter-introduction.html</a></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T08:25:01Z</pubDate>
 <pubDate>2023-10-20T04:25:01Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 自己组装的 x99 主机功耗的问题</title>
 <link>https://www.v2ex.com/t/983841</link>
@@ -15476,405 +15613,6 @@ win11 管理器即便最大化后，标签页并不会置顶，导致鼠标在�
 感觉自己下班后就很累，根本看不进去一个字。</p>
 ]]></content:encoded>
 <pubDate>2023-10-17T04:00:41Z</pubDate>
-</item>
-<item>
-<title>[程序员] 怎么管理好程序员？简单不想写，难的几个月写不出来</title>
-<link>https://www.v2ex.com/t/982687</link>
-<guid>https://www.v2ex.com/t/982687</guid>
-<content:encoded><![CDATA[
-<p>怎么管理好程序员？简单不想写，难的几个月写不出来
-程序员到底怎么了？
-听说现在人才很多
-为什么我有个朋友说他公司里他管理的程序员
-都是这样的呢？</p>
-<p>简单的不想写
-不愿意写</p>
-<p>复杂的，难的，又写不出来</p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:07:18Z</pubDate>
-</item>
-<item>
-<title>[Bitcoin] sec 批准贝莱德 etf 的假消息</title>
-<link>https://www.v2ex.com/t/982686</link>
-<guid>https://www.v2ex.com/t/982686</guid>
-<content:encoded><![CDATA[
-<p>感觉市场被压抑了很久了，假消息一出，价格猛涨</p>
-]]></content:encoded>
-<pubDate>2023-10-16T23:06:00Z</pubDate>
-</item>
-<item>
-<title>[iPhone] 关于 Apple epp</title>
-<link>https://www.v2ex.com/t/982684</link>
-<guid>https://www.v2ex.com/t/982684</guid>
-<content:encoded><![CDATA[
-<p>最近 Apple epp 上新的新品 iPhone15pro 系列 max 系列 对于 epp 的优惠 主要是对于员工福利 八五折 好像每位员工的购买名额有限 道听途说 所以鄙人想谋求一下 epp 有手续费</p>
-]]></content:encoded>
-<pubDate>2023-10-16T03:04:27Z</pubDate>
-</item>
-<item>
-<title>[生活] 卧式吸尘器 真的“逆天”</title>
-<link>https://www.v2ex.com/t/982683</link>
-<guid>https://www.v2ex.com/t/982683</guid>
-<content:encoded><![CDATA[
-<p>15 号看到 V 友拼戴森吸尘器，我一想家里这玩意经常出现关键时刻没电（充电也慢），而且吸力不是那么强（例如 iMac 底部进风口里很多猫咪的毛发很难吸出），于是乎我就下单一台美的的卧式吸尘器，才 328 元。</p>
-<p>今天收到彻底征服我，除了<strong>插电即用</strong>好处之外，这<strong>吸力直接逆天</strong>（还支持调节吸力大小）！和洗车店里商用吸尘器有的一拼。</p>
-<p>测试 iMac 进风口里猫咪毛发秒出来，本来我以为戴森已经将地面吸的够干净了，卧式的再吸一遍，又出来超级多猫咪毛发和灰尘，可以说是我今年买过最满意的产品。</p>
-<p>养宠物的家庭真的非常推荐<strong>卧式吸尘器</strong>，哪怕是业界老大戴森也被秒杀。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZIaOTGM.jpg" /></p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:14:40Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 让人吐血的经典翻译： LLM ==> 法学博士, YouTube ==> 优酷</title>
-<link>https://www.v2ex.com/t/982681</link>
-<guid>https://www.v2ex.com/t/982681</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-17T03:43:58Z</pubDate>
-</item>
-<item>
-<title>[程序员] 关于 MySQL 行格式的问题(《MySQL 是怎样运行的：从根上理解 MySQL》)</title>
-<link>https://www.v2ex.com/t/982680</link>
-<guid>https://www.v2ex.com/t/982680</guid>
-<content:encoded><![CDATA[
-<p>书中第五章：从一条记录说起—— InnoDB 记录结构</p>
-<p>其中在<strong>InnoDB 行格式</strong>--&gt;<strong>COMPACT 行格式</strong>--&gt;<strong>记录的真实数据</strong>小节这里有以下内容：</p>
-<blockquote>
-<pre><code>InnoDB 在读记录的变长字段长度列表时先查看表结构，如果某个变长字段允许存储的最大字节数大于 255 时，该怎么区分它正在读的某个字节是一个单独的字段长度还是半个字段长度呢？设计 InnoDB 的大叔使用该字节的第一个二进制位作为标志位：如果该字节的第一个位为 0 ，那该字节就是一个单独的字段长度（使用一个字节表示不大于 127 的二进制的第一个位都为 0 ），如果该字节的第一个位为 1 ，那该字节就是半个字段长度。
-</code></pre>
-</blockquote>
-<p>如果需要 1 位来作为标志位，那么两个字节时剩 15 位可以用来表示长度了。也就是长度为 2^15-1=32767 。</p>
-<p>但实际</p>
-<pre><code class="language-sql">CREATE TABLE varchar_size_demo(
-      c VARCHAR(65532)
-) CHARSET=ascii ROW_FORMAT=Compact;
-</code></pre>
-<p>却是可以成功的。</p>
-<p>这不就互相矛盾了么。</p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:08:25Z</pubDate>
-</item>
-<item>
-<title>[程序员] 对一些知名的或以低延时为目标的 C/C++ 日志库做的 Benchmark</title>
-<link>https://www.v2ex.com/t/982679</link>
-<guid>https://www.v2ex.com/t/982679</guid>
-<content:encoded><![CDATA[
-上周发了一个帖子( <a href="https://www.v2ex.com/t/981311" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/981311</a>), 感谢 V 站网友的建议( @<a href="https://www.v2ex.com/member/hitmanx" rel="nofollow noopener" target="_blank">hitmanx</a>, @<a href="https://www.v2ex.com/member/icyalala" rel="nofollow noopener" target="_blank">icyalala</a> ), 我断断续续用了几天写了一个 Benchmark 项目, 用于横向对比一些知名的或以低延时为目标的 C/C++ 日志库  <br />项目地址: <a href="https://github.com/MuggleWei/cc_log_benchmark" rel="nofollow noopener" target="_blank">https://github.com/MuggleWei/cc_log_benchmark</a>  <br /><br />Benchmark 的图表化结果如下, 但是需要注意的事, 有些日志库的坑和细节没法展现在图表中  <br />详细的数据, 可能存在的坑以及不同日志库的分析由于太长了就不贴在这边, 感兴趣的朋友可以直接在项目 README 中查看  <br />由于个人水平所限, 若有错误和纰漏, 亦或是考虑欠妥之处, 还请大家不吝指正  <br /><br />---<br /><br />![min_time]( <a href="https://imgur.com/Yq4hm58" rel="nofollow noopener" target="_blank">https://imgur.com/Yq4hm58</a>)<br /><br />![iter_repeat]( <a href="https://imgur.com/F8ymVVZ" rel="nofollow noopener" target="_blank">https://imgur.com/F8ymVVZ</a>)
-]]></content:encoded>
-<pubDate>2023-09-27T02:57:28Z</pubDate>
-</item>
-<item>
-<title>[小米] 小米全新的操作系统，小米澎湃 OS（Xiaomi HyperOS）</title>
-<link>https://www.v2ex.com/t/982678</link>
-<guid>https://www.v2ex.com/t/982678</guid>
-<content:encoded><![CDATA[
-<p>雷军微博：</p>
-<blockquote>
-<p>今天，对小米来说，是一个历史性时刻。小米全新的操作系统，小米澎湃 OS （ Xiaomi HyperOS ），正式版已完成封包。
-小米 14 系列，第一款搭载新系统的手机，已交付工厂，正式开始生产。从这一刻起，小米澎湃 OS 将逐步接替 MIUI 。</p>
-</blockquote>
-]]></content:encoded>
-<pubDate>2023-10-17T02:57:08Z</pubDate>
-</item>
-<item>
-<title>[程序员] 国外是不是倾向于小项目的重复逻辑交由 DB 层去处理</title>
-<link>https://www.v2ex.com/t/982677</link>
-<guid>https://www.v2ex.com/t/982677</guid>
-<content:encoded><![CDATA[
-<p>最近看 Supabase 文档，发现后端的权限管理都是交给 PostgreSQL 去做，一些函数封装也是由数据库去处理</p>
-<p>按照我在国内的工作经验，国内更倾向于 db 只做读写，把判断做在业务层，减少 db 工作量，同时业务层也好进行扩展。</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:19:17Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] m1 macbook pro 日版能通过软件映射 成英文布局的功能吗？</title>
-<link>https://www.v2ex.com/t/982676</link>
-<guid>https://www.v2ex.com/t/982676</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-10-16T18:46:18Z</pubDate>
-</item>
-<item>
-<title>[北京] 一线城市搞代扔垃圾？</title>
-<link>https://www.v2ex.com/t/982675</link>
-<guid>https://www.v2ex.com/t/982675</guid>
-<content:encoded><![CDATA[
-<p>代扔垃圾咋样 之前也有这个想法 当然是 21 年之前的想法了</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:47:21Z</pubDate>
-</item>
-<item>
-<title>[分享创造] mdui2.0 发布了。使用 Web Components 实现 Material You 设计规范的前端组件库</title>
-<link>https://www.v2ex.com/t/982674</link>
-<guid>https://www.v2ex.com/t/982674</guid>
-<content:encoded><![CDATA[
-<p>官网： <a href="https://www.mdui.org/" rel="nofollow">https://www.mdui.org/</a></p>
-<p>文档： <a href="https://www.mdui.org/docs/2/" rel="nofollow">https://www.mdui.org/docs/2/</a></p>
-<p>Github： <a href="https://github.com/zdhxiong/mdui" rel="nofollow">https://github.com/zdhxiong/mdui</a></p>
-<h3>功能特性：</h3>
-<ol>
-<li><strong>使用 Web Components 实现</strong>：使用 mdui 就像使用 <code>&lt;div&gt;</code> 标签一样简单，且兼容所有 js 框架</li>
-<li><strong>Material You 设计规范</strong>：完全遵循 Material Design 3 （ Material You ）设计规范</li>
-<li><strong>动态配色</strong>：支持根据给定的颜色值，或给定的图片，自动生成整套配色方案</li>
-<li><strong>暗色模式</strong>：支持暗色模式，及根据操作系统设置自动切换亮色、暗色模式</li>
-<li><strong>IDE 支持</strong>：专门为 VSCode 和 WebStorm 提供了代码自动完成和悬停提示功能</li>
-<li><strong>轻量级</strong>：所有 CSS 和 JS minify+gzip 后仅 85KB</li>
-<li><strong>TypeScript</strong>：组件全部使用 TypeScript 开发，包含类型声明文件，开发时可获得类型提示</li>
-<li><strong>Material Icons</strong>：提供了图标库组件，可按需导入每一个图标</li>
-</ol>
-]]></content:encoded>
-<pubDate>2023-10-17T03:56:40Z</pubDate>
-</item>
-<item>
-<title>[小米] 有人讨论一下小米刚刚官宣的澎湃 OS 么？</title>
-<link>https://www.v2ex.com/t/982673</link>
-<guid>https://www.v2ex.com/t/982673</guid>
-<content:encoded><![CDATA[
-<p>10 月 17 日消息，刚刚小米创始人雷军在微博称，今天对小米来说，是历史性时刻。小米全新操作系统，小米澎湃 OS （ Xiaomi HyperOS ），正式版完成封包。</p>
-<p>雷军称，小米 14 系列将是第一款搭载新系统的手机，已交付工厂开始生产。从这一刻起，小米澎湃 OS 将逐步接替 MIUI 。</p>
-<p>雷总没有说自研，那把 miui 改成这个 hyper 意义是什么呢？</p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:00:13Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] 升级 watchOS10 之后， ultra 感觉屏幕变小了</title>
-<link>https://www.v2ex.com/t/982671</link>
-<guid>https://www.v2ex.com/t/982671</guid>
-<content:encoded><![CDATA[
-<p>如题，升级 watchOS 10 之后，发现很多不是深色背景，以及现在很多 icon 都移到了四个角落，比如 activity ，导致现在看到 mini 的屏幕加上超级大黑边，感官上屏幕缩水了。</p>
-<p>不知道其他人是否有类似感觉</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:41:34Z</pubDate>
-</item>
-<item>
-<title>[汽车] 近期想买车，纯电，小鹏 G3i 460N+还是零跑 C11 500 智享</title>
-<link>https://www.v2ex.com/t/982670</link>
-<guid>https://www.v2ex.com/t/982670</guid>
-<content:encoded><![CDATA[
-<p>都试驾过了，都很喜欢...C11 配置好点，但担心品控，纠结中..大哥们给点意见或者这个价位十五六万还有什么更好选择吗？</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:52:51Z</pubDate>
-</item>
-<item>
-<title>[重庆] 重庆买房板块或者小区求推荐</title>
-<link>https://www.v2ex.com/t/982669</link>
-<guid>https://www.v2ex.com/t/982669</guid>
-<content:encoded><![CDATA[
-<p>人在成都，准备回重庆再购置一套，预算 300W 内，交通方便，最好是在渝北或者渝中区，各位有推荐的吗</p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:09:51Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [广州] 内推阿里国际 LAZADA 买家端前端（要求本科，工作经验 3 年以上）</title>
-<link>https://www.v2ex.com/t/982668</link>
-<guid>https://www.v2ex.com/t/982668</guid>
-<content:encoded><![CDATA[
-急招，面试流程快，帮催进度。<br /><br /><br />职位描述：<br /><br />Responsible for OM Operation Platform frontend development, focus on OM Automation project, to improve OM efficiency<br /><br />职位要求：<br /><br />Familiar with languages and features such as ES6\Html5\Css3\TypeScript, familiar with the design principles of common front-end libraries and frameworks such as React /jQuery/vue/.<br /><br />Familiar with the Node-based toolchain system (gulp/webpack/babel, etc.), at least familiar with one web service development language (such as Node/Java/PHP/Python/Ruby), understand the Web Server principle, familiar with common design patterns.<br /><br />Have cross-terminal web development capabilities, proficient in at least one field in the three front-end directions of Web (PC+Mobile)/Node/Hybrid App, and those with cross-terminal integration are preferred;<br /><br />Have some experience in front-end modularization and engineering development, can use their own technical capabilities to improve the team's research and development efficiency, and are good at cooperating with people from various backgrounds.<br /><br />Open-minded, actively learn and explore new technologies, willing to share, good at summarizing and generalizing precipitation, good at using technology to bring value to the business.<br /><br />Have good English reading and writing skills, fluent oral English is preferred<br /><br /><br /><br />内推简历请发我邮箱： zeqiang.wang@lazada.com
-]]></content:encoded>
-<pubDate>2023-10-17T02:33:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 晚上下班恢复精力去学习，下班后身体和精神疲惫，无法专注学习</title>
-<link>https://www.v2ex.com/t/982667</link>
-<guid>https://www.v2ex.com/t/982667</guid>
-<content:encoded><![CDATA[
-听说聪明人的大脑休息恢复特别快，可以一天内学习和思考时间超过常人
-]]></content:encoded>
-<pubDate>2023-10-17T04:13:14Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] [项目调研] 想写个小程序：展示购买商品持有时间内平摊到每天的成本</title>
-<link>https://www.v2ex.com/t/982666</link>
-<guid>https://www.v2ex.com/t/982666</guid>
-<content:encoded><![CDATA[
-<p>同一个用途的商品有贵有便宜，我想通过数据来记录自己的消费习惯。数据可以公开也可私有，公开数据所有用户可见。</p>
-<h2>例 1</h2>
-<ul>
-<li>商品：小米手机 8</li>
-<li>入手时间：2019-01-03</li>
-<li>价格：1849 元</li>
-<li>离手时间：2023-01-03</li>
-<li>持有天数：1461</li>
-<li>每天持有成本：1.27 元</li>
-<li>使用体验：xxx</li>
-<li>评分：3 星</li>
-</ul>
-<h2>例 2</h2>
-<ul>
-<li>商品：MBP</li>
-<li>入手时间：2016-01-03</li>
-<li>价格：12888</li>
-<li>离手时间：使用中</li>
-<li>持有天数：2874</li>
-<li>每天持有成本：4.48 元</li>
-<li>使用体验：xxx</li>
-<li>评分：5 星</li>
-</ul>
-<p><strong>问：这工具你会用么？</strong></p>
-]]></content:encoded>
-<pubDate>2023-10-17T04:01:23Z</pubDate>
-</item>
-<item>
-<title>[Linux] Ubuntu20.04.5 没有配置清华源， update 什么是清华源？</title>
-<link>https://www.v2ex.com/t/982665</link>
-<guid>https://www.v2ex.com/t/982665</guid>
-<content:encoded><![CDATA[
-<p>就是刚装完，没有任何修改。apt 目录下也没有 singhua 字样。但是用 apt update 输出显示有 tsinghua 源。咋回事？</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:31:22Z</pubDate>
-</item>
-<item>
-<title>[Android] 有消息称小米即将“限制”解锁 bootloader</title>
-<link>https://www.v2ex.com/t/982663</link>
-<guid>https://www.v2ex.com/t/982663</guid>
-<content:encoded><![CDATA[
-<p>最近有传言称小米设备会在近日开始对 bl 解锁做出限制，原因可能与部分用户在自行解锁折腾损坏后徒增售后率有关，但目前还未知具体的限制方式。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://img.urlnode.com/file/c945ec0874b14ee08e2d1.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://img.urlnode.com/file/5962c905bd9505f9cc36f.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://img.urlnode.com/file/0f6c094eb41925e977d77.jpg" /></p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:51:18Z</pubDate>
-</item>
-<item>
-<title>[HTTP] http 代理，如果不支持 connect 方法，有没有办法访问 https 的网站？</title>
-<link>https://www.v2ex.com/t/982662</link>
-<guid>https://www.v2ex.com/t/982662</guid>
-<content:encoded><![CDATA[
-<p>有一个古老的 http-proxy 软件，不支持 connect 方法，所以只能访问 http 网站，不能访问 https 网站。
-有没有什么办法让它能访问 https 的网站？</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:19:33Z</pubDate>
-</item>
-<item>
-<title>[Java] 关于 Vue 与 sa-token 交互的问题？</title>
-<link>https://www.v2ex.com/t/982661</link>
-<guid>https://www.v2ex.com/t/982661</guid>
-<content:encoded><![CDATA[
-<p>后端程序开发中鉴权使用了 sa-token ，前端是 Vue 开发，请问要不要 sa-token 在登录的时候显式的返回 token 信息给前端的 Vue ？还是说直接 login(id)通过后端自动注入 cookie 就可以了？</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:53:59Z</pubDate>
-</item>
-<item>
-<title>[生活] 中山购房，寻求一些建议</title>
-<link>https://www.v2ex.com/t/982660</link>
-<guid>https://www.v2ex.com/t/982660</guid>
-<content:encoded><![CDATA[
-<p>刚结婚，现在在一家企业混日子，饿又饿不死，富又富不了的状态，现在老婆在镇区上班，我隔我上班地点有三十多公里，主要是离她上班地点近点，也是刚结婚，有买房打算。</p>
-<p>要是在市中心买房（不是绝对中心，只是隔得近一些），就会导致两个人上班地点都有二十公里，而且现在房价确实有很多优惠，想购入二手房，省心，价位在 160-210 这个区间。</p>
-<p>想看看大家现在对买房，或者对中山的看法。</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:53:41Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] gpt4 现在买的号每个月 260，有没有便宜点的</title>
-<link>https://www.v2ex.com/t/982658</link>
-<guid>https://www.v2ex.com/t/982658</guid>
-<content:encoded><![CDATA[
-<p>260 的如果被封可以售后</p>
-]]></content:encoded>
-<pubDate>2023-10-17T03:53:56Z</pubDate>
-</item>
-<item>
-<title>益智类游戏开发</title>
-<link>https://www.v2ex.com/t/982703</link>
-<guid>https://www.v2ex.com/t/982703</guid>
-<content:encoded><![CDATA[
-要求小型手游成品<br /><br />联系 V:bHZsaW54aWFvMjAyMw==
-]]></content:encoded>
-<pubDate>2023-10-17T03:42:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于技嘉 5600xt 显卡硅胶片厚度</title>
-<link>https://www.v2ex.com/t/982657</link>
-<guid>https://www.v2ex.com/t/982657</guid>
-<content:encoded><![CDATA[
-<div> 技嘉 RX 5600 XT WINDFORCE OC 6G 双风扇显卡的硅胶片厚度以及有没有人使用过此型号显卡的信息，我们无法提供准确的答案。建议您查看技嘉的官方网站或联系技嘉客服以获取相关信息。 <div>
-<p>我想问一下技嘉 RX 5600 XT WINDFORCE OC 6G 双风扇显卡用的硅胶片是多厚的 有没有人用过</p>
-]]></content:encoded>
-<pubDate>2023-10-17T02:24:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 电瓶车上不去坡是什么问题？</title>
-<link>https://www.v2ex.com/t/982656</link>
-<guid>https://www.v2ex.com/t/982656</guid>
-<content:encoded><![CDATA[
-<div> 电动车、坡、上不去、电量显示、控制器、电池 <br /><br />总结: 作者购买的标准48V12A电动车五个月后发现在上坡时无法行驶，电量显示器闪烁并掉电。修车师傅检查后未发现问题，可能是电池或控制器出现故障。 <div>
-标准的 48V12A 的，买来 5 个月左右，刚买来那会，我老妈说骑上街 4 趟来回，坡都随便上，前段时间有一个陡一点的坡上不去了，昨天和我说，小坡都上不去了，她说一上坡，电量那里就显示掉到 1 格电一闪一闪的，上不去。平路又没事，满电的。<br />让她去街上修车那里看，师傅又说没检查出什么问题，乡镇大部分是修摩托，电动车不是专修的，也许不是很精通。<br /><br />有懂这方面的吗？这可能是哪个部件出问题了？是电池？还是控制器？
-]]></content:encoded>
-<pubDate>2023-10-17T02:23:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请各位大佬推荐青少年编程，信息技术， 科技类书籍， 我在做一些相关的辅导工作， 想整一个书架</title>
-<link>https://www.v2ex.com/t/982655</link>
-<guid>https://www.v2ex.com/t/982655</guid>
-<content:encoded><![CDATA[
-- 适合青少年的科技综合类书籍，比如类似《人工智能简史》<br />- 适合青少年的各种语言的入门编程书籍，不限于 Python ，C/C++，Java ，Javascript 等<br />- 适合青少年的数据结构， 算法的书籍<br />- 时间跨度覆盖起源阶段到现在的人工智能阶段<br /><br /><br />为什么要书籍，而不是在线资源， 原因是，学生们使用电脑平板的时间是被限制的（即使是学习信息奥数的学生）， 但是阅读纸质书籍是被鼓励的。有限的使用电脑的时间主要用来练习实践。根据我早年的阅读经历，我觉得阅读纸质书籍其实有很多好处， 尤其是更有助于思考。<br /><br />我本来只是做一些小范围的义务指导答疑， 奈何家长太热情，所以在力所能及的范围再做好一点。 <br /><br />我的目标是 30-50 本书， 可以提供二十几个学生的阅读， 我以为编程只是涉及到太过于具体的领域，时间长了还是过于枯燥，应该围绕这个主题做些发散。
-]]></content:encoded>
-<pubDate>2023-10-15T02:17:26Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [蚂蚁求前端 base 杭州] 数字化管理前端团队招前端！</title>
-<link>https://www.v2ex.com/t/982654</link>
-<guid>https://www.v2ex.com/t/982654</guid>
-<content:encoded><![CDATA[
-<h3>我们在做什么</h3>
-<p>阿里和蚂蚁分家之后，日常使用的内部产品都要在蚂蚁侧重新实现并独立维护，如内外、论坛、HR 、薪酬福利等，现在蚂蚁集团都有着相对应的产品，而我们团队就是在负责蚂蚁数字化管理产品的前端工作</p>
-<p>团队 Nice ，工作氛围开放，欢迎大家加入 ～</p>
-<h3>我们对你的要求</h3>
-<p>只要你对蚂蚁的工作机会感兴趣，对自己前端能力有信心，就直接联系我们吧</p>
-<h4>加分项</h4>
-<ol>
-<li>3 ～ 5 年工作经验，有大厂工作经验更好</li>
-<li>有优秀开源产品或参与开源产品维护</li>
-<li>211/985 学历及以上</li>
-</ol>
-<p>岗位链接： <a href="https://talent.antgroup.com/off-campus-position?positionId=1933801" rel="nofollow">https://talent.antgroup.com/off-campus-position?positionId=1933801</a></p>
-<h3>联系方式</h3>
-<p>微信：glickr</p>
-<p>邮箱： <a href="mailto:gyfzzu@gmail.com">gyfzzu@gmail.com</a></p>
-]]></content:encoded>
-<pubDate>2023-10-17T02:13:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大伙好，临近双 11，预算 300 左右的薄膜键盘有什么推荐？</title>
-<link>https://www.v2ex.com/t/982653</link>
-<guid>https://www.v2ex.com/t/982653</guid>
-<content:encoded><![CDATA[
-RT,需求偏向于办公，然后轻度的游戏，目标类似于二角尘蛛那样的(防溅防泼)<br />先谢谢大伙了~
-]]></content:encoded>
-<pubDate>2023-10-17T02:12:24Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] goland 在 wsl2 git commit 签名时报错</title>
-<link>https://www.v2ex.com/t/982651</link>
-<guid>https://www.v2ex.com/t/982651</guid>
-<content:encoded><![CDATA[
-<p>在使用 goland 的 git 尝试提交时会出现如下错误</p>
-<pre><code>error: gpg failed to sign the data:
-[GNUPG:] KEY_CONSIDERED ...... 2
-[GNUPG:] BEGIN_SIGNING H10
-[GNUPG:] PINENTRY_LAUNCHED 1401 gnome3:curses 1.2.1 - xterm-256color :0.0 - 1000/1000 -
-gpg: signing failed: Inappropriate ioctl for device
-[GNUPG:] FAILURE sign 83918950
-gpg: signing failed: Inappropriate ioctl for device
-fatal: failed to write commit object
-</code></pre>
-<p>因为配置了 GPG 签名，commit 时要输入 GPG 密钥的密码，网上查找错误，都让配置<code>export GPG_TTY=($tty)</code>，我把这个加到了<code>~/.zshrc</code>，但使用 goland 提交时还是会这样</p>
-<p>我在 goland 的 terminal 手动 git commit 时能够正常弹出</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/CDrgpLa.png" /></p>
-]]></content:encoded>
-<pubDate>2023-10-17T02:07:19Z</pubDate>
-</item>
-<item>
-<title>[自然语言处理] [求助]kaggle 中训练模型遇到的一些问题</title>
-<link>https://www.v2ex.com/t/982650</link>
-<guid>https://www.v2ex.com/t/982650</guid>
-<content:encoded><![CDATA[
-rt 。在 kaggle 中遇到了一些问题，想请求一下帮助。具体情况是这样的：在 kaggle 上有个名为 tweet sentiment 的竞赛。给定训练集和测试集，训练集中包含原文本、筛选文本和情感词。测试集中包含原文本和情感词，具体任务，就是让模型学会怎么利用情感词，从原文本里筛选出合适的词语。作为初学者，我想要用这个竞赛来练手。<br />	举个例子：my boss is bullying me...  对于这个句子，给出的情感词是 negative ，筛选出的文本是 bullying me 。<br />	我的思路是这样的：使用 transformer 库的 bert 模型。把情感词和原文本拼在一起，tokenizer 编码后，作为训练集输入。   与此同时，用筛选文本逐个比对原文本，得到 0 1 标签，用它来表示原文本里哪个词被选中，以此作为训练集的标签。  测试集的输入也做相同处理。而模型的输出是概率，转为 0 1 标签。<br />    用上面的句子举例，对应的标签大概就是 0 0 0 0 0  1 1 0 这样子。   由于最终的输出还是文本，所以得到测试集标签后还需要再转回文本。<br />    现在模型可以正常使用，但我遇到了一些问题：首先，我的输入都是有注意力掩码的，但是输出标签却存在问题：<br /><br />      由于每个句子长度都不一样，我需要把句子和标签都补充到最大长度。输入有注意力掩码，但输出却总是在没有词语的位置也附加概率，导致概率被稀释了。这个问题还可以通过让输出的概率乘掩码来去掉无用的部分一定程度规避，但还有一个问题我不确定该怎么办。<br />        <br />       由于句子长度不一样，所以模型的输出概率没有一个统一的水平。如果筛选文本只有一个词，那分给他的概率就很大，如果整个句子都是要选中的，那分给有效词的概率就很低。这样我就没办法选择一个合适的阈值来划分 0 和 1 。我是自学上来的，这种情况确实没有想到可以怎么做，请问这种情况应该怎么处理？谢谢
-]]></content:encoded>
-<pubDate>2023-10-17T02:03:38Z</pubDate>
 </item>
 </channel>
 </rss>
