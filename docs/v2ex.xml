@@ -5,6 +5,458 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] Redis 是鸡肋吗？</title>
+<link>https://www.v2ex.com/t/984702</link>
+<guid>https://www.v2ex.com/t/984702</guid>
+<content:encoded><![CDATA[
+<div> 小项目，用处不大 <div>
+<p>感觉小项目用处不大</p>
+]]></content:encoded>
+<pubDate>2023-10-23T16:17:34Z</pubDate>
+<pubDate>2023-10-23T12:17:34Z</pubDate>
+</item>
+<item>
+<title>[程序员] react native 如何实现这样的底部导航栏</title>
+<link>https://www.v2ex.com/t/984700</link>
+<guid>https://www.v2ex.com/t/984700</guid>
+<content:encoded><![CDATA[
+<div> react navigation bottom tab, 中间凹陷, 二维码导航栏外
+
+总结：<br><br>React Navigation Bottom Tab 组件可以通过设置样式来实现中间的tab凹陷，使其与周围的tab有所区别。同时，我们可以将二维码放置在导航栏外部，从而保持导航栏的整洁和简洁。通过这种布局方式，可以提高用户体验和界面的美观度。 <div>
+<p>react navigation bottom tab 如何实现中间的 tab 凹下去，二维码在导航栏外</p>
+<p><a href="https://imageupload.io/nc1YIYsj4VeEwzc" rel="nofollow"><img alt="Screenshot 2023-10-24 at 12.06.30 AM.png" class="embedded_image" rel="noreferrer" src="https://imageupload.io/ib/9uzdDIWvSvOAwwf_1698077450.png" /></a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T16:13:29Z</pubDate>
+<pubDate>2023-10-23T16:10:29Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 分享一个基于分流的安全访问方案</title>
+<link>https://www.v2ex.com/t/984699</link>
+<guid>https://www.v2ex.com/t/984699</guid>
+<content:encoded><![CDATA[
+
+<p>相信这里的大部分人都有访问自己家里服务器的需求<br />
+但是部分地区家宽不给开 WEB 服务<br />
+类似 zerotier 这种虚拟组网方案需要时刻开启软件组网,且对移动端极不友好(影响翻墙)<br />
+Frp 呢也要两边设备同时安装才能有隐藏 WEB 服务的效果  </p>
+<p>我目前使用的是基于 Clash+*ray 的分流方案<br />
+Clash 可以替换成任意带分流的软件</p>
+<p>优点:<br />
+访问服务器完全无感(直连)<br />
+安全性 Max(毕竟是翻墙用的)<br />
+速度也还不错(看协议)<br />
+全系统友好(全平台的 Power)  </p>
+<p>缺点:<br />
+刚需公网 IP(实在没有的话 NAT1 也凑合)<br />
+需要开代理(不会有人不是全天开代理吧)<br />
+TCP/UDP 流量需要 TUN 模式(其他方案也需要)<br />
+配置略复杂,新增服务可能比较麻烦</p>
+<h2>基本思路</h2>
+<p>在 Clash 中把内网流量在规则中分流到自己的*Xray 服务器<br />
+在 Xray 服务器中进行二次分流<br />
+丢弃全部公网流量,丢弃重要发往重要设备的流量(安全考虑,虽然其实没啥意义)<br />
+下面是我的 Xray 配置文件,简单参考就行,路径我随便改的,记得删除注释<br />
+192.168.31.1 是我的路由器地址,192.168.31.11 是我的 Nginx 服务器地址  </p>
+<pre><code>{
+  "log": {
+    "access": "/access.log",
+    "error": "/error.log",
+    "loglevel": "warning"
+  },
+  "dns": {
+    "servers": ["localhost"],
+    "hosts": {
+      "domain:XXXXXXX.com": "192.168.31.11"//把这个域名的全部子域名解析到 Nginx 的服务器 IP
+    }
+  },
+  "inbound": {
+    "port": 65432,
+    "protocol": "vmess",
+    "settings": {
+      "clients": [
+        {
+          "id": "UUID 在此",
+          "level": 1,
+          "alterId": 100
+        }
+      ]
+    },
+    "streamSettings": {
+      "security": "tls",
+      "tlsSettings": {
+        "serverName": "XXXX.com",
+        "certificates": [
+{
+            "certificateFile": "/fullchain.pem",
+            "keyFile": "/privkey.pem"
+          }
+        ]
+      }
+    }
+  },
+  "outbounds": [
+    {
+      "tag": "blocked",//未匹配服务全部丢弃,默认未匹配的流量全部走第一个出口
+      "protocol": "blackhole",
+      "settings": {}
+    },
+    {
+      "tag": "direct",
+      "protocol": "freedom",
+      "settings": {
+      "domainStrategy": "UseIP"//必须开启此项才能使用 hosts 中的配置
+      }
+    }
+  ],
+  "inboundDetour": [],
+  "outboundDetour": [],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "settings": {
+      "rules": [
+        {
+"type": "field",
+          "ip": "192.168.31.1", //此处屏蔽访问路由器
+          "outboundTag": "blocked"
+        },
+        {
+          "type": "field",  
+          "ip": ["192.168.31.1/24"],//允许访问路由器 IP 段其他设备
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": ["domain:XXXX.COM"],//允许访问指定域名(实际上用不到这玩意,删了也没啥影响)
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": ["domain:gstatic.com"],//允许访问测速服务器
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",//屏蔽访问其他 IP 段,实际上没意义,没匹配的全丢黑洞了
+          "ip": [
+            "0.0.0.0/8",
+            "10.0.0.0/8",
+            "100.64.0.0/10",
+            "127.0.0.0/8",
+            "169.254.0.0/16",
+            "172.16.0.0/12",
+            "192.0.0.0/24",
+            "192.0.2.0/24",
+            "192.168.0.0/16",
+            "198.18.0.0/15",
+            "198.51.100.0/24",
+            "203.0.113.0/24",
+            "::1/128",
+            "fc00::/7",
+            "fe80::/10"
+          ],
+          "outboundTag": "blocked"
+        }
+      ]
+    }
+  }
+}
+</code></pre>
+<p>然后是 Clash 的配置文件</p>
+<pre><code>加入这些,然后配置好 proxies,proxy-groups 就行
+    - 'IP-CIDR,192.168.31.1/32,DIRECT' //用于在家里直连路由器
+    - 'IP-CIDR,192.168.31.1/24,🖥️ 专用服务'
+    - 'DOMAIN-SUFFIX,XXXX.com,🖥️ 专用服务'
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-10-23T16:13:06Z</pubDate>
+<pubDate>2023-10-23T16:13:06Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] AI 谁更懂中文？</title>
+<link>https://www.v2ex.com/t/984698</link>
+<guid>https://www.v2ex.com/t/984698</guid>
+<content:encoded><![CDATA[
+
+<p>向 AI 提一个问题，看 AI 能否正确回答：</p>
+<blockquote>
+<p>将下面这段话重新组织一遍，尽可能多的使用成语：<br />
+关于 VSCode ，我还是不建议使用。像它这种通过各种零散的扩展来完成对 Java 的支持，并不能使其成为一个 IDE 。这主要是因为 Java 的生态过于宽泛，各种版本和工具五花八门，需要一个非常具有针对性的框架才能整合起来，否则的话开发人员将疲于应付各种工具方面的问题，没有精力用在真正的开发上。</p>
+</blockquote>
+<p>以下是各个 AI 的回答，看看谁更懂中文。先看国内的：</p>
+<h4>文心一言：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/us9CG9l8.png" /></p>
+<h4>讯飞星火：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/TaYL498z.png" /></p>
+<h4>通义千问：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/oU925AAB.png" /></p>
+<h4>字节豆包：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/NzQ301tF.png" /></p>
+<p>再看国外的：</p>
+<h4>ChatGPT 3.5 （我没钱充）：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/N6yJlqBN.png" /></p>
+<h4>Google Bard：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/919tbzwy.png" /></p>
+<h4>Claude：</h4>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yev5Gk66.png" /></p>
+<p>你们觉得呢？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T16:07:15Z</pubDate>
+<pubDate>2023-10-23T00:07:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想问下用 quantumult X+墨鱼规则的各位</title>
+<link>https://www.v2ex.com/t/984697</link>
+<guid>https://www.v2ex.com/t/984697</guid>
+<content:encoded><![CDATA[
+
+大家能不能正常使用 spotify 网页端播放音乐，我在 mac 上提示“无法播放此内容”（ ios 也是这样），但客户端可以正常使用。<br />类似的规则在小火箭上就完全没有问题，反复排查也没找到是哪里的问题，只要有 <a href="http://spotify.com" rel="nofollow noopener" target="_blank">spotify.com</a> 走代理就出现这种情况。
+]]></content:encoded>
+<pubDate>2023-10-23T15:51:17Z</pubDate>
+<pubDate>2023-10-23T15:50:17Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [杭州/苏州] [C/C++] 亿铸科技招聘 AI Runtime 运行时开发工程师</title>
+<link>https://www.v2ex.com/t/984694</link>
+<guid>https://www.v2ex.com/t/984694</guid>
+<content:encoded><![CDATA[
+
+<p>工作职责：</p>
+<ol>
+<li>参与 AI runtime graph serialize/deserialize, graph schedule/executing, op 算子实现，集成调试及验证。</li>
+<li>根据硬件特性对 op 算子进行编码实现，调试验证，实现 AI model 在公司硬件上运行，提升效能。</li>
+<li>负责与上层 codegen 以及底层 driver 的功能衔接及实现，后期参与设计和支持异构并行计算和 runtime 架构。</li>
+</ol>
+<p>任职要求：</p>
+<ol>
+<li>计算机/电子及相关专业本科及以上学历，3 年以上工作经验；</li>
+<li>有 C/C++及汇编语言在 Linux/RTOS 系统环境下的开发经验；</li>
+<li>熟悉 AI 网络模型以及有量化、网络精度计算经验者优先；</li>
+<li>有 AI 芯片（ GPU/ASIC ）管理软件（ Runtime/驱动）的开发或验证经验者优先；</li>
+<li>有 TVM/TensorFlow/OpenCL/CUDA/cuDNN 及相关开发经验者优先；</li>
+<li>有责任心，良好的沟通协作以及分析和解决问题的能力。</li>
+</ol>
+<p>BOSS 直聘链接：<a href="https://www.zhipin.com/job_detail/03fb5db886eedea91XJ729m9GVRY.html" rel="nofollow">https://www.zhipin.com/job_detail/03fb5db886eedea91XJ729m9GVRY.html</a></p>
+<p>欢迎邮件联系我交流和内推，我的邮箱：<code>a2FuZ21pbjI4NjVAMTYzLmNvbQ==</code></p>
+<hr />
+<p>个人工作体验：</p>
+<p>我已经入职超过半年，公司目前在杭州的工作地点位于萧山区，钱江世纪城附近。工作内容主要是为公司的 AI 芯片适配上层的 Runtime ，主要用 C/C++ 开发。我之前在某网络设备厂商从事网络协议的开发，现在切换到这个工作，也能很快上手。</p>
+<p>公司是一个初创公司，但是感觉在休假、福利方面都比较正规，也没有太多加班。对我来说，整体的工作体验是不错的。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T15:38:02Z</pubDate>
+<pubDate>2023-10-23T15:35:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 每日 5 万独立访客，接入谷歌广告联盟大概会有多少收入？</title>
+<link>https://www.v2ex.com/t/984693</link>
+<guid>https://www.v2ex.com/t/984693</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-23T15:32:58Z</pubDate>
+<pubDate>2023-10-23T16:00:42Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 有句话忍了大半年</title>
+<link>https://www.v2ex.com/t/984692</link>
+<guid>https://www.v2ex.com/t/984692</guid>
+<content:encoded><![CDATA[
+
+<h3>JetNB</h3>
+<h3>Jet 比汪苏泷 NB</h3>
+<p><a href="https://im.gurl.eu.org/file/f947eab7753a688aa4580.jpg" rel="nofollow"><img alt="" class="embedded_image" rel="noreferrer" src="https://im.gurl.eu.org/file/f947eab7753a688aa4580.jpg" /></a>
+<a href="https://im.gurl.eu.org/file/bb9425a4aaf36958992e5.jpg" rel="nofollow"><img alt="" class="embedded_image" rel="noreferrer" src="https://im.gurl.eu.org/file/bb9425a4aaf36958992e5.jpg" /></a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T15:32:31Z</pubDate>
+<pubDate>2023-10-23T15:32:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教大家一个关于手机软件安装的问题</title>
+<link>https://www.v2ex.com/t/984691</link>
+<guid>https://www.v2ex.com/t/984691</guid>
+<content:encoded><![CDATA[
+
+<p>之前一直用的 iphone 手机，双卡，使用双卡的原因是一张联通宽带和流量绑定的，一个是用了很多年的移动卡，移动卡是主要是用的电话卡，只是没有流量。
+现在出现的一个问题是：单位要求手机必须安装国家反诈骗 app ，我深知其中的厉害，打死不敢装。目前是找了个以前废弃的小电话安上了，注册了账号。但是，我担心以后万一无耻到每天检查手机怎么办，我只想带一部电话，但是我全天大部分时候都上外网 app ，经不起查。有相似经历的 v 友吗？或者大家给个相对好的方案。如果没有更好的办法，我以后只能给这个 app 单独弄一部手机了，应付检查，对了把微信和它装一起。让他俩互相恶心</p>
+]]></content:encoded>
+<pubDate>2023-10-23T15:29:41Z</pubDate>
+<pubDate>2023-10-23T15:29:41Z</pubDate>
+</item>
+<item>
+<title>[程序员] shadcn-ui 初始化脚手架报错是什么原因？</title>
+<link>https://www.v2ex.com/t/984688</link>
+<guid>https://www.v2ex.com/t/984688</guid>
+<content:encoded><![CDATA[
+
+<p>pnpm dlx shadcn-ui@latest init 一直安装报错是什么原因？有没有遇到过问题的大佬看看问题在哪？
+[img]<a href="https://i.imgur.com/QQAYecL.png" rel="nofollow">https://i.imgur.com/QQAYecL.png</a>[/img]</p>
+]]></content:encoded>
+<pubDate>2023-10-23T15:11:15Z</pubDate>
+<pubDate>2023-10-23T15:13:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] 分享下自己部署的网站</title>
+<link>https://www.v2ex.com/t/984687</link>
+<guid>https://www.v2ex.com/t/984687</guid>
+<content:encoded><![CDATA[
+
+<p>自己是写业务的后端开发，想自学下 react 写个网站玩玩，于是趁着下班时间看官方文档边学边做，写了一个有关 json 的网站： <a href="https://projson.com/" rel="nofollow">https://projson.com/</a></p>
+<p>网站是用 cloudflare Pages 部署的，体验下来感觉还不错</p>
+<p>目前借助 jsonEditor 和 codeMirror 搞了格式化 json 和代码高亮，后续想接着搞 json 对比和格式转换的功能</p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:59:31Z</pubDate>
+<pubDate>2023-10-23T10:59:31Z</pubDate>
+</item>
+<item>
+<title>[分享创造] JCJC-基于剪贴板的碎片信息收集工具（Windows）</title>
+<link>https://www.v2ex.com/t/984686</link>
+<guid>https://www.v2ex.com/t/984686</guid>
+<content:encoded><![CDATA[
+
+<h2>JCJC 碎片信息收集工具</h2>
+<p>给大家介绍一款基于剪贴板的碎片信息收集工具-JCJC 。
+JCJC 的主要功能是自动跟踪剪贴板内容的变动，自动把剪贴板的内存保存为 MarkDown 格式文件。</p>
+<h2>MarkDown 文件的内容包括两部分：</h2>
+<p>第一部分：元信息，包括：剪贴板数据来源 app  的名字、标题、网址（如果 app 是浏览器的话）；</p>
+<p>第二部分：剪贴板内容，如果从浏览器拷贝的 HTML 内容，JCJC 会把 HTML 内容转换成 MarkDown 格式；</p>
+<h2>JCJC 软件特色：</h2>
+<p>绿色软件的理念，占用内存小于 10M ；</p>
+<p>开放 API ，WEB 前端 UI 开放源代码；</p>
+<p>暂停模式，当处于暂停状态的时候，不记录剪贴板内容变化；</p>
+<p>在暂停模式下，使用 Ctrl + Insert 手动记录剪贴板内容到 MarkDown 文件；</p>
+<h2>后续开发计划：</h2>
+<p>笔记内容搜索；
+笔记文件搜索；</p>
+<p>更多详细介绍，参考这里：</p>
+<p><a href="http://blog.csdn.net/accesine960/article/details/133984580" rel="nofollow">blog.csdn.net/accesine960/article/details/133984580</a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:59:04Z</pubDate>
+<pubDate>2023-10-23T14:59:04Z</pubDate>
+</item>
+<item>
+<title>[macOS] 现在时间机器 Time Machine 降级可以直接用高系统版本的备份了吗？</title>
+<link>https://www.v2ex.com/t/984685</link>
+<guid>https://www.v2ex.com/t/984685</guid>
+<content:encoded><![CDATA[
+
+起因：受不了 Sonoma 了风扇狂转，想降级到之前用的 Monterey 。<br /><br />安装 Monterey 之后使用迁移助手发现可以选择 Sonoma 系统时期的 Time Machine 备份。<br />我记得以前看的教程，都是说降级的时候必须要用旧系统下的备份来恢复数据。现在好像不需要了（或者至少是 Mac 本身不限制必须用旧版本的备份了）？<br />网上搜了一下“Mac Time Machine downgrade”，看到的帖子说的还是“尝鲜新系统不喜欢想降级怎么办？请在升级之前用 Time Machine 备份好数据！”这种老调。<br /><br />不过我还是选了十多天前的 Monterey 备份来恢复，防止出现意外。
+]]></content:encoded>
+<pubDate>2023-10-23T14:57:14Z</pubDate>
+<pubDate>2023-10-23T14:57:14Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [深圳] 比亚迪，急招几个中高级前后端开发</title>
+<link>https://www.v2ex.com/t/984684</link>
+<guid>https://www.v2ex.com/t/984684</guid>
+<content:encoded><![CDATA[
+
+是这样的，比亚迪工程院突然间有了社招名额，要求我们十一月要招到小几百人，简历收集得有点慢，发帖捞人。<br /><br />地点：深圳坪山。后端主 JAVA ，前端主 Vue 。<br /><br />急招没错，但学历卡得死死的，要求名校，快的话一周可以完成签约。<br /><br />技术面的话，基本比较好过，都是直招给自己部门用的。<br /><br />有兴趣的我们可以聊聊，wx 号 base64 decode：a291c3Nf<br /><br />薪资：15~30k ，逃）
+]]></content:encoded>
+<pubDate>2023-10-23T14:48:47Z</pubDate>
+<pubDate>2023-10-20T14:48:47Z</pubDate>
+</item>
+<item>
+<title>[程序员] 没有人觉得“未注册手机号/SSO 登陆自动创建账号”是一个很糟糕的设计吗？</title>
+<link>https://www.v2ex.com/t/984683</link>
+<guid>https://www.v2ex.com/t/984683</guid>
+<content:encoded><![CDATA[
+
+<p>尤其是对于我这种有 N 个手机号的人来说，除了主用手机号之外，想要登陆某个平台的小号时完全不记得当时注册用的是哪个手机号/SSO 。</p>
+<p>退一步讲，就算是想要吸引用户、方便用户无缝注册，那至少也可以在注册之前多加一个提示。而能做到这一点的我印象中最多不超过 2 个（酷安是其中之一，会提示“手机号未注册，验证后直接注册”），更多平台直接点击登录直到输入完验证码，都不会有任何提示告诉你是在注册还是登录。</p>
+<p>我觉得这是一个很糟糕的设计，刚才登陆小红书的时候足足试了两个手机号和一个微信才试出我当时注册小号用的是哪个号码……</p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:38:16Z</pubDate>
+<pubDate>2023-10-23T16:21:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] 相约女生出去玩儿，但是她谢绝了一次之后感觉触发了我的创伤经历</title>
+<link>https://www.v2ex.com/t/984681</link>
+<guid>https://www.v2ex.com/t/984681</guid>
+<content:encoded><![CDATA[
+
+<p>早上 6 点多发消息给她，她一方面说我这消息发的太早了，一方面谢谢我的邀请，不是想要 V 友们分析有戏没戏，我只是想抒发一下自己的情绪，以及这种情况该怎么缓解，我能想到的就是和一些家人朋友们多接触接触，多一些社会支持，改善我这种容易创伤的情绪。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:37:38Z</pubDate>
+<pubDate>2023-10-23T15:28:35Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一款最近做的网页游戏， Is That AI</title>
+<link>https://www.v2ex.com/t/984680</link>
+<guid>https://www.v2ex.com/t/984680</guid>
+<content:encoded><![CDATA[
+
+<p>IsThatAI 是一个给人类玩的“图”灵测试，我们将每日提供不同的测试题来检测你鉴别 AI 图的能力</p>
+<p><a href="http://isthat.ai" rel="nofollow">http://isthat.ai</a></p>
+<p>欢迎大家游玩并提出宝贵建议！</p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/23/QsNfla3hJ6pGSxD.png" /></p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/23/QgxH6St3KaV4IG2.png" /></p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/23/jBlcRoI7z4GTkVZ.png" /></p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/23/ponehDTHrm5jqGO.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:30:22Z</pubDate>
+<pubDate>2023-10-23T16:18:56Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 诡异：北方某省移动宽带上行 300M+，但是打洞之后 iperf 测速诡异现象出现了</title>
+<link>https://www.v2ex.com/t/984678</link>
+<guid>https://www.v2ex.com/t/984678</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://postimg.cc/Z9gZLH6g" rel="nofollow"><img alt="20231023222309.png" class="embedded_image" rel="noreferrer" src="https://i.postimg.cc/Y929My0p/20231023222309.png" /></a>
+但是 [同运营商]  [跨省打洞] 之后只有 35~40M ，这是什么原理？ speedtest 本机测试可以跑满，就是打洞只有十分之一
+<a href="https://postimg.cc/5jXgG3Lg" rel="nofollow"><img alt="screenshot-20231023-222826.png" class="embedded_image" rel="noreferrer" src="https://i.postimg.cc/2jwt195s/screenshot-20231023-222826.png" /></a></p>
+<p>最后：请大佬们帮忙解惑</p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:29:33Z</pubDate>
+<pubDate>2023-10-23T14:59:45Z</pubDate>
+</item>
+<item>
+<title>[美国] 加州公职人员收入</title>
+<link>https://www.v2ex.com/t/984677</link>
+<guid>https://www.v2ex.com/t/984677</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://transparentcalifornia.com/salaries/all/" rel="nofollow">https://transparentcalifornia.com/salaries/all/</a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:25:53Z</pubDate>
+<pubDate>2023-10-23T14:37:27Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 一个稍稍不同的 ChatGPT 套壳 App - WizBoard</title>
+<link>https://www.v2ex.com/t/984675</link>
+<guid>https://www.v2ex.com/t/984675</guid>
+<content:encoded><![CDATA[
+
+<p>App 链接: <a href="https://apps.apple.com/us/app/wizboard-ai-keyboard-chat/id6448659827?platform=iphone" rel="nofollow">https://apps.apple.com/us/app/wizboard-ai-keyboard-chat/id6448659827?platform=iphone</a><br />
+主页: <a href="https://wizboard.ai/" rel="nofollow">https://wizboard.ai/</a></p>
+<p>比较特别的地方是做了一个还算完整的键盘扩展，可以在所有能够打开键盘的地方用 AI 功能。<br />
+<img alt="WizBoard" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3IXDSle.jpg" /></p>
+<p>其他一些亮点:</p>
+<ul>
+<li>prompt 支持参数/例子</li>
+<li>消息支持 LaTex 渲染 (显示数学公式有点用，但可能也没什么人在乎。。)</li>
+<li>支持 OCR 图片扫描输入</li>
+<li>每天 10 条免费消息</li>
+</ul>
+<p>由于需要备案的缘故，目前<strong>没在国区上架</strong>。</p>
+<p>感觉 App 的设计稍微有点复杂，一开始会有些门槛。目前还在考虑一些更易用的 AI 功能。<br />
+欢迎大家试用，提供反馈！</p>
+]]></content:encoded>
+<pubDate>2023-10-23T14:18:31Z</pubDate>
+<pubDate>2023-10-23T14:16:31Z</pubDate>
+</item>
+<item>
+<title>清华 MIT 创业者寻技术合伙人</title>
+<link>https://www.v2ex.com/t/983435</link>
+<guid>https://www.v2ex.com/t/983435</guid>
+<content:encoded><![CDATA[
+
+<p>清华计算机专业，MIT 计算机专业，信息学奥斯金牌，谷歌微软大厂经验，snap 创业公司经验，web3 高管经验两年，目前创业，项目已有进展，寻技术合伙人：要求，对 web3 充满热情，愿意学习，全职投入。需要至少精通以下三样技术的一样：1. 资深前端，尤其是图形学编程，如 pixi 或类似的类库； 2. 数据分析与量化交易； 3. 深度学习。 有兴趣请发简历至 <a href="mailto:justinzhangmit@gmail.com">justinzhangmit@gmail.com</a> 及 <a href="mailto:lanwangmba@gmail.com">lanwangmba@gmail.com</a> ，谢谢！</p>
+]]></content:encoded>
+<pubDate>2023-10-19T03:57:51Z</pubDate>
+<pubDate>2023-10-22T12:29:07Z</pubDate>
+</item>
+
+<item>
 <title>[宽带症候群] 最近国际出口带宽全面爆炸</title>
 <link>https://www.v2ex.com/t/984674</link>
 <guid>https://www.v2ex.com/t/984674</guid>
@@ -15,7 +467,6 @@
 10月14日海底光纤传闻断裂，导致多个机房发生故障，掉包率和延迟急剧上升。值得注意的是，不仅孟买受影响，其他地区的机房也出现类似情况。虽然不清楚具体原因，但这一事件引发了广泛关注，对网络连接产生了明显影响。 <div>
 传闻 10 月 14 日那天海底光纤断了，也不知道是真是假，反正那天开始，很多机房都炸了，直到今天都没恢复。但是为什么孟买也会炸，又不过海底，搞不懂。<br /><br />下面数据来自 <a href="http://ping0.cc" rel="nofollow noopener" target="_blank">ping0.cc</a> ，drop 是掉包率，ping 是延迟。<br /><br />腾讯云-印度-孟买 101.32.*.*<br />2023-10-23 00:00 drop: 86.6% ping: 405<br />2023-10-20 00:00 drop: 64.0% ping: 397<br />2023-10-17 00:00 drop: 67.4% ping: 400<br />2023-10-14 00:00 drop: 69.5% ping: 400<br />2023-10-11 00:00 drop: 4.3%  ping: 296<br />2023-10-08 00:00 drop: 5.2%  ping: 304<br />2023-10-05 00:00 drop: 5.8%  ping: 303<br />2023-10-02 00:00 drop: 7.8%  ping: 301<br />2023-09-29 00:00 drop: 7.1%  ping: 303<br />2023-09-26 00:00 drop: 4.6%  ping: 308<br />2023-09-23 00:00 drop: 7.5%  ping: 302<br /><br />搬瓦工-香港-CMI 45.78.*.*<br />2023-10-23 00:00 drop: 62.0% ping: 337<br />2023-10-20 00:00 drop: 32.0% ping: 262<br />2023-10-17 00:00 drop: 38.8% ping: 281<br />2023-10-14 00:00 drop: 38.5% ping: 279<br />2023-10-11 00:00 drop: 0.4%  ping: 91<br />2023-10-08 00:00 drop: 0.0%  ping: 87<br />2023-10-05 00:00 drop: 0.2%  ping: 91<br />2023-10-02 00:00 drop: 0.7%  ping: 88<br />2023-09-29 00:00 drop: 0.0%  ping: 89<br />2023-09-26 00:00 drop: 0.0%  ping: 85<br />2023-09-23 00:00 drop: 0.9%  ping: 88<br /><br />Gcore-香港 5.188.*.*<br />2023-10-23 00:00 drop: 63.1% ping: 385<br />2023-10-20 00:00 drop: 33.6% ping: 347<br />2023-10-17 00:00 drop: 39.8% ping: 359<br />2023-10-14 00:00 drop: 37.6% ping: 357<br />2023-10-11 00:00 drop: 2.8%  ping: 222<br />2023-10-08 00:00 drop: 2.0%  ping: 219<br />2023-10-05 00:00 drop: 1.9%  ping: 218<br />2023-10-02 00:00 drop: 1.6%  ping: 218<br />2023-09-29 00:00 drop: 2.1%  ping: 219<br />2023-09-26 00:00 drop: 0.9%  ping: 216<br />2023-09-23 00:00 drop: 1.6%  ping: 218<br /><br />Virmach-香港 103.125.*.*<br />2023-10-23 00:00 drop: 65.0% ping: 399<br />2023-10-20 00:00 drop: 37.0% ping: 372<br />2023-10-17 00:00 drop: 44.1% ping: 378<br />2023-10-14 00:00 drop: 42.1% ping: 377<br />2023-10-11 00:00 drop: 3.8%  ping: 230<br />2023-10-08 00:00 drop: 4.6%  ping: 232<br />2023-10-05 00:00 drop: 5.0%  ping: 233<br />2023-10-02 00:00 drop: 6.3%  ping: 235<br />2023-09-29 00:00 drop: 5.0%  ping: 232<br />2023-09-26 00:00 drop: 4.0%  ping: 232<br />2023-09-23 00:00 drop: 5.9%  ping: 235<br /><br /><a href="http://V.PS" rel="nofollow noopener" target="_blank">V.PS</a>-香港 157.119.*.*<br />2023-10-23 00:00 drop: 64.7% ping: 342<br />2023-10-20 00:00 drop: 35.1% ping: 270<br />2023-10-17 00:00 drop: 40.5% ping: 282<br />2023-10-14 00:00 drop: 37.9% ping: 278<br />2023-10-11 00:00 drop: 0.4%  ping: 90<br />2023-10-08 00:00 drop: 0.0%  ping: 90<br />2023-10-05 00:00 drop: 0.5%  ping: 92<br />2023-10-02 00:00 drop: 3.1%  ping: 103<br />2023-09-29 00:00 drop: 0.0%  ping: 90<br />2023-09-26 00:00 drop: 0.0%  ping: 91<br />2023-09-23 00:00 drop: 1.5%  ping: 96<br /><br />Gcore-日本-东京 5.188.*.*<br />2023-10-23 00:00 drop: 89.2% ping: 390<br />2023-10-20 00:00 drop: 69.8% ping: 357<br />2023-10-17 00:00 drop: 74.5% ping: 367<br />2023-10-14 00:00 drop: 74.2% ping: 367<br />2023-10-11 00:00 drop: 2.6%  ping: 175<br />2023-10-08 00:00 drop: 1.3%  ping: 168<br />2023-10-05 00:00 drop: 1.4%  ping: 169<br />2023-10-02 00:00 drop: 3.5%  ping: 174<br />2023-09-29 00:00 drop: 1.5%  ping: 172<br />2023-09-26 00:00 drop: 1.2%  ping: 169<br />2023-09-23 00:00 drop: 3.4%  ping: 175<br /><br />DMIT-日本-lite 154.31.*.*<br />2023-10-23 00:00 drop: 61.3% ping: 366<br />2023-10-20 00:00 drop: 35.2% ping: 326<br />2023-10-17 00:00 drop: 40.7% ping: 330<br />2023-10-14 00:00 drop: 40.4% ping: 328<br />2023-10-11 00:00 drop: 4.0%  ping: 175<br />2023-10-08 00:00 drop: 5.1%  ping: 188<br />2023-10-05 00:00 drop: 6.5%  ping: 178<br />2023-10-02 00:00 drop: 8.0%  ping: 184<br />2023-09-29 00:00 drop: 6.0%  ping: 179<br />2023-09-26 00:00 drop: 4.6%  ping: 177<br />2023-09-23 00:00 drop: 8.0%  ping: 184<br /><br />HostHatch-日本-东京 103.173.*.*<br />2023-10-23 00:00 drop: 81.4% ping: 397<br />2023-10-20 00:00 drop: 53.2% ping: 374<br />2023-10-17 00:00 drop: 57.6% ping: 379<br />2023-10-14 00:00 drop: 56.6% ping: 379<br />2023-10-11 00:00 drop: 0.5%  ping: 176<br />2023-10-08 00:00 drop: 0.9%  ping: 176<br />2023-10-05 00:00 drop: 1.5%  ping: 176<br />2023-10-02 00:00 drop: 3.2%  ping: 183<br />2023-09-29 00:00 drop: 1.2%  ping: 177<br />2023-09-26 00:00 drop: 1.8%  ping: 183<br />2023-09-23 00:00 drop: 1.7%  ping: 80<br /><br />Oracle-日本-大阪 152.70.*.*<br />2023-10-23 00:00 drop: 77.9% ping: 382<br />2023-10-20 00:00 drop: 53.1% ping: 344<br />2023-10-17 00:00 drop: 58.5% ping: 353<br />2023-10-14 00:00 drop: 54.6% ping: 350<br />2023-10-11 00:00 drop: 1.1%  ping: 178<br />2023-10-08 00:00 drop: 1.1%  ping: 178<br />2023-10-05 00:00 drop: 1.7%  ping: 179<br />2023-10-02 00:00 drop: 3.1%  ping: 184<br />2023-09-29 00:00 drop: 1.7%  ping: 179<br />2023-09-26 00:00 drop: 1.4%  ping: 179<br />2023-09-23 00:00 drop: 3.6%  ping: 184<br /><br />Oracle-日本-东京 158.101.*.*<br />2023-10-23 00:00 drop: 85.6% ping: 387<br />2023-10-20 00:00 drop: 62.6% ping: 351<br />2023-10-17 00:00 drop: 68.0% ping: 360<br />2023-10-14 00:00 drop: 66.9% ping: 359<br />2023-10-11 00:00 drop: 3.6%  ping: 174<br />2023-10-08 00:00 drop: 3.9%  ping: 175<br />2023-10-05 00:00 drop: 5.4%  ping: 179<br />2023-10-02 00:00 drop: 7.1%  ping: 183<br />2023-09-29 00:00 drop: 4.4%  ping: 176<br />2023-09-26 00:00 drop: 4.3%  ping: 176<br />2023-09-23 00:00 drop: 6.4%  ping: 181<br /><br />Oracle-新加坡 134.70.*.*<br />2023-10-23 00:00 drop: 80.4% ping: 398<br />2023-10-20 00:00 drop: 53.7% ping: 377<br />2023-10-17 00:00 drop: 57.4% ping: 384<br />2023-10-14 00:00 drop: 55.5% ping: 377<br />2023-10-11 00:00 drop: 0.9%  ping: 235<br />2023-10-08 00:00 drop: 1.2%  ping: 239<br />2023-10-05 00:00 drop: 1.6%  ping: 240<br />2023-10-02 00:00 drop: 4.0%  ping: 246<br />2023-09-29 00:00 drop: 1.4%  ping: 240<br />2023-09-26 00:00 drop: 0.7%  ping: 236<br />2023-09-23 00:00 drop: 2.7%  ping: 241<br /><br />OVH-澳大利亚-SY2 139.99.*.*<br />2023-10-23 00:00 drop: 65.5% ping: 408<br />2023-10-20 00:00 drop: 33.0% ping: 378<br />2023-10-17 00:00 drop: 39.7% ping: 387<br />2023-10-14 00:00 drop: 36.8% ping: 385<br />2023-10-11 00:00 drop: 1.1%  ping: 267<br />2023-10-08 00:00 drop: 1.1%  ping: 270<br />2023-10-05 00:00 drop: 2.0%  ping: 275<br />2023-10-02 00:00 drop: 3.1%  ping: 272<br />2023-09-29 00:00 drop: 2.0%  ping: 270<br />2023-09-26 00:00 drop: 1.0%  ping: 274<br />2023-09-23 00:00 drop: 1.9%  ping: 272
 ]]></content:encoded>
-<pubDate>2023-10-23T14:10:41Z</pubDate>
 <pubDate>2023-10-23T14:08:41Z</pubDate>
 </item>
 <item>
@@ -23,7 +474,7 @@
 <link>https://www.v2ex.com/t/984673</link>
 <guid>https://www.v2ex.com/t/984673</guid>
 <content:encoded><![CDATA[
-<div> 股市、ETF基金、目标、交易、投资收入<br><br>总结: 本文讲述了作者在股市中的投资目标以及当天的交易情况。作者采取了分批投资的策略，每天或每两天购买一份不同的基金，以避免高位买入。作者希望能够与祖国共进退，共同面对市场的风险与挑战。 <div>
+<div> 股市、ETF基金、目标、交易、投资收入<br /><br />总结: 本文讲述了作者在股市中的投资目标以及当天的交易情况。作者采取了分批投资的策略，每天或每两天购买一份不同的基金，以避免高位买入。作者希望能够与祖国共进退，共同面对市场的风险与挑战。 <div>
 <h2>今日市场</h2>
 <p>上周末立了个 flag：从股市赚 1000 万<br />
 今天就被教做人  </p>
@@ -53,7 +504,6 @@
 与祖国共进退<br />
 与大 A 共存亡</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T14:09:46Z</pubDate>
 <pubDate>2023-10-23T14:07:46Z</pubDate>
 </item>
 <item>
@@ -61,7 +511,6 @@
 <link>https://www.v2ex.com/t/984671</link>
 <guid>https://www.v2ex.com/t/984671</guid>
 <content:encoded><![CDATA[
-
 <p>拼多多的那些骚操作</p>
 <p>之前我在拼多多百亿补贴买过挺多东西的，包括 iPhone, iPad, AppleWatch ，全部安全下车，直到这次购买 iPhone 15 Pro Max 原色，被坑了一把。</p>
 <p>我是在 9 月 15 日晚 8 点通过拼多多百亿补贴下单了一部 iPhone 15 Pro Max 原色 256G 版本，苹果官方售价 9999 元，拼多多补贴 500 元，付款 9499 元，拼多多承诺 9 月 28 日发货。</p>
@@ -80,17 +529,14 @@
 <p><strong>折腾了半个多月，手机没拿到，收到了 300 块钱补偿，我以后再也不会在拼多多买这种贵重物品了，最多买点垃圾袋。另外，那台蓝色的 iPhone ，已经被激活了，是当二手卖掉了，还是重新封了当全新的卖了，就不得而知了。</strong></p>
 ]]></content:encoded>
 <pubDate>2023-10-23T14:00:15Z</pubDate>
-<pubDate>2023-10-23T14:00:15Z</pubDate>
 </item>
 <item>
 <title>[分享发现] 锁屏启动小组件的快捷小程序失效了</title>
 <link>https://www.v2ex.com/t/984670</link>
 <guid>https://www.v2ex.com/t/984670</guid>
 <content:encoded><![CDATA[
-
 本来锁屏界面点一下就能跳转门禁码小程序还蛮方便的<br /><br />请问还有什么办法把微信小程序快捷键固定在锁屏界面吗<br /> <br /> <a href="https://i.imgur.com/xs8lQOz.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xs8lQOz.png" /></a>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:48:20Z</pubDate>
 <pubDate>2023-10-23T13:46:20Z</pubDate>
 </item>
 <item>
@@ -98,10 +544,8 @@
 <link>https://www.v2ex.com/t/984669</link>
 <guid>https://www.v2ex.com/t/984669</guid>
 <content:encoded><![CDATA[
-
 <p>今天接到一个诈骗电话，骗子可以报出我的飞机航班信息以及手机号。问题是机票我是在航空公司官网买的，现在想想我们的信息究竟是怎么到骗子手里的？真的有黑市存在吗</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:48:09Z</pubDate>
 <pubDate>2023-10-23T13:45:09Z</pubDate>
 </item>
 <item>
@@ -109,11 +553,9 @@
 <link>https://www.v2ex.com/t/984667</link>
 <guid>https://www.v2ex.com/t/984667</guid>
 <content:encoded><![CDATA[
-
 <p>今天去礼品展，不少直播的，其中有个直播位的设备我很感兴趣，打算入手，就是不知道具体叫什么名字（见图中 A/B), 哪位可以给点启发？</p>
 <p><a href="https://i.imgur.com/8CzEq2y.jpg" rel="nofollow">Imgur</a></p>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:32:59Z</pubDate>
 <pubDate>2023-10-23T13:29:59Z</pubDate>
 </item>
 <item>
@@ -121,10 +563,8 @@
 <link>https://www.v2ex.com/t/984666</link>
 <guid>https://www.v2ex.com/t/984666</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/elt3b8u.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/elt3b8u.jpg" /></a><br /><br />可是我明天到了也没硬盘啊。。。。
 ]]></content:encoded>
-<pubDate>2023-10-23T13:30:43Z</pubDate>
 <pubDate>2023-10-23T13:28:43Z</pubDate>
 </item>
 <item>
@@ -132,10 +572,8 @@
 <link>https://www.v2ex.com/t/984664</link>
 <guid>https://www.v2ex.com/t/984664</guid>
 <content:encoded><![CDATA[
-
 <p>有个 web 服务时区问题,后端服务和数据库都统一使用 utc+0 时区,由前端根据访问者所在时区进行格式化,现在问题是用户新增数据时,应该让前端传创建时间还是使用服务器时间,如果使用服务器时间,则创建的数据时间和展示给用户的时间可能不一致(比如用户是东八区,服务器按 0 时区存,展示时就差了 8 小时),如果让前端传创建时间,这个创建时间不可靠,用户可能通过非法手段修改,想咨询大佬有没有很好的解决时区的办法</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:26:49Z</pubDate>
 <pubDate>2023-10-23T13:37:23Z</pubDate>
 </item>
 <item>
@@ -143,12 +581,10 @@
 <link>https://www.v2ex.com/t/984663</link>
 <guid>https://www.v2ex.com/t/984663</guid>
 <content:encoded><![CDATA[
-
 <p>前几天入手 Pixel 8 Pro, 不带毫米波的版本。发现用移动卡的时候信号表现比 6 Pro 差很多。有些 6 Pro 信号不错的地方完全搜不到信号。
 看到规格上不带毫米波的版本没有 39 频段，不知道是不是受这个影响。
 而且最近有点想换到联通，不知道 Pixel 用联通的话信号怎么样，有没有用过的老哥介绍下。</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:25:14Z</pubDate>
 <pubDate>2023-10-23T13:25:14Z</pubDate>
 </item>
 <item>
@@ -156,10 +592,8 @@
 <link>https://www.v2ex.com/t/984662</link>
 <guid>https://www.v2ex.com/t/984662</guid>
 <content:encoded><![CDATA[
-
 应该不是双卡的吧
 ]]></content:encoded>
-<pubDate>2023-10-23T13:23:21Z</pubDate>
 <pubDate>2023-10-23T10:23:21Z</pubDate>
 </item>
 <item>
@@ -167,10 +601,8 @@
 <link>https://www.v2ex.com/t/984661</link>
 <guid>https://www.v2ex.com/t/984661</guid>
 <content:encoded><![CDATA[
-
 我们估计就弄个下午茶啥的，吃吃喝喝
 ]]></content:encoded>
-<pubDate>2023-10-23T13:20:59Z</pubDate>
 <pubDate>2023-10-23T13:47:29Z</pubDate>
 </item>
 <item>
@@ -178,10 +610,8 @@
 <link>https://www.v2ex.com/t/984659</link>
 <guid>https://www.v2ex.com/t/984659</guid>
 <content:encoded><![CDATA[
-
 背景：入职一家公司做 java 开发，偏向物联网相关<br />1 ，入职第三天，领导给我安排一个临时工位，就在他办公室（每次路过他都会看我屏幕几眼，看我在摸鱼没）<br />2 ，任务直接口头安排，时间催得很紧（ 1-2 天，甚至最夸张的是 2 小时），完全不考虑复杂度<br />3 ，开会基本不拉我，有几次任务，都是单独建群，没有我（旁敲侧击前端问到的）<br />4 ，刻意让我讲我写的代码，了解的一些东西，昨晚立即让交源码，交文档<br />5 ，项目背景基本不说，都是我给 hr 反馈后，上级领导才找我聊了下，给我讲了点(据说项目拖了四五个月才开始)<br /><br />我现在严重怀疑项目有猫腻，猜想可能性有几种<br />1 ，项目有难点，他们不熟悉得地方，所以找我当工具人，解决完特定问题后，就让我走人(他们招人招了四五个月没合适人选，而且要求高待遇一般，后面勉强让我入职)<br />2 ，纯管理风格？<br />3 ，足够忙忘了安排正常开发流程？（但是领导基本都是 5.30 下班）<br /><br /><br />麻烦大家帮忙分析下：<br />如果是 1 ，我肯定是尽快找下家<br />如果是 2 ，干着也不舒服<br />如果是 3 ，那也许算小问题<br /><br />另外，还会有其他可能性吗
 ]]></content:encoded>
-<pubDate>2023-10-23T13:14:34Z</pubDate>
 <pubDate>2023-10-23T13:45:25Z</pubDate>
 </item>
 <item>
@@ -189,10 +619,8 @@
 <link>https://www.v2ex.com/t/984658</link>
 <guid>https://www.v2ex.com/t/984658</guid>
 <content:encoded><![CDATA[
-
 关于公司和团队：<br />    是一个精英化敏捷化的团队，隶属于阿布扎比的巨型集团 G42 ，背后是阿布扎比国家财团和国际顶尖对冲大佬的家族办公室。主要业务是对冲金融，在做金融平台开发和金融大模型。核心团队中大多来自英国谢菲尔德、浙大、复旦、南大、斯坦福、卡耐基梅隆等国内外顶尖高校，获得硕士/博士学位。<br /><br />关于岗位：<br />    正在寻找一位 Dev Lead ，帮助开发金融软件/平台，并管理开发团队。<br /><br />关于工作地点：<br />    在阿布扎比<br /><br />关于阿布扎比：<br />    是阿拉伯联合酋长国首都，也是阿拉伯联合酋长国阿布扎比酋长国首府。无论是地域范围还是财富都是名副其实的核心。对华人非常友好，非常欢迎华人在当地工作以及生活，签证、定居等也比较便利。消费水平与国内北京上海相似，但房价十分友好，买房仅 2w/平。<br /><br /><br />我们需要你：<br /><br />作为项目主要负责人，负责金融软件/平台的研发；<br />通过技术策略驱动业务增长，进行效果跟踪和数据分析，并及时进行优化，发掘业务和系统空间；<br />探索金融行业的前沿研究，以实现关键技术的突破和应用；<br />与其他团队密切协作。<br /><br />我们期望的你：<br /><br />拥有优秀的学历，国内 985 高校或海外知名高校本科或硕士毕业；<br />熟悉 java ，熟悉 python 、golang 等其他一种或多种语言；熟悉 pandas ，用过 ploty 优先；<br />拥有金融平台开发经验；<br />拥有宏观对冲软件开发经验优先；<br />拥有敏捷团队 leader 经验优先；<br />具有强烈的责任心，较强的沟通协调能力；<br />英文可以作为工作语言者优先。<br /><br />岗位待遇：<br />- 月薪税后 70-120k<br />- 年终基本可以保证三个月及以上<br />- 额外年假 25 天<br />- 可以带家属，公司报销大部分小孩 3-18 岁上学学费<br />- 每年报销国内往返机票，每月通讯补贴、餐补、通讯补等<br />- 额外的商业医疗保险对接全球顶尖医院<br /><br />有兴趣的小伙伴可以➕vx：zhangyijun1001
 ]]></content:encoded>
-<pubDate>2023-10-23T13:10:03Z</pubDate>
 <pubDate>2023-10-23T09:10:03Z</pubDate>
 </item>
 <item>
@@ -200,11 +628,9 @@
 <link>https://www.v2ex.com/t/984657</link>
 <guid>https://www.v2ex.com/t/984657</guid>
 <content:encoded><![CDATA[
-
 <p>爆这么大个事故，大家赶紧把资料撤走吧。
 这团队已经不行了，老大都跑路了，核心团队也跑了吧。</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T13:05:45Z</pubDate>
 <pubDate>2023-10-23T14:08:53Z</pubDate>
 </item>
 <item>
@@ -212,7 +638,6 @@
 <link>https://www.v2ex.com/t/984656</link>
 <guid>https://www.v2ex.com/t/984656</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://Vondy.com" rel="nofollow">Vondy.com</a> 是一个为用户提供一系列人工智能（ AI ）工具和应用的平台。以下是该平台提供的内容的简要概述：</p>
 <p>AI 聊天与提示管理：Vondy 提供了一个 AI 聊天功能，允许通过定制提示进行定制交互。这对于讲故事、解决问题或进行有意义的讨论很有用。用户可以通过 AI 探索无边的对话，释放动态对话中 AI 的潜力</p>
 <p>多媒体内容生成：该平台被设计为一站式解决方案，使用户能够在各种媒体上创建内容，包括书面作品、视频内容甚至歌词。它提供图像生成工具、具有独特个性的聊天机器人和对话开始器等其他 AI 应用程序</p>
@@ -223,7 +648,6 @@
 <p>觉得有用的，用这个链接哈 :)</p>
 <p><a href="https://vondy.com?via=how" rel="nofollow">https://vondy.com?via=how</a></p>
 ]]></content:encoded>
-<pubDate>2023-10-23T12:59:47Z</pubDate>
 <pubDate>2023-10-23T12:56:47Z</pubDate>
 </item>
 <item>
@@ -231,7 +655,6 @@
 <link>https://www.v2ex.com/t/984655</link>
 <guid>https://www.v2ex.com/t/984655</guid>
 <content:encoded><![CDATA[
-
 <p>本月 10 号，我的 macbook air m2 到货。</p>
 <p>照常登入我的主力 id （美区，发现想要购买的 care➕也跟着账号走，美区的。</p>
 <p>简单搜了下资料，发现美区具有全球联保、可以年付、比果区更便宜等优点。狠狠心动。</p>
@@ -263,7 +686,6 @@
 <p>写下此经历以供 V2EX 上的网友参考，愿所有有共同经历的孩子都能得偿所愿。</p>
 <p>孩子没有图床，没法写的图文并茂。愚笔拙文，不值一晒。希望大佬们见谅。</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T12:51:12Z</pubDate>
 <pubDate>2023-10-23T13:11:15Z</pubDate>
 </item>
 <item>
@@ -271,7 +693,6 @@
 <link>https://www.v2ex.com/t/984654</link>
 <guid>https://www.v2ex.com/t/984654</guid>
 <content:encoded><![CDATA[
-
 <p>目前几个程序猿业余捣鼓自己的项目，自研了一套发卡系统，使用 Java 开发，采用微服务架构，下单、支 fu 、库存、商品、店铺都是业内主流的实现。
 目前在内测中，招内测商家进行使用，赔本零费率，内测结束后首批商家会给到低费率，正式上线后按照正常费率进行收取，目前是 MVP 版本（最小可行性版本）
 （内测商家前十位永久 0 费率，之后的内测商家在正式上线后会调整为低费率，正式上线后的新注册商家按照正常费率收取）</p>
@@ -281,7 +702,6 @@
 <p>有需要的兄弟们可以联系我</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://eyy8.eyy8.vip/forum/202310/23/204654ul4wkdion1gpkozi.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-23T12:50:43Z</pubDate>
 <pubDate>2023-10-23T12:53:35Z</pubDate>
 </item>
 <item>
@@ -290,9 +710,7 @@
 <guid>https://www.v2ex.com/t/984653</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-23T12:42:22Z</pubDate>
 <pubDate>2023-10-23T13:59:50Z</pubDate>
 </item>
 <item>
@@ -300,10 +718,8 @@
 <link>https://www.v2ex.com/t/984652</link>
 <guid>https://www.v2ex.com/t/984652</guid>
 <content:encoded><![CDATA[
-
 最不幸的事情还是发生在我身上了，项目组解散，失业了
 ]]></content:encoded>
-<pubDate>2023-10-23T12:40:48Z</pubDate>
 <pubDate>2023-10-23T12:40:48Z</pubDate>
 </item>
 <item>
@@ -311,13 +727,10 @@
 <link>https://www.v2ex.com/t/983404</link>
 <guid>https://www.v2ex.com/t/983404</guid>
 <content:encoded><![CDATA[
-
 网站： <a href="https://yesbrain.net" rel="nofollow noopener" target="_blank">https://yesbrain.net</a>  <br /><br />用途：支持上传各种类型数据（文本，pdf ，excel ，ppt ，在线网页等），提取数据向量并供 GPT 问答，相当于‘训练’自己专属 AI 了。同时也可以分享自己‘训练’好的 AI ，供别人订阅或者订阅别人的 AI<br /><br />为什么要写这个网页：2 个月前 github 上看到 quvir （一款开源产品），当时功能比较简陋，就想着自己仿造实现一个，加一些自己的功能，就当作前端练手（本人前端初学者）  <br /><br />评论发自己用户 ID ，截止 2023-10-23 00:00:00 ，我都给评论区里的用户加上一个月免费会员。有什么反馈，建议都可以评论，网页写得比较挫见谅
 ]]></content:encoded>
-<pubDate>2023-10-19T02:58:39Z</pubDate>
 <pubDate>2023-10-22T14:23:29Z</pubDate>
 </item>
-
 <item>
 <title>[随想] 精力储备果然是相当重要的</title>
 <link>https://www.v2ex.com/t/984651</link>
@@ -14218,319 +14631,6 @@ mbp2015 款，国庆放假没有放了半个月，忘记有没有关机了，目
 我的小项目上线了，欢迎大家注册尝试，提供意见。<br /><br />熊猫监控--网络服务可用性监测<br /><br /><br />附上直达地址：<a href="http://jiankong.xmtui.com" rel="nofollow noopener" target="_blank">jiankong.xmtui.com</a><br />landing page:  <a href="http://xmtui.com" rel="nofollow noopener" target="_blank">xmtui.com</a>
 ]]></content:encoded>
 <pubDate>2023-10-18T12:22:05Z</pubDate>
-</item>
-<item>
-<title>[分享创造] openpay - 独立分离微信支付系统, 一次部署即可接入多个产品收款。</title>
-<link>https://www.v2ex.com/t/983438</link>
-<guid>https://www.v2ex.com/t/983438</guid>
-<content:encoded><![CDATA[
-<div> 微信支付、产品分离、独立小系统、备案、开源<br /><br />总结: 作者通过将收款和提现功能分离成独立小系统，实现了支付功能只部署一次，方便后续产品的收款处理。同时，这种方式还能方便地接收发红包场景的订单，并解决客户商户号未开通发红包功能的问题。作者计划将项目开源，但需要先修复代码中的混乱和漏洞。 <div>
-<p>之前做了几个小产品，每次做微信支付，都做复制粘贴一下相关代码和证书，而且里面有不少的坑，比如回调域名之类的配置。</p>
-<p>这次做新产品的时候，把收款和提现这些功能特意分离出来，设计成可以给一个个不同产品调用的独立小系统。 </p>
-<p>这样做的好处是支付功能只部署一次，后面的产品收款只需要做好订单流程就可以。不用再烦微信支付商户的配置。</p>
-<p>目前 <a href="http://denopark.com" rel="nofollow">denopark.com</a> 的会员收款和现金抽奖提现都是按照这个模式实现。</p>
-<p>网站还没有完成备案， 收款可以先上。这样为产品快速试错提供很大的便利。 而且提现分离， 还方便接到发红包场景的单子，客户的商户号没有发红包， 就用自己的，让客户预存活动经费就可以。之前接了几个外包单子都是这种方式。</p>
-<p><a href="https://github.com/tans/OpenPay" rel="nofollow">https://github.com/tans/OpenPay</a></p>
-<p>准备把项目开源，不过代码有点乱和漏洞先修复一下。先发这里看看大家有没有需求。 开个坑先， 晚点填上，感兴趣可以给个 stars</p>
-<p><img alt="截屏 2023-10-1912.18.15" class="embedded_image" rel="noreferrer" src="http://image.minapp.xin/macupload/%E6%88%AA%E5%B1%8F2023-10-19%2012.18.15.png" /></p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:19:39Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] ChatGPT4 的能力一直在降低</title>
-<link>https://www.v2ex.com/t/983436</link>
-<guid>https://www.v2ex.com/t/983436</guid>
-<content:encoded><![CDATA[
-<div> chatGPT4, API, 自动化工作, 效果差异, 回答
-
-总结:
-使用chatGPT4的API进行公司业务自动化工作时，发现在国庆前后效果有显著差异。现在chatGPT4的回答已经达不到预期，无法继续使用。经过对比，发现chatGPT4与3.5版本相差不多。 <div>
-<p>公司业务在使用 chatGPT4 的 API, 代替人工做一些自动化的工作. 国庆前与国庆后, 效果差异非常大. 现在的回答已经远远达不到期望了, 没法用了.
-对比了一下, 现在 4 与 3.5 差不多了.</p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:07:26Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 清华 MIT 创业者寻技术合伙人</title>
-<link>https://www.v2ex.com/t/983435</link>
-<guid>https://www.v2ex.com/t/983435</guid>
-<content:encoded><![CDATA[
-<p>清华计算机专业，MIT 计算机专业，信息学奥斯金牌，谷歌微软大厂经验，snap 创业公司经验，web3 高管经验两年，目前创业，项目已有进展，寻技术合伙人：要求，对 web3 充满热情，愿意学习，全职投入。需要至少精通以下三样技术的一样：1. 资深前端，尤其是图形学编程，如 pixi 或类似的类库； 2. 数据分析与量化交易； 3. 深度学习。 有兴趣请发简历至 <a href="mailto:justinzhangmit@gmail.com">justinzhangmit@gmail.com</a> 及 <a href="mailto:lanwangmba@gmail.com">lanwangmba@gmail.com</a> ，谢谢！</p>
-]]></content:encoded>
-<pubDate>2023-10-18T23:57:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何更好地扩展 Macbook 的硬盘</title>
-<link>https://www.v2ex.com/t/983433</link>
-<guid>https://www.v2ex.com/t/983433</guid>
-<content:encoded><![CDATA[
-<p><a href="https://v2ex.com/t/892038" rel="nofollow">https://v2ex.com/t/892038</a></p>
-<p>看了下上面那个帖子，感觉都不适用。</p>
-<p>外置 SSD 多少还是有点不方便，而且已经有 NAS 存一些大东西了</p>
-<p>考虑能不能买一个内置 SSD ，但是系统和数据该怎么复制到新盘上呢？</p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:54:31Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了个日历小程序，覆盖自己的需求</title>
-<link>https://www.v2ex.com/t/983432</link>
-<guid>https://www.v2ex.com/t/983432</guid>
-<content:encoded><![CDATA[
-<p>用日历核心需求：<strong>农历</strong>、<strong>节假日安排</strong>、<strong>自定义节日</strong></p>
-<p>农历和节假日安排很多应用都有，但是自定义节日却很少。</p>
-<p>例如：</p>
-<ul>
-<li>纪念日</li>
-<li>地区的节假日（比如广西每年农历三月三会放假，属于法定假期）</li>
-</ul>
-<p>所以自己做了个日历小程序，主要几个功能：</p>
-<h3>自定义日期标识</h3>
-<p>比如遇到法定节假日和自己的工作安排不符，可直接修改日历上的标识为放假还是工作。</p>
-<h3>自定义节日</h3>
-<p>可以自定义公历、农历，按年或月重复的日子，标记在日历上；
-当然也可以指定一个具体日期。</p>
-<h3>一些偏好设置</h3>
-<ul>
-<li>相邻月份日期的显示</li>
-<li>单双休模式</li>
-<li>周数</li>
-<li>每周起始日</li>
-</ul>
-<p>比较喜欢简约的风格，目前功能也比较简单；对日历其实没有太复杂的需求，像黄历、历史上的今天这种内容不太感兴趣…以后不会考虑。</p>
-<h3>小程序名称「方格日历」</h3>
-<p>可以用微信扫一扫下图的小程序码体验，觉得好用或者有建议，欢迎留言。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/5RMTiOF.jpeg" /> </p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/s66xzJH.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:52:12Z</pubDate>
-</item>
-<item>
-<title>[程序员] ubuntu cron 执行失败，急</title>
-<link>https://www.v2ex.com/t/983430</link>
-<guid>https://www.v2ex.com/t/983430</guid>
-<content:encoded><![CDATA[
-ubuntu cron 执行系统 date 命令后只有日志：Permission denied 。完全没有头绪。<br />尝试了关闭 selinux/apparmor<br />尝试了调整相关配置文件权限<br /><br />还有啥好办法？在线等
-]]></content:encoded>
-<pubDate>2023-10-19T03:58:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 鸿蒙怎么关闭负一屏? 让桌面下拉出快捷开关?</title>
-<link>https://www.v2ex.com/t/983429</link>
-<guid>https://www.v2ex.com/t/983429</guid>
-<content:encoded><![CDATA[
-<p>鸿蒙系统版本: 4.0.0.116</p>
-<p>问题 1: 关闭/取消负一屏?</p>
-<p>刚升级后版本 4 时还是可以关闭的, 更新到这个版本后,所有能关的地方我都关了</p>
-<p>现在负一屏任何服务/任何模块都没有, 但是左滑还是能进入负一屏</p>
-<p>问题 2: 桌面下拉 = 从屏幕顶部,右侧下拉?</p>
-<p>现在打开快捷开关,需要从屏幕顶部,右侧下拉</p>
-<p>而默认的桌面下拉 = 全局搜索, 手机这么大了, 从顶部下拉贼难受, 请问有朋友开发/知道有这种辅助小软件了吗?  </p>
-<p>另外, </p>
-<p>diss 一下华为, 用 ios 和 MIUI, windows/mac os, 不更新系统最多没办法用新特性. </p>
-<p>而我的华为手环 B6, 华为运动健康 App, 不更新最新版本, 点击某项功能时直接白屏/一直加载中/没响应</p>
-<p>升级到最新版本后就好了</p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:02:24Z</pubDate>
-</item>
-<item>
-<title>[上海] 上海沪牌额度还值得拍吗？</title>
-<link>https://www.v2ex.com/t/983427</link>
-<guid>https://www.v2ex.com/t/983427</guid>
-<content:encoded><![CDATA[
-现在新能源是国家大趋势，充电桩铺设也很快，江浙沪覆盖率挺高的，上海沪牌还值得拍吗？
-]]></content:encoded>
-<pubDate>2023-10-19T04:16:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家在家都养过什么有趣有特点的动物？</title>
-<link>https://www.v2ex.com/t/983426</link>
-<guid>https://www.v2ex.com/t/983426</guid>
-<content:encoded><![CDATA[
-<p>大家在家（老家）都养过什么有趣有特点的动物（猫狗咱就不说了吧）？ 比如 鸽子 鹦鹉 猫头鹰</p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:19:15Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [北京/上海]字节跳动算法实习生招聘</title>
-<link>https://www.v2ex.com/t/983424</link>
-<guid>https://www.v2ex.com/t/983424</guid>
-<content:encoded><![CDATA[
-<p><strong>公司：</strong> [字节跳动]</p>
-<p><strong>部门：</strong> [抖音业务安全]</p>
-<p><strong>位置：</strong> [北京/上海]</p>
-<hr />
-<p><strong>工作职责：</strong></p>
-<ol>
-<li>深入研究最新的 Large Language Model (LLM) 以及 AI Generated Content (AIGC) 的进展，分析其优点、局限性和潜在应用。</li>
-<li>实现和验证 LLM 与 AIGC 相关算法，并对模型进行细致调整以满足公司特定的需求。</li>
-<li>参与内部论文阅读小组，定期分享 LLM 和 AIGC 领域的最新研究成果。</li>
-<li>与团队合作，将研究成果整合到公司现有或新的产品/服务中。</li>
-<li>维护和优化模型的代码库，确保代码质量、效率和可维护性。</li>
-</ol>
-<hr />
-<p><strong>基本要求：</strong></p>
-<ol>
-<li>计算机科学、人工智能、语言学或相关领域的在读博士、研究生或本科生。</li>
-<li>对 LLM 及 AIGC 有深入的了解，并有实际操作和实验经验。</li>
-<li>具备扎实的编程基础，熟悉 Python 和 Golang 及其相关的机器学习库如 TensorFlow 、PyTorch 等。</li>
-<li>良好的沟通和团队合作能力，能够高效地在跨职能团队中工作。</li>
-<li>英文读写能力强，能够流畅地阅读英文技术文档和研究论文。</li>
-</ol>
-<hr />
-<p><strong>加分项：</strong></p>
-<ol>
-<li>有顶级会议的研究论文（如 NeurIPS 、ICML 、ACL 等）。</li>
-<li>对 LLM 和 AIGC 的研究成果有深入的理解或有独到的见解。</li>
-<li>有大型项目的实际开发经验或参与开源项目经历，特别是使用 Golang 的项目。</li>
-</ol>
-<hr />
-<p><strong>福利待遇：</strong></p>
-<ol>
-<li>竞争力的实习薪酬和国内顶尖的工作福利。</li>
-<li>提供工作需要的合理硬件和软件资源。</li>
-<li>与行业内的顶尖专家紧密合作的机会。</li>
-<li>良好的职业发展前景，表现优秀者有转正机会。</li>
-</ol>
-<hr />
-<p>如您认为自己符合上述条件并对此职位感兴趣，请将您的简历发送到：<strong>fanxiaoqiang.a@tiktok.com</strong>,亦可联系我的微信<strong>cnt3630</strong>。</p>
-<hr />
-<p>期待您的加入，与我们一同探索 LLM 与 AIGC 的无限可能！</p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:40:35Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 原来阿宅也是性少数人群，属于无性恋里面的物性恋</title>
-<link>https://www.v2ex.com/t/983423</link>
-<guid>https://www.v2ex.com/t/983423</guid>
-<content:encoded><![CDATA[
-<p>喜欢纸片人，对真人不感兴趣</p>
-]]></content:encoded>
-<pubDate>2023-10-19T00:38:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 对未来很茫然，希望各位能给点建议（前女友们？），拜托了</title>
-<link>https://www.v2ex.com/t/983422</link>
-<guid>https://www.v2ex.com/t/983422</guid>
-<content:encoded><![CDATA[
-<h4>目前在一线城市的打工的普通程序员一枚，98 年的，学历也就是一个普普通通的一个本科而已，工资刚过平均线，老家在不知名的三线城市。</h4>
-<pre><code>#### 前段时间分手，当时对方说在我身上看到不到希望，这让我不禁想起了第一次女朋友也这样对我说，所以就有了和朋友的聊天，以下：
-</code></pre>
-<p> 以上是个人的一些情况，最近和朋友聊天，感觉又增加了自我的焦虑感：我没有什么远大长远的规划，家里基本上对我的未来什么的也没有太大的帮助。也不知道未来会走向哪里，目前的环境待遇都还不错，如果没有其他的原因估计最近几年会一直待在这（因为感觉大环境一般，自己的技术也一般）。</p>
-<p> 自己也是那种相对来说比较宅的人（偶尔也会出去走走）。 </p>
-<p> 想问下各位，对于人生都有什么规划吗？</p>
-<p></p> 我又该如何看清自己，对于人生有长远的规划呢？大家也都知道程序员这东西在国内只能是青春饭，但是未来又该何去何从呢？老家的话，基本没有我现在的岗位。<p></p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:08:24Z</pubDate>
-</item>
-<item>
-<title>[杭州] 办好一个会提升一座城，大家有没有发现最近物价飞涨？</title>
-<link>https://www.v2ex.com/t/983421</link>
-<guid>https://www.v2ex.com/t/983421</guid>
-<content:encoded><![CDATA[
-昨天去卖菜发现原先 7.5 一份的菜，现在已经涨到 15.58 ，不知道怎么说，杭州还能呆么？
-]]></content:encoded>
-<pubDate>2023-10-19T03:53:44Z</pubDate>
-</item>
-<item>
-<title>[前端开发] 帮忙找 bug</title>
-<link>https://www.v2ex.com/t/983420</link>
-<guid>https://www.v2ex.com/t/983420</guid>
-<content:encoded><![CDATA[
-<p>做了一个简单的 rss 订阅器
-原始项目来自于
-<a href="https://github.com/imsyy/DailyHot" rel="nofollow">https://github.com/imsyy/DailyHot</a></p>
-<p>各位大佬看看有没有什么 bug</p>
-<p><a href="https://www.144u.com/" rel="nofollow">https://www.144u.com/</a></p>
-<p>测试账号： <a href="mailto:honkew@139.com">honkew@139.com</a>
-密码：123456</p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:31:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求解一个狭义相对论的问题： GPT4 已阵亡</title>
-<link>https://www.v2ex.com/t/983419</link>
-<guid>https://www.v2ex.com/t/983419</guid>
-<content:encoded><![CDATA[
-<p>假设有一条长度为<strong>8 光年</strong>的铁路，铁路首部有一个长度忽略不计的火车 A 以速度<strong>0.8c</strong>向前行驶。铁路末端有一个人 B ，开始运动前 B 计时为 0 ，B 将在<strong>9 年</strong>时在铁路末端放置一块钢板（过程时间忽略不计），那么 A 将<strong>10 年</strong>的时候撞到钢板。</p>
-<p>那么以此时以 A 的视角来观测，这条铁路是长<strong>4.8 光年</strong>,B 也是以<strong>0.8c</strong>的速度向自己运动，那么将在<strong>6 光年</strong>时遇到 B ，此时 A 看到 B 的时间时过了<strong>3.6 光年</strong>，那么此时 B 还没有在此处放置钢板。</p>
-<p>那么 A 到底会不会撞到钢板？</p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:14:43Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海陆家嘴] [日常实习] 私募量化公司招聘 machine learning engineer</title>
-<link>https://www.v2ex.com/t/983418</link>
-<guid>https://www.v2ex.com/t/983418</guid>
-<content:encoded><![CDATA[
-<p>非猎头,组内直招
-硬性要求是 每周出勤时间≥4 天，实习时长≥3 个月, <strong>不支持远程实习</strong></p>
-<p>公司氛围很好,早餐午餐免费,零食饮料无限量供应</p>
-<p><strong>薪资 500-1000/天</strong></p>
-<p>联系方式 cmVua3pAd2FueWFudGVjaC5jb20K</p>
-<h2>职位要求：</h2>
-<ul>
-<li>熟悉 Python 编程语言，具备扎实的编程基础和良好的代码风格。</li>
-<li>熟悉 PyTorch 框架，具备实际项目经验。</li>
-<li>了解机器学习和深度学习的基本原理,了解机器学习工作流的全流程</li>
-<li>具备良好的沟通能力和团队合作精神，能够与团队成员进行有效的技术交流和合作。</li>
-<li>具备求知欲和探索欲，对技术有持续学习和研究的热情。</li>
-<li>具备良好的责任心和自我驱动力，能够按时交付高质量的工作成果</li>
-</ul>
-<h2>加分项:</h2>
-<ul>
-<li>熟悉 C++</li>
-<li>熟悉 PyTorch 框架原理</li>
-<li>了解 ncnn 、TensorRT 等推理引擎</li>
-<li>了解模型剪枝(Model Pruning)、蒸馏(Knowledge Distillation)和量化(Model Quantization)</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-10-19T03:25:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小吃店小程序使用咨询</title>
-<link>https://www.v2ex.com/t/983417</link>
-<guid>https://www.v2ex.com/t/983417</guid>
-<content:encoded><![CDATA[
-小吃店升级改造，装修店面都差不多弄好了，收费之前都是用个人二维码收费的，现在有点想通过小程序让客户直接下单，接着厨房就收到下单信息，做好后直接叫号，想问下大伙，有这方面的小程序嘛？想提前了解一下。
-]]></content:encoded>
-<pubDate>2023-10-19T03:35:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 彦祖们，帮忙看看我这命令行测试 Spring OAuth2 哪里有问题？</title>
-<link>https://www.v2ex.com/t/983416</link>
-<guid>https://www.v2ex.com/t/983416</guid>
-<content:encoded><![CDATA[
-<p>命令如下：</p>
-<pre><code>curl -X POST login-client:openid-connect@localhost:9000/oauth2/token -d "grant_type=authorization_code" -d "scope=profile" -d "code=W37wCNX8w5qbOS8l7jirU78ldtpReMZ6LldW2TxN1uCdNJk_q7KC-5yzJENVqwB0wnw_HGkFoZaFr_eeQ9fWP1YmR8SdUuohEyPnImBbkSjB9W4LDU-nZOxjNc8o7Lxk" -d "state=2YF7hbOWMOqSa4ALEP-NuPcl2mAUey9GmNWiT-JpO48=" -d "redirect_uri=http://127.0.0.1:9000/authorized" -d "client_id=login-client"
-</code></pre>
-<p>使用代码测试没问题，使用命令测试报错：</p>
-<pre><code>{
-  "error": "invalid_grant"
-}
-</code></pre>
-<p>是哪里没写对吗？</p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:21:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] 体检发现双眼视盘生理凹陷扩大，疑似青光眼</title>
-<link>https://www.v2ex.com/t/983415</link>
-<guid>https://www.v2ex.com/t/983415</guid>
-<content:encoded><![CDATA[
-<p>兄弟们，怎么办
-还能吃互联网这口饭吗？</p>
-]]></content:encoded>
-<pubDate>2023-10-19T03:17:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 好奇 V 友们多有人有至少一台 kindle，主要用来阅读什么内容？</title>
-<link>https://www.v2ex.com/t/983414</link>
-<guid>https://www.v2ex.com/t/983414</guid>
-<content:encoded><![CDATA[
-<p>我先回答：</p>
-<p>有一台+1 ；看小说，目前正在看盗墓笔记</p>
-]]></content:encoded>
-<pubDate>2023-10-19T04:16:15Z</pubDate>
 </item>
 </channel>
 </rss>
