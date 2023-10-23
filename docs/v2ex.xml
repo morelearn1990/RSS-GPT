@@ -5,12 +5,570 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] chrome 现在不能强制使用非 https 访问吗？</title>
+<link>https://www.v2ex.com/t/984408</link>
+<guid>https://www.v2ex.com/t/984408</guid>
+<content:encoded><![CDATA[
+<div> chrome, https, 跳转, 火狐, edge<br><br>总结: 提问者在使用chrome浏览器访问自己部署的https网站时，会被强制跳转到https，但在其他浏览器如火狐、edge中却不会发生跳转。清空cookie和隐私模式并没有解决该问题，而且chrome设置也没有开启强制使用安全链接。 <div>
+我自己一个网站部署了 https 证书，网站本身没有设置强制跳转到 https&lt;br/&gt;<br />现在我在 chrome 里面输入 <a href="http://www.某个域名.com" rel="nofollow noopener" target="_blank">http://www.某个域名.com</a>,会强制跳到 https&lt;br/&gt;<br />在其他火狐、edge 都正常不会跳转&lt;br/&gt;<br />chrome 尝试清空 cookie 和隐私模式都还是会跳转到 https&lt;br/&gt;<br />也检查了 chrome 设置也没有开启一律使用安全链接&lt;br/&gt;<br />版本：版本 118.0.5993.89 （正式版本） （ 64 位）&lt;br/&gt;
+]]></content:encoded>
+<pubDate>2023-10-23T02:23:12Z</pubDate>
+<pubDate>2023-10-23T02:22:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] PVE 搞 PCIe 直通， IOMMU Group 过大怎么办？</title>
+<link>https://www.v2ex.com/t/984407</link>
+<guid>https://www.v2ex.com/t/984407</guid>
+<content:encoded><![CDATA[
+<div> 主板 ASUS b350-plus、系统 PVE8、内核参数 pcie_acs_override、iommu group、直通方案。<br><br>总结: 文章讨论了主板上 IOMMU 分组导致无法直通 PCIe SAS 控制器到 NAS 虚拟机的问题，提到了尝试使用 pcie_acs_override 参数但未成功。作者希望找到其他解决方案以实现直通。 <div>
+<p>主板是 ASUS prime b350-plus ，系统是 PVE8</p>
+<p>已经试过加内核参数<code>pcie_acs_override=downstream</code></p>
+<pre><code class="language-shell">root@pve ~# uname -a
+Linux pve 6.2.16-15-pve #1 SMP PREEMPT_DYNAMIC PMX 6.2.16-15 (2023-09-28T13:53Z) x86_64 GNU/Linux
+
+root@pve ~# cat /etc/default/grub
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR=`lsb_release -i -s 2&gt; /dev/null || echo Debian`
+GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt pcie_acs_override=downstream"
+GRUB_CMDLINE_LINUX=""
+</code></pre>
+<p>PCIe 插了 w2100 ，LSI SAS2308 。现想将 lsi sas 卡直通到 NAS 虚拟机，然而我的 iommu 将 USB 控制器、SATA 控制器、有线网卡、和 PCIe SAS 卡全分在了同一组:</p>
+<pre><code class="language-shell">root@pve ~# iommu.sh
+...
+Group 13:       [144d:a808] [R] 01:00.0  Non-Volatile memory controller           NVMe SSD Controller SM981/PM981/PM983
+Group 14:       [1022:43bb] [R] 02:00.0  USB controller                           300 Series Chipset USB 3.1 xHCI Controller
+USB:            [1d6b:0002]              Bus 001 Device 001                       Linux Foundation 2.0 root hub
+USB:            [1d6b:0003]              Bus 002 Device 001                       Linux Foundation 3.0 root hub
+                [1022:43b7]     02:00.1  SATA controller                          300 Series Chipset SATA Controller
+                [1022:43b2]     02:00.2  PCI bridge                               Device 43b2
+                [1022:43b4] [R] 03:00.0  PCI bridge                               300 Series Chipset PCIe Port
+                [1022:43b4]     03:01.0  PCI bridge                               300 Series Chipset PCIe Port
+                [1022:43b4]     03:04.0  PCI bridge                               300 Series Chipset PCIe Port
+                [10ec:8168] [R] 04:00.0  Ethernet controller                      RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller
+                [1b21:1080] [R] 05:00.0  PCI bridge                               ASM1083/1085 PCIe to PCI Bridge
+                [1000:0087] [R] 07:00.0  Serial Attached SCSI controller          SAS2308 PCI-Express Fusion-MPT SAS-2
+Group 15:       [1002:6608] [R] 08:00.0  VGA compatible controller                Oland GL [FirePro W2100]
+                [1002:aab0] [R] 08:00.1  Audio device                             Oland/Hainan/Cape Verde/Pitcairn HDMI Audio [Radeon HD 7000 Series]
+...
+</code></pre>
+<p>意味着我只能将 group 14 的设备全部直通到 nas ，这明显是不现实的。还有什么能将 SAS 控制器直通的方案吗？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:22:24Z</pubDate>
+<pubDate>2023-10-23T02:22:24Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS USB4.0 外接网卡实践</title>
+<link>https://www.v2ex.com/t/984406</link>
+<guid>https://www.v2ex.com/t/984406</guid>
+<content:encoded><![CDATA[
+
+<p>前情提要： <a href="https://www.v2ex.com/t/982311" rel="nofollow">https://www.v2ex.com/t/982311</a></p>
+<p>Windows/Linux 用户也可以用，但本文主要是针对 macOS 平台的万兆网卡方案，所以我还是发到苹果区了，多图预警</p>
+<p>感谢之前贴子中大佬们的讨论，确实给了我很大的启发，本来针对供电问题有点想放弃了，但是阴差阳错退款了 nvme 转 pcie 转接板后，商家忘了取消快递，还是给我发过来了，我寻思 8 块钱的东西退回去也麻烦，直接把钱转回给商家，然后开始折腾呗。</p>
+<p>我手上有一个 Wero 的雷电 3 扩展坞，底部有个 m.2 nvme 硬盘接口，刚好我手上有个 BCM5719 千兆网卡，于是就直接装上去试试，装上去后发现是可以识别的，但是没有驱动，我感觉有戏，于是立刻重新下单了佳翼的 ASM2464 硬盘盒，和 CX4121A 万兆网卡
+<img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/iJQlR0U.png" />
+硬盘盒先到达，那就找个 USB4 的电脑试试呗，没想到还真能跑，不用外接供电，iperf3 测速也很稳
+视频和图片： <a href="https://www.bilibili.com/video/BV1i8411r7Z1" rel="nofollow">https://www.bilibili.com/video/BV1i8411r7Z1</a>
+<img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/4LrQCWc.jpg" /></p>
+<p>心中窃喜感觉万兆没啥问题了，但是万兆网卡到达后装上去没反应，PCI-E 也没有看到设备信息，我估计是因为供电的问题，nvme 转 pcie 转接板的店家给了个 sata 转小 4pin 的电源，所以我把台式机的 sata 供电扯出来，然后再次尝试，ok 了兄弟们，全体目光想我看齐，没毛病。
+<img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/0qx3KDe.png" /></p>
+<p>这样一来，自制的 macOS 万兆网卡成本如下</p>
+<ol>
+<li>ASM2464 USB 硬盘盒 279</li>
+<li>CX4121A-ACAT 25G 网卡 220 + 8 运费</li>
+<li>nvme 转 pcie 转接卡 8</li>
+<li>dc 转 sata 供电电源 24.5
+共计 539.5</li>
+</ol>
+<p>理论上可以选 x520-da1 x540-t2 aqc107s 等其他网卡，x520 的可能更便宜，aqc107s 的可能不用外接供电，但好像不好买。买 CX 网卡的话，比如 4121 ，其实可以不用买 ACAT 25G 版本，买 XCAT 10G 版本，回来自己刷固件也能解锁 25G ，这样还能便宜 40 左右，实际 500 内搞定应该没太大问题。</p>
+<p>成品的网卡肯定更美观，稳定性也更好，但 DIY 还是有乐趣一点😁</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:22:15Z</pubDate>
+<pubDate>2023-10-23T02:22:15Z</pubDate>
+</item>
+<item>
+<title>[北京] 传言： 京 B 摩托车外地户口不让上牌了</title>
+<link>https://www.v2ex.com/t/984405</link>
+<guid>https://www.v2ex.com/t/984405</guid>
+<content:encoded><![CDATA[
+
+<p>接通知即日起对核发京 B 号牌摩托车（两轮、三轮）要求如下：</p>
+<p>1 、单位用户及外省市个人不能办理注册、转移和转入（含变更转入）登记手续；</p>
+<p>2 、北京市户籍个人名下只能办理一部车辆，已有登记的不能再办理第二部车辆；</p>
+<p>3 、北京市公户，暂停办理注册、转入、转让业务；</p>
+<p>4 、遇到已查验未上牌和已开具发票的情况做好登记及时向分所汇报。</p>
+<p>此通知立即执行！</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:21:20Z</pubDate>
+<pubDate>2023-10-23T02:21:20Z</pubDate>
+</item>
+<item>
+<title>[VMware] Vmware Workstation 真的是不思进取了</title>
+<link>https://www.v2ex.com/t/984404</link>
+<guid>https://www.v2ex.com/t/984404</guid>
+<content:encoded><![CDATA[
+
+<p>等了一年的 17.5 更新，就这么点不痛不痒的东西。
+vmnat 还出问题。还得降级，然后等新补丁出来。</p>
+<p>感觉家用桌面虚拟机市场被 hyper-v 搞的死气沉沉了。</p>
+<p>问题是微软的东西一向是只能做的勉强够用。距离好用还有很大距离。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:17:48Z</pubDate>
+<pubDate>2023-10-22T22:17:48Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有什么推荐的技术知识付费平台吗</title>
+<link>https://www.v2ex.com/t/984403</link>
+<guid>https://www.v2ex.com/t/984403</guid>
+<content:encoded><![CDATA[
+
+<p>想写一个从 0 搭建 XXX 服务的项目，做成知识付费，看了下国内的社区类似掘金这种都不太行，但是自己搞又缺少流量，问问各路大佬有啥想法嘛</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:14:47Z</pubDate>
+<pubDate>2023-10-23T02:21:02Z</pubDate>
+</item>
+<item>
+<title>[VPS] [202310]求推荐科学上网快一些的搭建方案</title>
+<link>https://www.v2ex.com/t/984402</link>
+<guid>https://www.v2ex.com/t/984402</guid>
+<content:encoded><![CDATA[
+
+<p>背景：有一台 US 的 VPS ，一个域名；</p>
+<p>目的：想自己搭一套科学上网的网络，平时主要是推特+油管视频；</p>
+<p>问题：不知道有什么易上手、安全、搭建后速度较快的新手搭建教程，求推荐？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:09:09Z</pubDate>
+<pubDate>2023-10-23T02:24:14Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想在双十一买个硬盘请问是买 16t 还是 18T 或者更大的</title>
+<link>https://www.v2ex.com/t/984401</link>
+<guid>https://www.v2ex.com/t/984401</guid>
+<content:encoded><![CDATA[
+
+背景：主要存储一些电影什么的，然后不怎么常开，打算弄 PT 来玩玩，又不想太耗电了，就想买个单盘容量大点的硬盘<br />问题：想问下大家现在 16t 的性价比高还是 18t 的或者 20t 的。
+]]></content:encoded>
+<pubDate>2023-10-23T02:08:26Z</pubDate>
+<pubDate>2023-10-23T02:08:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 深圳哪里可以租短租房？</title>
+<link>https://www.v2ex.com/t/984399</link>
+<guid>https://www.v2ex.com/t/984399</guid>
+<content:encoded><![CDATA[
+
+<p>去深圳找工作，想要租一个月左右的临时房，龙华，龙岗，宝安附近，工作大概率在福田南山，有没有推荐的，不要押金那种</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:05:58Z</pubDate>
+<pubDate>2023-10-23T00:05:58Z</pubDate>
+</item>
+<item>
+<title>[全球工单系统] 有没有 Boss 直聘的同行？“优先提醒 Boss”这个功能在 iOS 上经常不触发，这个是我买会员的痛点啊，盼急修复</title>
+<link>https://www.v2ex.com/t/984398</link>
+<guid>https://www.v2ex.com/t/984398</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-23T02:05:22Z</pubDate>
+<pubDate>2023-10-23T02:05:22Z</pubDate>
+</item>
+<item>
+<title>[求职] 前端，目前居家办公，寻找兼职</title>
+<link>https://www.v2ex.com/t/984397</link>
+<guid>https://www.v2ex.com/t/984397</guid>
+<content:encoded><![CDATA[
+
+<p>目前在深圳居家办公，17 年毕业至今，在目前这家公司已经工作 5 年，目前工作量较少，公司项目的时间可以自己规划，所以空闲时间较多</p>
+<p>想找一份长期稳定的远程工作</p>
+<p>目前主要技术栈：react ，antdesign ，umi ，dva ，bizcharts,wordpress 等</p>
+<p>未心：z1106450575</p>
+]]></content:encoded>
+<pubDate>2023-10-23T02:01:05Z</pubDate>
+<pubDate>2023-10-23T02:01:05Z</pubDate>
+</item>
+<item>
+<title>[Apple] 15pro 终于换货了</title>
+<link>https://www.v2ex.com/t/984396</link>
+<guid>https://www.v2ex.com/t/984396</guid>
+<content:encoded><![CDATA[
+
+<p>在京东首发买的 15pro256 黑，到手就发现拍照有点问题，拍出来的照片会出现花屏现象，色块或全屏绿。忍了几天，以为是系统的问题，更新到 17.0.3 还是会经常出现。申请了京东换货，也提供证据，结果第一次直接给我原返了，返回的机子里面还有几张测试拍的图片(等于拍过没复现就是检测了)。继续跟客服 battle ，要求官方检测报告，就去天才吧出了单子，描述看到什么什么问题，京东还是不认，给我机会原厂检测了，等了两天，打电话给我，说是扣备件换新机，没同意，坚持要求全新机，到今天终于拿到全新机了，前后 23 天。
+<a href="https://i.imgur.com/ySKsZ4V.jpg" rel="nofollow">https://i.imgur.com/ySKsZ4V.jpg</a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:59:47Z</pubDate>
+<pubDate>2023-10-23T02:05:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 降费提速，上海手机卡套餐求推荐</title>
+<link>https://www.v2ex.com/t/984394</link>
+<guid>https://www.v2ex.com/t/984394</guid>
+<content:encoded><![CDATA[
+
+原有移动手机卡，已办理保号套餐，<br />新办一张上海手机卡（运营商不限），家里人也都是移动手机卡，要求如下：<br /><br />新办卡方案：<br /><br />    （必选）资费 29/月以内<br />    （必选）每月通用流量至少要在 50G 以上<br />    （必选）语音通话分钟 100 分以上<br />    <br />    （可选）归属地上海最好<br />    （可选）能办副卡（ 1 张就够，2 张也行），副卡可以共享主卡流量、语音<br />    （可选）副卡无需缴费，走主卡的账号合并缴费<br />    （可选）有各大互联网 APP 免流的专用流量就更好了<br />    （可选）送宽带（家里已经有一路宽带）<br /> <br /><br />转网方案：<br /><br />    （必选）新办卡必须有流量（至少 5G 用于过渡）<br />    （必选）新办卡 1 个月后可以转网<br /><br />    （必选）转网后资费控制 29/月以内最佳<br />    （必选）转网后副卡要求同上<br />    （必选）转网后语音能够大于 300 分钟，流量大于 50G ，可共享<br />  <br /><br />朋友们有什么好的方案可以推荐么？想进一步降低通讯费<br /><br />办副卡的目的是将来给小孩子的电话手表用<br /><br /> [目前网上看到比较接近需求的是 电信飞扬卡，应该是星卡的升级版有效期 4 年，18 一月，100G 通用，100 条短信，500 分钟通话，应该不能办副卡，不知道这 4 年内不能转网，薅转网的福利]
+]]></content:encoded>
+<pubDate>2023-10-23T01:57:35Z</pubDate>
+<pubDate>2023-10-23T02:04:37Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 IntelliJ IDEA 声明变量快捷键问题，提升效率</title>
+<link>https://www.v2ex.com/t/984392</link>
+<guid>https://www.v2ex.com/t/984392</guid>
+<content:encoded><![CDATA[
+
+<p>一般在代码里声明变量时（这里用 ArrayList 举例） 我是直接输入 new ArrayList&lt;&gt;();
+再按组合键 alt+enter idea 工具会自动帮我补齐前半段 ArrayList&lt;Object&gt; objects 分别是类型声明和变量命，并且都有两个白色的框（感觉是可以有其他的操作）
+但大多数时候创建 ArrayList 是想声明成 List ，这样就要手动去修改。</p>
+<p>问：如何能够快捷的替换这个帮我补齐的声明 </p>
+<p>以前看教程的时候好像记得看过别人可以替换， 有没有大佬知道的。谢谢分享</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:56:08Z</pubDate>
+<pubDate>2023-10-23T01:53:08Z</pubDate>
+</item>
+<item>
+<title>[程序员] WebSocket 频繁爆出异常</title>
+<link>https://www.v2ex.com/t/984391</link>
+<guid>https://www.v2ex.com/t/984391</guid>
+<content:encoded><![CDATA[
+
+<p>做了个 WebSocket 连接，客户端通过定时发送心跳。但是时间一长发现还是会自动断开，心跳时间是 30s 一次，ng 也做了如下配置：</p>
+<pre><code>proxy-read-timeout：'3600'
+proxy-send-timeout：'3600'
+</code></pre>
+<p>有没有大佬出现过这种情况？
+错误如下：</p>
+<pre><code> java.io.EOFException: null
+
+ 	at org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper.fillReadBuffer(NioEndpoint.java:1345)
+
+ 	at org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper.read(NioEndpoint.java:1255)
+
+ 	at org.apache.tomcat.websocket.server.WsFrameServer.onDataAvailable(WsFrameServer.java:75)
+
+ 	at org.apache.tomcat.websocket.server.WsFrameServer.doOnDataAvailable(WsFrameServer.java:183)
+
+ 	at org.apache.tomcat.websocket.server.WsFrameServer.notifyDataAvailable(WsFrameServer.java:162)
+
+ 	at org.apache.tomcat.websocket.server.WsHttpUpgradeHandler.upgradeDispatch(WsHttpUpgradeHandler.java:156)
+
+ 	at org.apache.coyote.http11.upgrade.UpgradeProcessorInternal.dispatch(UpgradeProcessorInternal.java:60)
+
+ 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:59)
+
+ 	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:893)
+
+ 	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1707)
+
+ 	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49)
+
+ 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+
+ 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+
+ 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+
+ 	at java.base/java.lang.Thread.run(Thread.java:829)
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-10-23T01:55:27Z</pubDate>
+<pubDate>2023-10-23T02:07:59Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 该不该去考个雅思/托福来提升自己的英语水平用来面试外企呢?</title>
+<link>https://www.v2ex.com/t/984390</link>
+<guid>https://www.v2ex.com/t/984390</guid>
+<content:encoded><![CDATA[
+
+28 快 29 了,30 就一步之遥了有点慌,感觉自己简历上没有亮点,或者说我也不知道我有啥亮点.那不如搞个其他的技能来提升下自己?<br /><br />现在的计划是明年上半年把软考高级信息项目管理考了,试试投点国企;想了想都投国企了,不如投投外企,就冒出了这个想法,无车贷房贷无女朋友,周末就是和朋友一起打打游戏,想想我的空余时间还算挺多,有没有有经验的 V 友说说会有什么坑啊?
+]]></content:encoded>
+<pubDate>2023-10-23T01:52:11Z</pubDate>
+<pubDate>2023-10-22T22:52:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] 最近家里修整了下，需要买个电热水器，油烟机，以及净水器总价预算 3-4K，请问有推荐吗？</title>
+<link>https://www.v2ex.com/t/984389</link>
+<guid>https://www.v2ex.com/t/984389</guid>
+<content:encoded><![CDATA[
+
+<p>如题，准备买电热水器，净水器，以及油烟机，总的预算三四千，麻烦各位给个推荐，谢谢</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:51:50Z</pubDate>
+<pubDate>2023-10-23T02:15:21Z</pubDate>
+</item>
+<item>
+<title>[程序员] wechat 已删除记录恢复？</title>
+<link>https://www.v2ex.com/t/984388</link>
+<guid>https://www.v2ex.com/t/984388</guid>
+<content:encoded><![CDATA[
+
+<p>WeChat 如何在 IOS 上恢复已删除的聊天记录，包含非好友关系的，求赐教。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:49:58Z</pubDate>
+<pubDate>2023-10-23T02:14:16Z</pubDate>
+</item>
+<item>
+<title>[生活] 目前只打算用 Homekit，智能门锁直接买 Aqara 还是买其他牌子通过 HA 接入到 Homekit</title>
+<link>https://www.v2ex.com/t/984386</link>
+<guid>https://www.v2ex.com/t/984386</guid>
+<content:encoded><![CDATA[
+
+<p>最近在看智能门锁，本来是确定直接买 Aqara ，因为只要简单几个场景控制灯光就可以，不打算折腾 HA 接入更多设备（有软路由的打算，但是之前没有打算部署 HA ）</p>
+<p>但是最近看到有 Aqara 用户反馈说可能会出现解锁后但是锁打不开的情况，只能通过机械钥匙开门，原因可能是因为锁的排线不良，所以对 Aqara 的锁的设计持怀疑的态度</p>
+<p>不知道其他牌子的智能门锁怎么样呢，通过 HA 接入到 Homekit 有什么硬伤吗</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:47:23Z</pubDate>
+<pubDate>2023-10-23T02:22:28Z</pubDate>
+</item>
+<item>
+<title>[git] git 如何不显示 merge branch xx into xx 的记录</title>
+<link>https://www.v2ex.com/t/984385</link>
+<guid>https://www.v2ex.com/t/984385</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://imgur.com/FodxlUp" rel="nofollow"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/FodxlUp.png" title="source: imgur.com" /></a></p>
+<p>remote 的 develop 分支，经过 merege request 之后，commit: xx 历史记录里面会有两条，一条是本身的 commit 记录，还有一条是 merge branch feature_x into deveop 的记录。</p>
+<p>如何去掉 merge branch feature_x into deveop 这个 commit 记录？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:45:11Z</pubDate>
+<pubDate>2023-10-23T02:01:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] 洛雪音乐助手，凉凉</title>
+<link>https://www.v2ex.com/t/984384</link>
+<guid>https://www.v2ex.com/t/984384</guid>
+<content:encoded><![CDATA[
+
+<p>前几天，洛雪音乐，也倒下了。。。开发者收到了某大厂的律师函。惋惜，各位还有啥听歌的途径</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:45:09Z</pubDate>
+<pubDate>2023-10-23T02:10:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在有机场专门做 GPT 不被 block 节点吗？</title>
+<link>https://www.v2ex.com/t/984383</link>
+<guid>https://www.v2ex.com/t/984383</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>现在买的机场很多节点会被 block ，中国下午美国后半夜时候 block 几率减少。</li>
+<li>贵的专用节点没必要买，因为就是偶尔修改文字时候用用。</li>
+<li>现在的机场刚好马上要到期啦，感觉不太行，欢迎推荐新机场。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-10-23T01:43:11Z</pubDate>
+<pubDate>2023-10-23T02:18:20Z</pubDate>
+</item>
+<item>
+<title>[信息安全] KeePass 在谷歌搜搜出现广告钓鱼官网，请注意风险！</title>
+<link>https://www.v2ex.com/t/984382</link>
+<guid>https://www.v2ex.com/t/984382</guid>
+<content:encoded><![CDATA[
+
+<p>10 月 23 日消息，慢雾首席信息安全官 23pds 在 X 平台上发布提醒，知名开源密码管理器 KeePass 在 Google 搜索出现广告钓鱼官网。用户一旦进入“虚假官网”后，下载到的将是木马软件。请加密货币用户随时注意安全风险，目前 Google 收到投诉后开始处理此问题。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:42:32Z</pubDate>
+<pubDate>2023-10-23T01:59:48Z</pubDate>
+</item>
+<item>
+<title>[macOS] Safari 要如何折腾得才好用？</title>
+<link>https://www.v2ex.com/t/984381</link>
+<guid>https://www.v2ex.com/t/984381</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-23T01:40:55Z</pubDate>
+<pubDate>2023-10-23T02:12:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] kindle 拯救计划 ？
+上个帖子看出来，很多 V 友的 kindle 和我一样，处于吃灰或者半吃灰状态。 这个帖子看下大家有没有什么好的 kindle 拯救计划，主要目的是增加 kindle 屏幕使用时长，减少手机和电脑屏幕使用时长。</title>
+<link>https://www.v2ex.com/t/984380</link>
+<guid>https://www.v2ex.com/t/984380</guid>
+<content:encoded><![CDATA[
+
+<p>我目前还什么好的想法，这里提下上个帖子 @llussy 在评论区提到的：
+“Kindle 拯救计划 —— 你的 Kindle 实用工具网站 <a href="https://github.com/1pone/1pone.github.io%E2%80%9D" rel="nofollow">https://github.com/1pone/1pone.github.io”</a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:40:33Z</pubDate>
+<pubDate>2023-10-23T02:17:42Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 现在企业网络接入，是选择路由器还是防火墙？</title>
+<link>https://www.v2ex.com/t/984379</link>
+<guid>https://www.v2ex.com/t/984379</guid>
+<content:encoded><![CDATA[
+
+<p>感觉现在路由器非常鸡肋，而防火墙有路由器的所有功能，额外还有安全功能，各位怎么看？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:40:01Z</pubDate>
+<pubDate>2023-10-23T02:15:14Z</pubDate>
+</item>
+<item>
+<title>[反馈] 这边有个灰产交易的</title>
+<link>https://www.v2ex.com/t/984378</link>
+<guid>https://www.v2ex.com/t/984378</guid>
+<content:encoded><![CDATA[
+
+<p>@Livid<br />
+<a href="https://v2ex.com/member/VeilHub" rel="nofollow">https://v2ex.com/member/VeilHub</a></p>
+<p>全是卖已实名账号甚至已实名银行/交易所的</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:39:46Z</pubDate>
+<pubDate>2023-10-22T21:37:46Z</pubDate>
+</item>
+<item>
+<title>[生活] 一到秋天，指纹锁就很难开锁</title>
+<link>https://www.v2ex.com/t/984377</link>
+<guid>https://www.v2ex.com/t/984377</guid>
+<content:encoded><![CDATA[
+
+<p>手指蜕皮，用指纹锁真难受啊。</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:39:31Z</pubDate>
+<pubDate>2023-10-23T02:23:48Z</pubDate>
+</item>
+<item>
+<title>[生活] 关于穿衣服这件事， V 友怎么看？</title>
+<link>https://www.v2ex.com/t/984376</link>
+<guid>https://www.v2ex.com/t/984376</guid>
+<content:encoded><![CDATA[
+
+<h1>我的感受</h1>
+<p>可能年纪大了都喜欢穿舒服宽松的衣服；</p>
+<p>穿惯了运动服就不习惯穿休闲服；</p>
+<p>...</p>
+<p>穿到最后，我发现穿衣服的最高境界就是穿和没穿一样：那是一种极致的舒适感，人很放松轻盈，就像裸奔😂一样。</p>
+<p>目前能力有限，贵的衣服咱也没体验过，<del>咱也不敢问，问了也不懂。</del></p>
+<h1>经常买的店</h1>
+<p>由于本屌私实力<del>暂时搁浅</del>，目前经常买的几家店就是：</p>
+<ul>
+<li>无印良品</li>
+<li>纯棉时代</li>
+<li>优衣库</li>
+<li>耐克阿迪（打球时候穿）</li>
+</ul>
+<p>以上服装店价位基本在 100-800 大洋之间，“逛”起来的时候不用挨个<strong>看标签多少钱</strong>，<del>但愿不是我一个人这么看衣服。</del>shit ！</p>
+<p><strong>可能这个帖子对男生来说几乎很少思考，但是买对了衣服确实让人舒服，各位有没有分享的品牌或者材质呢，欢迎下方柳岩。</strong></p>
+<p><img alt="如何穿衣" class="embedded_image" rel="noreferrer" src="https://pic.pngsucai.com/00/86/16/dd8928a1de944775.webp" /></p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:39:25Z</pubDate>
+<pubDate>2023-10-23T02:20:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请问有没有一款能记录家里药的 app 啊</title>
+<link>https://www.v2ex.com/t/984375</link>
+<guid>https://www.v2ex.com/t/984375</guid>
+<content:encoded><![CDATA[
+
+<p>需求如下： 能够登记家里药的清单，数量，过期时间等等</p>
+<p>家里药实在太多了，4 月份爆发甲流，导致两个小孩去医院开的药堆积起来，还开的大多是中药，小孩子基本上不喝</p>
+<p>每次医生问起来这个药有没有，也不知道家里是否还有</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:38:29Z</pubDate>
+<pubDate>2023-10-23T02:21:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何用 rss 的方式看某个推特博主的帖子, 黄推让我分心</title>
+<link>https://www.v2ex.com/t/984374</link>
+<guid>https://www.v2ex.com/t/984374</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-23T01:35:06Z</pubDate>
+<pubDate>2023-10-23T01:51:13Z</pubDate>
+</item>
+<item>
+<title>[macOS] mac 怎么卸载飞连</title>
+<link>https://www.v2ex.com/t/984370</link>
+<guid>https://www.v2ex.com/t/984370</guid>
+<content:encoded><![CDATA[
+
+卸载飞连需要管理员密码，但是管理员密码要打不到，怎么卸载这种流氓软件。
+]]></content:encoded>
+<pubDate>2023-10-23T01:32:10Z</pubDate>
+<pubDate>2023-10-23T02:09:44Z</pubDate>
+</item>
+<item>
+<title>[生活] 700 元以下的冲锋衣推荐哪款？</title>
+<link>https://www.v2ex.com/t/984369</link>
+<guid>https://www.v2ex.com/t/984369</guid>
+<content:encoded><![CDATA[
+
+周末骑电瓶车，想买个冲锋衣抗风保暖<br /><br />骆驼的抓绒内胆可以抗 0 度，羽绒内胆可以抗-10 度（在江苏冬季最低也就-10 ），抓绒和羽绒该如何选择，或者不买冲锋衣直接羽绒服？
+]]></content:encoded>
+<pubDate>2023-10-23T01:30:14Z</pubDate>
+<pubDate>2023-10-23T02:18:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么 YouTube 可以突破 Firefox 默认禁用音频的限制？</title>
+<link>https://www.v2ex.com/t/984368</link>
+<guid>https://www.v2ex.com/t/984368</guid>
+<content:encoded><![CDATA[
+
+<p>Firefox 默认设置是禁用媒体声音自动播放的，哔哩哔哩之类的网站都不会放声音，但是 YouTube 可以播放声音，是给 YouTube 开后门了吗？</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:22:13Z</pubDate>
+<pubDate>2023-10-23T02:17:45Z</pubDate>
+</item>
+<item>
+<title>[Apple] 友友们,现在买 macbook，应该选 m1 pro 还是 m2 呢？</title>
+<link>https://www.v2ex.com/t/984367</link>
+<guid>https://www.v2ex.com/t/984367</guid>
+<content:encoded><![CDATA[
+
+今年双十一计划购入一台自己的电脑，狗东上面最高降 1200 ，但是看配置 m2 好像没有 m1pro 好，平时就 idea 打开的多，请教一下大家
+]]></content:encoded>
+<pubDate>2023-10-23T01:19:12Z</pubDate>
+<pubDate>2023-10-23T02:23:30Z</pubDate>
+</item>
+<item>
+<title>[求职] 全栈工程师想找份远程工作</title>
+<link>https://www.v2ex.com/t/984366</link>
+<guid>https://www.v2ex.com/t/984366</guid>
+<content:encoded><![CDATA[
+
+<p>简历地址：
+<a href="https://elcora.asia/" rel="nofollow">https://elcora.asia/</a></p>
+<p>Wechat(base64):
+RWxDb3Jhem9uX1o=</p>
+<p>也想询问一下大家 TS 全栈远程这条路机会多吗，或者有什么其他方向机会好些？谢谢！</p>
+]]></content:encoded>
+<pubDate>2023-10-23T01:19:02Z</pubDate>
+<pubDate>2023-10-23T02:18:49Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 哪里港版 iphone15pro 正规渠道</title>
+<link>https://www.v2ex.com/t/984365</link>
+<guid>https://www.v2ex.com/t/984365</guid>
+<content:encoded><![CDATA[
+
+想买港版
+]]></content:encoded>
+<pubDate>2023-10-23T01:18:14Z</pubDate>
+<pubDate>2023-10-23T02:23:12Z</pubDate>
+</item>
+<item>
+<title>[Apple TV] Apple TV 以及 Chromecast 的各种软件求推荐</title>
+<link>https://www.v2ex.com/t/984364</link>
+<guid>https://www.v2ex.com/t/984364</guid>
+<content:encoded><![CDATA[
+
+如题，AppleTV 已经订阅了 Infuse ，体验很不错，有什么其他的软件推荐吗？<br />试用了一下三角播放器，但是感觉没有安卓 TV 的小苹果好用，这样的话就分开看吧。。<br />还有就是 AppleTV 上的 IPTV 软件哪个比较好？我看 V2 上说了好几个，APTV,TV+还有什么的，有的是需要付费的，求说一下哪个体验比较好，然后我就入手一个
+]]></content:encoded>
+<pubDate>2023-10-23T01:18:00Z</pubDate>
+<pubDate>2023-10-23T01:47:26Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 水獭输入工具 app store 上架啦，可以自定义 javascript 脚本的 iOS 输入法工具</title>
 <link>https://www.v2ex.com/t/984361</link>
 <guid>https://www.v2ex.com/t/984361</guid>
 <content:encoded><![CDATA[
 <div> 水獭输入工具, 自定义 javascript 脚本, 快速输入常用语, 保存管理剪切板历史, 上架
-<br><br>
+<br /><br />
 总结: 该水獭输入工具是一个隐私安全的应用程序，无需联网权限。它提供了自定义javascript脚本、快速输入常用语和保存管理剪切板历史这三个主要功能。现在该应用的第一个版本已经正式上架，并可通过链接或者App Store免费下载。 <div>
 <p>之前 testflight 测试的时候发过一个帖子，收到了很多意见和帮助，非常感谢各位老板们，现在第一个版本正式上架了。</p>
 <p>本 app 隐私安全，无需联网权限。主要有三个功能： </p>
@@ -24,7 +582,6 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6535c777c458853aef1105a9.jpg" /></p>
 ]]></content:encoded>
 <pubDate>2023-10-23T01:12:13Z</pubDate>
-<pubDate>2023-10-23T01:12:13Z</pubDate>
 </item>
 <item>
 <title>[站长] 想在家弄一个机房式服务器，兄弟们有推荐的吗</title>
@@ -36,7 +593,6 @@
 总结: 同事买了一个戴尔 R420，只花了一千多，使用体验还不错。如果还有其他推荐的电脑，欢迎兄弟们分享。 <div>
 <p>同事买了一个戴尔 R420 ，也不贵，就一千多，问同事用的也还行，兄弟们还有其他推荐的吗</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T01:10:23Z</pubDate>
 <pubDate>2023-10-23T01:07:23Z</pubDate>
 </item>
 <item>
@@ -44,10 +600,8 @@
 <link>https://www.v2ex.com/t/984358</link>
 <guid>https://www.v2ex.com/t/984358</guid>
 <content:encoded><![CDATA[
-
 <p>马上双十一了，想买 m2 硬盘盒 和 m2 硬盘 diy 个固态移动硬盘，在各大社交网站搜了一圈发现很多都有供电不足的问题，需要外接供电才能保证长时间外录，但是这样得话就太麻烦了，本身 diy 也只是比三星 t7 便宜 100 左右，顺便有点 diy 的乐趣罢了，如果这么麻烦不如直接买 t7.</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T01:09:53Z</pubDate>
 <pubDate>2023-10-23T01:09:53Z</pubDate>
 </item>
 <item>
@@ -55,10 +609,8 @@
 <link>https://www.v2ex.com/t/984357</link>
 <guid>https://www.v2ex.com/t/984357</guid>
 <content:encoded><![CDATA[
-
 <p>这几天深度被家中的智能家居所困扰，原本设置好的场景纷纷失效。高频率的掉线无法连接，经过跟内部人士沟通后内部人士很隐晦的表达了 “这些东西还是需要专业人士调配” 言外之意就是你走线下门店呗，线上基本不给解决。社区论坛中也不乏一些勇士在怒喷“破烂产品” 最后官方也是无视他。为什么有 Bug 不去修复而是一味的拖延？拖延到新款都上市了还不解决问题！这不由得让用户猜想故意设置 Bug 让用户通过线下门店购买高价定制智能家居。因为闲鱼上的价格是他家官方产品价格一半不到。更多用户都去买闲鱼的产品，而更少的一部分采取光顾线下门店甚至去官方线上去购买。想不通苹果怎么和这种公司合作。（绿米）</p>
 ]]></content:encoded>
-<pubDate>2023-10-23T01:08:37Z</pubDate>
 <pubDate>2023-10-23T01:14:10Z</pubDate>
 </item>
 <item>
@@ -66,10 +618,8 @@
 <link>https://www.v2ex.com/t/984356</link>
 <guid>https://www.v2ex.com/t/984356</guid>
 <content:encoded><![CDATA[
-
 比如京东 or 淘宝自营店等
 ]]></content:encoded>
-<pubDate>2023-10-23T00:57:39Z</pubDate>
 <pubDate>2023-10-23T01:11:25Z</pubDate>
 </item>
 <item>
@@ -77,10 +627,8 @@
 <link>https://www.v2ex.com/t/984355</link>
 <guid>https://www.v2ex.com/t/984355</guid>
 <content:encoded><![CDATA[
-
 我的美区账户的 Apple Music 一直都没用过，前几个月买 AirPods Pro 的时候显示可以免费试用 6 个月，但是我当时国区的 Apple Music 还没到期，所以就没试用。<br />然后昨天我激活了新的 iPhone 15 ，按说 iPhone 15 也能开启免费试用 6 个月，但是昨天和今天都是显示只能免费试用 1 个月，这是怎么回事呢？
 ]]></content:encoded>
-<pubDate>2023-10-23T00:54:18Z</pubDate>
 <pubDate>2023-10-23T01:14:30Z</pubDate>
 </item>
 <item>
@@ -88,10 +636,8 @@
 <link>https://www.v2ex.com/t/984354</link>
 <guid>https://www.v2ex.com/t/984354</guid>
 <content:encoded><![CDATA[
-
 如果可以的话怎么刷呢？
 ]]></content:encoded>
-<pubDate>2023-10-23T00:38:32Z</pubDate>
 <pubDate>2023-10-23T00:57:43Z</pubDate>
 </item>
 <item>
@@ -99,10 +645,8 @@
 <link>https://www.v2ex.com/t/984353</link>
 <guid>https://www.v2ex.com/t/984353</guid>
 <content:encoded><![CDATA[
-
 多久能还完
 ]]></content:encoded>
-<pubDate>2023-10-23T00:34:50Z</pubDate>
 <pubDate>2023-10-23T01:13:24Z</pubDate>
 </item>
 <item>
@@ -110,10 +654,8 @@
 <link>https://www.v2ex.com/t/984350</link>
 <guid>https://www.v2ex.com/t/984350</guid>
 <content:encoded><![CDATA[
-
 这里的地铁是干净的。<br /><br />金属扶手和金属座椅，油光发亮，不知道是乘客们蹭的，还是卫生员擦的。明晃晃、银灿灿，却照不出人脸，因为是磨砂面。说是为了防滑，可摸上去，比拍了爽身粉的婴儿屁股还滑。连在一起的整排座椅，人坐在这头，车一开动，如果不抓个什么的话，能把你滑到那头。<br /><br />有些地方称「地铁」为「地下铁」，倒是更贴切一点。因为要坐上这干净的地铁，你要先到地下去。<br /><br />***<br /><br />地下铁的入口在地上，有个超大的门，门上写着站点的名字。<br /><br />你走进去，就能看到下行步梯。像下山一样，你一个台阶一个台阶地下，走到底，就进站了。有些站点，下去的时候，会有自动扶梯，你站上去不动，它就嗡嗡地把你送了下去。<br /><br />如果你要用轮椅，入口附近有那种可以升降的小房子，你开着轮椅进去，按个按钮，它关上门，就下去了。只是比较逼仄。有些腿脚灵便的人，也用这个，显然他们并不介意。<br /><br />***<br /><br />这里的地铁很安全。<br /><br />随处可以见到安全员，黑衣黑裤，左手扶棍右手持盾。棍是黑的，有一人高，非常的粗；盾也是黑的，有半人多高，很结实。棍用来打坏人，盾用来防止被坏人打。虽然安全员很多，但是坏人却很少。安全员一整天，一个人，拿着武器，从这里走到那里，从那里走到这里。不能玩手机，不能随便聊天，也少有坏人可打。<br /><br />如果你第一次来，不知道怎么买票，也可以去问安全员。虽然按道理这是站务员的工作，但站务员很少。而安全员整天都在等待坏人的到来，虽然你不是坏人，但帮助你，也会让他的一天过得更快一点。<br /><br />买了票，过了安检，再往下走到站台，就可以乘车了。<br /><br />***<br /><br />站台那里，车来的时候会有广播，电子屏幕上也会显示。车来了，门开了，哔哔作响；车走了，门要关，也哔哔作响。这是在告诉人们不要靠近，不然门会把你夹成两半，或挤成肉酱。但也有人不管这个，说这门是在虚张声势。<br /><br />上车了，车里也有安全员，不拿棍子，没有盾牌。从车的一头走到另一头，再走回来。不能玩手机，不能随便聊天，也少有坏人可打。<br /><br />***<br /><br />这里的地铁非常有秩序。<br /><br />一切的一切都是一样的。每个车厢都播放着同样的视频，贴着同样的标语，装着同样的监控。如果你忽然从某列车厢中醒来，或许会问：我在哪里？这车，从哪里开往哪里？你抬头，看到指示牌，写着从「出生」到「死亡」，当前站点是「人间」。然后门哔哔作响，关上了。列车开动，你的屁股在一排光滑的坐椅上，从这头，滑到了那头。你感到困倦，于是又睡了过去。<br /><br />不睡的人，大多会玩手机。<br /><br />戴着有线或无线的耳机，手指在屏幕上不停的滑来滑去。假如车厢忽然断电，你会发现，在一片漆黑中，一张张低垂的脸，被照得惨白，眼镜片上反着光，像一只只饿鬼。<br /><br />如果是到了火车站那一站，秩序会被混乱暂时替代。人群乌乌泱泱地走出去，挤进来，门哔哔地关上，车厢里便多出了许多气味。<br /><br />一个黝黑的乡下女人躲在角落里，牵着孩子，眼睛瞪大，左右看着。孩子一手拉着女人，一手指着座位，拽着要过去。女人给了他一巴掌，孩子就哭了，也不再动了。<br /><br />城里的白胖女人坐在那里，让孩子骑在自已身上，孩子的双脚乱蹬，踹着左右两边的人。如果有人生气，女人就说：“对不起，小孩子不懂事”，便继续任由孩子去了。<br /><br />一个站着的老头子挤到一个坐着的小伙子身边，呻吟着，哎呦哎呦。小伙子闭着眼睛，戴着耳机，稳坐如山。<br /><br />***<br /><br />再过几站，人少了，秩序就回来了。<br /><br />同样的视频，同样的标语，同样的监控。<br /><br />哔哔哔，门开了，哔哔哔，门关了。<br /><br />你早已经醒来，坐在门的旁边，<br />不知道要做什么。<br /><br />换乘吗？出站吗？去哪里呢？<br /><br />都一样吗？<br /><br />我搭这地铁，是要去做什么呢？<br /><br />你忘记了自己为什么上车，<br />也忘记了要去往何处。<br /><br />只听见，列车轰鸣。
 ]]></content:encoded>
-<pubDate>2023-10-23T00:03:09Z</pubDate>
 <pubDate>2023-10-23T01:09:33Z</pubDate>
 </item>
 <item>
@@ -121,10 +663,8 @@
 <link>https://www.v2ex.com/t/984349</link>
 <guid>https://www.v2ex.com/t/984349</guid>
 <content:encoded><![CDATA[
-
 最好是有换过的，没有休眠问题，不翻车的。
 ]]></content:encoded>
-<pubDate>2023-10-22T23:52:55Z</pubDate>
 <pubDate>2023-10-23T00:24:59Z</pubDate>
 </item>
 <item>
@@ -132,10 +672,8 @@
 <link>https://www.v2ex.com/t/984348</link>
 <guid>https://www.v2ex.com/t/984348</guid>
 <content:encoded><![CDATA[
-
 我用 USB 传到电脑上，传完把视频删了，发现手机的空间没变，然后重启手机，还是没变，这是咋回事？谢谢<br />对了，手机是红米 note12 turbo
 ]]></content:encoded>
-<pubDate>2023-10-22T23:40:01Z</pubDate>
 <pubDate>2023-10-23T00:47:00Z</pubDate>
 </item>
 <item>
@@ -143,12 +681,10 @@
 <link>https://www.v2ex.com/t/984347</link>
 <guid>https://www.v2ex.com/t/984347</guid>
 <content:encoded><![CDATA[
-
 <p>如题，再解锁之后会重置到系统设置-显示器里默认的 Apple XDR display(P3-1600nits)颜色文件。本来想把 icc 配置文件导入到内建显示器的预置里，结果发现居然无法导入 icc 文件..</p>
 <p>机型:MBP14 2021 M1PRO
 系统:14.0</p>
 ]]></content:encoded>
-<pubDate>2023-10-22T23:28:44Z</pubDate>
 <pubDate>2023-10-22T23:25:44Z</pubDate>
 </item>
 <item>
@@ -156,10 +692,8 @@
 <link>https://www.v2ex.com/t/984346</link>
 <guid>https://www.v2ex.com/t/984346</guid>
 <content:encoded><![CDATA[
-
 看好多人搞 chatgpt 的账号，搞到了又能干嘛呢
 ]]></content:encoded>
-<pubDate>2023-10-22T23:26:24Z</pubDate>
 <pubDate>2023-10-23T01:14:48Z</pubDate>
 </item>
 <item>
@@ -167,12 +701,10 @@
 <link>https://www.v2ex.com/t/984345</link>
 <guid>https://www.v2ex.com/t/984345</guid>
 <content:encoded><![CDATA[
-
 <p>浏览器打开首页一段时间，回来经常出现最中间的一条推文消失的动画</p>
 <p>不是删除，再往下刷还可能出现</p>
 <p>这个特性还是怎么回事，真的恶心人啊</p>
 ]]></content:encoded>
-<pubDate>2023-10-22T23:16:20Z</pubDate>
 <pubDate>2023-10-23T00:54:42Z</pubDate>
 </item>
 <item>
@@ -180,13 +712,10 @@
 <link>https://www.v2ex.com/t/984344</link>
 <guid>https://www.v2ex.com/t/984344</guid>
 <content:encoded><![CDATA[
-
 请问：<br />1. chatGBT api 也是基于 chatGBT plus 同一个 4.0 版本吗？<br /><br />2. chatGBT plus 也能通过 api 访问吗？<br /><br />3. chatGBT plus 和 chatGBT api 哪个性价比高？<br /><br />谢谢
 ]]></content:encoded>
-<pubDate>2023-10-22T22:23:31Z</pubDate>
 <pubDate>2023-10-23T00:38:26Z</pubDate>
 </item>
-
 <item>
 <title>[Linux] ZFS 持续写入变慢问题</title>
 <link>https://www.v2ex.com/t/984343</link>
@@ -14807,219 +15336,6 @@ DOMAIN-SUFFIX,<a href="http://launchdarkly.com" rel="nofollow">launchdarkly.com<
 <p>谢谢了~</p>
 ]]></content:encoded>
 <pubDate>2023-10-18T08:14:46Z</pubDate>
-</item>
-<item>
-<title>[求职] [上海][测试][求职] 六年 APP/Web 测试经验求捞</title>
-<link>https://www.v2ex.com/t/983135</link>
-<guid>https://www.v2ex.com/t/983135</guid>
-<content:encoded><![CDATA[
-<p>今年测试好卷，大专六年经验，会用 Python 和 SQL ，预期跟之前持平月薪 12k ，简历能投的都不多，学历普遍膨胀到本科起投了。</p>
-<p>大家的公司都是啥情况，有测试 HC 吗？</p>
-<p>第一学历没法提升了，有啥好建议么？技术提升也行，转岗也行，不知道该选啥了。</p>
-]]></content:encoded>
-<pubDate>2023-10-18T08:08:52Z</pubDate>
-</item>
-<item>
-<title>[深圳] 龙华清湖新村转租</title>
-<link>https://www.v2ex.com/t/983134</link>
-<guid>https://www.v2ex.com/t/983134</guid>
-<content:encoded><![CDATA[
-剩余租期：10 个月； 房间：23.33 平米，朝东，大玻璃采光很好，6 楼有门禁有电梯，密码锁；可养宠物；<br />地址：龙华区清湖东村泊寓；<br />房租：1398 元/月+135 元/月管理费；压一付一；无中介费<br />民水民电：5.6 元/吨  +  0.7 元/度；<br />交通：距天安云谷 3 站公交，早上只需 15 分钟可到；离清湖地铁站 3 站公交；<br />其他：家具齐全，桌子，冰箱，洗衣机，包括电磁炉等厨具也可送，除了冰箱都是 9 成新的，基本相当于一个月房租了，可以拎包入住。<br />有兴趣可以找我要图
-]]></content:encoded>
-<pubDate>2023-10-18T07:50:05Z</pubDate>
-</item>
-<item>
-<title>[Microsoft Office] 出租 Microsoft 365 车位，年付 30。</title>
-<link>https://www.v2ex.com/t/983133</link>
-<guid>https://www.v2ex.com/t/983133</guid>
-<content:encoded><![CDATA[
-<p>联系 tg: <a href="https://t.me/Ryszme" rel="nofollow">https://t.me/Ryszme</a></p>
-]]></content:encoded>
-<pubDate>2023-10-18T06:48:47Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 多多买菜上品牌洗发水 25 元，是真的吗。。</title>
-<link>https://www.v2ex.com/t/983132</link>
-<guid>https://www.v2ex.com/t/983132</guid>
-<content:encoded><![CDATA[
-<p>海飞 X 750g 25 元 用券还能更低。。</p>
-<p>商品主页有 PDD 官方的品牌正品 Logo
-评价翻到底也没有看到差评</p>
-<p>超市价都得 60+
-京东自营 55 （历史低价 45 ）
-pdd 上官方授权店 40</p>
-<p>好奇的是，pdd 如何做的这个价还明确标识品牌正品</p>
-<p>尾货？差异化定价？纯假货标正品，且不怕消法买一罚 3 ？
-过期产品重标？</p>
-]]></content:encoded>
-<pubDate>2023-10-18T07:52:35Z</pubDate>
-</item>
-<item>
-<title>[硬件] 新禁令对华禁售 4090！</title>
-<link>https://www.v2ex.com/t/983130</link>
-<guid>https://www.v2ex.com/t/983130</guid>
-<content:encoded><![CDATA[
-这下真成传家宝了，现在已经炒起来一点，js 们闻着味就来了<br />真的禁售了影响应该会很大吧，下附原文：<br /><a href="https://www.sec.gov/Archives/edgar/data/1045810/000104581023000217/nvda-20231017.htm" rel="nofollow noopener" target="_blank">https://www.sec.gov/Archives/edgar/data/1045810/000104581023000217/nvda-20231017.htm</a>
-]]></content:encoded>
-<pubDate>2023-10-18T08:22:26Z</pubDate>
-</item>
-<item>
-<title>[Apple] 美区 Apple One 超大杯，自用 5/6 寻长期车友</title>
-<link>https://www.v2ex.com/t/983128</link>
-<guid>https://www.v2ex.com/t/983128</guid>
-<content:encoded><![CDATA[
-<p>美区超大杯 Apple One Premier 包含 Music ，Arcade ，TV+，iCloud ，Fitness+，News+，Infuse Pro ，2T iCloud 存储空间（平分每人 333G 共享空间，目前其他车友都不怎么用 iCloud) 发车账号 PayPal 美区付款，无翻车风险 半年付 260 年付 500 wx （ b64 ）：Z29uZ3R5MTk5Nw==</p>
-]]></content:encoded>
-<pubDate>2023-10-18T06:38:54Z</pubDate>
-</item>
-<item>
-<title>[程序员] 大家有没有遇到云主机连接 openai.azure 耗时长的问题，怎么解决呢</title>
-<link>https://www.v2ex.com/t/983126</link>
-<guid>https://www.v2ex.com/t/983126</guid>
-<content:encoded><![CDATA[
-<p>华为云连接 openai.azure 。dns 和 connect 耗时长，差不多要 1s-2s
-换了 dns 1.1.1.1 以后连接国内的又很慢
-大家有什么解法吗？
-我又用 okhttp 用 1.1.1.1 的 httpsdns 好像也挺慢。</p>
-]]></content:encoded>
-<pubDate>2023-10-18T07:24:01Z</pubDate>
-</item>
-<item>
-<title>[程序员] 问问老哥们，需求评估之后开发问题</title>
-<link>https://www.v2ex.com/t/983125</link>
-<guid>https://www.v2ex.com/t/983125</guid>
-<content:encoded><![CDATA[
-<p>需求文档版本确立之后产品一直在同一个版本中修改或更新，目前相当于边开发边确立需求，这种正常吗</p>
-]]></content:encoded>
-<pubDate>2023-10-18T08:09:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 谁能帮我种草 obsidian，目前还是觉得很难啃</title>
-<link>https://www.v2ex.com/t/983124</link>
-<guid>https://www.v2ex.com/t/983124</guid>
-<content:encoded><![CDATA[
-已经从 everynote 转过来 ob 两个月了，每次新建笔记直接 crl+n,但是发现我的笔记越来越乱了，搜搜功能做的也没有 evenrynote 直观。是不是我的使用方法出现了问题。有木有人告诉我有啥技巧？
-]]></content:encoded>
-<pubDate>2023-10-18T08:16:16Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 寻求成都地区联通专线报价</title>
-<link>https://www.v2ex.com/t/983123</link>
-<guid>https://www.v2ex.com/t/983123</guid>
-<content:encoded><![CDATA[
-<p>不知道现在成都联通的价格怎样，求留联系方式和套餐</p>
-]]></content:encoded>
-<pubDate>2023-10-18T08:01:26Z</pubDate>
-</item>
-<item>
-<title>[VPS] 技术求助，可有偿</title>
-<link>https://www.v2ex.com/t/983122</link>
-<guid>https://www.v2ex.com/t/983122</guid>
-<content:encoded><![CDATA[
-背景是，去年注册了 oracle 首尔，迫于一直抢不到 arm 而升级了账号，升级后可以免费开 arm 就开了两个，然后照着网上的教程一步步的搭建，最终按照 hysteria 教程顺利完成了，导出配置文件后可以在安卓 clash 上使用，速度还 OK ，后来买了 Apple tv 和 n1 盒子，开始折腾迪士尼 奈飞等流媒体，n1 刷了 openwrtr 当作软路由用，在上面用 shadowrocks ，可以正常看迪士尼和 YouTube 。今年搬家，宽带从电信换到了联通，搬家后 N1 盒子就无法实现自由网络了，apple tv 基本闲置，前段时间手欠删掉了一个实例，现在想再开一个发现要收费，原因是什么硬盘超过 100g 的免费额度，而且去年购买的域名月底就要到期了。<br /><a href="http://现在的想法是购买新的.xyz" rel="nofollow noopener" target="_blank">现在的想法是购买新的.xyz</a> 域名（老域名续费比较贵），然后重新配置，因为我本人不是学技术的，对技术一知半解，只会按照网上教程一步一步走，任一环节出现问题都无解决的能力，只能重新开始，而且网上教程无法完美匹配解决我的需求，所以想在这求助一下技术大牛予以协助，有时间有精力的可以联系我，需求如下，各位感兴趣可以联系我报价：<br />1 、配置好 oracle （这步我可以按照教程自己来，直到成功配置好 hysteria ），如果大牛有更好的方案也可以接受，之所以我选择 hysteria 主要是有详细的教程，网速也不错，比较稳定目前还未出现端口被封情况。<br />2 、配置好 N1 软路由，目前的难点是软路由上 clash 、shadowrocks 等软件的设置不太会搞，而且我希望可以定制话控制走软路由的流量，就比如 w 奈飞 迪士尼 YouTube 等走 y 自由网路，bilibili ，apple tv+，music 等走国内网络，同时配置好后，电脑连接 n1 可以正常使用 chatgpt 。<br />3 、vps 配置好后，可以方便在手机、电脑上使用（比如现在我用 hysteria 导出的配置文件 可以上传到安卓手机的 clash 上使用，但是配置 ios 的小火箭就无法正常使用）<br />以上，大概就这些内容，因为 oracle 绑定了我的信用卡，同时为了数据安全，所以需要大牛指导我，我自己来操作。<br />感谢各位，可以协助的请私我哈
-]]></content:encoded>
-<pubDate>2023-10-18T06:53:12Z</pubDate>
-</item>
-<item>
-<title>[生活] 有感于“自己做饭真省钱”，分享下自己做饭的经验。</title>
-<link>https://www.v2ex.com/t/983121</link>
-<guid>https://www.v2ex.com/t/983121</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<p>分享一下自己做饭的经验
-我主要是周末下厨，时间大概 3 小时。一次做一周的饭菜。
-周日早上菜场买菜，然后顺带吃周日的早餐、有时也会带一份中午饭回家。
-早餐起床做，大概 15 分钟搞定。三明治、粥、或者头天晚上做的焖饭。
-由于是带饭，我一般带两份，一份 11 点半左右吃，一份 4 点半左右吃。下班回家洗就行了。5 点后基本不吃东西只喝水了。以上是背景。先发下我最爱做的牛肉面。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://www.fanbk.com/one/?/images/2023/10/18/sMjy9bzSmr/IMG_20211118_120746.jpg" /></p>
-</blockquote>
-<ul>
-<li>
-<p>菜场采购包括 1.鸡肉鸡蛋和瘦牛肉，2 豆腐，蘑菇 3 水果，4 蔬菜 5 调味料等等。 总之就是新鲜的东西。</p>
-<ol>
-<li>肉新鲜即可，回来自己用水泡两个小时。鸡蛋一般买两斤。另外，我会买鱼罐头吃。</li>
-<li>豆腐包括其他豆制品等等。蘑菇主要是平菇。</li>
-<li>当季的水果，苹果、梨、西瓜、葡萄。有啥买啥。</li>
-<li>蔬菜主要是 冬瓜，西红柿，胡萝卜，豆角、菜花、西兰花、黄瓜、茄子、白菜（包菜）。只买很少的绿叶蔬菜，做汤面条。</li>
-</ol>
-</li>
-<li>
-<p>菜买来后休息一下就开始做饭。 一般是先蒸米饭。由于带汤面很难吃，所以只带米饭。 我会一次蒸很多米饭，电饭锅几乎都满了。白米和红米（黑米 or 小米 or 南瓜 or 红薯 or 山药）混合后的杂粮饭。</p>
-</li>
-<li>
-<p>然后开始处理蔬菜。切丁切块，然后焯水等等。备菜。 这些大概要用掉快一个小时。
-然后处理肉，统一切小，然后酱油蚝油八角花椒葱姜蒜，肉全部炒出来。也可以买肉末，但我不太喜欢吃。
-我一般做 5 个菜，分享我常做的几个菜。 当然，你也可以学做其他的。有时买到去皮花生的时候，我会做个油炸花生米，撒盐糖和孜然，当零食吃。或者水煮个花生，和黄瓜凉拌。</p>
-<ol>
-<li>西兰花，焯水后凉拌。</li>
-<li>包菜 or 白菜 炒鱼罐头。</li>
-<li>鸡蛋炒 西红柿 or 蘑菇 or 白菜。</li>
-<li>茄子 or 豆角 炒鸡肉丁。</li>
-<li>豆腐炒肉 or 麻辣豆腐。</li>
-<li>胡萝卜 or 冬瓜 炒肉。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://www.fanbk.com/one/?/images/2023/10/18/ZNbd1bgWCs/IMG_20211017_133242.jpg" /></li>
-</ol>
-</li>
-<li>
-<p>分装到小的袋子里。一个菜可以分装到 4 个小袋子。一共 20 个袋子。一顿饭 2 个袋子。
-由于都是准备好的菜，炒起来很快。5 个菜不到一个小时就能炒出来。
-之后就是收拾厨房、清洗水果啥的了。 整体下来也就三个小时左右。</p>
-</li>
-<li>
-<p>所有菜炒好后稍微放一下，然后放冰箱冷冻。 米饭也是蒸好后，放一会儿，然后一样分装成 12 分，放冰箱冷冻。吃的时候，头天晚上带两袋米饭和 4-6 袋的菜放到冷藏室。早上饭菜都不是硬邦邦的，到公司直接微波了吃。刚开始我直接带三天的饭菜直接放公司的冰箱，有次发现少了一袋，瞬间觉得不安全。之后就只带当天的，而且放在饭盒里。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://www.fanbk.com/one/?/images/2023/10/18/DTiYuPebbP/IMG_20220306_154923.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://www.fanbk.com/one/?/images/2023/10/18/FmE1RnZnyU/IMG_20220306_160812.jpg" /></p>
-</li>
-<li>
-<p>有时也会点外卖吃，或者应酬吃饭。这样就会有剩余的饭菜没有吃，我一般都丢掉了。
-早上一般煎蛋+土司+牛奶。 或者煮泡面+鸡蛋+青菜。总之 10-15 分钟就能解决。</p>
-</li>
-</ul>
-<h1>总结下优点：</h1>
-<ol>
-<li>干净卫生。 自己做的，自己选的。 微波后的饭菜味道还是可以的。</li>
-<li>3 个小时做一周的饭。经济实惠。</li>
-<li>每天都有吃水果。</li>
-</ol>
-<p>缺点：</p>
-<ol>
-<li>可能会有吃不新鲜食物的风险，但我不确定。</li>
-<li>有点儿浪费袋子。</li>
-<li>其他我没有想到 or 感知到的。</li>
-</ol>
-]]></content:encoded>
-<pubDate>2023-10-18T08:03:36Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] chatgpt 4.0 plus 会员，有同学下车，补两个</title>
-<link>https://www.v2ex.com/t/983120</link>
-<guid>https://www.v2ex.com/t/983120</guid>
-<content:encoded><![CDATA[
-<p>要求: 1.每位同学，自定义 chat 名称，然后只能在自己的 chat 里询问
-2.为了帐号稳定长期使用，上车同学都是季度付</p>
-<p>有需要的同学, 可以联系我 TG: jackchrn007 或者 V: amFja2NoZW4yNjEyCg== (base64)</p>
-]]></content:encoded>
-<pubDate>2023-10-18T02:25:29Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 问下各位 v 友所在地区的宽带多久会强制重拨</title>
-<link>https://www.v2ex.com/t/983118</link>
-<guid>https://www.v2ex.com/t/983118</guid>
-<content:encoded><![CDATA[
-<p>目前人在上海，联通宽带大概一周左右会强制重拨导致 IP 变更，这个时间还是能接受的，老家的联通就比较离谱了，最短 60 个小时，最长不超过 72 小时就会强制重拨导致 IP 变更，有时候大白天正在用就突然给你重拨了，时间还不固定，有没有什么办法能让联通不这么频繁的强制重拨？ </p>
-<p>目前为了不在白天用的时候突然断了，设置了隔天凌晨 4 点半断电重启光猫，因为只能按周几来设置开关，就导致隔天分配不均匀，最后设置了周日、周二、周四、周六这四天重启。</p>
-]]></content:encoded>
-<pubDate>2023-10-18T07:59:17Z</pubDate>
-</item>
-<item>
-<title>有对.NET+开源感兴趣的同学么？一起来 GitHub 做开源</title>
-<link>https://www.v2ex.com/t/834658</link>
-<guid>https://www.v2ex.com/t/834658</guid>
-<content:encoded><![CDATA[
-<p>Casbin 社区目前维护着 .NET 语言最流行的权限框架： <a href="https://github.com/casbin/Casbin.NET" rel="nofollow">https://github.com/casbin/Casbin.NET</a></p>
-<p>现在希望有更多爱好开源和 .NET 的同学一起参与，有兴趣的可以在此回复，或联系：admin AT <a href="http://casbin.org" rel="nofollow">casbin.org</a></p>
-]]></content:encoded>
-<pubDate>2023-10-18T08:22:07Z</pubDate>
 </item>
 </channel>
 </rss>
