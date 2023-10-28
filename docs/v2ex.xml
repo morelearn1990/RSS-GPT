@@ -5,14 +5,318 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] c++ string 函数优化后，执行反而耗时很高，求解惑</title>
+<link>https://www.v2ex.com/t/986260</link>
+<guid>https://www.v2ex.com/t/986260</guid>
+<content:encoded><![CDATA[
+<div> 函数优化、参数拷贝、std::string、性能测试、返回类型<br><br>总结: 在对函数进行优化时，需要注意参数的传递方式、临时变量的使用以及返回类型的选择。这篇文章通过对一个移除控制字符的函数进行优化，采用了参数引用传递和提前预留空间的优化方法。然而，出乎意料的是，在优化后的函数中，将返回类型修改为void后，性能优化反而失效了。文章没有给出具体的原因解释，但说明了函数返回类型可能对性能有影响，值得我们在优化过程中注意。 <div>
+<pre><code>#include &lt;iostream&gt;
+
+//优化前函数 remove_ctrl
+std::string remove_ctrl(std::string s) {
+    std::string result;
+    for(int i = 0;i &lt; s.length();i++) {
+        if(s[i] &gt;= 0x20)
+            result = result + s[i];
+    }
+    return result;
+}
+
+//优化后函数 remove_ctrl_opt
+std::string remove_ctrl_opt(const std::string&amp; src,std::string&amp; dst) {
+    int n = src.size();
+    dst.reserve(n);
+    for(auto it = src.begin();it != src.end();it++) {
+        if(*it &gt;= 0x20)
+            dst +=  *it;
+    }
+    return dst;
+}
+
+int main(){
+    std::string src = "hello,world,hello,world,hello,world,hello,world,hello,world,hello,world,hello,world,hello,world";
+    std::string result;
+    for(int i = 0;i &lt; 1000000;i++)
+        std::string result = remove_ctrl(src);
+
+    for(int i = 0;i &lt; 1000000;i++)
+        remove_ctrl_opt(src,result);
+    
+    return 0;
+}
+</code></pre>
+<p>优化函数，从参数拷贝，string 提前 reserve,减少临时变量,结果分别循环 1000000 次，使用 time ./a.out 测试执行时间，优化后的耗时反而很高（优化前 6s 左右，优化后 60s 没执行完直接 control+c 了）。</p>
+<p>排查原因，发现将函数 remove_ctrl_opt 的返回类型修改为 void,函数体 return;优化后耗时提升 6 倍左右。
+这到底是什么原因？ return string ，难道开销这么大？但是优化前函数也是这样，执行才 6s 。</p>
+]]></content:encoded>
+<pubDate>2023-10-28T08:20:43Z</pubDate>
+<pubDate>2023-10-28T08:19:43Z</pubDate>
+</item>
+<item>
+<title>[iCloud] 国区 icloud 发车</title>
+<link>https://www.v2ex.com/t/986259</link>
+<guid>https://www.v2ex.com/t/986259</guid>
+<content:encoded><![CDATA[
+<div> icloud, 分摊, 费用, 车位, 总结:<br><br>icloud已满员，决定分摊费用并招募两个车友。每人500GB，总共4人分摊。每年费用816元，每人204元。可以选择半年支付95折或年付9折。剩余2个车位。未来可能开通国区的apple music。 <div>
+<p>之前自己的美区的 icloud 已经满员了。家里人用的国区 icloud  2TB ，现在用了差不多 500GB 吧 ，招两个车友，每人 500G 。</p>
+<ul>
+<li>
+<p>总费用：
+icloud 每月人民币  68 RMB ，每年 816 RMB</p>
+</li>
+<li>
+<p>分摊计划：
+每人 500GB ，共 4 人分摊（我们自己占 2 个位）</p>
+</li>
+<li>
+<p>单人费用：
+每年 816/4=204</p>
+</li>
+<li>
+<p>支付：半年支付 95 折，年付 9 折。</p>
+</li>
+<li>
+<p>车位：目前还剩 2 个车位。</p>
+</li>
+<li>
+<p>其他：
+国区的 apple music ，后续也可能会开。钱不多就不分摊了。</p>
+</li>
+</ul>
+<p>绿色软件：WDU1ODkyMzQ=</p>
+]]></content:encoded>
+<pubDate>2023-10-28T08:19:51Z</pubDate>
+<pubDate>2023-10-28T08:18:51Z</pubDate>
+</item>
+<item>
+<title>[上海] 出租松江佘山电梯两房（整租）</title>
+<link>https://www.v2ex.com/t/986258</link>
+<guid>https://www.v2ex.com/t/986258</guid>
+<content:encoded><![CDATA[
+
+<p>代家人发个贴，没有中介费。
+松江佘山电梯两房（整租），2500 每月。
+小区距离佘山地铁站 4km 。
+简装，电梯两房中高层。</p>
+]]></content:encoded>
+<pubDate>2023-10-28T08:18:37Z</pubDate>
+<pubDate>2023-10-28T08:18:37Z</pubDate>
+</item>
+<item>
+<title>[程序员] 最早提出弱引用的是哪种语言</title>
+<link>https://www.v2ex.com/t/986256</link>
+<guid>https://www.v2ex.com/t/986256</guid>
+<content:encoded><![CDATA[
+
+<p>最近写 C 语言，发现其它高级语言中的弱引用真是好东西，有了它不会出现 C 中的悬挂指针问题。</p>
+<p>不知道 C 语言如何实现类似效果。</p>
+]]></content:encoded>
+<pubDate>2023-10-28T08:10:38Z</pubDate>
+<pubDate>2023-10-28T08:09:38Z</pubDate>
+</item>
+<item>
+<title>[Apple] 香港的 Iphone15 pro 的卡槽</title>
+<link>https://www.v2ex.com/t/986255</link>
+<guid>https://www.v2ex.com/t/986255</guid>
+<content:encoded><![CDATA[
+
+<p>真诚请教，是不是仍然是 2 个物理插槽，但同时也有 esim ？
+和大陆国行比有什么不同？</p>
+]]></content:encoded>
+<pubDate>2023-10-28T08:09:24Z</pubDate>
+<pubDate>2023-10-28T08:10:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有装修方面的书籍推荐吗</title>
+<link>https://www.v2ex.com/t/986253</link>
+<guid>https://www.v2ex.com/t/986253</guid>
+<content:encoded><![CDATA[
+
+准备装修 补点基础知识
+]]></content:encoded>
+<pubDate>2023-10-28T08:05:28Z</pubDate>
+<pubDate>2023-10-28T05:05:28Z</pubDate>
+</item>
+<item>
+<title>[JavaScript] Automerge</title>
+<link>https://www.v2ex.com/t/986251</link>
+<guid>https://www.v2ex.com/t/986251</guid>
+<content:encoded><![CDATA[
+
+一个可以用于构建基于 CRDT 数据同步的 JS/Rust 库：<br /><br /><a href="https://automerge.org/" rel="nofollow noopener" target="_blank">https://automerge.org/</a>
+]]></content:encoded>
+<pubDate>2023-10-28T07:58:51Z</pubDate>
+<pubDate>2023-10-28T07:58:51Z</pubDate>
+</item>
+<item>
+<title>[App Store] 请问 App Store 里这两个 app 什么关系</title>
+<link>https://www.v2ex.com/t/986250</link>
+<guid>https://www.v2ex.com/t/986250</guid>
+<content:encoded><![CDATA[
+
+两个都是 camscanner<br /><br /><br /><a href="https://apps.apple.com/cn/app/camscanner-pdf-scanner-app/id388627783" rel="nofollow noopener" target="_blank">https://apps.apple.com/cn/app/camscanner-pdf-scanner-app/id388627783</a><br /><br /><br /><a href="https://apps.apple.com/cn/app/camscanner-pdf-scanner/id388624839" rel="nofollow noopener" target="_blank">https://apps.apple.com/cn/app/camscanner-pdf-scanner/id388624839</a>
+]]></content:encoded>
+<pubDate>2023-10-28T07:41:36Z</pubDate>
+<pubDate>2023-10-28T07:40:36Z</pubDate>
+</item>
+<item>
+<title>[Stripe] 收 buymeacoffee 账号</title>
+<link>https://www.v2ex.com/t/986249</link>
+<guid>https://www.v2ex.com/t/986249</guid>
+<content:encoded><![CDATA[
+
+要求过了提现认证的<br /><br />v: c2F1MS1nMDBkbWFu
+]]></content:encoded>
+<pubDate>2023-10-28T07:35:24Z</pubDate>
+<pubDate>2023-10-28T07:35:24Z</pubDate>
+</item>
+<item>
+<title>[分享创造] aigc 工具导航， https://aigc-uni.com</title>
+<link>https://www.v2ex.com/t/986248</link>
+<guid>https://www.v2ex.com/t/986248</guid>
+<content:encoded><![CDATA[
+
+<p>aigc 工具导航网站，当前提供了如下工具：
+大语言模型工具、代码工具、ppt 自动生成工具、写作工具、文档工具、协作工具
+欢迎大家使用和提建议，可能还有还多需要优化的地方</p>
+]]></content:encoded>
+<pubDate>2023-10-28T07:24:37Z</pubDate>
+<pubDate>2023-10-28T07:33:43Z</pubDate>
+</item>
+<item>
+<title>[问与答] 访问 poe 的时候登陆不了 出现：出错了。请稍候再试。</title>
+<link>https://www.v2ex.com/t/986247</link>
+<guid>https://www.v2ex.com/t/986247</guid>
+<content:encoded><![CDATA[
+
+<p>有没有出现过这个情况的
+就是一直登陆不进去</p>
+]]></content:encoded>
+<pubDate>2023-10-28T07:22:07Z</pubDate>
+<pubDate>2023-10-27T23:22:07Z</pubDate>
+</item>
+<item>
+<title>[macOS] 为什么屏幕使用时间是不准的，这种是什么情况呀？</title>
+<link>https://www.v2ex.com/t/986246</link>
+<guid>https://www.v2ex.com/t/986246</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-28T07:16:44Z</pubDate>
+<pubDate>2023-10-28T07:14:44Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 找人买苹果员工优惠 理论上 即使被对方在苹果官网退款 、资金也是原路返回吧？</title>
+<link>https://www.v2ex.com/t/986244</link>
+<guid>https://www.v2ex.com/t/986244</guid>
+<content:encoded><![CDATA[
+
+找人买苹果员工优惠 理论上 即使被对方在苹果官网退款  、资金也是原路返回吧？
+]]></content:encoded>
+<pubDate>2023-10-28T07:06:49Z</pubDate>
+<pubDate>2023-10-27T23:05:49Z</pubDate>
+</item>
+<item>
+<title>[程序员] 整理了一份英语学习指南，分享给大家</title>
+<link>https://www.v2ex.com/t/986241</link>
+<guid>https://www.v2ex.com/t/986241</guid>
+<content:encoded><![CDATA[
+
+先贴下载链接：<br /><a href="https://down.dearlance.cn/English/refold%E5%A4%96%E8%AF%AD%E5%AD%A6%E4%B9%A0%E6%8C%87%E5%8D%97.epub" rel="nofollow noopener" target="_blank">https://down.dearlance.cn/English/refold%E5%A4%96%E8%AF%AD%E5%AD%A6%E4%B9%A0%E6%8C%87%E5%8D%97.epub</a><br /><br />原文位于 refold 网站：<br /><a href="https://refold.la/simplified" rel="nofollow noopener" target="_blank">https://refold.la/simplified</a><br /><br />最后祝愿大家英语学习成功。
+]]></content:encoded>
+<pubDate>2023-10-28T06:43:52Z</pubDate>
+<pubDate>2023-10-27T22:43:52Z</pubDate>
+</item>
+<item>
+<title>[Apple TV] infuse pro 用 trakt 共享，车友登陆了 trakt 后发现 infuse 没有 pro 权限</title>
+<link>https://www.v2ex.com/t/986240</link>
+<guid>https://www.v2ex.com/t/986240</guid>
+<content:encoded><![CDATA[
+
+<p>事情是这样的。
+我在京东买了个 apple tv ，寻思用 infuse ，就在电报找了个拼车</p>
+<p>以 trakt 账号共享的方式拼车，车主把他的 trakt 账号给我们，我们在 infuse 里登录他的账号来获得 pro 权限。
+我因为白天上班，没有办法在 apple tv 上登录就晚上回去再试。</p>
+<p>晚上回家一试，发现 trakt 是登上了，但是 infuse 并没有解锁 Pro 权限，车主表示其他人白天都成功了。
+我拿 apple tv 和手机都试过登录 trakt ，都没有 Pro 权限，后来在一次鬼使神差的登录后手机有了 pro 权限，但我当时在外面吃饭，回去以后，手机注销账号重新登陆仍然有 Pro 权限。</p>
+<p>怕手机占了个位子，就把手机上的 infuse 直接注销+卸载，上 apple tv 登录，仍然是没有权限，把手机 infuse 下回来以后突然也没有权限了。</p>
+<p>然后另外一个车友也是没有了 pro 权限，现在跟我一样 一直在试各种办法，也没有客服即时聊天。</p>
+<p>然后车主折腾了一晚上也没有眉目。</p>
+<p>现在的问题是：</p>
+<ol>
+<li>
+<p>trakt 的后台登录逻辑到底是顶掉第一个号还是后面登录的账号都没有权限了。</p>
+</li>
+<li>
+<p>有没有什么办法看看 infuse 的 trakt 到底授权了哪几个设备。</p>
+</li>
+<li>
+<p>登录 trakt 对挂什么节点有要求吗？忘了说了，infuse 是土区车，我是美区账号。trakt 共享应该无视地域吧。</p>
+</li>
+<li>
+<p>有没有遇见过类似情况的，有什么解决办法吗？</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-10-28T06:41:25Z</pubDate>
+<pubDate>2023-10-28T08:00:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求个 tab 同步/管理工具，高性能，能大批量操作的</title>
+<link>https://www.v2ex.com/t/986239</link>
+<guid>https://www.v2ex.com/t/986239</guid>
+<content:encoded><![CDATA[
+
+<p>攒了一万多个没看完的 tab ，实在不知道怎么办好了</p>
+<p>这里面有一部分是研究某一个东西留下来的，还有一部分属于待办事项</p>
+<p>求一个能管理起来这些 tab 的工具</p>
+]]></content:encoded>
+<pubDate>2023-10-28T06:34:54Z</pubDate>
+<pubDate>2023-10-28T06:31:54Z</pubDate>
+</item>
+<item>
+<title>[汽车] 国内能买到哪些燃油版的 mini 小车？</title>
+<link>https://www.v2ex.com/t/986238</link>
+<guid>https://www.v2ex.com/t/986238</guid>
+<content:encoded><![CDATA[
+
+<p>看到了五菱宏光 MINIEV ，能满足日常买菜、接娃的需求，而且车身小巧，对女生来说非常友好。</p>
+<p>不过是电车，续航不太行。</p>
+<p>想请教一下各位见多识广的老司机们，国内内买到哪些燃油版的 mini 小车？</p>
+]]></content:encoded>
+<pubDate>2023-10-28T06:24:48Z</pubDate>
+<pubDate>2023-10-28T08:21:56Z</pubDate>
+</item>
+<item>
+<title>前端开发，大专， 30 岁，小道消息公司要裁员了，往后何去何从？</title>
+<link>https://www.v2ex.com/t/984514</link>
+<guid>https://www.v2ex.com/t/984514</guid>
+<content:encoded><![CDATA[
+
+<p>一个野生的大专学历的前端开发。
+今天从小道消息得知，公司正在商量裁员，而且人员不少。
+目前我这边也没有什么开发任务了，感觉被裁的可能行很大。
+在这家公司入职 5 年了，今年还被强制重新签订合同，主体更换为分公司，合同上也不写明工龄会迁移也没有补偿。</p>
+<p>现在主要的担忧有：</p>
+<ol>
+<li>被裁会不会有 N+1 ，该怎么谈呢？</li>
+<li>这个学历和年龄，是不是很难找到前端开发的工作了？</li>
+<li>前端开发找不到工作了，后续能做点什么养家糊口，上有老下有小。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-10-23T06:37:53Z</pubDate>
+<pubDate>2023-10-25T21:31:08Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 有推荐 iPhone15 PM 的纯充电线吗？</title>
 <link>https://www.v2ex.com/t/986236</link>
 <guid>https://www.v2ex.com/t/986236</guid>
 <content:encoded><![CDATA[
-<div> iPhone15PM、充电线、推荐、大佬、收集<br><br>总结:在收纳usb3.0后，今天作者想要收集各位大佬推荐的iPhone15PM充电线。 <div>
+<div> iPhone15PM、充电线、推荐、大佬、收集<br /><br />总结:在收纳usb3.0后，今天作者想要收集各位大佬推荐的iPhone15PM充电线。 <div>
 <p>昨天已经收纳了各位大佬推荐的 usb3.0 的，今天想收集一下各位大佬推荐的 iPhone15PM 的充电线。</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T06:13:58Z</pubDate>
 <pubDate>2023-10-28T06:12:58Z</pubDate>
 </item>
 <item>
@@ -20,10 +324,9 @@
 <link>https://www.v2ex.com/t/986235</link>
 <guid>https://www.v2ex.com/t/986235</guid>
 <content:encoded><![CDATA[
-<div> 记忆力, DHA, 增强, 实际效果, 保护记忆力<br><br>总结:<br>最近记忆力衰退，想尝试DHA增强记忆力但担心它只是智商税，想知道实际效果如何。另外，希望了解v友们是如何保护记忆力的。 <div>
+<div> 记忆力, DHA, 增强, 实际效果, 保护记忆力<br /><br />总结:<br />最近记忆力衰退，想尝试DHA增强记忆力但担心它只是智商税，想知道实际效果如何。另外，希望了解v友们是如何保护记忆力的。 <div>
 <p>最近感觉记忆力衰退的很厉害，大不如前了，听说 dha 能增强记忆力，想买些试试但怕是智商税想知道实际效果如何，以及 v 友们是怎么保护记忆力的</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T06:12:50Z</pubDate>
 <pubDate>2023-10-28T06:09:50Z</pubDate>
 </item>
 <item>
@@ -31,10 +334,8 @@
 <link>https://www.v2ex.com/t/986234</link>
 <guid>https://www.v2ex.com/t/986234</guid>
 <content:encoded><![CDATA[
-
 ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<br /><br />会出现麻烦 bug 系统邮箱会出错，还有遇到严重两个 bug ，airtag/绑定 iphone 设备定位失效，锁时间显示过后数据。股市更新未能即时更新 bug<br /><br />请问大家有没解决？ 暂时未做测试 做重设设备/还原所以设定，看能不能修复，因为没多余设备测试，要重装添加验证/登录麻烦，不想尝试。<br /><br /><br />这台 iphone 时间错 airtag 定位失效，ios17 维持旧位置，无法查看即时更新。改为自动时间，都是显示不正常，怀疑系统数据一直锁以前。<br /><br />旧设备查看正常可以。<br /><br /><a href="https://i.imgur.com/L1rB2PY.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/L1rB2PY.jpeg" /></a><br /><br /><br />第一张正常<br /><br />第二张 ios17 股市更新未能即时更新 bug<br /><br /><a href="https://i.imgur.com/g2VDLaD.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/g2VDLaD.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2023-10-28T06:11:46Z</pubDate>
 <pubDate>2023-10-28T06:11:46Z</pubDate>
 </item>
 <item>
@@ -42,7 +343,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986233</link>
 <guid>https://www.v2ex.com/t/986233</guid>
 <content:encoded><![CDATA[
-
 <p>我之前安装过一个叫 TabSpace 的 Safari 插件，但问题是这个软件感觉性能很差，bug 多。</p>
 <p>有时候点击保存所有页面，结果所有页面就丢失了。有时点完保存就开始转圈，转 N 久也没反应。运气好的时候能转圈成功，加载出来我之前保存了什么页面，但是运气不好（比如今天）我发现再也打不开这个软件了（这就意味着我存了几年的标签页全部毁了）。</p>
 <p>App Store 也有 OneTab ，但是看评论也是有人说丢标签页，或者不兼容之类的问题</p>
@@ -50,7 +350,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <p>TabSpace 打不开的截图：
 <img alt="e3vd8Sc2RWCXTGV" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/10/28/e3vd8Sc2RWCXTGV.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-28T06:11:27Z</pubDate>
 <pubDate>2023-10-28T06:10:27Z</pubDate>
 </item>
 <item>
@@ -58,7 +357,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986232</link>
 <guid>https://www.v2ex.com/t/986232</guid>
 <content:encoded><![CDATA[
-
 <p>需求描述简单是这样的，比如我想在 VPS 下载 Youtube 上的视频，但是由于限制不能并行多个任务，只能串行执行，根据关键字好像没有找到合适的产品。</p>
 <p>具体一点的话是：</p>
 <ol>
@@ -69,7 +367,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 </ol>
 <p>有点儿类似于 gitlab 的 pipeline 那种，但是并需要那么复杂</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T05:43:37Z</pubDate>
 <pubDate>2023-10-28T06:16:05Z</pubDate>
 </item>
 <item>
@@ -77,13 +374,11 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986231</link>
 <guid>https://www.v2ex.com/t/986231</guid>
 <content:encoded><![CDATA[
-
 <p>最近看到活动想支持下试一试京东云，没想到之前注册过手机号登陆不上去了。</p>
 <p>就又新开了个号竟然不能实名，一个实名只能一个号，解绑原来的作废的手机号竟然要提工单手持身份照片，工单三个工作日才能完事。</p>
 <p>我尼玛的扭头续费了良心云。</p>
 <p>和朋友交流说他也是，直接弃用。</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T05:32:00Z</pubDate>
 <pubDate>2023-10-28T05:47:20Z</pubDate>
 </item>
 <item>
@@ -91,7 +386,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986229</link>
 <guid>https://www.v2ex.com/t/986229</guid>
 <content:encoded><![CDATA[
-
 <p>从 2022 年开始，以“降本增效”为目标的改革风席卷了整个国内的云计算市场，各路厂商纷纷收紧各自免费体验产品的额度，也加紧了边缘产品商业化的脚步。云监控（或者称云拨测）就是这样一个边缘化的产品，过去很多的厂商大多提供了非常充足的免费额度，这一年里的变故来的让人十分糟心……</p>
 <p>博主从 2016 年搞百度贴吧云签到执行计划任务用到云监控到现在，以时间为顺序列举一下博主用过的一些云监控服务：</p>
 <ol>
@@ -115,7 +409,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <p><img alt="b3uI.png" class="embedded_image" rel="noreferrer" src="https://moe.lty.fun/images/b3uI.png" /></p>
 <p>主要记录的是在国内不能访问 GitHub 的网络情况下安装 Node.js 和 uptimekuma 踩的一些坑，希望对大家有所帮助，相比之下也更推荐使用 docker 一些……</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T05:29:19Z</pubDate>
 <pubDate>2023-10-28T06:17:04Z</pubDate>
 </item>
 <item>
@@ -123,7 +416,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986227</link>
 <guid>https://www.v2ex.com/t/986227</guid>
 <content:encoded><![CDATA[
-
 <p>我父母目前医疗保险的配置是这样的：</p>
 <ul>
 <li>城乡居民基本医疗保险 每年 380 * 2</li>
@@ -137,7 +429,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <p>父母的商业保险单我准备下次回家好好研究下，把能够作为职工医保补充的留下，其它的退掉。毕竟现在钱真的不好挣，保险也是一笔消费。但是不交医保也不行，人老了有口饭吃就饿不死，但是没钱看病可能会把整个家庭拖垮。我也只是个普通人，目前也是失业状态，只能说尽量把可能要花大钱的负担减到最小。我最担心父母将来生病了，我没本事拿出钱来给他们看病，所以医保这块我觉得还是得重视一下，把钱花在刀刃上。最近也去政务中心问明白了医保的一些政策，像我这 20 多的年纪职工医保 + 支付宝 200 块左右的长期医疗我觉得就够用了，但是年纪大的感觉还是需要一点补充医疗保险的。</p>
 <p>不知道各位对自己和家人的医保是如何配置的，欢迎交流下，商业保险这一块没过多的了解过。</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T05:24:09Z</pubDate>
 <pubDate>2023-10-28T06:21:19Z</pubDate>
 </item>
 <item>
@@ -145,10 +436,8 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986226</link>
 <guid>https://www.v2ex.com/t/986226</guid>
 <content:encoded><![CDATA[
-
 "打卡，赚钱，实现梦想。"<br />"每个打卡都有回报，赚钱从未如此简单。"<br />"与朋友一起打卡，共同进步。"<br />"打卡，收入，改变生活。"<br />"实现目标，收获金钱，成就梦想，自律挑战。"<br />"打卡，积累收益，改善生活品质。"<br />"下载 '我要打卡' APP ，开始打卡旅程，同时赚钱。"<br /><br />吐槽：第一次找工作 3 个月没有下文， 第一次学习 swift 第一次开发 iOS ，第一次把自己约 3 年前的想法进行实现  <br />做得不是很好， 不喜勿喷，欢迎提供意见～<br />目前支持的项目为： <br />早起打卡 05:00-08:00  <br />午睡打卡 12:30-13:00  <br />早睡打卡 21:30-22:00  <br />早餐打卡 07:30-08:00  <br />午餐打卡 11:30-12:00  <br />晚餐打卡 18:30-19:00  <br />健身打卡 19:30-20:00  <br />学习打卡 20:30-21:00
 ]]></content:encoded>
-<pubDate>2023-10-28T05:13:35Z</pubDate>
 <pubDate>2023-10-28T06:16:40Z</pubDate>
 </item>
 <item>
@@ -156,10 +445,8 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986224</link>
 <guid>https://www.v2ex.com/t/986224</guid>
 <content:encoded><![CDATA[
-
 我是新疆乌鲁木齐的户口，孩子妈是河北承德的农村户口，现在考虑到未来大概率不能在北京高考的问题，并且不想离孩子太远，考虑落到母亲那边，家里人觉得农村户口可能不好，建议还是在新疆。<br />想问问大家这种情况你们会如何选择？
 ]]></content:encoded>
-<pubDate>2023-10-28T04:34:56Z</pubDate>
 <pubDate>2023-10-28T05:31:55Z</pubDate>
 </item>
 <item>
@@ -167,10 +454,8 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/986223</link>
 <guid>https://www.v2ex.com/t/986223</guid>
 <content:encoded><![CDATA[
-
 <p>苹果的 iPad10 已经加入了 eSIM 功能。</p>
 ]]></content:encoded>
-<pubDate>2023-10-28T04:34:53Z</pubDate>
 <pubDate>2023-10-28T02:34:53Z</pubDate>
 </item>
 <item>
@@ -178,7 +463,6 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <link>https://www.v2ex.com/t/983704</link>
 <guid>https://www.v2ex.com/t/983704</guid>
 <content:encoded><![CDATA[
-
 <p><strong>MBTI 人生难题 解决器！</strong></p>
 <p>根据你的性格，和你的需求（情感支持/解决方案 跟女友吵过架的都懂这俩有本质区别），然后就可以生成针对你性格的解决方案！</p>
 <p>网站： <a href="https://mbti-solver.streamlit.app/" rel="nofollow">https://mbti-solver.streamlit.app/</a> </p>
@@ -186,10 +470,8 @@ ios17 千万不要用将日期调整到 30 日后， 清理 iphone 系统数据<
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/93KI9Lte.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/nb9rF1Ox.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-20T02:34:53Z</pubDate>
 <pubDate>2023-10-25T22:33:11Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 小米有品的东西质量怎么样？</title>
 <link>https://www.v2ex.com/t/986222</link>
@@ -15424,161 +15706,6 @@ tg:@Hodor1024</p>
 
 ]]></content:encoded>
 <pubDate>2023-10-24T08:45:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 你们使用 arc 浏览器时有感觉怪怪吗？</title>
-<link>https://www.v2ex.com/t/984974</link>
-<guid>https://www.v2ex.com/t/984974</guid>
-<content:encoded><![CDATA[
-<p>使用 Arc 的时候，突然发现有些页面消失了，看看了设置，才发现超过一定时间后页面会进行归档，除非自己将页面钉住，不然很久之前的页面需要自己在归档记录里翻找. </p>
-<p>当然这是一个使用习惯的问题，以后打开一个页面需要进一步思考页面需不需要 pinned</p>
-]]></content:encoded>
-<pubDate>2023-10-24T08:57:21Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 思阅 SRead 新功能 Chrome 扩展发布啦！</title>
-<link>https://www.v2ex.com/t/984973</link>
-<guid>https://www.v2ex.com/t/984973</guid>
-<content:encoded><![CDATA[
-<h2>思阅 SRead 简介</h2>
-<p>思阅 SRead 是一款智能阅读助手，不论你是喜欢阅读文章，还是看电子版论文，都可以通过思阅 SRead 来进行辅助阅读。思阅 SRead 支持智能总结，能从阅读的文章中提取关键信息并加以总结；另外，它还可以进行智能问答，回答任何文章中的相关信息。此外，思阅 SRead 的思维导图可以帮助读者快速掌握整篇文章的概要。</p>
-<h2>Chrome 扩展</h2>
-<p>思阅 SRead 的新 Chrome 扩展为浏览器阅读体验带来了重大升级。一旦安装了这个扩展，用户可以直接在 Chrome 浏览器上享受思阅 SRead 的所有功能，而无需下载额外的应用程序。这个扩展包括了一个简易的工具栏，方便用户在阅读时快速访问智能总结、智能问答和思维导图功能。这个扩展的另一个重要特点是，它能够自动识别网页内容，并为用户提供实时的智能辅助，使阅读体验更为流畅和高效。</p>
-<h3>安装与使用</h3>
-<p>安装思阅 SRead 的 Chrome 扩展非常简单。用户首先需要登录思阅 SRead 网站（ <a href="https://sreda.ai" rel="nofollow">https://sreda.ai</a> ），用 Gmail 或微信注册登录。然后访问 Chrome 网上应用商店，搜索“SRead”，然后点击“添加到 Chrome”按钮。安装完成后，工具栏上会出现思阅 SRead 的图标，点击图标即可激活扩展并开始使用。</p>
-<p><img alt="Chrome Web Store" class="embedded_image" rel="noreferrer" src="https://codao.crawlab.cn/images/2023-10-24-082020.png" /></p>
-<h2>在线阅读例子</h2>
-<p>思阅 SRead 的 Chrome 扩展可以用于浏览在线文章。例如，当你在阅读一篇技术博客时，只需要导航至这篇文章的页面，然后点击思阅 SRead 的 Chrome 扩展图标，它的智能总结功能可以帮你快速理解文章的主要观点。同时，如果文章中有不明白的内容，你可以直接使用智能问答功能，而无需离开当前页面。</p>
-<p><img alt="Read with Chrome Extension" class="embedded_image" rel="noreferrer" src="https://codao.crawlab.cn/images/2023-10-24-081719.png" /></p>
-<h2>总结</h2>
-<p>思阅 SRead 的新 Chrome 扩展为用户提供了一个强大而便捷的在线阅读工具。通过这个扩展，用户可以更轻松地获取和理解网上的信息，从而提高阅读效率和学习效果。同时，它也为研究和学术工作提供了有力的支持。无论是学生、教师还是研究人员，都会发现思阅 SRead 是一个非常有用的助手。</p>
-<h2>社区</h2>
-<p>如果您对思阅 SRead ，可以加笔者微信 tikazyq1 并注明 “思阅”，笔者会将你拉入 "思阅" 交流群。</p>
-<h2>参考</h2>
-<p>思阅体验地址: <a href="https://sread.ai" rel="nofollow">https://sread.ai</a></p>
-]]></content:encoded>
-<pubDate>2023-10-22T08:44:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问目前 Android 最好用的截长屏工具是什么？免费付费都可以</title>
-<link>https://www.v2ex.com/t/984972</link>
-<guid>https://www.v2ex.com/t/984972</guid>
-<content:encoded><![CDATA[
-2023 年了大多数 android 手机都自带了截长屏的功能，但是有些 app （比如知乎）会自动检测是否在截长屏，然后限制只能滚动一小点，无法截长图。想咨询一下，有没有第三方的 app 能够解决这个问题
-]]></content:encoded>
-<pubDate>2023-10-24T08:42:06Z</pubDate>
-</item>
-<item>
-<title>[程序员] 周鸿祎：“我认为程序员节是唯一不能放假的节日”、“如果黑客在这天发起攻击……关键基础设施就会宕机”</title>
-<link>https://www.v2ex.com/t/984971</link>
-<guid>https://www.v2ex.com/t/984971</guid>
-<content:encoded><![CDATA[
-<p>先放原文链接： <a href="https://weibo.com/1708942053/NpisWkR5o" rel="nofollow">https://weibo.com/1708942053/NpisWkR5o</a></p>
-<p>引用正文如下：</p>
-<blockquote>
-<p>今天是程序员节，先祝广大程序员节日快乐。感谢我的同事，没把我当老板，还记得我是程序员。有人送了我一份节日礼物，还问我”程序员节能放假吗？“这是个好问题。</p>
-</blockquote>
-<blockquote>
-<p>程序员时常面对各种 BUG ，长期高度紧张，节日这天，我祝大家工作不加班，代码无 BUG 。</p>
-</blockquote>
-<blockquote>
-<p>但我认为程序员节是唯一不能放假的节日。和警察、护士、消防员一样，程序员也是个守护安全的职业。安全无小事。不夸张的说，程序员们休假一天，世界也会跟着宕机一天，如果黑客在这天发起攻击，金融、电力、能源、交通等关键基础设施就会宕机，世界会怎样?会漆黑一片，大家上网、点外卖、打车都要受影响。我们也有个统计，360 安全大脑每天能拦截勒索攻击 100 万次、拦截挖矿攻击 1000 万次。一旦安全失守，后果不堪设想。所以，大家还是辛苦辛苦，等元旦假期吧。</p>
-</blockquote>
-<hr />
-<p>我觉得他的理据实在是，完全站不住脚</p>
-<ul>
-<li>
-他这话说得就像是元旦等假期就没人发起攻击<ul>
-<li>然而，黑客们同样可以在元旦之类的假期发起攻击呀</li>
-<li>他这话给人的感觉还像是，节假日无人值班</li>
-</ul>
-</li>
-<li>潜台词更像是，“放什么假，都给我拼命干活”</li>
-</ul>
-<p>实在不想给人放假，不如在“祝大家工作不加班，代码无 bug”后面补一句“大家可以在完成今天任务的基础上，提前 1024 秒下班”，虽然还是会被人嘲笑，但起码观感好多了。<br />毕竟不是法定节假日，不放假完全没问题，他也可以明白地说出来。</p>
-<p>但他非要趁机刺激同行来刷存在感（发广告）</p>
-]]></content:encoded>
-<pubDate>2023-10-24T10:16:14Z</pubDate>
-</item>
-<item>
-<title>[软件] 私有化部署的 toB 软件，应该具备哪些认证？</title>
-<link>https://www.v2ex.com/t/984970</link>
-<guid>https://www.v2ex.com/t/984970</guid>
-<content:encoded><![CDATA[
-市面上诸如 等保三级，ISO27001/27701 之类的<br /><br /><br /><br />这方面不太了解，站里有了解的朋友吗？
-]]></content:encoded>
-<pubDate>2023-10-24T08:37:55Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 现在有 用光纤上行 的 AP 吗？</title>
-<link>https://www.v2ex.com/t/984969</link>
-<guid>https://www.v2ex.com/t/984969</guid>
-<content:encoded><![CDATA[
-<p>最近要把我爸的农村宅基地推翻重做
-打算装修的时候直接装光纤了
-懒得铺网线了</p>
-]]></content:encoded>
-<pubDate>2023-10-24T09:43:17Z</pubDate>
-</item>
-<item>
-<title>[Python] 现在真有面试官会问 Python XXX 的时间复杂度是多少这种问题吗</title>
-<link>https://www.v2ex.com/t/984968</link>
-<guid>https://www.v2ex.com/t/984968</guid>
-<content:encoded><![CDATA[
-我觉得说这些的可能都是临时上岗的其他语言从业人员。
-]]></content:encoded>
-<pubDate>2023-10-24T09:56:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] [广告] - 推荐一个卖二手课程的</title>
-<link>https://www.v2ex.com/t/984967</link>
-<guid>https://www.v2ex.com/t/984967</guid>
-<content:encoded><![CDATA[
-刚来 v 站 也不知道发点什么 就推荐一个卖二手课程的 主要是 it 课程<br /><br />大佬们 不喜勿喷 <br /><br />vx: bW9jazEzMzI=
-]]></content:encoded>
-<pubDate>2023-10-24T04:34:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 双十一除了衣服家电便宜外还有啥？</title>
-<link>https://www.v2ex.com/t/984966</link>
-<guid>https://www.v2ex.com/t/984966</guid>
-<content:encoded><![CDATA[
-<p>感觉猫粮猫砂、日用品、数码产品双 11 相比 pdd 日常+叠加点优惠后</p>
-<p>就感觉没啥区别。</p>
-<p>护肤品一直用小样。。</p>
-<p>除了大牌衣服（品牌溢价高）能明显感知会便宜</p>
-<p>还有啥？</p>
-]]></content:encoded>
-<pubDate>2023-10-24T08:30:40Z</pubDate>
-</item>
-<item>
-<title>[macOS] 1024 快乐，各位大佬要记得休息啊！</title>
-<link>https://www.v2ex.com/t/984964</link>
-<guid>https://www.v2ex.com/t/984964</guid>
-<content:encoded><![CDATA[
-<p>最近小弟偶感双眼不适，腰酸背痛，原因是敲代码的时候经常忘记了时间，为了能提醒自己适当休息，找到了市面上的一些软件，但不是收费，就是界面太丑，所以无奈自己撸了一个 macOS 端的休息提醒工具，用起来还算顺手，有兴趣的大佬可以体验一下
-<a href="https://apps.apple.com/app/id6467176005" rel="nofollow">https://apps.apple.com/app/id6467176005</a></p>
-]]></content:encoded>
-<pubDate>2023-10-24T09:18:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 建立镜像站最低成本最简单的方式是什么？</title>
-<link>https://www.v2ex.com/t/984963</link>
-<guid>https://www.v2ex.com/t/984963</guid>
-<content:encoded><![CDATA[
-<p>现有 vercel 上的 next.js 项目，因为百度不抓国外 IP 网站。<br />
-如果为了让百度抓取，建立一个国内镜像站，最简单最低价的方式是什么？</p>
-]]></content:encoded>
-<pubDate>2023-10-24T08:28:52Z</pubDate>
-</item>
-<item>
-<title>[Apple] 手持一台古早的国行 iPhone 12，可以在香港的 Apple Store 进行以旧换新购买新 iPhone 吗</title>
-<link>https://www.v2ex.com/t/984962</link>
-<guid>https://www.v2ex.com/t/984962</guid>
-<content:encoded><![CDATA[
-iPhone 12 购于内地 Apple Store ，可以到香港 Apple Store 进行以旧换新吗
-]]></content:encoded>
-<pubDate>2023-10-24T08:47:44Z</pubDate>
 </item>
 </channel>
 </rss>
