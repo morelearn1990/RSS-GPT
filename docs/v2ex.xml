@@ -5,19 +5,325 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] app store 备案号是只能同名主体备案能过吗</title>
+<link>https://www.v2ex.com/t/986419</link>
+<guid>https://www.v2ex.com/t/986419</guid>
+<content:encoded><![CDATA[
+<div> 注册、开发者账号、备案、公司、个体户<br><br>总结: 这篇文章回答了关于开发者账号注册和App备案的问题。公司或个体户主体的开发者账号可以通过备案，并且在备案时需要填写准确的App名称。一旦备案完成，App名称一般不能随意更改。 <div>
+自己名字注册的开发者账号，用公司或者个体户主体备案的能过吗。还有就是 app 备案的时候要填写 app 名称吧，那这个名称是要和上架的严格一致吗，都不能改名了吗
+]]></content:encoded>
+<pubDate>2023-10-29T06:19:28Z</pubDate>
+<pubDate>2023-10-29T06:19:28Z</pubDate>
+</item>
+<item>
+<title>[程序员] 马上又是双 11 了，有些哪些值得买的软件会员，大家有推荐的吗</title>
+<link>https://www.v2ex.com/t/986418</link>
+<guid>https://www.v2ex.com/t/986418</guid>
+<content:encoded><![CDATA[
+<div> 买断版、订阅、终身会员、喜欢、不喜欢
+
+总结:<br><br>这篇文章表达了作者对于软件购买方式的偏好，作者喜欢买断版的软件，而不喜欢订阅的形式。作者更愿意购买终身会员，以便长期使用软件。 <div>
+<p>我喜欢买断版的，不喜欢订阅的，就想买终身会员</p>
+]]></content:encoded>
+<pubDate>2023-10-29T06:18:03Z</pubDate>
+<pubDate>2023-10-29T06:17:03Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 我撤回前几天对拓展坞的推荐😅</title>
+<link>https://www.v2ex.com/t/986417</link>
+<guid>https://www.v2ex.com/t/986417</guid>
+<content:encoded><![CDATA[
+
+<h2>之前的推荐</h2>
+<p><a href="https://www.v2ex.com/t/985464" rel="nofollow">https://www.v2ex.com/t/985464</a></p>
+<h2>遇到的问题</h2>
+<p>我原来用 intel MBP 16 ，连这个拓展坞从 Monterey 用到 Sonoma 一直没问题。</p>
+<p>买了个 M1 MAX MBP ，发现只要开启 BetterTouchTool ，系统会时不时不执行触控板的点击操作。（ Monterey 12.7-12.7.1 ）</p>
+<p>检查到最后，发现原因是大功率充电器（大于 65W ）插在 satechi 这个 9 合 1 扩展坞上连接 M1 MAX 的 MacBook 时，拓展坞只有 USB2.0 的速度、并且反复高频断开然后重新连接。</p>
+<p>但是在之前的 intel MBP 上相同的连接方式不会有任何问题。我怀疑是这个拓展坞和 M1 的 Mac 不兼容？</p>
+<p>这个逻辑链条太跳脱了，我检查了五六个小时才终于搞清楚……😅</p>
+<p>这下我只能再买个贝尔金的拓展坞了。</p>
+<h2>测试过程中用到的其它变量</h2>
+<ul>
+<li>绿联拓展坞：插电源线无此问题，给 Mac 充电功率为「充电器功率-15W 」</li>
+<li>绿联拓展坞 2 号，带千兆网口的：插电源线连 Mac 无此问题，给 Mac 充电功率为「充电器功率-15W 」</li>
+<li>贝尔金老的那款带千兆网口的 6 合 1 拓展坞，:插电源线连 Mac 无此问题，给 Mac 充电功率为 60W</li>
+<li>苹果原装 94W 、140W 充电器，Anker 65W 单口充电器、Aohi 100W 双口充电器：只要连接 satechi 拓展坞时的充电功率到了 65W 这个节点（拓展坞扣掉一点，连到电脑上时的充电功率会低一些），就都有此问题</li>
+<li>M1 MAX 的 MacBook 每个 C 口都有此问题。</li>
+</ul>
+<h2>检测 USB 设备连接的方法</h2>
+<p>使用 Hammerspoon 加载这段代码，然后进 Hammerspoon 的 console 看实时 log ，就能看到 USB 设备连接断开的情况：</p>
+<pre><code>usbConnectsTimer = hs.timer.new(3, function()
+    usbConnectsTimer:stop()
+    print("&gt; usb connect for devices: " .. usbConnectsDevs)
+    usbConnects = 0
+    usbConnectsDevs = nil
+  end)
+ 
+  usbDisconnectsTimer = hs.timer.new(3, function()
+    usbDisconnectsTimer:stop()
+    print("&gt; usb disconnect for devices: " .. usbDisconnectsDevs)
+    usbDisconnects = 0
+    usbDisconnectsDevs = nil
+  end)
+ 
+  usbConnects = 0
+  usbDisconnects = 0
+  usbDCWatcher = {}
+ 
+  usbMonitor = hs.usb.watcher.new(function(info)
+    -- iNotify(log,"USB Monitor: " .. info['eventType'] .. " " .. info['vendorName'] .. " " .. info['productName'])
+    local event = info['eventType']
+    local vendor = info['vendorName']
+    local product = info['productName']
+    print("USB Monitor: " .. event .. " " .. vendor .. " " .. product)
+    if event == "added" then
+      if usbDebugAllConns then
+        usbConnectsTimer:setNextTrigger(3)
+        usbConnects = usbConnects + 1
+        if usbConnectsDevs ~= nil then usbConnectsDevs = usbConnectsDevs .. ", " .. vendor .. " " .. product else usbConnectsDevs = vendor .. " " .. product end
+      end
+      if usbDebugReconns then
+        currTime = hs.timer.secondsSinceEpoch()
+        for i, v in pairs(usbDCWatcher) do
+          if currTime-v&gt;30 then usbDCWatcher[i] = nil end
+        end
+        if usbDCWatcher[vendor .. " " .. product] ~= nil then
+          print("USB Device reconnect occured: " .. vendor .. " " .. product)
+        end
+      end
+    elseif event == "removed" then
+      if usbDebugAllConns then
+        usbDisconnectsTimer:setNextTrigger(3)
+        usbDisconnects = usbDisconnects + 1
+        if usbDisconnectsDevs ~= nil then usbDisconnectsDevs = usbDisconnectsDevs .. ", " .. vendor .. " " .. product else usbDisconnectsDevs = vendor .. " " .. product end
+      end
+      if usbDebugReconns then usbDCWatcher[vendor .. " " ..product]=hs.timer.secondsSinceEpoch() end
+    else print("Unknown USB event in usb watcher") end
+  end):start()
+ 
+  function getUsbDevices()
+    local devs = hs.usb.attachedDevices()
+    local cnt = 0
+    local res = {}
+    local vendor
+    for i,v in pairs(devs) do
+      cnt = cnt + 1
+      if v['vendorName'] ~= nil then vendor = v['vendorName'] else vendor = "(no vendor)" end
+      if v['productName'] ~= nil then product = v['productName'] else product = "(no productname)" end
+      table.insert(res,vendor .. " " .. product)
+    end
+    table.sort(res)
+    print("\n" .. table.concat(res,"\n"))
+    print(cnt .. " devices attached")
+  end
+</code></pre>
+<h2>外设重连、断开的 log 展示</h2>
+<pre><code class="language-log">2023-10-28 21:48:58: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:48:58: USB Monitor: removed VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:48:58: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:48:58: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:00: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:00: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:01: USB Monitor: added VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:49:01: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:02: USB Monitor: removed VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:49:02: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:02: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:02: USB Monitor: added VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:49:03: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:03: USB Monitor: added VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:49:03: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub             
+2023-10-28 21:49:03: USB Monitor: removed VIA Labs, Inc.          USB Billboard Device   
+2023-10-28 21:49:03: USB Monitor: removed VIA Labs, Inc.          USB2.0 Hub         
+
+</code></pre>
+<p>往下无限<code>add</code> <code>remove</code>循环。</p>
+<p>在 intel Mac 上连这个拓展坞的 log 就这样直接结束：</p>
+<pre><code class="language-log">2023-10-29 14:18:19: USB Monitor: added VIA Labs, Inc.          USB3.0 Hub             
+2023-10-29 14:18:19: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-29 14:18:20: USB Monitor: added VIA Labs, Inc.          USB3.0 Hub             
+2023-10-29 14:18:20: USB Monitor: added VIA Labs, Inc.          USB2.0 Hub             
+2023-10-29 14:18:20: USB Monitor: added Realtek USB 10/100/1000 LAN
+2023-10-29 14:18:22: USB Monitor: added VIA Labs, Inc.          USB Billboard Device 
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-10-29T06:15:41Z</pubDate>
+<pubDate>2023-10-29T06:15:41Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求推荐本地文件夹同步工具</title>
+<link>https://www.v2ex.com/t/986416</link>
+<guid>https://www.v2ex.com/t/986416</guid>
+<content:encoded><![CDATA[
+
+<p>系统是 Ubuntu Server ，两个文件夹分别在本地两块硬盘中，数据量在几 T 级别，不想总是手动复制，有什么工具可以自动使这俩文件夹保持同步吗</p>
+]]></content:encoded>
+<pubDate>2023-10-29T05:59:38Z</pubDate>
+<pubDate>2023-10-29T06:15:17Z</pubDate>
+</item>
+<item>
+<title>[Apple] MacBookPro 13-inch, M1, 2020 8+256 电池还有 89 能卖多少 外观无损 键盘没有磨损</title>
+<link>https://www.v2ex.com/t/986415</link>
+<guid>https://www.v2ex.com/t/986415</guid>
+<content:encoded><![CDATA[
+
+看看目前行情
+]]></content:encoded>
+<pubDate>2023-10-29T05:59:19Z</pubDate>
+<pubDate>2023-10-29T02:59:19Z</pubDate>
+</item>
+<item>
+<title>[Duolingo] 为啥 v 站很多用多邻国的，多邻国的课程很深入吗？</title>
+<link>https://www.v2ex.com/t/986414</link>
+<guid>https://www.v2ex.com/t/986414</guid>
+<content:encoded><![CDATA[
+
+<p>如题哈，我看知乎官方回答中文学英语课程学完也就 A2 级别，初学者水平。</p>
+<p>官方回答：</p>
+<pre><code>在确保所有内容都真正掌握的前提下，现阶段相当于 CEFR 的 A2 水平。之后会逐步更新对应 B1 能力要求的课程内容。CEFR 是指欧洲语言共同参考框架（ Common European Framework of Reference for Languages ，简称 CEFR ），它是描述学习者语言能力的全球通用标准。️被各类语言教育机构广泛采用，并作为各国高校语言能力要求的参照依据。它将语言学习者大致划分为初级使用者（ A ）、独立使用者（ B ）、熟练使用者（ C ）三个等级，进一步细分至六个等级：A1 、A2 、B1 、B2 、C1 、C2 。
+
+作者：多邻国 Duolingo
+链接： https://www.zhihu.com/question/269694713/answer/1232624714
+来源：知乎
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+</code></pre>
+<p>我感觉义务制教育学的语法知识，然后自己再去背雅思单词，看看英文视频和书记会更有用呢。还是大佬们有什么独特的多邻国使用姿势？</p>
+]]></content:encoded>
+<pubDate>2023-10-29T05:54:58Z</pubDate>
+<pubDate>2023-10-29T06:17:37Z</pubDate>
+</item>
+<item>
+<title>[程序员] mac 下的 chrome 怎么添加启动参数？</title>
+<link>https://www.v2ex.com/t/986413</link>
+<guid>https://www.v2ex.com/t/986413</guid>
+<content:encoded><![CDATA[
+
+<p>mac 下的 chrome 想添加如下启动参数<br /></p>
+<p><code>--allow-file-access-from-files</code></p>
+<p><code>--user-data-dir="~/MyChromeUserData" </code></p>
+<p><code>--disable-web-security --disable-site-isolation-trials</code></p>
+<p>Google 了很多办法都不行，chatgpt 给出的方法也是不行</p>
+<p>大家有成功的方法可以分享一下吗？</p>
+]]></content:encoded>
+<pubDate>2023-10-29T05:54:11Z</pubDate>
+<pubDate>2023-10-29T05:52:11Z</pubDate>
+</item>
+<item>
+<title>[macOS] Chrome 经常出现的这个 ERR_NETWORK_CHANGED 貌似是 macOS 14.0/14.1 上的新问题？</title>
+<link>https://www.v2ex.com/t/986410</link>
+<guid>https://www.v2ex.com/t/986410</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.v2ex.com/i/WnknaLkc.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 WnknaLkc.png"><img class="embedded_image" src="https://i.v2ex.co/WnknaLkc.png" /></a>
+]]></content:encoded>
+<pubDate>2023-10-29T05:26:05Z</pubDate>
+<pubDate>2023-10-29T06:13:41Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 求问坛内大佬，用 cf 中转在线看图会被限速么？</title>
+<link>https://www.v2ex.com/t/986409</link>
+<guid>https://www.v2ex.com/t/986409</guid>
+<content:encoded><![CDATA[
+
+<p>一些 cf 在线的图，正常情况都是 5—6m 下行，忽然会变几十 kb 下行。我一直怀疑一个 ip 用的多会不会被 cf 限速？求问一下</p>
+]]></content:encoded>
+<pubDate>2023-10-29T05:24:03Z</pubDate>
+<pubDate>2023-10-29T02:24:03Z</pubDate>
+</item>
+<item>
+<title>[VPS] CloudCone 使用体验</title>
+<link>https://www.v2ex.com/t/986405</link>
+<guid>https://www.v2ex.com/t/986405</guid>
+<content:encoded><![CDATA[
+
+<p>原文地址： <a href="https://yinji.org/5166.html" rel="nofollow">https://yinji.org/5166.html</a></p>
+]]></content:encoded>
+<pubDate>2023-10-29T04:52:02Z</pubDate>
+<pubDate>2023-10-29T00:52:02Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 跳广告方法</title>
+<link>https://www.v2ex.com/t/986404</link>
+<guid>https://www.v2ex.com/t/986404</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.zhihu.com/question/604272136/answer/3084142230" rel="nofollow">https://www.zhihu.com/question/604272136/answer/3084142230</a></p>
+<p><a href="https://picx.zhimg.com/80/v2-994dfd6d9f2dc1bca54e018840bb527b_1440w.webp" rel="nofollow">https://picx.zhimg.com/80/v2-994dfd6d9f2dc1bca54e018840bb527b_1440w.webp</a>
+快捷指令实现</p>
+]]></content:encoded>
+<pubDate>2023-10-29T04:47:53Z</pubDate>
+<pubDate>2023-10-29T05:56:12Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS 上 Mail 长期后台运行无法连接服务器，有遇到的朋友吗？</title>
+<link>https://www.v2ex.com/t/986403</link>
+<guid>https://www.v2ex.com/t/986403</guid>
+<content:encoded><![CDATA[
+
+<p>最近发现原生的 Mail 在 macOS 上运行一段时间后，所有的账号都无法连接（ IMTP/SMTP ），此时 Mail 在后台运行会大量耗能，在 Activity Monitor 里能达到几百甚至上千的耗能影响。</p>
+<p>起初我以为是网络原因，但是后来发现改了网络还是一个样子。</p>
+<p>后来去网上查，说是因为有网易邮箱，于是我果断地把 126 删除出去，结果过了一阵子还是一样。</p>
+<p>最后我发现了，只要时间一长，Mail 就会自己断开连接，这时候即使在软件内点击重连也没用，只会不断地发起请求，但是连不上，于是造成大量耗能。</p>
+<p>请问有 V 友遇到过这个问题吗？以及如果有遇到的朋友的话，这个问题该怎么解决呢？</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WdPeBDn.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-29T04:44:51Z</pubDate>
+<pubDate>2023-10-29T05:40:48Z</pubDate>
+</item>
+<item>
+<title>[MacBook Air] 由於 m1 mba 發熱，想降級至出廠系統，有些問題。</title>
+<link>https://www.v2ex.com/t/986401</link>
+<guid>https://www.v2ex.com/t/986401</guid>
+<content:encoded><![CDATA[
+
+<h3>細節</h3>
+<ul>
+<li>湖北武漢</li>
+<li>晚上九點</li>
+<li>macOS14.0</li>
+<li>充電中</li>
+<li>單獨一個 iina 全螢幕看鬥魚直播</li>
+<li>戴 3.5mm 的耳機。</li>
+<li>溫度 54 度，</li>
+</ul>
+<hr />
+<p>沒有移動硬碟，所以不做物理備份了。</p>
+<hr />
+<h3>問題</h3>
+<ol>
+<li>需要提前在 MacBook 上面註銷掉 Apple ID 和 iCloud 雲碟嗎？</li>
+<li>你們遇到的其它問題</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-10-29T04:24:02Z</pubDate>
+<pubDate>2023-10-28T20:24:02Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 美区家庭组长期拼车！</title>
+<link>https://www.v2ex.com/t/986400</link>
+<guid>https://www.v2ex.com/t/986400</guid>
+<content:encoded><![CDATA[
+
+<p>美区 Spotify 合租 美区 Spotify 年费家庭车 美区 Spotify 拼车 Spotify 美区会员 需要上车的小伙伴可以加我微信 d030518_</p>
+]]></content:encoded>
+<pubDate>2023-10-29T04:23:38Z</pubDate>
+<pubDate>2023-10-29T00:23:38Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 想卖电脑，如何破局？求指点</title>
 <link>https://www.v2ex.com/t/986398</link>
 <guid>https://www.v2ex.com/t/986398</guid>
 <content:encoded><![CDATA[
 <div> 强迫症, 供销渠道, 市场竞争, 运营能力, 市场推广
 
-总结:<br><br>这篇文章描绘了一位年轻人在小城市的就业挣扎和憧憬未来的追求。作者有强迫症倾向，凡事都要做到最好。他希望通过利用打工经历积累的供销渠道，在电脑销售领域创业。然而，他也预见到了市场竞争、运营能力、特色定位、市场推广、产品质量和服务等方面的问题和挑战。尽管面临困难，他仍决心全力以赴。 <div>
+总结:<br /><br />这篇文章描绘了一位年轻人在小城市的就业挣扎和憧憬未来的追求。作者有强迫症倾向，凡事都要做到最好。他希望通过利用打工经历积累的供销渠道，在电脑销售领域创业。然而，他也预见到了市场竞争、运营能力、特色定位、市场推广、产品质量和服务等方面的问题和挑战。尽管面临困难，他仍决心全力以赴。 <div>
 <p>天真，理想主义，99 年生，河南，迫于没有过硬的技术，返乡回电脑城工作了，小城市打工，一个月三四千块，面临着给她更好的生活；结婚、养儿、育女；报答父母的压力，继续折腾吧。小城市赚不到什么钱，这几年回家试过挺多行业，唉，长大好累。总是在想、在考虑，这次我决定要做了。成功与否就是一场体验，使出全力把事情做好。</p>
 <p>我是一个有强迫症的人，要么不做，要么做好。我装的电脑，无论是一千五还是三万，轧带、走线都必须规规矩矩，没打算开公司，之前打工的公司，跟同事相处挺好的，在当地做电脑生意二十年了，背后渠道资源还是有很多积累。我打算利用他们的供销渠道，做一个编外的销售员，赚我合理的利润吧。</p>
 <p>我能预想到的一些问题和挑战：
 市场环境、电商竞争、运营能力、特色定位、市场推广、产品质量和服务</p>
 ]]></content:encoded>
-<pubDate>2023-10-29T04:16:31Z</pubDate>
 <pubDate>2023-10-29T00:16:31Z</pubDate>
 </item>
 <item>
@@ -25,11 +331,10 @@
 <link>https://www.v2ex.com/t/986396</link>
 <guid>https://www.v2ex.com/t/986396</guid>
 <content:encoded><![CDATA[
-<div> 黑苹果 节点 m3 开发 学习 剪辑 视频 16/32+512 纠结 pdd 直接购买 新的 m2 二手 m1 意见<br>
+<div> 黑苹果 节点 m3 开发 学习 剪辑 视频 16/32+512 纠结 pdd 直接购买 新的 m2 二手 m1 意见<br />
 总结: 作者正在考虑购买黑苹果用于视频剪辑，目前纠结于是购买新款m2还是二手m1，希望得到意见建议。 <div>
 黑苹果转白<br />目前这个节点，听说 m3 快出来了<br />主要用于开发，有想要学习剪辑视频<br />16/32+512 ，在纠结是 pdd 直接买新的 m2 还是收个二手的 m1 ，求各位给个意见
 ]]></content:encoded>
-<pubDate>2023-10-29T04:11:53Z</pubDate>
 <pubDate>2023-10-29T04:11:53Z</pubDate>
 </item>
 <item>
@@ -37,10 +342,8 @@
 <link>https://www.v2ex.com/t/986394</link>
 <guid>https://www.v2ex.com/t/986394</guid>
 <content:encoded><![CDATA[
-
 刚买 mac 在家插电使用，今天早上开机发现发现 80%，昨晚睡前 99%，各位大佬这个如何解决
 ]]></content:encoded>
-<pubDate>2023-10-29T04:00:48Z</pubDate>
 <pubDate>2023-10-29T04:00:48Z</pubDate>
 </item>
 <item>
@@ -48,10 +351,8 @@
 <link>https://www.v2ex.com/t/986391</link>
 <guid>https://www.v2ex.com/t/986391</guid>
 <content:encoded><![CDATA[
-
 1 、ios 不是不允许后台常驻吗，特斯拉是怎么拉起进程，并在我靠近车时自动解锁的<br />按我的理解 如果不拉起手机 app 进程 只能是车机端蓝牙连接到手机 通过手机唯一的蓝牙 mac 确认车主身份 再解锁<br />2 、定位权限里 我把特斯拉建议的“始终” 改成“使用 app 期间” 会有什么影响
 ]]></content:encoded>
-<pubDate>2023-10-29T03:46:45Z</pubDate>
 <pubDate>2023-10-29T03:50:02Z</pubDate>
 </item>
 <item>
@@ -59,7 +360,6 @@
 <link>https://www.v2ex.com/t/986390</link>
 <guid>https://www.v2ex.com/t/986390</guid>
 <content:encoded><![CDATA[
-
 <p>本人目前使用的是 2021 款 M1 Pro MacBook Pro ，使用 Type-C 扩展 4K 分辨率显示器。</p>
 <p>大约一周前，Chrome 开两个窗体分别在内建显示器和扩展显示器中且全屏时发生卡顿。
 卡顿发生在两个 Chrome 窗体同时在前台显示时。如果只有一个在前台则不卡顿。
@@ -74,14 +374,12 @@
 Chrome 118.0.5993.117</p>
 ]]></content:encoded>
 <pubDate>2023-10-29T03:30:18Z</pubDate>
-<pubDate>2023-10-29T03:30:18Z</pubDate>
 </item>
 <item>
 <title>[问与答] mysql 这个查询速度正常吗，怎么优化？</title>
 <link>https://www.v2ex.com/t/986389</link>
 <guid>https://www.v2ex.com/t/986389</guid>
 <content:encoded><![CDATA[
-
 <p>买的数据库是阿里云的，配置信息：</p>
 <ul>
 <li>数据库类型：MySQL8.0</li>
@@ -120,7 +418,6 @@ create index `pubmed-article-0_journal_pub_year`
 <pre><code class="language-sql">SELECT COUNT(1) FROM `pubmed-article-1`;
 </code></pre>
 ]]></content:encoded>
-<pubDate>2023-10-29T03:10:03Z</pubDate>
 <pubDate>2023-10-29T04:19:31Z</pubDate>
 </item>
 <item>
@@ -128,7 +425,6 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986387</link>
 <guid>https://www.v2ex.com/t/986387</guid>
 <content:encoded><![CDATA[
-
 <p>简单说一下，就是苹果手表遇到了两个问题，一个是续航明显变差，一个是 action button 在 workout app 上工作异常，然后去天才吧维修，一整个过程下来感觉很不舒服，所以忍不住要吐槽一下。</p>
 <p>下面是具体的经过和个人的感受，可能会比较啰嗦，今年 9 月底我从拼多多购入 Apple Watch Ultra 一代，到手之后去当地的 Apple Store 补充购买了 Apple Care+。先说一下续航的问题，刚入手的系统版本是 9 点几，先自己测试了一下续航，按我的使用习惯差不多能到 48 小时，一晚上八小时耗电 10%左右。最初更新到版本 10 的时候，感觉电量有一些下降，但也超出了官方说的 36 小时，所以没太在意。不过最近一两周发现耗电巨快，一晚上八小时要掉 30%，而且是在开了睡眠，熄屏的状态下。日常使用 24 小时基本是极限了，和前一阵子反差非常大，而且重启、包括周四更新到了 10.1 都没有任何改善。针对这个问题，我在周五的时候联系了官方的技术支持，并且运行了诊断程序，对方那边显示循环技术 23 次，最大容量 100%，是正常的，对方得知我已经进行过重启的操作，就说可以到线下去看一下，我让对方帮我预约了周六下午六点的天才吧，天才吧的经历稍后讲，我先说第二个问题。第二个问题是在两周前就出现的，我的 action button 设置的功能是打开 workout ，然后使用的是官方的 workout app ，当选择游泳并设置完泳池长度之后，正常情况下可以通过 action button 来控制运动的开始和暂停，这个界面也是有引导的，我遇到的问题是按钮按下去有动画，这个动画是异常的，然后功能也异常，既不能开始，也不能暂停运动。第一次遇到是一两周前了，重启后就恢复了，但是没几天又遇到了，这次重启也不管用了。这个按钮对我来说还是很重要的，因为游泳开始之后默认是开了防水的，正常你不需要解开防水，按侧边按钮就可以暂停和恢复运动，到现在却需要退出防水模式再暂停，很麻烦。而且这个问题我也很无语，这破按钮在运动的时候就一个暂停和恢复的功能，这种低级 bug 简直逆天。另外补充一下，我周五逛论坛的时候看到有人说重新配对可以解决一些 bug ，所以我下午重新配对了试了下，结果对我一点效果没有。</p>
 <p>下面再说一下去线下天才吧的体验，严格说这是我第二次去天才吧，第一次就是上面提到的购买 AC+，当时是没有预约直接去的，到了之后随便问了一个工作人员，她不是负责这个的，但是还是把我带到了售后那里，并且帮我找了相关的工作人员，整体的购买过程体验都很不错，工作人员也很亲和。不过这次就没这么好了，约的是六点，我到店大概六点十分，同样是随便找了个工作人员，对方就给我指一下，我顺着他指的方向走过去找到了另一个工作人员，然后这个人又给我指了一下，说到黑色围栏那里，我顺着走过去，也没见到有人接我，于是我又去问了一个工作人员，他这次指着一位拿平板的工作人员说先去找他签到，我这才走过去完成了签到。这里解释一下为什么第二次去我还这么愣，好像不知道天才吧在哪儿，事实上我确实不知道天才吧在哪儿，第一次去是全程有人带的，而且当时的工作人员只提到了售后，也没说天才吧，其实我是不清楚这两个是一个东西的，所以即便是第二次去，我依然需要引导，包括签到等等流程我都是不清楚的。签到完成之后就是漫长的等待，等了一个小时才有人来找我。售后过程我先放在后面，这里我要先吐槽几点，</p>
@@ -154,7 +450,6 @@ create index `pubmed-article-0_journal_pub_year`
 唐纳德•A•诺曼</p>
 </blockquote>
 ]]></content:encoded>
-<pubDate>2023-10-29T03:07:58Z</pubDate>
 <pubDate>2023-10-29T03:16:58Z</pubDate>
 </item>
 <item>
@@ -162,11 +457,9 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986384</link>
 <guid>https://www.v2ex.com/t/986384</guid>
 <content:encoded><![CDATA[
-
 <p>抢到了北京消费券，今天 apple watch ultra2 做活动，叠加消费券只需要 5299 ，而且都有货。需要代下单联系我的闲鱼，可帮忙下单。</p>
 <p>[闲鱼] <a href="https://m.tb.cn/h.5SxCKYd" rel="nofollow">https://m.tb.cn/h.5SxCKYd</a> ？ tk=dwgiWcuJozr CZ3457 「我在闲鱼发布了 [北京京东京彩 不代抢 只出 券] 」点击链接直接打开</p>
 ]]></content:encoded>
-<pubDate>2023-10-29T02:59:38Z</pubDate>
 <pubDate>2023-10-28T22:59:38Z</pubDate>
 </item>
 <item>
@@ -174,10 +467,8 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986383</link>
 <guid>https://www.v2ex.com/t/986383</guid>
 <content:encoded><![CDATA[
-
 <p>请问有办法只保留某个人的发言，清理其他所有消息么？大群一接龙就刷好多屏，想翻看之前的通知比较麻烦，想翻看好多天前的通知时，有时候还需要下拉刷新才能显示更久的，比较麻烦。谢谢！</p>
 ]]></content:encoded>
-<pubDate>2023-10-29T02:47:44Z</pubDate>
 <pubDate>2023-10-29T04:05:59Z</pubDate>
 </item>
 <item>
@@ -185,12 +476,10 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986382</link>
 <guid>https://www.v2ex.com/t/986382</guid>
 <content:encoded><![CDATA[
-
 <p>最近开发了一个网页，json 在线解析器。借鉴了网上很多 seo 知识，包括 title 的写法、description 的写法，图片 img 的 alt 优化，h1 段落优化，并且做了移动端的自适应设置。大家看看还有其它需要注意的吗？</p>
 <p>网页地址： <a href="https://fktool.com/json/" rel="nofollow">https://fktool.com/json/</a></p>
 <p>感觉 seo 优化的很好了，但是百度就是不收录它。。大家有什么建议？</p>
 ]]></content:encoded>
-<pubDate>2023-10-29T02:41:59Z</pubDate>
 <pubDate>2023-10-29T03:07:01Z</pubDate>
 </item>
 <item>
@@ -198,11 +487,9 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986381</link>
 <guid>https://www.v2ex.com/t/986381</guid>
 <content:encoded><![CDATA[
-
 <p>最近在准备英语面试，想尝试用 Pramp 配对模拟面试，但是害怕自己英语听力问题导致无法沟通，因此想先和国内的程序员朋友们互相 peer 一下。</p>
 <p>有没有有意愿的朋友，人多的话可以建个微信群。</p>
 ]]></content:encoded>
-<pubDate>2023-10-29T02:25:12Z</pubDate>
 <pubDate>2023-10-28T12:25:12Z</pubDate>
 </item>
 <item>
@@ -210,10 +497,8 @@ create index `pubmed-article-0_journal_pub_year`
 <link>https://www.v2ex.com/t/986393</link>
 <guid>https://www.v2ex.com/t/986393</guid>
 <content:encoded><![CDATA[
-
 Android 应用端开发，需要一名，开发周期很短，因为项目简单，最好是人在南京且有足够的时间来操作 报酬不错。<br /><br />联系我：vx：13913901956
 ]]></content:encoded>
-<pubDate>2023-10-29T03:58:36Z</pubDate>
 <pubDate>2023-10-29T03:55:36Z</pubDate>
 </item>
 <item>
@@ -222,12 +507,9 @@ Android 应用端开发，需要一名，开发周期很短，因为项目简单
 <guid>https://www.v2ex.com/t/985111</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-10-24T20:42:09Z</pubDate>
 <pubDate>2023-10-27T10:32:09Z</pubDate>
 </item>
-
 <item>
 <title>[生活] 记录在网上配了一副眼镜的过程</title>
 <link>https://www.v2ex.com/t/986377</link>
@@ -15945,195 +16227,6 @@ Echarts 这种是可以，但核心只需要从数据库读几条数，弄个前
 换了手机想登陆 whatsapp 结果发现一只收不到短信，电信卡，然后换到安卓机上秒收。。。<br />请问有遇到过吗？
 ]]></content:encoded>
 <pubDate>2023-10-25T01:11:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 推荐一下能识别人脸遮挡摄像头</title>
-<link>https://www.v2ex.com/t/985125</link>
-<guid>https://www.v2ex.com/t/985125</guid>
-<content:encoded><![CDATA[
-下个月宝宝就要出生了，网上看了下小孩使用的摄像头，大部分只有声音检测，小孩哭了会有提示，刷视频看到一款可以检测人脸遮挡的摄像头，爱 U 宝贝智能看护管家，脸部遮挡会有消息推送，不晓得这个厂家怎样，服务是否跟得上。<br />也请大家推荐下能够识别人脸遮挡的摄像头，最好能接入 nas 的，可以保存小孩小时候的视频。
-]]></content:encoded>
-<pubDate>2023-10-25T00:49:36Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 智能合约兼后端攻城狮 @深圳 [全职、内部合伙激励机制]</title>
-<link>https://www.v2ex.com/t/985124</link>
-<guid>https://www.v2ex.com/t/985124</guid>
-<content:encoded><![CDATA[
-智能合约兼后端开发工程师  CV 请 Email：21950775#<a href="http://qq.com" rel="nofollow noopener" target="_blank">qq.com</a> ； wx：purejeff5<br />工作内容：<br />	1.	项目的智能合约开发；<br />	2.	项目系统的架构设计，逻辑功能设计；<br />	3.	后端平台的搭建，API 开发与维护，效能优化；<br />	4.	可与 PM ，前端合作沟通，及时调整开发方向，把控开发进度；<br />	5.	团队合作，共同完成产品测试，积极解决问题。<br /><br />基本要求：<br />	1.	3 年以上后端开发经验，1 年以上智能合约或区块链相关行业/项目开发经验；<br />	2.	熟悉 Solidity 编程，能独立完成业务逻辑的 solidity 智能合约编程实现；<br />	3.	深入理解 EVM ，熟悉以太坊技术，了解常用的跨链技术；<br />	4.	了解各对密码学、安全协议；了解区块链的原理、机制和相关加密算法；<br />	5.	熟悉 Java ，Spring ，NodeJs 或 Python ；<br />	6.	拥有数据库管理经验，如 MySQL, PostgreSQL ，MongoDB ；<br />	7.	熟悉智能合约编写规范和 OpenZeppelin 第三方安全合约库，对各种漏洞及防护有深刻认识；<br />	8.	拥有优秀的发现和解决问题的能力，良好的沟通和团队协作能力，能承担一定压力；
-]]></content:encoded>
-<pubDate>2023-10-25T00:55:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想到个自动挣钱的办法</title>
-<link>https://www.v2ex.com/t/985123</link>
-<guid>https://www.v2ex.com/t/985123</guid>
-<content:encoded><![CDATA[
-<p>写一个爬虫，定期爬取抖音的视频，然后发送到 tiktok 的各个账号上。
-这里的难点是爬视频和通过代码实现登录发布视频吧，代码要怎么写呢？</p>
-]]></content:encoded>
-<pubDate>2023-10-25T01:15:13Z</pubDate>
-</item>
-<item>
-<title>[程序员] 帮朋友做的公司网站给当地网安大队通知有漏洞</title>
-<link>https://www.v2ex.com/t/985121</link>
-<guid>https://www.v2ex.com/t/985121</guid>
-<content:encoded><![CDATA[
-<p>“跨站脚本攻击”...幸好网站是自己写的，很快修复了。如果是第三方 PHP 系统搭建那就够呛。</p>
-]]></content:encoded>
-<pubDate>2023-10-25T01:00:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 第一次用 27 寸 4k 显示器怎么和 23.8 寸 1080p 观感差不多</title>
-<link>https://www.v2ex.com/t/985120</link>
-<guid>https://www.v2ex.com/t/985120</guid>
-<content:encoded><![CDATA[
-双十一买了个红米 27 寸 4k ，昨晚装上后发现观感和之前 1080p 差不多<br />桌面进深是 60cm ，4k 显示器是缩放了 200%（关于缩放系统推荐最佳是 150%，但是我感觉图标小了，这块一般大家多少）。<br />感觉不出和 1080p 的区别，是因为我的壁纸没有 4k 的原因吗，还说说在看 4k 视频的时候体现出来，又或者红米的这个显示器便宜所以显示效果不好，不懂问问。
-]]></content:encoded>
-<pubDate>2023-10-15T01:15:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求个可以匿名短信或者短信代发的平台</title>
-<link>https://www.v2ex.com/t/985119</link>
-<guid>https://www.v2ex.com/t/985119</guid>
-<content:encoded><![CDATA[
-<p>微信上公众号的匿名短信 还是相当于实名了。 电报上的群发 数量太多也用不上。。求推荐。。不涉及任何违法短信 。只是希望把心里话告诉别人</p>
-]]></content:encoded>
-<pubDate>2023-10-25T01:08:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] 代理到阿里云，在双十一参加抢购是否会有优势？</title>
-<link>https://www.v2ex.com/t/985118</link>
-<guid>https://www.v2ex.com/t/985118</guid>
-<content:encoded><![CDATA[
-最近看上了一个活动，前 50 名半折。<br />如果将设备代理到阿里云杭州服务器上，在抢购时是否会具有优势？
-]]></content:encoded>
-<pubDate>2023-10-25T00:36:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 老哥们脱发如何解决</title>
-<link>https://www.v2ex.com/t/985117</link>
-<guid>https://www.v2ex.com/t/985117</guid>
-<content:encoded><![CDATA[
-如题<br />抖音上看到那些直播卖米诺的是不是智商税<br />都想买假发戴了   <br />请各位同病相怜的老哥指条明路
-]]></content:encoded>
-<pubDate>2023-10-25T01:14:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 外人准备在成都买房，感觉有点无从下手的感觉</title>
-<link>https://www.v2ex.com/t/985116</link>
-<guid>https://www.v2ex.com/t/985116</guid>
-<content:encoded><![CDATA[
-成都很大，而且楼盘众多，也不知道哪些区域以及楼盘品质特点是什么，希望尽量以新房 or 二手清水房为主，不考虑什么炒房之类的，就是父母退休后居住，周边能有成熟商超购物方便点。一时真不知道如何下手，该如何从头开始找房
-]]></content:encoded>
-<pubDate>2023-10-25T01:14:45Z</pubDate>
-</item>
-<item>
-<title>[程序员] go 有办法调用基础库 golang.org/x/crypto 的私有结构和方法吗？</title>
-<link>https://www.v2ex.com/t/985115</link>
-<guid>https://www.v2ex.com/t/985115</guid>
-<content:encoded><![CDATA[
-<p>开源项目 <a href="https://github.com/trzsz/trzsz-ssh" rel="nofollow">https://github.com/trzsz/trzsz-ssh</a> 想支持 ssh ControlMaster 的功能。</p>
-<p>go 基础库 <a href="http://golang.org/x/crypto" rel="nofollow">golang.org/x/crypto</a> 有个 PR <a href="https://go-review.googlesource.com/c/crypto/+/383374" rel="nofollow">https://go-review.googlesource.com/c/crypto/+/383374</a> 还没合入。</p>
-<p>有办法在不 fork 基础库 <a href="http://golang.org/x/crypto" rel="nofollow">golang.org/x/crypto</a> 的情况下，优雅地在自己的项目实现这个 PR 的逻辑吗？</p>
-<pre><code class="language-go">import "golang.org/x/crypto/ssh"
-
-func NewControlClientConn(c net.Conn) (ssh.Conn, &lt;-chan ssh.NewChannel, &lt;-chan *ssh.Request, error) {
-  conn := &amp;ssh.connection{     ■ undefined: ssh.connection
-    sshConn: ssh.sshConn{conn: c},     ■ undefined: ssh.sshConn
-  }
-  var err error
-  if conn.transport, err = handshakeControlProxy(c); err != nil {
-    return nil, nil, nil, fmt.Errorf("ssh: control proxy handshake failed; %v", err)
-  }
-  conn.mux = ssh.newMux(conn.transport)     ■ undefined: ssh.newMux
-  return conn, conn.mux.incomingChannels, conn.mux.incomingRequests, nil
-}
-
-</code></pre>
-<p><code>handshakeControlProxy</code> 这个函数很好办，直接从 PR 中复制出来就行了。</p>
-<p><strong>问题：</strong>上面的 <code>ssh.connection</code>、<code>ssh.sshConn</code> 和 <code>ssh.newMux</code> 依赖很深，发现很难直接 copy 出来。</p>
-]]></content:encoded>
-<pubDate>2023-10-25T01:02:25Z</pubDate>
-</item>
-<item>
-<title>[Android] 大家在安卓上都是用的什么输入法？</title>
-<link>https://www.v2ex.com/t/985113</link>
-<guid>https://www.v2ex.com/t/985113</guid>
-<content:encoded><![CDATA[
-现在我用的是讯飞输入法，不过没给联网权限。想找一款能够同时兼顾安全隐私与效率的
-]]></content:encoded>
-<pubDate>2023-10-25T01:07:52Z</pubDate>
-</item>
-<item>
-<title>南京程序员招聘 | 股权激励 | 外企 WLB | 慧咨环球 | 混合办公 | 行业领袖 扁平管理 可移民澳洲</title>
-<link>https://www.v2ex.com/t/870711</link>
-<guid>https://www.v2ex.com/t/870711</guid>
-<content:encoded><![CDATA[
-<p><strong>主要的亮点</strong> </p>
-<ul>
-<li>快速增长的、产品导向型的全球性科技公司</li>
-<li>设计和开发市场领先的软件解决方案</li>
-<li>WLB — 工作生活相平衡</li>
-<li>澳洲排名前五的软件公司</li>
-<li>混合办公 — 3 天在家办公，2 天在办公室办公</li>
-<li>在 C#和 .NET 开发，企业级系统研发，软件工程方面有长期的优秀实践和技术储备     </li>
-</ul>
-<p><strong>慧咨是做什么的？</strong><br />
-慧咨环球（<a href="https://www.wisetechglobal.com/" rel="nofollow">WiseTech Global</a>）是一家快速增长的、产品导向型的全球性科技公司，目前澳交所 50 强，市值 150 多亿澳元。慧咨的使命是通过创造突破性的产品来改变世界，并为全球供应链行业赋能。<br />
-慧咨设计和开发市场领先的软件解决方案，这些解决方案被 165 个国家的超过 1 万 8 千个物流组织所使用。全球物流排名前 50 的公司最少有 45 家在用慧咨的产品，比如 DHL, DSV, GEODIS, UPS 等。</p>
-<p><strong>慧咨的技术栈是什么？</strong><br />
-以 .NET 为主，但是我们不会仅仅只拘泥于 .NET ，比如我们用 Kibana 搭建了一个庞大的可视化数据平台，以供我们可以采集和分析我们发布的服务，以及服务所在的机器的所有数据。 我们的架构组也在尝试用 K8s 重新构建我们的云服务。我们主攻 Web 的一个组在大量的使用 Vue 。我们也在用开源的 Ceph 来存储我们的所有文档内容。我们也有主要用 Python 的组在写 Content Service 。总结下来就是，虽然我们的旗舰产品 CargoWise 是用 C#写成，但是针对产品的周边以及其他的产品的开发，我们并不拘泥于 C#。语言只是一种工具，更重要的是每一个开发人员在编程经验中积累的高度抽象能力，快速学习能力和解决问题能力。所以<strong>我们欢迎有任何语言背景的人给我们投简历</strong>。<br />
-另外我们在用 Blazor 重新构建我们现有产品的架构，把一个现有的庞大的 Winform 为主架构的系统转换成 Blazor 架构是一个非常有挑战性的工作，感兴趣的”Blazorers”欢迎来聊聊。</p>
-<p><strong>慧咨在工程中最关注什么？</strong><br />
-<strong>质量</strong>。我们对代码质量的关注远远高于交付速度。”Slower today, faster forever”是我们做事所遵循的原则之一，我们不会因为追求交付速度而牺牲代码的质量。<br />
-慧咨是一家典型的深耕供应链行业并为行业提供几乎物流全链路功能的操作系统的公司，我们的工作不像国内主流的互联网公司，没有那么高的并发，也没有那么大的流量，但是<strong>用优美的代码和精巧的设计去解决非常复杂的业务问题也是一个优秀的软件工程师的价值体现。</strong></p>
-<p><strong>慧咨需要什么样的候选人？</strong><br />
-解决复杂问题的能力，保持好奇心和热情是我们在工程师中需要的关键技能。
-知识储备，技术能力，沟通和表达能力是我们对候选人最关注的三个点。<br />
-如果你有过长期迭代一个大型项目的经历，并且擅长从非技术角度去分析和理解业务需求，有过带人或者带团队的经验，那么你将是我们非常渴望一起共事的资深工程师。<br />
-如果你深入的从零构建过一个大型的系统，从这个系统的第一行代码到最终交付到客户手中的产品，在这个链条上的每一个环节你都实际解决过安全性 /高扩展性 /高可用性的问题，并且有着非常优秀的技术视野和丰富的架构经验，那么你将是我们非常需要的架构师。<br />
-英语方面，希望能做到基本的读写，在不借助翻译软件的情况下可以阅读大多数技术文档。平时在办公室沟通用中文，但是跟悉尼或者其他国家的同事打电话时，用英文交流，因为微软 Teams 有实时字幕功能，所以我们对候选人的最低听说要求是跟国外同事打电话时可以通过字幕明白对方在说什么，然后你的口语不需要很流畅也不需要很地道，但是至少要让对方听明白你要表达什么。      </p>
-<p><strong>你在慧咨环球将做什么？</strong><br />
-在 CI/CD 的加持下，我们每周会发布大概 3500 次更新。我们践行 TDD ，把质量放在工程实践的核心位置。       </p>
-<ul>
-<li>对所负责产品进行维护和新功能开发，并对复杂问题进行深入分析</li>
-<li>你将迭代、测试、设计和交付高质量的代码，以助力全球供应链</li>
-<li>如果你是一名资深软件工程师，你不但要自己交付高质量的代码，你还要为团队的交付代码质量保驾护航</li>
-<li>你喜欢解决复杂的技术问题，并可以利用不同的技术，与全球开发者团队合作</li>
-</ul>
-<p><strong>慧咨能提供什么样的工作环境以及福利待遇？</strong> </p>
-<ul>
-<li>办公室位置在南京市建邺区的 CBD — 华新城 T6 办公楼（地库可直通华采天地和元通地铁站），旁边就是奥体</li>
-<li>混合办公模式，3 天在家办公，2 天在办公室办公</li>
-<li>每人标配 Dell Precision 5570 工作站笔记本（ 64G 内存，2T SSD ，i9-12 处理器）+ 43 寸  - 4K 显示器 x 2 + 升降办公桌 + 人体工学座椅。PS. 所有的办公桌都是开放式办公桌，没有隔断，也没有单独的办公室。</li>
-<li>为了提高效率，我们购买了 ReSharper 和 Entrian Source Search 的企业授权</li>
-<li>没有加班和打卡，有爱好篮球的小伙伴们会偶尔下了班一起去奥体打打篮球（据说羽毛球和游泳也组织起来了）</li>
-<li>真弹性工作制，有的小伙伴 4 点多就下班，有的 3 点多就下班了。前提是确保自己的<strong>有效工作时间</strong>是 8 小时。</li>
-<li>创始人程序员出身，公司工程师文化，没有政治也没有工作 PUA 。</li>
-<li>有竞争力的薪酬待遇</li>
-<li>每周 Fruit Day ，每月 Cake Day ，免费零食</li>
-<li>股权激励</li>
-<li>入职有 10 天年假，满 3 年有 15 天年假，满 10 年有 20 天年假</li>
-<li>工作满三年可申请移民澳洲（已经有小伙伴过去了）</li>
-</ul>
-<p><strong>其他？</strong><br />
-<a href="https://www.joelonsoftware.com/2000/08/09/the-joel-test-12-steps-to-better-code/" rel="nofollow">Joel Test</a> 可以看此贴： <a href="https://www.zhihu.com/question/493751767/answer/2282085657" rel="nofollow">https://www.zhihu.com/question/493751767/answer/2282085657</a>
-非常赞同<a href="http://mindhacks.cn/2011/11/04/how-to-interview-a-person-for-two-years/" rel="nofollow">刘未鹏说的</a>，也许没有哪个行业像 IT 行业这样，无形资产占据公司的绝大多数资产。而无形资产就是程序员的智力资产，慧咨从成立的第一天起就致力于投资公司的员工，并将开发人员作为业务的核心。非常期待可以在此招到能一起共事的同事们。<br />
-联系 VX： 同 V2 用户名
-<img alt="enter image description here" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yGVwXjO2.png" /></p>
-]]></content:encoded>
-<pubDate>2023-10-25T01:09:24Z</pubDate>
-</item>
-<item>
-<title>大家需要 UI 设计师吗？欢迎咨询</title>
-<link>https://www.v2ex.com/t/985122</link>
-<guid>https://www.v2ex.com/t/985122</guid>
-<content:encoded><![CDATA[
-<p>大家好，我是一名 UI 设计师。最近有些闲暇时间可以帮大家做设计咨询。</p>
-<p>我的个人作品链接 <a href="http://www.liuzongming.cn" rel="nofollow">http://www.liuzongming.cn</a></p>
-]]></content:encoded>
-<pubDate>2023-10-25T00:39:41Z</pubDate>
 </item>
 </channel>
 </rss>
