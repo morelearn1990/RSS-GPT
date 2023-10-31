@@ -5,14 +5,729 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Apple] 这个 18GB、36GB 给我看笑了，苹果真的是太良心了</title>
+<link>https://www.v2ex.com/t/986981</link>
+<guid>https://www.v2ex.com/t/986981</guid>
+<content:encoded><![CDATA[
+<div> 群晖，内存，单独卖，专用内存，M3Max<br><br>总结:<br>这篇文章描述了一个供应商的慷慨行为，虽然他可以像群晖一样只给板载2G内存，然后通过单独卖一条8G的专用内存赚取更多利润，但他还是选择大方地给予了18G的内存，只需3000块可以将内存扩展到36G，但为了避免浪费，需要再支付6000块来升级到M3Max才能选择48G以上的内存容量。 <div>
+他明明可以和群晖一样只给板载 2G 内存，然后空一个槽，单独卖一条 8G 的专用内存收 5000 块的<br />但是他还是大方的直接给了你 18G ，加到 36G 也只需要 3000 块<br />为了怕你浪费，CPU+6000 之后改成 M3Max 才能选 48G 以上的内存
+]]></content:encoded>
+<pubDate>2023-10-31T02:22:50Z</pubDate>
+<pubDate>2023-10-31T02:22:50Z</pubDate>
+</item>
+<item>
+<title>[程序员] golang 后端开发， m1 air 16 + 512 够用吗</title>
+<link>https://www.v2ex.com/t/986980</link>
+<guid>https://www.v2ex.com/t/986980</guid>
+<content:encoded><![CDATA[
+<div> golang, 后端开发, 内存, m1, m3<br><br>总结: 毕业后，鼠鼠打算从事golang的后端开发。目前他使用的是5600g+32+1t的台式机，但是在运行一些工具时，内存不够用。他考虑购买一台16g的m1 air，但也在思考是否攒钱购买更高配置的m3。 <div>
+<p>鼠鼠现在正值毕业，做 golang 后端开发，求各位 v 友指点。目前鼠鼠用的是 5600g+32+1t 的台式机，平时主要用 Arch （ WSL2)、goland 、docker 、redis 、mysql 、chrome 等工具，平时开个 wsl2+goland+docker 没干什么内存就快 16g 了(主要的顾虑就是内存，硬盘 512 够我用了），不知道 16g 的 m1 air 顶不顶得住（还是说攒着换 m3?)</p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:22:35Z</pubDate>
+<pubDate>2023-10-31T02:25:20Z</pubDate>
+</item>
+<item>
+<title>[程序员] 考勤记录缺卡怎么统计？</title>
+<link>https://www.v2ex.com/t/986978</link>
+<guid>https://www.v2ex.com/t/986978</guid>
+<content:encoded><![CDATA[
+
+<p>用户每次打卡根据时间插入打卡状态，如果没有打卡则状态为缺卡，该怎么去统计这个状态记录？会有一个工作日表和打卡点表。 我写定时任务，月度考核表时发现表设计可能有缺陷。 </p>
+<pre><code>/**
+ * 根据当日考勤状态 设置月考核表： 正常、异常、缺卡、早退、考勤率等字段
+ *
+ * @param record                {@link AttendanceRecord}
+ * @param attendanceMonthAssess {@link AttendanceMonthAssess}
+ */
+public void setRecordStatus(AttendanceRecord record, AttendanceMonthAssess attendanceMonthAssess) {
+
+    // 根据今天打卡状态 更新天数
+    Integer signStatus = record.getSignStatus();
+    Integer outStatus = record.getOutStatus();
+    if (outStatus.equals(RecordStatusEnum.IGNORE.getKey()) || signStatus.equals(outStatus)) {
+        switch (signStatus) {
+            case 0:
+                // 异常天
+                attendanceMonthAssess.setAbnormal(attendanceMonthAssess.getAbnormal() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                break;
+            case 1:
+                // 正常天
+                attendanceMonthAssess.setNormal(attendanceMonthAssess.getNormal() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                break;
+            case 2:
+                // 缺卡天
+                attendanceMonthAssess.setAbnormal(attendanceMonthAssess.getAbnormal() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                attendanceMonthAssess.setAbsent(attendanceMonthAssess.getAbsent() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                break;
+            case 3:
+                // 早退天
+                attendanceMonthAssess.setAbnormal(attendanceMonthAssess.getAbnormal() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                attendanceMonthAssess.setEarlyLeave(attendanceMonthAssess.getEarlyLeave() == null ? 1 : attendanceMonthAssess.getNormal() + 1);
+                break;
+            default:
+        }
+    } else {
+        // todo:签到签退状态不同，且签退计入考勤
+
+    }
+</code></pre>
+<p>这是考勤表设计：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>long</td>
+<td>id</td>
+</tr>
+<tr>
+<td>agent_code</td>
+<td>String</td>
+<td>代理人编码</td>
+</tr>
+<tr>
+<td>agent_name</td>
+<td>String</td>
+<td>代理人姓名</td>
+</tr>
+<tr>
+<td>lng</td>
+<td>double</td>
+<td>经度</td>
+</tr>
+<tr>
+<td>lat</td>
+<td>double</td>
+<td>纬度</td>
+</tr>
+<tr>
+<td>sign_address</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>sign_id</td>
+<td>long</td>
+<td>考勤点 id</td>
+</tr>
+<tr>
+<td>sign_time</td>
+<td>datetime</td>
+<td>实际签到时间</td>
+</tr>
+<tr>
+<td>out_time</td>
+<td>datetime</td>
+<td>实际签退时间</td>
+</tr>
+<tr>
+<td>sign_status</td>
+<td>int</td>
+<td>状态：有效、无效、缺卡</td>
+</tr>
+<tr>
+<td>out_status</td>
+<td>int</td>
+<td>状态：有效、无效、缺卡、不计考勤</td>
+</tr>
+<tr>
+<td>face_url</td>
+<td>String</td>
+<td>打卡底片 url</td>
+</tr>
+<tr>
+<td>attendance_group</td>
+<td>String</td>
+<td>考勤组</td>
+</tr>
+<tr>
+<td>modify_by</td>
+<td>String</td>
+<td>修改人</td>
+</tr>
+<tr>
+<td>modify_time</td>
+<td>date</td>
+<td>修改时间</td>
+</tr>
+<tr>
+<td>is_delete</td>
+<td>int</td>
+<td>是否删除</td>
+</tr>
+<tr>
+<td>sign_date</td>
+<td>date</td>
+<td>考勤日期 yyyyMMdd</td>
+</tr>
+<tr>
+<td>extra1</td>
+<td>String</td>
+<td>备用字段 1</td>
+</tr>
+<tr>
+<td>extra2</td>
+<td>String</td>
+<td>备用字段 2</td>
+</tr>
+</tbody></table>
+]]></content:encoded>
+<pubDate>2023-10-31T02:18:04Z</pubDate>
+<pubDate>2023-10-31T02:15:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] [求问] Mac 怎么快速同一应用下切换不同窗口</title>
+<link>https://www.v2ex.com/t/986977</link>
+<guid>https://www.v2ex.com/t/986977</guid>
+<content:encoded><![CDATA[
+
+command+`<br />可以实现非全屏下的单应用切换窗口，但是全屏状态下好像就不管用了
+]]></content:encoded>
+<pubDate>2023-10-31T02:16:04Z</pubDate>
+<pubDate>2023-10-30T10:16:04Z</pubDate>
+</item>
+<item>
+<title>[macOS] Mac 更新系统版本后，部分设置丢失</title>
+<link>https://www.v2ex.com/t/986976</link>
+<guid>https://www.v2ex.com/t/986976</guid>
+<content:encoded><![CDATA[
+
+之前从 13 升到 14 、从 14 升到 14.1 ，都会出现部分设置丢失的情况，我发现的有以下：<br />1. 键盘设置丢失，如 FN 键、修饰键变成默认<br />2. 蓝牙鼠标的指针移动速度变成默认<br />3. keyboardholder 设置变成默认<br />4. 触控板三指移动选中文本功能失效，变成默认<br /><br />使用 Mac 不久，不知道这些现象是不是正常的
+]]></content:encoded>
+<pubDate>2023-10-31T02:15:47Z</pubDate>
+<pubDate>2023-10-31T02:15:47Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 看苹果的跑分， M3 较 M1 提升 50%， M3 Pro 较 M1 Pro 提升 70%，买 Mac 可以隔三代更新看来是没问题。</title>
+<link>https://www.v2ex.com/t/986975</link>
+<guid>https://www.v2ex.com/t/986975</guid>
+<content:encoded><![CDATA[
+
+<p>和 A17 Pro 一样，CPU 提升比较细微，但是有了风扇加持，性能释放好了不怕积热，性能释放比较充分。</p>
+<p>同样也是 A17 Pro 的思路，GPU 提升确实明显。M3 的 GPU 性能已经小超越 M1 Pro 了。用 M3 Pro + GPTK 玩游戏的体验应该会有比较显著的提升。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:12:32Z</pubDate>
+<pubDate>2023-10-31T02:17:18Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如果实现定时关闭 PC 端微信，移动端微信上方 windows 微信已登录也一同退出</title>
+<link>https://www.v2ex.com/t/986974</link>
+<guid>https://www.v2ex.com/t/986974</guid>
+<content:encoded><![CDATA[
+
+<p>在公司会登录个人微信，就配置了 windows 任务计划，到下班的时候自动杀掉微信进程，但是这个方法存在一个问题，就是移动端还是会显示 windows 微信已登录，不会有消息提醒。<br />
+想看看大家有没有相同的需求及更好的解决方法  </p>
+<p>当前使用的 bat 脚本</p>
+<pre><code>@ echo off
+taskkill /f /t /im "WeChat.exe"
+echo exit
+exit
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-10-31T02:10:45Z</pubDate>
+<pubDate>2023-10-31T02:11:46Z</pubDate>
+</item>
+<item>
+<title>[V2EX] 10 年签到成就达成</title>
+<link>https://www.v2ex.com/t/986973</link>
+<guid>https://www.v2ex.com/t/986973</guid>
+<content:encoded><![CDATA[
+
+<p>虽然开了自动签到，但是每天上班第一件事还是打开 V2EX 摸一会儿再开始工作</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic3.58cdn.com.cn/nowater/webim/big/n_v23f01f3da8449403896dddb4c4b2001c0.jpg" /></p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:10:43Z</pubDate>
+<pubDate>2023-10-31T02:24:36Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 万豪五星酒店大堂免费沙发 CN2 宽带 50 兆上下对等 WiFi 用 Macbook 真香，相比星巴克那 WiFi 和椅子音乐好太多了。累了回家再睡觉。大堂也没要求必须入住酒店。</title>
+<link>https://www.v2ex.com/t/986972</link>
+<guid>https://www.v2ex.com/t/986972</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-31T02:08:10Z</pubDate>
+<pubDate>2023-10-31T02:05:10Z</pubDate>
+</item>
+<item>
+<title>[问与答] 堂妹刚上大一，求推荐笔记本预算 8k</title>
+<link>https://www.v2ex.com/t/986971</link>
+<guid>https://www.v2ex.com/t/986971</guid>
+<content:encoded><![CDATA[
+
+<p>求大佬们推荐，大致需求如下
+1 、预算 8k ，外观好看点稍微轻点的
+2 、专业主要是 CAD 画图，性能得足够支撑大学读完
+3 、显示效果稍微好点的，护眼</p>
+<p>麻烦大佬们了，不胜感激~</p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:07:51Z</pubDate>
+<pubDate>2023-10-31T02:16:26Z</pubDate>
+</item>
+<item>
+<title>[程序员] 类似于好友推荐有没有比较好的实现方案推荐？</title>
+<link>https://www.v2ex.com/t/986970</link>
+<guid>https://www.v2ex.com/t/986970</guid>
+<content:encoded><![CDATA[
+
+<p>案例：  根据用户的地理位置、性别、年龄、星座等多属性给用户推荐最适合他的其它用户，过程中涉及到每个属性不同加权，并最终排序</p>
+<p>有没有大佬做过类似的案例，有没有好的实现方案推荐的？</p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:06:53Z</pubDate>
+<pubDate>2023-10-31T02:21:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 😮 向大数据大佬请教个队列分析的实现</title>
+<link>https://www.v2ex.com/t/986969</link>
+<guid>https://www.v2ex.com/t/986969</guid>
+<content:encoded><![CDATA[
+
+<p>事情是这样的，我想分析电商平台，用户注册后，在 24h 内完成了下第一单的操作，都有哪些用户？占注册用户的百分比是怎样的？</p>
+<p>想通过日志去分析（日志有 uid, timestamp, path ），同一个用户 访问了 /register 后 24h 内访问了 /order 接口，这样来做统计。</p>
+<p>对于这种情况，日志一般用什么存储比较方便这类的分析？ MySQL ？ PostgreSQL ？ ElasticSearch ？ MongoDB ？
+或者其他的存储方式？</p>
+<p>有没有好用的集成 UI 的，可以直接拖拽生成分析统计、百分比图表这样的工具？</p>
+<p>感谢 🙏🏻</p>
+]]></content:encoded>
+<pubDate>2023-10-31T02:06:20Z</pubDate>
+<pubDate>2023-10-31T02:06:20Z</pubDate>
+</item>
+<item>
+<title>[程序员] 针对手写的纸质文件，目前有没有 OCR 厂家能做到准确识别的呢？</title>
+<link>https://www.v2ex.com/t/986968</link>
+<guid>https://www.v2ex.com/t/986968</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-31T02:00:55Z</pubDate>
+<pubDate>2023-10-31T02:15:39Z</pubDate>
+</item>
+<item>
+<title>[Apple] M1/M2 觉得被背刺的，看了这个也许能让你释怀</title>
+<link>https://www.v2ex.com/t/986967</link>
+<guid>https://www.v2ex.com/t/986967</guid>
+<content:encoded><![CDATA[
+
+<p>我看发布会的时候：我操 M3 提升这么大，我操 14 寸起售价-500 刀，我操这么牛逼！才刚买的 M1/M2 啊，背刺好痛😭</p>
+<p>具体配置和价格出来之后：就这？</p>
+<p>槽点 1 起售价-500 刀，原来是把处理器阉割成了普通版 M3 ，不是厨子搞慈善
+槽点 2 万年 8G 内存起步，仍然是金子做的，第二档从 16G 升级到 18G ，“史诗级升级”
+槽点 3 除了处理器其他几乎没变化，内存带宽反向升级降了，续航也没变。</p>
+<p>总结：
+1.M3 Max 型号这回 CPU 部分终于比 Pro 型号强了不少，总算是对的起 Max 的名字了，提升很大，但发布会上各种 X 倍提升也都是基于此最强型号，如果你是 M1/M2Pro 用户，其实 CPU 部分和神经引擎没多大提升。</p>
+<p>2.本次升级最大的应该是 GPU 部分，不仅加入了光追还有 av1 解码。</p>
+<p>最终还是要看等发售之后的具体跑分吧。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:59:41Z</pubDate>
+<pubDate>2023-10-31T02:23:16Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [送会员] 时隔半个月， Inke AI 笔记功能更新，支持多人协作+Chat with note 小组件</title>
+<link>https://www.v2ex.com/t/986966</link>
+<guid>https://www.v2ex.com/t/986966</guid>
+<content:encoded><![CDATA[
+
+<p>继半个多月前 MVP 版本发布 (回顾 <a href="https://www.v2ex.com/t/980321" rel="nofollow">https://www.v2ex.com/t/980321</a>)，Inke 笔记更新了一大波功能，以及体验优化，主要新增功能：</p>
+<ul>
+<li>AI 功能增强：文本优化/润色/翻译、Chat with note 小组件</li>
+<li>跨设备同步笔记</li>
+<li>多人实时在线协作（需登录）</li>
+<li>导出多种格式：Markdown/PDF/png/Json</li>
+</ul>
+<p>APP 地址： <a href="https://inke.app" rel="nofollow">https://inke.app</a></p>
+<p>并且，所有功能依然免费使用。为了方便 V 友体验多人协作功能，我创建了一个 V2EX 协作空间，欢迎来体验： <a href="https://inke.app/invite/6540596fb99ad95064d2371e" rel="nofollow">https://inke.app/invite/6540596fb99ad95064d2371e</a></p>
+<p>[送会员]  Inke 目前是 Beta 阶段，只需在 Product Hunt 给一个 UPVOTE ，然后发送一封名为“申请升级”的电子邮件至 <a href="mailto:team@inke.app">team@inke.app</a> ，发送内容包含注册 inke.app 邮箱、Product Hunt 昵称以及备注 V2EX ，即可将你的账号升级到 [ Pro ] ，永久有效！在评论区回复我将尽快处理。
+Product Hunt： <a href="https://www.producthunt.com/products/inke" rel="nofollow">https://www.producthunt.com/products/inke</a></p>
+<p>部分截图
+<img alt="" class="embedded_image" rel="noreferrer" src="https://gcloud-1303456836.cos.ap-chengdu.myqcloud.com/inke/e2.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://gcloud-1303456836.cos.ap-chengdu.myqcloud.com/inke/e1.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://gcloud-1303456836.cos.ap-chengdu.myqcloud.com/inke/TinySnap-2023-10-31-09.56.17.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:58:54Z</pubDate>
+<pubDate>2023-10-31T01:56:54Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] M3 Max 是选 14 核+96G 内存还是 16 核+64G 内存？</title>
+<link>https://www.v2ex.com/t/986965</link>
+<guid>https://www.v2ex.com/t/986965</guid>
+<content:encoded><![CDATA[
+
+<p>全栈开发，平时经常跑 Goland,Xcode,Android Studio,VSCode ，再加跑模拟器，Chrome ，Node ，Docker 这些，36 怕不够</p>
+<p>64G 完全够用，14 核竟然不给选 64G</p>
+<p>14 核+96G 和 16 核+64G 价格差不多，两个应该比较大的差别在 GPU ，做开发应该用不了那么好的 GPU</p>
+<p>再吐槽一句，硬盘竟然只能 1T 起，512 完全够用</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:58:26Z</pubDate>
+<pubDate>2023-10-31T02:08:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] CAD 智能识图 预处理图片分割问题请教</title>
+<link>https://www.v2ex.com/t/986964</link>
+<guid>https://www.v2ex.com/t/986964</guid>
+<content:encoded><![CDATA[
+
+<p>坐标设计院，应科改要求，领导想做一些智慧创新的东西，被临时抓来干活。。。
+想实现的是 CAD 智能识图功能，我想的第一步是，在图纸上标注出说明/尺寸标注/表格等图元，通过深度学习，达到识别图元区域并输出，后续再对输出的区域做 OCR 识别。
+现在我手头有 1000 张左右的 CAD 扫描图纸，分辨率极高，尺寸大约是 12000×8000 像素。我尝试着标注了几十张，将其 resize 到 640×640 像素，图纸直接马赛克了，看不清任何信息...学习的效果也非常非常差。</p>
+<p>我有几个问题请教，希望能给我一个大概的思路
+1.该怎样对图片做预处理以在不丢失过多特征的前提下缩减像素？如果直接简单粗暴将每张图裁剪为等大的几份，会有一些图元被分割，这样影响学习效果吗？是否有开源项目可以裁剪出有内容的几小块，将空白舍弃？
+2.如果学习时将图片裁剪了，那么识别时是否也应该先裁剪再分别输入？这样会丢失掉被分成两段的图元信息吗？
+3.是否有现成的轮子可参考？
+问的问题非常小白，各位大佬不吝赐教，感谢！！</p>
+<p>标注完的 CAD 图纸大概长这样
+<a href="https://imgur.com/a/HYDdEQz" rel="nofollow">https://imgur.com/a/HYDdEQz</a></p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:57:54Z</pubDate>
+<pubDate>2023-10-31T02:12:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何提醒老人家出门记得关燃气灶</title>
+<link>https://www.v2ex.com/t/986963</link>
+<guid>https://www.v2ex.com/t/986963</guid>
+<content:encoded><![CDATA[
+
+<p>家里有老人家，他们试过几次忘记关燃气灶，搞到多次烧焦铁窝，但是家里的烟雾报警器，反而没有响起来，有无有什么技术手段可以实现,当燃气灶明火时，持续 5 分钟监测不到人存在，就自动远程推送打电话给老人家。问题是燃气灶明火时，5 分钟内没有人移动，这个需要什么硬件去配合</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:56:05Z</pubDate>
+<pubDate>2023-10-31T02:24:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 新出的 Apple M3 大家怎么看？</title>
+<link>https://www.v2ex.com/t/986962</link>
+<guid>https://www.v2ex.com/t/986962</guid>
+<content:encoded><![CDATA[
+
+看样子 GPU 性能提升很大，CPU 性能提升 10%～ 20%？还有黑色款。<br />最主要的是一个月前刚买了 M2 Max ，不是说好的明年才出 M3 吗。相同档位价格完全没涨，这一刀背刺得我心疼，求安慰
+]]></content:encoded>
+<pubDate>2023-10-31T01:55:55Z</pubDate>
+<pubDate>2023-10-31T02:01:32Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 北京月付 206 的联通 1000M 宽带套餐来了</title>
+<link>https://www.v2ex.com/t/986961</link>
+<guid>https://www.v2ex.com/t/986961</guid>
+<content:encoded><![CDATA[
+
+<p>前天看到有朋友需要，我发下套餐价格，有需要的朋友可以留下联系方式。仅限 010 地区哈</p>
+<p>亮点 1：月付、月付、月付
+亮点 2:无需开通新号，旧的联通手机号就可以</p>
+<p>套餐有 3 个档，</p>
+<p>市场价格的 299 的，专属价 206 ，1000M 宽带，60G 流量，3000 分钟。每月互联网权益 2 个（主卡一个副卡一个）</p>
+<p>255 的，专属价 176 ，套餐一样，每月 1 个互联网权益（主卡一个）</p>
+<p>176 的，专属价 136 ，42G ，1500 分钟，500M 宽带</p>
+<p>注意注意注意：
+1 、办理流程，需要你发身份证号给我，我给你办理</p>
+<p>2 、两年的合约，每月按月付费，手机号每月充值你的套餐额度就行</p>
+<p>3 、无续任何其他费用，只我这边收 100r 手续费。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:45:34Z</pubDate>
+<pubDate>2023-10-31T02:18:01Z</pubDate>
+</item>
+<item>
+<title>[分享发现] win on arm 会迎来转机？</title>
+<link>https://www.v2ex.com/t/986960</link>
+<guid>https://www.v2ex.com/t/986960</guid>
+<content:encoded><![CDATA[
+
+<ul>
+<li>
+<p>背景：高通骁龙 X Elite ，cpu 性能约等于 m1max (&gt; r7 7840h) ,gpu 约等于 m1 </p>
+</li>
+<li>
+<p>论点：硬件的底座已经准备就绪, 就看转译后的效率了，能到 70%-80% ，体验就和普通电脑没太大差别了，关键续航也能略有提升，重点追平 x86 架构，略有小超越，后面就看价格和微软的动作了</p>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-10-31T01:45:34Z</pubDate>
+<pubDate>2023-10-31T02:19:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 5K 屏（Studio Display）和 4K miniled 屏的抉择</title>
+<link>https://www.v2ex.com/t/986959</link>
+<guid>https://www.v2ex.com/t/986959</guid>
+<content:encoded><![CDATA[
+
+Studio Display：<br />优点：<br />1.自带音响和 hud ，感觉是我极简桌面的究极助力（而且听说音响效果也不差）<br />2.好看？     <br />缺点：<br />1.没有 miniled or oled （就是个普通 lcd ）<br />2.不知道 5k 分辨率对 ps5 or switch 等主机的支持如何<br />     <br />4k miniled(不特指品牌）：<br />优点：显示效果出众,且外接游戏主机很舒服<br />缺点：内置不够多，外接游戏主机的音频输出应该还要外接个音响？（不太清楚）<br /><br />目前用的是 34 寸外星人的 2k 带鱼屏+一个 27 寸副屏用作办公，还有一个索尼的 4k oled 55 寸电视（在考虑要不要直接用这个来做显示器算了），在纠结要不要升级一波办公分辨率，特来咨询一下 v 友们的建议
+]]></content:encoded>
+<pubDate>2023-10-31T01:45:19Z</pubDate>
+<pubDate>2023-10-31T01:42:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 群晖的照片如何优雅方便的下载到新的 iPhone ？</title>
+<link>https://www.v2ex.com/t/986958</link>
+<guid>https://www.v2ex.com/t/986958</guid>
+<content:encoded><![CDATA[
+
+<p>RT
+原来使用 iPhone se,照片全存在 iCloud 上，后来换用安卓机器，遂将照片全部上传到群晖 NAS 中,手机中，iCloud 中的照片全都删除了。现在换用 iPhone ，应该通过什么方式将大量的照片同步到手机本地？
+网上大多数教程是说怎么同步到 NAS 的，反过来的比较少。
+还有就是我这 NAS 不支持 docker 好像不能直接同步到 iCloud ，我也不想用太大的 iCloud ，还是希望能直接同步到手机中。
+第二个问题是:同步到手机中的照片会不会又被备份到 NAS 中存储为两份？</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:45:11Z</pubDate>
+<pubDate>2023-10-31T01:53:20Z</pubDate>
+</item>
+<item>
+<title>[VPS] 不懂就问，腾讯云这种正常吗</title>
+<link>https://www.v2ex.com/t/986956</link>
+<guid>https://www.v2ex.com/t/986956</guid>
+<content:encoded><![CDATA[
+
+<p>吐槽下，我在腾讯云购买了一个轻量服务器，一直运行好好的，最近两天各种服务无法访问，我查来查去以为服务器被攻击了，最后登到腾讯云上，发现公网 ip 都 ping 不通，联系客服，直接撂挑子,让我换公网 ip
+<img alt="图片" class="embedded_image" rel="noreferrer" src="https://czcsw-1256525464.cos.ap-chengdu.myqcloud.com/images/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20231031093950.png" /></p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:42:21Z</pubDate>
+<pubDate>2023-10-31T01:55:07Z</pubDate>
+</item>
+<item>
+<title>[iOS] 现在的 iOS 还有像以前的音量限制设置吗？</title>
+<link>https://www.v2ex.com/t/986955</link>
+<guid>https://www.v2ex.com/t/986955</guid>
+<content:encoded><![CDATA[
+
+<p>以前的版本，在 apple music 里打开音量限制，设置一个最大音量，然后手机音量就能在这个范围内调节，借此设置可以降低最小音量，即实现音量微调化。
+现在的耳机-安全设置，打开降低高音量后，耳机里的最低音量竟然会变高，搞不懂...第三方耳机。</p>
+<p>控制中心里面的音量滑块微调，对我这个耳机没有效果。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:37:37Z</pubDate>
+<pubDate>2023-10-31T01:37:37Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [赠码] 瓦尔登 3.0 更新了，欢迎大家下载体验</title>
+<link>https://www.v2ex.com/t/986954</link>
+<guid>https://www.v2ex.com/t/986954</guid>
+<content:encoded><![CDATA[
+
+<p>瓦尔登 是一款集合了 日程管理（待办事项）、目标管理、笔记记录的应用，得到不少用户的喜爱，曾获得苹果编辑、PriceTag 的推荐  </p>
+<p>更详细的介绍，可在 <a href="https://apps.apple.com/cn/app/id1595313870" rel="nofollow">App Store</a> 查看</p>
+<p>近期更新了 3.0 版本，主要是优化了日历页面的使用</p>
+<p>双 11 来临，在这里给大家赠送兑换码（限额 500 个） ：  </p>
+<p>在会员页面，点击  [兑换代码] ，输入 <em><strong>WALDEN11</strong></em>，即可免费领取<em><strong>年度会员 1 个月</strong></em>的试用资格<br />
+<em><strong>（需要注意的是，一个月试用到期会自动扣费，如果担心请务必在到期前 24 小时取消）</strong></em></p>
+<p>从 11 月 1 日起 至 11 月 15 日，<em><strong>终身会员</strong></em>也会有优惠，可以关注一下</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2023/10/31/7b2c36b589538c70.png" /></p>
+<p>另外预告一下，瓦尔登 iPad 适配版本也在开发了，设计稿如下，希望今年能上线！
+<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2023/10/31/d5399215a48d7696.png" /></p>
+<p>如果对 瓦尔登 有什么建议，欢迎大家留下评论，感谢各位支持啦</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:36:16Z</pubDate>
+<pubDate>2023-10-31T01:36:16Z</pubDate>
+</item>
+<item>
+<title>[VPS] 美亚的 free tier 你们都怎么用的</title>
+<link>https://www.v2ex.com/t/986953</link>
+<guid>https://www.v2ex.com/t/986953</guid>
+<content:encoded><![CDATA[
+
+美亚的 free tier 你们都怎么用的，我都是申请个证书就关机了，基本没怎么用，上月还付费了$0.14 ，另外有到期的小伙伴吗，这个到期后怎么办，删除实例吗？
+]]></content:encoded>
+<pubDate>2023-10-31T01:34:41Z</pubDate>
+<pubDate>2023-10-31T02:12:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 问问 i 人应该发什么朋友圈</title>
+<link>https://www.v2ex.com/t/986952</link>
+<guid>https://www.v2ex.com/t/986952</guid>
+<content:encoded><![CDATA[
+
+<p>目的是为了解决“微信朋友圈有内容”的问题</p>
+<p>提前说好，我确实没有产生什么关于“那么多年不用朋友圈，不奇怪吗”有什么不妥的问题，以前也会用 qq 微博推特小红书啥的，发一些兴趣爱好，但是主要是二次元方面的</p>
+<p>随着需要接触点人，不管同性异性，这一年来，发觉成立了一个“我越来越需要一个朋友圈，才能不被当做异类”的观点</p>
+<p>而且因为上班了，在老板同事们以及邻居老太快递小哥面前要装出正经的样子，我是不可能在朋友圈里面发二次元的</p>
+<p>一年不会去几次旅游，若是吃饭拍个照什么的，我前阵子去打卡了几家网红店，发现发不出手，吃个饭有什么好发的...太尴尬了，也没钱没什么好晒的物品，当然也不爱运动，不爱看正经书</p>
+<p>求解求解</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:34:10Z</pubDate>
+<pubDate>2023-10-31T02:25:44Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [日本] [ Java 后端 7 人][前端开发 2 人] [unity 游戏开发 5 人]</title>
+<link>https://www.v2ex.com/t/986951</link>
+<guid>https://www.v2ex.com/t/986951</guid>
+<content:encoded><![CDATA[
+
+<p>关于集团： 公司财团内部有医院，有饭店，有民宿酒店，还有软件外包业务（不是人力外派，是项目的外包，比如政府的标），上述业务涉及到东南亚（主要是菲律宾，马来西亚，真不去缅甸），日本，韩国，以及欧洲一些小国（葡萄牙，瑞士之类），集团流水现在每个月保守估计大概 20 亿日元。</p>
+<p>关于身份： 来了会尽量帮你搞高度人才（高才费用自理 15W 日元，转正后会报销 10W ），80 分 1 年拿绿卡 70 分 3 年拿绿卡，是积分制的（虽然会帮你想办法搞分，但是你分不够~我是真没办法） 不满足高度人才的看你自身资历，普通工作签证是 3-5 年。</p>
+<p>关于工作方式： 不要求任何语言能力！不要求任何语言能力！不要求任何语言能力！ （ HP 后勤之类的 30%是日本人，基本的开发 70%是中国人，这个 70%里面又有 30%是台湾人）</p>
+<p>工作地点：日本-大阪</p>
+<p>投递方式：Y2FiYmFnZWRldmlsMTYzQGdtYWlsLmNvbQ==</p>
+<p>[java 后端]
+[薪资待遇] ：600W-1000W 7 人
+[岗位职责] ：
+1 、负责需求对接、需求分析、技术选型、技术实现方案，以及开发计划；
+2 、负责核心模块设计，主导项目开发，合理进行任务分工和进度把控；
+3 、审核测试总体方案，不断优化提升项目质量和用户体验，撰写相关技术文档；
+4 、对上线产品做好全程技术支撑，及时分析解决客户问题或隐患问题，能对技术风险进行提前预判；
+5 、做好源码版本管理，可能需要指导初级开发人员开发。
+[职位要求]：
+1 、计算机相关专业全日制本科及以上学历（优先，签证也比较好搞，没有学历歧视）
+2 、具有 Java 开发 5 年以上编码经验，熟悉 Java 设计模式，扎实的 Java 基础，良好的编码习惯；
+3 、熟悉 mysql 数据库，Elasticsearch ，熟练使用 sql 语句；
+4 、熟悉 spring boot 、netty 、spingcloud 、redis 、nginx 、json 等技术；
+5 、熟练使用 IDEA 、Git 、maven 、Jenkins 等常见工具和技术；
+6 、熟练使用 Shiro 、apache Security 安全架构、MyBatis 、MQ 等技术；
+7 、熟悉 redis 、kafka 、nginx 、docker 等，熟悉常用的 linux 命令，能进行系统部署和基本运维操作
+8 、熟悉 Jmeter 等测试工具，良好的软件品质意识，能够积极协同测试工作，需要具有一定的抗压能力；
+9 、有大厂背景优先、研究所优先；</p>
+<p>[前端开发]
+[薪资待遇] ：400W-1000W 2 人
+[岗位职责] ：
+1 、带领团队完成公司 web 、H5 等项目的开发及迭代优化；
+2 、搭建或持续改进前端开发技术框架，提高团队的开发效率；
+3 、优化及创新现有团队开发流程、开发框架及项目管理模式。
+[任职要求]：
+1 、5 年以上工作经验，全日制本科及以上学历，计算机相关专业；（优先，签证也比较好搞，没有学历歧视）
+2 、深入理解 W3C 标准和 ES6 规范，熟悉 Web 语义化，浏览器兼容性及移动端适配；
+3 、熟练使用 Vue 、React 等 前端框架，熟悉源码，理解底层实现原理；
+4 、理解 webpack 、vite 等打包原理，有多端开发、兼容性、性能优化和网络安全开发经验；
+5 、熟练微信小程序开发，并参与过完整的微信小程序开发部署审核上线流程；
+6 、有参与大中型高并发项目经验，能独立搭建前端开发框架，并持续优化；
+7 、掌握 Nginx 基本配置使用，有实际解决生产跨域代理经验；
+8 、熟练使用 git 、linux 常用基本命令，掌握常用计算机程序算法和数据结构；
+9 、有大厂背景优先 、研究所优先；</p>
+<p>[unity 游戏开发]
+[薪资待遇] :600W-1000W 5 人
+[岗位职责] :
+1 、根据产品部门需求，快速准确理解产品策划案并负责评估策划方案的技术可行性，完成项目前端程序架构的设计和技术方案规划，构建开发环境及周边工具开发;
+2 、负责客户端的特效实现效果的研发、负责核心系统的开发与指导，负责逻辑的开发和维护;
+3 、负责对项目存在的性能问题进行分析与解决，解决项目中的技术难题;
+4 、建立研发周期，严格把控开发进度，建立完善的测试体系，减少 bug 复现率;
+5 、优化 unity3d 引擎以及内部使用工具的开发，工作质量把控、技术提升工作;
+6 、持续学习相关技术知识、优化内部使用工具，与团队共同成长。 </p>
+<p>[任职要求] :
+1 、精通 C++/C#，熟悉 Unity3d 游戏引擎架构设计，熟悉游戏的图形显示技术及 3D 算法，游戏后期效果优化;
+2 、了解 unity3D 渲染，并可以自行查找或优化客户端效率问题，有多款 U3D 游戏开发经验，熟悉 Direct3D 或 OpenGL;
+3 、熟悉游戏项目开发流程、规范，有良好的编程习惯和数字基础;
+4 、善于沟通、乐于分享、积极向上、有良好的团队意识和合作精神。
+5 、有弹幕游戏类者会以较高薪酬优先录取</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:33:40Z</pubDate>
+<pubDate>2023-10-31T02:17:44Z</pubDate>
+</item>
+<item>
+<title>[浏览器] 安卓浏览器语音朗读哪家强</title>
+<link>https://www.v2ex.com/t/986948</link>
+<guid>https://www.v2ex.com/t/986948</guid>
+<content:encoded><![CDATA[
+
+edge 的大声朗读挺好用的，但是浏览器本身太臃肿了。想用 via 这种简单一点的，但是奈何没有朗读功能。<br />所以想问问大家有没有一款简单而又有朗读功能的浏览器
+]]></content:encoded>
+<pubDate>2023-10-31T01:28:53Z</pubDate>
+<pubDate>2023-10-31T01:26:53Z</pubDate>
+</item>
+<item>
+<title>[Apple] macbook pro 8GB 起步</title>
+<link>https://www.v2ex.com/t/986947</link>
+<guid>https://www.v2ex.com/t/986947</guid>
+<content:encoded><![CDATA[
+
+<p>wow, amazing, ONLY APPLE CAN DO!</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:28:36Z</pubDate>
+<pubDate>2023-10-31T01:26:36Z</pubDate>
+</item>
+<item>
+<title>[Apple] 准备换机，就想问下 m3 实际到底如何？性能和功耗。</title>
+<link>https://www.v2ex.com/t/986946</link>
+<guid>https://www.v2ex.com/t/986946</guid>
+<content:encoded><![CDATA[
+
+<p>发布会突然就开完了，现在用的 intel 2017 年的 mbp 16g 内存。
+目前使用体验还可以，感觉还能再战 2 年。现在犹豫买不买，有些问题想咨询下顺便当个伸手党</p>
+<ol>
+<li>之前都说台积电的 3nm 不成熟现在是次品，等下一个版本的 3nm 要飞跃这个事情是真的吗？</li>
+<li>这款 m3 的实际功耗和性能到底如何呢？</li>
+<li>下次的芯片（ m4 ）按照目前台积电的情况来看，是类似 m2 的提升，还是会有大幅度提升？</li>
+<li>电脑的重量是否有所降低呢？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-10-31T01:25:14Z</pubDate>
+<pubDate>2023-10-31T02:14:45Z</pubDate>
+</item>
+<item>
+<title>[Apple] M3 终于终于出 黑色了</title>
+<link>https://www.v2ex.com/t/986945</link>
+<guid>https://www.v2ex.com/t/986945</guid>
+<content:encoded><![CDATA[
+
+<p>从我 16 年买第一个 mbp 就开始纳闷为什么笔电系列没有黑色，从 xsmax 后  iPhone 也从未出过黑色配色。</p>
+<p>现在终于来了。。看来明年的 iPhone 也有希望恢复黑色配色了。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:23:19Z</pubDate>
+<pubDate>2023-10-30T22:22:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求电子书阅读软件推荐</title>
+<link>https://www.v2ex.com/t/986944</link>
+<guid>https://www.v2ex.com/t/986944</guid>
+<content:encoded><![CDATA[
+
+<p>有没有这种软件，支持多端并且支持进度同步，支持多种电子书格式。</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:21:09Z</pubDate>
+<pubDate>2023-10-31T02:22:17Z</pubDate>
+</item>
+<item>
+<title>[Apple] 每次发布会都有人认为没新意，过去十年有哪些苹果产品让你觉得「有新意」？</title>
+<link>https://www.v2ex.com/t/986943</link>
+<guid>https://www.v2ex.com/t/986943</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-10-31T01:20:45Z</pubDate>
+<pubDate>2023-10-31T02:18:10Z</pubDate>
+</item>
+<item>
+<title>[Apple] 真失望， magic 系列配件没更新</title>
+<link>https://www.v2ex.com/t/986942</link>
+<guid>https://www.v2ex.com/t/986942</guid>
+<content:encoded><![CDATA[
+
+<p>imac 都更新了，还以为今年会把 magic 系列配件都更新 typec 的</p>
+]]></content:encoded>
+<pubDate>2023-10-31T01:19:55Z</pubDate>
+<pubDate>2023-10-31T01:32:42Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 为啥 14 寸 MacBook Pro M3 Pro/Max 续航只有 18 小时</title>
+<link>https://www.v2ex.com/t/986941</link>
+<guid>https://www.v2ex.com/t/986941</guid>
+<content:encoded><![CDATA[
+
+这下只能买 16 寸 MacBook Pro 了
+]]></content:encoded>
+<pubDate>2023-10-31T01:19:21Z</pubDate>
+<pubDate>2023-10-31T01:23:50Z</pubDate>
+</item>
+<item>
+<title>求助，程序员薪资一般要给多少</title>
+<link>https://www.v2ex.com/t/985634</link>
+<guid>https://www.v2ex.com/t/985634</guid>
+<content:encoded><![CDATA[
+
+想要开发一个股票量化交易 APP ，请问需要招募哪些方面的技术呢，这块的薪资一般要给到多少
+]]></content:encoded>
+<pubDate>2023-10-26T05:45:52Z</pubDate>
+<pubDate>2023-10-28T16:50:21Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 为什么 mbp 的内置麦克风总是回到到比较低的输入水平</title>
 <link>https://www.v2ex.com/t/986940</link>
 <guid>https://www.v2ex.com/t/986940</guid>
 <content:encoded><![CDATA[
-<div> 音量、开会、视频、听不见、设置<br><br>总结: 这篇文章描述了一个问题，即使用设备时音量会不断降低至约1/6，导致开会和视频期间对方无法听到声音。为了解决这个问题，需要手动调整设置里的音量。询问是否有其他人遇到过类似问题。 <div>
+<div> 音量、开会、视频、听不见、设置<br /><br />总结: 这篇文章描述了一个问题，即使用设备时音量会不断降低至约1/6，导致开会和视频期间对方无法听到声音。为了解决这个问题，需要手动调整设置里的音量。询问是否有其他人遇到过类似问题。 <div>
 大概隔一段时间就会返回到约 1/6 的输入音量，导致开会、视频时对方总是听不见，每次用都要去设置里手动拉高。大家有遇到这个问题吗
 ]]></content:encoded>
-<pubDate>2023-10-31T01:15:43Z</pubDate>
 <pubDate>2023-10-31T01:15:43Z</pubDate>
 </item>
 <item>
@@ -21,11 +736,9 @@
 <guid>https://www.v2ex.com/t/986939</guid>
 <content:encoded><![CDATA[
 <div> 智能人机交互、人工智能、最佳实践、界面设计、自然语言处理
-<br><br>总结:
+<br /><br />总结:
 本文探讨了智能人机交互在人工智能领域中的最佳实践，并重点关注了界面设计和自然语言处理。通过研究智能人机交互的关键技术和方法，可以提高用户体验和系统的易用性。文章强调了界面设计的重要性，包括用户界面的布局和交互方式的设计。同时，自然语言处理作为一种核心技术，可以使系统能够理解和响应用户的语言输入。在未来的发展中，智能人机交互将持续推动人工智能技术的创新，并为用户提供更加便捷和智能化的交互方式。 <div>
-
 ]]></content:encoded>
-<pubDate>2023-10-31T01:14:38Z</pubDate>
 <pubDate>2023-10-31T01:16:11Z</pubDate>
 </item>
 <item>
@@ -33,10 +746,8 @@
 <link>https://www.v2ex.com/t/986938</link>
 <guid>https://www.v2ex.com/t/986938</guid>
 <content:encoded><![CDATA[
-
 <p>坐的比较挤，感觉他一直穿一双鞋，我这时不时就闻到，熏得头疼，怎么提示？或者有什么别的办法？</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T01:14:04Z</pubDate>
 <pubDate>2023-10-31T01:15:58Z</pubDate>
 </item>
 <item>
@@ -44,10 +755,8 @@
 <link>https://www.v2ex.com/t/986937</link>
 <guid>https://www.v2ex.com/t/986937</guid>
 <content:encoded><![CDATA[
-
 今年软工硕士毕业，入职一家四线城市的国企，日常工作非常简单，对薪资待遇也比较满意。但由于是夕阳行业，再加上自身危机感较重，所以想着要提升自己，避免日后大幅降薪或者失业时还有一技之长仍可以发展，那么问题来了：<br /><br />1.如何找到方向？（我能够粗浅的想到类似网络工程师这样的运维，在最近一年的本四线城市招聘中也只能看到”网络 XXX”的招聘）<br /><br />2.能考哪些证书？貌似只有软考高级有用？
 ]]></content:encoded>
-<pubDate>2023-10-31T01:13:39Z</pubDate>
 <pubDate>2023-10-31T01:14:55Z</pubDate>
 </item>
 <item>
@@ -55,10 +764,8 @@
 <link>https://www.v2ex.com/t/986936</link>
 <guid>https://www.v2ex.com/t/986936</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="img" class="embedded_image" rel="noreferrer" src="https://p.ipic.vip/lzrlgx.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-31T01:12:14Z</pubDate>
 <pubDate>2023-10-31T01:12:14Z</pubDate>
 </item>
 <item>
@@ -66,10 +773,8 @@
 <link>https://www.v2ex.com/t/986934</link>
 <guid>https://www.v2ex.com/t/986934</guid>
 <content:encoded><![CDATA[
-
 我自己都不知道这种不适感来自哪里<br /><br />自己也在美国生活，偶尔搜个生活攻略或者码农问题，都会搜出一亩三分地的贴子<br /><br />只看一眼就给我强烈的不适感，好像有种老华人+精英的傲慢和利己主义，还有种虽然人已经润了可还是中式思维<br /><br />可能也是我的偏见，因为好多贴子都过于尴尬我都没有仔细看过<br /><br />不知道各位怎么看
 ]]></content:encoded>
-<pubDate>2023-10-31T01:08:08Z</pubDate>
 <pubDate>2023-10-31T01:06:08Z</pubDate>
 </item>
 <item>
@@ -77,13 +782,11 @@
 <link>https://www.v2ex.com/t/986933</link>
 <guid>https://www.v2ex.com/t/986933</guid>
 <content:encoded><![CDATA[
-
 <p>2021 14 英寸,M1 Pro 芯片,带 8  核 CPU 和 14 核 GPU,16GB 内存,512GB 固态硬盘 14999
 2023 14 英寸,M2 Pro 芯片,带 10 核 CPU 和 16 核 GPU,16GB 内存,512GB 固态硬盘 15999
 2023 14 英寸,M3 Pro 芯片,带 11 核 CPU 和 14 核 GPU,18GB 内存,512GB 固态硬盘 16999</p>
 <p>升级个处理器，牙膏倒吸，涨一千是吧，小苹果真有你的</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T01:07:18Z</pubDate>
 <pubDate>2023-10-31T01:07:18Z</pubDate>
 </item>
 <item>
@@ -91,10 +794,8 @@
 <link>https://www.v2ex.com/t/986932</link>
 <guid>https://www.v2ex.com/t/986932</guid>
 <content:encoded><![CDATA[
-
 图便宜买了个京东路由器，发现特定终端的连定时断网功能都没有。<br />好老版本的固件可以轻易的开启 SSH ，在路由器起个 cron 任务临时解决了定时断网的问题。<br />为了保留 SSH 功能，特意关闭了路由器的自动升级功能。<br />昨天发现定时断网没有正常工作，连接 SSH 连不上设备，一看路由器固件版本已经升级成最新固件了。
 ]]></content:encoded>
-<pubDate>2023-10-31T01:06:59Z</pubDate>
 <pubDate>2023-10-31T01:16:18Z</pubDate>
 </item>
 <item>
@@ -102,11 +803,9 @@
 <link>https://www.v2ex.com/t/986931</link>
 <guid>https://www.v2ex.com/t/986931</guid>
 <content:encoded><![CDATA[
-
 <p>M1 系列刚出来的时候凭借 ARM 版本的续航优势，以及不错的性能真的 scary fast
 但是后续的 M 系列似乎只是在思考推叠或者加核心来增加性能？</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T01:03:40Z</pubDate>
 <pubDate>2023-10-31T01:15:27Z</pubDate>
 </item>
 <item>
@@ -114,10 +813,8 @@
 <link>https://www.v2ex.com/t/986930</link>
 <guid>https://www.v2ex.com/t/986930</guid>
 <content:encoded><![CDATA[
-
 1. 先说这个恶心的定价，丐版 12999 竟然只有 8G 内存，说是降价其实只是为了让你买更贵的而已。但既然已经有更便宜的产品线比如 Air 和 Mini ，MacBook Pro 就应该有一个比下有余的选择，我花更多的钱想要的是升级，而不是发现达到我的目的后，另一个方面又少了东西，又要花钱，这个定价策略让用户越来越难买到自己想要的产品，现在用户花了 12999 竟然只有 8G 内存，原来 14999 的也无法买到 M3 Pro, 你需要花 16,999 买个奇怪的 18G 内存的版本，而不是行业标准的 8-16-32 。看看 windows 现在 6000 左右就能买到 同等性能 CPU+32G+1T 内存高刷，选择苹果的溢价理由是什么？做工和 Mac OS ，续航？然而现在 Windows 已经变得越来越好用，苹果在这么作死下去 Mac 的销量只会进一步下跌，从过去这段时间 Mac 的销量就是个教训。<br />2. 最低配同时还阉割了外接多个显示器的数量，现在最多只有一个显示器，还是上面的逻辑，疯狂收割专业用户。<br />3. 其他方面也毫无惊喜，本可以上的一些新技术都不上，比如完全可以加上 Face ID ，刷新率完全可以再提高，或者上 OLED<br />4. iMac 没有 27 ，24 寸就更新了个处理器，没有高刷，显示器也没更新，没有高刷版本，Mac mini 也没新款<br /><br />总之，完全没有升级的欲望，还不如去买老款。
 ]]></content:encoded>
-<pubDate>2023-10-31T01:02:05Z</pubDate>
 <pubDate>2023-10-31T01:13:23Z</pubDate>
 </item>
 <item>
@@ -125,10 +822,8 @@
 <link>https://www.v2ex.com/t/986929</link>
 <guid>https://www.v2ex.com/t/986929</guid>
 <content:encoded><![CDATA[
-
 <p>只想唱一句，“怎么忍心怪你犯了错，是我给你自由过了火”</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:59:29Z</pubDate>
 <pubDate>2023-10-31T01:14:38Z</pubDate>
 </item>
 <item>
@@ -136,13 +831,11 @@
 <link>https://www.v2ex.com/t/986928</link>
 <guid>https://www.v2ex.com/t/986928</guid>
 <content:encoded><![CDATA[
-
 <p>例如“登录数据”的存储应该怎么设计</p>
 <p>一开始系统可能不存储“登录数据”，但是没过多久产品经理要分析“单位时间内用户登录数”，那此时应该对每次用户登录请求进行记录，根据数据库是不是为业务所用分为两种方案：1. 在业务数据库中建 <code>login_time_log</code> 表，只做 append 操作； 2. 在数据分析建表，与业务数据隔离</p>
 <p>但之后产品经理都提出了需求，对“三日内未登录过的用户进行消息推送”，那此时“用户登录时间”的数据又算是业务数据了，如果采用上述方案一，那么每次都要 <code>SELECT * FROM login_time_log ORDER BY login_time DESC LIMIT 1</code>，性能会不会比较差；如果采用上述方案二，那么是不是要在业务表里加一个 <code>last_login_time</code> 的字段，这样的话就需要额外维护，而且在一定程度上也算“数据冗余”</p>
 <p>想向各位经验丰富见多识广的老哥们取取经🙏🙏🙏</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:57:56Z</pubDate>
 <pubDate>2023-10-31T01:10:59Z</pubDate>
 </item>
 <item>
@@ -150,10 +843,8 @@
 <link>https://www.v2ex.com/t/986927</link>
 <guid>https://www.v2ex.com/t/986927</guid>
 <content:encoded><![CDATA[
-
 想在 CPU 和内存里选择一个提升，是花钱升级 12 核 CPU 还是花钱升级到 36G 内存，哪个对 MacBook Pro 的提升更明显呢？在以后长远的使用上更具性价比？
 ]]></content:encoded>
-<pubDate>2023-10-31T00:57:45Z</pubDate>
 <pubDate>2023-10-31T01:09:11Z</pubDate>
 </item>
 <item>
@@ -161,14 +852,12 @@
 <link>https://www.v2ex.com/t/986926</link>
 <guid>https://www.v2ex.com/t/986926</guid>
 <content:encoded><![CDATA[
-
 <p>刚看了下, 选 16 寸得, 内存选配 128G, </p>
 <p>价格 39499</p>
 <p>这个价对需要得高端用户应该还不错</p>
 <p>不过新增一个 8g 所谓 14 pro 就有点恶心人了</p>
 <p>不过看这意思是 m3 不会给 air, 要不然这个 pro 有啥意义</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:56:57Z</pubDate>
 <pubDate>2023-10-30T20:56:57Z</pubDate>
 </item>
 <item>
@@ -176,10 +865,8 @@
 <link>https://www.v2ex.com/t/986924</link>
 <guid>https://www.v2ex.com/t/986924</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/N0z9K56.png" /> <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/uvuIJRn.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:46:08Z</pubDate>
 <pubDate>2023-10-31T01:08:29Z</pubDate>
 </item>
 <item>
@@ -187,10 +874,8 @@
 <link>https://www.v2ex.com/t/986923</link>
 <guid>https://www.v2ex.com/t/986923</guid>
 <content:encoded><![CDATA[
-
 选购建议，买 iPad mini6  还是 iPad 10
 ]]></content:encoded>
-<pubDate>2023-10-31T00:37:11Z</pubDate>
 <pubDate>2023-10-30T16:36:11Z</pubDate>
 </item>
 <item>
@@ -198,10 +883,8 @@
 <link>https://www.v2ex.com/t/986922</link>
 <guid>https://www.v2ex.com/t/986922</guid>
 <content:encoded><![CDATA[
-
 M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br /><br />内存也是，居然把 M3 挪到了 14 寸丐版，搞出 8G + 512G/$1600 这种怪胎，哪些口口声声说 Apple 会上 12G 的人呢？<br /><br />真正的 M3 Pro 升级版居然搞了个 18G + 512G 的怪胎...
 ]]></content:encoded>
-<pubDate>2023-10-31T00:34:43Z</pubDate>
 <pubDate>2023-10-31T01:12:49Z</pubDate>
 </item>
 <item>
@@ -209,10 +892,8 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986921</link>
 <guid>https://www.v2ex.com/t/986921</guid>
 <content:encoded><![CDATA[
-
 <p>看发布会性能提升还不错</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:33:36Z</pubDate>
 <pubDate>2023-10-31T01:13:12Z</pubDate>
 </item>
 <item>
@@ -220,12 +901,10 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986920</link>
 <guid>https://www.v2ex.com/t/986920</guid>
 <content:encoded><![CDATA[
-
 <p>更新的设备有 Macbook Pro ，24 寸 iMac 。</p>
 <p>MacbookPro 有个黑色的新配色。</p>
 <p>总结：继续 Faster 。</p>
 ]]></content:encoded>
-<pubDate>2023-10-31T00:31:54Z</pubDate>
 <pubDate>2023-10-31T00:56:13Z</pubDate>
 </item>
 <item>
@@ -233,10 +912,8 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986919</link>
 <guid>https://www.v2ex.com/t/986919</guid>
 <content:encoded><![CDATA[
-
 从 1999 美金起步，降到 1599 起步！国行目测 12999 起步？？？
 ]]></content:encoded>
-<pubDate>2023-10-31T00:28:05Z</pubDate>
 <pubDate>2023-10-31T01:12:30Z</pubDate>
 </item>
 <item>
@@ -244,10 +921,8 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986918</link>
 <guid>https://www.v2ex.com/t/986918</guid>
 <content:encoded><![CDATA[
-
 最近和同学弄了一个软件，卖了点小钱，现在想推广开。同学找了他姐夫，帮忙推广销售，现在在收入分成上我和同学有分歧。情况是，软件销售有两个人：我同学姐夫和另一个他姐夫带的人，研发有两个，我和我同学（主力研发是我，我同学提供部分技术信息）。在收入分配上，我同学主张全部均分，我觉得分成有点高了，不知道各位有和他人合作经验的前辈觉得多少合适，求指点😀
 ]]></content:encoded>
-<pubDate>2023-10-30T23:57:30Z</pubDate>
 <pubDate>2023-10-31T01:14:43Z</pubDate>
 </item>
 <item>
@@ -255,12 +930,10 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986917</link>
 <guid>https://www.v2ex.com/t/986917</guid>
 <content:encoded><![CDATA[
-
 <p>好久没分享游记，我又来了，这一次去了盐官，距离上海只有一百多公里，走了翁金线，非常不错，推荐给喜欢骑行和自驾的朋友们</p>
 <p><a href="https://blog.ops-coffee.cn/r/city-china-zhejiang-jiaxing-haining" rel="nofollow">https://blog.ops-coffee.cn/r/city-china-zhejiang-jiaxing-haining</a></p>
 <p>感谢追更的小伙伴们，之前已经建了个小群，大家都喜欢户外/自驾/旅行，聊的挺好，如果你有同样的兴趣可以加我，我拉你，凑热闹的就不要加了哈</p>
 ]]></content:encoded>
-<pubDate>2023-10-30T23:55:12Z</pubDate>
 <pubDate>2023-10-30T23:55:12Z</pubDate>
 </item>
 <item>
@@ -268,14 +941,12 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986916</link>
 <guid>https://www.v2ex.com/t/986916</guid>
 <content:encoded><![CDATA[
-
 <p>不是很了解 package.json, 来这里问问大家</p>
 <p>我现在用 Node V18.18.2 ，<a href="mailto:AngularCli@15.2">AngularCli@15.2</a>.9, 用<code>ng new</code> 创建了一个 Angular 项目。他的 Package.json 里 rxjs 的 version 是 ~7.8.0</p>
 <p>然后我把一个依赖以本地 tgz 的方式加到了 package.json 里，再用<code>npm install</code> 安装，但是出现了冲突，这个依赖支持 Angular 15.2.x 但是他的 Package.json 里的 rxjs 版本是^6.5.5</p>
 <p>Angular 15.2.x 本身是支持 rxjs ^6.5.3 || ^7.4.0 的 <a href="https://angular.io/guide/versions" rel="nofollow">https://angular.io/guide/versions</a></p>
 <p>所以我想问问，用<code>ng new</code> 他给我选了个~7.8.0 ，我能够给他在 package.json 里改成^6.5.3 吗，这样有风险吗?会不会不仅 Angular 用到 rxjs, 别的依赖也会用到他？</p>
 ]]></content:encoded>
-<pubDate>2023-10-30T23:43:49Z</pubDate>
 <pubDate>2023-10-30T19:41:49Z</pubDate>
 </item>
 <item>
@@ -283,10 +954,8 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986915</link>
 <guid>https://www.v2ex.com/t/986915</guid>
 <content:encoded><![CDATA[
-
 我自己在 google 上搜在各种 aff 博客上看，但毕竟信息还是有壁垒的，v2ex 上偶尔看到有大哥推荐的 vps 觉得很不错，我却从未听说过。<br /><br />大哥能不能把自己使用过觉得不错的列出来俺也收藏来用用呀
 ]]></content:encoded>
-<pubDate>2023-10-30T23:30:35Z</pubDate>
 <pubDate>2023-10-30T20:30:35Z</pubDate>
 </item>
 <item>
@@ -294,13 +963,11 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986914</link>
 <guid>https://www.v2ex.com/t/986914</guid>
 <content:encoded><![CDATA[
-
 <p>心疼啊心疼啊心疼啊 😭
 昨天晚上睡之前擦了个屏幕，发现一个<strong>非常非常细小的刻痕</strong>
 虽然非常小到看不见，但又<strong>没买 Care+</strong></p>
 <p>我看闪魔的评论区说有横纹，然后目前购物车里加了一张所谓的 AR 膜，<strong>求推荐个钢化膜</strong></p>
 ]]></content:encoded>
-<pubDate>2023-10-30T23:14:30Z</pubDate>
 <pubDate>2023-10-31T01:06:00Z</pubDate>
 </item>
 <item>
@@ -308,7 +975,6 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/986913</link>
 <guid>https://www.v2ex.com/t/986913</guid>
 <content:encoded><![CDATA[
-
 <p>敏捷宣言和实践刚刚出来的时候，得到了非常多的认可，因为程序员很喜欢。</p>
 <p>如今有人在反思，它是否真的象承诺的一样的有效，抑或不过是一场开心的狂欢。</p>
 <p>以项目估计时间为例，有些东西有趣但是全无用处，比如 Scrum 的故事点，认真的话，大家不过是默默的把故事点转成小时或者天，不认真的话，估计完了该干嘛干嘛；有些则恰恰相反，看起来面目可憎，用起来却非常舒适。比如 delphi 背对背专家估计时间法。</p>
@@ -318,7 +984,6 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <p>回过头来说，干项目这件事，不仅仅是程序员，还有其他的工种和其他的人，仅仅讨好程序员自己是不够的。也就是敏捷联盟的致命之处。故事点不可靠，那么基于故事点的都不可靠，比如燃尽图。除了估计时间之外，还有不少硬伤。尤其是和其他工种配合的部分。这个可以相见，毕竟程序员有其自身的限制。</p>
 <p>也有好的地方，Sprint 提出的快速迭代，一般 2 周到 2 月这个，思路非常好，实践起来也不错。它可以不让错误一直积累，而是给一个重启的机会，其实也是尊重了程序员作为工作主体的诉求，在我看来吗，这是敏捷的比较大的一个进步。然而，没有很好的故事分解的技术作为支撑的话，那么就很容易变成一个价值观而不是可行的实践，那就大打折扣了。</p>
 ]]></content:encoded>
-<pubDate>2023-10-30T22:44:53Z</pubDate>
 <pubDate>2023-10-30T18:44:53Z</pubDate>
 </item>
 <item>
@@ -326,7 +991,6 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 <link>https://www.v2ex.com/t/985605</link>
 <guid>https://www.v2ex.com/t/985605</guid>
 <content:encoded><![CDATA[
-
 <h3>比如养成如下习惯：</h3>
 <ul>
 <li>欺骗社交软件，聊天使用暗语，摩斯密码，好友全部使用姓名，不使用标签。</li>
@@ -337,10 +1001,8 @@ M3 Pro 性能版核心甚至比 M2 Pro 少了 2 个，砍成了 6 + 6 🤮<br />
 </ul>
 <p><code> 从而达到让程序认为这是你，实际上是在欺骗程序的目的?</code></p>
 ]]></content:encoded>
-<pubDate>2023-10-26T03:51:15Z</pubDate>
 <pubDate>2023-10-27T01:02:27Z</pubDate>
 </item>
-
 <item>
 <title>[摄影] 入手了一个玩具机 x100v</title>
 <link>https://www.v2ex.com/t/986912</link>
@@ -15103,282 +15765,6 @@ macbookpro 屏幕的保护膜有没有推荐的，现在这个老是反光，也
 我用安卓机试了试 alook 跳转不会出现这个问题。</p>
 ]]></content:encoded>
 <pubDate>2023-10-26T07:21:51Z</pubDate>
-</item>
-<item>
-<title>[iPhone] iPhone 15 PRO Max 256 白换原</title>
-<link>https://www.v2ex.com/t/985665</link>
-<guid>https://www.v2ex.com/t/985665</guid>
-<content:encoded><![CDATA[
-IPhone 15 PRO Max 256 国行白色未拆封，未激活，有发票<br /><br />我是男生比较喜欢原色，朋友帮忙买的白色，看 V 站有没有兄弟、兄弟媳妇喜欢的，能换一下，要求同上<br /><br />或者出掉，只能北京面交
-]]></content:encoded>
-<pubDate>2023-10-26T08:21:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为什么我看不了 v 站的部分贴</title>
-<link>https://www.v2ex.com/t/985664</link>
-<guid>https://www.v2ex.com/t/985664</guid>
-<content:encoded><![CDATA[
-我发现我登陆账号和不登陆账号都看不了 v 站的部分贴，换浏览器换设备也试过了，比如下面这个贴<br /><a href="https://v2ex.com/t/985245#reply174" rel="nofollow noopener" target="_blank">https://v2ex.com/t/985245#reply174</a><br />这个是为什么呢？我点击上面链接后，给我返回了网站主页，并不能查看
-]]></content:encoded>
-<pubDate>2023-10-26T04:14:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 微信小商店确定已经关了？那现在在微信平台开网店是怎么弄？</title>
-<link>https://www.v2ex.com/t/985663</link>
-<guid>https://www.v2ex.com/t/985663</guid>
-<content:encoded><![CDATA[
-<p>记得最开始是可以通过微信小商店直接一步到位开个网店，同时也支持小程序引用交易组件快速开发小店。<br />
-这几天去看发现没有注册入口了，查了下貌似是已经关闭了。<br />
-那供小程序使用的交易组件还能不能用呢？</p>
-]]></content:encoded>
-<pubDate>2023-10-26T07:10:36Z</pubDate>
-</item>
-<item>
-<title>[Bitcoin] 出大额 u, 需要的朋友可以联系</title>
-<link>https://www.v2ex.com/t/985662</link>
-<guid>https://www.v2ex.com/t/985662</guid>
-<content:encoded><![CDATA[
-<p>只收线下 cash, 需要的朋友可以联系;
-tg: @<a href="https://www.v2ex.com/member/CheeseBurger702">CheeseBurger702</a></p>
-]]></content:encoded>
-<pubDate>2023-10-26T07:24:00Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [成都] 兴隆湖 西瓜创客 招聘 Java 工程师</title>
-<link>https://www.v2ex.com/t/985661</link>
-<guid>https://www.v2ex.com/t/985661</guid>
-<content:encoded><![CDATA[
-工作职责<br /><br />1 、负责后端业务系统的开发和维护，能够独立完成模块设计和开发;<br />2 、参与技术选型、方案设计、文档编写、性能优化等后端相关研发工作;<br />3 、保证模块交付的代码质量和产品质量。<br /><br />任职资格<br />1 、拥有三年以上工作经验，具备独立负责项目的经验；<br />2 、熟练掌握 Java 、Node.js 和 React （ Ant Design ）；<br />3 、熟悉 Spring MVC 、Spring Boot 、MyBatis 等相关技术；<br />4 、熟悉数据库管理，包括 MySQL 和 MongoDB ；<br />5 、熟练使用 Redis 、Kafka 、Docker 、Nginx 、Elasticsearch ，熟悉 CICD 和 Git ；<br />6 、熟悉国内常用的云服务，包括主机、域名、对象存储、CDN 、短信服务等，具有常规使用经验；<br />7 、具备良好的工作习惯，包括代码 Review 、单元测试编写、技术方案沟通和评审，以及日常 BUG 跟踪和处理。<br /><br /><br />后端研发工程师 15k - 22k·14 薪<br /><br />留下微信吧。我加你
-]]></content:encoded>
-<pubDate>2023-10-26T07:48:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何获取认知之外的知识和金钱？</title>
-<link>https://www.v2ex.com/t/985659</link>
-<guid>https://www.v2ex.com/t/985659</guid>
-<content:encoded><![CDATA[
-<p>滴水不进，然后假装问问题或者白嫖？</p>
-]]></content:encoded>
-<pubDate>2023-10-26T07:32:04Z</pubDate>
-</item>
-<item>
-<title>[Apple] Apple One Premier 美区超大杯长期车季付(3 车位共 5 人， iCloud 人均 400G）</title>
-<link>https://www.v2ex.com/t/985656</link>
-<guid>https://www.v2ex.com/t/985656</guid>
-<content:encoded><![CDATA[
-Apple One Premier 美区超大杯长期车季付 （计划 5 人，iCloud 人均 400G ）<br /><br /><br />美区 apple one 超大杯，个人长期使用，找长期使用美区的朋友加入，费用分摊。<br /><br />计划家庭一共 5 人，保证每人 400G iCloud ，如果家庭成员都要求 6 人也可，费用均摊。<br /><br />目前还有 3 个（计划 5 人）车位，季付，费用均摊，可立马上车，非诚勿扰，谢谢，WX(Base64): cG9wcGVyOTk5<br /><br />内容包括：<br />iCloud+ 2TB （人均约 400GB ）<br />tv+<br />Music<br />Arcade<br />Fitness+<br />News+
-]]></content:encoded>
-<pubDate>2023-10-26T06:47:23Z</pubDate>
-</item>
-<item>
-<title>[生活] 深圳宝安，靠近南山，房屋转租</title>
-<link>https://www.v2ex.com/t/985655</link>
-<guid>https://www.v2ex.com/t/985655</guid>
-<content:encoded><![CDATA[
-转租原因：工作变动，需要换房子<br />房子位置：宝安区 39 区，海滨中学附近，靠近欢乐港湾和海雅缤纷城<br />交通：周围公交很方便，地铁最近是 5 号线翻身站，如果在南山上班，小电驴最方便了<br /><br />户型：2 室一厅<br />面积：60 平<br />租金：4000 （包含管理费），押二付一<br /><br />如果需要，请联系“孤独的地球号”：YmVzdGx1Y2t5dHU=
-]]></content:encoded>
-<pubDate>2023-10-26T08:01:38Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 有没有大佬指一条路的？
-二线 [贵阳] ，焦虑...</title>
-<link>https://www.v2ex.com/t/985654</link>
-<guid>https://www.v2ex.com/t/985654</guid>
-<content:encoded><![CDATA[
-<p>贵阳前端，末流二本，今年毕业的，加上实习经历也算有一年多的工作经验了。
-自从年后就在一家酒厂开发小程序，考虑到要考公的可能就没交五险。
-所以加补贴到手 6.8 左右。</p>
-<p>除去房租和开销，加上女朋友没工作。基本剩不了什么，出身农村，所以车房得考自己努力。
-现在现在很是迷茫，对于技术也失去了当初的那股冲劲，三分钟热度，只想摆烂。
-希望各位大佬可以给我点建议。或者有什么好的副业想法也可以指点一二。</p>
-]]></content:encoded>
-<pubDate>2023-10-26T07:54:09Z</pubDate>
-</item>
-<item>
-<title>[Apple] 小黄鱼上妙控配件靠谱么</title>
-<link>https://www.v2ex.com/t/985652</link>
-<guid>https://www.v2ex.com/t/985652</guid>
-<content:encoded><![CDATA[
-<p>据说全是 imac 上拆的。 哪来的那么多 imac ？  一套妙控板 3 + 键盘  要 1000 来块钱
-V 友有出的吗， 想要 一套 板 3 + 指纹键盘</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:38:37Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] watch os 10.1 的双指捏合操作如何用？</title>
-<link>https://www.v2ex.com/t/985651</link>
-<guid>https://www.v2ex.com/t/985651</guid>
-<content:encoded><![CDATA[
-今天升级了 10.1 系统，没有想象中的好用啊。比如来了一个微信，我用双指捏合，就直接进入到回复界面。我都不知道是谁发给我的消息，内容是啥，让我回复啥呢/<br /><br />不知道是不是我使用的方法不对，大家用起来感觉如何？有没有什么好用的操作
-]]></content:encoded>
-<pubDate>2023-10-26T02:33:48Z</pubDate>
-</item>
-<item>
-<title>[问与答] 用智能手表+小尺寸 pad 替代手机的方案是否可行？</title>
-<link>https://www.v2ex.com/t/985650</link>
-<guid>https://www.v2ex.com/t/985650</guid>
-<content:encoded><![CDATA[
-<p>智能手表接打电话，收发短信</p>
-<p>小尺寸 pad 插流量卡使用，屏幕比手机略大一些，可以单手使用 例如 ipad mini 、联想拯救者 Y700</p>
-<p>有没有试过的老哥？体验如何？</p>
-]]></content:encoded>
-<pubDate>2023-10-26T07:58:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有一个回老家事业单位的机会但是不知道怎么选择</title>
-<link>https://www.v2ex.com/t/985649</link>
-<guid>https://www.v2ex.com/t/985649</guid>
-<content:encoded><![CDATA[
-回去可以去村也可能在市里的社区，现在在北京，自己心理是不太想回去的，但是现在这个经济下行的社会是不是回去可能是个好的选择<br /><br /><br />打扰了，搜了一下社区工作好像不算事业单位
-]]></content:encoded>
-<pubDate>2023-10-24T06:30:55Z</pubDate>
-</item>
-<item>
-<title>[随想] 聊下有哪些商品可以做的更好，但给你的感觉是为了增加收入而故意设计成有损耗有使用年限的产品</title>
-<link>https://www.v2ex.com/t/985648</link>
-<guid>https://www.v2ex.com/t/985648</guid>
-<content:encoded><![CDATA[
-<p>皮箱密码锁锁舌是塑料的，灯泡坏不了设计成有损耗的灯丝</p>
-<p>皮箱锁坏了好久关不上，就当储物箱用了。拆掉发现锁舌是塑料的，而且设计的是一个斜面，塑料很容易损耗掉了也就卡不住就坏了。
-后背发凉，一些行李箱的密码锁形同虚设都能大力打开！？打算买一个密码锁换上。看了好多家发现也都是塑料的，问了卖家说厂家生产就是这样的。一下就想到跟老式灯泡发展史划等号的产品，灯丝太耐用坏不了设计成有损耗的然后多赚钱？？？？
-ps:述说完感觉我在阴谋论</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:26:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 前端圈在整个互联网的小圈子内是不是最乱的</title>
-<link>https://www.v2ex.com/t/985646</link>
-<guid>https://www.v2ex.com/t/985646</guid>
-<content:encoded><![CDATA[
-<div> 前端 后端 DBA 产品经理 twitter v站<br /><br />总结: 这篇文章讲述了如何在前端、后端、DBA、产品经理等不同岗位中进行活动整理，作者分享了在推特和v站上看到的一些好玩的整活方法，让人觉得很有趣。 <div>
-<p>众所周知按照岗位职责分为</p>
-<ul>
-<li>前端</li>
-<li>后端</li>
-<li>DBA</li>
-<li>产品经理</li>
-</ul>
-<p>...etc</p>
-<p>前两天在 twitter 吃到了<a href="https://www.yuque.com/u12010951/ohmikn/khmkeow9fnik3lrq?singleDoc=" rel="nofollow">AFFiNE 的瓜</a>属实给我整乐了</p>
-<p>今天又在 v 站看到<a href="https://v2ex.com/t/985358" rel="nofollow">t/985358</a></p>
-<p>怎么能整这么多活</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:22:42Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 在职场中，对你们的直属小领导的做人做事风格非常讨厌和反感的，大家一般会怎么处理？</title>
-<link>https://www.v2ex.com/t/985643</link>
-<guid>https://www.v2ex.com/t/985643</guid>
-<content:encoded><![CDATA[
-<div> 员工讨厌、反感、双标、自以为是、业务沟通<br /><br />总结: 在某职场中，很多员工对他们的直属小领导在业务工作中的交流方式感到讨厌和反感。这些小领导常常搞“双标”，挑剔和指责员工，自以为是。与欧美国外相比，缺乏平等的基础，不尊重业务沟通中的不同想法和角度。而且这些直属领导总是担心自己在甲方面前的形象，以此为借口干涉项目，并喜欢干涉员工的私事。 <div>
-问题如上，在某职场中，很大一部分员工，对他们的直属小领导在业务工作中的交流上非常的讨厌和反感，大家的基本认同的就是喜欢搞“双标”，时不时的挑刺，说大家这不行，那不对。必须要怎么怎么样的自以为是。而非欧美国外哪种相对在平等的基础之上，对业务沟通上的不同想法、角度的考虑？她总是以巴拉巴拉被甲方知道，会对项目怎么怎么的影响之类的为由。而且还喜欢管员工们的各种闲事。
-]]></content:encoded>
-<pubDate>2023-10-26T06:20:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求有意思的异世爽文或搞笑有意思的</title>
-<link>https://www.v2ex.com/t/985642</link>
-<guid>https://www.v2ex.com/t/985642</guid>
-<content:encoded><![CDATA[
-<p>如题，有音频的喜马拉雅最好。感谢！</p>
-]]></content:encoded>
-<pubDate>2023-10-18T05:59:36Z</pubDate>
-</item>
-<item>
-<title>[程序员] 怎么才算有支付经验？</title>
-<link>https://www.v2ex.com/t/985641</link>
-<guid>https://www.v2ex.com/t/985641</guid>
-<content:encoded><![CDATA[
-没做过什么大型的专门支付或收银台之类的系统，但是在系统中也是对接过微信、银联支付的，所以想问问各位关于支付经验，具体是体现在哪些方面？或者面试的时候大概会聊哪些内容？
-]]></content:encoded>
-<pubDate>2023-10-26T01:58:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 故障预测的推荐算法以及开源项目</title>
-<link>https://www.v2ex.com/t/985640</link>
-<guid>https://www.v2ex.com/t/985640</guid>
-<content:encoded><![CDATA[
-最近在做一个工业领域设备故障预测的项目，简单来说就是把采集到的设备参数通过机器学习的方式建立特定故障的预测模型，最近一直有在看资料，好像这个领域大多数都是用卷积神经算法做的相关性预测模型，除此之外，没有什么太好的思路，不知各位大佬有没有什么思路点拨一下。
-]]></content:encoded>
-<pubDate>2023-10-26T05:57:34Z</pubDate>
-</item>
-<item>
-<title>[Android] 有人知道这个目录是放什么的嘛？ applogic</title>
-<link>https://www.v2ex.com/t/985639</link>
-<guid>https://www.v2ex.com/t/985639</guid>
-<content:encoded><![CDATA[
-<p><code>/data/media/0/alipay/com.eg.android.AlipayGphone/applogic</code></p>
-<p><img alt="applogic" class="embedded_image" rel="noreferrer" src="https://z1.ax1x.com/2023/10/26/piVv4xS.png" title="applogic" /></p>
-]]></content:encoded>
-<pubDate>2023-10-26T05:57:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] [求推荐] 护士想找个双休白班的工作? or 重新学个新行业?</title>
-<link>https://www.v2ex.com/t/985638</link>
-<guid>https://www.v2ex.com/t/985638</guid>
-<content:encoded><![CDATA[
-在省会城市<br />有 2 年三甲医院经验, 3 年体检中心经验<br />大专, 非全本科, 有护士证, 护师证<br /><br /><br />她现在就想找个双休白班的工作? 对咱们来说还算正常的事情, 在她们行业居然基本不可能<br />或者是能学个什么新技术吗? 至少学完在当前环境下能找到工作<br /><br />求朋友们推荐一下, 我确实是黔驴技穷了<br /><br /><br />ps.<br />一个挺离谱的事情, 在上家体检中心工资 4k+, 有了 3 年体检中心经验后, 居然给不到 4k.
-]]></content:encoded>
-<pubDate>2023-10-26T06:17:45Z</pubDate>
-</item>
-<item>
-<title>[程序员] 想自己开发微信点餐小程序</title>
-<link>https://www.v2ex.com/t/985637</link>
-<guid>https://www.v2ex.com/t/985637</guid>
-<content:encoded><![CDATA[
-<p>各位大佬，朋友开了几家奶茶店分店，门店用的美团点餐机下单。现在想自己开发一个点餐的微信小程序引流到自己平台上，美团点餐机有开发者开放平台提供 api 接口，请问能够支持开发像喜茶、奈雪这类奶茶店的微信小程序点餐吗，要实现这类点餐小程序会有什么技术难点吗?有大佬做过类似的点餐小程序不</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:23:34Z</pubDate>
-</item>
-<item>
-<title>[酷工作] AIGC 前端开发实习生招募帖</title>
-<link>https://www.v2ex.com/t/985636</link>
-<guid>https://www.v2ex.com/t/985636</guid>
-<content:encoded><![CDATA[
-3D AIGC 明星初创企业招募前端实习生啦，感兴趣的小伙伴欢迎投递～～<br /> [工作地点] 北京清华科技园<br /> [你可以获得] <br />1. AIGC 前沿技术领域的一线实践机会，和大佬共同钻研新技术；<br />2.自由的技术空间，不再是螺丝钉，让想法变成现实的可能性；<br />3. 丰厚的实习薪资和完善的公司福利；<br /> [你需要做] <br />1 、使用主流框架进行前端开发（偏向 3D 项目）；<br />2 、负责基于前端 Three.js 的交互式项目开发；<br /> [希望你具备] <br />1 、熟练掌握 HTML5 、JavaScript 、CSS/CSS3 ，了解前端相关规范，熟悉原生 API ；<br />2 、熟悉 AngularJS 、React 、Vue 等 JS 框架；<br />3 、使用过当前流行的前端 UI 库优先；<br />4 、了解 Vite, Webpack 等打包编译工具优先；<br />5 、熟悉 Webgl 优先，熟悉 ThreeJS 优先；<br /> [简历投递]  heshan@vastai3d.com
-]]></content:encoded>
-<pubDate>2023-10-25T05:51:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 出 iwatchs7 41mmgps 版黑色 nike 版 1200</title>
-<link>https://www.v2ex.com/t/985635</link>
-<guid>https://www.v2ex.com/t/985635</guid>
-<content:encoded><![CDATA[
-<p>电池 90.正常使用痕迹</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:20:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助，程序员薪资一般要给多少</title>
-<link>https://www.v2ex.com/t/985634</link>
-<guid>https://www.v2ex.com/t/985634</guid>
-<content:encoded><![CDATA[
-想要开发一个股票量化交易 APP ，请问需要招募哪些方面的技术呢，这块的薪资一般要给到多少
-]]></content:encoded>
-<pubDate>2023-10-26T01:45:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么随身 wifi 或者类似的东西推荐吗？</title>
-<link>https://www.v2ex.com/t/985632</link>
-<guid>https://www.v2ex.com/t/985632</guid>
-<content:encoded><![CDATA[
-<p>最近换租了一个新房子，没有宽带
-想着平时上班 10106 ，工作日晚上回家大部分时间睡觉，周末就一天在家
-玩也就是刷刷 b 站、油管</p>
-<p>所以觉得接宽带不划算
-目前网上看了随身 wifi ，普遍反映很坑或者没必要</p>
-<p>有没有啥合适的方案，在家随时可以用，不用的时候也不浪费</p>
-]]></content:encoded>
-<pubDate>2023-10-26T06:22:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 即热式净水器有推荐的吗</title>
-<link>https://www.v2ex.com/t/985631</link>
-<guid>https://www.v2ex.com/t/985631</guid>
-<content:encoded><![CDATA[
-买的精装房当婚房 没法用净水器➕管线机的方案了<br />预算 4-5k   不打算 diy<br />计划是买一个前置过滤器+即热净水
-]]></content:encoded>
-<pubDate>2023-10-26T05:39:35Z</pubDate>
 </item>
 </channel>
 </rss>
