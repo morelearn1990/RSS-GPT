@@ -5,14 +5,361 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 宏碁掠夺者擎 neo 2023 怎么样？</title>
+<link>https://www.v2ex.com/t/991185</link>
+<guid>https://www.v2ex.com/t/991185</guid>
+<content:encoded><![CDATA[
+
+观察了很久，最终定下来在双十一第一次买下了宏碁掠夺者擎 neo 2023 这款游戏本，有使用这款游戏本的吗？使用体验怎么样呢？
+]]></content:encoded>
+<pubDate>2023-11-12T08:16:45Z</pubDate>
+<pubDate>2023-11-12T04:16:45Z</pubDate>
+</item>
+<item>
+<title>[Java] Linux 服务器上无法正确调用 Selenium 框架制作的爬虫接口问题怎么解决？</title>
+<link>https://www.v2ex.com/t/991184</link>
+<guid>https://www.v2ex.com/t/991184</guid>
+<content:encoded><![CDATA[
+
+<p>本地使用就可以解决，但是服务器上不行</p>
+<p>服务器的谷歌版本是 119.0.6045.123 ，chromedriver 的版本是 119.0.6045.105 ，我本地在 Windows 上都是可以正常运行的，但是 Linux 上就会报下面的异常</p>
+<pre><code>org.openqa.selenium.SessionNotCreatedException: Could not start a new session. Response code 500. Message: session not created: Chrome failed to start: exited normally.
+  (session not created: DevToolsActivePort file doesn't exist)
+  (The process started from chrome location /opt/google/chrome/chrome is no longer running, so ChromeDriver is assuming that Chrome has crashed.)
+Build info: version: '4.1.4', revision: '535d840ee2'
+System info: host: 'VM-0-17-ubuntu', ip: '127.0.1.1', os.name: 'Linux', os.arch: 'amd64', os.version: '4.15.0-206-generic', java.version: '1.8.0_362'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+</code></pre>
+<p>我去搜索引擎查了下这个异常，基本都是说谷歌浏览器的版本和 chromedriver 版本对不上的问题，但是我这个版本已经是最能对得上的了，完全切合的 chromedriver 版本我真找不到</p>
+<p>这个问题卡了我挺久了，我不知道咋整所以来问问，看看有没有大佬能救下</p>
+]]></content:encoded>
+<pubDate>2023-11-12T08:15:31Z</pubDate>
+<pubDate>2023-11-12T08:14:31Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一下 Quantumult X 启用链式代理</title>
+<link>https://www.v2ex.com/t/991183</link>
+<guid>https://www.v2ex.com/t/991183</guid>
+<content:encoded><![CDATA[
+
+<p>最近因为 Clash 的风波，我把 macOS 端的代理工具也切换成 Quantumult X 了，发现网上对 Quantumult X 启用链式代理的讨论比较少，抛砖引玉一下。</p>
+<h2>准备工作</h2>
+<p>一台 VPS 用作 Shadowsocks 服务端，因为 VPS 是和机场连接，并不直接和本地连接，不需要做混淆之类的。这是我的配置文件：</p>
+<pre><code class="language-json">{
+    "server": "xx.xx.xxx.xxx",
+    "server_port": 10000,
+    "password": "xxxxxxxxx",
+    "method": "aes-256-gcm",
+    "mode": "tcp_and_udp",
+    "fast_open": true
+}
+</code></pre>
+<p>在 Quantumult X 的 设置 -&gt; 节点 -&gt; 节点资源，新建配置如下（和服务端配置对应）：</p>
+<pre><code class="language-conf">shadowsocks=xx.xx.xxx.xxx:xxxxx, method=aes-256-gcm, password=xxxxxxxxx, fast-open=true, udp-relay=true, tag=hh-jp
+</code></pre>
+<h2>配置中转分流规则</h2>
+<p>在 Quantumult X 设置 -&gt; 配置文件 -&gt; 编辑，会弹出一个编辑框，在分流规则部分 [filter_local] 的尾部加入以下规则：</p>
+<pre><code class="language-conf">ip-cidr, xx.xx.xxx.xxx/32, ♾️ Relay
+# 有两种选择，直接给 final 加上中转
+final, hh-jp, via-interface=%TUN%
+# 或者针对特定域名加上中转，我比较推荐这种
+host-suffix, xxx.xxx, hh-jp, via-interface=%TUN%
+</code></pre>
+<p>其中第一行 ip-cidr 的规则，是为了让所有流经 VPS 的流量，都通过机场的节点进行中转，<code>♾️ Relay</code> 这个策略组是我新建的，你可以把它重命名为你目前现有的规则策略或者新增一个策略组来专门做转发。</p>
+<p>如果你觉得一个域名一个域名加比较麻烦，也可以直接针对 final 添加中转，需要注意如果已经存在 final 的规则，把原有的删掉。</p>
+<h2>如何确认配置成功</h2>
+<p>有两种方式可以确认流量是走的链式代理：</p>
+<h3>在 Quantumult X 查看流量日志</h3>
+<p>在 Quantumult X 的网络活动菜单栏，请求配置后的中转域名，应该会有两条流量记录产生：一条记录的目标服务器是 HH-JP ，也就是我配置的 VPS 节点名称；另一条记录的目标服务器就是 JAPAN 17 ，也就是机场的节点。</p>
+<p><img alt="示例" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/t02Jvbk.jpg" /></p>
+<h3>在 VPS 节点查看</h3>
+<p>在 VPS 运行命令：lsof -i:[listen_port]，查看目前这个端口的活动链接的另一端的 IP 是否为机场节点的 IP 。</p>
+<p>以上部分转载自我的<a href="https://blog.itswincer.com/posts/quantumult-x-chain-proxy-setup/#%E9%93%BE%E5%BC%8F%E4%BB%A3%E7%90%86%E7%9A%84%E9%85%8D%E7%BD%AE" rel="nofollow">博客文章</a>。</p>
+]]></content:encoded>
+<pubDate>2023-11-12T08:04:49Z</pubDate>
+<pubDate>2023-11-12T08:04:49Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 基于 Redis 作者 Salvatore Sanfilippo 的聊天室项目： smallchat 开发了 rust 版本</title>
+<link>https://www.v2ex.com/t/991182</link>
+<guid>https://www.v2ex.com/t/991182</guid>
+<content:encoded><![CDATA[
+
+<p>灵感来自 Redis 作者 Salvatore Sanfilippo 最近创建一个新的演示项目：smallchat</p>
+<p>基于 rust 异步编程和 tokio 异步框架实现。</p>
+<p>之前看了 rust 的基础，最近这两天又学习了一下 rust 异步编程和 tokio 框架。</p>
+<p>整体感觉：rust 写 code 还是挺舒服。</p>
+<p>rust 初学者，欢迎大家多多指正，共同学习。</p>
+<p>项目地址  <a href="https://github.com/jw-jackson/smallchat-rs" rel="nofollow">https://github.com/jw-jackson/smallchat-rs</a></p>
+]]></content:encoded>
+<pubDate>2023-11-12T08:03:52Z</pubDate>
+<pubDate>2023-11-12T08:12:26Z</pubDate>
+</item>
+<item>
+<title>[Windows] iPhone 怎么方便的解锁 Windows 电脑呢</title>
+<link>https://www.v2ex.com/t/991181</link>
+<guid>https://www.v2ex.com/t/991181</guid>
+<content:encoded><![CDATA[
+
+双十一买了一台零刻主机做,现在 mac+win 双机党,主力 mac 通过 Synergy 这类软件控制 win ，我的 win 用户密码是 50 位的，手动输入会怀疑人生,买 USB 指纹器又显得很麻烦， 请问有什么更优雅的方式，以苹果设备解锁 win 电脑吗？
+]]></content:encoded>
+<pubDate>2023-11-12T07:59:50Z</pubDate>
+<pubDate>2023-11-12T08:11:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 加入 YouTube 家庭组后很多按钮点不了</title>
+<link>https://www.v2ex.com/t/991179</link>
+<guid>https://www.v2ex.com/t/991179</guid>
+<content:encoded><![CDATA[
+
+网页版，右上角头像点不了，已订阅也无法取消订阅。<br /><a href="https://imgur.com/4qBVBzt" rel="nofollow noopener" target="_blank">https://imgur.com/4qBVBzt</a>
+]]></content:encoded>
+<pubDate>2023-11-12T07:43:17Z</pubDate>
+<pubDate>2023-11-12T07:43:17Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 「抽奖送码🎁」我的稍后阅读应用得到了小众软件的推荐（ios/mac）</title>
+<link>https://www.v2ex.com/t/991178</link>
+<guid>https://www.v2ex.com/t/991178</guid>
+<content:encoded><![CDATA[
+
+<h2>小众软件推荐</h2>
+<p>上周，「只读」有幸得到了小众软件的推荐，见官网<a href="https://www.appinn.com/zhidu-read-it-later/" rel="nofollow">文章</a>和微信<a href="https://mp.weixin.qq.com/s/HV4C5nqye8hdlSF2T0QyoA" rel="nofollow">文章</a>。</p>
+<p><a href="https://imgloc.com/image/nLCrl" rel="nofollow"><img alt="nLCrl.png" class="embedded_image" rel="noreferrer" src="https://i0.imgs.ovh/2023/11/12/nLCrl.png" /></a>
+<a href="https://imgloc.com/image/nVv5u" rel="nofollow"><img alt="nVv5u.png" class="embedded_image" rel="noreferrer" src="https://i0.imgs.ovh/2023/11/12/nVv5u.png" /></a></p>
+<h2>简介</h2>
+<p>只读」是一款简洁易用的稍后阅读应用，只为让你有一个舒适的地方阅读你保存的文章。</p>
+<p><strong>下载链接请访问<a href="https://apps.apple.com/cn/app/%E5%8F%AA%E8%AF%BB-%E7%A8%8D%E5%90%8E%E9%98%85%E8%AF%BB/id6452241434" rel="nofollow">App Store</a>。</strong></p>
+<h2>特色功能</h2>
+<p><strong>高亮笔记</strong></p>
+<p>在阅读时用不同的颜色高亮文本，划出重点，方便以后回顾。你还可以在高亮上添加笔记，记录自己的所思所想，让每次阅读都有收获。</p>
+<p><strong>主题切换</strong> </p>
+<p>我们精心准备了一些适合阅读的主题，从里面选择你最喜爱的，放松你的眼睛，专注阅读。</p>
+<p><strong>iCloud 同步</strong></p>
+<p>数据同步到云端，不再担心数据丢失。</p>
+<p><strong>标签管理</strong></p>
+<p>给文章打上标签，分类管理，让一切井井有条。</p>
+<p><strong>排版调整</strong></p>
+<p>选择字体，调整间距，你可以精细控制文章的排版，让阅读更加舒适。</p>
+<p><strong>快捷保存</strong></p>
+<p>通过分享操作在其它应用中快速保存文章。</p>
+<p><strong>文章导出</strong></p>
+<p>以 Markdown 格式导出你保存的文章。</p>
+<h2>应用截图</h2>
+<p><a href="https://imgloc.com/image/nLLy2" rel="nofollow"><img alt="nLLy2.png" class="embedded_image" rel="noreferrer" src="https://i0.imgs.ovh/2023/11/12/nLLy2.png" /></a>
+<a href="https://imgloc.com/image/nLrfj" rel="nofollow"><img alt="nLrfj.png" class="embedded_image" rel="noreferrer" src="https://i0.imgs.ovh/2023/11/12/nLrfj.png" /></a>
+<a href="https://imgloc.com/image/nLPBd" rel="nofollow"><img alt="nLPBd.png" class="embedded_image" rel="noreferrer" src="https://i0.imgs.ovh/2023/11/12/nLPBd.png" /></a></p>
+<h2>抽奖送码</h2>
+<p>请在这里留下评论，我将于下<strong>周三</strong>在楼层里面抽出<strong>五位</strong>，送出 iOS 版本的高级功能兑换码（可以解锁高亮笔记和主题切换功能）。因为 V2EX 没有私信，所以最好留下邮箱，谢谢大家🙏🙏。</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:41:01Z</pubDate>
+<pubDate>2023-11-12T08:19:35Z</pubDate>
+</item>
+<item>
+<title>[音乐] 每周分享 3 首歌</title>
+<link>https://www.v2ex.com/t/991177</link>
+<guid>https://www.v2ex.com/t/991177</guid>
+<content:encoded><![CDATA[
+
+<p>最近突发奇想：其实一些方面我还是有很多东西可以分享的（比如音乐），只是我不太爱表达，不太爱发朋友圈，只有很熟悉我的人才能了解我</p>
+<p>并且自媒体的本质不就是分析有价值内容么，我现在喜欢听的很多歌有点小众，但又很好听，应该很多人没听过，并且听了之后会喜欢</p>
+<p>所以就搞了一个分享音乐的公众号（ xiaoduanaiyinyue ），每周分享 3 首歌，欢迎大家关注！</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:39:48Z</pubDate>
+<pubDate>2023-11-12T07:39:48Z</pubDate>
+</item>
+<item>
+<title>[旅行] 318 路边这个花非常香，颜值也很高，不知道叫什么名字</title>
+<link>https://www.v2ex.com/t/991176</link>
+<guid>https://www.v2ex.com/t/991176</guid>
+<content:encoded><![CDATA[
+
+<p>形色找了下，没怎么确认， 各位认识吗？ 打算买点在家里种植。</p>
+<p><a href="https://t.ly/oruH" rel="nofollow">https://t.ly/oruH</a>_</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:29:20Z</pubDate>
+<pubDate>2023-11-12T07:26:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何在自己收藏的淘宝店里 批量搜索商品?</title>
+<link>https://www.v2ex.com/t/991172</link>
+<guid>https://www.v2ex.com/t/991172</guid>
+<content:encoded><![CDATA[
+
+如题,我收藏了好多家男装店 ,现在想买件羽绒服,一家家的搜  太慢了,如何批量搜索?
+]]></content:encoded>
+<pubDate>2023-11-12T07:23:44Z</pubDate>
+<pubDate>2023-11-10T07:22:44Z</pubDate>
+</item>
+<item>
+<title>[PHP] tp6 路由未加载</title>
+<link>https://www.v2ex.com/t/991171</link>
+<guid>https://www.v2ex.com/t/991171</guid>
+<content:encoded><![CDATA[
+
+<p>报“当前访问路由未定义或不匹配”</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:20:41Z</pubDate>
+<pubDate>2023-11-12T07:31:40Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 如何看待放假还被 @？</title>
+<link>https://www.v2ex.com/t/991169</link>
+<guid>https://www.v2ex.com/t/991169</guid>
+<content:encoded><![CDATA[
+
+<p>大佬们，你们在放假的时候老板有 @你，给你打电话吗？而且我们还是单休，周日还要被 @，感觉就要 24 小时待命</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:15:12Z</pubDate>
+<pubDate>2023-11-12T08:15:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] ps 无法显示 bash 命令的完整参数，是 bug 吗？</title>
+<link>https://www.v2ex.com/t/991168</link>
+<guid>https://www.v2ex.com/t/991168</guid>
+<content:encoded><![CDATA[
+
+mkfifo test-fifo<br /><br />bash &lt; test-fifo<br /><br />用 ps -ef | grep bash 就无法找到 bash &lt; test-fifo 这条完整命令。<br /><br />请问这是 bug 吗？还是我的姿势不对？
+]]></content:encoded>
+<pubDate>2023-11-12T07:08:45Z</pubDate>
+<pubDate>2023-11-08T07:08:45Z</pubDate>
+</item>
+<item>
+<title>[Apple] 收一个 setapp 老家庭账户</title>
+<link>https://www.v2ex.com/t/991167</link>
+<guid>https://www.v2ex.com/t/991167</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>续费是每个月 14.99 元或者每年 179.88 美元</li>
+<li>账户有包括主账号车位有 6 个的家庭计划</li>
+<li>价钱可议</li>
+<li>如账号还有剩余时间的，可以按照等价补钱</li>
+</ol>
+<p>联系 tg （同用户名）</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:05:48Z</pubDate>
+<pubDate>2023-11-12T07:03:48Z</pubDate>
+</item>
+<item>
+<title>[Apple] 如何查询 Magic Trackpad 保修状态</title>
+<link>https://www.v2ex.com/t/991166</link>
+<guid>https://www.v2ex.com/t/991166</guid>
+<content:encoded><![CDATA[
+
+在 MacBook 上试过 8 款鼠标（包括 Apple 自己的）都在使用一段时间的过程中出现卡顿或者不跟手的情况，最终没有办法入手了 Magic Trackpad 了。<br /><br />今天刚到手的，但是不知道怎么查询保修期，Apple 官网 <a href="https://checkcoverage.apple.com/" rel="nofollow noopener" target="_blank">https://checkcoverage.apple.com/</a> 提示输入有效序列号<br /><br />请问哪位大神知道如何查询保修期？
+]]></content:encoded>
+<pubDate>2023-11-12T07:02:11Z</pubDate>
+<pubDate>2023-11-12T07:45:21Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 爽了几年的 bug 双不限给玩挂了</title>
+<link>https://www.v2ex.com/t/991165</link>
+<guid>https://www.v2ex.com/t/991165</guid>
+<content:encoded><![CDATA[
+
+<p>昨天失误订购了个主副卡共享的流量包，现在完美限速 3.1
+又要开始折腾了</p>
+]]></content:encoded>
+<pubDate>2023-11-12T07:00:22Z</pubDate>
+<pubDate>2023-11-12T07:22:37Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 坐标上海，电信联通精品网</title>
+<link>https://www.v2ex.com/t/991164</link>
+<guid>https://www.v2ex.com/t/991164</guid>
+<content:encoded><![CDATA[
+
+<p>欸。。。。心累
+现在电信的新款云宽带海外加速，全部走香港 gia 出国，狠狠限速 10Mbps ，就 nmd 离谱
+旧版的精品网已经停办几年了
+联通 9929 最近体验就是依托答辩，先不提 ws 套 cf 的代理，单纯访问套 cf 的网站体验已经够差的了
+联通日本最近好像炸烂了
+源站（ emby 、bitwarden 、云盘，blablabla ）临时买了台蘑菇的韩国机反代，体验还行，就是 tmd 绕 9929-&gt;香港-&gt;韩国。出门用的电信卡，电信 5g-&gt;韩国不到 30ms ，emby 看片巨丝滑。
+什么时候移动精品网入驻上海？来抢枪客户啊，来了我必把垃圾电信换移动了。
+其他两家最近用着是真的难受。</p>
+]]></content:encoded>
+<pubDate>2023-11-12T06:55:14Z</pubDate>
+<pubDate>2023-11-12T08:14:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 在实际开发中 XState 之类用的多吗? 竞品是 Redux 和 Zustand 吗</title>
+<link>https://www.v2ex.com/t/991163</link>
+<guid>https://www.v2ex.com/t/991163</guid>
+<content:encoded><![CDATA[
+
+感觉 XState 很先进的，似乎对各种场景都有方案。比如在前端一个网络请求就套上 actor 、invoke 之类各种。👀<br />但是感觉每个 API 都套上这些要写的工作量也太多了。<br /><br />感觉在使用场景上和 Redux 和 Zustand 是竞品，🤔而且感觉后者用起来明显简单的多。大部分看到的 React 应用也是用 Redux 和 Zustand 。很少看见 XState
+]]></content:encoded>
+<pubDate>2023-11-12T06:47:58Z</pubDate>
+<pubDate>2023-11-12T06:47:58Z</pubDate>
+</item>
+<item>
+<title>[Pixel] pixel 换机如何像 iPhone 一样，全系统转移？</title>
+<link>https://www.v2ex.com/t/991162</link>
+<guid>https://www.v2ex.com/t/991162</guid>
+<content:encoded><![CDATA[
+
+<p>pixel 找不到这个选项，好像也没法 pc/mac 全量备份的办法</p>
+]]></content:encoded>
+<pubDate>2023-11-12T06:44:44Z</pubDate>
+<pubDate>2023-11-12T06:44:44Z</pubDate>
+</item>
+<item>
+<title>[反馈] 一个奇怪的现象，最近几次在 V2 发新帖，都不能选择节点，下拉框什么都没有。是个例吗？</title>
+<link>https://www.v2ex.com/t/991161</link>
+<guid>https://www.v2ex.com/t/991161</guid>
+<content:encoded><![CDATA[
+
+然后我就得先发布（默认是上一次的节点），10 分钟内，移动到合适的节点。迷之操作。<br /><br />还有就是，现在是每隔 30 分钟，才能发一个新贴了吗？还是我被降权啥的了？
+]]></content:encoded>
+<pubDate>2023-11-12T06:44:09Z</pubDate>
+<pubDate>2023-11-12T07:45:49Z</pubDate>
+</item>
+<item>
+<title>[Telegram] Telegram macOS 更新的真频繁</title>
+<link>https://www.v2ex.com/t/991159</link>
+<guid>https://www.v2ex.com/t/991159</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="telegram update" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/e6NNF8Y.png" /></p>
+<p>几天一个版本，甚至刚点了升级，升级完后又一个提示升级。</p>
+<p>能接受一个周一个版本。但一周三四个版本确实有点多了，而且多台 macOS 设备都用 tg ，每次打开都先升级一下，也不像其他应用可以忽略这次升级，直接有一个无法取消的按钮在下面。</p>
+<p>虽然用 App Store 版本可以减少升级次数，但不喜欢用商店应用。</p>
+<p>只能忍了，顺便来这里吐槽下。</p>
+]]></content:encoded>
+<pubDate>2023-11-12T06:40:26Z</pubDate>
+<pubDate>2023-11-12T06:37:26Z</pubDate>
+</item>
+<item>
+<title>[Apple] 国内只使用美区 Apple ID 会导致封号而锁机吗？</title>
+<link>https://www.v2ex.com/t/991157</link>
+<guid>https://www.v2ex.com/t/991157</guid>
+<content:encoded><![CDATA[
+
+买的 iPhone 快到了，想主力用美区账号，但是担心潜在的封号风险，如果在设置里登录了这个 id 的话，会导致手机也无法使用吗？求教。
+]]></content:encoded>
+<pubDate>2023-11-12T06:37:18Z</pubDate>
+<pubDate>2023-11-11T12:41:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] beancount 记账很好，但是统计很一般，要自己写很多 sql，有没有比较好的支持 beancount 的统计分析集成报表</title>
+<link>https://www.v2ex.com/t/991156</link>
+<guid>https://www.v2ex.com/t/991156</guid>
+<content:encoded><![CDATA[
+
+可以二次开发的，谢谢
+]]></content:encoded>
+<pubDate>2023-11-12T06:23:05Z</pubDate>
+<pubDate>2023-11-12T06:28:04Z</pubDate>
+</item>
+
+<item>
 <title>[iCloud] iCloud2T 土区车，空缺一人，每人 400G，年付 100</title>
 <link>https://www.v2ex.com/t/991154</link>
 <guid>https://www.v2ex.com/t/991154</guid>
 <content:encoded><![CDATA[
-
 <p>个人私家车，长期使用的加，已稳定开车快一年，有意请加张小龙（ base64 ）：ZXhfY2hpdQ==</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T06:20:18Z</pubDate>
 <pubDate>2023-11-12T06:17:18Z</pubDate>
 </item>
 <item>
@@ -20,12 +367,10 @@
 <link>https://www.v2ex.com/t/991153</link>
 <guid>https://www.v2ex.com/t/991153</guid>
 <content:encoded><![CDATA[
-
 <p>测试了一下家里 cloudflare 回源连的是德国节点，速度还行，能保证 40+m 吧，感觉属于可用了。</p>
 <p>然后这样套一下，是不是能最大可能避免被运营商发现，毕竟个人自用，流量也不大。 </p>
 <p>对了，用 cf 的 Origin Rules 跳转，还能解决 443 端口被封的问题。</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T06:18:54Z</pubDate>
 <pubDate>2023-11-12T06:18:54Z</pubDate>
 </item>
 <item>
@@ -33,11 +378,9 @@
 <link>https://www.v2ex.com/t/991152</link>
 <guid>https://www.v2ex.com/t/991152</guid>
 <content:encoded><![CDATA[
-
 <p>题目要求简单线性回归，也就是给一组二维坐标，比如[0,1],[2,2],[5,4]...等等，然后求出对应在直角坐标系里的回归的直线的斜率和截距即可。</p>
 <p>上网查了查，资料说有啥最小二乘法，牛顿法，梯度下降法等等，说实话公式一个也没看懂。初中数学给的那个线性回归公式倒是看懂了，算起来也挺简单的。从计算效率角度讲，具体算的时候用哪种方法比较快？</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T06:18:13Z</pubDate>
 <pubDate>2023-11-12T06:17:13Z</pubDate>
 </item>
 <item>
@@ -45,14 +388,12 @@
 <link>https://www.v2ex.com/t/991151</link>
 <guid>https://www.v2ex.com/t/991151</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="OpenAI 图标" class="embedded_image" rel="noreferrer" src="https://image-1257198410.cos.na-siliconvalley.myqcloud.com/image/openaiclose.png" title="OpenAI 标志" /></p>
 <ul>
 <li>如图
 <a href="https://status.openai.com/" rel="nofollow">https://status.openai.com/</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-11-12T06:13:25Z</pubDate>
 <pubDate>2023-11-12T06:16:00Z</pubDate>
 </item>
 <item>
@@ -60,10 +401,8 @@
 <link>https://www.v2ex.com/t/991150</link>
 <guid>https://www.v2ex.com/t/991150</guid>
 <content:encoded><![CDATA[
-
 农行 APP 搜索 [任务中心] - [体验赢好礼] 点进去 下拉去完成自己可以完成的任务抽立减金即可。<br /><br />最方便的就是 做风险评估赢好礼 任务。<br /><br />祝好运。
 ]]></content:encoded>
-<pubDate>2023-11-12T06:12:29Z</pubDate>
 <pubDate>2023-11-12T06:21:02Z</pubDate>
 </item>
 <item>
@@ -71,12 +410,10 @@
 <link>https://www.v2ex.com/t/991148</link>
 <guid>https://www.v2ex.com/t/991148</guid>
 <content:encoded><![CDATA[
-
 <p>之前取消每天免费一条的 GPT4 时就觉得不妙，没想到每天 5 条的 Claude-2 也没了
 看来该充钱的还是要充钱
 <a href="https://imgse.com/i/piGYpgP" rel="nofollow"><img alt="piGYpgP.png" class="embedded_image" rel="noreferrer" src="https://z1.ax1x.com/2023/11/12/piGYpgP.png" /></a></p>
 ]]></content:encoded>
-<pubDate>2023-11-12T06:03:02Z</pubDate>
 <pubDate>2023-11-12T06:02:02Z</pubDate>
 </item>
 <item>
@@ -84,10 +421,8 @@
 <link>https://www.v2ex.com/t/991146</link>
 <guid>https://www.v2ex.com/t/991146</guid>
 <content:encoded><![CDATA[
-
 <p>本人老车主，发有 NF 车，迪士尼车，油管车，信誉绝对保证不跑路，翻车按比例退。 刚新开一个油管车，带 1 个月试用期，共 13 个月，明盘 60/年。 美国家庭组，自备未锁区账号或美区账号，加入时需使用美国 IP ，招 4 人。 旧油管车将于 2023.12.11 到期，到时根据是否有人下车情况再定招收计划。联系方式 TG 是我的 id 后面再加个数字 2 ，或者 AES 解密密码 1234 U2FsdGVkX18DRQs9w7fjlUrO0jS37vUdt0HnuCc1tbQ=</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T05:42:53Z</pubDate>
 <pubDate>2023-11-12T05:39:53Z</pubDate>
 </item>
 <item>
@@ -95,10 +430,8 @@
 <link>https://www.v2ex.com/t/991145</link>
 <guid>https://www.v2ex.com/t/991145</guid>
 <content:encoded><![CDATA[
-
 [img]<a href="https://i.imgur.com/MlsLYQf.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/MlsLYQf.png" /></a>[/img]<br /><br />不喜勿喷，交流为主<br /><br />截图日期是 10.20-11.11 （ 2023 ），利润大概 4-6 成，退货率很低，起步阶段，做好且长久挺难，11 月一到，不光我的销量滑铁卢，看了同行多半也同样状况，神秘的东方力量『 Doge 』
 ]]></content:encoded>
-<pubDate>2023-11-12T05:40:16Z</pubDate>
 <pubDate>2023-11-12T05:39:16Z</pubDate>
 </item>
 <item>
@@ -107,9 +440,7 @@
 <guid>https://www.v2ex.com/t/991144</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-12T05:23:45Z</pubDate>
 <pubDate>2023-11-12T01:23:45Z</pubDate>
 </item>
 <item>
@@ -117,7 +448,6 @@
 <link>https://www.v2ex.com/t/991143</link>
 <guid>https://www.v2ex.com/t/991143</guid>
 <content:encoded><![CDATA[
-
 <p>鱼收的是二手的 Surface laptop 2</p>
 <p><strong>一到手立马重新安装 msdn 的原版镜像</strong></p>
 <p>但总是出现让我们为你的工作或学校准备好登录信息</p>
@@ -127,7 +457,6 @@
 <p>知乎来源如下：</p>
 <p><a href="https://zhuanlan.zhihu.com/p/640579152" rel="nofollow">https://zhuanlan.zhihu.com/p/640579152</a></p>
 ]]></content:encoded>
-<pubDate>2023-11-12T05:21:10Z</pubDate>
 <pubDate>2023-11-12T05:58:38Z</pubDate>
 </item>
 <item>
@@ -135,7 +464,6 @@
 <link>https://www.v2ex.com/t/991142</link>
 <guid>https://www.v2ex.com/t/991142</guid>
 <content:encoded><![CDATA[
-
 <p>小弟想实现如下效果，自己尝试过很多方法都不能完美实现，请问有大佬熟悉 echarts 并且能实现如下效果的吗？小弟感激不尽，请大佬喝冬天的第一杯奶茶。</p>
 <ol>
 <li>x 轴不等间距分布，数据是音频的频率，例如[20,100,1000,10000,20000]hz</li>
@@ -145,7 +473,6 @@
 <a href="https://www.woodenears.com/article/f779fba2-462e-4842-9824-680b26882028" rel="nofollow">https://www.woodenears.com/article/f779fba2-462e-4842-9824-680b26882028</a></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/dlCJo5m.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-12T05:03:53Z</pubDate>
 <pubDate>2023-11-12T05:36:52Z</pubDate>
 </item>
 <item>
@@ -153,7 +480,6 @@
 <link>https://www.v2ex.com/t/991141</link>
 <guid>https://www.v2ex.com/t/991141</guid>
 <content:encoded><![CDATA[
-
 <p>每年到了 11 月份，就到了赣南脐橙上市的时间</p>
 <p>如果没有冬天的第一杯奶茶，那一定要有冬天的第一个赣南脐橙～</p>
 <p>赣南脐橙富含维生素 C 、纤维和抗氧化剂，有助于增强免疫力和促进消化健康～去年疫情的时候盐蒸橙子确实对吞刀片的缓解有很好的效果</p>
@@ -185,7 +511,6 @@
 </tbody></table><p>有需要的 V 友请联系：<br />
 <img alt="WechatIMG586.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/11/08/JQ7B935aDjZLeih.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:53:27Z</pubDate>
 <pubDate>2023-11-12T04:50:27Z</pubDate>
 </item>
 <item>
@@ -193,10 +518,8 @@
 <link>https://www.v2ex.com/t/991140</link>
 <guid>https://www.v2ex.com/t/991140</guid>
 <content:encoded><![CDATA[
-
 <p>请问大家也是这样吗</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:52:59Z</pubDate>
 <pubDate>2023-11-12T04:58:03Z</pubDate>
 </item>
 <item>
@@ -204,10 +527,8 @@
 <link>https://www.v2ex.com/t/991137</link>
 <guid>https://www.v2ex.com/t/991137</guid>
 <content:encoded><![CDATA[
-
 用高德地图有感，对于我这么一个路痴来说，真的是必不可缺的高质量工具，如果手机上只能装一个第三方应用，我会在微信和高德地图之间纠结。然而这么有用的工具，就因为有一个同档次的百度地图作为对手，一直就不敢收费，我真怕高德亏损倒闭了
 ]]></content:encoded>
-<pubDate>2023-11-12T04:46:14Z</pubDate>
 <pubDate>2023-11-03T19:00:23Z</pubDate>
 </item>
 <item>
@@ -215,14 +536,12 @@
 <link>https://www.v2ex.com/t/991135</link>
 <guid>https://www.v2ex.com/t/991135</guid>
 <content:encoded><![CDATA[
-
 <p>招聘：cocos 游戏开发工程师
 任职条件：有多种类游戏开发经验，有抖音、微信小游戏上架经验  有 taptap 、好游快爆、各大应用市场游戏上架经验，熟悉 android 和 cocos 接口交互，有 java sdk 接入开发经验
 工作地点：成都新都区
 工作薪酬：15k-20k
 联系方式：手机、微信同号：17760420559</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:40:19Z</pubDate>
 <pubDate>2023-11-12T05:00:49Z</pubDate>
 </item>
 <item>
@@ -230,10 +549,8 @@
 <link>https://www.v2ex.com/t/991134</link>
 <guid>https://www.v2ex.com/t/991134</guid>
 <content:encoded><![CDATA[
-
 首先我是非常讨厌 5G 的,耗电大,速度也没见比 4G 快多少等等,挑 5G 的毛病的文章和帖子实在太多了,我基本都赞同他们的观点,特别是当 5G 和"遥遥领先"绑定在一起的时候.<br />不过我发现有一个地方 5G 似乎比 4G 好,而大家似乎没怎么讨论过,所以有点疑问.<br /><br />是医院.我在 AB 两个城市的两家医院刷手机的时候,发现明明 4G 信号满格,但网页却卡住,而切换到 5G 的时候却正常.<br /><br />我猜想原因可能在以下<br />医院是个人口流量密度比较大的地方,而且往往都是 6 层以上的大楼,水泥厚实.而大多数人基本都是在排队/病床修养等闲暇状态,这时候耗流量大的短视频就成了打发时间的优先选择,于是 4G 的信号的信道因为流量的增加造成拥堵,而 5G 没有这个问题.<br />还有一个原因可能是医院的仪器多,干扰大?<br /><br />类似的人口流量大的地方是购物中心之类的商业综合体。但这时候大家基本都在逛，只有吃饭等餐的时候刷手机，所以上述问题没有复现。<br /><br />当然,某乎的传统是先问是不是再问为什么.<br />我身边统计学是这样,所以请教下各位,有没有碰过类似的场景？
 ]]></content:encoded>
-<pubDate>2023-11-12T04:39:36Z</pubDate>
 <pubDate>2023-11-12T04:50:48Z</pubDate>
 </item>
 <item>
@@ -241,11 +558,9 @@
 <link>https://www.v2ex.com/t/991133</link>
 <guid>https://www.v2ex.com/t/991133</guid>
 <content:encoded><![CDATA[
-
 <p>好像每次达到一定金额，就可以换购，有很多东西可以选，你可以选 20 件不同的东西，不过都是单件，然后这些东西比单买都要便宜，比如雀巢咖啡 3 瓶 1 打不到 10 块钱，你单独买差不多 12 ，自己到便利店买就是 18 了。</p>
 <p>看了下生产日期，也不是清库存，算是一种促销吧。</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:37:09Z</pubDate>
 <pubDate>2023-11-11T04:37:09Z</pubDate>
 </item>
 <item>
@@ -253,10 +568,8 @@
 <link>https://www.v2ex.com/t/991132</link>
 <guid>https://www.v2ex.com/t/991132</guid>
 <content:encoded><![CDATA[
-
 <p>gpt4V 也没有了, 所有和 plus 相关的东西都没有了, 但是 web 端是正常的</p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:35:36Z</pubDate>
 <pubDate>2023-11-12T04:34:36Z</pubDate>
 </item>
 <item>
@@ -264,10 +577,8 @@
 <link>https://www.v2ex.com/t/991131</link>
 <guid>https://www.v2ex.com/t/991131</guid>
 <content:encoded><![CDATA[
-
 由于最近消费降级，每一笔支出都要去对。发现这个月的话费比上月多了 30 元。<br />上个月一个客服打电话说办理一个乐享包业务是赠送的，我也反复确认是否需要收取额外的费用 确认不需要才办理了。今天查账单发现扣了。。。<br /><br />咨询人工服务，说这个业务本身就是要收费的。<br />我说让他们查录音，然后她去查了之后又给我回电话并没有说查到的结果，只是又推诿了下说这个业务是 24 个月的 但是再我再三表明我并不需要 最终她同意了退订业务。<br /><br />总结 不管客服推销什么业务收费或是免费，不用的就不要去开。
 ]]></content:encoded>
-<pubDate>2023-11-12T04:33:08Z</pubDate>
 <pubDate>2023-11-12T06:18:49Z</pubDate>
 </item>
 <item>
@@ -275,7 +586,6 @@
 <link>https://www.v2ex.com/t/991130</link>
 <guid>https://www.v2ex.com/t/991130</guid>
 <content:encoded><![CDATA[
-
 <h2>前言</h2>
 <p>说起我真正使用落地的产品是从 22 年 11 月份开始，那时候 ChatGPT 刚发布灰度出来，面对这个对话框一样的界面，我发现这个简简单单甚至有些简陋的页面，竟然是技术变革的入口，看过大模型相关理论以及原理的同学，大家会发现，这个 AI 已经学习了我们近十年的信息，也就是说，他的知识储备已经高于我们在这个世界上的任何一个人，同一时间段，已经看到 V2EX 已经有人开始将高考试题让 GPT 去做了，当时的 GPT 可以考上一所不错的一本院校了，现在的 GPT4 我想应该是在全领域领先于各个行业了。</p>
 <p>不出意外，ChatGPT 在全球理所当然的火了起来，他带来的是一场技术的革命，他区别于元宇宙、VR 或者区块链，因为元宇宙、VR 技术的发展到现在，需要的是基础材料的突破，当时现在（ 23 年 10 月）还没有让人振奋人心的消息传来，区块链延伸而来的比特币，成为了全球热爱博彩的圣地、也成为了进行洗钱的工具，对社会和全球的发展没有进步意义，同时又白白消耗了大量的电力资源。GPT 是利用现有的计算机科学技术进行突破，商业化速度比预想的要快很多，微软的 Edge 浏览器率先融合进了 GPT ，成为了第一款商业化的产品。</p>
@@ -303,10 +613,8 @@
 <p>最后大家要是对 GPT 有什么想法或者有什么好用的工具，可以分享在评论区，让 AI 帮助我们解放生产力，让我们变得更强～</p>
 <p>原文链接：<a href="https://blog.debuginn.cn/p/talk-about-chat-gpt/" rel="nofollow">谈谈 ChatGPT - Debug 客栈</a></p>
 ]]></content:encoded>
-<pubDate>2023-11-12T04:24:06Z</pubDate>
 <pubDate>2023-11-12T05:32:11Z</pubDate>
 </item>
-
 <item>
 <title>[微信] 平时微信和 qq 的私聊消息,会不会把检测到敏感的内容自动传给人工审查？</title>
 <link>https://www.v2ex.com/t/991128</link>
@@ -14799,328 +15107,6 @@ WHY YOU WILL LOVE SUPPLY BRIDGE: <br />SUPPLY BRIDGE is an innovative startup th
 telegram @<a href="https://www.v2ex.com/member/liuxiao66661">liuxiao66661</a></p>
 ]]></content:encoded>
 <pubDate>2023-11-08T02:06:16Z</pubDate>
-</item>
-<item>
-<title>采访：从上海到东京，历时半年的海外求职记</title>
-<link>https://www.v2ex.com/t/989766</link>
-<guid>https://www.v2ex.com/t/989766</guid>
-<content:encoded><![CDATA[
-<p>这次我们采访了一位五年工作经验的软件工程师，他分享了自己过去半年时间海外求职的经历，包括如何投递简历，准备面试以及求职过程的经验分享。</p>
-<p>...</p>
-<p><strong>“你是什么时候开始准备海外求职的？当初如何选择合适自己工作的国家或地区？”</strong></p>
-<p>在今年春季的时候，我开始搜集相关资料以及准备简历。同时我也在考托福，计划如果找不到合适的海外工作就出国留学，算是留一条后路。我记得第一封简历投出去的时候是在四月底，那时候我就完全进入状态了。选择前往工作的国家的话，我比较看重工作压力。众所周知，国内的工作压力是相当大的。虽然我上一家公司没有加班，但开会、写报告和周报等事务性工作都很耗精力。写代码本身并不痛苦，痛苦的是写代码之外的那些东西。因此我在寻找新的工作机会时，我的首要条件是找到一个工作压力较小的环境。我考虑过的地区包括西班牙和北欧国家，比如芬兰和瑞典，因为它们以 Work–life Balance 闻名。在亚洲方面，尽管我一开始有考虑新加坡，但从朋友那里了解到工作压力同样很大，所以我只向几家公司投递了简历。最终，我决定将目光转向了日本，希望那里能找到一个更适合我的工作环境。</p>
-<p>...</p>
-<p><a href="https://osjobs.net/interview/posts/%E4%BB%8E%E4%B8%8A%E6%B5%B7%E5%88%B0%E4%B8%9C%E4%BA%AC%E5%8E%86%E6%97%B6%E5%8D%8A%E5%B9%B4%E7%9A%84%E6%B5%B7%E5%A4%96%E6%B1%82%E8%81%8C%E4%B9%8B%E6%97%85/" rel="nofollow">全文：从上海到东京，历时半年的海外求职记</a></p>
-]]></content:encoded>
-<pubDate>2023-11-08T02:05:41Z</pubDate>
-</item>
-<item>
-<title>Java 八股文背的头都大喽</title>
-<link>https://www.v2ex.com/t/989603</link>
-<guid>https://www.v2ex.com/t/989603</guid>
-<content:encoded><![CDATA[
-<p>大家现在面试还背八股文吗..什么并发各种锁，锁的升级、原理，JVM 回收算法，各种源码问问问，打算放弃喽，还是好好准备下项目，碰到问八股的直接 G 吧</p>
-]]></content:encoded>
-<pubDate>2023-11-08T00:25:56Z</pubDate>
-</item>
-<item>
-<title>求志同道合的伙伴一起搞事情！（宠物相关项目）现在急缺前端！</title>
-<link>https://www.v2ex.com/t/990022</link>
-<guid>https://www.v2ex.com/t/990022</guid>
-<content:encoded><![CDATA[
-一个宠物相关项目！我们希望搭一个跟宠物粮相关的平台，让宠物主能快速找到自己想要的猫粮或者狗粮。现在市面上宠物粮太多太杂，稂莠不齐，用户选择决策成本太高，我们想通过科学选粮的方式来降低宠物主选粮成本。  团队成员均来自于字节，阿里，虾皮等大厂，远程协作，之前也有一个成功的宠物项目经验，已经积累 20W 用户。我们想为宠物粮市场的规范做一些贡献，需要更多的人加入我们一起来做一些有意思的事情。 如果你热爱宠物，也认同我们的想法。请联系我们。  最好热爱宠物，时间有保证，可私信我详聊。
-]]></content:encoded>
-<pubDate>2023-11-07T22:39:39Z</pubDate>
-</item>
-<item>
-<title>应届生 Offer 选择应该看重哪方面？</title>
-<link>https://www.v2ex.com/t/990028</link>
-<guid>https://www.v2ex.com/t/990028</guid>
-<content:encoded><![CDATA[
-本人 24 届应届生，拿了一些 offer ，目前陷入了纠结。<br /><br />1. 某互联网 TOP 厂转正，总包 N ，成本部门感觉不太稳定&amp;&amp;对技术提升不大&amp;&amp;业务方向有点无趣。<br />2. 某游戏 TOP 厂平台开发，不算核心，总包应该能 N+8 ，氛围不错，但不是游戏方向去游戏厂不知道背书能力如何。<br />3. 某互联网黄埔军校，相对核心的组，总包大概只有 N-5 ，比较卷，但估计对技术提升还可以。<br /><br />想请问一下各位前辈，作为应届生第一份工作，是应该更看重薪资 base ，还是对技术提升的程度，亦或是业务的稳定程度？ TOP 厂的背书能力真的远远大于其他厂吗？
-]]></content:encoded>
-<pubDate>2023-11-07T19:59:46Z</pubDate>
-</item>
-<item>
-<title>[远程办公] 国内 remote - react 全栈 - 年包 65w 左右</title>
-<link>https://www.v2ex.com/t/989549</link>
-<guid>https://www.v2ex.com/t/989549</guid>
-<content:encoded><![CDATA[
-<p>帮朋友发个帖：远程，remote 岗位，对标 p6 的 react 开发（要求会写后端，nodejs 优先，python 次之，）
-年薪 65w 左右（ 9w 刀），非常早期的美国初创公司，面试有 coding 环节，有实力，考虑小初创业公司的远程机会的简历邮件发我~</p>
-<p>学历最好 211 ，英语 4 级左右，能读写就行，有过大厂经验，喜欢创新和团队合作，欢迎加入我们！一起挑战极限，改变世界！加入我们的行列，创造未来！</p>
-<p>简历请发至 <a href="mailto:xiezongxin1995@163.com">xiezongxin1995@163.com</a></p>
-]]></content:encoded>
-<pubDate>2023-11-07T17:30:52Z</pubDate>
-</item>
-<item>
-<title>今天听老板确认了，办公室下个月到期后不续租了，全体解散。</title>
-<link>https://www.v2ex.com/t/989556</link>
-<guid>https://www.v2ex.com/t/989556</guid>
-<content:encoded><![CDATA[
-<p>已确认，剩下几个人在剩下的一个月时间自寻新工作。</p>
-<p>很巧，下个月正好是我农历的生日，35 周岁。</p>
-<p>回忆一下这十几年的工作，有点失望啊。</p>
-<p>从 07 年毕业工作到现在，大约 16 个年头左右，都在写程序。现在回想起来，似乎作为程序员这一职业，都是顺其自然的结果，我自己似乎从来没有特意想去某一个目标努力着，或主动的追求过某个目标，现在中年失业，对自己的现状还是有点失望的。</p>
-<p>我只读中职毕业，学校计算机专业是教 VB 语言的，外面培训班学过 FLASH 。</p>
-<p>在 07 年最后一个学期，春季校招，当时想着投下简历，能被招去工作就不读大学了（回想起来挺蠢的），然后就被一家广告公司招了，维护本地一个 BBS 和一个商城，然后就开始工作了 3 年，从 HTML + ASP ，最后部门老大说转 PHP ，基本靠自学。</p>
-<p>公司可能受 08 年经济危机的影响，到 09 年就慢慢发不起工资了，从欠 1 个月慢慢变到欠 3 个月。刚好以前同事在别的广告公司，那边最近在招网站制作的岗位，工资给得还多，就过去了。在 09 年干了一年的企业网站制作，用 PHP 后端，前端是 FLASH + AS2 ，一年后公司从平面广告开始搞影视广告，可能没竞争，视频广告赚得多，为此企业网站制作这块业务也不要了，让我转摄影，去学习摄影。这事和同学聊到，刚好同学要辞职去深圳，公司要重新招 PHP ，我就辞职过去了。</p>
-<p>接下来就是连续 10 年的房地产网站的工作，一个地产综合站，从地产资讯开始到新房、二手房、装修、中介 ERP 等，一干就是 10 年，老板年轻，刚好那几年地产行情在火，奖金多，工作挺满意的。但温水煮青蛙，那时候流量从 PC 端转微博、公众号、然后到短视频，媒体这一块的载体慢慢不停的变迁，PC 端的网站流量慢慢消失。另外就是网络管理越来越严，从关闭 BBS 到关闭资讯评论，最后连二手房板块都关了，老板自己都记不清去签过几张保证书了。</p>
-<p>最后在 19 年年底，这个地产网站被一家中介收购，搬到同一栋楼后，不自由，也不喜欢新同事，呆到 20 年中旬就辞职了。</p>
-<p>20 年辞职后在家带孩子，比较空闲的时候和朋友聊一聊，喝喝茶，刚好前同事在搞短视频这一块，投资人大老板是搞微商出身的，手下一群宝妈在跟着他干，需要找人开发返利之类的 APP ，我就过去工作了，APP 开发完老板又有新想法要制作，就继续上班。</p>
-<p>然后到今年 23 年，原本微商不好干，返利 APP 也赚不到钱，短视频搬运工具也不好卖，再加上今年搞什么旅游网站被起诉后，老板还是放弃了，12 月房租到期，确认不再续了。</p>
-<p>回起这十多年，似乎都是刚好哪里需要去哪里，从来没有主动去寻找自己想要的工作，反而是现在这个年龄，真的有目标想找都难了。</p>
-<p>感叹一下，有点累，明年再看了。</p>
-<p>顺便问一下，现在大家招聘都在哪个网站啊？想看看了解一下行情。</p>
-]]></content:encoded>
-<pubDate>2023-11-07T17:11:01Z</pubDate>
-</item>
-<item>
-<title>base 上海，专业外包，寻求老板们合作</title>
-<link>https://www.v2ex.com/t/989680</link>
-<guid>https://www.v2ex.com/t/989680</guid>
-<content:encoded><![CDATA[
-<p>我们团队全员来自 bilibili ，前后端、产品、UI 、测试都有，项目比较大的话人员可以随时弹性扩容（都是同事或者同事的同事），现在想聚在一起接点活干干。</p>
-<h1>我们的优势：</h1>
-<p>我们从业经验都在三四年以上，中大厂出身，开发能力、责任心、执行力这块儿早已被 PUA 到顶尖，所以项目质量这块儿非常有保证。</p>
-<h1>我们可以做的内容：</h1>
-<ul>
-<li>各类中后台</li>
-<li>各类官网等宣传网站</li>
-<li>各类小程序（非游戏）</li>
-<li>各类复杂定制网站，比如电商、企业站</li>
-</ul>
-<h1>我们的技术范围：</h1>
-<p>前端：React 、Vue 全家桶，Echarts 可视化，SSR ，TypeScript</p>
-<p>后端：Java 、Node 、Go</p>
-<h1>我们的联系方式：</h1>
-<p>大佬们感兴趣的请加微信沟通交流一下，v：cWluaGVqdW41MzE=</p>
-]]></content:encoded>
-<pubDate>2023-11-07T17:00:04Z</pubDate>
-</item>
-<item>
-<title>从外包离场了，没有办公地点怎么打卡？</title>
-<link>https://www.v2ex.com/t/989639</link>
-<guid>https://www.v2ex.com/t/989639</guid>
-<content:encoded><![CDATA[
-<p>从外包离场了，没有办公地点怎么打卡？
-1.已发邮件说明情况了（离场时间+要求公司按合同安排工作），公司没有回复，想拖着不给赔偿。</p>
-<p>2.关键是离场了，甲方进不去了。公司本地没有办公室，考勤地还在甲方那，后续要如何发邮件留痕和打卡。</p>
-<p>甲方里的很近可以去甲方门口打卡，该邮件该如何申明。</p>
-]]></content:encoded>
-<pubDate>2023-11-07T16:26:20Z</pubDate>
-</item>
-<item>
-<title>上班带超市里的预制菜作为午餐的可行性如何？</title>
-<link>https://www.v2ex.com/t/989813</link>
-<guid>https://www.v2ex.com/t/989813</guid>
-<content:encoded><![CDATA[
-<p>大润发超市里现在有不少速冻的 “预制菜”、“方便菜”</p>
-<p>比如 10 块 290g 的宫保鸡丁（ 290g 我可以吃 2 顿）</p>
-<p>比如 29.9 元 530g 的番茄巴沙鱼（ 530g 我可以吃 4 顿）</p>
-<p>而且看配料表都还没有什么科技与狠活，生产厂商也是上市公司，应该会比外卖炒菜干净吧。</p>
-<p>办公室里有微波炉，那么上班带超市里的预制菜作为午餐的可行性如何？</p>
-<p><img alt="==" class="embedded_image" rel="noreferrer" src="https://youjb.com/images/2023/11/08/yzc10ac101d16f43333.jpeg" />，</p>
-]]></content:encoded>
-<pubDate>2023-11-07T16:20:34Z</pubDate>
-</item>
-<item>
-<title>[嘉兴] 寻找 Ruby/Go 全栈工程师，支持远程 [长期招聘]</title>
-<link>https://www.v2ex.com/t/989366</link>
-<guid>https://www.v2ex.com/t/989366</guid>
-<content:encoded><![CDATA[
-<h1>团队与项目</h1>
-<p>我们是一支远程技术团队，组建于 2015 年，在浙江嘉兴（上海、杭州、苏州附近的一个小城市，Dang 的诞生地嘉兴南湖）。早几年主要从事软件外包，现在已经不做了，尝试过几次产品探索，并没有成功。2019 年 11 月开始做电商供应链项目（微信搜索小程序：闯货），我们作为技术团队参与其中。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://l.ruby-china.com/photo/wikimo/be36851f-cb59-4d72-96db-dc40ee8fde4c.jpeg%21large" /></p>
-<p>简单介绍闯货，闯货是一个基于微信端的电商平台，追求产品品质与服务，希望让买卖变得更简单，没有繁琐的营销套路。到目前为止我们也没有主流营销工具，如优惠券、折扣、满减，也没有双 11 ，618 等。现有的抢购秒杀、预售是因为供货不足，并非饥饿营销，系统并没有单独的抢购秒杀、预售功能，所有商品都可能成为抢购秒杀、预售。</p>
-<p>闯货运营团队目前 300 多人，大部分是 80 、90 、00 ，连接了商品从工厂、物流、选品、评测、售前售后到用户的一整条链路。想要了解闯货团队更多信息，可关注公众号 [拾个点] 的文章。技术团队目前 5 人，1 产品、1 前端、1 后端、2 全栈，都是 80 、90 后，大部分一起协作 4 年以上。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://l.ruby-china.com/photo/wikimo/0518bea8-9df2-474f-8c8c-934c1af29428.jpg%21large" /></p>
-<h1>工作任务</h1>
-<ol>
-<li>负责电商供应链系统开发、维护；</li>
-<li>参与部分系统设计工作，会接触到产品、业务流程、系统架构设计。</li>
-</ol>
-<h1>技能要求</h1>
-<ol>
-<li>熟悉 Ruby/Go/PHP 等编程语言，熟悉 Ruby On Rails ，良好的编码习惯；</li>
-<li>2-5 年电商系统研发经验，对抢购秒杀等高并发业务场景、业财一体化、资金结算业务有一定经验；</li>
-<li>熟悉 MySQL ，对 MySQL 优化有一定经验；</li>
-<li>熟悉 JavaScript ，了解 Vue / React ；</li>
-<li>熟悉 Git ，掌握版本管理、分支管理基本用法；</li>
-<li>熟悉阿里云、K8S 、Docker ，掌握应用部署的基本方法；</li>
-<li>熟悉微信生态，包括公众号、小程序、微信支付；</li>
-<li>热爱生活，喜欢折腾，喜欢阅读、运动，积极向上的价值观。</li>
-</ol>
-<h1>其它说明</h1>
-<ol>
-<li>薪资待遇：15-18K/月，节假日福利；</li>
-<li>工作时间：08：30-17：30 ，法定节假日，加班少，支持远程；</li>
-<li>事故说明：遇系统突发事故需微信、电话联系，第一时间处理，一年大约 5 次以内；</li>
-<li>简历投递： <a href="mailto:gwikimo@gmail.com">gwikimo@gmail.com</a> ，如有线上可运行的项目案例、管理后台截图、代码示例、Github 、Blog 等请提供；</li>
-<li>面试流程：如简历合适，1 ）通过电话、微信与你联系，语音或文字形式聊下，包括工作内容、技术等； 2 ）如大家觉得合适，以从实际小任务（单独付费）开始，如通过 1-2 任务测试，可转正并按月结算薪资，试用期 2 个月。</li>
-</ol>
-]]></content:encoded>
-<pubDate>2023-11-07T15:29:38Z</pubDate>
-</item>
-<item>
-<title>[远程] 区块链老牌大厂「币信」招聘啦，移动端开发+产品+运营多个岗位等你来～</title>
-<link>https://www.v2ex.com/t/989665</link>
-<guid>https://www.v2ex.com/t/989665</guid>
-<content:encoded><![CDATA[
-**币信集团旗下 Openblock 诚招以下岗位，如果你真诚、热情、上进、对技术热忱有追求，我们欢迎你的加入！<br /><br />✨我们的工作模式：分布式远程居家。在完成工作任务的前提下，我们不对员工的办公地点做任何限制和要求。<br />✨我们的待遇：行业内拥有竞争力的薪水➕员工 ESOP 计划<br />✨节日福利<br />✨周末双休<br /><br />空缺岗位详情：<br /><br />**移动端开发 （ 30k ～ 45k/月）<br /><br />岗位职责：<br />- 负责客户端的开发和改进<br />- 负责移动平台新技术研究、功能扩展、现有开发方法的改进、架构优化<br />- 参与客户端产品的架构设计，分析和发现系统的优化点<br />- 持续优化相关产品的质量、性能、用户体验<br /><br />任职要求：<br />- 计算机相关专业本科及以上学历，1 年以上 Flutter 研发经验，5 年以上 iOS/Android 研发经验<br />- 熟悉 Flutter 框架，Dart 语言，熟练使用各种 Flutter 布局、动画<br />- 有 Flutter 基础建设经验和完整的混合架构经验<br />- 精通 iOS/Android 开发平台及框架原理，以及 iOS/Android 控件的使用，熟练掌握 iOS/Android 界面和交互开发<br />- 精通 Kotlin/Swift 开发语言，有良好编码峰峰，追求代码执行效率<br />- 具备扎实的数据架构算法基础及良好的架构设计能力，熟练运用设计模式<br />- 具备良好的责任心、上进心、执行力以及良好的沟通能力和团队合同能力<br /><br />加分项：<br />- 有 Web3 开发经验<br />- 有马甲包及 Appstore 上架经验<br />- 对前沿技术的预研和引入充满兴趣<br /><br /><br />更多职位详情请关注我们的招聘官网： <a href="https://tk3en79uf0.larksuite.com/docx/JB5fdC2qzoB7XQxAE9SuaaF3sme" rel="nofollow noopener" target="_blank">https://tk3en79uf0.larksuite.com/docx/JB5fdC2qzoB7XQxAE9SuaaF3sme</a><br /><br />**感兴趣朋友们请发简历至 hr@openblock 投递相关岗位！<br /><br />祝大家求职顺利，一切顺利！
-]]></content:encoded>
-<pubDate>2023-11-07T14:43:48Z</pubDate>
-</item>
-<item>
-<title>工作后读研的收益</title>
-<link>https://www.v2ex.com/t/989479</link>
-<guid>https://www.v2ex.com/t/989479</guid>
-<content:encoded><![CDATA[
-<p>工作 1 年后考研读研，有哪些收益？假定研究生就读 c9 ，中科院所等层次的学校。</p>
-<p>可能的收益</p>
-<ul>
-<li>重返校园，弥补本科疫情三年摆烂的遗憾</li>
-<li>一纸文凭</li>
-<li>国央企，体制内，研究所工作的机会</li>
-<li>做有技术壁垒工作的机会(甚至可能读研是劣势)</li>
-<li>调整心态，重新找到兴趣和热情(这个很虚，但是自己确实心态特别糟糕)</li>
-<li>继续深造，海外留学或读博机会</li>
-</ul>
-<p>大家最好结合身边案例分享下读研后的出路和选择。不考虑出国留学读研。考研有巨大的风险和时间成本，不过这里就想先探讨下工作后考研读研的收益。</p>
-]]></content:encoded>
-<pubDate>2023-11-07T13:03:24Z</pubDate>
-</item>
-<item>
-<title>招一个有 Flutter 经验的移动端开发 [远程]</title>
-<link>https://www.v2ex.com/t/989572</link>
-<guid>https://www.v2ex.com/t/989572</guid>
-<content:encoded><![CDATA[
-薪酬是 4000 ～ 5000USD/月<br /><br />岗位职责：<br />- 负责客户端的开发和改进<br />- 负责移动平台新技术研究、功能扩展、现有开发方法的改进、架构优化<br />- 参与客户端产品的架构设计，分析和发现系统的优化点<br />- 持续优化相关产品的质量、性能、用户体验<br /><br />任职要求：<br />- 计算机相关专业本科及以上学历，1 年以上 Flutter 研发经验，5 年以上 iOS/Android 研发经验<br />- 熟悉 Flutter 框架，Dart 语言，熟练使用各种 Flutter 布局、动画<br />- 有 Flutter 基础建设经验和完整的混合架构经验<br />- 精通 iOS/Android 开发平台及框架原理，以及 iOS/Android 控件的使用，熟练掌握 iOS/Android 界面和交互开发<br />- 精通 Kotlin/Swift 开发语言，有良好编码峰峰，追求代码执行效率<br />- 具备扎实的数据架构算法基础及良好的架构设计能力，熟练运用设计模式<br />- 具备良好的责任心、上进心、执行力以及良好的沟通能力和团队合同能力<br /><br />加分项：<br />- 有 Web3 开发经验<br />- 有马甲包及 Appstore 上架经验<br />- 对前沿技术的预研和引入充满兴趣<br /><br />有兴趣的候选人请发简历至 hr@openblock.com<br /><br />我们只会联系进入短名单的候选人，不便之处，敬请谅解。<br /><br />祝大家求职都顺利！
-]]></content:encoded>
-<pubDate>2023-11-07T12:40:12Z</pubDate>
-</item>
-<item>
-<title>[字节跳动] 智能编程助手研发工程师</title>
-<link>https://www.v2ex.com/t/989652</link>
-<guid>https://www.v2ex.com/t/989652</guid>
-<content:encoded><![CDATA[
-<h2>关于我们</h2>
-<p>字节跳动代码智能团队专注于利用人工智能改善软件开发流程。我们的愿景是构建下一代的智能研发工具，以提高开发者的研发效率。目前，我们正在拓展我们的研发团队，寻找优秀的开发人员，来开发一款基于大语言模型的智能编程助手。</p>
-<h2>职位描述</h2>
-<p>作为一名大语言模型智能编程助手开发工程师，您将负责设计、开发和维护我们的 IDE 插件和研发辅助工具，这些工具将使用先进的代码大语言模型来辅助软件开发人员进行编码、调试和测试。您将与我们的 AI 研究团队紧密合作，将最新 LLM 技术应用到软件开发过程中。</p>
-<p>地点：深圳/北京/上海/杭州</p>
-<h2>主要职责</h2>
-<ul>
-<li>负责 IDE 插件和相关辅助工具的整体架构设计和实现</li>
-<li>与 AI 研究团队合作，集成和优化大语言模型</li>
-<li>开发高效、用户友好的界面，以便开发人员轻松地与智能编程助手交互。</li>
-<li>编写可维护和高效的代码，并对新功能进行单元测试和集成测试</li>
-<li>跟踪 IDE 插件和编程工具的最新趋势，并将这些最佳实践应用到产品开发中</li>
-<li>与产品管理团队合作，理解开发者的需求，分析用户反馈，并确保开发的工具满足这些需求</li>
-</ul>
-<h2>技能要求</h2>
-<ul>
-<li>计算机科学或相关领域的本科或以上学历</li>
-<li>1 年以上的软件开发经验</li>
-<li>熟悉至少一种 IDE （如 Visual Studio Code, IntelliJ IDEA, Xcode, Emacs, 等）的插件开发。</li>
-<li>精通一种或多种编程语言，如 Python/Java/C++/JavaScript/TypeScript/Swift/Kotlin</li>
-<li>有优秀的学习能力和问题解决能力</li>
-</ul>
-<h2>加分项</h2>
-<ul>
-<li>对人工智能和机器学习有深入的理解，了解 LLM 应用架构，掌握 LLM 相关技术栈</li>
-<li>有静态分析工具或者 Language Server 开发经验</li>
-<li>热衷使用和研究各类智能研发工具（如 Github Copilot ）</li>
-</ul>
-<h2>联系方式</h2>
-<p>邮箱： <a href="mailto:dong.linlan@gmail.com">dong.linlan@gmail.com</a></p>
-]]></content:encoded>
-<pubDate>2023-11-07T12:35:09Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] [快男：钟文泽] M3 Max MacBook Pro 开箱：一台好用电脑的使命</title>
-<link>https://www.v2ex.com/t/989275</link>
-<guid>https://www.v2ex.com/t/989275</guid>
-<content:encoded><![CDATA[
-<div> 影视飓风, B 站
-
-总结:
-影视飓风是B站（哔哩哔哩）上的一个话题，指的是关于影视作品的热门讨论和评论。B站作为国内最受欢迎的二次元文化平台之一，除了动漫、游戏等内容外，也有大量的影视相关话题。用户在B站上分享自己对影视剧、电影的观点和评论，引发了一股影视飓风。这个话题有着广泛的影响力，吸引了大量的用户参与讨论和互动，也推动了国内影视文化的发展和传播。通过B站，用户可以发表自己的观点，与其他网友交流，共同探讨影视作品的魅力所在。 <div>
-<div class="embedded_video_wrapper"></div><br />B 站： <a href="https://www.bilibili.com/video/BV18C4y1J7GZ/" rel="nofollow noopener" target="_blank">https://www.bilibili.com/video/BV18C4y1J7GZ/</a><br /><br /><br />影视飓风： <div class="embedded_video_wrapper"></div><br />B 站： <a href="https://www.bilibili.com/video/BV1Uz4y1A7eb/" rel="nofollow noopener" target="_blank">https://www.bilibili.com/video/BV1Uz4y1A7eb/</a>
-]]></content:encoded>
-<pubDate>2023-11-06T14:15:57Z</pubDate>
-</item>
-<item>
-<title>[DNS] 第一次用 HW 手机设置安全 dns（dot），大家有这个情况吗？（虚假的查询）</title>
-<link>https://www.v2ex.com/t/989274</link>
-<guid>https://www.v2ex.com/t/989274</guid>
-<content:encoded><![CDATA[
-<div> HW nova 4, adhome, 连接状态, DNS 拦截, 解析结果<br /><br />总结: 文中介绍了一台机器的机型为HW nova 4，使用了自建的adhome作为DNS服务器，虽然连接状态良好，但DNS拦截的域名仍然可以打开，同时服务器也没有客户端查询日志。对于这种情况，文中并未给出具体的解析结果。 <div>
-机器为 HW nova 4 （ se)，dot 为自建 adhome ，状态已连接，dns 拦截的域名还是可以打开，服务器也咩有客户端查询日志，安全了个寂寞。它是咋解析结果？
-]]></content:encoded>
-<pubDate>2023-11-06T13:58:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求坐標</title>
-<link>https://www.v2ex.com/t/989273</link>
-<guid>https://www.v2ex.com/t/989273</guid>
-<content:encoded><![CDATA[
-因人生感到迷茫，想要找一个靠谱的算命大师，哪里可以去？
-]]></content:encoded>
-<pubDate>2023-11-06T14:04:42Z</pubDate>
-</item>
-<item>
-<title>[Python] 求个大佬，帮我看看这个问题</title>
-<link>https://www.v2ex.com/t/989272</link>
-<guid>https://www.v2ex.com/t/989272</guid>
-<content:encoded><![CDATA[
-<p>C:\Users\Administrator\Desktop\测试&gt;python <a href="http://1.py" rel="nofollow">1.py</a>
-Traceback (most recent call last):
-File "<a href="http://1.py" rel="nofollow">1.py</a>", line 119, in &lt;module&gt;
-urls = ['{}'.format(str(i)) for i in open(inFile)]
-File "<a href="http://1.py" rel="nofollow">1.py</a>", line 119, in &lt;listcomp&gt;
-urls = ['{}'.format(str(i)) for i in open(inFile)]
-UnicodeDecodeError: 'gbk' codec can't decode byte 0x9b in position 3070: illegal multibyte sequence</p>
-<p>有一个脚本，之前一直都可以用的，但是现在不能用了，会报错， 保存文本的编码都是有设置 utf-8 的，我不懂 python</p>
-]]></content:encoded>
-<pubDate>2023-11-06T09:48:41Z</pubDate>
-</item>
-<item>
-<title>[路由器] TP 无线路由器关于 ipv6 的一个奇葩问题，此路由器的 WAN 口上有 ipv6 网络，接 LAN 可以使用 ipv6，但是连 wifi 就不行，请教是什么原因？</title>
-<link>https://www.v2ex.com/t/989271</link>
-<guid>https://www.v2ex.com/t/989271</guid>
-<content:encoded><![CDATA[
-<p>单位有 ipv6 网络，有线网拉进办公室的，如果有线网直接插电脑物理网口，电脑可以有 ipv6 网络，可以 ipv6 上网。</p>
-<p>为了挂更多的电脑，整了一个 tp 的无线路由器。WAN 口接单位拉进来的网线。</p>
-<p>如果办公室电脑接通过网线接无线路由器的 LAN 口，则电脑可以正常使用 ipv6 网路。
-如果办公室电脑通过 wifi 无线连接路由器，则电脑有 ipv6 地址，但是就是死活不能 ipv6 上网。</p>
-<p>无线路由器的设置比较简单，WAN 口是自动获取 IP 地址的方式，ipv6 的设置中是设置桥模式。</p>
-<p>设置方法可以参考如下链接： 家用路由器 IPv6 上网设置方法 — <a href="https://resource.tp-link.com.cn/pc/docCenter/showDoc?id=1655112591200293" rel="nofollow">https://resource.tp-link.com.cn/pc/docCenter/showDoc?id=1655112591200293</a></p>
-<p>有大侠知道为啥 LAN 能用 ipv6 ，wifi 不能用 ipv6 ？</p>
-<p>谢谢！</p>
-]]></content:encoded>
-<pubDate>2023-11-06T13:52:32Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 广州电信宽带 ipv6 问题，详细测试贴出来了</title>
-<link>https://www.v2ex.com/t/989270</link>
-<guid>https://www.v2ex.com/t/989270</guid>
-<content:encoded><![CDATA[
-<p>下午写了这个帖子，感谢大家热心回复。 <a href="https://www.v2ex.com/t/989111" rel="nofollow">https://www.v2ex.com/t/989111</a></p>
-<p>现在把详情贴出来，大家给点意见：</p>
-<p>家里 IP：240e:3b0:26a:c0e1:adf3:d16d:dbbf:eb06</p>
-<p>单位 IP：240E:3B0:200:969D:6DBE:AB99:7E08:3</p>
-<p>注：深夜 4 点路由重启，IP 会更换。</p>
-<h1>家里 ping 单位</h1>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2fgSaX6.png" /></p>
-<h1>单位 ping 家里</h1>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/h32j126.png" /></p>
-<h1>刚刚发现 <a href="http://ipw.cn" rel="nofollow">ipw.cn</a> 的广州节点也出现了很高的丢包率甚至 ping 失败。</h1>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/U1Vew3K.png" /></p>
-<h2>补充一下，ping 不通，tcp 也是不通的。</h2>
-<h2>大家觉得这是什么问题，我感觉是电信的锅。。。大概可能只能走投诉了？</h2>
-]]></content:encoded>
-<pubDate>2023-11-06T13:50:52Z</pubDate>
 </item>
 </channel>
 </rss>
