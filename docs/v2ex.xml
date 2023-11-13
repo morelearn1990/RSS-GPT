@@ -5,15 +5,58 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[OpenAI] 给 GPTs 泼一盆冷水：只不过是一个会搜索知识库的 Prompt 模板</title>
+<link>https://www.v2ex.com/t/991660</link>
+<guid>https://www.v2ex.com/t/991660</guid>
+<content:encoded><![CDATA[
+
+<p>配置界面的 Instructions 不过是既往的 System 消息的 Prompt 模板，之后的用户消息和话题走向根本不可能自定义。Prompt 模板是可以被轻松获取和泄露的。</p>
+<p>上传的文件上传进去后被结构化，并不会像微调一样记在 GPT 脑子里，只有在 GPTs 被触发之后才会主动搜索，还有概率出错。</p>
+<p>来做一个比喻吧：</p>
+<p>假如 GPT 是一个参加考试的学生，那么微调就是考试前突击了考察范围内的问题，记住了大部分答案和该怎么答题，尽管也有背错的时候。
+知识库就是学生考试时可以翻的书。虽然有这本书吧，但是 GPT 它不去翻也不行啊，翻了找不到，找到了看了但是用错了也是有可能的。
+System 消息的 Prompt 模板就是一个学生突然被拉过去参加自己不一定擅长的考试时被告诉的「能通过这门考试的套路」。
+动作调用是大学生在考场的外援，但是考虑到这个外援能力不一，所以既有可能是类似计算器一样的普通工具，也有可能是非常厉害的枪手。</p>
+<p>所以 GPTs 不过是一个临时被拉过去参加一场自己不一定熟悉的学科考试的大学生，拉他过去的人说：这里有一本独门秘籍（知识库），你只要照着 XXX 步骤（ Prompt 模板）一路照着做就可以通过了，实在不行你还可以外呼找 XX 帮忙（ Actions/Search API/Python 环境/DALLE ）。</p>
+<p>这个考生只不过是一个临时搭起来的草台班子，不能被赋予过高的期望。</p>
+<p>然而 OpenAI 作为考生派遣平台、监考平台、判卷平台等等身份获得了大家海量的 Prompt 模板和知识库。</p>
+<p>所谓的 GPTs 商店更像是大型 Prompt 模板交流群。</p>
+]]></content:encoded>
+<pubDate>2023-11-13T22:06:23Z</pubDate>
+<pubDate>2023-11-13T22:06:23Z</pubDate>
+</item>
+<item>
+<title>做了个一站式 Bilibili 音乐下载器，以下是我的思考</title>
+<link>https://www.v2ex.com/t/989277</link>
+<guid>https://www.v2ex.com/t/989277</guid>
+<content:encoded><![CDATA[
+
+<p>👉立即试用： <a href="https://bili.amono.me/BV1Ag4y1b7pa" rel="nofollow">https://bili.amono.me/BV1Ag4y1b7pa</a>
+（请使用支持 WASM 的现代浏览器）</p>
+<p>我偶尔会在 B 站上听歌，因为很多唱见的翻唱都是只在 B 站投稿的，音乐软件不一定会及时更新。</p>
+<p>如果每次打开网页听，又麻烦又费流量，搞不好还要给叔叔当 PCDN ；想方设法把视频存下来，在本地手动转音频，补上 ID3 标签和封面扔进收藏，这一整套忙下来，听歌的兴致早就没了。</p>
+<p>于是我写了这个小工具帮忙。它提供一站式音乐下载服务：下载+转换+嵌入元数据/封面，整个流程浓缩在短短数十秒的浏览器会话中，无需任何手动干预，到手的文件可以直接丢进音乐库；而且借助 ffmpeg 和 WASM 的力量，所有的魔法都发生在浏览器里，下载和转换速度完全取决于你的网速与 CPU ，既做到了免安装，也省去了服务器维护和运行成本。</p>
+<hr />
+<p>这算是我的独立开发生涯首作。简单分享一下设计和实现过程中的一些思路，希望能给你一些启发：</p>
+<ul>
+<li>只做一件事，并且做到极致。市面上的视频下载工具、在线转换工具数不胜数，针对 B 站音乐下载这个问题的解决方案也不少，但它们要么需要手动操作，要么需要下载小软件到电脑上，十分不符合我这个懒狗的作风。输入 BV 号（甚至还有更快的办法） → 得到音乐文件，这条路径中任何多余的步骤都<strong>应该</strong>被解决掉。</li>
+<li>Less is more. 用户关心什么，就只显示什么，丢掉多余的布局、卡片、导航栏、落地页，把用户的注意力留给更重要的信息。输入框在极端情况下也可以去除不要，地址栏可是天然的输入框。</li>
+<li>充分压榨现代前端技术的潜力。Chrome 已经成为了一个事实上的操作系统，从 UI 渲染到网络交互到代码执行甚至到外围设备交互，样样都能做。服务器的支出是固定成本，但如果一部分或者全部的算力密集任务能够放给客户端执行，静态文件托管成本就相对低很多。</li>
+<li>保持轻量级，并且善用免费资源。这个可能大家都知道了，网站托管在 Cloudflare Pages 上，利用现代全栈框架的服务端特性，有时甚至可以做到一些纯前端做不到的事情，比如绕过跨域。我也很看好 CF Workers 和 KV 数据库，在迭代开发和快速试错阶段使用这种服务可以省下很多配置成本，接下来也会找时间多做尝试。</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-11-06T14:21:26Z</pubDate>
+<pubDate>2023-11-10T04:50:08Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 有没有全服务/端口的内网穿透服务/软件介绍？</title>
 <link>https://www.v2ex.com/t/991658</link>
 <guid>https://www.v2ex.com/t/991658</guid>
 <content:encoded><![CDATA[
-
 <p>类似 frp/cf tunnel 好像也是只能穿透指定的服务/端口， 但是没有类似全服务/端口的内网穿透软件？</p>
 <p>也许是我不知道？ 大家推荐 2 个？</p>
 ]]></content:encoded>
-<pubDate>2023-11-13T19:13:05Z</pubDate>
 <pubDate>2023-11-13T19:10:05Z</pubDate>
 </item>
 <item>
@@ -21,13 +64,10 @@
 <link>https://www.v2ex.com/t/991657</link>
 <guid>https://www.v2ex.com/t/991657</guid>
 <content:encoded><![CDATA[
-
 或者买点东西也可以.不过想起来转运就麻烦了.
 ]]></content:encoded>
-<pubDate>2023-11-13T18:23:49Z</pubDate>
 <pubDate>2023-11-13T14:23:49Z</pubDate>
 </item>
-
 <item>
 <title>[PHP] laravel 部署在 docker 里面如何 supervisord 监听一些东西？</title>
 <link>https://www.v2ex.com/t/991656</link>
@@ -14037,31 +14077,6 @@ XXX ，请教你，我的 iPhone 手机连到电脑上想把图片视频数据�
 <p>不知道哪款车比较适合,拜托 v 友们了</p>
 ]]></content:encoded>
 <pubDate>2023-11-09T07:02:31Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 字节跳动 HR 马霄，你在干什么？</title>
-<link>https://www.v2ex.com/t/990372</link>
-<guid>https://www.v2ex.com/t/990372</guid>
-<content:encoded><![CDATA[
-<p>事件经过：我在官网投递简历后，11 月 8 日，收到了通过初筛邮件，原文为：“…… 另外，请同学提前下载注册个人场景下的 [飞书] ，飞书右上角添加联系人 HR：187927065*，加飞书好友，我们会在 11.9 （ 18:00 ）开展线上飞书宣讲会，，会给同学们介绍公司、工作内容、工作时间、到岗时间、薪资、安排等内容，11.10 （周五）线上飞书视频面试。​”</p>
-<p>到现在 11 月 9 日 18:58 ，我分别尝试：1 、在飞书个人场景添加这个手机号，名为“马霄”认证为"ByteDance"的联系人。依然未通过我的申请。2 、电话联系无人接听。3 、向这个号码发送短信，无回复。</p>
-<p>这导致我无法参加线上宣讲会，我也不知道明天的线上面试如何进行。</p>
-<p>社区里有没有字节 HR 或字节的工作人员，能否我联系下这个人。请他电话回复我下，我还能不能参加面试了。谢谢了。</p>
-]]></content:encoded>
-<pubDate>2023-11-09T12:35:33Z</pubDate>
-</item>
-<item>
-<title>[iOS] iOS 上你们的 Passkey 好用么？</title>
-<link>https://www.v2ex.com/t/990371</link>
-<guid>https://www.v2ex.com/t/990371</guid>
-<content:encoded><![CDATA[
-<p>经常扫码(系统相机)连接之后提示 <em>The operation could not be completed. Please try again.</em></p>
-<p>偶尔是可以的，半残的状态，所以很少用。。</p>
-<p>大家可以用这个网站测试 Passkey: <a href="https://passkeys.io/" rel="nofollow">https://passkeys.io/</a></p>
-<p>我经常使用 Chrome 打开 <a href="https://appstoreconnect.apple.com" rel="nofollow">https://appstoreconnect.apple.com</a> 也是支持 Passkey 的，但是 iOS 扫码登录几乎不可用。</p>
-<p>ps. Chrome 也支持 passkey ，用 Chrome 也比较方便</p>
-]]></content:encoded>
-<pubDate>2023-11-09T12:07:51Z</pubDate>
 </item>
 </channel>
 </rss>
