@@ -5,14 +5,238 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[职场话题] 工作几年后的一些认知</title>
+<link>https://www.v2ex.com/t/991938</link>
+<guid>https://www.v2ex.com/t/991938</guid>
+<content:encoded><![CDATA[
+
+1.利益纠纷，矛盾关系，是天然存在的。打工者与老板很难共情<br />2.事物发展逃脱不然客观规律，开始时发展迅猛，做大做强，中期平平稳稳，后期宫斗权谋。<br />3.人与人之间有天然的不信任感，比如产品经理会认为是技术不想实现，技术会骂什么傻 x 产品，毫无逻辑<br />4.站在批判别人的位子，总好过站在被批判人的位子。人人都是宽以律己，严以待人<br />5.诱惑很多，抓住主要需求，抓需求的主要方面<br />6.安安稳稳的人生只是自我安慰，时代变革的速度还是蛮快的<br />7.投资很重要，包括不限于房，证券，贵金属，等等<br />8.锻炼身体是最有长远价值的投资<br />9.容忍暂时的困境，但要有可触达的远方和希望<br />10.分散下注，人生是多极化的
+]]></content:encoded>
+<pubDate>2023-11-14T14:14:11Z</pubDate>
+<pubDate>2023-11-14T14:14:11Z</pubDate>
+</item>
+<item>
+<title>[Linux] 内网转发的 DNS 困惑</title>
+<link>https://www.v2ex.com/t/991937</link>
+<guid>https://www.v2ex.com/t/991937</guid>
+<content:encoded><![CDATA[
+
+<p>公司改革 VPN ，换上了<em>零</em>信<em>任</em>VPN ，不想在所有电脑上面都装，于是开了一台虚拟机专门用于转发 VPN ，参考了 V 站一篇文章 <a href="https://www.v2ex.com/t/877112" rel="nofollow">https://www.v2ex.com/t/877112</a> ，之前只有单一 VPN 功能的情况下转发成功了，现在换成了这种，转发就没效果了。</p>
+<h2>相关信息</h2>
+<p>家庭内网：192.168.0.0/22</p>
+<p>公司 VPN 内网：10.0.0.0/8</p>
+<p>公司 VPN DNS 服务器：10.44.X.X  10.95.X.X</p>
+<h2>主路由器已设置 DNS 转发和静态路由</h2>
+<p>左边是 VPN 机器上面的 DNS ，即公司内网 DNS ；右边是主路由 openwrt 的，用于把相关匹配到的公司内网域名引到 DNS 服务器去做解析
+<img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OOitNil.jpg" /></p>
+<p>openwrt 上面的静态路由，用于定位 DNS 服务器和相关公司内网 IP 流量的转发（这一步实际上可以放到内网需要连 VPN 的机器上面去做，因为我这边内网只有 192.168.0/22 网段，所以直接简单直接放到路由器去做了）
+<img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/eAP4Yy1.jpg" /></p>
+<h2>VPN 机器已经开启转发和 SNAT</h2>
+<p>VPN 机器是 192.168.0.104</p>
+<pre><code>uos@uos:~$ cat /proc/sys/net/ipv4/ip_forward
+1
+uos@uos:~$ sudo iptables -t nat -A POSTROUTING -s 192.168.0.0/22 -o tun0 -j MASQUERADE
+uos@uos:~$ sudo iptables -t nat -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+MASQUERADE  all  --  192.168.0.0/22       anywhere            
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+# Warning: iptables-legacy tables present, use iptables-legacy to see them
+
+</code></pre>
+<h2>DNS 问题</h2>
+<p>VPN 机器通过 ping 和 nslookup 得到的 IP 竟然不一样，traceroute 和 ping 的结果是一样的，出来一个 198.18 段</p>
+<pre><code>uos@uos:~$ ping wiki.xx.com
+PING wiki.xx.com (198.18.0.11) 56(84) bytes of data.
+64 bytes from 198.18.0.11 (198.18.0.11): icmp_seq=1 ttl=64 time=0.734 ms
+
+uos@uos:~$ nslookup
+&gt; wiki.xx.com 
+;; Got recursion not available from 10.44.X.X, trying next server
+;; Got recursion not available from 10.95.X.X, trying next server
+Server:         fd22:X:X::1
+Address:        fd22:X:X::1#53
+
+Non-authoritative answer:
+wiki.xx.com     canonical name = wiki.xx.com.
+Name:   wiki.xx.com
+Address: 10.57.22.11
+
+
+</code></pre>
+<p>客户机也无法连接公司内网域名，虽然能 ping 通内网 IP ，但是不知道怎么能得到解析结果为 198.18 的</p>
+<pre><code>x@DESKTOP-XXXXX C:\Users\x
+# ping wiki.xx.com
+
+正在 Ping wiki.xx.com [10.57.22.11] 具有 32 字节的数据:
+Control-C
+
+# ping 198.18.0.11
+
+正在 Ping 198.18.0.11 具有 32 字节的数据:
+来自 198.18.0.11 的回复: 字节=32 时间=1ms TTL=63
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-11-14T14:06:06Z</pubDate>
+<pubDate>2023-11-14T14:17:00Z</pubDate>
+</item>
+<item>
+<title>[Python] 有熟悉 Python -docx 的大佬吗？</title>
+<link>https://www.v2ex.com/t/991935</link>
+<guid>https://www.v2ex.com/t/991935</guid>
+<content:encoded><![CDATA[
+
+最近要写 word 日报，里面要填好多数据，还有图表<br /><br />问题一、python-docx 怎么添加中文列表？<br />例如：<br />一、xxx<br />二、yyy<br />三、zzz<br />或者<br />（一） aaa<br />（二） bbb<br />（三） ccc<br />官方文档只有 List Number 和 List Bullet<br /><br />问题二、python-docx 中怎么插入图表？<br />官方文档只有 add_picture, 没有 add_chart
+]]></content:encoded>
+<pubDate>2023-11-14T13:41:52Z</pubDate>
+<pubDate>2023-11-14T13:41:52Z</pubDate>
+</item>
+<item>
+<title>[程序员] 接口响应结果应该以请求头里的 Accept 字段为准吗</title>
+<link>https://www.v2ex.com/t/991934</link>
+<guid>https://www.v2ex.com/t/991934</guid>
+<content:encoded><![CDATA[
+
+<p>我觉得 Accept 字段就是干这个的，所以应该以 Accept 为准，比如浏览器给的 Accept 为 textPlain,application/json.</p>
+<p>对于这个 Accept 来说，我们的 SpringBoot 应用默认是反了 textPlain 格式，导致请求方报错(对方要 json 格式)。</p>
+<p>我认为这个问题应该让请求方把 Accept 里的 textPlain 去掉来解决。</p>
+<p>但是领导认为接口反什么格式应该是跟请求方通过其他方式(口头)约定好的，不应该要求请求方传指定的 Accpet ，说他搞了好多年没有要求请求方必须传什么 Accept 的，这就导致我要去改 Spring 的 messageConverts 一系列的东西来固定接口的响应格式。</p>
+<p>所以来问下大家，标准的做法是什么？</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:41:41Z</pubDate>
+<pubDate>2023-11-14T14:08:11Z</pubDate>
+</item>
+<item>
+<title>[程序员] 等明天一觉醒来，时间戳就 17 开头了哦 🥰</title>
+<link>https://www.v2ex.com/t/991933</link>
+<guid>https://www.v2ex.com/t/991933</guid>
+<content:encoded><![CDATA[
+
+<p>2023-11-15 06:13:20</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:32:36Z</pubDate>
+<pubDate>2023-11-14T14:13:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] CNBETA 这是彻底寄了？</title>
+<link>https://www.v2ex.com/t/991932</link>
+<guid>https://www.v2ex.com/t/991932</guid>
+<content:encoded><![CDATA[
+
+<p>之前一直挂梯子访问 <a href="http://cnbeta.com.tw" rel="nofollow">cnbeta.com.tw</a> 还能访问到老站，前几天还做了一次首页改版，更 CMS 化了。
+今天访问，直接和墙内一样了，转到了头条。</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:31:10Z</pubDate>
+<pubDate>2023-11-14T14:01:35Z</pubDate>
+</item>
+<item>
+<title>[Android] 讯飞 android demo 返回错误码 18301，但自己的错误码平台没有这个码，厉害了</title>
+<link>https://www.v2ex.com/t/991930</link>
+<guid>https://www.v2ex.com/t/991930</guid>
+<content:encoded><![CDATA[
+
+<p>E/AEELog: AEE_EngineInit                  266 SDK is not workable, auth state:18301</p>
+<p>去错误码查询，则提示：
+未查询到 18301 错误码信息，如遇到其他问题，可以在支持中心 提交问题 。</p>
+<p>放弃放弃，或许好用，但太难用起来。。换换换</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:16:46Z</pubDate>
+<pubDate>2023-11-14T13:16:46Z</pubDate>
+</item>
+<item>
+<title>[电动汽车] 个位新能源车主 如何选择 私桩 共享？</title>
+<link>https://www.v2ex.com/t/991929</link>
+<guid>https://www.v2ex.com/t/991929</guid>
+<content:encoded><![CDATA[
+
+<p>哪个平台好用呢？</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:14:45Z</pubDate>
+<pubDate>2023-11-14T13:14:45Z</pubDate>
+</item>
+<item>
+<title>[V2EX] 感谢 @lijianmin321</title>
+<link>https://www.v2ex.com/t/991928</link>
+<guid>https://www.v2ex.com/t/991928</guid>
+<content:encoded><![CDATA[
+
+<p>你的这个创记录的帖子帮助我发现了程序里的一个性能问题，刚刚已经修复。</p>
+<p><a href="https://v2ex.com/t/991748" rel="nofollow">https://v2ex.com/t/991748</a></p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:06:47Z</pubDate>
+<pubDate>2023-11-14T14:12:41Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 有没有人生指导书？</title>
+<link>https://www.v2ex.com/t/991927</link>
+<guid>https://www.v2ex.com/t/991927</guid>
+<content:encoded><![CDATA[
+
+<p>起因是，小时候我一直对机械，无线电，电路板等相当感兴趣，小时候晚上集市我我爸两个在书摊和书店就能待一个晚上。那时候看到很多小学无线电竞赛什么的就好奇，他们是怎么懂得无线电的？学校也没教啊，我找遍了我们小镇的书店都找不到任何相关书籍。慢慢长大就知道，是我们小镇太小了。</p>
+<p>所以，现在互联网这么发达，有没有人做一个人生指导相关的网站？不是要细节，是告诉别常识问题，能给人指一个方向。</p>
+<p>例如，有人想要自己做一个网站，那么就告诉他，网站需要一个服务器承载，接入网络，需要一个 IP 以让人访问到这个服务器，网页是使用 HTML 语言作为展示，CSS 是控制网站如何排版和展示，JavaScript 实现网页上的动作交互，网页内容需要服务器有数据库，网页图片需要服务器中有存储，网页后台是使用动态语言对服务器数据库中内容提取并输出 HTML 生成我们访问的页面。然后再列出数据库有哪些，服务器图片和文件存储方式有哪些，实现后台功能的语言有哪些等等。</p>
+<p>很多时候人生就是这样，想要做一样东西，但是很多人完全不知道自己应该如何去做。其实只要有人告诉他一下基础常识自己就能后续延申。</p>
+<p>例如，小时候很多人说长大后要成为什么什么，但是他们根本不知道要实现自己梦想的方向是什么。</p>
+<p>其实对于一个有明确目标的人，小时候他就能直接向自己的目标出发，不用迷茫，很多无所事事的『坏学生』真正让无心向学的原因就是没人告诉他，他想要做的事要怎样实现。</p>
+<p>想成为钢琴家要怎样做？想成为科学家要怎样做？想要做自己的车子要怎样做？......</p>
+<p>但是我们的成长环境根本就无法让孩子们知道自己的目标的方向在哪里。</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:01:36Z</pubDate>
+<pubDate>2023-11-14T14:16:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 买了个红米 Redmi Note12 Turbo</title>
+<link>https://www.v2ex.com/t/991925</link>
+<guid>https://www.v2ex.com/t/991925</guid>
+<content:encoded><![CDATA[
+
+<p>12+256 的,pdd 1450 入手</p>
+<p>很多年没用安卓，现在打算买张流量卡双持，刚装完 clash,
+Google Play 商店装上谷歌全家桶，用的默认的 MIUI ，有啥把玩的吗？
+发现现在的安卓很能打了，明年不知道会不会就卡 ppt 了，哈哈</p>
+]]></content:encoded>
+<pubDate>2023-11-14T12:47:35Z</pubDate>
+<pubDate>2023-11-14T13:38:48Z</pubDate>
+</item>
+<item>
+<title>[Telegram] 我想换国外手机号来绑定电报, google voice 好像搞不定, 还有别的靠谱方案推荐么, 感谢</title>
+<link>https://www.v2ex.com/t/991924</link>
+<guid>https://www.v2ex.com/t/991924</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-11-14T12:43:44Z</pubDate>
+<pubDate>2023-11-14T08:43:44Z</pubDate>
+</item>
+<item>
+<title>[Facebook] threads 无论怎么 post 文就是没有人看，有什么办法？</title>
+<link>https://www.v2ex.com/t/991923</link>
+<guid>https://www.v2ex.com/t/991923</guid>
+<content:encoded><![CDATA[
+
+最近注册了推特的对手 threads ，试了好几天怎么发文都没人理，是 threads 算法不推荐吗？还是因为没有追踪者呢？
+]]></content:encoded>
+<pubDate>2023-11-14T12:42:45Z</pubDate>
+<pubDate>2023-11-14T08:42:45Z</pubDate>
+</item>
+
+<item>
 <title>[酷工作] [上海]内推 web 工程师和大数据开发工程师</title>
 <link>https://www.v2ex.com/t/991922</link>
 <guid>https://www.v2ex.com/t/991922</guid>
 <content:encoded><![CDATA[
-
 要求统招本科以上学历，3 年以上工作经验。<br />其他就是熟悉常见生态环境，良好的编程习惯。<br />web：<br />react 优先，熟悉 nodejs ，redis 等。<br />大数据：<br />熟悉 Java/Scala 编程，大数据常见生态，spark/flink 那些。<br />其他没有了。<br /><br />其中 web hc 还有很多<br />-----------------------<br />福利待遇<br />10-19/5<br />每天有出勤补助+2 顿饭<br />住附近的话有房补<br />年度旅游，不去的话可以领现金补助<br />年度综合报销<br />父母以及岳父母体检报销<br />双边 加一起 24%的公积金<br />带国际医院的补充医疗保险<br />年底年假折现等等<br /><br />感兴趣的联系：emhhbmd3ZW5xaW5nQGh5cGVyZ3J5cGguY29t
 ]]></content:encoded>
-<pubDate>2023-11-14T12:20:08Z</pubDate>
 <pubDate>2023-11-14T12:26:52Z</pubDate>
 </item>
 <item>
@@ -20,7 +244,6 @@
 <link>https://www.v2ex.com/t/991920</link>
 <guid>https://www.v2ex.com/t/991920</guid>
 <content:encoded><![CDATA[
-
 <p>众所周知，前天（ 11.12 ）阿里云又双叒宕机了，影响面非常大。一个小时过后，仍然有很多服务还没有完全恢复。这场事故中，给你的产品带来怎样的影响呢？</p>
 <p>从这可以看出来，云作为基础设施真的非常重要。但与水电在使用标准上统一，在管理上分布不同（很好地避免了单点），云目前还处于使用标准不统一，各个云服务提供商“各自为政”的情况。这就导致了，在你的服务出现问题后，你却没法及时将业务迁移到另外一家服务提供商。这或许就意味着云距离成为真正的基础设施还需要再进一步，我在之前一篇<a href="https://v2ex.com/t/986067#reply10" rel="nofollow">文章</a>中提到，有效的接入标准或许是促进云成为真正基础设施的关键因素。</p>
 <p>你想一下，如果一份代码能够同时适配阿里云、华为云、腾讯云，甚至 Kubernetes ，那么在某一家发生异常后，你就能在极短的时间完成业务服务的迁移。这算不算给自己的服务提供更高的可用性呢？</p>
@@ -46,7 +269,6 @@
 </ul>
 <p><strong>同时，Plutolang 还处于非常早期的阶段，欢迎感兴趣的大佬们参与共建，如果你在使用 AWS 或者 K8s ，可以给我们提需求了。同时有任何想法或者建议，都非常欢迎，说出来，你的想法就会在后续版本实现。欢迎加入我们的 <a href="https://join.slack.com/t/plutolang/shared_invite/zt-25gztklfn-xOJ%7EXvl4EjKJp1Zn1NNpiw" rel="nofollow">Slack</a> 和 钉钉群：40015003990 。</strong></p>
 ]]></content:encoded>
-<pubDate>2023-11-14T12:03:40Z</pubDate>
 <pubDate>2023-11-14T12:30:05Z</pubDate>
 </item>
 <item>
@@ -54,7 +276,6 @@
 <link>https://www.v2ex.com/t/991918</link>
 <guid>https://www.v2ex.com/t/991918</guid>
 <content:encoded><![CDATA[
-
 <h3>没有找到合适的节点就发在这个节点里面吧，大家当个乐子看一看。</h3>
 <p>9 月初，我在站内开始推广我搭建的中转站，俩月以来我也比较频繁在站内推广（向一部分经常看到我打广告觉得烦的人道歉，抱歉了），这俩月，也积累了一些注册用户，一小部分人只是来注册了一个账号，另一小部分人用完注册赠送的金额后就走了，另一部分人觉得体验还行继续充值使用。</p>
 <p>今天上午我发现了一点不对劲的地方，发现有人昨天注册了账号后邀请了好几个注册账号，这些邀请的账号都是用完了注册赠送+邀请赠送的金额（ 0.2+0.1 美元），再去看系统的请求日志发现都是出自同一个 IP ，再去看这个 IP 的所有注册请求，总共有 17 个邮箱，都是用的随便敲字母的那种邮箱（有几个邮箱还有一些规律），正常人的邮箱都是看得出有一些含义的。</p>
@@ -71,7 +292,6 @@
 <h3>本来不想发帖的，可是我下午把注册功能打开试一试看你会不会继续，刚才写代码想起来看了一眼后台，你果然又来注册了，看了你的 IP ，下午关闭注册那会儿你注册了一次没成功，然后晚上又开始来注册了。你咋回事啊，你注册一个账号才 0.2 美元，一块五真的值得你这么干吗？</h3>
 <h2>我已经关闭注册了，我就做点小生意混个零食饮料钱，你放过我吧。</h2>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:58:23Z</pubDate>
 <pubDate>2023-11-14T12:20:34Z</pubDate>
 </item>
 <item>
@@ -79,10 +299,8 @@
 <link>https://www.v2ex.com/t/991916</link>
 <guid>https://www.v2ex.com/t/991916</guid>
 <content:encoded><![CDATA[
-
 <p>轨迹球指的是肯辛通, 建模软件是 Fusion360, Blender 之类的</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:47:54Z</pubDate>
 <pubDate>2023-11-14T11:53:27Z</pubDate>
 </item>
 <item>
@@ -90,13 +308,11 @@
 <link>https://www.v2ex.com/t/991915</link>
 <guid>https://www.v2ex.com/t/991915</guid>
 <content:encoded><![CDATA[
-
 <p>某德国知名品牌的机床，某个模块驱动坏了，需要重装驱动，公司邮件联系了了德国公司，对面很快回复</p>
 <p>“我帮你们找找，找到了邮寄给你”</p>
 <p>我们当时还奇怪，为啥驱动程序要邮寄？昨天公司那边收到了一个快递，里面 2 盒磁带外加一本德文的安装说明，公司赶紧再次联系，对方回复机床的这个模块 92 年以前就停产了，这个驱动还是他在仓库里翻箱倒柜找了半天才翻出来的。。。。然后整个公司看着这两盒磁带陷入了沉思。。</p>
 <p>然后我在机床的现场，公司告诉我安装说明书找人翻译去了，磁带先邮寄给我，让我找找办法把磁带里的驱动程序弄出来。。</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:47:36Z</pubDate>
 <pubDate>2023-11-14T11:46:36Z</pubDate>
 </item>
 <item>
@@ -104,13 +320,11 @@
 <link>https://www.v2ex.com/t/991914</link>
 <guid>https://www.v2ex.com/t/991914</guid>
 <content:encoded><![CDATA[
-
 <p>如题以前只听别人说起过半夜没用手机，查找 app 莫名其妙在后台耗电的问题。</p>
 <p>上个周末去外地玩，周一早晨起来感觉手机比平时晚上待机耗电多了好多，以前晚上基本电量不掉的。然后看了下电池里的记录，居然是查找 app 一直在运行，一晚上掉了大概 10%。</p>
 <p>这到底是什么原因导致的？ 今天白天观察了一下，似乎好像稍微好点了，但还是看到有一点运行的记录。</p>
 <p>难倒是因为地理位置改变了导致的？</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:46:36Z</pubDate>
 <pubDate>2023-11-14T11:46:36Z</pubDate>
 </item>
 <item>
@@ -118,7 +332,6 @@
 <link>https://www.v2ex.com/t/991913</link>
 <guid>https://www.v2ex.com/t/991913</guid>
 <content:encoded><![CDATA[
-
 <p><strong><strong>每天敲敲敲,烦恼全忘掉</strong></strong></p>
 <p>迫於 google play 要求 sdk 版本必須提高到 sdk 33,更新了 jetpack compose 版</p>
 <p>開源地址：
@@ -127,17 +340,14 @@
 <a href="https://play.google.com/store/apps/details?id=cn.jiliapp.woodenfish&amp;hl=en_US&amp;gl=US" rel="nofollow">https://play.google.com/store/apps/details?id=cn.jiliapp.woodenfish&amp;hl=en_US&amp;gl=US</a></p>
 ]]></content:encoded>
 <pubDate>2023-11-14T11:44:29Z</pubDate>
-<pubDate>2023-11-14T11:44:29Z</pubDate>
 </item>
 <item>
 <title>[程序员] 阿里云轻量应用服务器 hk 的管理,大佬们都用什么客户端啊?</title>
 <link>https://www.v2ex.com/t/991911</link>
 <guid>https://www.v2ex.com/t/991911</guid>
 <content:encoded><![CDATA[
-
 <p>如题,刚入坑的小白,请诸位大佬给点意见,windows 和 mac 下,分别用什么客户端啊?</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:40:58Z</pubDate>
 <pubDate>2023-11-14T07:38:58Z</pubDate>
 </item>
 <item>
@@ -145,12 +355,10 @@
 <link>https://www.v2ex.com/t/991910</link>
 <guid>https://www.v2ex.com/t/991910</guid>
 <content:encoded><![CDATA[
-
 <p>昨天还正常使用的硬盘今天下载最高速度只有 1MBps 左右,打开点击视频就卡住 potplayer,然后显示占用满了,读写速度几百 k</p>
 <p>一开始以为硬盘出问题了,修复了两次硬盘,花了一下午都没修好</p>
 <p>想到昨天更新了 windows 于是插到手机上试了下,发现手机可以非常流畅地读取,有遇到类似问题的么</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:35:20Z</pubDate>
 <pubDate>2023-11-14T11:34:20Z</pubDate>
 </item>
 <item>
@@ -158,10 +366,8 @@
 <link>https://www.v2ex.com/t/991909</link>
 <guid>https://www.v2ex.com/t/991909</guid>
 <content:encoded><![CDATA[
-
 工作 5 年，感觉已经厌倦了每天的上班的内容，从工作中获得成就感这种机会一年可能也没有几次，最近健身有一个月左右了，感觉在锻炼的时候挺开心的，练完照镜子也挺有成就感（虽然是菜鸡）<br /><br />各位老板们是怎么在每天重复的工作和生活中获得快乐和成就感呢
 ]]></content:encoded>
-<pubDate>2023-11-14T11:26:16Z</pubDate>
 <pubDate>2023-11-14T11:26:16Z</pubDate>
 </item>
 <item>
@@ -169,10 +375,8 @@
 <link>https://www.v2ex.com/t/991908</link>
 <guid>https://www.v2ex.com/t/991908</guid>
 <content:encoded><![CDATA[
-
 <p>入口文件 index.php 加了-&gt;debug(true)后页面报 Fatal error: Uncaught Error：某类不存在</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:26:13Z</pubDate>
 <pubDate>2023-11-14T11:31:04Z</pubDate>
 </item>
 <item>
@@ -180,11 +384,9 @@
 <link>https://www.v2ex.com/t/991907</link>
 <guid>https://www.v2ex.com/t/991907</guid>
 <content:encoded><![CDATA[
-
 <p>今天下午开始 setWebhook 输入一条消息，弹了一下午，之前都是正常使用</p>
 <p>有同样出现这个情况的吗？</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:24:28Z</pubDate>
 <pubDate>2023-11-14T11:24:28Z</pubDate>
 </item>
 <item>
@@ -192,11 +394,9 @@
 <link>https://www.v2ex.com/t/991906</link>
 <guid>https://www.v2ex.com/t/991906</guid>
 <content:encoded><![CDATA[
-
 <p>改版前的 github 主页可以看到关注的开发者都 star 了哪些仓库，改版后需要人工设置各种类型的动态。</p>
 <p>最近发现 别人 star 我仓库的历史 和 其他关注的开发者的 star 动态 在主页的 feed 里都看不到了，😭 看不到大家 star 了哪些好玩儿的 repo ，挺难受。</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T11:17:21Z</pubDate>
 <pubDate>2023-11-14T11:24:27Z</pubDate>
 </item>
 <item>
@@ -204,10 +404,8 @@
 <link>https://www.v2ex.com/t/991904</link>
 <guid>https://www.v2ex.com/t/991904</guid>
 <content:encoded><![CDATA[
-
 这个月大约 20 几号就要去百度科技园实习了。希望租到集中供暖、有独立卫浴和洗衣机的房子（单间内有这些东西就够了）。租期 3 个月（到 2 月底结束），预算：房补范围内≤2500 ，房补范围外通勤时间 1 小时内≤1600 。<br /><br />目前已经浏览过 v2 之前的一些帖子，感觉北京的租房市场的水真的太深了。<br /><br />我看了自如，上面最短都要租 1 年而且租金都是 2300 以上的。提前终止合约又要把一大笔钱打水漂。如果选择短租都要 3000 了。其他像是安居客有不少租金只有一千多的，但是看 v2 的其他帖子感觉这个价格有点魔幻，会不会有坑。<br /><br />所以我想问问大家在北京租房有什么需要注意的点，以及大家房租都是多少？
 ]]></content:encoded>
-<pubDate>2023-11-14T11:08:31Z</pubDate>
 <pubDate>2023-11-14T11:05:31Z</pubDate>
 </item>
 <item>
@@ -215,10 +413,8 @@
 <link>https://www.v2ex.com/t/991839</link>
 <guid>https://www.v2ex.com/t/991839</guid>
 <content:encoded><![CDATA[
-
 关于写外包代码的代码保护问题，写的一些小代码如何防止别人拿了代码跑路？做 license ？有什么方案呢？如果只是几个 java 类，或者前端的几个页面，应该如何保护？<br /><br />类似于加点后门在里面。
 ]]></content:encoded>
-<pubDate>2023-11-14T07:41:03Z</pubDate>
 <pubDate>2023-11-14T11:34:54Z</pubDate>
 </item>
 <item>
@@ -226,13 +422,10 @@
 <link>https://www.v2ex.com/t/990492</link>
 <guid>https://www.v2ex.com/t/990492</guid>
 <content:encoded><![CDATA[
-
 仓输入法一款基于 Rime 的 iOS 版本开源输入法，更新 2.0 版本了<br /><br />无需联网、无广告、开源、免费！<br /><br />2.0 的界面更加简洁，所有功能一目了然，按功能分类，支持各种自定义。<br /><br /><a href="https://i.imgur.com/7MYj5Bj.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7MYj5Bj.jpg" /></a><br /><br /><br /><a href="https://i.imgur.com/6yVfKn5.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6yVfKn5.jpg" /></a><br /><br /><br />主题颜色支持亮色和暗色模式自动切换<br /><br /><a href="https://i.imgur.com/Li0vFKN.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Li0vFKN.jpg" /></a><br /><br /><br />自定义键盘布局文档，有详细的自定义信息： <a href="https://github.com/imfuxiao/Hamster/wiki/%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%AE%E7%9B%98%E5%B8%83%E5%B1%80" rel="nofollow noopener" target="_blank">https://github.com/imfuxiao/Hamster/wiki/%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%AE%E7%9B%98%E5%B8%83%E5%B1%80</a><br /><br />一个在线自定义键盘布局和主题颜色的在线工具： <a href="https://lost-melody.github.io/hamster-tools" rel="nofollow noopener" target="_blank">https://lost-melody.github.io/hamster-tools</a><br /><a href="https://i.imgur.com/9zPIqD4.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9zPIqD4.png" /></a><br /><br />App Store 商店链接： <a href="https://apps.apple.com/cn/app/%E4%BB%93%E8%BE%93%E5%85%A5%E6%B3%95/id6446617683" rel="nofollow noopener" target="_blank">https://apps.apple.com/cn/app/%E4%BB%93%E8%BE%93%E5%85%A5%E6%B3%95/id6446617683</a><br /><br />开源仓库地址： <a href="https://github.com/imfuxiao/Hamster" rel="nofollow noopener" target="_blank">https://github.com/imfuxiao/Hamster</a>
 ]]></content:encoded>
-<pubDate>2023-11-10T00:55:51Z</pubDate>
 <pubDate>2023-11-13T14:35:24Z</pubDate>
 </item>
-
 <item>
 <title>[酷工作] [上海] 米哈游，内推，带岗位私</title>
 <link>https://www.v2ex.com/t/991903</link>
@@ -14067,216 +14260,6 @@ GitHub： <a href="https://github.com/yunionio/cloudpods" rel="nofollow">https:/
 如题，之前到时间点了，就能手动刷新多次手动点击领取，今天点多几下都要验证码
 ]]></content:encoded>
 <pubDate>2023-11-09T11:24:45Z</pubDate>
-</item>
-<item>
-<title>[程序员] 求助 Caddy 反向代理 循环 308</title>
-<link>https://www.v2ex.com/t/990599</link>
-<guid>https://www.v2ex.com/t/990599</guid>
-<content:encoded><![CDATA[
-<p>求助 caddy 大佬</p>
-<p>场景 cloudflare + https caddy + docker （ valutwarden ）</p>
-<p>直接 ip 端口能访问 valutwarden</p>
-<p>精简下场景，caddy 弄个鸽静态首页，通过 ip 能访问，通过域名访问就白了，200+空响应。
-所以怀疑和反向代理没啥关系，要不就是 caddy 需要啥端口? 要不就是 cloudflare 需要啥配置？</p>
-<p>很急在线等。。。</p>
-]]></content:encoded>
-<pubDate>2023-11-09T23:25:03Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 大语言模型的时代，做垂直行业一般模型、规则和大语言模型结合的智能对话系统还有市场吗</title>
-<link>https://www.v2ex.com/t/990598</link>
-<guid>https://www.v2ex.com/t/990598</guid>
-<content:encoded><![CDATA[
-<p>请问现在大语言模型在垂直行业落地怎么样？本人做过智能对话产品，现在想自己做，目标是让小公司、个体户甚至个人用户都能够快速接入到自己的业务系统中，大家有没有什么建议？</p>
-<p>谢谢</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:22:33Z</pubDate>
-</item>
-<item>
-<title>[信息安全] Bitwarden 支持保存 passkey 了</title>
-<link>https://www.v2ex.com/t/990597</link>
-<guid>https://www.v2ex.com/t/990597</guid>
-<content:encoded><![CDATA[
-<p>试了下 用起来很顺滑
-在登陆时浏览器插件可以唤起一个新的 passkey 弹窗 点击对应的账户后就可以登录了</p>
-]]></content:encoded>
-<pubDate>2023-11-10T04:19:44Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] MacBook Pro 选择 M1max 还是 M2pro</title>
-<link>https://www.v2ex.com/t/990596</link>
-<guid>https://www.v2ex.com/t/990596</guid>
-<content:encoded><![CDATA[
-<p>想要入手一台新 mac 32+1T ，请问选择 m1max 满血 10+32 还是 m2pro 10+16</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:20:36Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 信用卡还款被冻结，草</title>
-<link>https://www.v2ex.com/t/990595</link>
-<guid>https://www.v2ex.com/t/990595</guid>
-<content:encoded><![CDATA[
-给的回复是：多笔非本人还款，触发风控，有套现和诈骗风险<br /><br />问多少笔或多少资金会触发风控，答无法告知<br /><br />目前已解冻，以后不敢随意还款了！
-]]></content:encoded>
-<pubDate>2023-11-09T23:23:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求教一个关于开发擦边黄油小游戏的问题</title>
-<link>https://www.v2ex.com/t/990594</link>
-<guid>https://www.v2ex.com/t/990594</guid>
-<content:encoded><![CDATA[
-我想开发一个擦边的小游戏/doge<br />如果发布到微信小程序的话，图片审核力度是怎么样的？有没有什么软件或者方法可以自己提前做一个预审？<br />其他平台审核力度是怎么样的？<br /><br />目前已知的是不能裸露太多皮肤，那换皮可以解决吗？人工审核的标准是怎么样的？
-]]></content:encoded>
-<pubDate>2023-11-10T04:15:37Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [成都 Remote][AIGC] Opus Clip 招前端工程师了（视频编辑器方向）</title>
-<link>https://www.v2ex.com/t/990593</link>
-<guid>https://www.v2ex.com/t/990593</guid>
-<content:encoded><![CDATA[
-<h1>我们是谁：</h1>
-<p>Opus is the world's No.1 AI video clipping tool.<br />
-Backed by Lightspeed, DCM, and many other institutional investors, we are building a fully distributed global team and universal product. We have become one of the world's fastest-growing AI startups, breaking $4M in annual revenue in just 4 months after the launch of our beta.<br />
-<a href="https://www.linkedin.com/company/opusclip" rel="nofollow">More information</a><br />
-<a href="https://www.opus.pro?utm_source=hiring" rel="nofollow">Try the product (need VPN to route to the US)</a> </p>
-<h1>工作内容：</h1>
-<ul>
-<li>负责前端视频编辑器的业务开发，参与编辑器架构设计</li>
-<li>参与前端规范制定，完善前端工程化体系建设</li>
-<li>编写高性能，高质量，通用化前端组件</li>
-<li>参与产品功能设计，提升产品的易用性和用户体验  </li>
-</ul>
-<h1>技术栈：</h1>
-<ul>
-<li>React, Typescript, Recoil, Konvajs, Nextjs, Nestjs</li>
-<li>Google Cloud Storage, CloudFlare, CDN</li>
-<li>FFMPEG, ChatGPT, Whisper, 各种 CV models  </li>
-</ul>
-<h1>基本要求：</h1>
-<ul>
-<li>本科及以上学历，1-3 年的前端工作经验</li>
-<li>具有扎实的 HTML 和 CSS 基础，具有 React (TypeScript) 等框架的经验，了解基本原理，能进行性能优化</li>
-<li>了解前端工程化，有过实践经历</li>
-<li>对技术和学习有热情，有自我驱动力，愿意学习并有信心获得宝贵的技术或专业技能。（最好在简历上能体现出来，而不只是停留在嘴上说说）</li>
-<li>优秀的沟通能力，能够清楚地表达自己的想法和想法。拥有与产品和设计团队密切合作的经验。</li>
-<li>具有英文读写能力，有口语能力更好  </li>
-</ul>
-<h1>加分项：</h1>
-<ul>
-<li>有视频编辑器工作经验</li>
-<li>熟悉 Nextjs, Nestjs 技术栈</li>
-<li>热衷于硬核前端技术，尤其是前沿的浏览器技术，包括 WebGL 和 WebAssembly</li>
-<li>能够从 0 开始开发复杂的前端产品  </li>
-</ul>
-<h1>我们能提供的：</h1>
-<ul>
-<li>有对标成都一线大厂的薪资</li>
-<li>10 天的年假  </li>
-</ul>
-<h1>联系我们</h1>
-<p>email: <a href="mailto:maggie.wang@opus.pro">maggie.wang@opus.pro</a></p>
-<h2>为什么 remote 要限定成都？</h2>
-<p>因为我们目前只能提供成都/上海两个城市的五险一金缴纳</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:20:53Z</pubDate>
-</item>
-<item>
-<title>[问与答] window11 要怎么使用 windows10 上的磁铁功能？</title>
-<link>https://www.v2ex.com/t/990591</link>
-<guid>https://www.v2ex.com/t/990591</guid>
-<content:encoded><![CDATA[
-更新完以后发现磁铁都没了啊。玩锤子
-]]></content:encoded>
-<pubDate>2023-11-06T03:18:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 我该去哪家</title>
-<link>https://www.v2ex.com/t/990588</link>
-<guid>https://www.v2ex.com/t/990588</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>初创公司。做交易所，技术团队还在组建中，基本上从零开始；有其他分部但状况不清楚。</li>
-<li>某证券公司的子公司，说是国内外都有分部。做托管钱包，项目即将上线。因为薪资不满意拒掉了，后来又联系我说可以加。</li>
-</ul>
-<p>两家薪资和五险一金差不多(第二家加了一些后)，做的方向也比较类似，实在不知道该怎么选了。麻烦各位帮我分析分析</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:43:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 之前的上海周杰伦黄牛没出票，到现在不退款。人民法院小程序能好使嘛</title>
-<link>https://www.v2ex.com/t/990587</link>
-<guid>https://www.v2ex.com/t/990587</guid>
-<content:encoded><![CDATA[
-rt<br /><br />有无有经验的小伙伴啊。。6800 都拖了快 1 个月了 = =
-]]></content:encoded>
-<pubDate>2023-11-10T03:36:11Z</pubDate>
-</item>
-<item>
-<title>[分享发现] GPTs 提前附上不同软件的 API 文档感觉很牛逼</title>
-<link>https://www.v2ex.com/t/990586</link>
-<guid>https://www.v2ex.com/t/990586</guid>
-<content:encoded><![CDATA[
-<p>因为可以依赖于不同软件的 API 文档来开发，例如 Obsidian 的自身 API 或者 Codemirror 6 最新的 API</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:13:26Z</pubDate>
-</item>
-<item>
-<title>[NAS] 双十一 nas 从入门到劝退</title>
-<link>https://www.v2ex.com/t/990585</link>
-<guid>https://www.v2ex.com/t/990585</guid>
-<content:encoded><![CDATA[
-<p>虽然接触过机房服务器，但信了网上各种宣传红盘专门为 nas 做了优化，具备转速低（ 5400 ）、噪音小等等。</p>
-<p>结果到手安装后，那哒哒哒的声音我隔四五米都听得清清楚楚。再加上家里户型本来不大，完全找不到一个静音的角落。</p>
-<p>再加上 4t 以上的 ssd 价格也不便宜，入手后不到 1 个小时就把我给劝退了。</p>
-]]></content:encoded>
-<pubDate>2023-11-10T04:20:49Z</pubDate>
-</item>
-<item>
-<title>[生活] 农村医保真是好像越来越贵了</title>
-<link>https://www.v2ex.com/t/990583</link>
-<guid>https://www.v2ex.com/t/990583</guid>
-<content:encoded><![CDATA[
-<p>从最开始的好像 10 块还是 20 块，现在要 400 ，明年后年还不知道什么价格</p>
-]]></content:encoded>
-<pubDate>2023-11-10T04:15:17Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 新手 求个馒头 pt 站的</title>
-<link>https://www.v2ex.com/t/990580</link>
-<guid>https://www.v2ex.com/t/990580</guid>
-<content:encoded><![CDATA[
-<p>昨天刚研究了一天，，懂规则</p>
-<p>下载有点低的原因是昨天一直在下载免费的</p>
-<p>求个馒头 pt 站的药</p>
-<p>nas 24 小时在线  100m 上传，有 v4,v6 公网，绝对玩不死 </p>
-<p>邮箱：ZmxpazM2MEBvdXRsb29rLmNvbQ==</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/654d976ac458853aefcbcdac.jpg" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/654d977fc458853aefcc013b.jpg" /></p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:39:27Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 用 vue3 写了个 2048，支持主题切换，本地记录缓存，背景音乐，排行榜。
-
-手机和电脑都能玩。</title>
-<link>https://www.v2ex.com/t/990579</link>
-<guid>https://www.v2ex.com/t/990579</guid>
-<content:encoded><![CDATA[
-<p>体验地址： <a href="http://2048.yunhu.wiki/" rel="nofollow">http://2048.yunhu.wiki/</a></p>
-<p>实现的过程： <a href="https://stevenling.github.io/yunhu-blog/front/vue/%E5%A6%82%E4%BD%95%E5%86%99%E4%B8%80%E4%B8%AA%202048%20%E5%B0%8F%E6%B8%B8%E6%88%8F.html" rel="nofollow">https://stevenling.github.io/yunhu-blog/front/vue/%E5%A6%82%E4%BD%95%E5%86%99%E4%B8%80%E4%B8%AA%202048%20%E5%B0%8F%E6%B8%B8%E6%88%8F.html</a></p>
-<p>界面：</p>
-<p><a href="https://imgse.com/i/pi3HdzR" rel="nofollow"><img alt="pi3HdzR.png" class="embedded_image" rel="noreferrer" src="https://z1.ax1x.com/2023/11/10/pi3HdzR.png" /></a></p>
-]]></content:encoded>
-<pubDate>2023-11-02T02:59:27Z</pubDate>
-</item>
-<item>
-<title>[成都] 成都有啥好玩儿的地方，求推荐下</title>
-<link>https://www.v2ex.com/t/990578</link>
-<guid>https://www.v2ex.com/t/990578</guid>
-<content:encoded><![CDATA[
-<p>迫于第一次约妹子出去玩，求推荐成都有啥好玩儿的地方，适合看、能拍照的，带点儿能玩的，环境安静点的，春熙路太古里这些热门的就不考虑了，再推荐点好吃的中餐，位置在双流机场方圆 50km 以内都行，谢谢</p>
-]]></content:encoded>
-<pubDate>2023-11-10T03:20:20Z</pubDate>
 </item>
 </channel>
 </rss>
