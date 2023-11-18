@@ -5,17 +5,231 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享创造] [Elog 最佳实践] 语雀 + Elog + VitePress + GitHub Actions + Vercel 文档站点解决方案</title>
+<link>https://www.v2ex.com/t/993153</link>
+<guid>https://www.v2ex.com/t/993153</guid>
+<content:encoded><![CDATA[
+
+<h1>语雀 + Elog + VitePress + GitHub Actions + Vercel 文档站点解决方案</h1>
+<h2>前言</h2>
+<p>注意：2023/11/18 更新：由于语雀官方更新了账号密码登录规则，加上了人机校验，账号密码模式已无法通过 Elog 登录！目前只能使用
+Token 方式同步文档（需要语雀超级会员）<br />
+如果你不是语雀超级会员，可以使用 Notion 进行部署文档站点，<a href="https://github.com/LetTTGACO/elog-docs" rel="nofollow">参考示例</a></p>
+<p>VitePress 要求 Node 18 及以上版本</p>
+<h2>文档站点工具汇总</h2>
+<ul>
+<li>写作平台：语雀</li>
+<li>文档平台：<a href="https://vitepress.dev/" rel="nofollow">VitePress</a></li>
+<li>文档同步：<a href="https://github.com/LetTTGACO/elog" rel="nofollow">Elog</a></li>
+<li>部署平台：<a href="https://vercel.com" rel="nofollow">Vercel</a></li>
+</ul>
+<h2>博客搭建指南</h2>
+<h3>Fork 模板仓库</h3>
+<p><a href="https://github.com/elog-x/yuque-vitepress" rel="nofollow">点击 Fork</a> 该模板仓库到个人 Github 账号仓库下并 clone 到本地</p>
+<h3>安装依赖</h3>
+<p>在项目根目录下运行命令安装依赖</p>
+<pre><code class="language-shell">npm install
+</code></pre>
+<h3>新建本地调试文件</h3>
+<p>在项目根目录中复制<code>.elog.example.env</code>文件并改名为<code>.elog.env</code>，此文件将用于本地同步文档时使用</p>
+<h3>配置语雀</h3>
+<p>参考<a href="https://www.yuque.com/1874w/yuque-vitepress-template" rel="nofollow">示例知识库</a>
+，选择或新建语雀文档知识库，并按照<a href="https://elog.1874.cool/notion/gvnxobqogetukays#login" rel="nofollow">文档提示</a>
+配置语雀并获取 <code>token login repo</code>。并在本地<code>.elog.env</code>中写入</p>
+<pre><code class="language-text">YUQUE_TOKEN=获取的 Token
+YUQUE_LOGIN=获取的 login
+YUQUE_REPO=获取的 repo
+</code></pre>
+<h3>本地调试</h3>
+<p>在项目根目录运行同步命令</p>
+<pre><code class="language-shell">npm run elog:sync-local
+</code></pre>
+<h3>配置 VitePress</h3>
+<p>根据 <a href="https://vitepress.dev/" rel="nofollow">VitePress</a> 文档，配置你的文档站点直到你满意为止。</p>
+<ol>
+<li>修改 VitePress 的配置文件<code>docs/.vitepress/config.mts</code>中的导航栏、路由信息等</li>
+<li>修改首页信息<code>docs/<a href="http://index.md" rel="nofollow">index.md</a></code>中的文字和路由</li>
+<li>更多自定义配置请看 VitePress 文档</li>
+</ol>
+<p>本文档默认是按照文档目录渲染站点
+URL ，可能会存在中文路由，如果想要短路由模式，即站点路由全英文，可前往<a href="https://yuque-vitepress.vercel.app/docs/%E8%BF%9B%E9%98%B6%E9%85%8D%E7%BD%AE/VitePress%E7%9F%AD%E8%B7%AF%E7%94%B1%E6%A8%A1%E5%BC%8F" rel="nofollow">进阶配置</a>
+中阅读</p>
+<h3>启动 VitePress</h3>
+<p>在项目根目录运行 VitePress 启动命令，打开本地链接</p>
+<pre><code class="language-shell">npm run docs:dev
+</code></pre>
+<h3>提交代码到 github</h3>
+<p>本地访问没问题直接提交所有文件到 Github 仓库即可</p>
+<h3>部署到 Vercel</h3>
+<p>注册 Vercel 账号并绑定 Github ，在 Vercel 导入 该项目，Vercel 会自动识别出该 VitePress 项目，不需要改动，直接选择 Deploy
+部署。部署完成会有一个 Vercel 临时域名，你也可以绑定自己的域名。
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://image.1874.cool/1874/202311190122060.png" /></p>
+<h2>自动化同步&amp;部署</h2>
+<h3>检查 Github Actions 权限</h3>
+<p>在 Github 仓库的设置中找到 <code>Actions-General</code>，打开流水线写入权限<code>Workflow permissions</code>
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://image.1874.cool/1874/202311190123718.png" /></p>
+<h3>配置环境变量</h3>
+<p>在本地运行时，用的是<code>.elog.env</code>文件中定义的语雀账号信息，而在 Github Actions 时，需要提前配置环境变量。<br />
+在 Github 仓库的设置中找到 <code>Secrets and variables</code>，新增仓库的环境变量和<code>.elog.env</code>保持一致即可
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://image.1874.cool/1874/202311190147017.jpg" /></p>
+<h3>自动化部署</h3>
+<p>当在语雀中改动文档后，手动/自动触发 Github Actions 流水线，会重新从语雀增量拉取文档，自动提交代码到 Github 仓库。<br />
+Vercel 会实时监测仓库代码，当有新的提交时都会重新部署博客。如此就实现了自动化部署博客。<br />
+整个流程的关键点就在于：如何手动/自动触发 Github Actions 。<br />
+在项目.<code>github/workflows/sync.yaml</code>中已经配置了外部 API 触发 Github Actions 事件，所以只需要调用 API 触发流水线即可。</p>
+<h4>手动触发</h4>
+<p>为了方便，这里提供一个部署在 Vercel 的免费公用的<a href="https://github.com/elog-x/serverless-api" rel="nofollow"><strong>ServerlessAPI</strong></a>，按照文档配置好
+URL 参数并浏览器访问即可触发流水线</p>
+<pre><code class="language-shell">https://serverless-api-elog.vercel.app/api/github?user=xxx&amp;repo=xxx&amp;event_type=deploy&amp;token=xxx
+</code></pre>
+<h4>自动触发-语雀 webhooks</h4>
+<p>在语雀知识库 - 更多设置 - 消息推送中可配置语雀 webhooks ，填写上面的 Vercel Serverless API 。当文档更新时，语雀会调用这个 API 进行推送，进而触发
+Github Actions</p>
+<p>注意：语雀是国内文档平台，调用国外 Vercel 的服务可能会失败，可自行部署 API</p>
+<p>注意：知识库配置了「自动发布」功能后，文档的 更新/发布 操作暂不会发送 webhooks</p>
+<h2>参考示例</h2>
+<p>示例 Github 仓库：<a href="https://github.com/elog-x/yuque-vitepress" rel="nofollow">https://github.com/elog-x/yuque-vitepress</a><br />
+示例语雀知识库：<a href="https://www.yuque.com/1874w/yuque-vitepress-template" rel="nofollow">https://www.yuque.com/1874w/yuque-vitepress-template</a><br />
+示例文档站点：<a href="https://yuque-vitepress.vercel.app/" rel="nofollow">https://yuque-vitepress.vercel.app</a> </p>
+<h2>Elog</h2>
+<p>Elog Github： <a href="https://github.com/LetTTGACO/elog" rel="nofollow">https://github.com/LetTTGACO/elog</a></p>
+<p>Elog 文档： <a href="https://elog.1874.cool/" rel="nofollow">https://elog.1874.cool</a></p>
+]]></content:encoded>
+<pubDate>2023-11-18T18:00:12Z</pubDate>
+<pubDate>2023-11-18T17:57:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] discord bot 我想知道如何登录</title>
+<link>https://www.v2ex.com/t/993152</link>
+<guid>https://www.v2ex.com/t/993152</guid>
+<content:encoded><![CDATA[
+
+<p>我看他们都用 py 库或者 js 库完成登录
+请问如果我想自己用 curl 去搞 如何能让机器人在线呢</p>
+]]></content:encoded>
+<pubDate>2023-11-18T17:42:18Z</pubDate>
+<pubDate>2023-11-18T17:42:18Z</pubDate>
+</item>
+<item>
+<title>[问与答] 30 岁大龄后端程序员， matrixport 和比亚迪该怎么选？</title>
+<link>https://www.v2ex.com/t/993151</link>
+<guid>https://www.v2ex.com/t/993151</guid>
+<content:encoded><![CDATA[
+
+<p>比亚迪：base 深圳坪山，规划院，年包 32w 。
+matrixport：币圈，base 曼谷，加上出差补贴，年包 55w ，项目忙的时候要 996.</p>
+]]></content:encoded>
+<pubDate>2023-11-18T17:40:51Z</pubDate>
+<pubDate>2023-11-18T15:39:51Z</pubDate>
+</item>
+<item>
+<title>[天黑以后] 20231119 午夜俱乐部</title>
+<link>https://www.v2ex.com/t/993150</link>
+<guid>https://www.v2ex.com/t/993150</guid>
+<content:encoded><![CDATA[
+
+<p>夜里最低气温将降至 4 摄氏度，来房间里开着空调，喝了点小酒，刷着 B 站，看着歌舞升平，又看着战火里的人，觉得生活在一个和平的环境，安全、有稳定且易享有的基础设施和服务供应，也真的算是莫大的幸运。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T17:30:06Z</pubDate>
+<pubDate>2023-11-18T17:34:24Z</pubDate>
+</item>
+<item>
+<title>[NAS] transmission 怎么比较种子和文件</title>
+<link>https://www.v2ex.com/t/993148</link>
+<guid>https://www.v2ex.com/t/993148</guid>
+<content:encoded><![CDATA[
+
+有时候种子从列表删除了，但是文件没有删除，白白浪费了空间没有做种。如果种子太多整理起来简直是噩梦。貌似没有现成的工具，我准备用 rpc 接口自己写一个。大致就是一个简单的 diff 工具，比较做种列表和磁盘目录的情况。
+]]></content:encoded>
+<pubDate>2023-11-18T17:08:28Z</pubDate>
+<pubDate>2023-11-18T13:08:28Z</pubDate>
+</item>
+<item>
+<title>[程序员] 自己写的 uptime 监控及状态页 UptimeFlare, 使用 Cloudflare Workers 部署</title>
+<link>https://www.v2ex.com/t/993147</link>
+<guid>https://www.v2ex.com/t/993147</guid>
+<content:encoded><![CDATA[
+
+之前一直在找 uptime monitoring 的解决方案, 没找到特别合适的 serverless 版本.<br />(upptime 可能违反 GitHub ToS 且更新缓慢有不同步问题, cf-workers-status-page 功能较少)<br /><br />于是自己搓了一个.<br /><br /><a href="https://github.com/lyc8503/UptimeFlare" rel="nofollow noopener" target="_blank">https://github.com/lyc8503/UptimeFlare</a><br /><br />可以免费部署在 Cloudflare 上, 对自己的网站进行 uptime 监控, 挂了的话可以得到通知.<br /><br />Online demo: <a href="https://uptimeflare.pages.dev/" rel="nofollow noopener" target="_blank">https://uptimeflare.pages.dev/</a>
+]]></content:encoded>
+<pubDate>2023-11-18T16:50:06Z</pubDate>
+<pubDate>2023-11-18T16:49:06Z</pubDate>
+</item>
+<item>
+<title>[Windows] 求救 win10 系统网易云音乐为何会更改系统应用音量</title>
+<link>https://www.v2ex.com/t/993146</link>
+<guid>https://www.v2ex.com/t/993146</guid>
+<content:encoded><![CDATA[
+
+<p>每次设置好网易云音乐系统音量然后重启网易云音乐就自动把网易云系统音量拉到最大</p>
+]]></content:encoded>
+<pubDate>2023-11-18T16:46:04Z</pubDate>
+<pubDate>2023-11-17T16:46:04Z</pubDate>
+</item>
+<item>
+<title>[问与答] SS 套 WARP 的奇怪 IP 问题</title>
+<link>https://www.v2ex.com/t/993144</link>
+<guid>https://www.v2ex.com/t/993144</guid>
+<content:encoded><![CDATA[
+
+<p>WARP 是代理模式。</p>
+<p>第一种用法：直接用浏览器连 WARP 的代理端口，此时去 <a href="http://ip.sb" rel="nofollow">ip.sb</a> 查看，显示是 cloudflare 的 IP ，这很正常。</p>
+<p>第二种用法：把 WARP 用作 SS 的正向代理。浏览器连接 SS 代理端口，此时去 <a href="http://ip.sb" rel="nofollow">ip.sb</a> 查看，显示的 SS 的地址。这就有点搞不懂了。按我小白的理解，应该是 SS 用 WARP 当跳板，按理说还是应该显示 CF 地址啊。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T16:39:40Z</pubDate>
+<pubDate>2023-11-18T17:43:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 预算只有 1000 元以内，是该选择 2k144Hz 还是 4k60Hz 的显示器</title>
+<link>https://www.v2ex.com/t/993143</link>
+<guid>https://www.v2ex.com/t/993143</guid>
+<content:encoded><![CDATA[
+
+背景：最近家中新房间准备完毕，准备给自己备一台显示器，预算比较少因为不会常用。而且自己粗略浏览 1000 元内的显示器，还是有挺多可选项的，想请各位给点建议<br /><br />个人情况：目前常用的设备为 Macbookpro2020 、一台联想拯救者的游戏本。偶尔可能会拿游戏本打 FPS(主要 CS2)，其余 80%时间拿 Mac 日常工作生活。主要的工作，产品经理偶尔写点代码，显示器主要在 2k144Hz 和 4k60Hz 之间纠结，不知道对我这种情况是分辨率更加重要还是帧率优先级更高，或者我下面列的一些备选项有没有特别性价比比较高值得推荐的<br /><br />一些备选项：<br />1. KTC H27T22S 27 英寸 2K170Hz<br />2.科睿 P6 27 英寸 4k60Hz<br />3.创维 F27G4Q 27 英寸 2k170Hz
+]]></content:encoded>
+<pubDate>2023-11-18T16:37:02Z</pubDate>
+<pubDate>2023-11-18T13:37:02Z</pubDate>
+</item>
+<item>
+<title>[NAS] 大家 NAS 防尘有什么妙招没？</title>
+<link>https://www.v2ex.com/t/993142</link>
+<guid>https://www.v2ex.com/t/993142</guid>
+<content:encoded><![CDATA[
+
+如题，我是把 NAS 机箱放在桌子上，因为桌子在阳台，所以一段时间后 NAS 的一些 USB 口集积灰严重。想问问大家有什么办法？<br /><br />我有想有没有那种透明的防尘箱，搜了搜没有这么大的，是想用亚克力订做下，还要在后面留好走线的口。<br /><br />大家如果有合适的不妨推荐下，谢谢！
+]]></content:encoded>
+<pubDate>2023-11-18T16:32:17Z</pubDate>
+<pubDate>2023-11-18T17:53:23Z</pubDate>
+</item>
+<item>
+<title>有没有人生指导书？</title>
+<link>https://www.v2ex.com/t/991927</link>
+<guid>https://www.v2ex.com/t/991927</guid>
+<content:encoded><![CDATA[
+
+<p>起因是，小时候我一直对机械，无线电，电路板等相当感兴趣，小时候晚上集市我我爸两个在书摊和书店就能待一个晚上。那时候看到很多小学无线电竞赛什么的就好奇，他们是怎么懂得无线电的？学校也没教啊，我找遍了我们小镇的书店都找不到任何相关书籍。慢慢长大就知道，是我们小镇太小了。</p>
+<p>所以，现在互联网这么发达，有没有人做一个人生指导相关的网站？不是要细节，是告诉别常识问题，能给人指一个方向。</p>
+<p>例如，有人想要自己做一个网站，那么就告诉他，网站需要一个服务器承载，接入网络，需要一个 IP 以让人访问到这个服务器，网页是使用 HTML 语言作为展示，CSS 是控制网站如何排版和展示，JavaScript 实现网页上的动作交互，网页内容需要服务器有数据库，网页图片需要服务器中有存储，网页后台是使用动态语言对服务器数据库中内容提取并输出 HTML 生成我们访问的页面。然后再列出数据库有哪些，服务器图片和文件存储方式有哪些，实现后台功能的语言有哪些等等。</p>
+<p>很多时候人生就是这样，想要做一样东西，但是很多人完全不知道自己应该如何去做。其实只要有人告诉他一下基础常识自己就能后续延申。</p>
+<p>例如，小时候很多人说长大后要成为什么什么，但是他们根本不知道要实现自己梦想的方向是什么。</p>
+<p>其实对于一个有明确目标的人，小时候他就能直接向自己的目标出发，不用迷茫，很多无所事事的『坏学生』真正让无心向学的原因就是没人告诉他，他想要做的事要怎样实现。</p>
+<p>想成为钢琴家要怎样做？想成为科学家要怎样做？想要做自己的车子要怎样做？......</p>
+<p>但是我们的成长环境根本就无法让孩子们知道自己的目标的方向在哪里。</p>
+]]></content:encoded>
+<pubDate>2023-11-14T13:01:36Z</pubDate>
+<pubDate>2023-11-16T21:14:01Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 遇到信用卡乱扣费的，真的完全没有办法吗？</title>
 <link>https://www.v2ex.com/t/993141</link>
 <guid>https://www.v2ex.com/t/993141</guid>
 <content:encoded><![CDATA[
-
 <p>本来用 Vercel ，但因为不能放潘多拉，就转向了 Zeabur 。正好看到 V 站有人推荐，用了下发现可以平替，就绑定了支付宝</p>
 <p>但是，今天发现明明 Zeabur 网站表示用量不超过 5 刀不收费，结果我账户还是被扣了 3.99 元。这不由得让我想起之前在香港用 Deliveroo 点外卖的破事。那时试用了会员，结果回来时忘了取消，最后每月自动扣 98 港币。更离谱的是，Deliveroo 在国内不给用，代理+GPS 模拟也不行。在咨询银行后发现真得没啥办法，只能挂失信用卡。</p>
 <p>这让我想到，一旦信用卡信息泄露或被滥用，真的挺麻烦。以后要怎么避免这种情况呢？  </p>
 <p>澄清一下，Zeabur 可能是因为我绑的支付宝，每月都会产生 3.99 元的费用。我原以为那是一次性的，谁知道是月费。也幸好用的支付宝，我可以直接取消。现在网站上部署的东西也删了，再也不用。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T16:16:39Z</pubDate>
 <pubDate>2023-11-18T16:16:39Z</pubDate>
 </item>
 <item>
@@ -23,10 +237,8 @@
 <link>https://www.v2ex.com/t/993140</link>
 <guid>https://www.v2ex.com/t/993140</guid>
 <content:encoded><![CDATA[
-
 <p>安卓模拟器哪个好用，夜神、雷电、逍遥 哪个比较好用。不卡顿  高清一些，更像手机</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T16:12:28Z</pubDate>
 <pubDate>2023-11-18T16:09:28Z</pubDate>
 </item>
 <item>
@@ -34,10 +246,8 @@
 <link>https://www.v2ex.com/t/993139</link>
 <guid>https://www.v2ex.com/t/993139</guid>
 <content:encoded><![CDATA[
-
 今天和小伙伴去 HK 办了中银的卡，记录一下办卡经历，给大家参考。办卡过程中只看了身份证、通行证和通关小票，无需任何额外资料。<br /><br />这次出行方式是高铁，从深圳去香港坐高铁是最快、时间控制最精准的方式，福田站到西九龙站全程仅 18 分钟，票价 68 RMB 。<br /><br />出发前的准备：提前开好漫游，带一些 RMB 现金，八达通电子版。<br /><br />漫游：记得上高铁之前就要开好漫游数据，因为高铁发车之后是马上就进入香港境内，内地卡这时候还没开好数据漫游的话可能就没网了。以及手机必须要开通漫游接收短信功能，以便后面开户使用。<br /><br />现金：开户后要存入银行用于激活账户的，网上很多教程都是让存 1000 港币，但是按目前汇率把 RMB 换成港币存太亏了，因此我们直接存 RMB 。带 1500+即可，或者多带点也行，反正用不完的还可以带回来。<br /><br />八达通电子版：iPhone 可以下载旅客八达通（注意一定是旅客版，普通版我们外地人用不了； Android 好像不能开电子版八达通，Google play 没有旅客八达通这个 App ），通过它可以开一张八达通到 Apple Pay ，香港几乎所有地方都可以用八达通消费，包括地铁餐厅便利店，用法和内地交通卡一样。开卡押金是 50 港币，开户最低充值 100 港币，这个钱用不完后面是可以退的。充值可以直接通过 Apple Pay 用 RMB 充。<br /><br />行程：<br /><br />我们 8 点 40 从福田上车，早上 9 点抵达西九龙站，因为高铁是下车再通关，通关完出来大概 9 点半了。<br /><br />通关会过两个闸机，第一个是内地的出境闸机，第二个是香港的入境闸机，后面闸机会打印一个小票给你记得保管好，后面办卡要用到。<br /><br />通关出来后会有很多货币兑换的店，这里可以换点港币现金在香港消费用，如果前面开了电子八达通可以少换点，没八达通的可以考虑多换点现钞，在香港消费能用得上。要注意香港那边换汇只接受现金兑换，不能支付宝微信扫码的，如果想支付宝微信换要在福田这边换。<br /><br />然后我们办卡是准备去铜锣湾分行，因此出来直接坐地铁，进柯士甸站坐屯马线 2 站到红磡站，转东铁线坐 2 站到金钟站，再转港岛线 2 站到铜锣湾站。地铁全程消费 12.8 港币。到了铜锣湾站从 D2 出口出来，右转 50m 就是中国银行香港铜锣湾分行。<br /><br />我是 10 点左右到银行，到了先去二楼一个自助机上取号，我们到的时间还是比较晚了，拿到的 15 ，16 号，因为周六网点只营业到下午 1 点，当天一共只发了 32 个号就不给发了，所以大家要过去办卡时间上还是尽可能要早点。<br /><br />排队 40 多分钟，中间花了 10 几分钟把众安银行也办了。等待过程中可以提前下载 BOC HK 和 BOC Pay 两个 App 。排队的时候观察了一下大厅里基本上全是内地人在办卡。（一个比较坑的点是这个支行没几个座位，如果去的晚得站着排很久队）<br /><br />10:40 排到我，40 分钟左右完成柜面办卡流程。<br /><br />中间柜员先是让我在 BOC HK app 上填了一些基本资料，然后问我为什么办卡，我回答投资港股。<br />还会询问是否已婚，在内地的公司名称和职务。<br />然后问了我填的通讯地址能否收到邮件，以及邮编。（并没有要求提供地址证明）<br /><br />然后就是跟着他的指导操作就行。因为开户理由是投资港股，他会同时给你开一个证券账户。<br /><br />银行工作人员普通话都很好，大家不用担心沟通问题。<br /><br />然后开完当场不会下卡，而是后面邮寄给你。<br /><br />完成后会打一张单子给你，上面两个存款账户一个港币账户，一个外汇账户。柜员会让你自己去楼下存款机存 1000 港币或等值外币激活账户。（人工柜台也能存，但是要排队，而且全是一群大爷大妈在排，我就没去和他们抢位置了）<br /><br />来到一楼存款机的位置，这个机器可以无卡存款，支持港币和 RMB 。操作方式是先随便按一下，然后选中文服务，再输入前面单子上的外汇账户号码（ RMB 在 HK 算外汇）。输入账户记得输快点不然很容易提示超时自动退出。然后存入 1000 RMB ，办卡过程就算完成了。<br /><br />我们全部办完的时候已经是中午 12 点了。<br />找了个地方吃饭，下午就是随便逛逛的 city walk 时间。
 ]]></content:encoded>
-<pubDate>2023-11-18T16:09:54Z</pubDate>
 <pubDate>2023-11-18T16:08:54Z</pubDate>
 </item>
 <item>
@@ -45,10 +255,8 @@
 <link>https://www.v2ex.com/t/993138</link>
 <guid>https://www.v2ex.com/t/993138</guid>
 <content:encoded><![CDATA[
-
 出租房，客厅的很老的立式空调，现在开关也都正常，有声音，但是屏幕不亮了
 ]]></content:encoded>
-<pubDate>2023-11-18T15:46:13Z</pubDate>
 <pubDate>2023-11-18T15:46:13Z</pubDate>
 </item>
 <item>
@@ -56,10 +264,8 @@
 <link>https://www.v2ex.com/t/993136</link>
 <guid>https://www.v2ex.com/t/993136</guid>
 <content:encoded><![CDATA[
-
 刚更新了 14.1.1 ，然后高动态范围这个选项就没了？<br />之前还用的好好的
 ]]></content:encoded>
-<pubDate>2023-11-18T15:25:28Z</pubDate>
 <pubDate>2023-11-18T15:25:28Z</pubDate>
 </item>
 <item>
@@ -67,10 +273,8 @@
 <link>https://www.v2ex.com/t/993135</link>
 <guid>https://www.v2ex.com/t/993135</guid>
 <content:encoded><![CDATA[
-
 <p>如题，怕被封号</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T15:22:39Z</pubDate>
 <pubDate>2023-11-18T15:19:39Z</pubDate>
 </item>
 <item>
@@ -78,11 +282,9 @@
 <link>https://www.v2ex.com/t/993134</link>
 <guid>https://www.v2ex.com/t/993134</guid>
 <content:encoded><![CDATA[
-
 <p>有两位车友跳车了,两个月也没有找到新车友了,有感兴趣的可以咨询我..</p>
 <p>Telegram: lascargo</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T14:55:36Z</pubDate>
 <pubDate>2023-11-18T14:54:36Z</pubDate>
 </item>
 <item>
@@ -90,10 +292,8 @@
 <link>https://www.v2ex.com/t/993133</link>
 <guid>https://www.v2ex.com/t/993133</guid>
 <content:encoded><![CDATA[
-
 ![681d8a8a6940a49eec5c591660066d4]( <a href="https://zwx-images-1305338888.cos.ap-guangzhou.myqcloud.com/img/2023/11/18/681d8a8a6940a49eec5c591660066d4.jpg" rel="nofollow noopener" target="_blank">https://zwx-images-1305338888.cos.ap-guangzhou.myqcloud.com/img/2023/11/18/681d8a8a6940a49eec5c591660066d4.jpg</a>)<br /><br />只接了电源、显卡、内存，然后跳线检测一下<br />自检后红灯常亮是不是散热没装
 ]]></content:encoded>
-<pubDate>2023-11-18T14:53:09Z</pubDate>
 <pubDate>2023-11-18T15:41:49Z</pubDate>
 </item>
 <item>
@@ -101,7 +301,6 @@
 <link>https://www.v2ex.com/t/993132</link>
 <guid>https://www.v2ex.com/t/993132</guid>
 <content:encoded><![CDATA[
-
 <h2>背景</h2>
 <p>之前就有看到过另一个 V 友的<a href="https://www.v2ex.com/t/989309" rel="nofollow">帖子</a>，没想到这么快，照片丢失的事情也发生在了自己的身上，而且我们俩都是 iPhone 13 Pro 256G 的机型（我的系统是 iOS 17.1.1 ），好在最后找回了。</p>
 <h2>过程</h2>
@@ -118,7 +317,6 @@
 <p>到目前为止，在 iPhone 的照片 APP 里面仍然看不到这几张照片，估计是触发了什么照片的  Bug ，我打算先整体的备份一下后，再尝试导入进去。</p>
 <p>以上，供参考，希望大家都不会遇到。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T14:48:39Z</pubDate>
 <pubDate>2023-11-18T16:20:53Z</pubDate>
 </item>
 <item>
@@ -126,10 +324,8 @@
 <link>https://www.v2ex.com/t/993131</link>
 <guid>https://www.v2ex.com/t/993131</guid>
 <content:encoded><![CDATA[
-
 不过好像热度很低，没第一次关注的人多，可能都没想到那么快成功
 ]]></content:encoded>
-<pubDate>2023-11-18T14:40:08Z</pubDate>
 <pubDate>2023-11-08T14:40:08Z</pubDate>
 </item>
 <item>
@@ -137,7 +333,6 @@
 <link>https://www.v2ex.com/t/993129</link>
 <guid>https://www.v2ex.com/t/993129</guid>
 <content:encoded><![CDATA[
-
 <p>发现 Linux 上的经典输入法 Fcitx ，上线了 Android 版。</p>
 <p>可以在 Google Play 或 F-Droid 搜“fcitx5”，进行安装。注意，在 F-Droid 上会搜出很多相关插件，名称上没有括号的那个才是本体。</p>
 <p>简单试用了一下，总结如下：</p>
@@ -150,10 +345,8 @@
 <li>可以导出导入用户数据。</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-11-18T14:29:23Z</pubDate>
 <pubDate>2023-11-17T22:29:23Z</pubDate>
 </item>
-
 <item>
 <title>[宽带症候群] 开个脑洞想了一个结合软硬路由优点的方案</title>
 <link>https://www.v2ex.com/t/993126</link>
@@ -15431,156 +15624,6 @@ Control-C
 今天访问，直接和墙内一样了，转到了头条。</p>
 ]]></content:encoded>
 <pubDate>2023-11-14T14:01:35Z</pubDate>
-</item>
-<item>
-<title>[Android] 讯飞 android demo 返回错误码 18301，但自己的错误码平台没有这个码，厉害了</title>
-<link>https://www.v2ex.com/t/991930</link>
-<guid>https://www.v2ex.com/t/991930</guid>
-<content:encoded><![CDATA[
-<p>E/AEELog: AEE_EngineInit                  266 SDK is not workable, auth state:18301</p>
-<p>去错误码查询，则提示：
-未查询到 18301 错误码信息，如遇到其他问题，可以在支持中心 提交问题 。</p>
-<p>放弃放弃，或许好用，但太难用起来。。换换换</p>
-]]></content:encoded>
-<pubDate>2023-11-14T13:16:46Z</pubDate>
-</item>
-<item>
-<title>[电动汽车] 个位新能源车主 如何选择 私桩 共享？</title>
-<link>https://www.v2ex.com/t/991929</link>
-<guid>https://www.v2ex.com/t/991929</guid>
-<content:encoded><![CDATA[
-<p>哪个平台好用呢？</p>
-]]></content:encoded>
-<pubDate>2023-11-14T13:14:45Z</pubDate>
-</item>
-<item>
-<title>[V2EX] 感谢 @lijianmin321</title>
-<link>https://www.v2ex.com/t/991928</link>
-<guid>https://www.v2ex.com/t/991928</guid>
-<content:encoded><![CDATA[
-<p>你的这个创记录的帖子帮助我发现了程序里的一个性能问题，刚刚已经修复。</p>
-<p><a href="https://v2ex.com/t/991748" rel="nofollow">https://v2ex.com/t/991748</a></p>
-]]></content:encoded>
-<pubDate>2023-11-14T14:12:41Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 有没有人生指导书？</title>
-<link>https://www.v2ex.com/t/991927</link>
-<guid>https://www.v2ex.com/t/991927</guid>
-<content:encoded><![CDATA[
-<p>起因是，小时候我一直对机械，无线电，电路板等相当感兴趣，小时候晚上集市我我爸两个在书摊和书店就能待一个晚上。那时候看到很多小学无线电竞赛什么的就好奇，他们是怎么懂得无线电的？学校也没教啊，我找遍了我们小镇的书店都找不到任何相关书籍。慢慢长大就知道，是我们小镇太小了。</p>
-<p>所以，现在互联网这么发达，有没有人做一个人生指导相关的网站？不是要细节，是告诉别常识问题，能给人指一个方向。</p>
-<p>例如，有人想要自己做一个网站，那么就告诉他，网站需要一个服务器承载，接入网络，需要一个 IP 以让人访问到这个服务器，网页是使用 HTML 语言作为展示，CSS 是控制网站如何排版和展示，JavaScript 实现网页上的动作交互，网页内容需要服务器有数据库，网页图片需要服务器中有存储，网页后台是使用动态语言对服务器数据库中内容提取并输出 HTML 生成我们访问的页面。然后再列出数据库有哪些，服务器图片和文件存储方式有哪些，实现后台功能的语言有哪些等等。</p>
-<p>很多时候人生就是这样，想要做一样东西，但是很多人完全不知道自己应该如何去做。其实只要有人告诉他一下基础常识自己就能后续延申。</p>
-<p>例如，小时候很多人说长大后要成为什么什么，但是他们根本不知道要实现自己梦想的方向是什么。</p>
-<p>其实对于一个有明确目标的人，小时候他就能直接向自己的目标出发，不用迷茫，很多无所事事的『坏学生』真正让无心向学的原因就是没人告诉他，他想要做的事要怎样实现。</p>
-<p>想成为钢琴家要怎样做？想成为科学家要怎样做？想要做自己的车子要怎样做？......</p>
-<p>但是我们的成长环境根本就无法让孩子们知道自己的目标的方向在哪里。</p>
-]]></content:encoded>
-<pubDate>2023-11-14T14:16:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 买了个红米 Redmi Note12 Turbo</title>
-<link>https://www.v2ex.com/t/991925</link>
-<guid>https://www.v2ex.com/t/991925</guid>
-<content:encoded><![CDATA[
-<p>12+256 的,pdd 1450 入手</p>
-<p>很多年没用安卓，现在打算买张流量卡双持，刚装完 clash,
-Google Play 商店装上谷歌全家桶，用的默认的 MIUI ，有啥把玩的吗？
-发现现在的安卓很能打了，明年不知道会不会就卡 ppt 了，哈哈</p>
-]]></content:encoded>
-<pubDate>2023-11-14T13:38:48Z</pubDate>
-</item>
-<item>
-<title>[Telegram] 我想换国外手机号来绑定电报, google voice 好像搞不定, 还有别的靠谱方案推荐么, 感谢</title>
-<link>https://www.v2ex.com/t/991924</link>
-<guid>https://www.v2ex.com/t/991924</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-11-14T08:43:44Z</pubDate>
-</item>
-<item>
-<title>[Facebook] threads 无论怎么 post 文就是没有人看，有什么办法？</title>
-<link>https://www.v2ex.com/t/991923</link>
-<guid>https://www.v2ex.com/t/991923</guid>
-<content:encoded><![CDATA[
-最近注册了推特的对手 threads ，试了好几天怎么发文都没人理，是 threads 算法不推荐吗？还是因为没有追踪者呢？
-]]></content:encoded>
-<pubDate>2023-11-14T08:42:45Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海]内推 web 工程师和大数据开发工程师</title>
-<link>https://www.v2ex.com/t/991922</link>
-<guid>https://www.v2ex.com/t/991922</guid>
-<content:encoded><![CDATA[
-要求统招本科以上学历，3 年以上工作经验。<br />其他就是熟悉常见生态环境，良好的编程习惯。<br />web：<br />react 优先，熟悉 nodejs ，redis 等。<br />大数据：<br />熟悉 Java/Scala 编程，大数据常见生态，spark/flink 那些。<br />其他没有了。<br /><br />其中 web hc 还有很多<br />-----------------------<br />福利待遇<br />10-19/5<br />每天有出勤补助+2 顿饭<br />住附近的话有房补<br />年度旅游，不去的话可以领现金补助<br />年度综合报销<br />父母以及岳父母体检报销<br />双边 加一起 24%的公积金<br />带国际医院的补充医疗保险<br />年底年假折现等等<br /><br />感兴趣的联系：emhhbmd3ZW5xaW5nQGh5cGVyZ3J5cGguY29t
-]]></content:encoded>
-<pubDate>2023-11-14T12:26:52Z</pubDate>
-</item>
-<item>
-<title>[云计算] 从阿里云全面崩溃看，真的需要「快速跨云迁移」</title>
-<link>https://www.v2ex.com/t/991920</link>
-<guid>https://www.v2ex.com/t/991920</guid>
-<content:encoded><![CDATA[
-<p>众所周知，前天（ 11.12 ）阿里云又双叒宕机了，影响面非常大。一个小时过后，仍然有很多服务还没有完全恢复。这场事故中，给你的产品带来怎样的影响呢？</p>
-<p>从这可以看出来，云作为基础设施真的非常重要。但与水电在使用标准上统一，在管理上分布不同（很好地避免了单点），云目前还处于使用标准不统一，各个云服务提供商“各自为政”的情况。这就导致了，在你的服务出现问题后，你却没法及时将业务迁移到另外一家服务提供商。这或许就意味着云距离成为真正的基础设施还需要再进一步，我在之前一篇<a href="https://v2ex.com/t/986067#reply10" rel="nofollow">文章</a>中提到，有效的接入标准或许是促进云成为真正基础设施的关键因素。</p>
-<p>你想一下，如果一份代码能够同时适配阿里云、华为云、腾讯云，甚至 Kubernetes ，那么在某一家发生异常后，你就能在极短的时间完成业务服务的迁移。这算不算给自己的服务提供更高的可用性呢？</p>
-<h2>如何实现云与代码的适配？</h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3wwoPiX.png" /> </p>
-<p>这里，代码与云服务提供商的适配有两个方向：1 ）云适配代码：统一多云的接入标准使得相同代码能够在多云执行； 2 ）代码适配云：提供自动化工具实现代码自动对多云的封装适配。</p>
-<p>“统一多云的接入标准”目前看来不可能，各家云服务提供商都还在“努力”提供更多的云服务，并且都希望提供独有的特性以构建自身的壁垒，保留自己的用户。</p>
-<p>“工具自动化封装代码以适配多云“是一个可以尝试的途径，并且目前也有产品正在试足这个领域，例如 <a href="https://www.winglang.io/" rel="nofollow">Winglang</a>，也包括我自己 —— <a href="https://github.com/pluto-lang/pluto" rel="nofollow">Plutolang</a>。</p>
-<h2>自动化封装代码以适配多云：Plutolang</h2>
-<p>Plutolang 目标是：让用户仍使用常用的编程语言（如 TypeScript 、Python ），通过程序分析等手段完成业务代码对基础设施的依赖分析，最终，根据分析结果，以及对代码进行拆分，自动完成依赖组件的自动创建，和代码的自动发布。这样使得<strong>在保持现有生态便利性的情况下，降低上云的门槛，与多云迁移的负担。</strong></p>
-<p>感兴趣可以先看一个 Plutolang 的 Demo 视频，2 分钟，视频基于 TypeScript 实现一个多路由的 HTTP 服务在 AWS 与 K8s 的发布部署： <a href="https://www.bilibili.com/video/BV1HB4y1d7cq/" rel="nofollow">「 Pluto 云开发」</a>。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fImBeqM.png" /> </p>
-<p>Plutolang 目前基于 TypeScript 进行实现，能够完成上图所展示的能力，也是 Demo 视频所对应的内容。用户编写一段 TS 代码，可以包含多个路由，以及 KV 数据库、消息队列等 BaaS 组件，不需要去控制台操作，也不需要编写基础设施代码，执行 <code>pluto deploy</code> 后，就能自动创建依赖的 BaaS 组件，以及将各个路由分别发布成 FaaS 组件。</p>
-<p>想要动手试试可以 Fork 这个在线开发环境： <a href="https://codesandbox.io/p/sandbox/github/pluto-lang/codesandbox" rel="nofollow">Plutolang | CodeSandbox</a>。</p>
-<p>回到文章的主题，从上图代码中可以看到，Plutolang 没有直接依赖于各个云平台的 SDK ，而是依赖于 <code>@plutolang/pluto</code>，为开发者屏蔽了底层不同云的异构性。这样，开发者开发时不与具体云服务提供商绑定，利用 Pluto 就能无缝地在多个云之间进行迁移部署。</p>
-<p>当然，以上也只是完成计算服务的迁移，那么数据呢？还需要更多的工作去做，至少在计算上能够避免运营商锁定，在紧急时刻，可以及时将业务迁移到备份环境中。</p>
-<p>想要进一步了解可以阅读：</p>
-<ul>
-<li>思路：<a href="https://v2ex.com/t/986067#reply10" rel="nofollow">云真的成为基础设施了吗</a></li>
-<li>案例：<a href="https://v2ex.com/t/987000#reply19" rel="nofollow">分享一种更简单的薅 AWS 羊毛姿势</a></li>
-<li>实现：<a href="https://github.com/pluto-lang/pluto/blob/main/README_zh.md" rel="nofollow">Plutolang | GitHub</a></li>
-<li>上手试试： <a href="https://codesandbox.io/p/sandbox/github/pluto-lang/codesandbox" rel="nofollow">Plutolang | CodeSandbox</a>。</li>
-</ul>
-<p><strong>同时，Plutolang 还处于非常早期的阶段，欢迎感兴趣的大佬们参与共建，如果你在使用 AWS 或者 K8s ，可以给我们提需求了。同时有任何想法或者建议，都非常欢迎，说出来，你的想法就会在后续版本实现。欢迎加入我们的 <a href="https://join.slack.com/t/plutolang/shared_invite/zt-25gztklfn-xOJ%7EXvl4EjKJp1Zn1NNpiw" rel="nofollow">Slack</a> 和 钉钉群：40015003990 。</strong></p>
-]]></content:encoded>
-<pubDate>2023-11-14T12:30:05Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 致站内的某位朋友（关于我的 OpenAI API 中转站的事情）</title>
-<link>https://www.v2ex.com/t/991918</link>
-<guid>https://www.v2ex.com/t/991918</guid>
-<content:encoded><![CDATA[
-<h3>没有找到合适的节点就发在这个节点里面吧，大家当个乐子看一看。</h3>
-<p>9 月初，我在站内开始推广我搭建的中转站，俩月以来我也比较频繁在站内推广（向一部分经常看到我打广告觉得烦的人道歉，抱歉了），这俩月，也积累了一些注册用户，一小部分人只是来注册了一个账号，另一小部分人用完注册赠送的金额后就走了，另一部分人觉得体验还行继续充值使用。</p>
-<p>今天上午我发现了一点不对劲的地方，发现有人昨天注册了账号后邀请了好几个注册账号，这些邀请的账号都是用完了注册赠送+邀请赠送的金额（ 0.2+0.1 美元），再去看系统的请求日志发现都是出自同一个 IP ，再去看这个 IP 的所有注册请求，总共有 17 个邮箱，都是用的随便敲字母的那种邮箱（有几个邮箱还有一些规律），正常人的邮箱都是看得出有一些含义的。</p>
-<p>当时我是这样想的：如果我的站不好用，为什么不直接关掉转头就走，何必邀请注册用完额度后再注册呢？如果好用，为什么不直接充值后安心使用呢？（大部分充值用户用不完 0.2 美元就选择充值了，API 效果好不好不到 10 次对话就能知道）因此得出结论：又是一个薅羊毛的？</p>
-<p>有意思的是在我把这个账号金额降为 0 后，吃完饭发现这位朋友还在继续搞注册（当然是换了一个新的 IP ，旧的 IP 被我封了。），我只好先关闭注册。</p>
-<p>其实之前也有类似情况，9 月初我在站内宣传时发了 10 个 1 美元兑换码，有位朋友一次兑换了 5 个，我看到后把余额改为 1 美元了，这位朋友可是 1 美元从 9 月份用到了 11 月份，前几天 OpenAI 官方受到攻击的时候我看到这人还有请求产生，于是直接给修改成 0 余额了（我承认我格局还是太小了，让他用完剩下的两块钱有何妨？）。上个月也有利用邀请机制拿各种奇奇怪怪的邮箱注册账号的，不过在我封号之后，都没有继续搞下去了，从那以后我便加上了邮箱白名单，降低了注册和邀请的赠送金额（ 0.3+0.5 改成了 0.2+0.1 ）。</p>
-<p>我很希望这些都是我的内心戏，如果一个人为了区区不到 1 美元搞这些操作，我真的觉得太悲哀了（还是怪我钱包太薄了，不然哪有这费劲的事）。</p>
-<h2>说了这么多，其实我想说的是：</h2>
-<p>薅羊毛谁不喜欢啊，我也算是资深羊毛党了。只是在我这边又没有大羊毛，不值得你花时间薅啊，收益实在是太低了啊。</p>
-<p>我推荐你去玩信用卡吧，那个羊毛比我这里羊毛多多了。我这几年常年 8 折充话费，充电费，有一张手机卡话费都快一千块了，都不知道咋用完。国内信用卡这两年持续温暖，羊毛少了，去开拓其他地区的市场，我年初办香港渣打信用卡，新用户消费四千返 1200 ，那时候汇率还行去苹果店买一台手机回来卖掉，这不直接就是一千多的收益？还有我前段时间办的中信国际的信用卡，新户返现 10%，刚好赶上 9 月份苹果发布会找个换手机的朋友刷一笔，俩人平摊 10%的返现也有几百块收益了，这不香吗？再不行你去玩美卡啊，那个羊毛也很多啊。</p>
-<hr />
-<p>不知道你是出于什么目的使用 GPT ，觉得好用就老老实实充钱用，提高生产力，觉得贵有大把便宜的站。我这里也有代付 Plus 订阅业务，有些人来问觉得一个月 180 很贵，也有人我这边讲完二话不说账号密码发过来我两分钟就搞定人家美滋滋拿去用了，根本不用费心又费力找合适的卡合适的 IP 完善还要担心封号问题。</p>
-<hr />
-<h3>本来不想发帖的，可是我下午把注册功能打开试一试看你会不会继续，刚才写代码想起来看了一眼后台，你果然又来注册了，看了你的 IP ，下午关闭注册那会儿你注册了一次没成功，然后晚上又开始来注册了。你咋回事啊，你注册一个账号才 0.2 美元，一块五真的值得你这么干吗？</h3>
-<h2>我已经关闭注册了，我就做点小生意混个零食饮料钱，你放过我吧。</h2>
-]]></content:encoded>
-<pubDate>2023-11-14T12:20:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问轨迹球鼠标在 3D 建模中能做到对象跟随球转动吗? Pitch, Roll, Yaw</title>
-<link>https://www.v2ex.com/t/991916</link>
-<guid>https://www.v2ex.com/t/991916</guid>
-<content:encoded><![CDATA[
-<p>轨迹球指的是肯辛通, 建模软件是 Fusion360, Blender 之类的</p>
-]]></content:encoded>
-<pubDate>2023-11-14T11:53:27Z</pubDate>
 </item>
 </channel>
 </rss>
