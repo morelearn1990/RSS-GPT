@@ -5,14 +5,490 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 领导说业余时间多学一下技术，我很想反驳，领导这是 pua 吗？如果不是的话该有怎么样的反应比较好，另外如果手头上有多个项目的话，该怎么处理呢？</title>
+<link>https://www.v2ex.com/t/993073</link>
+<guid>https://www.v2ex.com/t/993073</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-11-18T08:18:16Z</pubDate>
+<pubDate>2023-11-18T08:17:16Z</pubDate>
+</item>
+<item>
+<title>[Visual Studio Code] Code Recycle: 代码生成设计器(加快代码开发,减少非必要实现)</title>
+<link>https://www.v2ex.com/t/993072</link>
+<guid>https://www.v2ex.com/t/993072</guid>
+<content:encoded><![CDATA[
+
+<h1>Code Recycle: 代码生成设计器</h1>
+<ul>
+<li>如何快速开发,自然是写的越少,开发越快</li>
+<li>那么如何写的少?当然是只写实现逻辑最好.</li>
+<li>但是很多时候,除了必要的逻辑,一些周边代码也要实现:声明/注册/引用......他们在每次使用中很相似,但是又有一点不同.而这点不同,就使我们每次重复,重复再重复的去写.并且,每次去实现逻辑无关代码时,思维的转换也会影响开发</li>
+<li>当代码重构/升级/迁移时,也有这种情况.主要逻辑基本不动,仅仅是一些框架/调用等一些逻辑无关,架构相关代码变动.小项目的迁移,手动就可以了;但大项目的话,很有可能在重复性机械劳动时,漏掉或者改错,提交之前还需要每一个文件都检查一遍,浪费时间不说,精力也被浪费掉;要是遇到了中间插入的新功能,重构完发现还有其他功能没有改,那感觉,直接崩溃掉......</li>
+<li>那么有没有一种方法可以自定义这种实现呢?</li>
+<li>有!接下来就开始就是开始老王卖瓜,自卖自夸了.</li>
+</ul>
+<h2>介绍</h2>
+<p><img alt="插件图" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/wszgrcy/code-recycle@1.0.1/doc/zh-Hans/image/%E6%8F%92%E4%BB%B6%E5%9B%BE.jpg" /></p>
+<ul>
+<li>它目前不是一个库,也没有开源(暂时),目前支持<code>Vscode</code>与所有系统,目前已经在<a href="https://marketplace.visualstudio.com/items?itemName=LDXCODE.code-recycle" rel="nofollow">微软插件市场</a>上架</li>
+<li>插件支持对打开项目的文件裁剪,快速生成文件模板;并提供组合为<code>动作</code>调用</li>
+<li>插件实现了一个与<a href="https://angular.cn/guide/schematics" rel="nofollow">原理图</a>类似的自定义规则,同时也实现了自定义规则设计器,允许大家通过 ui 进行设置自己的生成逻辑并调用</li>
+<li><code>代码片段</code>调用时匹配到的参数,也可以传入<code>动作</code>调用</li>
+<li>
+如果你还不够清楚,那么最直白的说法:<strong>如果你通过肉眼能看到代码之间存在某种关系,并且你能手动实现修改/新增/删除.那么这个插件就可以固化这个逻辑,并且重复实现</strong><blockquote>
+<p>它是 AI 模型?不是,所有设计都需要自己实现,只不过实现被具象<br />
+它是鼠标/键盘记录?不是,重复实现<code>逻辑</code>是通过对应语言实现的解析器,进行语法解析确定位置进行修改的.相当于外挂中的<code>特征点</code>定位.<code>选择器</code>不变,生成不变<br />
+实现是否会很复杂?使用插件直接超过修改代码的时间?可能会,所以如果是很小的修改,并不建议使用;如果是修改数量不确定,修改安全一致性需要保证,修改实现有重复,那么一定先试一下</p>
+</blockquote>
+</li>
+<li>插件也有一个<code>公共区</code>,显示其他人分享的<code>动作</code>,<code>代码片段</code>和<code>自定义规则函数</code>大家也可以先查找下有没有类似功能的,可以直接<code>调用</code>或者<code>复制</code>一份使用</li>
+<li>那么接下来说下这个插件可以用于哪些场景</li>
+</ul>
+<h2>名词解释</h2>
+<ul>
+<li><code>动作</code>执行单元,所有文件的修改都是在动作中进行</li>
+<li><code>自定义规则</code>可以理解为<a href="https://angular.cn/guide/schematics" rel="nofollow">原理图</a>的一个通用语言设计器
+<img alt="动态代码片段" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/wszgrcy/code-recycle@1.0.1/doc/zh-Hans/image/%E5%88%A0%E9%99%A4%E8%8A%82%E7%82%B9.jpg" /></li>
+</ul>
+<p><img alt="自定义规则简介" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/wszgrcy/code-recycle@1.0.1/doc/zh-Hans/image/%E8%87%AA%E5%AE%9A%E4%B9%89%E8%A7%84%E5%88%99%E7%AE%80%E4%BB%8B.jpg" /></p>
+<h2>使用场景</h2>
+<h3>初始化项目/初始化模块</h3>
+<ul>
+<li>一般初始化项目,我们都会参考以前的项目或者其他人的项目,而这时如果想要将部分代码用于自己的项目,通常也会是直接复制,然后再修改</li>
+<li>这时就会有一个问题,如果使用的代码更新了,我们怎么处理?可能是再手动修改吧?</li>
+<li>本插件可以直接裁剪项目的文件,并且可以将多个文件添加到<code>动作</code>,支持文件同步及冲突解决.</li>
+<li>指定不同文件位置调用<code>动作</code>,可以初始化整个项目,也可以初始化某个功能模块
+<img alt="组合动作" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/wszgrcy/code-recycle@1.0.1/doc/zh-Hans/image/%E7%BB%84%E5%90%88%E5%8A%A8%E4%BD%9C.jpg" /></li>
+</ul>
+<h3>动态代码片段</h3>
+<ul>
+<li>一般<code>代码片段</code>,都是固定代码的生成;可以解决部分重复性代码的编写</li>
+<li>但是有时候实现的逻辑需要声明/注册/引用,然后再调用时,代码片段就没办法实现了</li>
+<li>因为<code>代码片段</code>只作用于当前文件,当前光标位置处进行生成;无法跨文件,将代码插入到某个文件的某个位置(虽然我们确实需要,但是无法实现)</li>
+<li>本插件可以在调用<code>代码片段</code>时,允许调用<code>动作</code>并传入上下文,通过<code>自定义规则</code>生成对应代码并插入到相应位置</li>
+</ul>
+<blockquote>
+<p>你可以像这样定义<code>trigger.xx.yy</code>(正则匹配),将<code>xx</code>,<code>yy</code>传入到<code>动作</code>中,再通过<code>动作</code>生成相关代码</p>
+</blockquote>
+<p><img alt="动态代码片段" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/wszgrcy/code-recycle@1.0.1/doc/zh-Hans/image/%E5%8A%A8%E6%80%81%E4%BB%A3%E7%A0%81%E7%89%87%E6%AE%B5.jpg" /></p>
+<h3>代码重构/升级/迁移</h3>
+<ul>
+<li>这部分工作量往往是很大,通常都是一些重复性劳动的修改,但是又很没有技术含量的一些机械性问题;只有很少情况下需要进行处理,但有时候因为大批量的重复性工作导致的操作失误排查也浪费了大量的时间;甚至有时候在修改到最后发现方案不可行,需要还原代码重新考虑新的方案</li>
+<li>本插件的自定义规则,简单的说就是<strong>语法查询=&gt;替换工具</strong>,只不过语法查询的准确度远远超过了普通的查询替换,正则的查询替换</li>
+<li>通过实现各种语言的<code>CSS 选择器查询</code>,允许通过同一种查询规范兼容不同语言,并自带<code>语法树调试工具</code>,保证查询符合预期</li>
+</ul>
+<h3>数据提取</h3>
+<ul>
+<li>当代码需要国际化时,需要将将部分字符串提取出来,集中翻译,然后再通过专门的国际化函数调用</li>
+<li>本插件可以通过<code>语法查询</code>先提取出指定数据,然后翻译完成后,再将指定数据替换到原来的字符串上,由于定位<code>选择器</code>不变,所以查找到的替换位置也是绑定的</li>
+</ul>
+<h2>特点</h2>
+<h3>便捷性</h3>
+<ul>
+<li>任何项目下都可以快速添加文件</li>
+<li>更方便的对文件进行裁剪</li>
+</ul>
+<h3>交互性</h3>
+<ul>
+<li>传入变量</li>
+<li>模板冲突解决</li>
+</ul>
+<h3>原子性</h3>
+<ul>
+<li>每个动作执行时都会在<strong>VFS</strong>中进行创建,只有所有操作完全成功后才会写到文件中</li>
+<li>演练模式,可以执行后将修改内容输出到控制台,调试完全正常后再修改模式写入到文件中</li>
+</ul>
+<h3>组合性</h3>
+<ul>
+<li>不同项目下的文件可以组合为一个动作</li>
+<li>动作可以引用其他动作</li>
+</ul>
+<h3>通用性</h3>
+<ul>
+<li>语言无关,框架无关,只要有对应语言的解析器,就可以进行使用自定义规则</li>
+</ul>
+<hr />
+<h2>支持</h2>
+<ul>
+<li>linux/windows/mac 支持</li>
+<li>vscode 支持</li>
+</ul>
+<blockquote>
+<p>如果需要适配其他 IDE 可以联系我</p>
+</blockquote>
+<h2>相关资源</h2>
+<ul>
+<li><a href="https://www.bilibili.com/video/BV1Nb4y1u7FP/" rel="nofollow">https://www.bilibili.com/video/BV1Nb4y1u7FP/</a> 介绍插件的视频</li>
+<li><a href="https://www.bilibili.com/video/BV1Vj411J7VZ/" rel="nofollow">https://www.bilibili.com/video/BV1Vj411J7VZ/</a> 插件的一些使用演示</li>
+<li><a href="https://github.com/wszgrcy/code-recycle/blob/main/doc/README.zh-Hans.md" rel="nofollow">插件中文说明</a></li>
+<li><a href="https://github.com/wszgrcy/code-recycle" rel="nofollow">https://github.com/wszgrcy/code-recycle</a> 目前保存 i18n 的仓库,也是未来开源的仓库</li>
+</ul>
+<h2>其他</h2>
+<h3>是否可以离线运行</h3>
+<ul>
+<li>当动作/代码片段第一次执行后,会进行本地缓存,之后的调用不会依赖服务器</li>
+<li>你可以强制刷新清理缓存</li>
+<li>未来会实现纯单机版实现</li>
+</ul>
+<h3>为什么目前不开源?</h3>
+<ul>
+<li>虽说当前本插件免费使用并且未来也不会对现有功能收费,但是最终还是想要使用这个插件进行盈利的,只不过目前不清楚如何盈利;如果有人有更好的想法也可以联系我</li>
+<li>目前大环境下的开源即自研令人害怕,所以在产生盈利之前不会有开源这个想法</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-11-18T08:17:25Z</pubDate>
+<pubDate>2023-11-18T08:17:25Z</pubDate>
+</item>
+<item>
+<title>[买买买] 黑五来了，大家没有要买的东西吗？</title>
+<link>https://www.v2ex.com/t/993071</link>
+<guid>https://www.v2ex.com/t/993071</guid>
+<content:encoded><![CDATA[
+
+顺便求推荐海淘公司，电子产品，含电池的，前年问过转运四方好像不行。
+]]></content:encoded>
+<pubDate>2023-11-18T08:11:37Z</pubDate>
+<pubDate>2023-11-18T08:09:37Z</pubDate>
+</item>
+<item>
+<title>[macOS] mac 平台有开源免费的复制黏贴插件推荐么？</title>
+<link>https://www.v2ex.com/t/993070</link>
+<guid>https://www.v2ex.com/t/993070</guid>
+<content:encoded><![CDATA[
+
+<p>大量的复制黏贴，有的时候是跳着复制黏贴，不停的跳着不能 app 之间复制，心也累死了。</p>
+<p>感谢推荐</p>
+]]></content:encoded>
+<pubDate>2023-11-18T08:03:15Z</pubDate>
+<pubDate>2023-11-18T08:03:15Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 去西安华为 od or 留在成都小公司 ？</title>
+<link>https://www.v2ex.com/t/993067</link>
+<guid>https://www.v2ex.com/t/993067</guid>
+<content:encoded><![CDATA[
+
+<h1>去西安华为 od or 留在成都小公司 ？</h1>
+<h2>背景</h2>
+<p>楼主出身农村，家境贫困（靠助学贷款上大学），父母年龄较大，女朋友现在在成都待业，21 届 211 本科计算机，毕业之后干了一段时间少儿编程老师/信息学竞赛教练，现在在一家成都的小公司，工作比较轻松，老板也不怎么压榨员工，比较好，但是感觉没什么实际的事，也没啥技术上的提升，然后就是薪资估计也很难有提升，还有就是，怕小公司不稳定，啥时候倒闭了都不知道。</p>
+<p>这份工作之前是干少儿编程的，后来裸辞，自学一段时间面过华为 od ，但是所有面试环节都过了（技术面加面了一次，因为有一轮技术面没有通过），最后合议的环节又被那个技术面面试官又投了反对，就没进。</p>
+<p>后来进了现在这家小公司，干了几个月，每天早九晚五已经很舒服了，之前那个华为的 hr 又问我要不要继续面试华为，我当时还拒绝了，但是前段时间又有人给我打电话约我面试华为的时候，我却又欣然接受了，中间只有短短两个月时间，没想到心态变化这么快。</p>
+<p>现在又已经走完面试流程，在走 offer 审批了，审批通过之后我不知道自己该不该放弃现在的安稳，去华为 od ，感觉自己又处在一个人生的十字路口，希望各位 v 友给我一些建议。</p>
+<p>下面简单列一下两个工作的对比点：</p>
+<h2>地点：</h2>
+<h3>成都（离老家 2.5 小时车程） vs 西安（离老家 6.5 个小时左右，高铁转其他交通工具）</h3>
+<p>这意味着在西安周末两天时间回家就很困难，并且回家成本高一些，我和女朋友两个人的话回家往返一次要花 1500 元左右，而成都回家骑摩托往返两个人才花 50 块钱油钱左右。所以如果去西安，由于假期可能会减少，回家时间又会增加，需要 3 天左右的假期才能回一次老家，并且考虑回家成本，可能回家次数会少一些，在成都基本 1-2 个月就回家一次，这里成都略胜一筹</p>
+<h3>成都禁摩 vs 西安不禁摩</h3>
+<p>这意味着在西安可以方便地骑摩托通勤，这里西安略胜一筹。我在成都每天通勤就要 2 小时，在西安，猜测过去跟女朋友租一个离公司近一点的房子，通勤时间会短一些，预计每天短 1 个小时。</p>
+<h2>工作时间</h2>
+<h3>成都小公司早九晚五中午休息一小时（在公司的时间每周 40 小时） vs 西安华为 od 早九晚六（ 3,5 ）+朝九晚九（ 1,2,4 ）中午都休息两小时（每周在公司时间 54 小时，这里西安的时间是我根据查到的资料算的，具体情况不一定准确，并且没有算月末周六的加班，因为那个另外算加班工资）</h3>
+<p>显然，工作时间来说，成都小公司每月 160 小时左右，西安华为 od216 小时，成都小公司大胜一筹，这应该是对标公务员的作息时间了。对了，成都的副业 2k 收入是占用每周下班之后的 3h 左右的时间，合计每月多工作 12 小时，那么成都每月工作 172 小时。</p>
+<h2>收入</h2>
+<h3>成都小公司税前 9k 但五险一金按 3k 缴纳+副业收入 2k （后期变多可能是 4k 或者 6k 甚至更多） vs 西安华为 od 税前 15k 五险一金按 12k 缴纳+加班收入+项目奖金之类的</h3>
+<p>成都到手大约 10k 出头，西安到手应该是 13k 出头。显然，这里西安华为 od 的收入确实要多一些，并且这还没有算副业收入，如果愿意牺牲周末时间，加上副业收入会更多。</p>
+<h2>工作内容&amp;&amp;技术提升&amp;&amp;工作稳定性</h2>
+<h3>成都小公司较少工作+技术提升很慢 vs 预计工作很多+或许技术提升快？</h3>
+<p>我在这家小公司干的活主要就是带学生用 Python 写一些小项目，没啥课上，这几个月基本算是在吃空饷（对，我我给同事私下聊天就说我自己是在吃空饷），所以技术提升很慢，这让我感到不安和焦虑，因为你没有给公司创造价值啊（有的老哥可能要喷我这是在自己 PUA 自己，但是我想说的是：公司不是慈善机构，作为拉磨的驴，要是拉不了磨，只能被杀掉吃肉，这就是现实。振振有词地大骂资本家，不如让自己变得有价值一点，让公司有“利用”你的点），就怕哪天公司发现我做的事情不是那么挣钱了，把这个岗位砍掉了，假设那个时候我已经 30 多了，要技术没技术，要精力没精力，那不是呜呼哀哉？！</p>
+<p>所以才想找个有技术含量的地方提升自己，我是这样考虑的，华为 od 和我这家小公司之间的关系似乎是：华为 od<strong>向下兼容</strong>现在的小公司的岗位。我将来有一天，要是因为 35 岁被华为毕业了，回来干我现在这个岗位的实力应该是绰绰有余？（这是我的推测，不知道准不准）</p>
+<p>至于去华为 od 的工作内容，我面的岗位是测试，部门是做 MetaERP 的，我专门去网上查阅了一些资料，知道整个 ERP 系统是为了应对美国的制裁才不得已而自研的，是公司的一个重要且基础的软件系统。所以，工作稳定性应该是没问题？我的意思是这个业务部门应该不容易被直接砍掉，另外就是工作内容是不是很多，我估计恐怕不少，如果有了解的老哥，烦请透露一点消息。</p>
+<h2>未来职业发展</h2>
+<h3>考教资进学校当信息技术老师带信息学竞赛 vs 自己创业做少儿编程/信息学竞赛培训 vs 在成都小公司一直干（估计很难，我都怕小公司倒闭了） vs 进华为 od 做测试然后转华为自研然后一直在华为干</h3>
+<p>之前有带学生打 csp-j/s （原 NOIP 普及组/提高组）的经历，算法水平一般（相比 ACM 牌佬），但还能继续提高。成都的信息学竞赛应该是西南地区发展得最好的地方了，如果专心搞信息学竞赛，在整个西南应该只能选择成都。然后就是考高中的信息学教师资格证，我觉得应该能考下来，但是我知道考了教资跟进学校还有距离，进了学校还得分是有编制还是合同工，而且现在出生率一直降，后续当老师这条路是不是稳定也说不清楚（稳定、相对比较闲几乎是老师的为数不多的优势）。如果进了学校，能稳定下来，再接私活培训学生，至少从生源上来说，应该就会比较容易，如果规模能大一些，也不失为一个挣钱的路子（不过打信息学竞赛的学生规模，想来不会很大，应该是远远比不上学科培训）。</p>
+<p>自己创业是一直以来的一个梦想，我明白像我这种没有家庭背景的人来说，想真正财富自由，似乎只有创业且成功这一条可行的路，不过这条路我也知道，是九死一生。想法是，先在成都小公司做着，搞副业带学生打竞赛，带出成绩，逐步扩大规模（开工作室之类的），如果规模足够大了，就离职开公司创业做少儿编程/信息学竞赛。这样的好处在于：前期投入不会很大，如果路走不通，试错成本不高。</p>
+<p>呆在这个小公司，一直干下去，期望小公司能干成大公司，我能跟着喝点汤。这个方案的好处在于，现在包括未来的工作内容似乎都不会很困难，对我来说应该是一个轻松的活。坏处在于，你不知道公司能不能成长到那一天，如果一直不温不火，那就得一直挣这点钱，万一情况更加糟糕，可能还得失业。而且这个公司的社保和公积金交得是真少。</p>
+<p>进华为 od 干，吃点苦，受点累，争取转正式员工，然后一路努力地打怪升级，提升自己的收入。这个选择的好处在于，工作岗位稳定，不会因为公司层面的问题岗位消失（但可能因为个人层面的问题，比如自己受不了这工作强度），工资比较高。坏处在于，工作强度会比较高，而且怕工作压力大，我的身体已经有点小问题了（有个胆结石和轻微的肾结石），怕扛不住华为的工作强度，钱没挣多少反而把身体搞坏了。</p>
+<p>上面三个选择，都暂时不用挪窝，就在这继续干着就行，同时自己做相关的准备。最后一个选择，需要我处理现阶段就要多处理一些事情，退房子（损失一个月押金 1200 ），离职（公司之前批给我一个经费可能要还回去 1000 ），去西安找房子等等。</p>
+<p>总之呢，我现在的眼界，能想到的点也就是这些，说实话自己也有点纠结，因为这个 offer 工资确实涨了，但是工作时间、工作压力也确确实实都涨了（我之前干少儿编程的时候，一个月多的时候也能拿税后 15k ，那个时候感觉也不是很累，平均下来一个月税后 11k 左右，但五险一金也是按 3k 交），我估计华为 od 的活，恐怕比之前干少儿编程的时候要累些。</p>
+<p>絮絮叨叨说了一堆，自己也分析不清楚哪个好哪个坏了，希望各位 v 友站在旁观者的角度给出一些建议，谢谢~</p>
+]]></content:encoded>
+<pubDate>2023-11-18T07:54:31Z</pubDate>
+<pubDate>2023-11-18T08:15:43Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有和我一样听到 vivo 手机的铃声就觉得心慌的吗？</title>
+<link>https://www.v2ex.com/t/993066</link>
+<guid>https://www.v2ex.com/t/993066</guid>
+<content:encoded><![CDATA[
+
+有和我一样听到 vivo 手机的铃声就觉得心慌的吗？登等登灯 ，那四声。 像是系统提示音，或者短信声音。 <br /><br />每次听到，整个人就像抓狂。
+]]></content:encoded>
+<pubDate>2023-11-18T07:46:58Z</pubDate>
+<pubDate>2023-11-18T07:53:44Z</pubDate>
+</item>
+<item>
+<title>[Google] WSA 内 Magisk 内安装 LSPosed，重启后 LSPosed 模块消失的傻瓜解决办法</title>
+<link>https://www.v2ex.com/t/993065</link>
+<guid>https://www.v2ex.com/t/993065</guid>
+<content:encoded><![CDATA[
+
+<p><strong>一个比较傻瓜式的解决方案</strong></p>
+<ol>
+<li>完全卸载 2309 之后版本的 WSA</li>
+<li>寻找旧版 WSA （比如 2301 、2304 ）安装</li>
+<li>将 LSPosed 模块安装并更新到最新版</li>
+<li>旧版本上并不会出现 LSPosed 模块在重启后消失的问题。</li>
+<li>重新安装（升级到） 2309 之后的版本</li>
+<li>仍旧不会出现模块重启后消失的问题，问题解决。</li>
+</ol>
+<p>优点：比起<a href="https://github.com/MustardChef/WSABuilds/issues/154" rel="nofollow">issues</a>里的操作步骤，这个解决方案没操作难度，成功率很高。</p>
+<p>缺点：需要卸载现有的 WSA ，WSA 的备份恢复还是比较容易出错的，要做好变全新安装的准备。issues 内的方案不需要重装。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T07:44:32Z</pubDate>
+<pubDate>2023-11-18T07:44:32Z</pubDate>
+</item>
+<item>
+<title>[求职] [2 年半][前端][空窗 1 月半] 寻求职业发展指导</title>
+<link>https://www.v2ex.com/t/993064</link>
+<guid>https://www.v2ex.com/t/993064</guid>
+<content:encoded><![CDATA[
+
+<p>简历链接</p>
+<ul>
+<li><a href="http://www.brownant.top/vue.pdf" rel="nofollow">http://www.brownant.top/vue.pdf</a></li>
+</ul>
+<p>自述</p>
+<ul>
+<li>技能方面定位初级菜鸟，只是经手项目多了，业务性经验相对成熟些。</li>
+<li>准备简历半个月，Boss 投递接机一个月。面试自研挂两次，一次挂在 Web 性能内容，一次挂在年限不够。外包类型
+找过来十余次。</li>
+<li>因为上家项目内容也是在自研产品上做定制业务外包，其实算是项目外包。所以我对外包无排斥，只是觉得能够进步的空间和机会太少。</li>
+<li>另外我尝试先投 Boss ，发现杭州初创公司、小公司，基本都是不回的，送达状态偏多。而且一上脉脉、论坛就是各种前端在求职，前端已死言论。我虽然觉得前端有意思，但是这个现象让我不是很自信是否有必要继续下去。</li>
+</ul>
+<p>问题</p>
+<ol>
+<li>是否坚持找自研，有没有必要外包过度下？</li>
+<li>长期发展的话，是否有必要，换个方向比如 Java ？之前有 Java 的底子，只是项目实际经验少。</li>
+<li>关于简历方面，是不是有值得改进的内容？</li>
+</ol>
+<p>多谢各位帅哥美女解答疑惑</p>
+]]></content:encoded>
+<pubDate>2023-11-18T07:41:34Z</pubDate>
+<pubDate>2023-11-18T08:10:08Z</pubDate>
+</item>
+<item>
+<title>[程序员] 关于 github action 的 debugger</title>
+<link>https://www.v2ex.com/t/993063</link>
+<guid>https://www.v2ex.com/t/993063</guid>
+<content:encoded><![CDATA[
+
+你们有操作过 github action 的 debugger 吗？就是我想本地 debug 一遍然后再 push 上去，现在每次 push 上去编译，如果稍有差池就会全部 failed ，有实现过的大佬吗？或者说其他方案可以解决这个问题吗？我都不知道怎么去 debugger 他才能保证 github 上 action 万无一失，难搞哦。
+]]></content:encoded>
+<pubDate>2023-11-18T07:35:33Z</pubDate>
+<pubDate>2023-11-18T07:55:12Z</pubDate>
+</item>
+<item>
+<title>[macOS] NAS docker 安装 clash，其它设备正常但 Mac 无法上网</title>
+<link>https://www.v2ex.com/t/993062</link>
+<guid>https://www.v2ex.com/t/993062</guid>
+<content:encoded><![CDATA[
+
+<p>RT</p>
+<p>在群晖的 docker 当中运行了 clash 服务
+局域网当中的 windows 设备、iPhone 都可以通过配置代理的方式上外网。</p>
+<p>但局域网中的 MacBook pro ，无论设置 http 代理，https 代理或者 sock 代理，都没法上外网。
+请问可能是什么问题？或者可以怎么排除问题？</p>
+<p>谢谢</p>
+]]></content:encoded>
+<pubDate>2023-11-18T07:34:03Z</pubDate>
+<pubDate>2023-11-18T07:34:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 阿里云盘又挂了吗</title>
+<link>https://www.v2ex.com/t/993060</link>
+<guid>https://www.v2ex.com/t/993060</guid>
+<content:encoded><![CDATA[
+
+阿里云盘又挂了吗，坐标河北
+]]></content:encoded>
+<pubDate>2023-11-18T07:10:17Z</pubDate>
+<pubDate>2023-11-18T07:10:17Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 原神 osasiadispatch 域名被墙了？</title>
+<link>https://www.v2ex.com/t/993059</link>
+<guid>https://www.v2ex.com/t/993059</guid>
+<content:encoded><![CDATA[
+
+<p><a href="http://osasiadispatch.yuanshen.com" rel="nofollow">osasiadispatch.yuanshen.com</a> 疑似被 SNI 阻断，可能导致中国用户尝试连接 Asia 服务器时收到 4206 错误。</p>
+<p>大概是自 15 日左右开始的问题，哔哩哔哩上可以搜索到国内用户反馈。</p>
+<p><a href="http://osasiadispatch.yuanshen.com" rel="nofollow">osasiadispatch.yuanshen.com</a> 的 IP 解析是 Cloudflare ，正常访问返回 {"retcode":"-1", "msg":"system error"}，国内网络访问被 Reset 或超时。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T07:08:23Z</pubDate>
+<pubDate>2023-11-18T08:04:06Z</pubDate>
+</item>
+<item>
+<title>[音乐] 说说您最喜欢的古典音乐？</title>
+<link>https://www.v2ex.com/t/993057</link>
+<guid>https://www.v2ex.com/t/993057</guid>
+<content:encoded><![CDATA[
+
+<p>最近比较喜欢听古典音乐，求推荐！</p>
+]]></content:encoded>
+<pubDate>2023-11-18T06:56:04Z</pubDate>
+<pubDate>2023-11-18T07:39:58Z</pubDate>
+</item>
+<item>
+<title>[Surge] mac Surge 取消不掉系统代理的 bug 有人遇到吗？</title>
+<link>https://www.v2ex.com/t/993054</link>
+<guid>https://www.v2ex.com/t/993054</guid>
+<content:encoded><![CDATA[
+
+重启系统才能恢复，重启 Surge 不行。
+]]></content:encoded>
+<pubDate>2023-11-18T06:43:12Z</pubDate>
+<pubDate>2023-11-18T06:42:12Z</pubDate>
+</item>
+<item>
+<title>[汽车] 汽车轮胎只换一个，可以吗？不同品牌的，但规格一样</title>
+<link>https://www.v2ex.com/t/993053</link>
+<guid>https://www.v2ex.com/t/993053</guid>
+<content:encoded><![CDATA[
+
+我的 4 个轮胎是 21 年产的，韩泰 225/45R19 <br />现在左前轮出现一道裂痕，需要换，可以只换一个吗？换其他品牌的 225/45R19 可以吗？急需用车，韩泰没货，所以放弃韩泰来。<br />就单单在实际使用中会有很大影响吗？<br /><br />不考虑车检是否通过
+]]></content:encoded>
+<pubDate>2023-11-18T06:41:07Z</pubDate>
+<pubDate>2023-11-18T07:58:26Z</pubDate>
+</item>
+<item>
+<title>[Apple] Apple Watch 卡了一条命令，要信任此电脑吗</title>
+<link>https://www.v2ex.com/t/993052</link>
+<guid>https://www.v2ex.com/t/993052</guid>
+<content:encoded><![CDATA[
+
+<p>有一次 iPad 连 Mac 需要授信，授信操作在手机上完成了，回头一看手表，授信提醒还在。</p>
+<p>从那之后，手表每天弹出授信提醒：要信任此电脑吗...不管点信任还是不信任，第二天照弹不误。</p>
+<p>手表全部抹除还原，问题没有解决，该提醒还是提醒。</p>
+<p>看到方法说要还原手机的网络设置，但我不确定有没有用，过来问问各位有没有解决经验和思路。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T06:39:35Z</pubDate>
+<pubDate>2023-11-18T06:39:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 老生常谈，在写这种代码给这些字段命名的时候是真的难受</title>
+<link>https://www.v2ex.com/t/993051</link>
+<guid>https://www.v2ex.com/t/993051</guid>
+<content:encoded><![CDATA[
+
+<p>如下图，真的是瞎起的，一些词汇比如编制，真的感觉懂英文的都很难找到贴切的词语，索性拼音英文混搭了，别笑，大家在遇到这种情况的时候</p>
+<p>都是怎么给这些字段命名的呢？</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/oKd9zIr.png" /></p>
+]]></content:encoded>
+<pubDate>2023-11-18T06:35:55Z</pubDate>
+<pubDate>2023-11-18T07:50:51Z</pubDate>
+</item>
+<item>
+<title>[Python] 预训练模型在预训练时操作是如何做的？</title>
+<link>https://www.v2ex.com/t/993050</link>
+<guid>https://www.v2ex.com/t/993050</guid>
+<content:encoded><![CDATA[
+
+<p>有脱敏数据需要单独训练，无法使用网上开源的预训练参数。</p>
+<p>查了半天，感觉网上讲设计的很多，讲 finetune 的也不少，唯独没有讲预训练的。毕竟 bert 是 18 年出的，现在过了这么多年了我感觉其实算力方面的限制是还好，只要自己有资料，也没有说非得大中科研机构才能搞预训练吧。</p>
+<p>比如我一直疑惑一个典型问题，如果我像 bert 原始论文那样用两个任务预训练一个模型，那所谓的预训练就是先训练 A 任务至收敛然后再训练 B 任务至收敛？还是交叉每个任务训练一个 batch 这样？</p>
+<p>如果预训练是这样，那训练任务的顺序感觉会对最终得点有影响，最起码会对收敛速度有影响吧，不过英文搜了半天也没搜到啥相关文章，可能还是想的不对？</p>
+<p>还有一个问题是参数，看到有 paper 是把 NLP 模型的参数直接拿过来给生物领域的模型做初始化。这个有啥相关研究么，没啥关系的东西怎么能万事万物皆准？</p>
+]]></content:encoded>
+<pubDate>2023-11-18T06:32:17Z</pubDate>
+<pubDate>2023-11-18T08:01:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] [离谱] 今年惠荷保为什么不去抢钱， 提醒大家小心当地的惠民保</title>
+<link>https://www.v2ex.com/t/993049</link>
+<guid>https://www.v2ex.com/t/993049</guid>
+<content:encoded><![CDATA[
+
+惠菏保 2023 版: 医保报销后， 大于 1.5w 的费用，保销 80%<br />惠菏保 2024 版: 医保报销后, 1.5w~5w 保险 20%, 5w~10w 报销 40%<br /><br />惠荷保是菏泽的, 我一直在给父母买, 刚才续费的最后一刹那看到报销比例的变化.<br />说一个真实案例: 一朋友买的 2023 版, 总花费 5W, 医保报销后 3w, [报销又细分了医保内医保外], 总共才报销了 3k, 心理在安慰自己至少倾家荡产的大病能有用<br /><br />惠民保本身就是总花费 10w+才能起作用(报销 2w+)的保险, 具体可以去网上搜对惠民保的分析, 能花到 10w 的病的已经是很大的病了<br />但按照 2024 版的惠菏保, 20w 以下的病都帮不上什么忙了, 20w 的病已经要考虑有没有必要治了<br /><br />以上数字都是粗略的, 请海涵, 关心保险的人懂我说的意思<br /><br /><br />懂得朋友, 还可以给推荐一下别的保险, 感谢<br /><br /><br />另外, <br />济南的齐鲁保也有相应变化, 但能接受, 1.4w~1.7w 报销 10%, 1.7w+报销 80%
+]]></content:encoded>
+<pubDate>2023-11-18T06:31:55Z</pubDate>
+<pubDate>2023-11-18T08:19:21Z</pubDate>
+</item>
+<item>
+<title>[程序员] 互联网服务的数据库设计有无最佳范式？</title>
+<link>https://www.v2ex.com/t/993048</link>
+<guid>https://www.v2ex.com/t/993048</guid>
+<content:encoded><![CDATA[
+
+比如一个互联网应用，比如 V2EX ，知乎，stackoverflow 这种网站，需要的功能是类似的，而且数据主要是文本数据。<br /><br />这个时候，应该用哪些数据库，数据库中用什么表，或者什么结构，每个表里面应该有哪些些字段，在互联网已经发展了这么多年的情况下，是不是应该有一个最优的系统设计，对于文本内容为主的论坛类网站（比如 V2EX ，知乎，贴吧等）能够满足使用尽量少的硬件资源，并且性能出色可拓展性好<br /><br />这种问题比较偏工程吧，找了一圈也没找到相关内容，请教一下 v 站的大佬们
+]]></content:encoded>
+<pubDate>2023-11-18T06:23:34Z</pubDate>
+<pubDate>2023-11-18T07:48:08Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 公司悄咪咪的开始实行按加班时间排名扣工资，老哥们有没有什么应对之法？</title>
+<link>https://www.v2ex.com/t/993047</link>
+<guid>https://www.v2ex.com/t/993047</guid>
+<content:encoded><![CDATA[
+
+公司悄悄的开始实行按加班工时算 kpi ，加班时间排名最后的百分之二十的人扣百分之十的绩效工资；<br />这个合法吗？<br />基于现在的行情，老哥们有没有什么应对之法？
+]]></content:encoded>
+<pubDate>2023-11-18T06:22:39Z</pubDate>
+<pubDate>2023-11-18T08:11:53Z</pubDate>
+</item>
+<item>
+<title>[重庆] 重庆联通办理视频彩铃➕市面上看得到的 vip</title>
+<link>https://www.v2ex.com/t/993046</link>
+<guid>https://www.v2ex.com/t/993046</guid>
+<content:encoded><![CDATA[
+
+<p>26 一个，可以次月取消
+重庆联通啥子号码都可以 副卡都可以，
+方式：号码+验证
+小屏会员每月领取
+一年有效期
+领取链接：
+[沃音乐] 您已获得视频彩铃标准版会员，请使用开通视频彩铃业务的手机号点击：<a href="http://t.10155.com/pAv" rel="nofollow">t.10155.com/pAv</a> 登录即可设置视频彩铃及领取本月特权！</p>
+]]></content:encoded>
+<pubDate>2023-11-18T06:22:28Z</pubDate>
+<pubDate>2023-11-18T06:30:51Z</pubDate>
+</item>
+<item>
+<title>业余做的文本大模型训练 Saas 上线</title>
+<link>https://www.v2ex.com/t/991811</link>
+<guid>https://www.v2ex.com/t/991811</guid>
+<content:encoded><![CDATA[
+
+<p>众所周知，openai 太强了，以至于现在谈 AI 基本就等同于谈 chatGPT 或 GPT4 ，但是呢，我个人的感情很复杂，一方面我是 chatGPT 的重度用户，也很喜欢 openai ，但是，我依然不希望看到未来是一个只有 openai 的世界</p>
+<p>在几个月前我曾经用 chatglm-6b 训练过我自己的数字克隆： <a href="https://v2ex.com/t/931521#reply161" rel="nofollow">https://v2ex.com/t/931521#reply161</a></p>
+<p>此后的开源模型开始井喷，但其质量和 GPT 的差距依然巨大，我开始琢磨，能否通过微调的方式来增加开源通用大模型在某些垂直领域的表现，在尝试的过程中，我意识到，如果不降低训练的门槛，那这个可能性微乎其微，然后我和几个朋友就开始以兼职，远程，业余时间的方式完成了这个低门槛进行文本大模型训练微调的 Saas</p>
+<p>这就是模迪手： <a href="https://www.modihand.com" rel="nofollow">https://www.modihand.com</a> (好的我也是硅谷的粉丝，我心头的美剧前三</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/0u0Xyede.png" /></p>
+<p>因为这是 V2EX ，所以我想我应该不用再详细说明训练和 embedding 的区别，虽然有很多人说「训练」的时候其实是在说 embedding 和 prompt 工程，但两者本质上就是完全不同的。训练改变了模型的参数，而 embedding 没有，只是从知识库匹配一段文本放到 prompt 里一起给模型。</p>
+<p>模迪手简单易用，只需要准备好数据集，在网页上点点点，然后就可以训练了，训练完成后的模型，可以在线调用，也可以直接导出模型文件。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/CsrkE8oH.png" /></p>
+<p>它的一些特点包括：</p>
+<ul>
+<li>几乎无门槛实现文本模型训练</li>
+<li>支持多种预置基底模型</li>
+<li>无需担心算力，环境部署等问题</li>
+<li>模型可代部署，支持 API 接口</li>
+<li>所有模型均提供完整的导出(可部署在自己的 PC 或显卡服务器上)</li>
+</ul>
+<p>当然目前也存在一些问题：</p>
+<ul>
+<li>国内访问较慢</li>
+<li>部分超参数不支持控制</li>
+<li>很多基底模型还没有支持</li>
+<li>文档完善度 60%</li>
+<li>定价策略比较粗糙</li>
+</ul>
+<p>考虑到现在 openai 的强大，这个拥抱开源大模型的项目其实前景很不确定，但我觉得它至少帮我解决了很多问题，我也觉得需要有这么一个东西（我还没有看到类似的）</p>
+<p>如果大家有有趣的想法或者有意思的数据集，可以评论或直接通过<a href="https://maoxianqiu.feishu.cn/share/base/form/shrcnPCWSjmh1RQqYEHqII6nZob" rel="nofollow">这个表单</a>填写一下，我们可以提供模迪手的免费算力，让你能够训练出来玩玩看（我之前的一个不算太成功的例子： <a href="https://v2ex.com/t/945834#reply18" rel="nofollow">https://v2ex.com/t/945834#reply18</a></p>
+<p>模迪手： <a href="https://www.modihand.com/" rel="nofollow">https://www.modihand.com/</a></p>
+]]></content:encoded>
+<pubDate>2023-11-14T06:30:25Z</pubDate>
+<pubDate>2023-11-15T06:04:37Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] ubuntu22 远程桌面鼠标只能在屏幕左上四分之一移动，求助</title>
 <link>https://www.v2ex.com/t/993045</link>
 <guid>https://www.v2ex.com/t/993045</guid>
 <content:encoded><![CDATA[
-
 在 ios 手机端 RD clinet 看到鼠标是可以全屏移动的，但是实际上在本机显示器上观察只能在屏幕左上四分之一移动（ 2160P 200%缩放），尝试过设置到到 1080P 100%缩放，本机显示器上观察鼠标移动范围有所扩大，但是鼠标仍然有右下的一段区域触碰不到，这是什么问题导致的有大佬知道吗？
 ]]></content:encoded>
-<pubDate>2023-11-18T06:15:21Z</pubDate>
 <pubDate>2023-11-14T06:15:21Z</pubDate>
 </item>
 <item>
@@ -20,7 +496,6 @@
 <link>https://www.v2ex.com/t/993044</link>
 <guid>https://www.v2ex.com/t/993044</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，我们是 CodeGen 工具箱开发团队。（若干礼品卡在文末，感兴趣可直接跳过主文）</p>
 <p>说来话长，其实我们一直都希望能注册到 <a href="http://codegen.com" rel="nofollow">codegen.com</a> ，  但奈何我们手头里只有  <a href="http://codegen.cc" rel="nofollow">codegen.cc</a>  ，经过这一年来的开发和推广，发现 cc 域名是收录是真的不行，而且很多用户其实只认可 com 域名的。</p>
 <p>所以我们一直在观察 <a href="http://codegen.com" rel="nofollow">codegen.com</a> 啥时候到期，其实也就是 11 月 15 日这天能到期能注册到，可是未曾想它是如此的受欢迎，到了那天发现没办法注册到，打开这个网站一看，好家伙，已经被一家叫 CodeGen 的公司抢注了。。。。 我打开 <a href="http://codegen.com" rel="nofollow">codegen.com</a> 一看连官网和软件都做好了，具体如下图：</p>
@@ -51,7 +526,6 @@ A89284F047014<br />
 <p><img alt="https://github.com/work7z/LafTools/raw/dev/dev-source/img-preview.png?raw=true" class="embedded_image" rel="noreferrer" src="https://github.com/work7z/LafTools/raw/dev/dev-source/img-preview.png?raw=true" /></p>
 <p>最后，对于完全开源和付费服务，我们认为是不冲突的，我们需要一些收入来平衡服务器+付费 API 的成本，我们相信时间会证明一切，好产品值得您的帮助，我们也会继续努力哒</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T06:08:57Z</pubDate>
 <pubDate>2023-11-18T06:18:25Z</pubDate>
 </item>
 <item>
@@ -59,10 +533,8 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993043</link>
 <guid>https://www.v2ex.com/t/993043</guid>
 <content:encoded><![CDATA[
-
 本人情况：<br />本科 211 ，硕 985 ，都是南方某地的计算机专业的，算是南方人。家人的情况不太需要考虑，家里不富裕不能让我当富二代，但是也基本不需要我供养，看我自己做决定就好，并且几乎可以不考虑结婚的问题。性格比较内向，但是不喜欢呆在房间里，喜欢自己出门走走。爱好方面：NAS/数码玩家、钓鱼佬（现在还只是眼馋）、骑车闲逛、健身（开始了不到半年就没坚持下去了，希望恢复）。<br /><br />城市印象：<br />上海：比较喜欢上海这个城市，感觉文明、年轻，气候好（不过没去过，哈哈）。印象中上海应该是全国最社会发展意义上“文明”的城市，比如行政之类的比较有规矩吧（但也许我的认识不对）。如果去上海，我应该会住虹桥机场附近，看起来还算市区。<br /><br />北京：之前暑期实习在北京飞猪待了几个月，北京的气候有点不喜欢，工作日还不错，周末的空气质量有点差。景点挺多的，那段时间基本两周和朋友出去逛一次，有时候连续周末逛，我还没逛完。北京的城市化率感觉要差一点，在北京望京房子很贵，估计快要住到五环外了，挺偏僻的。我想去大城市不就是为了过好生活嘛，所以想到住城乡结合部感觉就难受。<br /><br />工作岗位：都是后端开发 java 岗。<br /><br />北京飞猪：岗位是机票业务的核心业务岗位，工作时间大概是 10:00-9:30/10:00-5 天，特殊情况周末加班（比如营销活动、线上紧急状况）。自己查了地图和租房信息，通勤时间估计需要 40-50 分钟吧。<br /><br />上海携程：只能确定是酒店部门，入职后试用期 4 个月，其中先培训一个月，然后确定岗位，继续试用 3 个月。口头说的是 10:00-8:00-5 天，但是网上好像说酒店部门比较卷，10:00-10:00-5 天，也不考虑什么居家办公的事情了，开发岗居家办公不太现实。根据地图和租房信息，通勤时间 30 分钟左右吧。<br /><br />薪资待遇：两家应该给的差不多，携程有可能会比飞猪低 1k 吧，还不太确定。携程除了每个出勤日有 20 的补贴，好像没别的了。飞猪的福利待遇要好一点，食堂可以说是免费（我吃不完餐券和餐补的额度），北京的五险一金也更高 12%（上海 7%）。<br /><br />城市政策吸引力：北京可以说是没有政策吸引。上海可以直接落户，落户之后应该可以申请租房补贴、公租房之类的吧。<br /><br />我原来听说携程有 WLB ，所以很想去，后来又看到酒店部门卷就感觉 WLB 不靠谱。问了身边一些人，不少人认为北京飞猪有阿里大厂背景更好点，就改变想法了。然而一想到北京和上海的城市生活，又觉得北京生活会不开心。<br /><br />其实还是不能确定自己的想法，希望多收集一些看法和信息。
 ]]></content:encoded>
-<pubDate>2023-11-18T06:00:50Z</pubDate>
 <pubDate>2023-11-18T06:21:47Z</pubDate>
 </item>
 <item>
@@ -70,10 +542,8 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993042</link>
 <guid>https://www.v2ex.com/t/993042</guid>
 <content:encoded><![CDATA[
-
 远程岗位：<br />前端和 Java ，薪资区间 2500-4200$<br /><br />联系方式：<br />telegram：@hanmeimei2022
 ]]></content:encoded>
-<pubDate>2023-11-18T05:49:10Z</pubDate>
 <pubDate>2023-11-18T01:49:10Z</pubDate>
 </item>
 <item>
@@ -81,11 +551,9 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993041</link>
 <guid>https://www.v2ex.com/t/993041</guid>
 <content:encoded><![CDATA[
-
 <p>有 V 友能把这个 PPT 下载下来么？
 <a href="https://yx.ruijie.com.cn/yx/tb/gs/preview/16094" rel="nofollow">https://yx.ruijie.com.cn/yx/tb/gs/preview/16094</a></p>
 ]]></content:encoded>
-<pubDate>2023-11-18T05:37:46Z</pubDate>
 <pubDate>2023-11-18T05:48:49Z</pubDate>
 </item>
 <item>
@@ -93,14 +561,12 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993040</link>
 <guid>https://www.v2ex.com/t/993040</guid>
 <content:encoded><![CDATA[
-
 <p>希望能满足这样的要求：</p>
 <ol>
 <li>只需要图片查看功能即可，启动后是一个独立的窗口，类似 QQ 、微信的图片查看器</li>
 <li>支持类似 Chrome 浏览器触摸板手势的缩放和移动</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2023-11-18T05:31:10Z</pubDate>
 <pubDate>2023-11-18T06:21:27Z</pubDate>
 </item>
 <item>
@@ -108,10 +574,8 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993037</link>
 <guid>https://www.v2ex.com/t/993037</guid>
 <content:encoded><![CDATA[
-
 <p>迫于最近有点冷，看了一个山东的二手车，想着自己住五环外，上班也是五环外，可不可以把 12 次进京证消耗完后过户给媳妇，然后无限进京证~~~，就是不知道过户一次成本多少</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T05:14:16Z</pubDate>
 <pubDate>2023-11-18T05:15:29Z</pubDate>
 </item>
 <item>
@@ -119,11 +583,9 @@ A89284F047014<br />
 <link>https://www.v2ex.com/t/993034</link>
 <guid>https://www.v2ex.com/t/993034</guid>
 <content:encoded><![CDATA[
-
 <p>Surge5 Mac 版 发新车，120/位 4 坑
 TG:QHhfYWxleF9saXZl</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T05:08:46Z</pubDate>
 <pubDate>2023-11-18T05:08:46Z</pubDate>
 </item>
 <item>
@@ -131,7 +593,6 @@ TG:QHhfYWxleF9saXZl</p>
 <link>https://www.v2ex.com/t/993033</link>
 <guid>https://www.v2ex.com/t/993033</guid>
 <content:encoded><![CDATA[
-
 <p>在当今数字化时代，谷歌 SEO 工具对于网站的可见性和业务成功至关重要。为了帮助您打造高效的营销策略，我们整理了排名前十的谷歌 SEO 工具推荐，涵盖关键词分析、内容主题挖掘、竞争对手分析等方面。从 Niche Finder 、Keysearch 到 Ahrefs 和 Semrush ，这些工具将帮助您优化网站，提升搜索流量，使您的品牌在激烈的网络竞争中脱颖而出。让我们一起深入了解这些强大的 SEO 工具，为您的在线业务带来更大的成功。</p>
 <p>一、Niche Finder 关键词分析工具
 Niche Finder 关键词分析工具介绍</p>
@@ -178,7 +639,6 @@ simpletiger 工具介绍</p>
 <p>官网： <a href="https://topicranker.com/" rel="nofollow">https://topicranker.com/</a></p>
 <p>综合利用这些谷歌 SEO 工具，您将能够更全面地了解您的网站在搜索引擎中的表现，并采取有针对性的措施来提升其可见性。无论您是一名博主、企业家还是营销专业人员，这些工具都为您提供了深入洞察竞争对手、精准定位关键词、优化内容等方面的机会。通过精心规划和执行 SEO 策略，您将能够建立一个强大的在线存在，为您的目标受众提供有价值的内容，进而实现业务的长期成功。不要忽视谷歌 SEO 工具的力量，让它们成为您数字营销策略中的得力助手，引领您的品牌走向更广阔的网络世界。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T05:05:05Z</pubDate>
 <pubDate>2023-11-18T01:05:05Z</pubDate>
 </item>
 <item>
@@ -186,10 +646,8 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993030</link>
 <guid>https://www.v2ex.com/t/993030</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/11/18/2EtLsqR8bACJYjx.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:51:46Z</pubDate>
 <pubDate>2023-11-18T05:07:30Z</pubDate>
 </item>
 <item>
@@ -197,10 +655,8 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993029</link>
 <guid>https://www.v2ex.com/t/993029</guid>
 <content:encoded><![CDATA[
-
 网上搜有说有分身软件的，但是没看到周边有人在用的，有大佬现在在 iphone 上开 2 个微信吗，怎么开没啥风险？
 ]]></content:encoded>
-<pubDate>2023-11-18T04:48:29Z</pubDate>
 <pubDate>2023-11-18T06:12:27Z</pubDate>
 </item>
 <item>
@@ -208,7 +664,6 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993028</link>
 <guid>https://www.v2ex.com/t/993028</guid>
 <content:encoded><![CDATA[
-
 <p>intel 机打算抛了，换个 M 芯片的。</p>
 <p>目前的需求一般是开发为主，平时会跑些 docker 之类的。</p>
 <p>看了下：</p>
@@ -220,7 +675,6 @@ simpletiger 工具介绍</p>
 <p>各位对上面的几个有什么推荐吗，或者还有什么其他推荐。M1 Pro tb 上找不到 32g 配置的。</p>
 <p>话说目前旧机是走官方 trade in 划算吗，爱回收线下靠谱吗。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:46:56Z</pubDate>
 <pubDate>2023-11-18T01:46:56Z</pubDate>
 </item>
 <item>
@@ -229,9 +683,7 @@ simpletiger 工具介绍</p>
 <guid>https://www.v2ex.com/t/993027</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-18T04:45:57Z</pubDate>
 <pubDate>2023-11-18T00:45:57Z</pubDate>
 </item>
 <item>
@@ -239,10 +691,8 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993026</link>
 <guid>https://www.v2ex.com/t/993026</guid>
 <content:encoded><![CDATA[
-
 您好, <br /><br />在 2023 年 7 月 28 日，我们宣布一项针对公有 IPv4 地址的新收费 [1] ，该费用将于 2024 年 2 月 1 日起生效。<br />有关您当前使用情况的详细信息，您可以查看 AWS 成本和使用率报告。 要监控、分析和审计您对公有 IPv4 地址的使用情况，可以查看《 Public IP Insights 》[2]。<br /><br />您也可以阅读我们的博客文章《识别和优化 AWS 上的公有 IPv4 地址使用情况》[3]，了解如何优化公有 IPv4 地址的使用。<br /><br />有关公有 IPv4 地址定价的更多详细信息，请参阅 VPC 定价页面 [4]。<br /><br />如果您有任何问题，请联系 AWS Support 团队 [5]。<br /><br />[1] <a href="https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/</a><br />[2] <a href="https://aws.amazon.com/about-aws/whats-new/2023/07/aws-public-ip-insights-vpc-ip-address-manager/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/about-aws/whats-new/2023/07/aws-public-ip-insights-vpc-ip-address-manager/</a><br />[3] <a href="https://aws.amazon.com/blogs/networking-and-content-delivery/identify-and-optimize-public-ipv4-address-usage-on-aws/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/blogs/networking-and-content-delivery/identify-and-optimize-public-ipv4-address-usage-on-aws/</a><br />[4] <a href="https://aws.amazon.com/vpc/pricing/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/vpc/pricing/</a><br />[5] <a href="https://aws.amazon.com/support" rel="nofollow noopener" target="_blank">https://aws.amazon.com/support</a><br /><br />您好，<br /><br />您收到此通知是因為您的 AWS 帳戶在過去 30 天內至少使用了一個的公用 IPv4 地址。<br /><br />在 2023 年 7 月 28 日，我們宣布對公共 IPv4 地址收取一項新費用 [1] ，該費用將於 2024 年 2 月 1 日起生效。<br />如需用量的詳細資訊，請參閱 AWS 成本和用量報告。 若要監控、分析和稽核您對公用 IPv4 位址的使用情況，您可以查看《 Public IP Insights 》 [2]。<br /><br />您也可以閱讀我們的部落格文章，《識別和優化 AWS 上的公有 IPv4 地址用量》 [3]，了解如何優化公有 IPv4 地址使用的詳細資訊。<br /><br />如需有關公用 IPv4 位址定價的詳細資訊，請參閱 VPC 定價頁面 [4]。<br /><br />如果您有任何問題，請聯絡 AWS Support [5]。<br /><br />[1] <a href="https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/</a><br />[2] <a href="https://aws.amazon.com/about-aws/whats-new/2023/07/aws-public-ip-insights-vpc-ip-address-manager/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/about-aws/whats-new/2023/07/aws-public-ip-insights-vpc-ip-address-manager/</a><br />[3] <a href="https://aws.amazon.com/blogs/networking-and-content-delivery/identify-and-optimize-public-ipv4-address-usage-on-aws/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/blogs/networking-and-content-delivery/identify-and-optimize-public-ipv4-address-usage-on-aws/</a><br />[4] <a href="https://aws.amazon.com/vpc/pricing/" rel="nofollow noopener" target="_blank">https://aws.amazon.com/vpc/pricing/</a><br />[5] <a href="https://aws.amazon.com/support" rel="nofollow noopener" target="_blank">https://aws.amazon.com/support</a>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:42:28Z</pubDate>
 <pubDate>2023-11-18T05:16:59Z</pubDate>
 </item>
 <item>
@@ -250,14 +700,12 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993025</link>
 <guid>https://www.v2ex.com/t/993025</guid>
 <content:encoded><![CDATA[
-
 <p>自己简单测了下，半自动直播带货，3 天内两天有转化，现在两个问题，迭代工作流程&amp;需要一个合伙人。</p>
 <p>流水不争先争的是滔滔不绝</p>
 <p>坐标郑州，感兴趣来聊</p>
 <p>ALL1688688</p>
 <p><img alt="Image" class="embedded_image" rel="noreferrer" src="https://z1.ax1x.com/2023/11/18/piNu2tI.md.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:31:43Z</pubDate>
 <pubDate>2023-11-18T04:53:50Z</pubDate>
 </item>
 <item>
@@ -265,12 +713,10 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993024</link>
 <guid>https://www.v2ex.com/t/993024</guid>
 <content:encoded><![CDATA[
-
 <p>app 显示如下：</p>
 <p>Something went wrong. You may be connected to a disallowed ISP. If you are using VPN, try disabling it. Otherwise try a different Wi-Fi network or data connection. (1)</p>
 <p>求助为什么 web 正常，ios 不行，如何解决，谢谢。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:22:29Z</pubDate>
 <pubDate>2023-11-18T05:59:59Z</pubDate>
 </item>
 <item>
@@ -278,10 +724,8 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993023</link>
 <guid>https://www.v2ex.com/t/993023</guid>
 <content:encoded><![CDATA[
-
 <p>我租的房子中有一个路由器，因为是合租，所以这个局域网有很多人用，且我无法访问路由器后台，无法给我每台设备分配固定 IP ，每次访问都要查看 IP ，很麻烦。所以我想能不能我自己买一个路由器，通过网线连接到出租房的路由器上，这样我自己的路由器可以给我每台设备分配固定 IP ，而且如果每台设备都通过千兆网连接到我的路由器可以实现千兆内网访问吗？</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:21:24Z</pubDate>
 <pubDate>2023-11-18T05:58:59Z</pubDate>
 </item>
 <item>
@@ -289,10 +733,8 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/993022</link>
 <guid>https://www.v2ex.com/t/993022</guid>
 <content:encoded><![CDATA[
-
 <p>淘宝 pdd 上一堆，各个吹得天花乱坠，求推荐好用的剃光头神器。谢谢！</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T04:21:04Z</pubDate>
 <pubDate>2023-11-18T05:40:48Z</pubDate>
 </item>
 <item>
@@ -300,7 +742,6 @@ simpletiger 工具介绍</p>
 <link>https://www.v2ex.com/t/991755</link>
 <guid>https://www.v2ex.com/t/991755</guid>
 <content:encoded><![CDATA[
-
 <p>今年开发了一个寄快递的小程序，整合了全网的特惠快递物流渠道</p>
 <p>官网： <a href="https://www.cpskd.cn/" rel="nofollow">https://www.cpskd.cn/</a></p>
 <p>我们的优势的话</p>
@@ -327,10 +768,8 @@ simpletiger 工具介绍</p>
 然后进行打开小程序 自助下单，在线付款，会有快递员联系你上门取件
 有问题加 wei/信 mmmbka8 咨询，拉你进群 备注：快递</p>
 ]]></content:encoded>
-<pubDate>2023-11-14T03:20:05Z</pubDate>
 <pubDate>2023-11-16T03:58:37Z</pubDate>
 </item>
-
 <item>
 <title>[VPS] 咨询阿里云 99 元的 VPS</title>
 <link>https://www.v2ex.com/t/993021</link>
@@ -15225,308 +15664,6 @@ AirPods Pro 连接 macbook ，有时候摘下来重新戴上去左右声道就�
 公司是 PHP 的 TP3 的老代码，业务量和代码量都非常大，且非常混乱，后端一共 3 个人，感觉非常吃力，有很明显的业务壁垒，有点想跑。除了这些还有一些点：开发模式基本就是需求一句话，然后边做边测，测试人员测试的时候把逻辑补充完整。。。是我太菜了还是什么，他们居然这样可以跑好几年。。。
 ]]></content:encoded>
 <pubDate>2023-11-14T09:26:12Z</pubDate>
-</item>
-<item>
-<title>想要黑群晖的 5000 端口用 Nginx 反代出来,会有什么安全问题?</title>
-<link>https://www.v2ex.com/t/991802</link>
-<guid>https://www.v2ex.com/t/991802</guid>
-<content:encoded><![CDATA[
-<p>规则类似</p>
-<pre><code>location ~ /asdasd 比较长的随机路径/ {
- proxy_pass  http://127.0.0.1:5000
-}
-</code></pre>
-<p>使用类似 <a href="http://xxx.xxx.com/asdasd" rel="nofollow">xxx.xxx.com/asdasd</a> 比较长的随机路径
-这样会有什么问题,感觉很不安全的样子
-主要是想在手机上看照片,又不想在手机上安装额外的软件</p>
-]]></content:encoded>
-<pubDate>2023-11-14T09:25:54Z</pubDate>
-</item>
-<item>
-<title>云上一台虚拟机的硬盘有多大可能性损毁？</title>
-<link>https://www.v2ex.com/t/991791</link>
-<guid>https://www.v2ex.com/t/991791</guid>
-<content:encoded><![CDATA[
-<p>场景: 搭建某个域名的邮件服务器</p>
-<p>因为邮件本来就不是一种实时的通讯方式，所以服务器宕机几个小时，后面继续运行也没啥问题</p>
-<p>这种情况下，只部署一台虚拟机，虚拟机只有一块硬盘是安全的吗？</p>
-<p>讨论范围: 主流云厂商 AWS, Azure, Google Cloud, 阿里云, 腾讯云</p>
-]]></content:encoded>
-<pubDate>2023-11-14T06:39:22Z</pubDate>
-</item>
-<item>
-<title>关于 Reactor API，如何写异常后恢复</title>
-<link>https://www.v2ex.com/t/991815</link>
-<guid>https://www.v2ex.com/t/991815</guid>
-<content:encoded><![CDATA[
-<p>方法<code>client.downloadFile</code>会不断发射<code>FilePart</code>，需要<code>collec</code>写入到文件中即可。</p>
-<p>在接收<code>FilePart</code>期间会有网络等其他异常，现在直接用<code>onErrorResume</code>从 offset 开始请求返回新的 Flux 会有一个问题。
-第一次异常会进入<code>onErrorResume</code>返回新的 Flux ，由于新的 Flux 没有声明<code>onErrorResume</code>就噶了 </p>
-<p>我也不可能在新的 Flux 里声明<code>onErrorResume</code>，无限套娃了属于是。</p>
-<pre><code class="language-kotlin">client.downloadFile(fileReferenceId)
-    .publishOn(Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor()))
-    .timeout(Duration.ofMinutes(3))
-    .onErrorResume(RpcException::class.java) {
-        if (it.error.errorCode() == TIMEOUT_CODE &amp;&amp; monitoredChannel.isDone().not()) {
-            log.warn("Download timeout, resuming: $fileDownloadPath")
-            return@onErrorResume client.downloadFile(
-                fileReferenceId,
-                monitoredChannel.getDownloadedBytes(),
-                MAX_FILE_PART_SIZE,
-                true
-            )
-        }
-        Flux.error(it)
-    }
-    .collect({ monitoredChannel }, { fc, filePart -&gt;
-        fc.write(filePart.bytes.nioBuffer())
-    })
-    .doOnSuccess {
-        tempDownloadPath.moveTo(fileDownloadPath)
-        downloadCounting.incrementAndGet()
-        log.info("Downloaded file: $fileDownloadPath")
-    }
-    .doOnError {
-        log.error("Error downloading file:$fileDownloadPath", it)
-    }
-    .onErrorMap {
-        wrapRetryableExceptionIfNeeded(it)
-    }
-    .doFinally {
-        runCatching {
-            closePath(fileDownloadPath)
-        }.onFailure {
-            log.error("Error closing file channel", it)
-        }
-        hashingPathMapping.remove(hashing)
-    }
-    .block()
-</code></pre>
-]]></content:encoded>
-<pubDate>2023-11-14T06:35:04Z</pubDate>
-</item>
-<item>
-<title>求教一下 Redis 哨兵模式下，主从延迟问题</title>
-<link>https://www.v2ex.com/t/991788</link>
-<guid>https://www.v2ex.com/t/991788</guid>
-<content:encoded><![CDATA[
-<p>具体场景：</p>
-<ol>
-<li>有个单点登录 CAS 服务，其他服务登录时会请求一个 ticket ，CAS 服务颁发完 ticket 后，会写入 redis 。</li>
-<li>其他服务获取到 ticket 后，会调用 CAS 服务的另一个接口去校验 ticket ，同时获取用户信息。</li>
-</ol>
-<p>现在偶尔会出现一个问题：执行第 2 步操作时，有时候校验 ticket 会不通过</p>
-<p>排查一下：
-redis 主从偏移有点大，造成主从数据不一样，校验接口走从库时查询不到 ticket 所以校验失败，大概是网络原因？</p>
-<p>想到的一个解决方案是，校验接口强制走主库，但是哨兵模式下主库是不固定，有啥办法强制走主库吗（ Java 语言的 SDK ）？</p>
-<p>或者有更好的解决方案？</p>
-]]></content:encoded>
-<pubDate>2023-11-14T06:27:32Z</pubDate>
-</item>
-<item>
-<title>向日葵远程控制蹦了吗？</title>
-<link>https://www.v2ex.com/t/991816</link>
-<guid>https://www.v2ex.com/t/991816</guid>
-<content:encoded><![CDATA[
-<p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/pGqErLP.png" /></p>
-<p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/BfYXEbr.png" /></p>
-]]></content:encoded>
-<pubDate>2023-11-13T22:34:46Z</pubDate>
-</item>
-<item>
-<title>业余做的文本大模型训练 Saas 上线</title>
-<link>https://www.v2ex.com/t/991811</link>
-<guid>https://www.v2ex.com/t/991811</guid>
-<content:encoded><![CDATA[
-<p>众所周知，openai 太强了，以至于现在谈 AI 基本就等同于谈 chatGPT 或 GPT4 ，但是呢，我个人的感情很复杂，一方面我是 chatGPT 的重度用户，也很喜欢 openai ，但是，我依然不希望看到未来是一个只有 openai 的世界</p>
-<p>在几个月前我曾经用 chatglm-6b 训练过我自己的数字克隆： <a href="https://v2ex.com/t/931521#reply161" rel="nofollow">https://v2ex.com/t/931521#reply161</a></p>
-<p>此后的开源模型开始井喷，但其质量和 GPT 的差距依然巨大，我开始琢磨，能否通过微调的方式来增加开源通用大模型在某些垂直领域的表现，在尝试的过程中，我意识到，如果不降低训练的门槛，那这个可能性微乎其微，然后我和几个朋友就开始以兼职，远程，业余时间的方式完成了这个低门槛进行文本大模型训练微调的 Saas</p>
-<p>这就是模迪手： <a href="https://www.modihand.com" rel="nofollow">https://www.modihand.com</a> (好的我也是硅谷的粉丝，我心头的美剧前三</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/0u0Xyede.png" /></p>
-<p>因为这是 V2EX ，所以我想我应该不用再详细说明训练和 embedding 的区别，虽然有很多人说「训练」的时候其实是在说 embedding 和 prompt 工程，但两者本质上就是完全不同的。训练改变了模型的参数，而 embedding 没有，只是从知识库匹配一段文本放到 prompt 里一起给模型。</p>
-<p>模迪手简单易用，只需要准备好数据集，在网页上点点点，然后就可以训练了，训练完成后的模型，可以在线调用，也可以直接导出模型文件。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/CsrkE8oH.png" /></p>
-<p>它的一些特点包括：</p>
-<ul>
-<li>几乎无门槛实现文本模型训练</li>
-<li>支持多种预置基底模型</li>
-<li>无需担心算力，环境部署等问题</li>
-<li>模型可代部署，支持 API 接口</li>
-<li>所有模型均提供完整的导出(可部署在自己的 PC 或显卡服务器上)</li>
-</ul>
-<p>当然目前也存在一些问题：</p>
-<ul>
-<li>国内访问较慢</li>
-<li>部分超参数不支持控制</li>
-<li>很多基底模型还没有支持</li>
-<li>文档完善度 60%</li>
-<li>定价策略比较粗糙</li>
-</ul>
-<p>考虑到现在 openai 的强大，这个拥抱开源大模型的项目其实前景很不确定，但我觉得它至少帮我解决了很多问题，我也觉得需要有这么一个东西（我还没有看到类似的）</p>
-<p>如果大家有有趣的想法或者有意思的数据集，可以评论或直接通过<a href="https://maoxianqiu.feishu.cn/share/base/form/shrcnPCWSjmh1RQqYEHqII6nZob" rel="nofollow">这个表单</a>填写一下，我们可以提供模迪手的免费算力，让你能够训练出来玩玩看（我之前的一个不算太成功的例子： <a href="https://v2ex.com/t/945834#reply18" rel="nofollow">https://v2ex.com/t/945834#reply18</a></p>
-<p>模迪手： <a href="https://www.modihand.com/" rel="nofollow">https://www.modihand.com/</a></p>
-]]></content:encoded>
-<pubDate>2023-11-14T09:21:49Z</pubDate>
-</item>
-<item>
-<title>GPT Share - GPTs 分享社区，可能是目前唯一支持一键上传链接，自动解析的 GPTs 平台应用。</title>
-<link>https://www.v2ex.com/t/991794</link>
-<guid>https://www.v2ex.com/t/991794</guid>
-<content:encoded><![CDATA[
-<p><a href="https://gptshare.io" rel="nofollow">gptshare.io</a>
-<a href="https://producthunt.com/posts/gpt-share" rel="nofollow">Product Hunt</a></p>
-<p>最近利用业余时间做了一个 GPTs 的分享社区，支持一键上传链接，自动解析。而且支持搜索功能，可以找到自己需要的 GPT 应用。后续，还会逐渐加入更多新功能。兼容移动端访问。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://ph-files.imgix.net/568cd7e1-97dc-490c-a8d5-2a6738a49209.png?auto=compress&amp;codec=mozjpeg&amp;cs=strip&amp;auto=format&amp;w=367&amp;h=220&amp;fit=max&amp;dpr=2" /></p>
-]]></content:encoded>
-<pubDate>2023-11-14T05:20:17Z</pubDate>
-</item>
-<item>
-<title>[开源/偏硬件/实验照片/实验视频] 测试驱动 I2C/SPI</title>
-<link>https://www.v2ex.com/t/988583</link>
-<guid>https://www.v2ex.com/t/988583</guid>
-<content:encoded><![CDATA[
-<p>在编写代码之前，提前测试驱动 I2C/SPI ；这样写代码的时候，要收发的数据就是心里有数的啦。</p>
-<p>市面上有不少这个功能的工具，这个项目特别之处：</p>
-<ul>
-<li>硬件借用 Arduino Uno R3 ，开源硬件+超级便宜+不会停产。</li>
-<li>软件开源，并且有超级多的注释，方便理解。</li>
-<li>跨平台，Linux 上也能用（因为基于 Arduino ）</li>
-</ul>
-<p>实验照片/实验视频：</p>
-<ul>
-<li><a href="https://github.com/signaloperator/soeval/releases" rel="nofollow">https://github.com/signaloperator/soeval/releases</a></li>
-</ul>
-<p>测试用到的文本文件：</p>
-<ul>
-<li><a href="https://signaloperator.com/soeval.txt" rel="nofollow">https://signaloperator.com/soeval.txt</a></li>
-</ul>
-<p>当然，还有软件代码：</p>
-<ul>
-<li><a href="https://github.com/signaloperator/sofirmware/blob/main/sofirmware.ino" rel="nofollow">https://github.com/signaloperator/sofirmware/blob/main/sofirmware.ino</a>    （求 star ）</li>
-</ul>
-<p>这个项目的网站：</p>
-<ul>
-<li><a href="https://signaloperator.com/" rel="nofollow">https://signaloperator.com/</a></li>
-</ul>
-<p>欢迎围观，欢迎讨论反馈。</p>
-]]></content:encoded>
-<pubDate>2023-11-14T01:56:56Z</pubDate>
-</item>
-<item>
-<title>求靠谱的游戏租赁渠道</title>
-<link>https://www.v2ex.com/t/991796</link>
-<guid>https://www.v2ex.com/t/991796</guid>
-<content:encoded><![CDATA[
-<p>没忍住入了 SWITCH ，求推荐靠谱的游戏租赁渠道。
-目前了解到寻星电玩，是数字版游戏；还有一个魔卡荟，实体卡。 有没有懂行的老哥说说。
-另外，开会员有哪些用处？目前就考虑跟孩子玩玩亲子游戏一类的，需要上个车队吗？</p>
-]]></content:encoded>
-<pubDate>2023-11-14T08:45:14Z</pubDate>
-</item>
-<item>
-<title>星舰将于本周五尝试发射</title>
-<link>https://www.v2ex.com/t/991806</link>
-<guid>https://www.v2ex.com/t/991806</guid>
-<content:encoded><![CDATA[
-<a href="https://www.fly.faa.gov/adv/adv_spt.jsp" rel="nofollow noopener" target="_blank">https://www.fly.faa.gov/adv/adv_spt.jsp</a>
-]]></content:encoded>
-<pubDate>2023-11-14T08:11:49Z</pubDate>
-</item>
-<item>
-<title>cloudflare 的验证程序在 Safari 上特别慢，甚至无法正常验证</title>
-<link>https://www.v2ex.com/t/991842</link>
-<guid>https://www.v2ex.com/t/991842</guid>
-<content:encoded><![CDATA[
-今天进入 V2EX 也遇到了 cloudflare 的验证程序。macOS Sonoma ，iOS 17 上的 Safari 都是如此，处于一种不可用的状态，相同条件下，chrome 去可以飞快地过验证。<br /><br />相关案例链接：<br /><a href="https://forums.macrumors.com/threads/safari-and-cloudflare-issue.2394319/" rel="nofollow noopener" target="_blank">https://forums.macrumors.com/threads/safari-and-cloudflare-issue.2394319/</a>
-]]></content:encoded>
-<pubDate>2023-11-14T08:13:37Z</pubDate>
-</item>
-<item>
-<title>一个命令把电脑搞砖了</title>
-<link>https://www.v2ex.com/t/991823</link>
-<guid>https://www.v2ex.com/t/991823</guid>
-<content:encoded><![CDATA[
-<p>今天重装了下系统， 发现指纹有点问题，按上去要么干脆不识别 要不只识别一两下 无法完整录入指纹。<br />
-搜到了 apple 社区的一个答复<br />
-敲了 xartuil --erase-all 命令<br />
-然后电脑重启。最后屏幕感叹号。<br />
-显示 <a href="http://support.apple.com/mac/restore" rel="nofollow">support.apple.com/mac/restore</a><br />
-我寻思 再重装一遍呗。<br />
-关机，长按按钮，结果进不到恢复界面。好吧。<br />
-连接里说需要另外一台 12.4+的电脑救砖。    </p>
-<p>打了 400 电话。客服让预约了维修售后，去看看指纹模块是否有问题。<br />
-看了下购买日期是 21 年 11 月 收货是 12 月。<br />
-主要部件保修两年， 指纹要是坏了。刚好卡在保修期换一下了。</p>
-]]></content:encoded>
-<pubDate>2023-11-14T07:28:23Z</pubDate>
-</item>
-<item>
-<title>iCloud 到底在上传什么？日上传达 100G？</title>
-<link>https://www.v2ex.com/t/991822</link>
-<guid>https://www.v2ex.com/t/991822</guid>
-<content:encoded><![CDATA[
-<p>有没有 V 友遇到 <a href="http://icloud-content.com" rel="nofollow">icloud-content.com</a> 这个主机名在后台耗费大量流量的情况？为什么？</p>
-<p>![]( <a href="https://i.niupic.com/images/2023/11/14/cs23.jpeg" rel="nofollow">https://i.niupic.com/images/2023/11/14/cs23.jpeg</a></p>
-]]></content:encoded>
-<pubDate>2023-11-14T07:24:55Z</pubDate>
-</item>
-<item>
-<title>Bluestacks Mac 版本 首次安装时跳转 Google Play 问题</title>
-<link>https://www.v2ex.com/t/991835</link>
-<guid>https://www.v2ex.com/t/991835</guid>
-<content:encoded><![CDATA[
-<p>使用了 Proxifier,不行诶.   下载的 Bluestacks4 ,机器时 intel macbook2019 16‘</p>
-]]></content:encoded>
-<pubDate>2023-11-14T07:17:01Z</pubDate>
-</item>
-<item>
-<title>求苹果企业开发者账号的渠道</title>
-<link>https://www.v2ex.com/t/991820</link>
-<guid>https://www.v2ex.com/t/991820</guid>
-<content:encoded><![CDATA[
-<p>公司业务需要企业开发者账号，但申请不下来。考虑收购已有的企业开发者账号，欢迎介绍靠谱渠道。</p>
-]]></content:encoded>
-<pubDate>2023-11-14T06:47:41Z</pubDate>
-</item>
-<item>
-<title>Chrome 最近是不是有 bug，全屏模式下会出现无法点击的问题，感觉像是渲染错了</title>
-<link>https://www.v2ex.com/t/991807</link>
-<guid>https://www.v2ex.com/t/991807</guid>
-<content:encoded><![CDATA[
-<p>前几天偶现了一次，今天爆炸了一样，不全屏用窗口就没啥问题...</p>
-<p>尝试关闭插件，但是后面发现无痕模式下一样不行（无痕模式下没有加载任何插件）</p>
-]]></content:encoded>
-<pubDate>2023-11-14T06:24:20Z</pubDate>
-</item>
-<item>
-<title>有人在 mac 上完全使用外置 ssd 磁盘吗？最新 macOS Sonoma 开机很慢是怎么回事？</title>
-<link>https://www.v2ex.com/t/991789</link>
-<guid>https://www.v2ex.com/t/991789</guid>
-<content:encoded><![CDATA[
-外置的 ssd 在上一系统时开机和内置 ssd 几乎没差别，虽然速度就 900mb 每秒，但不至于卡很久，但是新的 Sonoma 开机输入密码后，会卡很久，大概有 3 分钟。<br /><br />--------<br />现在怀疑是不是内置 ssd 里的系统是上一版本导致的问题，正在尝试把内置系统也升级到最新。
-]]></content:encoded>
-<pubDate>2023-11-14T01:04:31Z</pubDate>
-</item>
-<item>
-<title>继上次之后，不得不再次吐槽这个季度遇到的奇葩客户</title>
-<link>https://www.v2ex.com/t/991824</link>
-<guid>https://www.v2ex.com/t/991824</guid>
-<content:encoded><![CDATA[
-<p>客户 1: “我登陆不上系统了，你们的系统挂了，打不开“，对方老板吧啦吧啦 一通骂，我让他给我拍个视频看看，在他如座机般的画质以及 30 年帕金森的抖动画面下，艰难的看到了“ 无互联网连接”，遂回”不是我们的问题，是你的网络断开了“，对方回”那也是因为你们的系统导致了我的网络断开的“，一口老血，我们的系统是网页 WEB 端啊。</p>
-<p>突然灵光一闪，看到他再用 mei tuan ，遂回复”我这里可以登陆你的系统啊，我看你也登陆了 MT ，你看看是不是 MT 导致的问题，你试试找找他们呢”，与其争辩激化矛盾，不如转移矛盾，希望 MT 的伙伴不要骂我。</p>
-<p>还是这个客户：“我收不到验证码，我发了 20 几个都收不到”，我在后台一查，没有任何验证吗的触发记录啊。我也非常纳闷，拉着开发的伙伴看了一早上，也没找到问题，之前也很少出现，遂让客户拍个视频还原一下他的操作，不看不要紧，我他妈的十年脑血栓都被他气的冲开了。他登陆的是 MT 啊，并不是我们的，而且收验证码的手机卡还放在家里的，从此对这个客户产生了条件反射，不管什么问题，先把操作视频发给我看下。</p>
-<p>这个客户真的非常的神奇，不管电脑出现了什么问题都来找我，我解决几次后变本加厉了，打印机打不出东西、音响放不出音乐、输入法打不出汉字、甚至修改微信账号密码都要找我帮忙，后来我去见他问他为啥什么问题都来找我啊，他说因为别人不理他，只有我回复他，所以只能找我，合着就我好欺负，真他妈的就是“能干你就多干点”</p>
-]]></content:encoded>
-<pubDate>2023-11-14T10:16:04Z</pubDate>
-</item>
-<item>
-<title>淘宝核心业务，招前端和后端和客户端开发，欢迎加入</title>
-<link>https://www.v2ex.com/t/991830</link>
-<guid>https://www.v2ex.com/t/991830</guid>
-<content:encoded><![CDATA[
-简介：淘天集团，业务技术团队，负责淘宝 APP 核心功能和创新产品的开发，亿级流量，核心岗位<br /><br />前端岗位：以 React 技术栈为主，如果会 Vue 也可以，但加入后需要转 React ，懂 rn/weex/低代码等领域加分<br /><br />客户端岗位：iOS 和 Android 均可，会 swift&amp;kotlin 加分，有独立 app 开发及上架经验加分<br /><br />服务端岗位：以 Java 为主，如果会其他语言也可，但加入后需要转 Java<br /><br />地点：目前只有杭州<br /><br />要求：本科以上学历，985 、211 、双一流优先，也可根据面试情况走特批，需要计算机基础扎实，有 1 到 5 年工作经验，有互联网或大厂经验优先，和算法打过交道优先，熟悉 AI 优先<br /><br />面试流程：走内推直通部门面试官，只需 2 面极简流程，最快当天，最慢 3 天内面完<br /><br />实时沟通，可加 wechat：tiny520666
-]]></content:encoded>
-<pubDate>2023-11-14T08:44:59Z</pubDate>
 </item>
 </channel>
 </rss>
