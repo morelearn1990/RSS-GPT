@@ -5,14 +5,191 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] 开个脑洞想了一个结合软硬路由优点的方案</title>
+<link>https://www.v2ex.com/t/993126</link>
+<guid>https://www.v2ex.com/t/993126</guid>
+<content:encoded><![CDATA[
+
+<p>TLDR 一句话： 硬路由利用 nfqueue 把关键包的处理逻辑外包给软路由</p>
+<p>硬路由在专用芯片加持下，网络处理上的稳定性与性能上限是远高于软路由的，但我们很多人还是选择软路由当主力路由，不过是因为 x86 系统特别灵活，玩法很多。但仔细分析网络里的各个流程就可以发现，无论是软硬路由，灵活玩法大多来自于对各连接建立的包的处理，即 linux 里面的 iptables/nftables nat 表里的那些包。软硬路由都通过 cpu 处理这些包，其余的绝大部分包硬路由走专用芯片，软路由用 cpu 硬扛。</p>
+<p>现在路由器大多基于 linux, linux 里面有各叫 nfqueue 的东西，可以把 iptables/nftables 里面感兴趣的包发到用户态进程里面，然后用户态可以进行一些操作，比如通过、丢包、拒绝、打 mark 、SNAT/DNAT. 但硬路由上由于 arm/mips 架构难搞、cpu 内存紧张等原因，这个机制像螺蛳壳里做道场，很鸡肋。</p>
+<p>所以我在想是不是能在路由器上写个最轻量化的 nfqueue-agent, 把所有收到的包通过 tcp 转发到软路由的用户态 nfqueue-controller ，然后在 x86 上就可以 java/golang/python 爱怎么玩都行了？</p>
+<p>应用场景：</p>
+<ol>
+<li>
+<p>ip 段分流/wireguard/zerotier</p>
+<p>静态 ip 段路由表管理挺繁，要是 BGP 级别的话，ip 段文件不小，很多老古董 nand 甚至存不下。复杂一点的动态路由要搭建 bird/frr 服务，很麻烦。而我的方案里，nfqueue-controller 可以根据包的内容直接给包打上 mark, 再通过策略路由就很简单实现了分流。x86 可以搭建 wireguard/zerotier ，灵活度有保证。</p>
+</li>
+<li>
+<p>无污染 dns 服务/fakedns/根据域名分流</p>
+<p>传统域名分流很多是搞 ipset/nftables set ，要是路由器内核不支持就很难搞。nfqueue-controller 可以强行把所有 udp53 的包通过 mark 路由到自己 x86 节点，自己走 doh/dot. 也可以把 fakedns/vpn 的 IP 段通过 mark 路由到自己节点.根据请求域名的判断可以在 x86 端用户态维护一个 ipset,在下一次 tcp 请求中自动分流。</p>
+</li>
+<li>
+<p>fullcone nat</p>
+<p>可以把硬路由器自己的 nftables/iptables masquerade 都干掉，在 nfqueue 里进行 snat/dnat.不过这个我不太确定会和 linux conntrack 系统有什么化学反应</p>
+</li>
+<li>
+<p>multiwan 负载均衡</p>
+<p>用户态控制逻辑，想怎么分配就怎么分配</p>
+</li>
+<li>
+<p>软路由节点 down 后 fallback</p>
+<p>一旦硬路由上的 nfqueue agent 发现软路由超时未回复，立刻断开 nfqueue 绑定， 则所有网络设置恢复到单硬路由状态，不会引起断网。</p>
+</li>
+<li>
+<p>大量新连接、路由表很长很复杂</p>
+<p>这时候每个新连接的包都要经过网络给 controller 处理，可能会造成一些压力，不过可以在硬路由里利用 nftables 里面自定义 set/map 的功能可以缓存处理结果 mark ，例如连接五元组 30 分钟有效期内复用上次的 mark. 如果路由器只有 iptables 且没有 ipset, 也可以在路由器的 nfqueue-agent 里缓存结果。 不需要所有的都经过控制服务器， </p>
+</li>
+</ol>
+<p>这样只要支持 nfqueue 的硬路由器有可能这样来控制，可能很多官方固件也能玩，有点 sdn 的意思。</p>
+<p>实现需要的具体工作：</p>
+<ol>
+<li>
+<p>agent: 收到什么就转发什么，类似 socat ， 只不过是 netlink socket -&gt; tcp socket.</p>
+</li>
+<li>
+<p>controller: 用户态的 firewall 处理逻辑，最好是能复用 nftables/iptables 的语法与代码，这样学习、迁移成本更低，但把内核的代码在用户态用上应该是非常难的。或者把这个封装成 python/golang/java 库，用户可以写简单脚本控制， 也可以让社区继续发挥。</p>
+</li>
+</ol>
+<p>大家看看价值与可行性如何？</p>
+]]></content:encoded>
+<pubDate>2023-11-18T14:06:57Z</pubDate>
+<pubDate>2023-11-18T14:14:15Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 宽带带宽到底如何限制的？</title>
+<link>https://www.v2ex.com/t/993125</link>
+<guid>https://www.v2ex.com/t/993125</guid>
+<content:encoded><![CDATA[
+
+2000M 联通宽带 测速 能到 2500<br />但是带多人，60-70 人 都喊卡，看实际流量才 40-50Mb<br /><br />同样的 也是一个公网 IP PTN 专线 200M 带的用户多得多，可以跑满带宽，也不卡。。。。<br /><br /><br />但是用 iperf3 测速 2000M 还真是 2000M 测试 UDP 发包 也能打满。。。。<br />哪位大神知道 bras 哪些参数限制这玩意？
+]]></content:encoded>
+<pubDate>2023-11-18T14:02:34Z</pubDate>
+<pubDate>2023-11-18T14:05:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家觉得找对象需要有共同话题吗？</title>
+<link>https://www.v2ex.com/t/993124</link>
+<guid>https://www.v2ex.com/t/993124</guid>
+<content:encoded><![CDATA[
+
+<p>最近相亲有感而发，越来越觉得，如果对方和自己没有太多共同的兴趣爱好、话题的话，是一件很沮丧的事情。当自己分享一些感兴趣的事，你能感觉到对方虽然会礼貌回应，但却无法发自内心去欣赏。兴趣爱好的差异在某种程度上感觉也间接反映了三观的差异。我始终觉得找对象一定要有共同话题，但很多人也觉得这不是必需的，如果对方性格好、人品好、条件合适，也就行了。到底是我想得太多，还是注定每个人的追求都不太一样呢？真心求问，欢迎大家发表自己的看法~</p>
+]]></content:encoded>
+<pubDate>2023-11-18T13:56:51Z</pubDate>
+<pubDate>2023-11-18T14:10:09Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 告别用了二十几年的罗技，新鼠标换了绿联</title>
+<link>https://www.v2ex.com/t/993123</link>
+<guid>https://www.v2ex.com/t/993123</guid>
+<content:encoded><![CDATA[
+
+<p>前几天在 <a href="https://www.v2ex.com/t/992004" rel="nofollow">https://www.v2ex.com/t/992004</a> 这个帖子里大家纷纷声讨罗技那个垃圾类肤质鼠标，正好我那个左右两侧都被抠出了洞的罗技 M280 右键失灵了，就立刻买了个新的。在挑选时，意外发现搞小外设的绿联居然也在卖鼠标，在翻了很多条评论，确认介绍里那个“UV 涂层”不是橡胶材料后，就下单了。到手一试，挺趁手的，而且按键声音小到两米外就完全听不到了。不过滚轮还是橡胶的，希望用久了不会出意外吧。送的电池还是南孚，好评。
+<img alt="20231118_211702.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/11/18/CTEnKmUeOs6QRFb.jpg" />
+<img alt="20231118_211738.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/11/18/b7RuCM9jEyxFYmk.jpg" /></p>
+]]></content:encoded>
+<pubDate>2023-11-18T13:50:48Z</pubDate>
+<pubDate>2023-11-18T14:01:11Z</pubDate>
+</item>
+<item>
+<title>[云计算] 有一些站点的内容可能有点敏感，可能有侵权风险。有么有哪个美国主机商能接的？</title>
+<link>https://www.v2ex.com/t/993122</link>
+<guid>https://www.v2ex.com/t/993122</guid>
+<content:encoded><![CDATA[
+
+<p>其实我感觉应该不算侵权，比如就用 YTB 或者 TikTok 的 Iframe API 把视频嵌入我们的站点的页面，也没有直接抓取他们的资源。但是有的主机商说我们涉嫌侵权，违反了他们的 TOS</p>
+<p>这就很苦恼了，有没有哪个主机商能承接这些网站的？</p>
+]]></content:encoded>
+<pubDate>2023-11-18T13:45:26Z</pubDate>
+<pubDate>2023-11-18T13:45:26Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 成都电信升级 2000M 后，你们的公网 ip 还在吗？</title>
+<link>https://www.v2ex.com/t/993121</link>
+<guid>https://www.v2ex.com/t/993121</guid>
+<content:encoded><![CDATA[
+
+<h2>我目前是千兆宽带，一直在犹豫要不要升级 2000M ，主要是害怕到时候公网 ip 没了，有没有已经升级 2000M 宽带的来说说 公网 ip 还在吗？</h2>
+]]></content:encoded>
+<pubDate>2023-11-18T13:39:59Z</pubDate>
+<pubDate>2023-11-18T13:36:59Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 目前移动联通两张卡都有用，想办个流量卡，有木有办法原卡变虚拟卡</title>
+<link>https://www.v2ex.com/t/993120</link>
+<guid>https://www.v2ex.com/t/993120</guid>
+<content:encoded><![CDATA[
+
+<p>目前移动和联通的号绑了太多东西不能弃了，其实主要是绑了太多都忘了，可能有些还不支持换号
+我的移动联通都是 19 月租+1 块 1G 的套餐</p>
+<p>有没有神马方法，可以不用实体卡也能接打电话和收发短信额？
+这样再办个流量卡就好了</p>
+<p>PS：真羡慕联通大王卡 70G 上车的同学们~~~</p>
+]]></content:encoded>
+<pubDate>2023-11-18T13:26:34Z</pubDate>
+<pubDate>2023-11-18T10:26:34Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 新安装的电信自带光猫提示如下</title>
+<link>https://www.v2ex.com/t/993119</link>
+<guid>https://www.v2ex.com/t/993119</guid>
+<content:encoded><![CDATA[
+
+<p>型号好像是</p>
+<ul>
+<li>厂家名称: ZTE</li>
+<li>网关型号: F450AV9</li>
+<li>硬件版本: V9.0</li>
+<li>软件版本: ZTE.1.2.1</li>
+</ul>
+<p><a href="https://postimg.cc/BLY8T1TG" rel="nofollow">https://postimg.cc/BLY8T1TG</a></p>
+<ol>
+<li>如何确认是否给人开启公网 IP?</li>
+<li>双栈公网 IP 是什么意思？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-11-18T13:20:44Z</pubDate>
+<pubDate>2023-11-18T09:20:44Z</pubDate>
+</item>
+<item>
+<title>[Telegram] 来一些高质量&amp;少数的 telegram 推荐</title>
+<link>https://www.v2ex.com/t/993116</link>
+<guid>https://www.v2ex.com/t/993116</guid>
+<content:encoded><![CDATA[
+
+<p>包括但不限于频道、群组、bot ，各大佬的分享频道、交流群等等。</p>
+<p><strong>每个人推荐的数量不超过 3 个。</strong>eg:</p>
+<ul>
+<li><a href="https://t.me/solidot" rel="nofollow">https://t.me/solidot</a> 科技阅读频道</li>
+<li><a href="https://t.me/EmpressRevolution" rel="nofollow">https://t.me/EmpressRevolution</a> 游戏破解</li>
+<li>Snow-Raws 动漫资源</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-11-18T12:55:57Z</pubDate>
+<pubDate>2023-11-18T13:14:02Z</pubDate>
+</item>
+<item>
+<title>[云计算] 云数据库也太贵了，小规模使用有什么优势吗？</title>
+<link>https://www.v2ex.com/t/993114</link>
+<guid>https://www.v2ex.com/t/993114</guid>
+<content:encoded><![CDATA[
+
+<p>不管是 aws 还是阿里云等境内云厂商，云数据库都需要绑定一个性能比较不错的实例，每个月开销大概至少要 100 人民币</p>
+<p>这比我自己同等价位买个云服务器，自己搭建，有什么优势吗？云服务器还有不少羊毛可以薅，云数据库就没有了</p>
+<p>而且云数据库的下限很高，远远超过了小规模使用的强度，有没有那种更轻量一点的云数据库，类似 aws lightsail 那种按负载计费的，或者与实例无关，只按 IO 次数和存储量收费的产品？</p>
+<p>（云厂商的文档里都说有 serveless database ，但是真的到控制台里看，还是要选择一个配置的实例绑定使用）</p>
+]]></content:encoded>
+<pubDate>2023-11-18T12:34:37Z</pubDate>
+<pubDate>2023-11-18T14:06:42Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] v2ray 配置文件中，路由规则部分是否有关键词支持域名后缀匹配？</title>
 <link>https://www.v2ex.com/t/993113</link>
 <guid>https://www.v2ex.com/t/993113</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-18T12:30:14Z</pubDate>
 <pubDate>2023-11-18T12:27:14Z</pubDate>
 </item>
 <item>
@@ -21,9 +198,7 @@
 <guid>https://www.v2ex.com/t/993112</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-18T12:29:41Z</pubDate>
 <pubDate>2023-11-18T08:27:41Z</pubDate>
 </item>
 <item>
@@ -31,10 +206,8 @@
 <link>https://www.v2ex.com/t/993111</link>
 <guid>https://www.v2ex.com/t/993111</guid>
 <content:encoded><![CDATA[
-
 想问问群晖的 docker 套件，是用的哪些组件搭建的 我们自己可以搭建吗 比如在 debian 系统
 ]]></content:encoded>
-<pubDate>2023-11-18T12:28:55Z</pubDate>
 <pubDate>2023-11-18T12:28:55Z</pubDate>
 </item>
 <item>
@@ -42,11 +215,9 @@
 <link>https://www.v2ex.com/t/993109</link>
 <guid>https://www.v2ex.com/t/993109</guid>
 <content:encoded><![CDATA[
-
 <p>商品链接： <a href="https://www.amazon.cn/gp/product/B0CK2TC9XQ/ref=ppx_od_dt_b_asin_title_s00?ie=UTF8&amp;th=1" rel="nofollow">https://www.amazon.cn/gp/product/B0CK2TC9XQ/ref=ppx_od_dt_b_asin_title_s00?ie=UTF8&amp;th=1</a></p>
 <p>页面显示 4T 含税 890 多，但是实际这一块硬盘目前没有 4T 容量的，应该是标错了。美亚上面原文这个 SKU 是 2T</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T12:11:52Z</pubDate>
 <pubDate>2023-11-18T12:08:52Z</pubDate>
 </item>
 <item>
@@ -54,10 +225,8 @@
 <link>https://www.v2ex.com/t/993107</link>
 <guid>https://www.v2ex.com/t/993107</guid>
 <content:encoded><![CDATA[
-
 我是 Ventura 13.6.1 系统，最近系统设置无论怎么点都打不开，试过修复磁盘、重启、强制关闭、重装系统（不抹除资料的重装），都没法打开，找不到这窗口了，求助怎么办。<br /><br />并且点击系统设置后，有打开的小圆点，但再点击顶部的‘关于系统设置’，就会强制关闭。
 ]]></content:encoded>
-<pubDate>2023-11-18T12:03:09Z</pubDate>
 <pubDate>2023-11-18T12:03:09Z</pubDate>
 </item>
 <item>
@@ -65,13 +234,11 @@
 <link>https://www.v2ex.com/t/993106</link>
 <guid>https://www.v2ex.com/t/993106</guid>
 <content:encoded><![CDATA[
-
 <h1>wg 在打洞的时候，这些软件共同实现了，先走中继服务器然后打洞成功走隧道，是如何保障服务质量的</h1>
 <p>#tailscale
 #headscale</p>
 <h2>涉及打洞的时候走中转服务器，质量检测，成功检测，切换隧道，有没有通读的大佬可以探讨下</h2>
 ]]></content:encoded>
-<pubDate>2023-11-18T12:02:53Z</pubDate>
 <pubDate>2023-11-18T11:59:53Z</pubDate>
 </item>
 <item>
@@ -79,10 +246,8 @@
 <link>https://www.v2ex.com/t/993104</link>
 <guid>https://www.v2ex.com/t/993104</guid>
 <content:encoded><![CDATA[
-
 如题，有时候需要临时连一下，不开 VPN 的情况下，感觉端口映射有点危险，但也是有 RDP 需求。
 ]]></content:encoded>
-<pubDate>2023-11-18T11:47:48Z</pubDate>
 <pubDate>2023-11-18T12:02:09Z</pubDate>
 </item>
 <item>
@@ -90,11 +255,9 @@
 <link>https://www.v2ex.com/t/993103</link>
 <guid>https://www.v2ex.com/t/993103</guid>
 <content:encoded><![CDATA[
-
 <p>2023/11/18 19:40:43 http: proxy error: read tcp 172.18.0.4:35830-&gt;104.18.6.192:443: read: connection reset by peer</p>
 <p>2023/11/18 13:09:35 httputil: ReverseProxy read error during body copy: unexpected EOF</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:44:40Z</pubDate>
 <pubDate>2023-11-18T03:43:40Z</pubDate>
 </item>
 <item>
@@ -102,11 +265,9 @@
 <link>https://www.v2ex.com/t/993101</link>
 <guid>https://www.v2ex.com/t/993101</guid>
 <content:encoded><![CDATA[
-
 <p>apk 反编译后移除了 META-INF 下的所有文件，然后用 apktool 重新打包，再重新签名，签名时也显示签名成功，但安装时始终提示签名不一至，改了 app_name 后还是如此。原安装卸载后还是如此。咋回事呢？用的 github 上的 uber-apk-signer-1.3.0.jar 进行的签名。
 另：重新签名后的 apk 再反编译后，没了 META-INF 这个目录，但我看好像说 v2 签名不会生成 META-INF 。</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:30:56Z</pubDate>
 <pubDate>2023-11-18T12:10:14Z</pubDate>
 </item>
 <item>
@@ -114,7 +275,6 @@
 <link>https://www.v2ex.com/t/993100</link>
 <guid>https://www.v2ex.com/t/993100</guid>
 <content:encoded><![CDATA[
-
 <p>先叠个盾： 感谢所有开源作者的贡献</p>
 <hr />
 <p>不是前端，写个小工具，需要有个简单的界面，于是找了一个比较知名的开源前端 UI 库，非常好上手</p>
@@ -154,7 +314,6 @@
 <p>我就想知道，现在程序员的群体里，都已经这样了么？话不能直接说，沟通不能简洁有效 什么都得长篇大论，生怕触动了原始写这段代码的巨佬的权威</p>
 <p>你觉得合理，你就明确的告诉我合理，我也接受就完事了</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:30:15Z</pubDate>
 <pubDate>2023-11-18T12:25:48Z</pubDate>
 </item>
 <item>
@@ -162,12 +321,10 @@
 <link>https://www.v2ex.com/t/993099</link>
 <guid>https://www.v2ex.com/t/993099</guid>
 <content:encoded><![CDATA[
-
 <p>MVP 项目开发，类似 ProductHunt ，游戏领域</p>
 <p>付费开发。感兴趣的发出自己的 GitHub</p>
 <p>info#gameforce.fun</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:28:10Z</pubDate>
 <pubDate>2023-11-18T12:08:12Z</pubDate>
 </item>
 <item>
@@ -175,11 +332,9 @@
 <link>https://www.v2ex.com/t/993098</link>
 <guid>https://www.v2ex.com/t/993098</guid>
 <content:encoded><![CDATA[
-
 <p>是因为昨天手欠升级了 14.1.1 的与原因吗，14.1.0 的时候也有但是没有这么频繁，还是我家网络确实出了啥问题。</p>
 <p>大家有类似情况吗？有啥解决办法吗？</p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:18:56Z</pubDate>
 <pubDate>2023-11-18T11:29:10Z</pubDate>
 </item>
 <item>
@@ -187,13 +342,11 @@
 <link>https://www.v2ex.com/t/993097</link>
 <guid>https://www.v2ex.com/t/993097</guid>
 <content:encoded><![CDATA[
-
 <p>前些日子工作需要在腾讯云开了 api 网关服务，我们的虽然用但是平常都不怎么调用的，但是突然在今天被告知欠费快 7w ，还好只是 7w ，虽然已经不能忍了，这要是 700w 。。。当时立马咨询了人工客户，经过他们检查发现的确是系统异常扣费。还好我没钱充值，但是他们是不是应该给点补偿，差点都想溜了，如果非要让我付费，这腾讯可是号称南山必胜客。说句难听点的他这个属于系统重大问题啊，都说阿里最近蹦了问题不小，我看腾讯云这水平也没见得好到哪里去。
 <img alt="" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2023/11/18/cc738fb1c3cb0.png" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2023/11/18/bcef02fad91fb.png" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2023/11/18/c4e6c46096d68.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-18T11:18:35Z</pubDate>
 <pubDate>2023-11-18T11:17:35Z</pubDate>
 </item>
 <item>
@@ -202,9 +355,7 @@
 <guid>https://www.v2ex.com/t/993096</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-18T11:16:44Z</pubDate>
 <pubDate>2023-11-18T11:14:44Z</pubDate>
 </item>
 <item>
@@ -212,10 +363,8 @@
 <link>https://www.v2ex.com/t/993095</link>
 <guid>https://www.v2ex.com/t/993095</guid>
 <content:encoded><![CDATA[
-
 接收我自己服务器推送的消息，弹窗，iphone 我一直用的 Bark,貌似也是 v 友分享的，求推荐安卓下的自定义推送 不要微信的。暂时也不想要 telegram 应该有把，求推荐
 ]]></content:encoded>
-<pubDate>2023-11-18T11:01:27Z</pubDate>
 <pubDate>2023-11-18T11:07:52Z</pubDate>
 </item>
 <item>
@@ -224,9 +373,7 @@
 <guid>https://www.v2ex.com/t/993094</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-18T10:46:02Z</pubDate>
 <pubDate>2023-11-18T10:51:02Z</pubDate>
 </item>
 <item>
@@ -234,10 +381,8 @@
 <link>https://www.v2ex.com/t/993093</link>
 <guid>https://www.v2ex.com/t/993093</guid>
 <content:encoded><![CDATA[
-
 鼠标移动到感兴趣的 [标题] 上，页面内容自动加载<br /><br />为了提高浏览效率，适用于一些非讨论形话题<br /><br />[油猴脚本 v2ex+]( <a href="https://greasyfork.org/zh-CN/scripts/480176" rel="nofollow noopener" target="_blank">https://greasyfork.org/zh-CN/scripts/480176</a>)<br /><br /><a href="https://greasyfork.org/zh-CN/scripts/480176" rel="nofollow noopener" target="_blank">https://greasyfork.org/zh-CN/scripts/480176</a><br /><br />演示视频<br /><div class="embedded_video_wrapper"></div>
 ]]></content:encoded>
-<pubDate>2023-11-18T10:44:46Z</pubDate>
 <pubDate>2023-11-18T10:44:46Z</pubDate>
 </item>
 <item>
@@ -245,13 +390,10 @@
 <link>https://www.v2ex.com/t/993092</link>
 <guid>https://www.v2ex.com/t/993092</guid>
 <content:encoded><![CDATA[
-
 切换到 RIME 也就是中州韵输入中文的时候打拼音，比如想打“你好”，但实际上可能打出来“in 好”，而且有个规律，就是打字快的时候特别容易出现，放慢了速度倒是会降低发生频率。google 了一番关键词“fcitx5 字母 乱跳”，搜出来几篇文章比如 “[fcitx5 中文输入在 chrome/vscode 等应用中的问题及解决_chrome fctix5 中文输入-CSDN 博客]( <a href="https://blog.csdn.net/yuzx2008/article/details/126288531)”，" rel="nofollow noopener" target="_blank">https://blog.csdn.net/yuzx2008/article/details/126288531)”，</a> 但看起来好像都是一个人写的，按照他文章里说的方法，还得按照 fcitx gtk 的库，我用的 KDE plasma ，应该跟 gtk 没啥关系才对。不知道大家有没有遇到过这种问题？
 ]]></content:encoded>
-<pubDate>2023-11-18T10:27:24Z</pubDate>
 <pubDate>2023-11-18T12:26:19Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] 做了一个给独立创造者使用的导航网站</title>
 <link>https://www.v2ex.com/t/993091</link>
@@ -15415,238 +15557,6 @@ Google Play 商店装上谷歌全家桶，用的默认的 MIUI ，有啥把玩�
 这个月大约 20 几号就要去百度科技园实习了。希望租到集中供暖、有独立卫浴和洗衣机的房子（单间内有这些东西就够了）。租期 3 个月（到 2 月底结束），预算：房补范围内≤2500 ，房补范围外通勤时间 1 小时内≤1600 。<br /><br />目前已经浏览过 v2 之前的一些帖子，感觉北京的租房市场的水真的太深了。<br /><br />我看了自如，上面最短都要租 1 年而且租金都是 2300 以上的。提前终止合约又要把一大笔钱打水漂。如果选择短租都要 3000 了。其他像是安居客有不少租金只有一千多的，但是看 v2 的其他帖子感觉这个价格有点魔幻，会不会有坑。<br /><br />所以我想问问大家在北京租房有什么需要注意的点，以及大家房租都是多少？
 ]]></content:encoded>
 <pubDate>2023-11-14T11:05:31Z</pubDate>
-</item>
-<item>
-<title>关于写外包代码的代码保护问题，写的一些小代码如何防止别人拿了代码跑路？做 license？有什么方案呢？如果只是几个 Java 类，或者前端的几个页面，应该如何保护？</title>
-<link>https://www.v2ex.com/t/991839</link>
-<guid>https://www.v2ex.com/t/991839</guid>
-<content:encoded><![CDATA[
-关于写外包代码的代码保护问题，写的一些小代码如何防止别人拿了代码跑路？做 license ？有什么方案呢？如果只是几个 java 类，或者前端的几个页面，应该如何保护？<br /><br />类似于加点后门在里面。
-]]></content:encoded>
-<pubDate>2023-11-14T11:34:54Z</pubDate>
-</item>
-<item>
-<title>基于 Rime 的 iOS 仓输入法更新 2.0 版本了，自定义键盘布局上线</title>
-<link>https://www.v2ex.com/t/990492</link>
-<guid>https://www.v2ex.com/t/990492</guid>
-<content:encoded><![CDATA[
-仓输入法一款基于 Rime 的 iOS 版本开源输入法，更新 2.0 版本了<br /><br />无需联网、无广告、开源、免费！<br /><br />2.0 的界面更加简洁，所有功能一目了然，按功能分类，支持各种自定义。<br /><br /><a href="https://i.imgur.com/7MYj5Bj.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7MYj5Bj.jpg" /></a><br /><br /><br /><a href="https://i.imgur.com/6yVfKn5.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6yVfKn5.jpg" /></a><br /><br /><br />主题颜色支持亮色和暗色模式自动切换<br /><br /><a href="https://i.imgur.com/Li0vFKN.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Li0vFKN.jpg" /></a><br /><br /><br />自定义键盘布局文档，有详细的自定义信息： <a href="https://github.com/imfuxiao/Hamster/wiki/%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%AE%E7%9B%98%E5%B8%83%E5%B1%80" rel="nofollow noopener" target="_blank">https://github.com/imfuxiao/Hamster/wiki/%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%AE%E7%9B%98%E5%B8%83%E5%B1%80</a><br /><br />一个在线自定义键盘布局和主题颜色的在线工具： <a href="https://lost-melody.github.io/hamster-tools" rel="nofollow noopener" target="_blank">https://lost-melody.github.io/hamster-tools</a><br /><a href="https://i.imgur.com/9zPIqD4.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9zPIqD4.png" /></a><br /><br />App Store 商店链接： <a href="https://apps.apple.com/cn/app/%E4%BB%93%E8%BE%93%E5%85%A5%E6%B3%95/id6446617683" rel="nofollow noopener" target="_blank">https://apps.apple.com/cn/app/%E4%BB%93%E8%BE%93%E5%85%A5%E6%B3%95/id6446617683</a><br /><br />开源仓库地址： <a href="https://github.com/imfuxiao/Hamster" rel="nofollow noopener" target="_blank">https://github.com/imfuxiao/Hamster</a>
-]]></content:encoded>
-<pubDate>2023-11-13T14:35:24Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海] 米哈游，内推，带岗位私</title>
-<link>https://www.v2ex.com/t/991903</link>
-<guid>https://www.v2ex.com/t/991903</guid>
-<content:encoded><![CDATA[
-福利待遇好<br /><br />感兴趣的大佬欢迎来投<br /><br />VX：huanghtLeon
-]]></content:encoded>
-<pubDate>2023-11-14T10:18:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问检测一个充电器质量好坏的标准有哪些</title>
-<link>https://www.v2ex.com/t/991902</link>
-<guid>https://www.v2ex.com/t/991902</guid>
-<content:encoded><![CDATA[
-双 11 买了一个垃圾 USB 电流表，想测一下家里的充电头<br /><br />1. 纹波大小？<br />2. 看电压范围？看电压是否稳定？<br />3. 发热<br />。。。。。
-]]></content:encoded>
-<pubDate>2023-11-14T10:08:29Z</pubDate>
-</item>
-<item>
-<title>[VPS] 2023 黑色星期五最新促销： RackNerd，便宜 VPS 低至$10/年～</title>
-<link>https://www.v2ex.com/t/991899</link>
-<guid>https://www.v2ex.com/t/991899</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.wangdu.site/course/1878.html" rel="nofollow">2023 黑色星期五最新促销：RackNerd ，便宜 VPS 低至$10/年～</a></p>
-<p>RackNerd 主打一个实惠，我用着还不错；有需要的可以看看</p>
-]]></content:encoded>
-<pubDate>2023-11-14T10:04:35Z</pubDate>
-</item>
-<item>
-<title>[IPv6] 忽然发现， IPv6 可以彻底解决 SNI 暴露的问题， eSNI/ECH 在 IPv6 上根本不需要了</title>
-<link>https://www.v2ex.com/t/991897</link>
-<guid>https://www.v2ex.com/t/991897</guid>
-<content:encoded><![CDATA[
-我有几个域名托管在 AWS CloudFront 上面。<br />今天看了下它们的 IPv6 ，发现即使在同一个节点上，每一个域名的公网 IPv6 地址都是不一样的，每个域名在每个节点上都有自己的公网 IPv6 地址。<br />IPv6 地址多的离谱，根本不需要用 SNI 来区分不同站点了。
-]]></content:encoded>
-<pubDate>2023-11-14T10:13:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何快速在 github 中找到，适合自己的或者新兴的优秀项目</title>
-<link>https://www.v2ex.com/t/991896</link>
-<guid>https://www.v2ex.com/t/991896</guid>
-<content:encoded><![CDATA[
-<p>目前自己的途径</p>
-<ul>
-<li>github 的搜索条件过滤，比如：springboot stars:&lt;1000  created:&gt;2023-05-12 </li>
-<li>github 的 explore 菜单</li>
-<li>博客分享的优秀项目链接</li>
-</ul>
-<p>想问大佬们有没有其他好的方式 or 过滤条件 or 优秀博客，分享一下，感激不尽</p>
-]]></content:encoded>
-<pubDate>2023-11-14T09:45:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 咨询谷歌商店上架 app 的问题</title>
-<link>https://www.v2ex.com/t/991895</link>
-<guid>https://www.v2ex.com/t/991895</guid>
-<content:encoded><![CDATA[
-<p>上架了一款套壳 H5 的应用，老板的要求，
-上架了几天账号直接被 terminated 了，
-得到的答复原因是：</p>
-<pre><code>Additionally, we’ve identified that your app falls into one or both of the two categories below:
-
-1) Your app contains code that could put a user, a user’s data, or a device at risk, and/or
-2) Your app does not deliver on the promises made to the user.
-</code></pre>
-<p>我在网上找到类似的帖子：</p>
-<p><a href="https://support.google.com/googleplay/android-developer/thread/238972084/i-upload-a-webview-app-and-after-5-days-it-is-suspended?hl=en-GB" rel="nofollow">https://support.google.com/googleplay/android-developer/thread/238972084/i-upload-a-webview-app-and-after-5-days-it-is-suspended?hl=en-GB</a></p>
-<p>有没有这方面经验的朋友，
-请问下是否是提交了套壳 H5 的应用导致的直接账号被封？
-这个这么严厉吗，一般不都是 app 不通过审核吗？</p>
-]]></content:encoded>
-<pubDate>2023-11-14T10:03:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国内有只需要密码就能分享的在线文档查看服务吗？</title>
-<link>https://www.v2ex.com/t/991894</link>
-<guid>https://www.v2ex.com/t/991894</guid>
-<content:encoded><![CDATA[
-因为有这个需求，不知道对方用什么账号，所以无法预先加入群组或者设定账号，只能靠分享链接+密码的方式提供给对方。国外的好多都可以，但是国内访问不了。<br /><br />求哪位了解的兄弟指点一下
-]]></content:encoded>
-<pubDate>2023-11-14T10:11:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 面向找工作， Java 后端，想拓宽些技术栈，应该学习什么</title>
-<link>https://www.v2ex.com/t/991893</link>
-<guid>https://www.v2ex.com/t/991893</guid>
-<content:encoded><![CDATA[
-感觉自己经验和学历都不占优势，投简历回应好少，看好多招聘 JD 上要求是 java+大数据或者会 go 这样的，如果掌握这些技能能否增加投简历成功率
-]]></content:encoded>
-<pubDate>2023-11-14T10:17:24Z</pubDate>
-</item>
-<item>
-<title>[V2EX] V2EX 打开了 Cloudflare 保护?</title>
-<link>https://www.v2ex.com/t/991892</link>
-<guid>https://www.v2ex.com/t/991892</guid>
-<content:encoded><![CDATA[
-<p>最近几天比较忙没怎么看 v2 ，今天用<a href="https://github.com/fan123199/v2ex-simple" rel="nofollow">app</a>打开发现显示网络错误。电脑打开发现原来是需要 Cloudflare 验证: <a href="https://imgc.cc/2023/11/14/65533f38d4cbd.png" rel="nofollow"><img alt="1699954484309.png" class="embedded_image" rel="noreferrer" src="https://imgc.cc/2023/11/14/65533f38d4cbd.png" /></a></p>
-<p>看了一下最近的帖子， 似乎<a href="https://www.v2ex.com/t/991850#reply2" rel="nofollow">也有其他人遇到了类似的问题</a>，但是没看到相关的讨论</p>
-]]></content:encoded>
-<pubDate>2023-11-14T10:11:11Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] AI 生成结果的数据校验是另一个 AI，还是人类？</title>
-<link>https://www.v2ex.com/t/991891</link>
-<guid>https://www.v2ex.com/t/991891</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-11-14T09:56:24Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 重庆移动用户宽带福利，按需上车</title>
-<link>https://www.v2ex.com/t/991890</link>
-<guid>https://www.v2ex.com/t/991890</guid>
-<content:encoded><![CDATA[
-<h4>以下是卡商的宣传，好像仅需要 100R 的宽带开户费。</h4>
-<pre><code>重庆移动  老用户送 0 元 1000M 宽带 
-(可以不同名） 2 张卡共消费达 88 元就能办
- [ 1 档] 共承诺消费 38 送 300M 宽带
- [ 2 档] 共承诺消费 58 送 500M 宽带
- [ 3 档] 共承诺消费 88 送 1000M 宽带
-🔥 免费，设备减免
-🔥 免费，安装减免
-至少 2 个号码必须是主套餐，不能是副卡，主号作为户主且未办理宽带，宽带必须新装，家庭承诺消费 38/58/88 ，所有消费从家庭主账户扣费
-大重庆都能免费办
-提供 2 个手机号及姓名及安装地址，短信验证，2 个号码成立家庭账户新装宽带，办理宽带以后，2 个号码的费用都从主号码扣出
-</code></pre>
-]]></content:encoded>
-<pubDate>2023-11-14T09:35:26Z</pubDate>
-</item>
-<item>
-<title>[Apple] 请推荐手感好的触控板贴膜</title>
-<link>https://www.v2ex.com/t/991889</link>
-<guid>https://www.v2ex.com/t/991889</guid>
-<content:encoded><![CDATA[
-触控板用久了，手感很涩，由于疏油层被磨损。<br />首先买的是塑料膜，手感比磨损后的触控板更好。但是不如手机钢化膜，就又买了触控板钢化膜，手感反而比塑料膜差，并且不灵敏。<br />请推荐手感和手机钢化膜差不多的贴膜。没有搜到这方面的相关评测，应该属于小众需求。
-]]></content:encoded>
-<pubDate>2023-11-14T09:58:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何帮老父亲卖农产品（纯天然蜂蜜）</title>
-<link>https://www.v2ex.com/t/991887</link>
-<guid>https://www.v2ex.com/t/991887</guid>
-<content:encoded><![CDATA[
-<p>老父亲在老家养了十几桶蜜蜂，每年两个季节能取个几十斤的，我自己也很喜欢吃每年吃好几斤，剩下的父亲都是送人。</p>
-<p>考虑到老家那边市场价天然蜂蜜要 150 元一斤，相当于送出去一两千，几千块对老父亲来说也是一笔不小的费用了，那天看到朋友在朋友圈卖老家的橘子，想着能不能也卖一些让老爸增加一些收入呢。</p>
-<p>今年两个季节一共取了几十斤，上半年取得因为花粉的原因略苦，被我吃的差不多了，下半年取的几十斤，老父亲送人送了很多，还剩个十来斤。</p>
-<p>目前找到几个办法：
-1.咸鱼：咸鱼提示没有发布此类商品的资质，作罢。
-2.微信小商店：之前短时间开放过注册，目前已经暂停注册了。
-3.某小程序（扫码下单小助手）：目前商店注册好了，商品也加入了，尚不确定取款手续费以及是否存在其他限制等等。</p>
-<p>想问下大家有没有什么办法可以卖出去呢。此外如果大家有需要也可以联系我哦</p>
-<p>图中两大瓶大瓶送给岳父岳母，小瓶自己吃了。</p>
-<p><img alt="自己带的" class="embedded_image" rel="noreferrer" src="https://picss.sunbangyan.cn/2023/11/14/facf7d5308775919c65727a0969d79fd.jpg" title="自己带的" /></p>
-<p><img alt="包装" class="embedded_image" rel="noreferrer" src="https://picst.sunbangyan.cn/2023/11/14/d2a199a7cee598f39d2bd752d0b76b18.jpg" title="包装" /></p>
-<p><img alt="好处" class="embedded_image" rel="noreferrer" src="https://picdm.sunbangyan.cn/2023/11/14/452ff905b71cbac8bf9419d219bbb685.png" title="好处" /></p>
-<p><img alt="效果" class="embedded_image" rel="noreferrer" src="https://picst.sunbangyan.cn/2023/11/14/47f233583f9aa866a44c7c1c54330a53.jpg" title="效果" /></p>
-]]></content:encoded>
-<pubDate>2023-11-14T09:24:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 中年职场人在医保、公司补充医疗险外还需要配置哪些保险？</title>
-<link>https://www.v2ex.com/t/991886</link>
-<guid>https://www.v2ex.com/t/991886</guid>
-<content:encoded><![CDATA[
-快 35 了，感觉自己身体一年不如一年，现在正常交医保、社保，公司买了 100 万额度补充医疗险（能报销私立医院和国际部），如果还有哪些医疗险值得配置？意外险、百万医疗险、重疾险、高端医疗险、当地普惠医疗险……不重复购买的前提下，哪些值得补充，有什么值得买不坑人的好产品推荐吗？
-]]></content:encoded>
-<pubDate>2023-11-14T09:21:23Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 来自西港的呐喊😂</title>
-<link>https://www.v2ex.com/t/991883</link>
-<guid>https://www.v2ex.com/t/991883</guid>
-<content:encoded><![CDATA[
-<p>今天是 2023 年 11 月 13 ，</p>
-<p>我又白活了一天，</p>
-<p>依旧没人带我赚大钞。</p>
-<p>外面很冷，我很饿，</p>
-<p>身上的钱只够买一份小笼包，</p>
-<p>吃了这顿饭以后该怎么办?</p>
-<p>我很迷茫。。。</p>
-<p>以前进厂打螺丝一个月 2300 非常的满足。</p>
-<p>每月还可以下 2~3 次馆子，</p>
-<p>除去花销，</p>
-<p>有时候还能结余二三百还能吃个 150 的快餐，</p>
-<p>自从来了西港之后，</p>
-<p>就开始怀疑人生了。</p>
-<p>你们聊天一谈就是今天赚几万，几十万，几百万，</p>
-<p>看到你们晒的图，</p>
-<p>经常晚上整夜整夜的睡不着，</p>
-<p>有时候我都开始甚至怀疑世界都是假的。 </p>
-<p>家人们， </p>
-<p>你们怎么都不说话了 </p>
-<p>说话啊！</p>
-<p>你们又在赚什么钱？</p>
-<p>你们说话啊！</p>
-<p>我好害怕。</p>
-<p>好怕你们又挣到钱了， </p>
-<p>看你们挣到钱比我亏钱还他妈难受！ </p>
-<p>不要这样好吗，</p>
-<p>求求你们了，</p>
-<p>赚钱带我一起赚啊</p>
-]]></content:encoded>
-<pubDate>2023-11-14T09:48:00Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 号卡分销平台，招募代理一单返佣 80-200</title>
-<link>https://www.v2ex.com/t/991882</link>
-<guid>https://www.v2ex.com/t/991882</guid>
-<content:encoded><![CDATA[
-产品：次月返、秒返。<br />次月返规则：1 月激活 2 月在网 3 月结算。<br />秒返规则：激活完，联系管理申请 12 小时内到账<br /><br /> [诚招各地市手机门店加盟]  [学生工作者等各类人群皆可代理]  [资费低]  [套餐好]  [佣金高] <br /><br />激活一张可领取 80-200+佣金。拒绝套路，只做最真实，一张也结算！<br />运营商直发，免费发货，无需投资，方便快捷，提现秒到，靠谱！<br /><br /><br />代理加盟链接： <a href="http://t.le.com/05F80nx" rel="nofollow noopener" target="_blank">http://t.le.com/05F80nx</a><br /><br />所有卡都是正规卡 有长期套餐和短期套餐
-]]></content:encoded>
-<pubDate>2023-11-14T09:14:27Z</pubDate>
 </item>
 </channel>
 </rss>
