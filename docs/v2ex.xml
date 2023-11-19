@@ -5,14 +5,477 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 有没有免费开源进销存软件，支持手机扫描</title>
+<link>https://www.v2ex.com/t/993266</link>
+<guid>https://www.v2ex.com/t/993266</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-11-19T12:32:18Z</pubDate>
+<pubDate>2023-11-19T12:32:18Z</pubDate>
+</item>
+<item>
+<title>[Apple] 限制下载和转发的电报如何保存视频</title>
+<link>https://www.v2ex.com/t/993264</link>
+<guid>https://www.v2ex.com/t/993264</guid>
+<content:encoded><![CDATA[
+
+<p>Mac 端缓存路径没找到，iOS 更别提了。</p>
+]]></content:encoded>
+<pubDate>2023-11-19T12:16:54Z</pubDate>
+<pubDate>2023-11-19T12:13:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 注册了 popcash，插入广告代码，广告怎么没有在我的站显示?</title>
+<link>https://www.v2ex.com/t/993263</link>
+<guid>https://www.v2ex.com/t/993263</guid>
+<content:encoded><![CDATA[
+
+请教一下，注册了 popcash ，插入广告代码，广告怎么没有在我的站显示?代码插入或安装 popcash 的 wordpress 插件都一样，广告也都不显示，PropellerAds 也如此，大佬指点一下。
+]]></content:encoded>
+<pubDate>2023-11-19T12:04:51Z</pubDate>
+<pubDate>2023-11-19T12:24:07Z</pubDate>
+</item>
+<item>
+<title>[分享创造] .ssh/config 里面内容太多，用 Python fiet 做了个带 ui 的检索工具</title>
+<link>https://www.v2ex.com/t/993262</link>
+<guid>https://www.v2ex.com/t/993262</guid>
+<content:encoded><![CDATA[
+
+<p>之前用的 python tk 做的，但苹果系统升级到新版后，在点击的处理上，有些问题。</p>
+<p>程序的作用是，自动解析 .ssh/config 文件，解析出 host
+单击 标题头 可以排序
+单击行， 会复制相应的 ssh your_host_config 到剪贴板；
+TODO: 右键单击，会 Term 中运行 ssh your_host_config ，未实现，用于右键单击后，能自动打开 term 并运行 ssh your_host_config</p>
+<p>为什么要做这个呢？
+因为我的需求，是 host 很多，而有时候并不能完全记得 host 的关键词是什么，所以需要需要一些补充信息。
+ssh config 文件中，以空白行来分割不同的 Host 段落，每个段落前面可以有一行“#tags niit,南京” 这个标签
+tags 就是是我用来补充信息的，host 是 niit ，tags 是南京工业职业技术大学，可能一段时间之后，我只想得起 职业 两个字。我需要一个检索 ssh Host 的方法，输入我能想起来的关键字，能找到 niit 这个 Host 。</p>
+<p>flet 的问题：想给输入框加个 ctrl+w 的快捷键，加不了；想加个双击事件，也不支持。
+只有 listview ，没有 gridview 。
+所以界面格式不是表格的格式，是个 listview 。</p>
+<p>原来帖子在： <a href="https://v2ex.com/t/863264" rel="nofollow">https://v2ex.com/t/863264</a></p>
+<p><img alt="TK 版本的界面" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/zhangyc310/search_ssh_config_host/master/show_demo.png" /></p>
+<p>新版本用了 flet ，基于 flutter 的 Python ui 库，这下好用多了。只是启动速度略微有点慢，要 2/3 秒的停顿。但依然很快。</p>
+<p>代码如下：</p>
+<pre><code>from tkinter import *
+from tkinter.ttk import *
+import pyperclip3
+import sys
+
+import flet as ft
+from flet import TextField, ElevatedButton, ListView, ListTile, Text, Row, Column, Container, colors, IconButton, icons
+
+# 20231119 更新了 page 的滚动代码。
+# 说明：config 文件中，以空白行来分割不同的 Host 段落，每个段落前面可以有个 #tags niit,南京这个标签
+# 20231119 用 flet 这个 python 的 flutter 包来改写了一下，之前 tk 包在升级了 mac 系统后，有点说不出来的小 bug 。
+# 20220630v2 左键单击改双击了
+# 20220630v1 单击复制后，window 的 title 会提示复制的命令
+# 程序的作用是，自动解析 .ssh/config 文件，
+# tree 可以排序
+# 单击会复制 ssh your_host_config 到剪贴板；
+# 右键单击，会 Term 中运行 ssh your_host_config
+
+class Win:
+    def __init__(self):
+        self.root = self.__win()
+        self.tk_button_search_btn = self.__tk_button_search_btn()
+        self.tk_input_search_content = self.__tk_input_search_content()
+        self.tk_label_tip = self.__tk_label_tip()
+        # self.tk_list_box_listbox = self.__tk_list_box_listbox()
+        self.ttk_tree_content = self.__ttk_tree()
+        results = self.getSSHConfg()
+        self.updateHost2Tree(results)
+        self.ttk_tree_content.bind('&lt;Double-Button-1&gt;', self.treeviewClick)
+        self.ttk_tree_content.bind('&lt;ButtonRelease-2&gt;', self.treeviewDoubleClick)
+        self.tk_button_search_btn.bind('&lt;Button-1&gt;', self.search_Host)
+        self.tk_input_search_content.bind('&lt;Key-Return&gt;', self.search_Host)
+
+    def __win(self):
+        root = Tk()
+        root.title("我是标题 ~ TkinterHelper")
+        # 设置大小 居中展示
+        width = 600
+        height = 500
+        screenwidth = root.winfo_screenwidth()
+        screenheight = root.winfo_screenheight()
+        geometry = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        root.geometry(geometry)
+        root.resizable(width=False, height=False)
+        return root
+
+    def show(self):
+        self.root.mainloop()
+
+    def __tk_button_search_btn(self):
+        btn = Button(self.root, text="检索")
+        btn.place(x=290, y=20, width=50, height=24)
+
+        return btn
+
+    def __tk_input_search_content(self):
+        ipt = Entry(self.root)
+        ipt.place(x=120, y=20, width=150, height=24)
+        return ipt
+
+    def __tk_label_tip(self):
+        label = Label(self.root,text="选择")
+        label.place(x=40, y=20, width=50, height=24)
+        return label
+
+    def __tk_list_box_listbox(self):
+        lb = Listbox(self.root)
+        lb.insert(END, "列表框")
+        lb.insert(END, "Python")
+        lb.insert(END, "Tkinter Helper")
+        lb.place(x=40, y=60, width=528, height=428)
+        return lb
+
+    def treeview_sort_column(self,tv, col, reverse):
+        l = [(tv.set(k, col), k) for k in tv.get_children('')]
+        l.sort(reverse=reverse)
+
+        # rearrange items in sorted positions
+        for index, (val, k) in enumerate(l):
+            tv.move(k, '', index)
+
+        # reverse sort next time
+        tv.heading(col, command=lambda: \
+            self.treeview_sort_column(tv, col, not reverse))
+    def __ttk_tree(self):
+        columns = ('Group', 'Host','tags', 'Hostname')
+        tree = Treeview(self.root,columns = columns,  show='headings')
+        for col in columns:
+            tree.heading(col, text=col, command=lambda _col=col:self.treeview_sort_column(tree, _col, False))
+        tree.grid()
+        tree.place(x=40, y=60, width=528, height=428)
+        return tree
+
+    def updateHost2Tree(self,hostDatas):
+        for rs in hostDatas:
+            print(rs)
+            third = ""
+            if "Hostname" in rs:
+                third = rs['Hostname']
+            if "Port" in rs:
+                third = third + ":" + rs['Port']
+            tags=""
+            if "tags" in rs:
+                tags=rs['tags']
+            group = 'Default'
+            if "Group" in rs:
+                group = rs['Group']
+            li = [group, rs["Host"], tags, third+"\nabc"]
+            if "color" in rs:
+                self.ttk_tree_content.insert('', 'end', values=li, tags = (rs['color'],))
+                colors = rs['color'].split(",",1)
+                self.ttk_tree_content.tag_configure(rs['color'], background=colors[0])
+            else:
+                self.ttk_tree_content.insert('', 'end', values=li)
+
+    def clearTree(self):
+        x = self.ttk_tree_content.get_children()
+        for item in x:
+            self.ttk_tree_content.delete(item)
+
+    def print_contents(self, event):
+        print("okkkkk")
+
+    def getSSHConfg(self):
+        return getSSHConfg()
+
+    def treeviewClick(self,event):  # 单击
+        print('单击')
+        for item in self.ttk_tree_content.selection():
+            item_text =  self.ttk_tree_content.item(item, "values")
+            print(item_text[1])  # 输出所选行的第一列的值
+            pyperclip3.copy("ssh "+item_text[1])
+            self.root.title("复制—— ssh " + item_text[1])
+
+    def treeviewDoubleClick(self,event):  # 单击
+        print('右键单击')
+        for item in self.ttk_tree_content.selection():
+            item_text =  self.ttk_tree_content.item(item, "values")
+            print(item_text[1])  # 输出所选行的第一列的值
+            pyperclip3.copy("ssh "+item_text[1])
+
+    def search_Host(self ,event):
+        所有结果列表 2 = self.getSSHConfg()
+        要查找的字符=  self.tk_input_search_content.get()
+        print("要查找的字符: ",要查找的字符)
+        rs=[]
+        if 要查找的字符 == "0":
+            rs = 所有结果列表
+        else:
+            for 单个结果 in 所有结果列表 2:
+                    # field 是 jieguo 这个 dict 的 key ，用 jieguo[field]获取对应的 value
+                    find = False
+                    for field in 单个结果:
+                        if 单个结果[field].find(要查找的字符) &gt; -1:
+                            find=True
+                            break
+                    if find:
+                        rs.append(单个结果)
+        for search_rs in rs:
+            print("ssh", search_rs["Host"], " \t,", search_rs)
+        self.clearTree()
+        self.updateHost2Tree(rs)
+
+def getSSHConfg():
+        f = open("/Users/zhangyingchun/.ssh/config")
+        neirong = f.read()
+        f.close();
+        所有结果列表 = []
+        所有段落 = neirong.split('\n\n', -1)
+        i = 0;
+        for 每个段落 in 所有段落:
+            # 去除 .ssh/config 文件的第一段
+            if i == 0:
+                i = i + 1
+                continue
+            i = i + 1
+            每个段落的所有行 = 每个段落.split("\n", -1)
+            每个段落的解析结果列表 = {}
+            isUsefule = False
+            for 每一行 in 每个段落的所有行:
+                分割后元素列表 = 每一行.split(" ", 1)
+                # 处理 Host 、Hostname 、Port 、#color 、#tags 这个 5 个元素
+                # print("中间调试信息 Host hang：", 每一行)
+                if 每一行.startswith("Host "):
+                    # 必须有 Host 的段落才会保存到 所有结果列表
+                    isUsefule = True
+                    每个段落的解析结果列表["Host"] = 分割后元素列表[1]
+                elif 每一行.startswith("Hostname"):
+                    每个段落的解析结果列表["Hostname"] = 分割后元素列表[1]
+                elif 每一行.startswith("Port"):
+
+                    每个段落的解析结果列表["Port"] = 分割后元素列表[1]
+                elif 每一行.startswith("#tags"):
+                    每个段落的解析结果列表["tags"] = 分割后元素列表[1]
+                elif 每一行.startswith("#color"):
+                    每个段落的解析结果列表["color"] = 分割后元素列表[1]
+                elif 每一行.startswith("ProxyJump"):
+                    每个段落的解析结果列表["ProxyJump"] = 分割后元素列表[1]
+                elif 每一行.startswith("#group"):
+                    每个段落的解析结果列表["Group"] = 分割后元素列表[1]
+                    print("Group::: ",分割后元素列表[1])
+            if isUsefule:
+                所有结果列表.append(每个段落的解析结果列表)
+        print("所有结果列表: ",所有结果列表)
+        return 所有结果列表
+
+class FletApp:
+    def build(self, page):
+        self.page = page
+        self.page.title = "ssh Host 快速检索程序"
+        self.search_content = TextField(on_submit=self.search_host)
+        self.search_button = ElevatedButton(text="检索", on_click=self.search_host)
+        self.tip_label = Text("选择")
+        self.tip_label_copy=Text("复制")
+        self.list_view = ListView(expand=True)
+        self.copied_host = None  # 保存被复制行的标识
+        # ListView 放在 Column 中，并让它扩展以填充空间
+        list_container = Column(
+            controls=[self.list_view],
+            expand=1  # 让 Column 扩展以填充父容器
+        )
+        page.add(
+            Column(
+                controls=[
+                    Row(controls=[self.tip_label, self.search_content, self.search_button, self.tip_label_copy], alignment="start"),
+                    list_container  # 包含 ListView 的容器
+                ],
+                expand=1
+            )
+        )
+        page.scroll = "always"
+
+        # 更新列表
+        self.update_host_to_list(self.get_ssh_config())
+
+    def update_host_to_list(self, host_data):
+        self.list_view.controls.clear()
+        for i, data in enumerate(host_data):
+            bg_color = ft.colors.BACKGROUND
+            if i % 2 == 0 :
+                bg_color= colors.GREY_100  # 交替颜色
+            if data["Host"] == self.copied_host:
+                bg_color = colors.BLUE_100  # 被复制行的背景色
+            host=data.get("Host")
+            tags=data.get("tags")
+
+            jump = f"jump: {data.get('ProxyJump', '')}"
+            if jump=="jump: ":
+                jump=""
+            subtitle_text = f"[{data.get('Hostname', '')}:{data.get('Port', '22')}]\t {jump}"
+            title_text=f"{host}, {subtitle_text}\t{tags}"
+            list_item = Container(
+                content=ListTile(
+                    title=Text(title_text),
+                    # subtitle=Text(subtitle_text),
+                    trailing=IconButton(icon=icons.CONTENT_COPY, on_click=lambda e, data=data: self.copy_ssh_command(data["Host"]))
+                ),
+                bgcolor=bg_color,
+                padding=5
+            )
+            self.list_view.controls.append(list_item)
+            # 添加分割线
+            if i &lt; len(host_data) - 1:
+                divider = Container(height=1, width=self.page.width, bgcolor=colors.GREY_300)
+                self.list_view.controls.append(divider)
+        self.page.update()
+
+    def get_ssh_config(self):
+        # 这里应该是读取 SSH 配置的代码，我简化了一下
+        return getSSHConfg()
+        return [{"Host": "example.com", "Hostname": "192.168.1.1", "Port": "22"}, {"Host": "test.com", "Hostname": "192.168.1.2", "Port": "22"}]
+
+    def search_host(self, e):
+        search_term = self.search_content.value
+        all_config = self.get_ssh_config()
+        filtered_config = [
+            config for config in all_config if
+            search_term in config["Host"].lower() or
+            search_term in config.get("Hostname", "").lower() or
+            search_term in config.get("tags", "").lower()
+        ]
+        self.update_host_to_list(filtered_config)
+        self.search_content.focus()
+        # self.page.update()
+
+    def copy_ssh_command(self, host):
+        ssh_command = f"ssh {host}"
+        self.copied_host = host
+        self.tip_label_copy.value = ssh_command  # 更新文字
+        self.tip_label_copy.update()  # 应用更改
+        self.page.title = ssh_command  # 更改标题
+        self.page.update()  # 应用更改
+        copy_to_clipboard(ssh_command)
+
+def copy_to_clipboard(text):
+    # 这是一个示例函数，您需要根据您的操作系统实现实际的复制功能
+    # 在 Windows 上，您可以使用 pyperclip 或 tkinter 的剪贴板功能
+    # 在 web 应用中，您可以使用 Flet 的 clipboard 对象
+    pyperclip3.copy(text)
+    print("复制到剪贴板:", text)
+
+if __name__ == "__main__":
+    # 根据传入的 -tk 参数来决定启动 Tkinter 版本还是 Flet 版本的应用
+    if "-tk" in sys.argv:
+        # 启动 Tkinter 版本
+        win = Win()
+        所有结果列表 = win.getSSHConfg()
+        win.show()
+    else:
+        # 启动 Flet 版本
+        app = FletApp()
+        ft.app(target=app.build)
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-11-19T12:04:23Z</pubDate>
+<pubDate>2023-11-19T12:04:23Z</pubDate>
+</item>
+<item>
+<title>[生活] 在线配置怎么选择镜架呢</title>
+<link>https://www.v2ex.com/t/993261</link>
+<guid>https://www.v2ex.com/t/993261</guid>
+<content:encoded><![CDATA[
+
+<p>镜架的尺寸选择跟瞳距有关，而获取瞳距的方法是验光。
+问题：验光的时候需要佩戴选好的镜架去验瞳高。  这样就死锁了，除非去 2 次验光。
+各位彦祖们有啥好办法吗</p>
+]]></content:encoded>
+<pubDate>2023-11-19T12:03:37Z</pubDate>
+<pubDate>2023-11-19T12:26:09Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 不懂就问， Surge 可以实现修改 hosts 的功能吗？比如访问 x.com 的时候走 127.0.0.1</title>
+<link>https://www.v2ex.com/t/993260</link>
+<guid>https://www.v2ex.com/t/993260</guid>
+<content:encoded><![CDATA[
+
+<p>我不想改本地的 hosts ，想找个更加方便的方法</p>
+]]></content:encoded>
+<pubDate>2023-11-19T11:53:15Z</pubDate>
+<pubDate>2023-11-19T12:32:15Z</pubDate>
+</item>
+<item>
+<title>[Android] 各位大佬，有哪些出厂自带谷歌框架、手机信号好的安卓手机？</title>
+<link>https://www.v2ex.com/t/993259</link>
+<guid>https://www.v2ex.com/t/993259</guid>
+<content:encoded><![CDATA[
+
+<p>除了华为小米，有哪些出厂自带谷歌框架、手机信号好的安卓手机，最好外版的，国行怕自带反诈插件，富强都不安心。</p>
+]]></content:encoded>
+<pubDate>2023-11-19T11:49:35Z</pubDate>
+<pubDate>2023-11-19T12:27:56Z</pubDate>
+</item>
+<item>
+<title>[互联网] 阿里云盘现在是会员也限速吗</title>
+<link>https://www.v2ex.com/t/993255</link>
+<guid>https://www.v2ex.com/t/993255</guid>
+<content:encoded><![CDATA[
+
+今天下载电影的时候发现我这个千兆网只能 25Mb/s ，Steam 是能跑到 100 以上的
+]]></content:encoded>
+<pubDate>2023-11-19T11:12:32Z</pubDate>
+<pubDate>2023-11-19T11:11:32Z</pubDate>
+</item>
+<item>
+<title>[互联网] 我觉得“赞/踩”就像安慰剂，很多时候都没有实际的用处。</title>
+<link>https://www.v2ex.com/t/993253</link>
+<guid>https://www.v2ex.com/t/993253</guid>
+<content:encoded><![CDATA[
+
+<p>bilibili 、youtube 、reddit 。你可以对其他用户的评论点或者踩。<br />
+但其实点赞数、回复数、时间都不是唯一排序依据。<br />
+回复数量和时间还好，点赞这种事就让人觉得很多余。<br />
+毕竟还要防刷票，如果要又精确效率又高，也需要一个复杂的系统来支持，最终就只是为了展示一个数字。<br />
+感觉除了排序，剩下的作用就只是为用户提供情绪价值了：我不喜欢你说的话就可以踩，喜欢了就可以赞。让用户觉得有参与感，进一步引导用户参与讨论或关注讨论。<br />
+是这样吗？</p>
+<p>因为如果是我个人的喜好，我觉得单纯总是显示最新的评论也很好。<br />
+新发布的评论总是有曝光，这样能刺激用户一直发布新评论，而不是被最早抵达的一批用户占领评论区。<br />
+但似乎成熟的社区网站都喜欢提供表态功能，这还有什么深层次的目的吗？</p>
+]]></content:encoded>
+<pubDate>2023-11-19T10:46:20Z</pubDate>
+<pubDate>2023-11-19T11:59:56Z</pubDate>
+</item>
+<item>
+<title>[NAS] 群晖的无密码登录问题</title>
+<link>https://www.v2ex.com/t/993251</link>
+<guid>https://www.v2ex.com/t/993251</guid>
+<content:encoded><![CDATA[
+
+<p>我目前使用黑群晖 7.1 版本
+注册使用安全密钥并使用 1Password 存储 Passkey
+每一次登录显示 出现问题</p>
+<p>请教一下白裙用户有没有遇到这个问题</p>
+]]></content:encoded>
+<pubDate>2023-11-19T10:31:19Z</pubDate>
+<pubDate>2023-11-19T11:50:22Z</pubDate>
+</item>
+<item>
+<title>承接各类 app、网站、小程序开发</title>
+<link>https://www.v2ex.com/t/993258</link>
+<guid>https://www.v2ex.com/t/993258</guid>
+<content:encoded><![CDATA[
+
+<p>承接各类 app 、网站、小程序开发。
+各类主流编程语言均可。
+绿色 V：sddzlsc</p>
+]]></content:encoded>
+<pubDate>2023-11-19T11:33:40Z</pubDate>
+<pubDate>2023-11-19T07:33:40Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 我如何帮助 GPT-4 在 1 小时内自主解决 LeetCode 上 100 个编程问题</title>
 <link>https://www.v2ex.com/t/993248</link>
 <guid>https://www.v2ex.com/t/993248</guid>
 <content:encoded><![CDATA[
-
 博客: <a href="https://blog.t9t.io/leetcode-gpt-4-2023-11-20/" rel="nofollow noopener" target="_blank">https://blog.t9t.io/leetcode-gpt-4-2023-11-20/</a><br />代码： <a href="https://github.com/timqian/letcode.ai" rel="nofollow noopener" target="_blank">https://github.com/timqian/letcode.ai</a>
 ]]></content:encoded>
-<pubDate>2023-11-19T10:16:16Z</pubDate>
 <pubDate>2023-11-19T10:16:16Z</pubDate>
 </item>
 <item>
@@ -21,9 +484,7 @@
 <guid>https://www.v2ex.com/t/993247</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-19T10:12:38Z</pubDate>
 <pubDate>2023-11-19T10:16:33Z</pubDate>
 </item>
 <item>
@@ -31,10 +492,8 @@
 <link>https://www.v2ex.com/t/993246</link>
 <guid>https://www.v2ex.com/t/993246</guid>
 <content:encoded><![CDATA[
-
 <a href="https://www.v2ex.com/i/nLX7kL4l.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 nLX7kL4l.png"><img class="embedded_image" src="https://i.v2ex.co/nLX7kL4l.png" /></a><br />第三个证书的名字竟然是我的计算机名！<br />前两个应该是我安过银联的控件时安装的，最后一个不知道是什么，有谁见过？
 ]]></content:encoded>
-<pubDate>2023-11-19T10:04:56Z</pubDate>
 <pubDate>2023-11-19T10:12:28Z</pubDate>
 </item>
 <item>
@@ -42,13 +501,11 @@
 <link>https://www.v2ex.com/t/993244</link>
 <guid>https://www.v2ex.com/t/993244</guid>
 <content:encoded><![CDATA[
-
 <p>目前做法是写 2 套类库：
 一套用 spring cloud openfeign ，spring cloud 内部用
 一套用原生 openfeign ，给非 spring cloud 项目、老项目（ strusts2 、spring mvc 项目）
 不知道大家怎么处理这种？</p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:50:44Z</pubDate>
 <pubDate>2023-11-19T10:07:11Z</pubDate>
 </item>
 <item>
@@ -56,13 +513,11 @@
 <link>https://www.v2ex.com/t/993243</link>
 <guid>https://www.v2ex.com/t/993243</guid>
 <content:encoded><![CDATA[
-
 <p>devices 这里之前填错了，填成了自己的域名了，现在也找不到修改的地方了</p>
 <p>Launcher 这里邮箱后缀也设置了，就是收不到验证码</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/11/19/qZb3DE.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/11/19/IZE7Gs.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:42:00Z</pubDate>
 <pubDate>2023-11-19T09:42:00Z</pubDate>
 </item>
 <item>
@@ -70,13 +525,11 @@
 <link>https://www.v2ex.com/t/993242</link>
 <guid>https://www.v2ex.com/t/993242</guid>
 <content:encoded><![CDATA[
-
 <p>23 届普本双非 CS ，Fab 三安干了两个月，视频处理器销售躺了一个半月，明天入职新能源:(
 计算机不能说完全没有学，只是学的一般般（大黑皮之类的也都有看），可能是讨厌在格子间牢笼一般的感觉吧（苦笑），喜欢不起来代码哈哈，闲钱炒币
 家境很差 老家勉强有个老房子住，躺平也是能躺（等待物理消灭），没啥爱好，打打游戏，下下棋，刷知乎，看前沿和社会行业资讯（ 36 氪 丁香园 任务 Nature Portfolio 扩展迷 混知 机器之心 差评 brainnews OSC 开源 看客 inSight 阮一峰 瞻云 电子发烧友 电源漫谈 量子位 游民星空 知危）</p>
 <p>发发牢骚咯，未来走一步看一步吧（ V 友发财）</p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:38:40Z</pubDate>
 <pubDate>2023-11-19T09:54:21Z</pubDate>
 </item>
 <item>
@@ -84,14 +537,12 @@
 <link>https://www.v2ex.com/t/993240</link>
 <guid>https://www.v2ex.com/t/993240</guid>
 <content:encoded><![CDATA[
-
 <p>分形三维（ fractal3d ）： <a href="https://fractal3d.everxyz.com/" rel="nofollow">https://fractal3d.everxyz.com/</a></p>
 <p>Fractal 3D 是一款易用的在线 3D CAD 可视化引擎，无需了解任何图形学以及各种文件格式相关细节即可使用。
 他的特点：</p>
 <p>易用 - 不需要您有任何图形学以及 CAD 相关背景知识，即可在最短十分钟内搭建完成属于你的 3D 页面。</p>
 <p>格式丰富 - 覆盖主流 CAD 文件格式，所有文件支持格式列表： <a href="https://ever-xyz.feishu.cn/wiki/wikcn04EgZRPnFYCFbhHHXYVDQb" rel="nofollow">https://ever-xyz.feishu.cn/wiki/wikcn04EgZRPnFYCFbhHHXYVDQb</a> 。</p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:23:36Z</pubDate>
 <pubDate>2023-11-19T05:23:36Z</pubDate>
 </item>
 <item>
@@ -99,7 +550,6 @@
 <link>https://www.v2ex.com/t/993239</link>
 <guid>https://www.v2ex.com/t/993239</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 <p>如题，给 Vue 官网修过样式 bug ，给 Vuex 官网修过配置项（链接指向 bug ），还有一些别的 pr ，这些都是被 merge 的</p>
@@ -126,7 +576,6 @@
 </ul>
 <p>本人邮箱 : <a href="mailto:1596920983@qq.com">1596920983@qq.com</a></p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:18:57Z</pubDate>
 <pubDate>2023-11-19T09:15:57Z</pubDate>
 </item>
 <item>
@@ -134,10 +583,8 @@
 <link>https://www.v2ex.com/t/993238</link>
 <guid>https://www.v2ex.com/t/993238</guid>
 <content:encoded><![CDATA[
-
 <p>atv 上部署了 qx ，但是不支持局域网代理，只是开一个 ss 服务器，我打算群晖上 docker 装一个 ss 客户端来分享给一个特殊的设备用，不知道有这种镜像吗，需要支持 AES_128_GCM 加密方式？</p>
 ]]></content:encoded>
-<pubDate>2023-11-19T09:13:11Z</pubDate>
 <pubDate>2023-11-19T09:40:38Z</pubDate>
 </item>
 <item>
@@ -146,9 +593,7 @@
 <guid>https://www.v2ex.com/t/993237</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-19T09:08:49Z</pubDate>
 <pubDate>2023-11-19T09:48:19Z</pubDate>
 </item>
 <item>
@@ -156,11 +601,9 @@
 <link>https://www.v2ex.com/t/993236</link>
 <guid>https://www.v2ex.com/t/993236</guid>
 <content:encoded><![CDATA[
-
 <p>我司官网 <a href="https://www.qianhanghui.com/" rel="nofollow">https://www.qianhanghui.com/</a>
 百度和谷歌排名如何提升，现在只有输入全称才能搜到 SEO 这种怎么优化</p>
 ]]></content:encoded>
-<pubDate>2023-11-19T08:58:51Z</pubDate>
 <pubDate>2023-11-19T08:55:51Z</pubDate>
 </item>
 <item>
@@ -168,7 +611,6 @@
 <link>https://www.v2ex.com/t/993234</link>
 <guid>https://www.v2ex.com/t/993234</guid>
 <content:encoded><![CDATA[
-
 <p>上次测试： <a href="https://v2ex.com/t/970609" rel="nofollow">https://v2ex.com/t/970609</a></p>
 <p>结论：目前软件生态依然不行。如果要尝鲜，目前还是建议 avif+Rec.2020 ，ACR 导出时<strong>限制两档 HDR</strong>。
 另外 iOS 17 相较于上次测试的 iOS 16 ，chrome/safari 浏览器均不再能激活 HDR 效果。这个 regression 感觉蛮离谱的。</p>
@@ -201,20 +643,16 @@
 </ul>
 ]]></content:encoded>
 <pubDate>2023-11-19T08:34:08Z</pubDate>
-<pubDate>2023-11-19T08:34:08Z</pubDate>
 </item>
 <item>
 <title>[问与答] Android 有哪款代理软件支持 Mixin 混入？</title>
 <link>https://www.v2ex.com/t/993232</link>
 <guid>https://www.v2ex.com/t/993232</guid>
 <content:encoded><![CDATA[
-
 RT ，电脑端用的是 Clash For Windows ，有一个 Mixin 的功能，感觉挺好用的，这样的话，更新机场的配置之后，分流规则不需要每次都重新添加。Android 端用过 Clash For Android &amp; Surfboard ，但是都没有 Mixin 的功能。想问下，Android 端有哪款代理软件支持。还是说有其他的代替功能，是我这个小白没发现的。
 ]]></content:encoded>
-<pubDate>2023-11-19T08:21:53Z</pubDate>
 <pubDate>2023-11-15T08:20:53Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] homekit 易莱灯显示未响应（手机热点正常；路由器 2.4G 只能添加，不能控制）</title>
 <link>https://www.v2ex.com/t/993231</link>
@@ -15555,196 +15993,6 @@ B 是新能源，开始减速没有刹车灯，隧道明暗交界的时候才踩
 <p>站内我记得之前有位老哥说自己搭了个小的气象站会不会被查，这不就来了吗。</p>
 ]]></content:encoded>
 <pubDate>2023-11-15T04:20:43Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 关于 Apple Music 中的无损音频</title>
-<link>https://www.v2ex.com/t/992040</link>
-<guid>https://www.v2ex.com/t/992040</guid>
-<content:encoded><![CDATA[
-<h1>关于 Apple Music 中的无损</h1>
-<p><strong>这里只讨论 Apple Music 中的无损，不关注杜比全景声，测试时候也是在软件设置中关闭了杜比全景声</strong></p>
-<p>Apple Music 中的无损压缩音频又分为一般的无损和高解析度无损，虽然二者都使用 ALAC 格式的文件，但：</p>
-<ul>
-<li>Apple 将 16bit/44.1kHz 、24bit/44.1kHz 和 24bit/48kHz 的解析度称为<strong>无损音频</strong></li>
-<li>更高的 24bit/88.2kHz 、24bit/96kHz 和 24bit/192kHz 称为<strong>高解析度无损视频</strong></li>
-</ul>
-<h3>对于无损音频</h3>
-<p>无损音频，直接利用 Apple 设备即可原生播放，因为 iPhone 、iPad 、Mac 电脑、Apple TV 、所有 AirPods 耳机、Homepod 都能够支持到 24bit/48kHz 的数字到模拟转换精度。</p>
-<h3>对于高解析度无损音频</h3>
-<p>对于高解析度无损视频，Apple 系列大部分产品内置的数字到模拟转换器支持不了 24bit/192kHz 这样的高精度（但是现在少部分貌似可以支持到 24bit/88/96kHz ），所以你需要连接可以支持这样高精度的<code>外部设备</code>才可以正常回放并聆听，这个设备可以是音频接口、声卡、解码器、数字到模拟转换器等。通常来说这些设备都是通过 USB 、火线或雷电接口，连接到 iPhone/iPad/Mac 电脑，然后将耳机或音箱连接到这些外部设备进行聆听。</p>
-<h3>实测的一些设备：</h3>
-<p>Apple Music 软件会根据声音输出设备来选择对应的无损质量。我测试了手头有的三个设备：14’ MBP ，AirPods 和 一个单独购买的便携式 DAC-THX Onyx 。</p>
-<ul>
-<li>
-<p>AirPods 3 ，最高可支持到 32bit 48kHz （我没有 AirPods Pro ，不大清楚）</p>
-<p><img alt="airpods" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2WiBjNK.png" /></p>
-</li>
-<li>
-<p>MacBook Pro 14 寸, M1 Pro 芯片版本，内置扬声器可支持到 32bit 96kHz</p>
-<p><img alt="mbp" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/8IzprFI.png" /></p>
-</li>
-<li>
-<p>THX Onyx ，最高可支持到 32bit 384kHz</p>
-<p><img alt="onyx" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/R71DMTJ.png" /></p>
-</li>
-</ul>
-<h3>测试歌曲：</h3>
-<p>歌曲我用了两个：</p>
-<ul>
-<li>Coldplay 的 Parachutes ，全 cd 支持 24bit/192kHz</li>
-<li>Symphony Essentials ，一个交响乐合集，很多都在 24bit/88/96kHz</li>
-</ul>
-<p><img alt="parachutes" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WSYRU5D.png" /></p>
-<p><img alt="Symphony" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/rzi8v9i.png" /></p>
-]]></content:encoded>
-<pubDate>2023-11-15T03:32:05Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 由酷安这件事情想到的，国内有没有人玩 Lemmy</title>
-<link>https://www.v2ex.com/t/992038</link>
-<guid>https://www.v2ex.com/t/992038</guid>
-<content:encoded><![CDATA[
-<p>一个开源的分布式社区系统，无限类似于 Mastodon （甚至好像还能互操作，都是 ActivityPub ？）。</p>
-<p>官网： <a href="https://join-lemmy.org/" rel="nofollow">https://join-lemmy.org/</a></p>
-<p>官方实例： <a href="https://lemmy.world" rel="nofollow">https://lemmy.world</a> 注册需要排队。</p>
-<p>Github 开源： <a href="https://github.com/LemmyNet/lemmy" rel="nofollow">https://github.com/LemmyNet/lemmy</a></p>
-<p>感觉这个跟目前的酷安社区很相似，每个人都能建 community （说白了就是在 Reddit 建 subreddit ，在百度贴吧建贴吧），讨论也很自由，并且最重要是分布式的，不用非得依赖一台服务器，服务器之间可以互相访问对方内容。</p>
-<p>有没有人有兴趣做一个中文实例来提供给酷安难民🤣。</p>
-]]></content:encoded>
-<pubDate>2023-11-15T04:09:45Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 国区 2T Icloud + 音乐，自用车，招 2 位车友</title>
-<link>https://www.v2ex.com/t/992037</link>
-<guid>https://www.v2ex.com/t/992037</guid>
-<content:encoded><![CDATA[
-<p>国区 2T+ 音乐，6 人车，理论上每人 333G ，但超出只要不满都 ok ，目前 6 人只使用了不到 1T
-15/月，2 年稳定车，目前是半年一付，现有两位车友 12 月初下车
-有需要的朋友清留下你的联系方式，谢谢
-只有两个位置</p>
-]]></content:encoded>
-<pubDate>2023-11-15T03:02:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 听说这里可以接私活，挂个贴试试</title>
-<link>https://www.v2ex.com/t/992036</link>
-<guid>https://www.v2ex.com/t/992036</guid>
-<content:encoded><![CDATA[
-<h3>朝九晚六的工作，找点私活挣点零花钱，减轻点房贷压力</h3>
-<p>有需要做<strong>app ，小程序，web 应用，爬虫</strong>等需求的老板，欢迎骚扰！</p>
-<p><strong>微信：yljsnYY</strong></p>
-]]></content:encoded>
-<pubDate>2023-11-14T03:03:22Z</pubDate>
-</item>
-<item>
-<title>[Android] 有没有好用的半入耳式 TWS 耳机</title>
-<link>https://www.v2ex.com/t/992035</link>
-<guid>https://www.v2ex.com/t/992035</guid>
-<content:encoded><![CDATA[
-<p>对降噪需求不大,比较在意佩戴舒适度与音质。</p>
-<p>之前一直用的 Airpods2 各方面都很满意，不过现在换了安卓体验不好，比如看电量、入耳检测、双击下一曲等功能需要第三方 APP 挂在后台才能实现，还不是很灵敏。</p>
-<p>不知道各位有没有安卓平台上好用的半入耳式耳机推荐</p>
-]]></content:encoded>
-<pubDate>2023-11-15T03:10:58Z</pubDate>
-</item>
-<item>
-<title>[DNS] DNSPod Public DNS 专业版 绑定公网 ip 的建议 @johnjiang85</title>
-<link>https://www.v2ex.com/t/992034</link>
-<guid>https://www.v2ex.com/t/992034</guid>
-<content:encoded><![CDATA[
-<p>@<a href="https://www.v2ex.com/member/johnjiang85">johnjiang85</a> 建议绑定公网 ip 可以像 nextdns 一样 增加一个 ddns 你可以使用动态 DNS （ DDNS ）来自动更新绑定的 IP 。这样就方便许多。</p>
-]]></content:encoded>
-<pubDate>2023-11-15T03:09:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于小区停车棚</title>
-<link>https://www.v2ex.com/t/992032</link>
-<guid>https://www.v2ex.com/t/992032</guid>
-<content:encoded><![CDATA[
-刚买的一辆崭新公路车,平时下班后就停在了小区的车棚里,停靠方式自认为规范,没有横七竖八,但发现老是有人无故挪动我的车子. 上周开始下雨就一直停在那里,今天早上发现又被暴力扔出来了,车子外观明显被雨水冲的脏的不行,变速也有异响,一辆新车被搞的一塌糊涂.<br /><br />于是气冲冲的到门卫看监控,但那个车棚并不在监控范围内... 保安表示也没办法,并给我分析是不是车子挡住了电动车的充电口,我清晰记得这次停的距离充电口还有一定的距离,退一步讲就算放在了充电口处就可以把车子暴力扔出来吗? 并没有写明是「电动车充电棚」,难道电动车就自带优先权吗? 另外我是租户,是不是对车棚的使用权低于原住民?<br /><br />鉴于私人财产受到了破坏,本来想查监控报警甚至起诉的,这样看来是不是毫无办法了呢?
-]]></content:encoded>
-<pubDate>2023-11-15T04:06:41Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 制作了一个 GPTs 的导航站</title>
-<link>https://www.v2ex.com/t/992030</link>
-<guid>https://www.v2ex.com/t/992030</guid>
-<content:encoded><![CDATA[
-这几天在哥飞群里，大家对上 GPTs 的站很有兴趣，在群友的帮助下，我也上了自己的站 <a href="https://gptshub.app/" rel="nofollow noopener" target="_blank">https://gptshub.app/</a> 。全栈 next.js,第一次这样使用，踩了不少坑。目前是一个单页面，没有使用数据库，数据都保存在一个 json 文件中。准备再做一个浏览器的扩展，方便使用搜索。
-]]></content:encoded>
-<pubDate>2023-11-15T02:51:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 未来社会该如何保护个人隐私信息</title>
-<link>https://www.v2ex.com/t/992028</link>
-<guid>https://www.v2ex.com/t/992028</guid>
-<content:encoded><![CDATA[
-现在的个人隐私信息保护情况大家都知道了；各种各样的社工库各种泄露，我估计要查一个人，黑产圈的大佬都比公安局查的详细查的快；<br /><br />怎么保护个人信息呢？估计大部分人都是躺平的状态；小老百姓，爱咋咋地吧；<br /><br />但是现在怎么泄露还属于个人的外在信息泄露：姓名、手机号、住址、身份证号等等；<br /><br />但是现在 AI 技术发展太快了，可能你说几句话，朋友圈几张照片，以后用个软件，就能把你变成动作片里面的主角；<br /><br />面对这种现状，以后社会上的人该怎么保护个人隐私呢？总不能人人出门套头罩，说话都用变声器吧；<br /><br />大家可以讨论一下未来二十年后的情况；
-]]></content:encoded>
-<pubDate>2023-11-15T04:12:24Z</pubDate>
-</item>
-<item>
-<title>[程序员] 开了油管会员后变卡了，怎么搞</title>
-<link>https://www.v2ex.com/t/992027</link>
-<guid>https://www.v2ex.com/t/992027</guid>
-<content:encoded><![CDATA[
-<p>RT,开了油管会员后有的视频卡有的视频不卡，有吴彦祖遇到这种情况吗？怎么搞</p>
-]]></content:encoded>
-<pubDate>2023-11-15T02:50:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 给 iPhone 推送通知的 App， Bark VS Pushover</title>
-<link>https://www.v2ex.com/t/992026</link>
-<guid>https://www.v2ex.com/t/992026</guid>
-<content:encoded><![CDATA[
-<p>之前一直在用 Bark 推送手机的短信，要说一点缺点的话就是阅读推送内容的体验不是很好。</p>
-<p>今天才知道还有另外一个推送的 App：Pushover ，一次性付费的，也不贵。</p>
-<p>有同时使用过这两款的老哥吗？ 更推荐哪一个？</p>
-]]></content:encoded>
-<pubDate>2023-11-15T02:49:34Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 字节跳动—抖音支付—2024 校招，欢迎各位同学投递</title>
-<link>https://www.v2ex.com/t/992025</link>
-<guid>https://www.v2ex.com/t/992025</guid>
-<content:encoded><![CDATA[
-<p>服务端开发工程师—支付业务字节跳动</p>
-<p>团队介绍：支付业务致力于为抖音及字节跳动内支付场景提供极致的用户体验、稳健的客户信息及资金安全保障方案和卓越的金融服务保障方案。</p>
-<p>职位描述：</p>
-<p>1 、参与并负责支付核心系统的开发及维护；</p>
-<p>2 、参与并负责公司级别的春节、双十一等重要活动，解决高并发场景高可用问题；</p>
-<p>3 、参与并负责支付系统的稳定性建设，报警，监控，容灾，降级等；</p>
-<p>4 、参与设计并实现具备可扩展性和可维护性的系统方案；</p>
-<p>5 、充分理解支付业务，抽象领域模型，推进平台型系统建设。</p>
-<p>职位要求：</p>
-<p>1 、2024 届获得本科及以上学历，计算机相关专业优先；</p>
-<p>2 、有扎实的数据结构和算法功底，能熟练实现递归等常见算法／数据结构；</p>
-<p>3 、熟悉 C ／ C ＋＋／ Java ／ Python ／ Golang 中的 至少一门语言，对面向对象有基础了解； 4 、了解数据库、操作系统、计算机网络等核心课程的知识。</p>
-<p>欢迎投递邮箱： <a href="mailto:liyi.9@bytedance.com">liyi.9@bytedance.com</a></p>
-]]></content:encoded>
-<pubDate>2023-11-15T02:42:50Z</pubDate>
-</item>
-<item>
-<title>[NAS] 大家帮忙看下我的自建 NAS 媒体服务系统还有哪些可优化改进的地方</title>
-<link>https://www.v2ex.com/t/992023</link>
-<guid>https://www.v2ex.com/t/992023</guid>
-<content:encoded><![CDATA[
-<p>硬件：
-机器 - HP Gen8 Microserver ；
-CPU  - E3 1265L V2 ；
-内存 - 16G ；
-显卡 - NVIDIA Quadro P400 ；
-硬盘 - 两块 18T 存储用，一块 4T 下载用；</p>
-<p>系统：Ubuntu Server 22.04 LTS</p>
-<p>软件：均为 Docker 。
-Jellyfin ，image: nyanmisaka/jellyfin:latest ，影音库，已配置显卡硬转码；
-qBittorrent ，image: linuxserver/qbittorrent:latest ，PT 下载至 4T 硬盘；
-mkvtoolnix ，image: jlesage/mkvtoolnix:latest ，将没有 Remux 版本的原盘转成 Remux 版本；
-samba ，image: dperson/samba ，SMB 共享文件夹；
-另有 calibre-web ，gitea ，memos ，navidrome 等。</p>
-<p>双 11 刚购入一台 HP Gen10 Plus ，还在研究折腾中</p>
-]]></content:encoded>
-<pubDate>2023-11-15T03:48:43Z</pubDate>
 </item>
 </channel>
 </rss>
