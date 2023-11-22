@@ -5,14 +5,425 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 分享一个优雅处理 Spring Boot 接口响应的 Java 库，提供一站式统一返回值封装、全局异常处理、自定义异常错误码等功能，求 star</title>
+<link>https://www.v2ex.com/t/994341</link>
+<guid>https://www.v2ex.com/t/994341</guid>
+<content:encoded><![CDATA[
+
+<h1>简介</h1>
+<p>Graceful Response 是一个 Spring Boot 体系下的优雅响应处理器，提供一站式统一返回值封装、全局异常处理、自定义异常错误码等功能，使用 Graceful Response 进行 web 接口开发不仅可以节省大量的时间，还可以提高代码质量，使代码逻辑更清晰。</p>
+<p>零学习门槛，十秒钟上手！</p>
+<p>GitHub 仓库地址： <a href="https://github.com/feiniaojin/graceful-response" rel="nofollow">https://github.com/feiniaojin/graceful-response</a></p>
+<p>欢迎试用和 star!</p>
+<h1>Spring Boot 接口开发现状</h1>
+<p>目前，业界使用 Spring Boot 进行接口开发时，往往存在效率底下、重复劳动、可读性差等问题。以下伪代码相信大家非常熟悉，我们大部分项目的 Controller 接口都是这样的。</p>
+<pre><code class="language-java">@Controller
+public class Controller {
+    
+    @GetMapping("/query")
+    @ResponseBody
+    public Response query(Map&lt;String,Object&gt; paramMap) {
+        Response res = new Response();
+        try {
+            //1.校验 params 参数合法性，包括非空校验、长度校验等
+            if (illegal(paramMap)) {
+                res.setCode(1);
+                res.setMsg("error");
+                return res;
+            }
+            //2.调用 Service 的一系列操作，得到查询结果
+            Object data = service.query(params);
+            //3.将操作结果设置到 res 对象中
+            res.setData(data);
+            res.setCode(0);
+            res.setMsg("ok");
+            return res;
+        }catch (Exception e) {
+            //4.异常处理：一堆丑陋的 try...catch ，如果有错误码的，还需要手工填充错误码
+            res.setCode(1);
+            res.setMsg("error");
+            return res;
+        }
+    }
+}
+</code></pre>
+<p>这段伪代码存在什么样的问题呢？</p>
+<p>第一个问题，效率低下。Controller 层的代码应该尽量简洁，上面的伪代码其实只是为了将数据查询的结果进行封装，使其以统一的格式进行返回。例如以下格式的响应体：</p>
+<pre><code class="language-json">{
+  "code": 0,
+  "msg": "ok",
+  "data": {
+    "id": 1,
+    "name": "username"
+  }
+}
+</code></pre>
+<p>查询过程中如果发生异常，需要在 Controller 进行手工捕获，根据捕获的异常人工地设置错误码，当然，也用同样的格式封装错误码进行返回。</p>
+<p>可以看到，除了调用 service 层的 query 方法这一行，其他大部分的代码都执行进行结果的封装，大量的冗余、低价值的代码导致我们的开发活动效率很低。</p>
+<p>第二个问题，重复劳动。以上捕获异常、封装执行结果的操作，每个接口都会进行一次，因此造成大量重复劳动。</p>
+<p>第三个问题，可读性低。上面的核心代码被淹没在许多冗余代码中，很难阅读，如同大海捞针。</p>
+<p>我们可以通过 Graceful Response 这个组件解决这样的问题。</p>
+<h1>快速入门</h1>
+<h2>引入 Graceful Response 组件</h2>
+<p>Graceful Response 已发布至 maven 中央仓库，我们可以直接引入到项目中。</p>
+<p>maven 依赖如下：</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;com.feiniaojin&lt;/groupId&gt;
+    &lt;artifactId&gt;graceful-response&lt;/artifactId&gt;
+    &lt;version&gt;{latest.version}&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Spring Boot 版本</th>
+<th>Graceful Response 版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.x</td>
+<td>3.2.0-boot2</td>
+</tr>
+<tr>
+<td>3.x</td>
+<td>3.2.0-boot3</td>
+</tr>
+</tbody></table><h2>启用 Graceful Response</h2>
+<p>在启动类中引入 @<a href="https://www.v2ex.com/member/EnableGracefulResponse">EnableGracefulResponse</a> 注解，即可启用 Graceful Response 组件。</p>
+<pre><code class="language-java">@EnableGracefulResponse
+@SpringBootApplication
+public class ExampleApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ExampleApplication.class, args);
+    }
+}
+</code></pre>
+<h2>Controller 层</h2>
+<p>引入 Graceful Response 后，我们不需要再手工进行查询结果的封装，直接返回实际结果即可，Graceful Response 会自动完成封装的操作。</p>
+<p>Controller 层示例如下。</p>
+<pre><code class="language-java">@Controller
+public class Controller {
+    @RequestMapping("/get")
+    @ResponseBody
+    public UserInfoView get(Long id) {
+        log.info("id={}", id);
+        return UserInfoView.builder().id(id).name("name" + id).build();
+    }
+}
+</code></pre>
+<p>在示例代码中，Controller 层的方法直接返回了 UserInfoView 对象，没有进行封装的操作，但经过 Graceful Response 处理后，我们还是得到了以下的响应结果。</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": "0",
+    "msg": "ok"
+  },
+  "payload": {
+    "id": 1,
+    "name": "name1"
+  }
+}
+</code></pre>
+<p>而对于命令操作（ Command ）尽量不返回数据，因此 command 操作的方法的返回值应该是 void ，Graceful Response 对于对于返回值类型 void 的方法，也会自动进行封装。</p>
+<pre><code class="language-java">public class Controller {
+    @RequestMapping("/command")
+    @ResponseBody
+    public void command() {
+        //业务操作
+    }
+}
+</code></pre>
+<p>成功调用该接口，将得到：</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": "200",
+    "msg": "success"
+  },
+  "payload": {}
+}
+</code></pre>
+<h2>Service 层</h2>
+<p>在引入 Graceful Response 前，有的开发者在定义 Service 层的方法时，为了在接口中返回异常码，干脆直接将 Service 层方法定义为 Response ，淹没了方法的正常返回值。</p>
+<p>Response 的代码如下。</p>
+<pre><code class="language-java">//lombok 注解
+@Data
+public class Response {
+    private String code;
+    private String msg;
+    private Object data;
+}
+</code></pre>
+<p>直接返回 Response 的 Service 层方法：</p>
+<pre><code class="language-java">/**
+ * 直接返回 Reponse 的 Service
+ * 不规范
+ */
+public interface Service{
+    public Reponse commandMethod(Command command);
+}
+</code></pre>
+<p>Graceful Response 引入 @<a href="https://www.v2ex.com/member/ExceptionMapper">ExceptionMapper</a> 注解，通过该注解将异常和错误码关联起来，这样 Service 方法就不需要再维护 Response 的响应码了，直接抛出业务异常，由 Graceful Response 进行异常和响应码的关联。
+@<a href="https://www.v2ex.com/member/ExceptionMapper">ExceptionMapper</a> 的用法如下。</p>
+<pre><code class="language-java">/**
+ * NotFoundException 的定义，使用 @ExceptionMapper 注解修饰
+ * code:代表接口的异常码
+ * msg:代表接口的异常提示
+ */
+@ExceptionMapper(code = "1404", msg = "找不到对象")
+public class NotFoundException extends RuntimeException {
+
+}
+</code></pre>
+<p>Service 接口定义：</p>
+<pre><code class="language-java">public interface QueryService {
+    UserInfoView queryOne(Query query);
+}
+</code></pre>
+<p>Service 接口实现：</p>
+<pre><code class="language-java">public class QueryServiceImpl implements QueryService {
+    @Resource
+    private UserInfoMapper mapper;
+    public UserInfoView queryOne(Query query) {
+        UserInfo userInfo = mapper.findOne(query.getId());
+        if (Objects.isNull(userInfo)) {
+            //这里直接抛自定义异常
+            throw new NotFoundException();
+        }
+        //……后续业务操作
+    }
+}
+</code></pre>
+<p>当 Service 层的 queryOne 方法抛出 NotFoundException 时，Graceful Response 会进行异常捕获，并将 NotFoundException 对应的异常码和异常信息封装到统一的响应对象中，最终接口返回以下 JSON 。</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": "1404",
+    "msg": "找不到对象"
+  },
+  "payload": {}
+}
+</code></pre>
+<h2>参数校验</h2>
+<p>Graceful Response 对 JSR-303 数据校验规范和 Hibernate Validator 进行了增强，Graceful Response 自身不提供参数校验的功能，但是用户使用了 Hibernate Validator 后，Graceful Response 可以通过 @<a href="https://www.v2ex.com/member/ValidationStatusCode">ValidationStatusCode</a> 注解为参数校验结果提供响应码，并将其统一封装返回。</p>
+<p>例如以下的 UserInfoQuery 。</p>
+<pre><code class="language-java">@Data
+public class UserInfoQuery {
+    @NotNull(message = "userName is null !")
+    @Length(min = 6, max = 12)
+    @ValidationStatusCode(code = "520")
+    private String userName;
+}
+</code></pre>
+<p>UserInfoQuery 对象中定义了 @<a href="https://www.v2ex.com/member/NotNull">NotNull</a> 和 @<a href="https://www.v2ex.com/member/Length">Length</a> 两个校验规则，在未引入 Graceful Response 的情况下，会直接抛出异常；</p>
+<p>在引入 Graceful Response 但是没有加入 @<a href="https://www.v2ex.com/member/ValidationStatusCode">ValidationStatusCode</a> 注解的情况下，会以默认的错误码进行返回；</p>
+<p>在上面的 UserInfoQuery 中由于使用了 @<a href="https://www.v2ex.com/member/ValidationStatusCode">ValidationStatusCode</a> 注解，并指定异常码为 520 ，则当 userName 字段任意校验不通过时，都会使用异常码 520 进行返回，如下。</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": "520",
+    "msg": "userName is null !"
+  },
+  "payload": {}
+}
+</code></pre>
+<p>而对于 Controller 层直接校验方法入参的场景，Graceful Response 也进行了增强，如以下 Cntroller 。</p>
+<pre><code class="language-java">public class Controller {
+
+  @RequestMapping("/validateMethodParam")
+  @ResponseBody
+  @ValidationStatusCode(code = "1314")
+  public void validateMethodParam(
+          @NotNull(message = "userId 不能为空") Long userId,
+          @NotNull(message = "userName 不能为空") Long userName){
+      //省略业务逻辑
+  }
+}
+</code></pre>
+<p>如果该方法入参校验触发了 userId 和 userName 的校验异常，将以错误码 1314 进行返回，如下。</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": "1314",
+    "msg": "userId 不能为空"
+  },
+  "payload": {}
+}
+</code></pre>
+<h2>自定义 Response 格式</h2>
+<p>Graceful Response 内置了两种风格的响应格式，并通过 graceful-response.response-style 进行配置。</p>
+<p>graceful-response.response-style=0 ，或者不配置（默认情况），将以以下的格式进行返回：</p>
+<pre><code class="language-json">{
+  "status": {
+    "code": 1007,
+    "msg": "有内鬼，终止交易"
+  },
+  "payload": {
+  }
+}
+</code></pre>
+<p>graceful-response.response-style=1 ，将以以下的格式进行返回：</p>
+<pre><code class="language-json">{
+  "code": "1404",
+  "msg": "not found",
+  "data": {
+  }
+}
+</code></pre>
+<p>如果这两种格式均不满足业务需要，Graceful Response 也支持用户自定义响应体，关于自定义响应体的技术实现，请到 <a href="https://github.com/feiniaojin/graceful-response" rel="nofollow">https://github.com/feiniaojin/graceful-response</a> 进行了解。</p>
+]]></content:encoded>
+<pubDate>2023-11-22T16:15:59Z</pubDate>
+<pubDate>2023-11-21T16:15:59Z</pubDate>
+</item>
+<item>
+<title>[Steam] steam 秋季特卖开始了</title>
+<link>https://www.v2ex.com/t/994340</link>
+<guid>https://www.v2ex.com/t/994340</guid>
+<content:encoded><![CDATA[
+
+看到好多心仪的游戏都是史低价，虽然比较新的最多只有 20%折扣。大家有什么闭眼买的可以发出来安利一下，电子 ED 虽说不一定玩但必须得拥有！
+]]></content:encoded>
+<pubDate>2023-11-22T15:45:44Z</pubDate>
+<pubDate>2023-11-22T15:49:04Z</pubDate>
+</item>
+<item>
+<title>[Apple] 突发奇想，如果用 Mac mini+ Linux +外挂硬盘，这样的组合是否能用来当 nas？</title>
+<link>https://www.v2ex.com/t/994339</link>
+<guid>https://www.v2ex.com/t/994339</guid>
+<content:encoded><![CDATA[
+
+如题，现在 Asahi Linux 对 M1 系列的适配已经很不错了，所以突发奇想如果用这个组合来当 nas 是否有可行性而且能满足日用+随意折腾的需求（不计成本什么的，就图一乐）
+]]></content:encoded>
+<pubDate>2023-11-22T15:41:54Z</pubDate>
+<pubDate>2023-11-22T15:41:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有人分享下 Ubuntu touch 的体验？</title>
+<link>https://www.v2ex.com/t/994338</link>
+<guid>https://www.v2ex.com/t/994338</guid>
+<content:encoded><![CDATA[
+
+最近关注到 Ubuntu touch ，感觉很有意思。有没有老哥分享一下体验，作为主力手机使用的话有戏吗？流畅度、续航、生态等怎么样？<br /><br />最好也推荐下哪些手机刷 Ubuntu touch 比较好。
+]]></content:encoded>
+<pubDate>2023-11-22T15:36:41Z</pubDate>
+<pubDate>2023-11-22T15:35:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家是怎么看待死亡的呢？</title>
+<link>https://www.v2ex.com/t/994337</link>
+<guid>https://www.v2ex.com/t/994337</guid>
+<content:encoded><![CDATA[
+
+我小时候一直想着自己可以长生不老。后来长大了一点觉得自己的目标变成了赚好多钱，然后拿这些钱成立个机构专门研究怎么实现长生不老。现在这些看起来都几乎不可能实现了，大家是怎么看待死亡的呢？
+]]></content:encoded>
+<pubDate>2023-11-22T15:29:59Z</pubDate>
+<pubDate>2023-11-22T16:11:03Z</pubDate>
+</item>
+<item>
+<title>[Flask] celery 启动报错</title>
+<link>https://www.v2ex.com/t/994336</link>
+<guid>https://www.v2ex.com/t/994336</guid>
+<content:encoded><![CDATA[
+
+<p>celery 链接阿里云集群版 redis 报错
+redis.exceptions.ResponseError: 'BRPOP' command keys must in same slot
+求大佬们康康</p>
+]]></content:encoded>
+<pubDate>2023-11-22T15:27:44Z</pubDate>
+<pubDate>2023-11-22T15:24:44Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [上海/北京][美团]招高级前端开发工程师</title>
+<link>https://www.v2ex.com/t/994335</link>
+<guid>https://www.v2ex.com/t/994335</guid>
+<content:encoded><![CDATA[
+
+<h2>关键信息</h2>
+<ul>
+<li>公司：美团</li>
+<li>base 地：优先上海，北京也可以</li>
+<li>JD 要求：<a href="https://zhaopin.meituan.com/web/position/detail?jobUnionId=2079293705&amp;highlightType=social" rel="nofollow">高级前端开发工程师-商家端</a></li>
+</ul>
+<h2>补充</h2>
+<ul>
+<li>工作内容：平台型团队，既有业务支撑也有技术项目，业务理解及技术提升两不误</li>
+<li>欢迎有意向的同学投递简历，会及时回复的，邮件： <a href="mailto:jiangpeng25@meituan.com">jiangpeng25@meituan.com</a></li>
+<li>有疑问随时留言</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-11-22T15:22:02Z</pubDate>
+<pubDate>2023-11-22T15:22:02Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 大家的 chatgpt 网页版可以使用吗？</title>
+<link>https://www.v2ex.com/t/994334</link>
+<guid>https://www.v2ex.com/t/994334</guid>
+<content:encoded><![CDATA[
+
+我今天一直刷新不出来历史记录，提问也不回答。就和前几天挂了一样。请问你们的正常使用吗？
+]]></content:encoded>
+<pubDate>2023-11-22T15:17:33Z</pubDate>
+<pubDate>2023-11-22T15:46:14Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] OpenWrt 配置 IPv6 wan 接口的正确做法是？</title>
+<link>https://www.v2ex.com/t/994329</link>
+<guid>https://www.v2ex.com/t/994329</guid>
+<content:encoded><![CDATA[
+
+OpenWrt 新建一个名称为“wanX”的接口，PPPoE 协议，“高级设置 - 获取 IPv6 地址”选自动，这样配置下 wan 拨号成功后会自动生成一个接口名称为“wanX_6”的接口，协议为“虚拟动态接口 (DHCPv6 客户端)”，这种自动生成的 IPv6 wan 接口无法进行编辑设置。<br />另一种配置方式，新建 PPPoE wanX 接口时“高级设置 - 获取 IPv6 地址”选手动或禁用，然后再手动新建一个 IPv6 wan 接口，协议：DHCPv6 客户端，设备选“接口别名：@wanX”，这种 IPv6 wan 接口可以进行编辑设置。<br />（上面所说 IPv6 wan 接口的编辑设置，其中一个设置项是网关跃点，但 IPv6 wan 的网关跃点貌似在 OpenWrt 里不起作用？）<br />两种配置 IPv6 均可正常使用，请问哪种才是正确的配置做法？
+]]></content:encoded>
+<pubDate>2023-11-22T14:29:46Z</pubDate>
+<pubDate>2023-11-22T14:29:46Z</pubDate>
+</item>
+<item>
+<title>[Docker] container 内部如何 ping 通宿主机 ip？</title>
+<link>https://www.v2ex.com/t/994325</link>
+<guid>https://www.v2ex.com/t/994325</guid>
+<content:encoded><![CDATA[
+
+<p>之前用 docker 弄了一堆服务，端口分别映射到了宿主机的端口上，这样在内网可以用 http 直接访问。</p>
+<p>然后用 nginx proxy manager ，把这些宿主机的 http 端口转成了 https 再暴露到公网上访问，跑了一年都没问题。</p>
+<p>昨天也不知道为什么突然 https-http 不通了，查了一下发现是因为在 nginx proxy manger 这个 container 内部无法 ping 通宿主机 IP ，所以每个 upstream 都超时了。</p>
+<p>我有点茫然了，容器是跑的默认网络模式，前面一年明明可以访问宿主机 ip 的，怎么突然不行了。要怎么才能在宿主机内部 ping 通宿主机 ip ？</p>
+<p>试过 network_mode: host 居然也不行，不知道啥情况了。我贴一下原来的 docker compose file:</p>
+<pre><code>version: "3.8"
+services:
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:2.10.4
+    restart: unless-stopped
+    ports:
+      - 9000:80
+      - 443:443 # Public HTTPS Port
+      - 8007:81 # Admin Web Port
+    environment:
+      DISABLE_IPV6: 'true'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt</code></pre>
+]]></content:encoded>
+<pubDate>2023-11-22T14:18:22Z</pubDate>
+<pubDate>2023-11-22T14:53:30Z</pubDate>
+</item>
+<item>
+<title>做了一个给独立创造者使用的导航网站</title>
+<link>https://www.v2ex.com/t/993091</link>
+<guid>https://www.v2ex.com/t/993091</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://imgloc.com/image/HHTBo" rel="nofollow"><img alt="HHTBo.png" class="embedded_image" rel="noreferrer" src="https://i.imgs.ovh/2023/11/18/HHTBo.png" /></a></p>
+<h2><a href="https://www.duli.one" rel="nofollow">独立导航 duli.one</a></h2>
+<p>我发现许多优秀的网站、工具散落在互联网各处，有的时候只能通过一些文章或者论坛下的评论才能找到它们，所以就有了把它们汇聚起来，放到一个网站内的想法。最后，就有了这个网站 <a href="https://www.duli.one" rel="nofollow">独立导航 duli.one</a>。</p>
+<p>独立导航是一个为创造者服务的导航网站。我希望上面的每个网址都有价值、好用，许多都是我收藏了很久而且也经常使用的网站。但是，每个人对好用和有价值的评判标准是不一样的，所以我在做这个网站的时候也感觉十分犹豫，对于某个网站放还是不放百般纠结。我希望未来能够形成一套更加清晰的标准，让这个网站能够长期的运行下去，帮助到更多的人。</p>
+<p>现在上面的网站还不多，正在不断丰富中，如果你有好的建议或者发现，可以在下面留言，也可以发邮件到 <a href="mailto:brkchen@icloud.com">brkchen@icloud.com</a> ，谢谢大家。</p>
+]]></content:encoded>
+<pubDate>2023-11-18T10:15:20Z</pubDate>
+<pubDate>2023-11-20T15:06:54Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 有关于 invizible 的设置教程吗？</title>
 <link>https://www.v2ex.com/t/994324</link>
 <guid>https://www.v2ex.com/t/994324</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-22T14:09:02Z</pubDate>
 <pubDate>2023-11-22T10:09:02Z</pubDate>
 </item>
 <item>
@@ -20,10 +431,8 @@
 <link>https://www.v2ex.com/t/994322</link>
 <guid>https://www.v2ex.com/t/994322</guid>
 <content:encoded><![CDATA[
-
 <a href="https://mp.weixin.qq.com/s/cQgli4y-sLNg918MKW8D0g" rel="nofollow noopener" target="_blank">https://mp.weixin.qq.com/s/cQgli4y-sLNg918MKW8D0g</a><br /><br />STUN 服务器的作用是让 内网的机器能获取到自己在公网上对应的 UDP 通道信息。
 ]]></content:encoded>
-<pubDate>2023-11-22T14:03:39Z</pubDate>
 <pubDate>2023-11-22T14:01:39Z</pubDate>
 </item>
 <item>
@@ -31,10 +440,8 @@
 <link>https://www.v2ex.com/t/994321</link>
 <guid>https://www.v2ex.com/t/994321</guid>
 <content:encoded><![CDATA[
-
 求一款支持 Google Home 的温湿度传感器，可以 WiFi ，也可以蓝牙连接（不要网关直连 Google Nest ）。设备是 Google Nest Mini 。
 ]]></content:encoded>
-<pubDate>2023-11-22T13:48:46Z</pubDate>
 <pubDate>2023-11-22T13:50:59Z</pubDate>
 </item>
 <item>
@@ -42,7 +449,6 @@
 <link>https://www.v2ex.com/t/994320</link>
 <guid>https://www.v2ex.com/t/994320</guid>
 <content:encoded><![CDATA[
-
 <h2>介绍</h2>
 <p>作为一名前端开发者，你是否对新技术充满热情，并且乐于使用最新的工具和框架来打造出色的用户体验？如果是，那么飞书在线表格&amp;幻灯片团队正在寻找你！</p>
 <p>我们是一个充满活力的团队，致力于打造一个功能强大、用户友好的在线表格和幻灯片平台。我们的产品已经在市场上得到了广泛的认可，并且正在不断发展壮大。</p>
@@ -77,19 +483,16 @@
 <p>我所在的业务是飞书演示文档，有想了解的也可以直接问或邮箱联系我～</p>
 ]]></content:encoded>
 <pubDate>2023-11-22T13:44:02Z</pubDate>
-<pubDate>2023-11-22T13:44:02Z</pubDate>
 </item>
 <item>
 <title>[Python] 自己一个写的使用 selenium 循环下拉爬去推特用户所有静态资源工具</title>
 <link>https://www.v2ex.com/t/994318</link>
 <guid>https://www.v2ex.com/t/994318</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/kaixinol/twitter_user_tweet_crawler" rel="nofollow">https://github.com/kaixinol/twitter_user_tweet_crawler</a></p>
 <p>主要的亮点就是注入了改造的 javascript 代码，使其可以解析视频的原始链接</p>
 <p>求点 star</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T13:35:42Z</pubDate>
 <pubDate>2023-11-22T13:40:09Z</pubDate>
 </item>
 <item>
@@ -97,7 +500,6 @@
 <link>https://www.v2ex.com/t/994317</link>
 <guid>https://www.v2ex.com/t/994317</guid>
 <content:encoded><![CDATA[
-
 <p>RT.</p>
 <p>最近在玩 assistant api, 让 ai 按照指定 json 格式返回结果，但 ai 不能总按照预期返回。<br />
 经常会在返回的 json 数据前后加上一些描述性的文字。<br />
@@ -105,7 +507,6 @@
 <p>如果是把 ai 的结果直接给用户看还好，如果没有按照预期执行用户可以再次指定任务，<br />
 但是如果是把返回的结果和现有系统集成，会因为 ai 返回的不确定性导致集成难度上升。</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T13:32:31Z</pubDate>
 <pubDate>2023-11-22T13:39:19Z</pubDate>
 </item>
 <item>
@@ -113,12 +514,10 @@
 <link>https://www.v2ex.com/t/994315</link>
 <guid>https://www.v2ex.com/t/994315</guid>
 <content:encoded><![CDATA[
-
 <p>折腾一个星期了不知道为什么别的网站都没事儿就这个百度会这样。缓存什么的都清理了还是不行，强迫症很难受。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/FH45w3mA.jpeg" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/U47znb7U.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-22T13:17:40Z</pubDate>
 <pubDate>2023-11-22T05:17:40Z</pubDate>
 </item>
 <item>
@@ -126,10 +525,8 @@
 <link>https://www.v2ex.com/t/994314</link>
 <guid>https://www.v2ex.com/t/994314</guid>
 <content:encoded><![CDATA[
-
 #!/usr/bin/env python<br /># coding=utf-8<br />import os<br />import sys<br />libpath = os.path.join(os.path.dirname(__file__),'lib')<br />sys.path.insert(0,libpath)<br />from ansible import playbook, callbacks<br />import logging<br />import pprint<br />import time<br />DT=time.strftime('%Y%m%d')<br />TM=time.strftime('%H')<br />#import xlsxwriter<br />#workbook = xlsxwriter.Workbook('array_formula.xlsx')<br />def myprint(color,mes):<br />    """<br />    用于打印颜色<br />    :param color: 颜色<br />    :param mes: 打印内容<br />    :return: 没有返回<br />    """<br />    """<br />    30:    黑色<br />    31:    红色<br />    32:    绿色<br />    33:    黄色<br />    34:    蓝色<br />    35:    紫色<br />    36:    深绿色<br />    37:    白色<br /><br />    """<br /><br />    info = {'red':31, 'green': 32, 'yellow':33, 'blue':34,'dark_green':36,'default':37}<br />    if color in info:<br />        fore = info[color]<br />    else:<br />        fore = 37<br />    color = "\x1B[%d;%dm" % (1,fore)<br />    print("%s%s\x1B[0m" % (color,mes))<br /><br />class LoggingCallbacks(callbacks.PlaybookCallbacks):<br />    def log(self, level, msg, *args, **kwargs):<br />        logging.log(level, msg, *args, **kwargs)<br />        print msg<br />    def on_task_start(self, name, is_conditional):<br />        #self.log(<a href="http://logging.INFO" rel="nofollow noopener" target="_blank">logging.INFO</a>, 'task: {0}'.format(name))<br />        #super(LoggingCallbacks, self).on_task_start(name, is_conditional)<br />        #la.append('name')<br />        resall=u'TASK:'+name+'*'*40+'\n'<br />        myprint("default",resall) <br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-ok.txt', 'a') as f:<br />          f.write(resall) <br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-error.txt', 'a') as f:<br />          f.write(resall) <br />class LoggingRunnerCallbacks(callbacks.PlaybookRunnerCallbacks):<br />    def log(self, level, msg, *args, **kwargs):<br />        logging.log(level, msg, *args, **kwargs)<br /><br />    def _on_any(self, level, label, host, orig_result):<br />        result = orig_result.copy()<br />        result.pop('invocation', None)<br />        result.pop('verbose_always', True)<br />        item = result.pop('item', None)<br />        if not result:<br />            msg = ''<br />        elif len(result) == 1:<br />            msg = ' | {0}'.format(result.values().pop())<br />        else:<br />            msg = '\n' + pprint.pformat(result)<br />        if item:<br />            self.log(level, '{0} (item={1}): {2}{3}'.format(host, item, label, msg))<br />        else:<br />            self.log(level, '{0}: {1}{2}'.format(host, label, msg))<br /><br />    def on_failed(self, host, res, ignore_errors=False):<br />        if ignore_errors:<br />            level = <a href="http://logging.INFO" rel="nofollow noopener" target="_blank">logging.INFO</a><br />            label = 'FAILED (ignored)'<br />        else:<br />            level = logging.ERROR<br />            label = 'FAILED'<br />        self._on_any(level, label, host, res)<br />        super(LoggingRunnerCallbacks, self).on_failed(host, res, ignore_errors)<br />        resall=host+ u'\nFAILED:\n{0}'+format(res['stderr'])<br />        myprint("red",resall)<br />        myprint("red",res['stdout']+'\n'+'\n')<br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-error.txt', 'a') as f:<br />           f.write(resall)  <br />           f.write(res['stdout']+'\n'+'\n') <br />    def on_ok(self, host, res):<br />        #self._on_any(<a href="http://logging.INFO" rel="nofollow noopener" target="_blank">logging.INFO</a>, 'SUCCESS', host, res)<br />        super(LoggingRunnerCallbacks, self).on_ok(host, res)<br />        #print host,res<br />        resall=host+ u'\n'+format(res['stdout']) <br />        myprint("green",resall)<br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-ok.txt', 'a') as f:<br />          f.write(resall+'\n')  <br />    def on_error(self, host, msg):<br />        self.log(logging.ERROR, '{0}: ERROR | {1}'.format(host, msg))<br />        super(LoggingRunnerCallbacks, self).on_error(host, msg)<br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-error.txt', 'a') as f:<br />          f.write(str(host)+'\n')  <br />          f.write(str(msg)+'\n') <br />    def on_skipped(self, host, item=None):<br />        if item:<br />            self.log(<a href="http://logging.INFO" rel="nofollow noopener" target="_blank">logging.INFO</a>, '{0} (item={1}): SKIPPED'.format(host, item))<br />        else:<br />            self.log(<a href="http://logging.INFO" rel="nofollow noopener" target="_blank">logging.INFO</a>, '{0}: SKIPPED'.format(host))<br />        super(LoggingRunnerCallbacks, self).on_skipped(host, item)<br />    def on_unreachable(self, host, res):<br />        #self._on_any(logging.ERROR, 'UNREACHABLE', host, dict(unreachable=res))<br />        super(LoggingRunnerCallbacks, self).on_unreachable(host, res)<br />        resall=host+ u'\nERROR:CONNECT FAILD:\n{0}\n'+format(res) <br />        myprint("red",resall+'\n')<br />        with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-error.txt', 'a') as f:<br />          f.write(resall+'\n')  <br />    def on_no_hosts(self):<br />        self.log(logging.ERROR, 'No hosts matched')<br />        super(LoggingRunnerCallbacks, self).on_no_hosts()<br />def run_playbook(name):<br />    if not os.path.exists('/root/ans/log/'+DT):<br />        os.mkdir('/root/ans/log/'+DT)<br />    with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-ok.txt', 'w') as f:<br />    	  f.write('Today is '+DT+'  Let the check begin'+'\n\n')<br />    with open('/root/ans/log/'+DT+'/'+TM+'-'+sys.argv[1]+'-error.txt', 'w') as f:<br />        f.write('Today is '+DT+'  Let the check begin'+'\n\n')  <br />    stats = callbacks.AggregateStats()<br />    playbook_cb = LoggingCallbacks(verbose=3)<br />    runner_cb = LoggingRunnerCallbacks(stats, verbose=3)<br /><br />    pb = playbook.PlayBook(<br />        playbook=name,<br />        stats=stats,<br />        callbacks=playbook_cb,<br />        runner_callbacks=runner_cb,<br />        )<br />    <a href="http://pb.run" rel="nofollow noopener" target="_blank">pb.run</a>()<br /><br />if __name__ == "__main__":<br />  run_playbook(sys.argv[1])
 ]]></content:encoded>
-<pubDate>2023-11-22T13:12:07Z</pubDate>
 <pubDate>2023-11-22T13:09:07Z</pubDate>
 </item>
 <item>
@@ -137,10 +534,8 @@
 <link>https://www.v2ex.com/t/994313</link>
 <guid>https://www.v2ex.com/t/994313</guid>
 <content:encoded><![CDATA[
-
 <p>已经矫正了,带着金属牙套来保持临近牙齿不会再歪.</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T13:10:35Z</pubDate>
 <pubDate>2023-11-22T14:09:43Z</pubDate>
 </item>
 <item>
@@ -148,10 +543,8 @@
 <link>https://www.v2ex.com/t/994312</link>
 <guid>https://www.v2ex.com/t/994312</guid>
 <content:encoded><![CDATA[
-
 java 程序员在一个软件公司工作三年了工资极低年薪十多万，在北京。<br /><br />感觉在同龄中工资不算低，但是也不高。但是看网络上都是几十上百万的，求教导。如何赚钱。
 ]]></content:encoded>
-<pubDate>2023-11-22T13:02:36Z</pubDate>
 <pubDate>2023-11-22T11:02:36Z</pubDate>
 </item>
 <item>
@@ -159,10 +552,8 @@ java 程序员在一个软件公司工作三年了工资极低年薪十多万，
 <link>https://www.v2ex.com/t/994311</link>
 <guid>https://www.v2ex.com/t/994311</guid>
 <content:encoded><![CDATA[
-
 <p>降薪 70%回去，还是临时工，还不是老家，只是离家稍微近点。是不是有点 2B 。码农职业生涯感觉也就这样了，干不动，学不动了。不再想和人扯需求，扯方案了。</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T13:02:06Z</pubDate>
 <pubDate>2023-11-22T14:09:23Z</pubDate>
 </item>
 <item>
@@ -170,10 +561,8 @@ java 程序员在一个软件公司工作三年了工资极低年薪十多万，
 <link>https://www.v2ex.com/t/994310</link>
 <guid>https://www.v2ex.com/t/994310</guid>
 <content:encoded><![CDATA[
-
 最近遇上头疼的事，厨房主下水管漏水，厨房地面已经有些许水流出来了。<br />维修的话可能涉及拆橱柜、灶台，不知道各位佬有什么维修方案或者经验吗？
 ]]></content:encoded>
-<pubDate>2023-11-22T13:01:38Z</pubDate>
 <pubDate>2023-11-22T14:13:39Z</pubDate>
 </item>
 <item>
@@ -181,7 +570,6 @@ java 程序员在一个软件公司工作三年了工资极低年薪十多万，
 <link>https://www.v2ex.com/t/994308</link>
 <guid>https://www.v2ex.com/t/994308</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="a5d9d82c62ead86d3cb11fe16eddeb67.jpeg" class="embedded_image" rel="noreferrer" src="https://i.mji.rip/2023/11/22/a5d9d82c62ead86d3cb11fe16eddeb67.jpeg" />
 目前想要实现 192.168.2.200 这台电脑能够访问 192.168.10.2 这台设备。
 openvpn 服务器已经搭好，客户机也能正常连接，目前就是 192.168.2.200 无法访问 192.168.10.2 ，
@@ -225,7 +613,6 @@ push "block-outside-dns"</p>
 <p>#client-config-dir /etc/openvpn/ccd</p>
 <p>#route 192.168.2.0 255.255.255.0</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T12:53:25Z</pubDate>
 <pubDate>2023-11-22T13:54:26Z</pubDate>
 </item>
 <item>
@@ -234,10 +621,8 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994307</link>
 <guid>https://www.v2ex.com/t/994307</guid>
 <content:encoded><![CDATA[
-
 <p>朋友找我帮忙，想把一个网站，包装成 APP 。</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T12:52:27Z</pubDate>
 <pubDate>2023-11-22T12:51:27Z</pubDate>
 </item>
 <item>
@@ -245,11 +630,9 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994305</link>
 <guid>https://www.v2ex.com/t/994305</guid>
 <content:encoded><![CDATA[
-
 <p>只是疑问，如果一个 Electron 应用将 Nodejs 部分打包成二进制文件，然后使用系统原生平台做一个启动按钮，点击后直接执行这个二进制文件 + 启动一个本地 http server 用来在 localhost 上展示前端 UI 界面，通信直接走 socket</p>
 <p>这么搞初看上去好像也没啥毛病，当然肯定会存在很多限制，不知道这种限制会是啥？为啥都没见到有人这么玩过</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T12:43:11Z</pubDate>
 <pubDate>2023-11-22T14:17:50Z</pubDate>
 </item>
 <item>
@@ -257,14 +640,12 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994304</link>
 <guid>https://www.v2ex.com/t/994304</guid>
 <content:encoded><![CDATA[
-
 <p>我自己组了台 PC 做 Nas ，系统是 Ubuntu 2004 ，运行了至少得有 5 年了都没问题，但最近发现可能是主板坏了。</p>
 <p>数据盘是基于 LVM 管理的，多块硬盘（每块硬盘一个 PV ）组成了一个 VG ，然后有两个 LV 。</p>
 <p>我的问题是，假设磁盘都没问题的情况下，我换个主板，把所有数据盘插到新主板上，磁盘的信息（ PV 、VG 、LV ）及数据还能正常识别出来吗，磁盘设备顺序变了（如原来的 <code>/dev/sda</code> 变为 <code>/dev/sdb</code>）会影响数据的识别吗？</p>
 <p>另外，以前系统是安装在一块古老的 80G 硬盘上，想把系统也迁移至 SSD ，有什么要特殊注意的吗？</p>
 <p>感谢大家。</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T12:40:24Z</pubDate>
 <pubDate>2023-11-22T13:08:08Z</pubDate>
 </item>
 <item>
@@ -272,10 +653,8 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994303</link>
 <guid>https://www.v2ex.com/t/994303</guid>
 <content:encoded><![CDATA[
-
 <p>昨晚 Sam Altman 已经确定回归 OpenAI 当 CEO 了，这剧情</p>
 ]]></content:encoded>
-<pubDate>2023-11-22T12:39:39Z</pubDate>
 <pubDate>2023-11-22T12:39:39Z</pubDate>
 </item>
 <item>
@@ -283,10 +662,8 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994302</link>
 <guid>https://www.v2ex.com/t/994302</guid>
 <content:encoded><![CDATA[
-
 赶着升级了 HyperOS ，结果一堆 bug 没法用：相机声音关不掉，一些应用打不开了，字体渲染怪异，气温读取异常等等，幸好升级前用 TWRP 备份了全部分区。为了保险，全清后刷入了先前的 eu miui 作为底包，再通过 TWRP 恢复全部分区，结果卡在小米 logo 几秒钟反复重启，然后就会进 twrp ，日志显示 init_user0_failed 。没找到具体的解决方法，请问要如何才能恢复？
 ]]></content:encoded>
-<pubDate>2023-11-22T12:38:19Z</pubDate>
 <pubDate>2023-11-22T13:34:36Z</pubDate>
 </item>
 <item>
@@ -294,10 +671,8 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/994301</link>
 <guid>https://www.v2ex.com/t/994301</guid>
 <content:encoded><![CDATA[
-
 申请 BidVertiser 广告联盟，为什么验证不了网站，把这个验证代码&lt;!-- Bidvertiser2086551 --&gt;放在哪里啊?放了几个地方都不行。
 ]]></content:encoded>
-<pubDate>2023-11-22T12:37:29Z</pubDate>
 <pubDate>2023-11-22T12:36:29Z</pubDate>
 </item>
 <item>
@@ -305,13 +680,10 @@ push "block-outside-dns"</p>
 <link>https://www.v2ex.com/t/992738</link>
 <guid>https://www.v2ex.com/t/992738</guid>
 <content:encoded><![CDATA[
-
 这个网站大概是 2009 年左右就写好的 (忘了说了，我当年还写了 <a href="http://Slickdeals.net" rel="nofollow noopener" target="_blank">Slickdeals.net</a> 的第一个非官方的 ios 客户端），这个网站的主要功能是自动根据一个算法（包含了 deal 单位时间 thumbs up 的数量等原则）来索引好的 Deal.<br /><br />网站现在的网址是 <a href="http://spdeals.net" rel="nofollow noopener" target="_blank">http://spdeals.net</a> 或者 <a href="http://superpopulardeals.com" rel="nofollow noopener" target="_blank">http://superpopulardeals.com</a><br /><br />大家放心这个网站是完全免费无广告的，我写了有十几年了，主要是自己和一些朋友用，帮助我自己抢了很多好 Deal
 ]]></content:encoded>
-<pubDate>2023-11-17T03:52:08Z</pubDate>
 <pubDate>2023-11-20T10:33:46Z</pubDate>
 </item>
-
 <item>
 <title>[HomeKit] 支持 HomeKit 的温度计</title>
 <link>https://www.v2ex.com/t/994299</link>
@@ -14450,411 +14822,6 @@ matrixport：币圈，base 曼谷，加上出差补贴，年包 55w ，项目忙
 
 ]]></content:encoded>
 <pubDate>2023-11-18T11:14:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 安卓下类似 ios 的 bark 推送 app 是啥</title>
-<link>https://www.v2ex.com/t/993095</link>
-<guid>https://www.v2ex.com/t/993095</guid>
-<content:encoded><![CDATA[
-接收我自己服务器推送的消息，弹窗，iphone 我一直用的 Bark,貌似也是 v 友分享的，求推荐安卓下的自定义推送 不要微信的。暂时也不想要 telegram 应该有把，求推荐
-]]></content:encoded>
-<pubDate>2023-11-18T11:07:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 这周看到有个 V 友发帖宣传他的日程啥的管理软件，当时想下载发现得升级 ios ，今天升级好了，结果找不到那个帖子了。如有看到的 V 友，麻烦贴个连接。</title>
-<link>https://www.v2ex.com/t/993094</link>
-<guid>https://www.v2ex.com/t/993094</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-11-18T10:51:02Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [油猴]自动加载标题内容到当前页，效率提高；有希望添加的功能留言</title>
-<link>https://www.v2ex.com/t/993093</link>
-<guid>https://www.v2ex.com/t/993093</guid>
-<content:encoded><![CDATA[
-鼠标移动到感兴趣的 [标题] 上，页面内容自动加载<br /><br />为了提高浏览效率，适用于一些非讨论形话题<br /><br />[油猴脚本 v2ex+]( <a href="https://greasyfork.org/zh-CN/scripts/480176" rel="nofollow noopener" target="_blank">https://greasyfork.org/zh-CN/scripts/480176</a>)<br /><br /><a href="https://greasyfork.org/zh-CN/scripts/480176" rel="nofollow noopener" target="_blank">https://greasyfork.org/zh-CN/scripts/480176</a><br /><br />演示视频<br /><div class="embedded_video_wrapper"></div>
-]]></content:encoded>
-<pubDate>2023-11-18T10:44:46Z</pubDate>
-</item>
-<item>
-<title>[Linux] manjaro plasma 23 上的 fcitx5-rime 打字时字母乱跳</title>
-<link>https://www.v2ex.com/t/993092</link>
-<guid>https://www.v2ex.com/t/993092</guid>
-<content:encoded><![CDATA[
-切换到 RIME 也就是中州韵输入中文的时候打拼音，比如想打“你好”，但实际上可能打出来“in 好”，而且有个规律，就是打字快的时候特别容易出现，放慢了速度倒是会降低发生频率。google 了一番关键词“fcitx5 字母 乱跳”，搜出来几篇文章比如 “[fcitx5 中文输入在 chrome/vscode 等应用中的问题及解决_chrome fctix5 中文输入-CSDN 博客]( <a href="https://blog.csdn.net/yuzx2008/article/details/126288531)”，" rel="nofollow noopener" target="_blank">https://blog.csdn.net/yuzx2008/article/details/126288531)”，</a> 但看起来好像都是一个人写的，按照他文章里说的方法，还得按照 fcitx gtk 的库，我用的 KDE plasma ，应该跟 gtk 没啥关系才对。不知道大家有没有遇到过这种问题？
-]]></content:encoded>
-<pubDate>2023-11-18T12:26:19Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了一个给独立创造者使用的导航网站</title>
-<link>https://www.v2ex.com/t/993091</link>
-<guid>https://www.v2ex.com/t/993091</guid>
-<content:encoded><![CDATA[
-<p><a href="https://imgloc.com/image/HHTBo" rel="nofollow"><img alt="HHTBo.png" class="embedded_image" rel="noreferrer" src="https://i.imgs.ovh/2023/11/18/HHTBo.png" /></a></p>
-<h2><a href="https://www.duli.one" rel="nofollow">独立导航 duli.one</a></h2>
-<p>我发现许多优秀的网站、工具散落在互联网各处，有的时候只能通过一些文章或者论坛下的评论才能找到它们，所以就有了把它们汇聚起来，放到一个网站内的想法。最后，就有了这个网站 <a href="https://www.duli.one" rel="nofollow">独立导航 duli.one</a>。</p>
-<p>独立导航是一个为创造者服务的导航网站。我希望上面的每个网址都有价值、好用，许多都是我收藏了很久而且也经常使用的网站。但是，每个人对好用和有价值的评判标准是不一样的，所以我在做这个网站的时候也感觉十分犹豫，对于某个网站放还是不放百般纠结。我希望未来能够形成一套更加清晰的标准，让这个网站能够长期的运行下去，帮助到更多的人。</p>
-<p>现在上面的网站还不多，正在不断丰富中，如果你有好的建议或者发现，可以在下面留言，也可以发邮件到 <a href="mailto:brkchen@icloud.com">brkchen@icloud.com</a> ，谢谢大家。</p>
-]]></content:encoded>
-<pubDate>2023-11-18T10:13:20Z</pubDate>
-</item>
-<item>
-<title>[Android] 如何解决原生 Android 续航问题？</title>
-<link>https://www.v2ex.com/t/993090</link>
-<guid>https://www.v2ex.com/t/993090</guid>
-<content:encoded><![CDATA[
-<p>近期打算买部原生 Android 手机，但搜了一下都说在中国使用续航是个大问题。请教一下各位机油：</p>
-<ol>
-<li>24h 科学使用能否解决？</li>
-<li>听说用黑阈/冰箱之类可以禁用 google play 服务，但也有人说这类 app 会有副作用？</li>
-<li>在不解锁 root 的情况下有什么解决方法？</li>
-</ol>
-]]></content:encoded>
-<pubDate>2023-11-18T10:02:38Z</pubDate>
-</item>
-<item>
-<title>[HTML] 求问前端如何实现一个业务表格，要求能够固定首列，其余列滚动，点击一行在该行下展开一行且固定住，左右滑动其他列的时候固定的行不动？</title>
-<link>https://www.v2ex.com/t/993089</link>
-<guid>https://www.v2ex.com/t/993089</guid>
-<content:encoded><![CDATA[
-<p>需求如标题所示，目前已经写了代码结构如下，现在遇到的问题有两个。
-其一：固定住展开的行，使其不随着其他列滚动。
-其二：展开的行由于合并了剩余的列，导致宽度为所有列宽的总和，比如有五个列，每个列的宽度为 100 ，则最后展开的行的宽度为 100x5=500,如何让整个展开的行宽度为屏幕的宽度。</p>
-<pre><code>&lt;template&gt;
-  &lt;div class="bg-07 w-full overflow-hidden"&gt;
-    &lt;div class="overflow-auto"&gt;
-      &lt;table class="w-full"&gt;
-        &lt;thead class="w-full relative"&gt;
-          &lt;tr class="w-full"&gt;
-            &lt;td class="w-150px fixedTd"&gt;姓名&lt;/td&gt;
-            &lt;td class="w-150px"&gt;性别&lt;/td&gt;
-            &lt;td class="w-90px"&gt;年龄&lt;/td&gt;
-            &lt;td class="w-90px"&gt;收入&lt;/td&gt;
-            &lt;td class="w-90px"&gt;工作&lt;/td&gt;
-          &lt;/tr&gt;
-        &lt;/thead&gt;
-        &lt;tbody class="w-full relative"&gt;
-          &lt;template v-for="(item, index) in tableData" :key="index"&gt;
-            &lt;!-- &lt;TrItem v-model:currentExpIndex="currentExpIndex" :line-data="item" :self-index="index"&gt;&lt;/TrItem&gt; --&gt;
-            &lt;tr class="w-full"&gt;
-              &lt;td class="fixedTd"&gt;
-                &lt;div class="w-150px"&gt;{{ item.name }}&lt;/div&gt;
-              &lt;/td&gt;
-              &lt;td&gt;
-                &lt;div class="w-150px"&gt;{{ item.age }}&lt;/div&gt;
-              &lt;/td&gt;
-              &lt;td&gt;
-                &lt;div class="w-90px"&gt;{{ item.sex }}&lt;/div&gt;
-              &lt;/td&gt;
-
-              &lt;td&gt;
-                &lt;div class="w-90px"&gt;{{ item.income }}&lt;/div&gt;
-              &lt;/td&gt;
-
-              &lt;td&gt;
-                &lt;div class="w-90px"&gt;{{ item.job }}&lt;/div&gt;
-              &lt;/td&gt;
-            &lt;/tr&gt;
-            // 需要展开的行
-            &lt;tr v-if="currentExpIndex === index" class="w-375px sticky bg-02"&gt;
-              &lt;td colspan="5" class="w-375px expandTr top-0"&gt;合并单元格&lt;/td&gt;
-            &lt;/tr&gt;
-          &lt;/template&gt;
-        &lt;/tbody&gt;
-      &lt;/table&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/template&gt;
-
-&lt;script setup&gt;
-import { ref } from 'vue';
-import TrItem from './TrItem.vue';
-const tableData = [
-  {
-    name: '1',
-    age: '2',
-    sex: '3',
-    income: '4',
-    job: '5'
-  },
-  {
-    name: '3',
-    age: '5',
-    sex: '6',
-    income: '7',
-    job: '8'
-  },
-  {
-    name: '23',
-    age: '43',
-    sex: '43',
-    income: '43',
-    job: '54'
-  },
-  {
-    name: '5',
-    age: '4',
-    sex: '3',
-    income: '2',
-    job: '1'
-  }
-];
-let exp = ref(false);
-let currentExpIndex = ref(-1);
-function expand() {
-  exp.value = !exp.value;
-}
-&lt;/script&gt;
-
-&lt;style scoped&gt;
-.fixedTd {
-  position: sticky;
-  top: 0;
-  left: 0;
-  background: #fff;
-}
-.expandTr {
-  position: sticky;
-  top: 0px;
-  left: 0px;
-  width: 375px;
-}
-&lt;/style&gt;
-
-</code></pre>
-<p>求来个大佬解答</p>
-]]></content:encoded>
-<pubDate>2023-11-17T09:54:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 申请了电信的动态公网 ip，怎样部署自己的服务到外网</title>
-<link>https://www.v2ex.com/t/993087</link>
-<guid>https://www.v2ex.com/t/993087</guid>
-<content:encoded><![CDATA[
-向电信申请了公网 ip ，是动态 ip ，光猫上可以设置花生壳的域名之类的。想把自己在家里用来吃灰的电脑用来当服务器，有什么办法可以让我能够通过申请的动态 ip 访问到我的电脑，还有就是除了花生壳还有其他的方式么
-]]></content:encoded>
-<pubDate>2023-11-18T09:37:50Z</pubDate>
-</item>
-<item>
-<title>[生活] 有没有在苏州工作的浙江人？</title>
-<link>https://www.v2ex.com/t/993086</link>
-<guid>https://www.v2ex.com/t/993086</guid>
-<content:encoded><![CDATA[
-<p>感觉大部分人都到杭州去了，但是杭州真的顶不住，有没有在苏州的浙江人，尤其是衢州的老哥？</p>
-]]></content:encoded>
-<pubDate>2023-11-18T09:28:17Z</pubDate>
-</item>
-<item>
-<title>[Apple] 拼车， icloud 2TB + Apple Music 家庭版 半年付 83 元</title>
-<link>https://www.v2ex.com/t/993084</link>
-<guid>https://www.v2ex.com/t/993084</guid>
-<content:encoded><![CDATA[
-之前的车到期车主不续了，所以想自己开一个<br /><br />icloud 大约每个人 333GB 。6 个人拼的话，费用是每人每个月：（ 68+15 ）/6 =13.83 。<br /><br />都是国区的。<br />半年付一次，这样比较方便，就是 83r 。<br />需要的话把你的微信号发送到邮箱 <a href="http://liyuhan654gmail.com" rel="nofollow noopener" target="_blank">liyuhan654gmail.com</a> ，我来加你
-]]></content:encoded>
-<pubDate>2023-11-18T09:28:30Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 刚测试 ChatGPT 无需手机号码验证了</title>
-<link>https://www.v2ex.com/t/993081</link>
-<guid>https://www.v2ex.com/t/993081</guid>
-<content:encoded><![CDATA[
-很简单了<br />1.打开代理，尽量干净的 ip 成功机率更高，首选美国 ip ！<br /><br />2.准备一个国外的邮箱，推荐 gmail ，proton 等，我用了 proton<br /><br />原文地址： <a href="https://bluesrt.com/7353.html" rel="nofollow noopener" target="_blank">https://bluesrt.com/7353.html</a>
-]]></content:encoded>
-<pubDate>2023-11-18T09:31:30Z</pubDate>
-</item>
-<item>
-<title>[程序员] rocketmq 适合做消费耗时长的任务吗?</title>
-<link>https://www.v2ex.com/t/993079</link>
-<guid>https://www.v2ex.com/t/993079</guid>
-<content:encoded><![CDATA[
-<p>客户点击导出 excel,这时发送一条消息到 rocketmq</p>
-<p>rocketmq 在消费时,会有超时重试机制,默认 15S,重试(不管有没有错误,到时间就认为超时,虽然可以修改)</p>
-<p>生成个 excel 的时间可能在 3~5 分钟,可能生成时发生错误(如读取数据超时,有一定容错,但无法避免完全不出问题).</p>
-<p>这种情况是不是太适合用 rocketmq 来做触发和重试?</p>
-<p>用数据库做轮询是不是比较好?</p>
-<p>或是更好的实现方式?</p>
-]]></content:encoded>
-<pubDate>2023-11-18T10:12:12Z</pubDate>
-</item>
-<item>
-<title>[Python] Python 潮流周刊#27：应该如何处理程序的错误？</title>
-<link>https://www.v2ex.com/t/993078</link>
-<guid>https://www.v2ex.com/t/993078</guid>
-<content:encoded><![CDATA[
-<p>你好，我是猫哥。这里每周分享优质的 Python 、AI 及通用技术内容，大部分为英文。本周刊开源，欢迎<a href="https://github.com/chinesehuazhou/python-weekly" rel="nofollow">投稿</a>。另有<a href="https://t.me/pythontrendingweekly" rel="nofollow">电报频道</a>作为副刊，补充发布更加丰富的资讯。</p>
-<h2>🐱产品推荐</h2>
-<p><strong><a href="http://Walles.AI" rel="nofollow">Walles.AI</a></strong> 是一款适用于所有网站的浏览器插件，支持 GPT4 问答、ChatPDF 、网页内容解释及翻译、生成高质量文章、与 Notion 等工具协同、在线摘要 Youtube 视频等。前往官网体验：<a href="https://walles.ai?invite_code=CGZP5W" rel="nofollow">安装地址</a></p>
-<h2>🦄文章&amp;教程</h2>
-<p>1 、<a href="https://www.inngest.com/blog/python-errors-as-values" rel="nofollow">将 Python 错误作为值：比较 Go 和 Rust 的使用模式</a></p>
-<p>文章比较了两种处理错误的方法：抛出错误和将错误作为返回值，并参照 Go 和 Rust 的处理模式，介绍如何在 Python 中实现将错误作为值返回。（附 1：<a href="https://frostming.com/error-handling/" rel="nofollow">两种风格的错误处理</a> 分析了两种风格的优缺点及其适用场景；附 2：周刊第一期的 <a href="https://pythoncat.top/posts/2023-05-08-error" rel="nofollow">编程语言的四种错误处理方法</a> 从语法、代码可读性、演变过程、运行效率角度对比了不同方案）</p>
-<p>2 、<a href="https://www.better-simple.com/django/2023/11/04/debugging-csrf-error-in-production/" rel="nofollow">调试 Django 中的 CSRF 失败/403 禁止错误</a></p>
-<p>部署 Django 程序时的一个常见错误是 <code>403 Forbidden</code> ，通常由 CSRF 错误导致，文章介绍了导致这种错误的 7 种原因，并解读 Django 源码，详细梳理了它们的校验逻辑。</p>
-<p>3 、<a href="https://alpopkes.com/posts/python/packaging_tools/" rel="nofollow">对 Python 环境和包管理工具的公正分析</a></p>
-<p>Python 中的虚拟环境和包管理工具实在是太多了！但是应该如何选择最适合自己需求的工具呢？作者全面分析了 5 个类别的 10 多款工具，希望减少用户在抉择上的困惑。（附：作者针对此主题的两场演讲 <a href="https://www.youtube.com/watch?v=MsJjzVIVs6M" rel="nofollow">PyCon DE 2023</a> 和 <a href="https://www.youtube.com/watch?v=3-drZY3u5vo" rel="nofollow">EuroPython 2023</a>）</p>
-<p><img alt="Python 环境和包管理工具的分类" class="embedded_image" rel="noreferrer" src="https://img.pythoncat.top/venn_diagram.png" /></p>
-<p>4 、<a href="https://mostlynerdless.de/blog/2023/09/20/lets-create-a-python-debugger-together-part-1/" rel="nofollow">让我们一起创建一个 Python 调试器</a></p>
-<p>你是否好奇一个代码调试器是如何工作的？当设置断点后，程序触发它时会发生什么？调试器是程序员日常必备工具之一，但极少有人知道它是如何实现的。这是一个系列教程，已更新 5 篇文章。值得一提的是，作者使用了最新的 Python 3.12  PEP-669 功能。</p>
-<p>5 、<a href="https://blog.jetbrains.com/pycharm/2023/11/python-3-12/" rel="nofollow">揭开 Python 3.12 的面纱：Python 世界有哪些新东西？</a></p>
-<p>Python 3.12 已发布一个半月，你开始尝鲜了么？这篇内容全面的文章重点解读了新的几个 PEP ，让你对这个版本有更清晰的认识。</p>
-<p>6 、<a href="https://stackabuse.com/hash-tables-in-python/" rel="nofollow">Python 的哈希表指南</a></p>
-<p>Python 的字典是一种“哈希表”，提供了高效灵活的数据存储和检索方法。文章介绍了这种数据结构及其工作原理，探讨了如何用 Python 实现哈希表并解决哈希冲突。这是一个系列文章，作者还写了堆、队列、栈、数组等数据结构的指南。</p>
-<p>7 、<a href="https://healeycodes.com/running-untrusted-python-code" rel="nofollow">运行不可信的 Python 代码</a></p>
-<p>作者想自己实现一个简化版的不太安全的沙盒，文章介绍了它的运作方式，以及一些关键性问题的解决方案，即独立的进程 + <code>seccomp</code> + <code>setrlimit</code> 。（附：<a href="https://www.kingname.info/2023/11/11/python-run-other-code/" rel="nofollow">如何安全运行别人上传的 Python 代码？</a> 这篇文章的方案是使用 Docker 的 Python SDK 来构建镜像，在 Docker 中执行代码）</p>
-<p>8 、<a href="https://muhammadraza.me/2023/linux-cp/" rel="nofollow">了解 Linux cp 命令并用 Python 编程实现</a> </p>
-<p>深入探讨了 Linux 中 <code>cp</code> 命令的工作原理，然后用 Python 实现了一个基础版本。从中可以看到高级编程语言提供的强大功能和简单性。</p>
-<p>9 、<a href="https://www.bitecode.dev/p/beginners-should-use-django-not-flask" rel="nofollow">初学者应该用 Django ，而不是 Flask</a></p>
-<p>作者认为 Flask 虽然简单易用，但它可能会让初学者忽视 Web 开发的复杂性。Django 功能全面、生态系统成熟，更适合新手学习与提升生产力。</p>
-<p>10 、<a href="https://peps.python.org/pep-0733/" rel="nofollow">PEP-733：对 Python 公共 C API 的评估</a></p>
-<p>一则信息型的 PEP ，用于分享 C API 的信息，包括定义 C API 的用途、利益相关者及其使用场景和要求、C API 的优势、C API 的 9 项薄弱的问题。</p>
-<p>11 、<a href="https://arunmani.in/articles/silly-json-parser/" rel="nofollow">让我们做一个类 JSON 语法的解析器</a></p>
-<p>作者出于编程乐趣的目的，定义了一组类似 JSON 的语法规则，然后使用 Python 逐一实现不同内容的提取与解析，开发了一个解析器。</p>
-<p>12 、<a href="https://tratt.net/laurie/blog/2023/how_big_should_a_programming_language_be.html" rel="nofollow">一门编程语言应该有多大？</a></p>
-<p>在作者眼中，Python 1.5 是他能完全理解的最后一个版本，而之后的版本则使得语言越来越大。语言设计时添加新功能，如何权衡取舍？作者建议学习 C 语言的例子，让语言处于“最小进化”模式。</p>
-<p>🎁<strong>PyCon China 2023</strong>🎁今年国内 PyCon 将于 12 月在北京、上海、成都、杭州、重庆、深圳、广州联动举办。现在购票可享 7 折优惠：<a href="https://mp.weixin.qq.com/s/lfrFoIiNuUYzgXPklQPLmg" rel="nofollow">详情介绍</a></p>
-<h2>🐿️项目&amp;资源</h2>
-<p>1 、<a href="https://github.com/THUDM/CogVLM" rel="nofollow">CogVLM：多模态预训练模型</a></p>
-<p>一个强大的开源可视化语言模型 （ VLM ），CogVLM-17B 有 100 亿个视觉参数和 70 亿个语言参数，具有高性能，在多项跨模态基准测试中排名领先。（ star 2.1K ）</p>
-<p><img alt="CogVLM 在基准测试中的得分" class="embedded_image" rel="noreferrer" src="https://img.pythoncat.top/metrics-min.png" /></p>
-<p>2 、<a href="https://github.com/rezoo/movis" rel="nofollow">movis：用于生成与编辑视频的库</a></p>
-<p>让你通过 Python 代码生成各类视频，包括但不限于演示视频、动态图形、着色器艺术编码和游戏解说视频。支持视频编辑、音频剪辑、图层转换及添加特效等。</p>
-<p>3 、<a href="https://github.com/cocktailpeanut/mirror" rel="nofollow">mirror：基于摄像头内容，实时回答问题</a></p>
-<p>这是一个 Web APP ，可将摄像头视频流传给 AI ，让它分析内容并实时回答你提出的问题。100% 本地和私有，Web UI 是用 <a href="https://www.gradio.app/" rel="nofollow">gradio</a> 构建，多模态 AI 模型是 <a href="https://huggingface.co/SkunkworksAI/BakLLaVA-1" rel="nofollow">Bakllava</a> 。</p>
-<p>4 、<a href="https://github.com/ishan0102/vimGPT" rel="nofollow">vimGPT：使用 GPT-4V 和 Vimium 浏览网页</a></p>
-<p><strong>Vimium</strong> 是一个 Chrome 插件，可让你仅用键盘浏览网页，借助它，可以不将浏览器 DOM 传给大模型，仅用 GPT-4V 的视觉功能来浏览网页。（ star 1.8K ）</p>
-<p><img alt="使用 GPT-4V 和 Vimium 浏览网页" class="embedded_image" rel="noreferrer" src="https://img.pythoncat.top/2023-11-18_vimGPT.png" /></p>
-<p>5 、<a href="https://github.com/kaixinol/twitter_user_tweet_crawler" rel="nofollow">twitter_user_tweet_crawler：无需调用 Twitter API ，爬取用户推文</a></p>
-<p>使用 selenium 模拟浏览器操作，可抓取用户推文并保存静态资源到本地，无需调用 Twitter API 。（投稿自 @<a href="https://www.v2ex.com/member/kaixinol">kaixinol</a> ）</p>
-<p>6 、<a href="https://github.com/AboutRSS/RSS-OPML-to-Markdown" rel="nofollow">RSS-OPML-to-Markdown：将 OPML 文件转化为易读的 Markdown 格式</a></p>
-<p>经常有人分享自己 RSS 列表导出的 OPML 文件，但这难以阅读也不宜直接拿去导入自己的阅读器。这个项目将 RSS 源的概要和一些统计信息输出成 markdown 表格，方便你按需订阅。（投稿自 @<a href="https://www.v2ex.com/member/AboutRSS">AboutRSS</a> ）</p>
-<p>7 、<a href="https://github.com/AIFSH/MyHeyGen" rel="nofollow">MyHeyGen：视频翻译工具</a></p>
-<p>一个平民版视频翻译工具，音频翻译、翻译校正、视频唇纹合成全流程解决方案。</p>
-<p>8 、<a href="https://github.com/emanuelef/awesome-python-repo-stats" rel="nofollow">awesome-python-repo-stats：统计“awesome-python”列表中项目的信息</a></p>
-<p><a href="https://github.com/vinta/awesome-python" rel="nofollow">awesome-python</a> 是一个拥有 187K star 超火爆的项目，收录了大量框架、库、软件和资源。这个项目是对它收录内容的统计分析，每日更新，可在线查看统计表。</p>
-<p>9 、<a href="https://github.com/outlines-dev/outlines" rel="nofollow">outlines：引导式文本生成</a></p>
-<p>一个用于生成神经文本的库，可视为 transformers 库中 <code>generate</code> 方法的替代品。（ star 3.3K ）</p>
-<p>10 、<a href="https://github.com/marimo-team/marimo" rel="nofollow">marimo：下一代 Python notebook</a></p>
-<p>全新的 notebook 项目，其每个 notebook 都可作为交互式 Web 程序共享，可浏览数据、运行实验、构建工具和部署应用。</p>
-<p><img alt="marimo 使用演示" class="embedded_image" rel="noreferrer" src="https://img.pythoncat.top/2023-11-18_marimo.png" /></p>
-<p>11 、<a href="https://github.com/shashankvemuri/Finance" rel="nofollow">Finance：150+ 量化金融 Python 程序</a></p>
-<p>一个资源集合项目，帮助你收集、操纵和分析股市数据。（ star 1.2K ）</p>
-<p>12 、<a href="https://github.com/amidaware/tacticalrmm" rel="nofollow">tacticalrmm：一个远程监控和管理工具</a></p>
-<p>一个远程监控和管理工具，使用 Django 、Vue 和 Go 构建。类似 Teamviewer 的远程桌面控制、远程文件传输、远程执行命令和脚本、查看日志、告警管理、支持自动化。（ star 2.3K ）</p>
-<h2>🐢播客&amp;视频</h2>
-<p>1 、<a href="https://www.youtube.com/watch?v=HxSHIpEQRjs" rel="nofollow">CPython 的 JIT 编译器</a></p>
-<p>Guido 本周在 X 上分享了这则视频，视频作者介绍了他们规划给 Python 3.13 开发一个 JIT 编译器！（附：<a href="https://github.com/brandtbucher/brandtbucher/blob/master/2023/10/10/a_jit_compiler_for_cpython.pdf" rel="nofollow">演讲视频的文稿</a>）</p>
-<p>2 、<a href="https://www.blog.pythonlibrary.org/2023/11/10/episode-21-sanic-the-async-python-web-framework/" rel="nofollow">The Python Show 第 21 期：Sanic - 异步 Web 框架</a></p>
-<p>Sanic 是支持异步编程的 Python Web 框架，能够快速构建和运行。这期播客的嘉宾是 Sanic 的维护者之一，话题包括 Web 框架对比、消息规范、<a href="https://github.com/ahopkins/mayim" rel="nofollow">Mayim</a>（单向 ORM ）。</p>
-<p>本文首发于：<a href="https://pythoncat.top/posts/2023-11-18-weekly" rel="nofollow">https://pythoncat.top/posts/2023-11-18-weekly</a></p>
-<h2>🐼欢迎订阅</h2>
-<ul>
-<li><a href="https://img.pythoncat.top/python_cat.jpg" rel="nofollow">微信公众号</a>：除更新周刊外，还发布其它原创作品，并转载一些优质文章。（可加好友，可加读者交流群）</li>
-<li><a href="https://pythoncat.top" rel="nofollow">博客</a> 及 <a href="https://pythoncat.top/rss.xml" rel="nofollow">RSS</a>：我的独立博客，上面有历年原创/翻译的技术文章，以及从 2009 年以来的一些随笔。</li>
-<li><a href="https://github.com/chinesehuazhou/python-weekly" rel="nofollow">Github</a>：你可以获取本周刊的 Markdown 源文件，做任何想做的事！</li>
-<li><a href="https://pythoncat.substack.com" rel="nofollow">邮件</a>：在 Substack 上开通的频道，满足你通过邮件阅读时事通讯的诉求。</li>
-<li><a href="https://t.me/pythontrendingweekly" rel="nofollow">Telegram</a>：除了发布周刊的通知外，我将它视为一个“副刊”，补充发布更加丰富的资讯。</li>
-<li><a href="https://twitter.com/chinesehuazhou" rel="nofollow">Twitter</a>：我的关注列表里有大量 Python 相关的开发者与组织的账号。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-11-18T04:48:27Z</pubDate>
-</item>
-<item>
-<title>[macOS] macbook 储存空间不足，有什么好办法嘛？</title>
-<link>https://www.v2ex.com/t/993077</link>
-<guid>https://www.v2ex.com/t/993077</guid>
-<content:encoded><![CDATA[
-<h1>mac 从移动硬盘导入了 90G 的相册同步到 iCloud ，现在存储空间不足</h1>
-<p>系统显示 61.54GB 可用（共 245.11GB ）</p>
-<ul>
-<li>照片 90.74GB | App 39.47GB</li>
-</ul>
-<p>但是在 ‘系统报告'-&gt; '硬件'-&gt; '储存'显示 <strong>未使用 17.59GB</strong></p>
-<p><img alt="image-20231118163038416" class="embedded_image" rel="noreferrer" src="https://lhp96.oss-cn-hangzhou.aliyuncs.com/lhp/image-20231118163038416.png" /></p>
-<p>现在的问题是：</p>
-<ul>
-<li>如果退出 appleID 再删除图片，<strong>删除之后再登录</strong> 是否可行？</li>
-<li>iCloud 已经上传的图片还有办法自动删除掉吗？</li>
-<li>是否还有其他方式再深度清理数据，留下更多空间</li>
-</ul>
-<p>备注:</p>
-<ul>
-<li>只是想要增加存储空间，并不想重置、重装系统、是主力机生产力工具</li>
-<li>微信、node_modules 没用的都删除了</li>
-<li>iCloud 有 2T 空间，系统偏好设置-AppleID-iCloud  选择勾上了<strong>优化 mac 储存空间</strong></li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-11-18T09:39:13Z</pubDate>
-</item>
-<item>
-<title>[硬件] 机械硬盘存在的 URE, 静默错误之类的影响数据一致性的问题会出现在固态硬盘上吗？</title>
-<link>https://www.v2ex.com/t/993076</link>
-<guid>https://www.v2ex.com/t/993076</guid>
-<content:encoded><![CDATA[
-<p>机械硬盘上的 URE 通常是因为某个扇区上的部分磁极发生了翻转，或者扇区出现物理损坏，导致的最直接的后果就是某个扇区无法读取。</p>
-<p>静默错误 (Silent Data Corruption) 是指硬盘上存储的数据发生了损坏，但只有在读到损坏的数据时才被发现，或者直接读到了损坏的数据但程序认为数据没有损坏。</p>
-<p>在正常使用的固态硬盘上会有 URE, 静默错误之类的影响数据一致性的问题吗？有多频繁？</p>
-<p>(假设 SSD 状况良好；长期运行在中低负载下；主控+颗粒使用主流方案，或使用企业级 SSD)</p>
-]]></content:encoded>
-<pubDate>2023-11-18T08:40:26Z</pubDate>
-</item>
-<item>
-<title>[Apple] 摇一摇广告复活了？滥用陀螺仪/加速度计的新高度</title>
-<link>https://www.v2ex.com/t/993075</link>
-<guid>https://www.v2ex.com/t/993075</guid>
-<content:encoded><![CDATA[
-<p>摇一摇广告跳转消失了。没想到滥用陀螺仪/加速度计的开屏广告原地复活。
-请看图：</p>
-<p>图 1 腾讯视频 iOS 客户端 8.9.71 开屏“扭动手机”广告。广告跳转/弹窗比较容易，和之前的摇一摇触发跳转变化不大。
-<a href="https://imgur.com/4Dhb30m" rel="nofollow">https://imgur.com/4Dhb30m</a></p>
-<p>图 2 腾讯视频 iPadOS 客户端 8.9.71 开屏“前倾手机”广告。广告跳转/弹窗非常容易(个人体验)，只是因为打开软件的时候习惯把手机/平板放到桌子上。
-<a href="https://imgur.com/TWMykJd" rel="nofollow">https://imgur.com/TWMykJd</a></p>
-<p>目前使用的软件当中仅看到腾讯视频的 iOS 和 iPadOS 客户端有这样“新颖”的开屏广告。不知道有没有人遇到类似的情况</p>
-<p>Note：两个客户端均在美国地区的 App Store 下载，并不清楚和下载软件的 App Store 地区有无关系。</p>
-]]></content:encoded>
-<pubDate>2023-11-18T09:23:12Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 关于 FRP UDP 问题请教</title>
-<link>https://www.v2ex.com/t/993074</link>
-<guid>https://www.v2ex.com/t/993074</guid>
-<content:encoded><![CDATA[
-<p>是这样，由于某国外游戏使用的是 UDP 组队，为了能获得较好的游戏体验搞了个 FRP ，中间有些问题，大家帮忙看看</p>
-<p>游戏是用 4950 和 4955 端口，通过 FRP 分别映射到 VPS 的 14950 和 14955 端口，我理解别人使用 IP 的 14950 和 14955 端口可以直接访问到我的电脑的 4950 和 4955 端口，这个没问题，但是我看了路由器上的 iptables ，并没有任何 FRP 的的条目，我的问题是：</p>
-<ul>
-<li>我希望我的 4950/4955 端口发出的数据在 VPS 上也是通过对应的 14950 和 14955 端口发进行收发，这个可以做到吗？我理解的是别人才知道要和我通讯的时候访问 VPS 的 14950/14955 端口</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-11-18T08:30:11Z</pubDate>
-</item>
-<item>
-<title>第一次见光猫用 EAP 认证的</title>
-<link>https://www.v2ex.com/t/984082</link>
-<guid>https://www.v2ex.com/t/984082</guid>
-<content:encoded><![CDATA[
-<p><img alt="ONU" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/GB2qQFl.png" /></p>
-<p>向 OLT 注册只认证 MAC 地址，但是。。在日志里发现了 EAP 认证的信息
-这完全没希望换猫棒了吧</p>
-]]></content:encoded>
-<pubDate>2023-11-18T10:14:12Z</pubDate>
-</item>
-<item>
-<title>macOS Sonoma 的新功能：高性能的屏幕共享（远程控制）</title>
-<link>https://www.v2ex.com/t/978735</link>
-<guid>https://www.v2ex.com/t/978735</guid>
-<content:encoded><![CDATA[
-<a href="https://www.v2ex.com/i/2Kl7n40n.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 2Kl7n40n.png"><img class="embedded_image" src="https://i.v2ex.co/2Kl7n40n.png" /></a><br /><br />内网里互相控制的效果非常完美。
-]]></content:encoded>
-<pubDate>2023-11-18T10:12:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 领导说业余时间多学一下技术，我很想反驳，领导这是 pua 吗？如果不是的话该有怎么样的反应比较好，另外如果手头上有多个项目的话，该怎么处理呢？</title>
-<link>https://www.v2ex.com/t/993073</link>
-<guid>https://www.v2ex.com/t/993073</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-11-18T08:17:16Z</pubDate>
 </item>
 </channel>
 </rss>
