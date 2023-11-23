@@ -5,11 +5,339 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 终于祛除了这开机广告了</title>
+<link>https://www.v2ex.com/t/994658</link>
+<guid>https://www.v2ex.com/t/994658</guid>
+<content:encoded><![CDATA[
+
+<p>电脑每次开机都会自动打开 chrome 浏览器跳转到广告页面，由于不是什么弹窗程序，用一些软件也抓不到是什么流氓程序，就这么忍受的一段时间。</p>
+<p>今天终于下定决心搞清楚到底是哪里出了问题，我的思维一直放在可能是什么服务，计划任务打开的浏览器，排查一圈之后无果，只好试着问问 ChatGPT ，问了几圈给推荐了 ProcessMonitor 这软件，试了一下果然有所发现</p>
+<p><img alt="ProcessMonitor" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/QhHjIJB.png" /> </p>
+<p>于是对这个域名百度了一下，果然中招的不在少数，然后在注册表里面找到了这么一行</p>
+<p><img alt="注册表" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Ionyb1H.png" /> </p>
+<p>原来是通过这种方式打开的浏览器</p>
+<p>虽然删除就可以了，但我也找不到是哪个流氓软件设置进去的</p>
+]]></content:encoded>
+<pubDate>2023-11-23T14:12:44Z</pubDate>
+<pubDate>2023-11-23T14:12:44Z</pubDate>
+</item>
+<item>
+<title>[程序员] 你们写文档吗</title>
+<link>https://www.v2ex.com/t/994657</link>
+<guid>https://www.v2ex.com/t/994657</guid>
+<content:encoded><![CDATA[
+
+我们组几乎没有文档，业务只存在于三位“元老”脑中。他们随便走一位，业务都得黄。<br /><br />  产品需求文档是有的，但是也不知道跟代码是怎么对应的，而且也不知道全不全。<br /><br />  之前在外包公司呆的时候，虽然那个时候还没用 git ，但是文件的每次改动都要将需求链接或者 bug 链接写在文件的注释里，后来者通过需求文件很容易理解业务全貌。现在基本只能靠跟“前辈”讨教或者自己读代码，犹如盲人摸象，只能获得一些残缺不全的业务认知。<br /><br />  不知道大家是怎么让新队友快速熟悉业务的？是通过文档吗？还是让 ta“自学成才”？如果是通过文档，那么是怎样保持文档的“新鲜度”的呢？
+]]></content:encoded>
+<pubDate>2023-11-23T14:07:17Z</pubDate>
+<pubDate>2023-11-23T14:07:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] [付费问答] 在写一个富文本编辑器，其中用到了带父子节点的双向链表，可无限嵌套，写了个递归一直报错，希望大佬指点指点，答案被采纳我 v 信转 120 给您（不在乎钱的也可以试一试，这十分考验算法实战能力）</title>
+<link>https://www.v2ex.com/t/994656</link>
+<guid>https://www.v2ex.com/t/994656</guid>
+<content:encoded><![CDATA[
+
+<p>在写一个富文本编辑器，其中用到了带父子节点的双向链表，要把无顺序的节点树根据 prev_id ，next_id 处理成顺序的，而且有些节点是带 children 的，children 中的节点同其他节点，可无限嵌套，写了个递归一直报错，希望大佬指点指点，答案被采纳我 v 信转 120 给您（不在乎钱的也可以试一试，这十分考验算法实战能力）</p>
+<p>raw_nodes 数据：</p>
+<pre><code class="language-ts">const raw_nodes = [
+    {
+        "type": "file",
+        "name": "工作目录二",
+        "icon": "",
+        "id": "dgacbecjhzbcufq13_rvmr_gjz98xo",
+        "module": "todo",
+        "pid": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+        "prev_id": "pcwsejrnwzuwjpyve64ww68hxxt74r"
+    },
+    {
+        "type": "file",
+        "name": "日常",
+        "icon": "",
+        "id": "gpvwcojxffgijtw14xat7-ealc7w8l",
+        "module": "todo",
+        "pid": "",
+        "prev_id": "kzoxuadlnqrtxeg43xugw2s0voutnj"
+    },
+    {
+        "type": "dir",
+        "name": "工作",
+        "icon": "",
+        "id": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+        "module": "todo",
+        "pid": "",
+        "next_id": "gpvwcojxffgijtw14xat7-ealc7w8l"
+    },
+    {
+        "type": "file",
+        "name": "工作目录一",
+        "icon": "",
+        "id": "pcwsejrnwzuwjpyve64ww68hxxt74r",
+        "module": "todo",
+        "pid": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+        "next_id": "kzoxuadlnqrtxeg43xugw2s0voutnj"
+    }
+]
+</code></pre>
+<p>tree 数据和 tree_map 由下面 class 中的函数可计算出来：</p>
+<p>class 的一部分：</p>
+<pre><code class="language-ts">import { get, flatMap, last, initial, cloneDeep, find } from 'lodash-es'
+
+type RawNode = {
+	id: string
+	pid?: string
+	prev_id?: string
+	next_id?: string
+	[key: string]: any
+}
+
+type RawNodes = Array&lt;RawNode&gt;
+type TreeItem = RawNode &amp; { children?: Tree }
+type Tree = Array&lt;TreeItem&gt;
+type TreeMap = Record&lt;string, TreeItem&gt;
+
+export default class Index {
+	tree = [] as Tree
+
+	public init(raw_nodes: RawNodes) {
+		const raw_tree_map = this.setRawMap(raw_nodes)
+		const { tree, tree_map } = this.getTree(raw_nodes, raw_tree_map)
+
+		console.log(tree)
+
+		this.tree = this.sortTree(tree, tree_map)
+	}
+
+	private setRawMap(raw_nodes: RawNodes) {
+		const tree_map = {} as TreeMap
+
+		raw_nodes.map((item) =&gt; {
+			tree_map[item.id] = item
+		})
+
+		return tree_map
+	}
+
+	private getTree(raw_nodes: RawNodes, tree_map: TreeMap) {
+		const tree = [] as Tree
+
+		raw_nodes.forEach((item) =&gt; {
+			if (item.pid) {
+				if (!tree_map[item.pid].children) {
+					tree_map[item.pid].children = []
+				}
+
+				if (!tree_map[item.pid]?.children?.length) {
+					tree_map[item.pid].children = [item]
+				} else {
+					tree_map[item.pid].children.push(item)
+				}
+			} else {
+				tree.push(item)
+			}
+		})
+
+		return { tree, tree_map }
+	}
+
+	private sortTree(tree: Tree, tree_map: TreeMap) {
+		const target_tree = [] as Tree
+		const start_node = find(tree, (item) =&gt; !item.prev_id)
+
+		if (!start_node) return []
+		let current = start_node.id
+
+		while (current) {
+			const item = tree_map[current]
+
+			if (item?.children?.length) {
+                                // 这里报错（ RangeError: Maximum call stack size exceeded ）
+				// item.children = this.sortTree(item.children, tree_map)
+			}
+
+			target_tree.push(item)
+
+			current = item.next_id
+		}
+
+		return target_tree
+	}
+
+}
+</code></pre>
+<p>正确的情况应输出数据为：</p>
+<pre><code class="language-ts">const tree = [
+    {
+        "type": "dir",
+        "name": "工作",
+        "icon": "",
+        "id": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+        "module": "todo",
+        "pid": "",
+        "next_id": "gpvwcojxffgijtw14xat7-ealc7w8l",
+        "children": [
+             {
+                "type": "file",
+                "name": "工作目录一",
+                "icon": "",
+                "id": "pcwsejrnwzuwjpyve64ww68hxxt74r",
+                "module": "todo",
+                "pid": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+                "next_id": "kzoxuadlnqrtxeg43xugw2s0voutnj"
+            },
+            {
+                "type": "file",
+                "name": "工作目录二",
+                "icon": "",
+                "id": "dgacbecjhzbcufq13_rvmr_gjz98xo",
+                "module": "todo",
+                "pid": "kzoxuadlnqrtxeg43xugw2s0voutnj",
+                "prev_id": "pcwsejrnwzuwjpyve64ww68hxxt74r"
+            },
+           
+        ]
+    },
+      {
+        "type": "file",
+        "name": "日常",
+        "icon": "",
+        "id": "gpvwcojxffgijtw14xat7-ealc7w8l",
+        "module": "todo",
+        "pid": "",
+        "prev_id": "kzoxuadlnqrtxeg43xugw2s0voutnj"
+    },
+]
+</code></pre>
+<p>哪位大佬指点迷津，小弟 v 您 60+60 ，祝您 66 大顺！</p>
+]]></content:encoded>
+<pubDate>2023-11-23T14:00:11Z</pubDate>
+<pubDate>2023-11-23T13:59:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] 去海外有什么成品 NAS 推荐？</title>
+<link>https://www.v2ex.com/t/994655</link>
+<guid>https://www.v2ex.com/t/994655</guid>
+<content:encoded><![CDATA[
+
+目前在国内用的国产极空间 NAS ，感觉不用自己操心挺好的，马上要去美国 🇺🇸 做 postdoc 了，在海外的哥们儿有没有什么开箱即用的 NAS 推荐？先谢过了~
+]]></content:encoded>
+<pubDate>2023-11-23T13:54:01Z</pubDate>
+<pubDate>2023-11-23T14:03:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] tails 和 qubesOS 那个安全综合更强？</title>
+<link>https://www.v2ex.com/t/994654</link>
+<guid>https://www.v2ex.com/t/994654</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-11-23T13:50:27Z</pubDate>
+<pubDate>2023-11-23T09:50:27Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 港区家庭 zu！</title>
+<link>https://www.v2ex.com/t/994653</link>
+<guid>https://www.v2ex.com/t/994653</guid>
+<content:encoded><![CDATA[
+
+<p>港区 Spotify 合租 港区 Spotify 年费家庭车 港区 Spotify 拼车 Spotify 港区会员 需要上车的小伙伴可以加我微信 d030518_</p>
+]]></content:encoded>
+<pubDate>2023-11-23T13:46:37Z</pubDate>
+<pubDate>2023-11-23T13:43:37Z</pubDate>
+</item>
+<item>
+<title>[Android] (类)原生在国内目前后台调教的最优解?</title>
+<link>https://www.v2ex.com/t/994652</link>
+<guid>https://www.v2ex.com/t/994652</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-11-23T13:39:19Z</pubDate>
+<pubDate>2023-11-23T13:43:20Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] tvbox 的直播源好像全跑路了</title>
+<link>https://www.v2ex.com/t/994651</link>
+<guid>https://www.v2ex.com/t/994651</guid>
+<content:encoded><![CDATA[
+
+tvbox 系列 app 的 iptv 直播源订阅好像全跑路了，点播源倒是都还在。<br />只能选运营商 iptv 了吗？
+]]></content:encoded>
+<pubDate>2023-11-23T13:15:00Z</pubDate>
+<pubDate>2023-11-23T14:05:42Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 电信宽带送的云电脑的玩法</title>
+<link>https://www.v2ex.com/t/994649</link>
+<guid>https://www.v2ex.com/t/994649</guid>
+<content:encoded><![CDATA[
+
+<p>电信送的云电脑一直没使用，昨天朋友说他 100 多一个月买了移动的云电脑我才想起来还有这个东西。</p>
+<p>先解决第一个问题，送的云电脑不是“政企版”，如果不连客户端，</p>
+<p>有网友说在云电脑里面装云电脑客户端，自己连自己能解决不关机问题，测试发现不行，连不上。</p>
+<p>可能是加了策略限制。</p>
+<p>我用群晖 NAS 虚拟机装了一个 Windows 10 ，然后在 Windows 10 上挂云电脑客户端，这样就解决了不关机问题。</p>
+<p>在其他地方使用的时候，用 TailScale IP 连 3389,速度还可以。</p>
+<p>测试用 Cloudflare Tunnel 可以实现建站，玩 Docker 之类的。</p>
+]]></content:encoded>
+<pubDate>2023-11-23T13:06:04Z</pubDate>
+<pubDate>2023-11-23T13:41:31Z</pubDate>
+</item>
+<item>
+<title>[机械键盘] 键盘求推荐 非 PBT 的！</title>
+<link>https://www.v2ex.com/t/994648</link>
+<guid>https://www.v2ex.com/t/994648</guid>
+<content:encoded><![CDATA[
+
+<p>PBT 的太滑适应不了，奈何现在静电容和主流机械键盘都是 PBT 的，难受</p>
+<p>要求：abs ，线性轴，87 键</p>
+<p>谢谢谢！</p>
+]]></content:encoded>
+<pubDate>2023-11-23T13:02:30Z</pubDate>
+<pubDate>2023-11-23T12:59:30Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有没有声明 typescript 类型的好办法以及前端样式的健壮性问题</title>
+<link>https://www.v2ex.com/t/994647</link>
+<guid>https://www.v2ex.com/t/994647</guid>
+<content:encoded><![CDATA[
+
+<p>我在学习 react ，看到给一个 div 添加 onMouseDown 事件时，<br />
+这个事件本身的声明是：<code>onMouseDown?: MouseEventHandler&lt;T&gt; | undefined;</code>
+写它的实现类时为</p>
+<pre><code class="language-typescript">  const handleMouseDown = (event:React.MouseEvent&lt;HTMLDivElement,MouseEvent&gt;) =&gt; {
+
+  }
+</code></pre>
+<p>event 的类型为 MouseEvent ，这个是可以看代码看出来的，但是里面的泛型<code>HTMLDivElement</code>，我这上哪猜去，，，  </p>
+<ol>
+<li>虽然不写这么严格也没问题，但是我的问题是基于想要最完整严格的使用 type 的前提。</li>
+<li>这只是举个例子说明我的问题，我核心问题是，typescript 中，编辑器依然不能自动推测出所有的字段类型，对于编辑器无法推测的情况下，我该如何去更好的面对和解决这个问题呢。</li>
+<li>前端样式有什么好的规范文档吗，我是自学的，虽然能写出样式来，但是代码的健壮性、优雅等各方面差太多了，有什么更系统的学习材料吗</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-11-23T12:55:29Z</pubDate>
+<pubDate>2023-11-23T13:48:09Z</pubDate>
+</item>
+<item>
+<title>[AdSense] 2 个月的新站，不到 2K 流量 AdSense 申请成功，我是如何做的？</title>
+<link>https://www.v2ex.com/t/994646</link>
+<guid>https://www.v2ex.com/t/994646</guid>
+<content:encoded><![CDATA[
+
+今年 9 月份，买了一个域名，用于做英文工具站。网站在 10 月份上线，上线一周后就申请了 AdSense 。<br /><br />结果等了两周，发来了需要修改的通知邮件。同时在 AdSense 上看到提示添加收款信息。我一脸蒙，原来，是自己没有填写税务报表，其它的能填的都填了。AdSense 显示，我的内容太少了。<br /><br />就在昨日，我更新的网站的内容，把内容弄多了一些。关闭了之前 AdSense 的替代联盟 Monetag 的广告。结果今天就收到了通过的邮件。看来，新站流量不多，内容一定要过关，内容要多，并且质量过关，也能申请通过。<br /><br />其它做 AdSense 的朋友说我的网站流量不够，他认为流量够了，AdSense 就很容易通过，第一次申请 AdSense 的时候，我的网站流量只有几百。没有通过。而这一次，从上线到通过，流量也不到 2K 。<br /><br />同时，我也遇到了一个小问题，自己明明把 ads.txt 文件放在根域名下面了，头几天显示有，但是过几天显示未找到。各种方法我都尝试了，依然是。后来，发现只需要点击网址，点击再次检验 ads.txt ，就可以了。
+]]></content:encoded>
+<pubDate>2023-11-23T12:36:51Z</pubDate>
+<pubDate>2023-11-23T14:12:07Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 关于 Sonoma 桌面小组件的相关讨论</title>
 <link>https://www.v2ex.com/t/994644</link>
 <guid>https://www.v2ex.com/t/994644</guid>
 <content:encoded><![CDATA[
-
 <h3>先说疑问</h3>
 <p>真的有人在用这个东西吗？都怎么用？利用率很高吗？</p>
 <h3>我的场景(还没升，凭想象)</h3>
@@ -17,7 +345,6 @@
 <p>难道真有人盯着桌面发呆，为了看上面好看的小组件？</p>
 <p>如果真能提高效率，请不吝赐教！</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T12:08:48Z</pubDate>
 <pubDate>2023-11-23T12:14:42Z</pubDate>
 </item>
 <item>
@@ -25,11 +352,9 @@
 <link>https://www.v2ex.com/t/994643</link>
 <guid>https://www.v2ex.com/t/994643</guid>
 <content:encoded><![CDATA[
-
 <p>昨天新开的包年，送一个月，到期时间 2024.12 ，通过 trakt 共享，不限制 Apple ID 区域。</p>
 <p>交个朋友，也不考虑什么汇率波动，12 元每年。感兴趣的加 V：inline1024</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T12:08:20Z</pubDate>
 <pubDate>2023-11-23T12:08:20Z</pubDate>
 </item>
 <item>
@@ -37,7 +362,6 @@
 <link>https://www.v2ex.com/t/994642</link>
 <guid>https://www.v2ex.com/t/994642</guid>
 <content:encoded><![CDATA[
-
 <p>最近偶尔因为感情情绪低落，细看自己貌似也不全是因为感情的事情情绪低落。</p>
 <p>职场上有些人是见到微笑都觉得多余的人
 天气阴晴不定温度变化都会影响心情
@@ -47,7 +371,6 @@
 <p>一整天都觉得内心慌慌的，这种情况已经持续两三天了，一到晚上就很容易流泪，出现所谓的破碎感。</p>
 <p>继续跳舞/跑步吧，动起来真的不会让自己饱受情绪的折磨。</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T11:57:02Z</pubDate>
 <pubDate>2023-11-23T12:20:41Z</pubDate>
 </item>
 <item>
@@ -55,12 +378,10 @@
 <link>https://www.v2ex.com/t/994641</link>
 <guid>https://www.v2ex.com/t/994641</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://summariesbooks.com/" rel="nofollow">https://summariesbooks.com/</a></p>
 <p>用 NextJs + Supabase ，真香啊。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/rF9CGPl.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-23T11:53:40Z</pubDate>
 <pubDate>2023-11-23T11:53:40Z</pubDate>
 </item>
 <item>
@@ -68,10 +389,8 @@
 <link>https://www.v2ex.com/t/994640</link>
 <guid>https://www.v2ex.com/t/994640</guid>
 <content:encoded><![CDATA[
-
 有人熟悉《中国溯源》网没，想了解下这个行业的当前状况和前景。<br /><br />PS: 一个朋友在广西，想做这块的项目
 ]]></content:encoded>
-<pubDate>2023-11-23T11:36:01Z</pubDate>
 <pubDate>2023-11-23T11:33:01Z</pubDate>
 </item>
 <item>
@@ -79,11 +398,9 @@
 <link>https://www.v2ex.com/t/994639</link>
 <guid>https://www.v2ex.com/t/994639</guid>
 <content:encoded><![CDATA[
-
 <p>wiki cera 洛杉矶 9929 ，三网去程 163 回程 9929 明盘 440
 1c1g50g500g,续费 440/年，到期时间 2024-11-12</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T11:28:01Z</pubDate>
 <pubDate>2023-11-23T11:27:01Z</pubDate>
 </item>
 <item>
@@ -91,12 +408,10 @@
 <link>https://www.v2ex.com/t/994638</link>
 <guid>https://www.v2ex.com/t/994638</guid>
 <content:encoded><![CDATA[
-
 <p>工作日，大概晚上 8 点半左右下班，但不想健身，不想学习，甚至什么活动也不想参加。
 只想躺着。</p>
 <p>是应该把一些要做的个人事情放到早上吗？</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T11:14:17Z</pubDate>
 <pubDate>2023-11-23T11:59:05Z</pubDate>
 </item>
 <item>
@@ -104,10 +419,8 @@
 <link>https://www.v2ex.com/t/994637</link>
 <guid>https://www.v2ex.com/t/994637</guid>
 <content:encoded><![CDATA[
-
 2024-06-05 到期, 年续费价格 59.5 CAD    <br />    15G 硬盘, 500M 带宽, 每月 800G 流量. 中国优化线路, 干净 IP,可以访问 chatgpt 和支付.<br />    <br />    telegram 联系: mike_telegram<br />    <br />-------<br /> CPU Model          : Intel Core Processor (Haswell, no TSX, IBRS)<br /> CPU Cores          : 1 @ 2299.996 MHz<br /> CPU Cache          : 16384 KB<br /> AES-NI             : ✓ Enabled<br /> VM-x/AMD-V         : ✗ Disabled<br /> Total Disk         : 14.7 GB (9.5 GB Used)<br /> Total Mem          : 978.8 MB (233.3 MB Used)<br /> System uptime      : 360 days, 23 hour 30 min<br /> Load average       : 0.00, 0.00, 0.00<br /> OS                 : CentOS Linux release 7.9.2009 (Core)<br /> Arch               : x86_64 (64 Bit)<br /> Kernel             : 6.0.9-1.el7.elrepo.x86_64<br /> TCP CC             : bbr<br /> Virtualization     : KVM<br /> IPv4/IPv6          : ✓ Online / ✗ Offline<br /> Organization       : AS400464 VMISS Inc.<br /> Location           : Los Angeles / US<br /> Region             : California<br />----------------------------------------------------------------------<br /> I/O Speed(1st run) : 382 MB/s<br /> I/O Speed(2nd run) : 606 MB/s<br /> I/O Speed(3rd run) : 640 MB/s<br /> I/O Speed(average) : 542.7 MB/s<br />----------------------------------------------------------------------<br /> Node Name        Upload Speed      Download Speed      Latency<br /> <a href="http://Speedtest.net" rel="nofollow noopener" target="_blank">Speedtest.net</a>    416.55 Mbps       428.25 Mbps         48.87 ms<br /> Los Angeles, US  463.85 Mbps       461.24 Mbps         1.16 ms
 ]]></content:encoded>
-<pubDate>2023-11-23T11:08:53Z</pubDate>
 <pubDate>2023-11-23T11:08:53Z</pubDate>
 </item>
 <item>
@@ -115,10 +428,8 @@
 <link>https://www.v2ex.com/t/994636</link>
 <guid>https://www.v2ex.com/t/994636</guid>
 <content:encoded><![CDATA[
-
 小红书搜到的，可以不用换号，因为自己把号改成了 8 元保号套餐所有好奇有什么套路没有，需要提供手机号和服务密码，代办费 50 元，走的咸鱼
 ]]></content:encoded>
-<pubDate>2023-11-23T10:58:50Z</pubDate>
 <pubDate>2023-11-23T11:49:38Z</pubDate>
 </item>
 <item>
@@ -126,10 +437,8 @@
 <link>https://www.v2ex.com/t/994635</link>
 <guid>https://www.v2ex.com/t/994635</guid>
 <content:encoded><![CDATA[
-
 刚面了职业生涯最莫名其妙的面试，为了让更多人看见，复制一下，原帖: <a href="https://www.v2ex.com/t/991474" rel="nofollow noopener" target="_blank">/t/991474</a><br /><br />我来说下面试感想吧，本来我没打算投，因为上面的岗位要求我一条都不符合，没想到 OP 主动来找我，一开始我以为是想让我推荐人的，后来没想到竟然是让我去面试，本来以为能见见大佬，聊聊不亏。<br /><br />结果一面是远程开发，来的理由竟然是最熟悉项目，这是招 CTO 还是招开发啊，我没搞明白。想着可能看我经验不足，先找个开发试试水。但二面更让我奇怪了，竟然是 PM ，这是干啥，说实话问的问题我都没考虑过，勉强糊弄过去了。<br /><br />虽然前两面都莫名其妙，但我还是跟 OP 讲，想跟架构师聊聊，OP 安排了。没想到这位架构师入职只有一个月，做的工作其实也都是救火。后面我尝试套套话，问问这架构师的履历，没有得到正面回答。<br /><br />后续我向 OP 反馈了一些问题，结果 OP 以为我瞧不起他们。天地良心，我只是直接说出问题而已。比如你们用计件的外包开发，就不要指望这些人有多少责任心和能力了，写出来的东西能用就不错了。还有你发这帖子，都没跟后面的面试官讲，别人都不知道候选人哪里来的，推简历的时候至少有个基本沟通吧。<br /><br />OP 说是招领头羊、CTO ，其实从后面的面试官问的问题来看，只是缺个分析需求、分配任务的人而已，我实话实说告诉 OP ，这在别的公司就是个研发经理甚至是组长，架构师都不管这事，更别说 CTO 了。<br /><br />还有这面试流程，招开发就是一面普通开发、二面组长，招组长小公司直接上 CTO 了，招 CTO 肯定上老板自己上啊，OP 来发帖我都以为 OP 是老板了，结果最后我根本没见到老板，还是说 OP 自己就是但不明说？真是一头雾水。<br /><br />虽然 OP 的公司跟我之前加入的创业公司确实有很大差距，但我的学历和管理经验也不符合 OP 的要求，本来想着愿意招我对我来说也是很大的提升，毕竟从来没干过管理。结果聊了半天又说还要再看看，我一开始可是清清楚楚得告诉 OP 我不符合帖子里的岗位要求的，是嫌我后面说话太直接，还是其实 OP 根本没跟能拍板的人沟通过？<br /><br />还有 OP 一直发表情包，让我更摸不到头脑，我们明明在聊一个很严肃的问题，我给的评价也不像是在开玩笑，一直用表情包回复我干什么呢？我说了我喜欢直接的，不搞弯弯绕绕，有话直说，不合适、不同意就直接说，回个表情包干啥？<br /><br />总之这是我面过的最莫名其妙的面试，从始至终我都没打听到创始人的背景，甚至连公司在哪 OP 都不愿意说，只说是科技园，科技园这么大，正经公司怕说具体地址吗？
 ]]></content:encoded>
-<pubDate>2023-11-23T10:45:57Z</pubDate>
 <pubDate>2023-11-23T19:56:06Z</pubDate>
 </item>
 <item>
@@ -137,10 +446,8 @@
 <link>https://www.v2ex.com/t/994634</link>
 <guid>https://www.v2ex.com/t/994634</guid>
 <content:encoded><![CDATA[
-
 找了好久，没找到一个稍微阅读效果和苹果阅读器差不多的。。。太难了，，最后试了一下微信读书在 PC 上用，字太小了，翻页效果一复杂就卡。。。
 ]]></content:encoded>
-<pubDate>2023-11-23T10:44:27Z</pubDate>
 <pubDate>2023-11-23T10:42:27Z</pubDate>
 </item>
 <item>
@@ -148,10 +455,8 @@
 <link>https://www.v2ex.com/t/994633</link>
 <guid>https://www.v2ex.com/t/994633</guid>
 <content:encoded><![CDATA[
-
 前端老哥们搞出来好多类似的好看的图，有没有从 graphviz 生成的？
 ]]></content:encoded>
-<pubDate>2023-11-23T10:31:55Z</pubDate>
 <pubDate>2023-11-23T10:31:55Z</pubDate>
 </item>
 <item>
@@ -159,7 +464,6 @@
 <link>https://www.v2ex.com/t/994632</link>
 <guid>https://www.v2ex.com/t/994632</guid>
 <content:encoded><![CDATA[
-
 <p>二维/三维地图
 桌面端/网页端</p>
 <p>技术栈:vue3 vite typescript electron nestjs cesium threejs leaflet @<a href="https://www.v2ex.com/member/antv">antv</a>/l7
@@ -167,7 +471,6 @@
 <p>微信:solfhub
 欢迎老板咨询,也欢迎团队来组我</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T10:20:11Z</pubDate>
 <pubDate>2023-11-23T10:17:11Z</pubDate>
 </item>
 <item>
@@ -175,7 +478,6 @@
 <link>https://www.v2ex.com/t/994631</link>
 <guid>https://www.v2ex.com/t/994631</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="截图" class="embedded_image" rel="noreferrer" src="https://imgur.com/a/rKGlrMw" />
 渲染不出来的话麻烦移步 https###://<a href="http://imgur.com" rel="nofollow">imgur.com</a>###/a/rKGlrMw</p>
 <p>ios 17.1.1 iphone15 pro</p>
@@ -183,7 +485,6 @@
 <p>还有就是，我照片 app 只有这三个视频（ 79.1M,75.6M,313.7M,均为 HEVC 格式）和一张实况照片（ 1.6M ，HEIF 格式），但是照片 app 占了 13.8GB 的内存？？</p>
 <p>求教教</p>
 ]]></content:encoded>
-<pubDate>2023-11-23T10:19:41Z</pubDate>
 <pubDate>2023-11-23T10:16:41Z</pubDate>
 </item>
 <item>
@@ -191,7 +492,6 @@
 <link>https://www.v2ex.com/t/993339</link>
 <guid>https://www.v2ex.com/t/993339</guid>
 <content:encoded><![CDATA[
-
 <p>为避免太长不看我长话短说，之前开源的库 iztro 和 react-iztro 受到了大家的喜爱和点星，非常开心，感谢大家支持。这两天爆肝了一个好玩的功能：查盘。</p>
 <h1>它是干什么的</h1>
 <p>它能根据你添加的条件和时间段查询出指定时间段内符合条件的星盘。如下图所示，查询 2023 年期间命宫有紫微星和右弼星，但是迁移宫没有生年忌的盘</p>
@@ -229,10 +529,8 @@
 <img alt="WeChat" class="embedded_image" rel="noreferrer" src="https://github.com/SylarLong/SylarLong/assets/6510425/a2af4876-7d26-4900-a0fc-f5a2030f6205" /></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-11-20T01:31:43Z</pubDate>
 <pubDate>2023-11-22T04:04:16Z</pubDate>
 </item>
-
 <item>
 <title>[iPhone] 踏出苹果生态第一步</title>
 <link>https://www.v2ex.com/t/994630</link>
@@ -14563,164 +14861,6 @@ spec:
 <p><strong>须知</strong>：本文同步自<a href="https://www.rehiy.com" rel="nofollow">若海の技术写真</a>，如有错漏请到<a href="https://www.rehiy.com/post/560/" rel="nofollow">原文</a>下留言反馈。</p>
 ]]></content:encoded>
 <pubDate>2023-11-20T03:59:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有 v 友推荐一下降噪耳机</title>
-<link>https://www.v2ex.com/t/993420</link>
-<guid>https://www.v2ex.com/t/993420</guid>
-<content:encoded><![CDATA[
-<p>之前买的华强北 3 代老是自动暂停，经常叮咚响，实在难以忍受..
-价位在 100-300 左右，普通人一枚，只要正常能降噪一些就可以了，感谢</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:22:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有没有必要给 gitee 和 github 使用不同的 SSH 密钥？？</title>
-<link>https://www.v2ex.com/t/993419</link>
-<guid>https://www.v2ex.com/t/993419</guid>
-<content:encoded><![CDATA[
-<p>我看网上有文章给 gitee 和 github 分别生成一个密钥对，，然后两个网站上传不同的公钥。。</p>
-<p>请问这种做法有必要吗？？</p>
-<p>如果不同的地方使用同一个公钥，，可能有什么风险？？</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:17:51Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 请问有没有开源的可以接入 gpt 的问答机器人</title>
-<link>https://www.v2ex.com/t/993418</link>
-<guid>https://www.v2ex.com/t/993418</guid>
-<content:encoded><![CDATA[
-现在接到一个需求：<br />1 、在页面上展示一个动态的机器人形象。（这个可以自己开发）<br />2 、可以与这个机器人进行对话，要求可以接入 gpt 。<br /><br />说白了就是做一个智能聊天机器人，智能就体现在在可以接入 gpt
-]]></content:encoded>
-<pubDate>2023-11-20T03:55:42Z</pubDate>
-</item>
-<item>
-<title>[程序员] 找了一圈，没有 C++的专题，现在这门语言失传了吗？</title>
-<link>https://www.v2ex.com/t/993417</link>
-<guid>https://www.v2ex.com/t/993417</guid>
-<content:encoded><![CDATA[
-现在编程好像 JAVA 、Python 居多，好像 C++的程序员很少了。<br />作为曾经以这门语言为生的程序员，看到这种现象真是有点心酸。
-]]></content:encoded>
-<pubDate>2023-11-19T23:49:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 奥特曼重返 OpenAI 谈判受阻，撤换董事会成员成最大阻碍，结局会如何？如何看待这场博弈？</title>
-<link>https://www.v2ex.com/t/993416</link>
-<guid>https://www.v2ex.com/t/993416</guid>
-<content:encoded><![CDATA[
-<p><a href="https://twitter.com/sama/status/1726345564059832609/photo/1" rel="nofollow">https://twitter.com/sama/status/1726345564059832609/photo/1</a></p>
-]]></content:encoded>
-<pubDate>2023-11-20T03:43:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位有这种习惯吗：获得 AI 的解答后进行复盘学习</title>
-<link>https://www.v2ex.com/t/993413</link>
-<guid>https://www.v2ex.com/t/993413</guid>
-<content:encoded><![CDATA[
-<p>打个比方：我没学习过 php ，我让 AI 帮我写了个涉及 php 的代码并完美运行，但是我完全看不懂它写的代码代表的含义，那么我可能会顺藤摸瓜地多少学习一下 php 的基础（很耗时间且涉及的知识面很浅，效果不尽人意）。请问各位有类似这种习惯吗？如果有，又是如何自我优化的？</p>
-]]></content:encoded>
-<pubDate>2023-11-19T23:39:55Z</pubDate>
-</item>
-<item>
-<title>[问与答] IOS 去广告的方法有吗？</title>
-<link>https://www.v2ex.com/t/993412</link>
-<guid>https://www.v2ex.com/t/993412</guid>
-<content:encoded><![CDATA[
-<p>目前自用两种：
-1 、巨魔  破解 ipa
-2 、使用圈 x 的自定义规则
-3 、使用 18bit 的 DNS</p>
-<p>我一般都是 1 、3</p>
-<p>巨魔可以百分百去广告，DNS 的这种方法不能百分百去广告，还是能去掉一点的</p>
-]]></content:encoded>
-<pubDate>2023-11-16T03:36:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 还是没找到 notepad++的替代品，又装了回来</title>
-<link>https://www.v2ex.com/t/993408</link>
-<guid>https://www.v2ex.com/t/993408</guid>
-<content:encoded><![CDATA[
-<p>今天想打开一个 400M 的日志，notepad3 能打开，但是稍微一搜索就卡死； vscode 能正常搜索，但我装了 neovim 插件，一想编辑就卡死。另外 vscode 启动还是太慢，和 notepad 不是一个数量级。</p>
-<p>不得不装回 notepad++，搜索和编辑都不会卡死…</p>
-<p>另外刚需一个 notepad++的功能，就是我随手写了什么在上面，不用保存，哪怕不小心关了下次打开也还在。没找的有这个功能的记事本。</p>
-<p>有什么推荐么？</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:19:16Z</pubDate>
-</item>
-<item>
-<title>[Chrome] 最近使用 chrome 内核的浏览器浏览网页时你们有出现过排版错误问题吗？</title>
-<link>https://www.v2ex.com/t/993407</link>
-<guid>https://www.v2ex.com/t/993407</guid>
-<content:encoded><![CDATA[
-这个现象起初是在家里用 chrome 的时候发现，就是会偶然间出现某个网页打开白屏或者内容无排版，但是手动刷新下就恢复正常。   <br /> <br />起先以为是家里电脑的问题，但是这几天在公司用 EDGE 浏览器也出现了这个情况，表现为打开页面内容无排版，图片特大，文字从上往下排，刷新下又恢复。<br /> <br />由于是在不同位置使用不同网络不同浏览器（但相同内核）导致的，所以怀疑是不是和 chrome 内核有关（因为 chrome 和新 EDGE 的关系）。系统均为 WIN10 ，各浏览器版本均为最新。（当然也不排除微软某个系统补丁）
-]]></content:encoded>
-<pubDate>2023-11-20T04:17:25Z</pubDate>
-</item>
-<item>
-<title>[Android] 上周一到货的红米 note 12 turbo，绑定账号解锁提示需要等 168 小时，等了一周，今天再看，需要等 196 小时！</title>
-<link>https://www.v2ex.com/t/993406</link>
-<guid>https://www.v2ex.com/t/993406</guid>
-<content:encoded><![CDATA[
-绑定账号就扔在一个地方没管他了，没想到啊，这一直变是几个意思
-]]></content:encoded>
-<pubDate>2023-11-20T03:39:47Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 公司解散 1 个月了，目前还在失业中</title>
-<link>https://www.v2ex.com/t/993405</link>
-<guid>https://www.v2ex.com/t/993405</guid>
-<content:encoded><![CDATA[
-<p>年底工作不好找啊，回家又太早了。盆友们有什么推荐程序员可以做的兼职哇</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:11:46Z</pubDate>
-</item>
-<item>
-<title>[路由器] RouterOS v7 分流/策略路由请教</title>
-<link>https://www.v2ex.com/t/993404</link>
-<guid>https://www.v2ex.com/t/993404</guid>
-<content:encoded><![CDATA[
-<p>家里接入了电信和移动两家 ISP</p>
-<p>移动使用的是爱快拨号</p>
-<p>RouterOS 导入了 CMCC 的 IP</p>
-<p>我现在试这样配置的</p>
-<p>IP - Firewall - NAT
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/AZ00dLx.jpg" /></p>
-<p>IP - Firewall - Mangle
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/RtKQEHX.jpg" /></p>
-<p>局域网内的请求是正常了，访问移动的网络按照既定目标执行；现在遇到的问题是使用移动网络访问回家有问题，好像是把移动访问回家的请求也转发到家里的移动网络去了；我有试着配置 <code>Src. Address</code> <code>In. Interface</code> 但是都没效果</p>
-]]></content:encoded>
-<pubDate>2023-11-20T03:29:34Z</pubDate>
-</item>
-<item>
-<title>[小米] 手机其他网路正常，小米应用商店突然连不上网？</title>
-<link>https://www.v2ex.com/t/993403</link>
-<guid>https://www.v2ex.com/t/993403</guid>
-<content:encoded><![CDATA[
-<p>家人们今天突然遇到这种情况，想下载小米应用商店里的 app ，但搜不出来东西，更新 app 也更新不了，但其他 app 都正常。</p>
-<p>请问大家有没有经历过类似的情况？</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:05:35Z</pubDate>
-</item>
-<item>
-<title>[Microsoft Office] office 365 发车， 41 人民币/年</title>
-<link>https://www.v2ex.com/t/993402</link>
-<guid>https://www.v2ex.com/t/993402</guid>
-<content:encoded><![CDATA[
-<p>wc:Y2RjbGF5</p>
-]]></content:encoded>
-<pubDate>2023-10-31T03:20:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有借钱给网贷公司的兄弟吗</title>
-<link>https://www.v2ex.com/t/993400</link>
-<guid>https://www.v2ex.com/t/993400</guid>
-<content:encoded><![CDATA[
-<p>是放贷给网贷公司
-我一同事花式炫富 晒他家借给网贷公司的合同
-年利率是 34%，踩着国家规定的高利贷利率
-问题是网贷公司怎么赚钱的</p>
-]]></content:encoded>
-<pubDate>2023-11-20T04:00:35Z</pubDate>
 </item>
 </channel>
 </rss>
