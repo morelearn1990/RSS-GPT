@@ -5,11 +5,269 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[VPS] 20231126 内网穿透/反代 vps 推荐</title>
+<link>https://www.v2ex.com/t/995276</link>
+<guid>https://www.v2ex.com/t/995276</guid>
+<content:encoded><![CDATA[
+
+<p>目前一直用的阿里云香港轻量，穿透用的 frp ，用着还行</p>
+<p>黑五有没有推荐的反代 vps ？</p>
+]]></content:encoded>
+<pubDate>2023-11-26T06:07:06Z</pubDate>
+<pubDate>2023-11-26T06:06:06Z</pubDate>
+</item>
+<item>
+<title>[Android] 有什么手表能控制手机上的油管播放，比如后腿几秒</title>
+<link>https://www.v2ex.com/t/995275</link>
+<guid>https://www.v2ex.com/t/995275</guid>
+<content:encoded><![CDATA[
+
+据说三星手表可以，这个截图是网上来的<br />![]( <a href="https://www.v2ex.com/i/4KUMvW7R.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 4KUMvW7R.jpeg"><img class="embedded_image" src="https://i.v2ex.co/4KUMvW7R.jpeg" /></a>)
+]]></content:encoded>
+<pubDate>2023-11-26T06:06:07Z</pubDate>
+<pubDate>2023-11-26T02:06:07Z</pubDate>
+</item>
+<item>
+<title>[Android] 求推荐对 APP 兼容性高一点的手机</title>
+<link>https://www.v2ex.com/t/995272</link>
+<guid>https://www.v2ex.com/t/995272</guid>
+<content:encoded><![CDATA[
+
+<p>由于日常用的一些小众 app 开发的比较烂，有些还没适配安卓 13 ，打开偶尔要崩溃，用三星打开也直接提示未适配</p>
+]]></content:encoded>
+<pubDate>2023-11-26T05:30:36Z</pubDate>
+<pubDate>2023-11-26T06:02:19Z</pubDate>
+</item>
+<item>
+<title>[C#] C#的二维码摆渡解码遇到点问题</title>
+<link>https://www.v2ex.com/t/995271</link>
+<guid>https://www.v2ex.com/t/995271</guid>
+<content:encoded><![CDATA[
+
+<p>之前在网上找到个 python 写的二维码摆渡程序，识别率颇高，但是 python 的 UI 界面实在难画，自己对 python 也不是很熟悉。
+最近用 C#重写了一份，可以实现一些特定功能，但是发现无论是 <a href="http://ZXing.net" rel="nofollow">ZXing.net</a> 还是 Zbar ，识别效率和成功率对比之前 python 用的 CV2 打开摄像头+pyzbar 识别二维码的组合差很多很多。
+python 下我是采用固定 10ms 读取摄像头识别一次，单次 6 图，效率大约是 60/s 。
+c#下我是采用绑定 timer 的形式，20ms 触发一次从摄像头获取 bitmap ，送进 decoder 解码，效率只有 1/S ，甚至经常识别不出。
+各位大佬帮忙看看。
+C#核心代码</p>
+<blockquote>
+<pre><code> private void decodeCurrentFrame()
+</code></pre>
+</blockquote>
+<pre><code>    {
+        if (graphics == null)
+        {
+            return;
+        }
+        //复制图像
+        this.graphics.CopyFromScreen(Screen.PrimaryScreen.Bounds.X, Screen.PrimaryScreen.Bounds.Y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+        this.pictureBox1.Image = this.bitmapSrc;
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+        Bitmap bitmap = (Bitmap)this.bitmapSrc.Clone();
+        //解码图片
+        Result[] results = reader.DecodeMultiple(bitmap);
+        //读取识别出来的二维码
+        if (results != null)
+        {
+            foreach (Result result in results)
+            {
+                {
+                    Console.WriteLine("成功识别");
+                    string content = result.ToString();
+                    if (content.Length &lt;= 20)
+                    {
+                        return;
+                    }
+                    string prefix = content.Substring(0, 16); //获取文件前缀
+                    string currentIndex = prefix.Substring(0, 8); //获取当前切片索引编号
+                    string total = prefix.Substring(8); //获取总索引数
+                    if (content.Contains("|"))
+                    {
+                        int prefixIndex = content.LastIndexOf("|");
+                        int qrCurrentIndex = content.IndexOf("|");
+                        currentIndex = content.Substring(0, qrCurrentIndex);
+                        string raw = content.Substring(prefixIndex + 1);
+                        content = "0000000000000000" + raw;
+                        Console.WriteLine("旧版数据" + raw + "索引编号：" + currentIndex);
+                    }
+                    initResultMap(total);
+                    dealData(currentIndex, content.Substring(16));
+                    checkResultMap();
+                }
+            }
+        }
+        //统计数据
+        sw.Stop();
+        TimeSpan ts = sw.Elapsed;
+        string costed = ts.TotalMilliseconds + "ms";
+        labelTickCost.Text = costed;
+    }
+    
+</code></pre>
+<p>pyhon 核心代码</p>
+<blockquote>
+<pre><code>   def decodeDisplay(img):
+</code></pre>
+</blockquote>
+<pre><code>        global number
+        barcodes = pyzbar.decode(img)
+        for barcode in barcodes:
+            barcodeData = barcode.data.decode()
+            try:
+                i = int(barcodeData[:8])
+            except ValueError:
+                return img
+            try:
+                max = int(barcodeData[8:16])
+            except ValueError:
+                return img
+            ll = ''
+
+            if not os.path.exists("temp/result" + str(i) + ".txt"):
+                barcodeData = barcodeData[16:]
+                with open("temp/result" + str(i) + ".txt", "w+") as f:
+                    f.write(barcodeData)
+                    number = number + 1
+                    global sat
+                if number == max:
+                    filecount = len(os.listdir('temp/result'))
+                    if number != filecount:
+                        number = filecount
+                        continue
+                    j = 1
+                    while j &lt;= number:
+                        with open("temp/result" + str(j) + ".txt", "r+") as f:
+                            txt = f.read()
+                        ll = ll + txt
+                        j = j + 1
+                    global starttime
+                    ent = time.time()
+                    theLB.insert(END, "识别结束")
+                    theLB.see(END)
+                    with open("result/b64.txt", "w") as f:
+                        f.write(ll)
+                    temp = base64.b64decode(ll)
+                    with open("result/result.txt", "wb") as f:
+                        f.write(temp)
+                    if tkinter.messagebox.askyesno(title='识别成功', message='另存为'):
+                        old_path = tk.filedialog.askdirectory()
+                        shutil.copy("result/result.txt", old_path)
+                    theLB.insert(END, "识别成功")
+                    del_file()
+        return img
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-11-26T05:24:11Z</pubDate>
+<pubDate>2023-11-26T06:06:19Z</pubDate>
+</item>
+<item>
+<title>[WordPress] 有没有国产兼容 woo 的 WordPress 主题</title>
+<link>https://www.v2ex.com/t/995269</link>
+<guid>https://www.v2ex.com/t/995269</guid>
+<content:encoded><![CDATA[
+
+想尝试做一个外贸独立站，主题使用了 woo 推荐的 astra 和 neve ，发现有很多 css 资源是需要访问 google 的导致不用梯子会非常慢，使用插件和修改源码来禁用 google 源，有一定效果，但是感觉还是好慢（怀疑有些插件也使用了 google 源），之前用国产主题的时候那速度和现在的比简直飞快。<br /><br />所以想咨询一下大佬们，有没有国产的 WordPress 兼容 woo 的主题，虽然 astra 和 neve 都是很成熟很强大的主题了，但是还是不怎么得劲。<br /><br />或者说有其他方法可以改善这个情况的呢
+]]></content:encoded>
+<pubDate>2023-11-26T05:09:39Z</pubDate>
+<pubDate>2023-11-26T05:06:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 浏览器开发者工具怎么取消 JS 的限制？</title>
+<link>https://www.v2ex.com/t/995267</link>
+<guid>https://www.v2ex.com/t/995267</guid>
+<content:encoded><![CDATA[
+
+<p>js 应该是前端的，设置大于某个设定值后，点击弹出对话框必须小于设定值，然后网络端并没有看见发送相关内容去服务器验证，如何强制取消这个对话框向服务器发送设置信息呢？</p>
+]]></content:encoded>
+<pubDate>2023-11-26T04:46:43Z</pubDate>
+<pubDate>2023-11-26T04:46:43Z</pubDate>
+</item>
+<item>
+<title>一次 github 跟开源大佬的抬杠经历</title>
+<link>https://www.v2ex.com/t/993100</link>
+<guid>https://www.v2ex.com/t/993100</guid>
+<content:encoded><![CDATA[
+
+<p>先叠个盾： 感谢所有开源作者的贡献</p>
+<hr />
+<p>不是前端，写个小工具，需要有个简单的界面，于是找了一个比较知名的开源前端 UI 库，非常好上手</p>
+<p>几十分钟就写完了，非常不错 完全就按照 sample 拷的代码就行了 因为也只是需要一些基础的功能，显示个 alert ，做个 input 采集用户数据之类</p>
+<p>调试时，发现了一个问题，UI 组件之间的排列逻辑有点小问题，于是!important 一把梭 完成任务收工</p>
+<hr />
+<p>闲下来了，觉得这问题肯定不是我一个人遇到的，就去了 github 提了个 issue 标签 bug</p>
+<p>就像我前面说的，我也不是前端，基本停留在知道 dom 是啥会 getElementById 和理解简单 js 语法的程度</p>
+<p>问题所在呢，就是这个 UI 库提供了一个组件，就是<em><strong>整个屏幕都变成半透明灰色没法点，然后中间弹一个类似桌面程序 modal 窗口的的框弹出的是白色的框，产生反差，里面可以自由发挥 html 代码的组件</strong></em> 不知道这玩意你们一般叫啥</p>
+<p>这个组件显示是正常的，我完全 copy 的手册的代码，只是把中间的文字替换成了我要显示的文字</p>
+<p>然后无意发现，这个组件下面的基本布局组件里有个色块，不会被变灰遮挡，也不会被弹出的 modal 窗口遮挡，modal 窗口正中间有个超级鲜艳的色块</p>
+<p>我对 html 还是有点概念的，这应该是下面那个组件里有一部分颜色功能用了 relative/absolute 定位（这玩意不存在用 fixed 定位吧）给了个 z-index 1 导致的问题 相当于类似 floating 的状态</p>
+<p>他 z-index 给 1 是因为他想让这个东西显示在他那个组件内部的基准层上面 1 层</p>
+<p>而这个白色的框是 display:block 的 普通定位 就到下面去了</p>
+<p>这里我最开始犯了个错误 因为这个 modal 状态 F12 不好定位 而 html 是通过前端框架渲染的 代码里写的是模板 所以我漏掉了 直接看那个白色框的 block 的状态 position 是默认值 刚开始以为这个组件整体不是 floating 的状态</p>
+<p>提完了 issue 很快维护的大佬就来解答了</p>
+<p>他纠正了我的错误分析 告诉我这个组件都是非默认 position 的</p>
+<p>然后我又回去仔细找了下，确实，那个背景整体变灰是个 fixed 的 width height 都是 100%的 div 且 z-index 是 1</p>
+<p>两个 z-index 都是 1 结果就是按定义顺序了 问题发现</p>
+<p>维护的大佬纠正的我的想法时，另外说到： “这是个 z-index 合不合理的问题”</p>
+<p>我认为这不合理，我就反问了一句，那你认为这种 modal 功能而论，给 1 的 z-index 到底合不合理？说这话时候，我认为这不合理。我认为这种组件默认应该有一个较高的 z-index 。没必要最高给个 2000 但是高于一般组件 让这个东西确实能遮住大部分组件，应该是正常人类应该有的思维吧？</p>
+<p>到这里，我这个职业杠精八代高低杠转世都没想杠什么，您说了，我就一提，委婉的表示了一下我认为这个不太合理，咱是不是要在远期版本改进一下这个默认值 改个 3 或者 5 之类 这就完事了</p>
+<p>然后就得到了一个公式化的答复</p>
+<p>“它们的层级是一样的，所以最终它们展示上的层级和在文档流的顺序也有关系。修改默认的 z-index 值属于 breaking change 。不过提供了 z-index 的 prop 和 css 变量，你可以根据项目的实际情况进行配置。”</p>
+<p>说实话，这玩意我已经改完了，也没用他的方法，因为文档里压根就没写过这玩意要怎么改，变量在哪也没看到，也没有说明。我不觉得一个公开的知名的广泛传播的开源组件，我不过分的基础用法使用它还得去看他源码怎么写的才能正常用</p>
+<p>然后我就吐槽了一句，贵司果然大厂风范。然后我就主动 close 了这个 issue 。 毕竟大周末的，不是带薪抬杠，跟大佬在 github 杠不划算……</p>
+<p>为啥大厂风范呢？因为这个开源代码在某个大厂的组织下，而不是在个人作者名下。项目简介明确写道是该厂开源产品，且用了该厂商标。</p>
+<p>都 closed 了的，该大佬又跑来跟我一顿解释。</p>
+<p>可是我就想知道，大佬认为这个到底合不合理，我就杠了一下 我只是想知道你认为到底合不合理</p>
+<p>然后又换来了长篇大论的解释……</p>
+<p>可是我只是想知道，到底大佬们怎么想的，这种设计到底合不合理。你要觉得合理，你就告诉我合理，以后我也多学习学习怎么设计这种合理。</p>
+<p>我就又补充了一句，我只是想知道到底合不合理，能不能用一个字或者两个字告诉我到底合理不合理。我说大厂风范，就是指的这种从不正面面对问题，顾左右耳言他的行为</p>
+<p>然后，我就又收获了更长的一篇长篇大论……</p>
+<p>这次还用 markdown 给我列了 1 2 3 4</p>
+<p>其中第四条是</p>
+<p><strong>“默认的值无论是什么都有可能在某个场景下是不合理的。”</strong></p>
+<p>我就想知道，现在程序员的群体里，都已经这样了么？话不能直接说，沟通不能简洁有效 什么都得长篇大论，生怕触动了原始写这段代码的巨佬的权威</p>
+<p>你觉得合理，你就明确的告诉我合理，我也接受就完事了</p>
+]]></content:encoded>
+<pubDate>2023-11-18T11:30:15Z</pubDate>
+<pubDate>2023-11-25T09:58:50Z</pubDate>
+</item>
+<item>
+<title>有一个前后端项目打算外包，预算 3~5w，技术栈 PHP , antd-vue</title>
+<link>https://www.v2ex.com/t/995268</link>
+<guid>https://www.v2ex.com/t/995268</guid>
+<content:encoded><![CDATA[
+
+<p>项目使用 php laravel + antd-vue(目前是 vue2, 准备用 3 ，已买 autd-vue pro)</p>
+<ul>
+<li>
+<p>目前有一个初始版本是用 laravel + antd vue2, 可以作为参考，但是功能不全，基于这个版本，使用 vu3 来开发。</p>
+</li>
+<li>
+<p>为了方便沟通，目前计划使用 Jira 进行进度的管理</p>
+</li>
+<li>
+<p>最好是有团队能接单，我能参与到后端开发当中</p>
+</li>
+<li>
+<p>项目客户是国外，最好能自备畅通的网络环境</p>
+</li>
+<li>
+<p>Base 成都，当面好沟通，外地也可以，尽量是团队</p>
+</li>
+<li>
+<p>联系方式: <a href="https://pastebin.com/uDX0CgQZ" rel="nofollow">https://pastebin.com/uDX0CgQZ</a></p>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-11-26T04:47:35Z</pubDate>
+<pubDate>2023-11-26T04:47:35Z</pubDate>
+</item>
+
+<item>
 <title>[VPS] 请问支付宝买境外 vps 安全吗</title>
 <link>https://www.v2ex.com/t/995262</link>
 <guid>https://www.v2ex.com/t/995262</guid>
 <content:encoded><![CDATA[
-
 <p>黑五的余温还没过，打算买一台。</p>
 <p><a href="https://www.hostinger.com.hk/vps-hosting" rel="nofollow">https://www.hostinger.com.hk/vps-hosting</a>
 <a href="https://hostkey.com/vps/" rel="nofollow">https://hostkey.com/vps/</a></p>
@@ -19,7 +277,6 @@
 <p>他们会交出买家的信息吗，
 以及支付宝付费的时候我看写了 hostinger inc ，会不会被风控。</p>
 ]]></content:encoded>
-<pubDate>2023-11-26T04:14:20Z</pubDate>
 <pubDate>2023-11-26T04:11:20Z</pubDate>
 </item>
 <item>
@@ -27,10 +284,8 @@
 <link>https://www.v2ex.com/t/995261</link>
 <guid>https://www.v2ex.com/t/995261</guid>
 <content:encoded><![CDATA[
-
 <p>E5 一般是到剩下 30 天会自动续订，现在只剩 27 天了还没有续订。我是上半年那波封号之后在咸鱼上买的（被封的是自己申请的）。据说之前加强风控之后 E5 Renew X/Plus 都会导致封号，那应该怎么救啊？日常使用就只是 <a href="https://github.com/spencerwooo/onedrive-vercel-index" rel="nofollow">onedrive-vercel-index</a> 。</p>
 ]]></content:encoded>
-<pubDate>2023-11-26T04:06:38Z</pubDate>
 <pubDate>2023-11-26T04:04:38Z</pubDate>
 </item>
 <item>
@@ -38,10 +293,8 @@
 <link>https://www.v2ex.com/t/995258</link>
 <guid>https://www.v2ex.com/t/995258</guid>
 <content:encoded><![CDATA[
-
 <p>只需要几个基础功能就好，semrush 和 similarweb 实在太贵了，哎</p>
 ]]></content:encoded>
-<pubDate>2023-11-26T03:35:39Z</pubDate>
 <pubDate>2023-11-26T03:35:39Z</pubDate>
 </item>
 <item>
@@ -49,10 +302,8 @@
 <link>https://www.v2ex.com/t/995257</link>
 <guid>https://www.v2ex.com/t/995257</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2023/11/26/8e30eb80146ecc6b.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-11-26T03:23:53Z</pubDate>
 <pubDate>2023-11-26T03:23:53Z</pubDate>
 </item>
 <item>
@@ -60,10 +311,8 @@
 <link>https://www.v2ex.com/t/995256</link>
 <guid>https://www.v2ex.com/t/995256</guid>
 <content:encoded><![CDATA[
-
 <p>我的是成品的节点，节点较多，就是经常需要切换才能使用 chatgpt 但是在软路由上面，切换多多少少有一些不方便，请问这种应该怎么配合 CLOUDFLARE WARP ，突破 chatgpt 的限制呢？</p>
 ]]></content:encoded>
-<pubDate>2023-11-26T03:11:57Z</pubDate>
 <pubDate>2023-11-26T00:11:57Z</pubDate>
 </item>
 <item>
@@ -71,7 +320,6 @@
 <link>https://www.v2ex.com/t/995254</link>
 <guid>https://www.v2ex.com/t/995254</guid>
 <content:encoded><![CDATA[
-
 <p>CloudflareST 优选参数：-url <a href="http://x.x.x.x" rel="nofollow">http://x.x.x.x</a> -sl 20 -tp 80 -dn 20 -tl 65 -dd （注：CFT ）</p>
 <ol>
 <li>
@@ -85,17 +333,14 @@
 <p><a href="https://github.com/XIU2/CloudflareSpeedTest/issues/464" rel="nofollow">https://github.com/XIU2/CloudflareSpeedTest/issues/464</a></p>
 ]]></content:encoded>
 <pubDate>2023-11-26T02:55:25Z</pubDate>
-<pubDate>2023-11-26T02:55:25Z</pubDate>
 </item>
 <item>
 <title>[酷工作] 有熟悉 Svelte， Tailwind 框架的前端吗？</title>
 <link>https://www.v2ex.com/t/995253</link>
 <guid>https://www.v2ex.com/t/995253</guid>
 <content:encoded><![CDATA[
-
 按任务支付报酬，有意请 v 联系：aGVucnkzMzQwMTM=
 ]]></content:encoded>
-<pubDate>2023-11-26T02:52:25Z</pubDate>
 <pubDate>2023-11-23T02:52:25Z</pubDate>
 </item>
 <item>
@@ -103,7 +348,6 @@
 <link>https://www.v2ex.com/t/995251</link>
 <guid>https://www.v2ex.com/t/995251</guid>
 <content:encoded><![CDATA[
-
 <p>你好，我是猫哥。这里每周分享优质的 Python 、AI 及通用技术内容，大部分为英文。本周刊开源，欢迎<a href="https://github.com/chinesehuazhou/python-weekly" rel="nofollow">投稿</a>。另有<a href="https://t.me/pythontrendingweekly" rel="nofollow">电报频道</a>作为副刊，补充发布更加丰富的资讯。</p>
 <h2>🐱产品推荐</h2>
 <p><strong><a href="http://Walles.AI" rel="nofollow">Walles.AI</a></strong> 是一款适用于所有网站的浏览器插件，支持 GPT4 问答、ChatPDF 、网页内容解释及翻译、生成高质量文章、与 Notion 等工具协同、在线摘要 Youtube 视频等。立即前往官网，免费使用（请在 PC 端访问）：<a href="https://walles.ai?invite_code=CGZP5W" rel="nofollow">安装地址</a></p>
@@ -172,7 +416,6 @@
 <li><a href="https://twitter.com/chinesehuazhou" rel="nofollow">Twitter</a>：我的关注列表里有大量 Python 相关的开发者与组织的账号。</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-11-26T02:48:26Z</pubDate>
 <pubDate>2023-11-25T22:48:26Z</pubDate>
 </item>
 <item>
@@ -180,10 +423,8 @@
 <link>https://www.v2ex.com/t/995250</link>
 <guid>https://www.v2ex.com/t/995250</guid>
 <content:encoded><![CDATA[
-
 mac 13 系统，查看系统报告，只有固件版本。
 ]]></content:encoded>
-<pubDate>2023-11-26T02:48:00Z</pubDate>
 <pubDate>2023-11-26T02:48:00Z</pubDate>
 </item>
 <item>
@@ -192,9 +433,7 @@ mac 13 系统，查看系统报告，只有固件版本。
 <guid>https://www.v2ex.com/t/995249</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-11-26T02:42:32Z</pubDate>
 <pubDate>2023-11-26T04:18:18Z</pubDate>
 </item>
 <item>
@@ -202,13 +441,10 @@ mac 13 系统，查看系统报告，只有固件版本。
 <link>https://www.v2ex.com/t/995248</link>
 <guid>https://www.v2ex.com/t/995248</guid>
 <content:encoded><![CDATA[
-
 <p>今天更新 Surge 发现实时网速的模块消失了</p>
 ]]></content:encoded>
-<pubDate>2023-11-26T02:32:30Z</pubDate>
 <pubDate>2023-11-26T02:46:52Z</pubDate>
 </item>
-
 <item>
 <title>[Surge] 出 ios 的 surge 车位</title>
 <link>https://www.v2ex.com/t/995247</link>
@@ -15080,140 +15316,6 @@ phantun:    1412 - 12 = 1400</p>
 对大家的工作影响非常大，有什么比较好用的 ai 工具可以替代 Chatgpt 嘛</p>
 ]]></content:encoded>
 <pubDate>2023-11-22T02:02:19Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为何计算机图形（CG）与有限元（FEM）的工资差距这么大</title>
-<link>https://www.v2ex.com/t/994049</link>
-<guid>https://www.v2ex.com/t/994049</guid>
-<content:encoded><![CDATA[
-<p>CG 和 FEM 都是将现实世界放到计算机上跑，CG 要求好看，FEM 要求精确。FEM 的数理难度相比 CG 更大，工资却不如。</p>
-]]></content:encoded>
-<pubDate>2023-11-22T02:08:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 咨询一下多域名邮箱开源系统</title>
-<link>https://www.v2ex.com/t/994047</link>
-<guid>https://www.v2ex.com/t/994047</guid>
-<content:encoded><![CDATA[
-想知道有没有类似 iRedAdmin-Pro 的邮箱系统，对外提供 api 接口服务的，可以通过 api 创建账户，接收邮件，但是不收费的开源邮箱系统，有没有大哥知道
-]]></content:encoded>
-<pubDate>2023-11-14T01:49:38Z</pubDate>
-</item>
-<item>
-<title>[VPS] 为啥还没有黑五 vps 推荐贴啊</title>
-<link>https://www.v2ex.com/t/994046</link>
-<guid>https://www.v2ex.com/t/994046</guid>
-<content:encoded><![CDATA[
-<p>有没有支持 usdt 支付的，网络不抽风少的，挂个小网站，跑跑 python</p>
-<p>价格当然越少越合适 - -</p>
-]]></content:encoded>
-<pubDate>2023-11-22T02:29:13Z</pubDate>
-</item>
-<item>
-<title>[Apple] 苹果生态好像有种聚光灯效应，无法被超越。</title>
-<link>https://www.v2ex.com/t/994045</link>
-<guid>https://www.v2ex.com/t/994045</guid>
-<content:encoded><![CDATA[
-苹果生态有种聚光灯效应，无法被超越。<br /><br />你可以轻松地在电商平台买到 不同样式的 MagSafe 磁吸配件，不同设计的手机壳。<br /><br />可以在各大软件厂商官网 download 按钮旁边，自豪的选择 download  for apple silicon 。<br /><br />可以在微博热搜看到你在用机型获得系统新版本更新的讨论。即使你的手机已经用了好几年了。<br /><br />可以踏实的使用高品质系统自有服务，iMessage  FaceTime  健康 音乐 tv+ 不用担心停更被抛弃被糊弄。<br /><br />以上这些，无法通过选择某个性价比小厂商来获得，虽然苹果有的，它可能都照猫画虎的做出来了，但这又好像纽约时代广场和你老家村口广场的区别，都是广场，都很聚人，但就是差点意思。
-]]></content:encoded>
-<pubDate>2023-11-22T02:31:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有人试过 clubsim 实体 sim 转 esim 吗？</title>
-<link>https://www.v2ex.com/t/994044</link>
-<guid>https://www.v2ex.com/t/994044</guid>
-<content:encoded><![CDATA[
-<p>之前买了一个实体 sim 一直在用，最近搞了个支持 esim 的手机，想把国外的手机号都转到 esim 上，但是这个 clubsim 就不行，我在 App 和官网上找了好久也没找到哪里可以操作。想咨询客服发现只有 whatsApp ，这个我还收不到验证码，就很烦。<br />
-有没有大佬操作过的指点一下，不是新开 esim ，就是实体 sim 转 esim 。</p>
-]]></content:encoded>
-<pubDate>2023-11-22T02:10:38Z</pubDate>
-</item>
-<item>
-<title>[Linux] manjaro plasma 23 on macbook air 2013 闪屏</title>
-<link>https://www.v2ex.com/t/994041</link>
-<guid>https://www.v2ex.com/t/994041</guid>
-<content:encoded><![CDATA[
-macbook air 2013 用的是 intel 集成显卡, 使用了系统默认的显卡驱动，sleep or hibernate 恢复之后屏幕闪烁, 然后慢慢减缓，但依然无法完全去除闪烁，大概要持续 30 秒之后才会感觉不到闪烁. 大家遇到过这个问题么?<br /><br />系统上显示有 3 个显卡驱动, 系统默认使用了第一个.<br />```<br />video-linux (Version: 2018.05.04; Freedriver: true; Type: Pci)<br />video-modesetting (Version: 2020.01.13; Freedriver: true; Type: Pci)<br />video-vesa (Version: 2017.03.12; Freedriver: true; Type: Pci)<br />```
-]]></content:encoded>
-<pubDate>2023-11-22T01:42:45Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] chatgpt 正在维护吗</title>
-<link>https://www.v2ex.com/t/994039</link>
-<guid>https://www.v2ex.com/t/994039</guid>
-<content:encoded><![CDATA[
-<p>退出登陆后，就登陆不进去了</p>
-<p><a href="https://chat.openai.com/" rel="nofollow">https://chat.openai.com/</a></p>
-<p>ChatGPT is at capacity right now
-Get notified when we're back
-Write a rap about the status of ChatGPT.
-Yeah, yo, what's up ChatGPT fam
-A lot of people trying to jam
-But don't worry, we got your back
-Just check back soon, we'll get on track</p>
-<p>ChatGPT's the place to be
-For all your AI chat needs
-We're working hard to keep up the pace
-So hold tight, we'll be back in this space</p>
-<p>So don't you worry, don't be mad
-We're working hard, it's not so bad
-Just give us time, we'll be back
-ChatGPT, the future of chat, that's a fact.</p>
-]]></content:encoded>
-<pubDate>2023-11-22T01:59:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 菜鸟驿站新操作 之 淘宝网物流详情 从哪来</title>
-<link>https://www.v2ex.com/t/994037</link>
-<guid>https://www.v2ex.com/t/994037</guid>
-<content:encoded><![CDATA[
-<p>最近两个快递驿站没有送货，好奇 9519666 客服问了下是不是取件方式被改为自提了，</p>
-<p>结果是：我的件根本没有进菜鸟的系统，但是淘宝 APP 上有和快递公司发来一致的取件码，让去菜鸟驿站取件。</p>
-<p>好奇又去找了几家快递企业的官网查询物流详情，</p>
-<p>发现在快递官网上查询结果中的    <em>“菜鸟驿站”</em>   字样，在淘宝方面都被改为了   <em>"代收点”</em> </p>
-<p>等于是对快递公司来说，快递进入菜鸟驿站。对淘宝来说，快递进的是代收点，没入他们系统。</p>
-<p>各位能看看自己的快递是被谁收了，还是就我这的个人问题？</p>
-<p>附图：取件码短信，中通，圆通，申通，极兔与淘宝的详情对比。</p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/n3hynpG.png" /></p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/GWFwHGc.png" /></p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/dMXBkOP.png" /></p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/HCCeexB.png" /></p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/w3UV6Uu.png" /></p>
-]]></content:encoded>
-<pubDate>2023-11-22T01:47:57Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] ChatGPT Voice 免费开放了</title>
-<link>https://www.v2ex.com/t/994036</link>
-<guid>https://www.v2ex.com/t/994036</guid>
-<content:encoded><![CDATA[
-马上安装 ChatGPT 试试
-]]></content:encoded>
-<pubDate>2023-11-22T02:28:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家都在听什么播客?</title>
-<link>https://www.v2ex.com/t/994034</link>
-<guid>https://www.v2ex.com/t/994034</guid>
-<content:encoded><![CDATA[
-想看看大家平时都在听些什么样的播客呢?愿意的话,就分享下你最近最喜欢的 1-2 个播客,最好能简单介绍一下它的主题和独特之处。
-]]></content:encoded>
-<pubDate>2023-11-22T02:31:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] 微软这操作太秀了，这么玩不会被处罚？</title>
-<link>https://www.v2ex.com/t/994031</link>
-<guid>https://www.v2ex.com/t/994031</guid>
-<content:encoded><![CDATA[
-<p>微软为 openai 770 名员工中的每人提供适度的 1000 万美元签约奖金。
--这将花费微薄的 $7.7B 。</p>
-<ul>
-<li>与直接收购 OpenAI 相比，节省 82.3B 美元。
--让剩下的 OpenAI 枯萎。
--微软基本上是以周五市值的*8%*价格收购 OpenAI 团队。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-11-22T01:21:17Z</pubDate>
 </item>
 </channel>
 </rss>
