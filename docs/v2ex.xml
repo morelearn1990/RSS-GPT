@@ -5,18 +5,261 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 有了 vConsole，我们为什么还要做 PageSpy</title>
+<link>https://www.v2ex.com/t/996712</link>
+<guid>https://www.v2ex.com/t/996712</guid>
+<content:encoded><![CDATA[
+
+<p>接上回 <a href="https://www.v2ex.com/t/995495" rel="nofollow">《支持远程调试的 "vConsole"》</a> 发出后，大家对此挺感兴趣，所以咱这回接着唠。</p>
+<p>起初在开发 PageSpy 的时候，我们是想着解决 vConsole 做不到的事情，也就是远程调试的工作协同：<strong>开发人员在上海，测试、产品等团队在深圳。</strong></p>
+<p>那时候是这样的啊，项目白屏了、程序报错了、接口 Error 了，完事儿让测试人员对着 vConsole 截图，人家怎么知道截啥图、截哪个面板的图？具体来说，打个比方：js 里通过 <code>res.data.users.map(fn)</code> 去遍历用户渲染，但是由于种种原因，接口返回的数据长这样式儿的：</p>
+<pre><code class="language-json">{
+    "success": true,
+    "message": "请求成功",
+    "data": null
+}
+</code></pre>
+<p>测试人员在 vConsole 看到的、最直观的也就是以下 "报红" 错误信息：</p>
+<pre><code class="language-bash">Uncaught TypeError: Cannot read properties of null (reading 'users')
+    at &lt;压缩后的.js&gt;:3:10010
+</code></pre>
+<p>当测试小姐姐把这个错误截图发过来的时候，对开发人员排障有什么帮助吗？有的！我们从中可以得知：</p>
+<ol>
+<li>读取的是某个对象的 <code>users</code> 属性；</li>
+<li>是在 &lt;压缩后的.js&gt; 第 3 行、第 10010 列处发生的问题；</li>
+</ol>
+<p>信息量够吗？单独针对于这个场景，勉强可以接受，虽然 <code>.users</code> 的关键词搜索结果很多，但因为我们可以去扒 &lt;压缩后的.js&gt; 文件，耐心的定位到错误堆栈的具体报错位置，再结合我们自身对这个项目源代码的熟悉、理解，有经验的同学还是能够找到问题所在的，但是大家等我说完这一大串也能感受到，整个排查的过程下来会很累。。。</p>
+<p>那如果客户端报错的现场不是在测试小姐姐那边、是在我们本地谷歌浏览器的话，排障的流程又会是什么样子的呢？</p>
+<ul>
+<li>发现 Console 面板报错，堆栈中有源码索引；</li>
+<li>点击后会定位到源文件的原始行列；</li>
+<li>初步确认数据有问题后，切换到 Network 面板，查看接口返回的数据；</li>
+<li>确认问题。</li>
+</ul>
+<p>相比上面的 "盲人摸象"，本地的排障非常的自然、顺畅。</p>
+<p>正因如此，PageSpy 本着向控制台看齐的初衷，基本还原了控制台排障的流程：</p>
+<ul>
+<li>当程序报错时支持可以查看错误堆栈</li>
+</ul>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/60d54de7afbf480ebfb7ee393ff91f7f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2872&amp;h=970&amp;s=181675&amp;e=png&amp;b=fdfcfc" /></p>
+<ul>
+<li>支持定位源码</li>
+</ul>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47062e8502704c90aa1869866dc32770%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2876&amp;h=1512&amp;s=317220&amp;e=png&amp;b=8b8a8a" /></p>
+<ul>
+<li>查看网络请求和响应数据</li>
+</ul>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7fde43bc232e4bd58fa00a4c4cd42eef%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2878&amp;h=1514&amp;s=445474&amp;e=png&amp;b=fbfbfb" /></p>
+<p>除了上面提到的这些功能外，我们在 PageSpy 的应用截图中也可以看到其他的信息：</p>
+<ul>
+<li>左上角自动识别了当前客户端的系统、浏览器，当鼠标划过时还会显示更加具体的版本详情；</li>
+<li>中间顶部显示着当前调试连接的在线状态；</li>
+<li>侧边栏按钮中得知可以查看日志输出、网络请求、页面渲染状况、缓存信息、系统信息（这是什么？）；</li>
+</ul>
+<p>当开发者直面这些数据的时候，大多数问题将迎刃而解。今天我们先分享到这里，大家如果感兴趣的话，可以查看 <a href="https://huolalatech.github.io/page-spy-web/" rel="nofollow">官网文档</a>，官方提供了 Docker / Node 等方式的部署方案，一键部署、一劳永逸，使用起来非常简单。</p>
+<p>有问题大家可以加入 <a href="https://github.com/HuolalaTech/page-spy-web#%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81" rel="nofollow">技术支持群</a>。</p>
+]]></content:encoded>
+<pubDate>2023-12-01T01:25:39Z</pubDate>
+<pubDate>2023-11-30T21:25:39Z</pubDate>
+</item>
+<item>
+<title>[程序员] v 站的搜索功能不好用了，之前是通过 google 搜索标题，现在是搜索帖子内容，最近的帖子标题都搜不出来，什么情况？是出问题了？还是说没 get 到搜索方法？</title>
+<link>https://www.v2ex.com/t/996710</link>
+<guid>https://www.v2ex.com/t/996710</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-01T01:18:37Z</pubDate>
+<pubDate>2023-12-01T01:15:37Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大佬请推荐开源的 WMS 系统，带 H5 或 app 端的，谢谢</title>
+<link>https://www.v2ex.com/t/996709</link>
+<guid>https://www.v2ex.com/t/996709</guid>
+<content:encoded><![CDATA[
+
+V2er 见多识广，支持 FIFO 先进先出即可。请推荐一下
+]]></content:encoded>
+<pubDate>2023-12-01T01:17:02Z</pubDate>
+<pubDate>2023-11-29T01:17:02Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] 各位 2023 年十二月的每月挑战是什么，上个月的完成了吗</title>
+<link>https://www.v2ex.com/t/996708</link>
+<guid>https://www.v2ex.com/t/996708</guid>
+<content:encoded><![CDATA[
+
+<p>我的 12 月是 4 次 200%，11 月是 14 天 591 卡以上，已完成</p>
+]]></content:encoded>
+<pubDate>2023-12-01T01:11:10Z</pubDate>
+<pubDate>2023-12-01T01:11:10Z</pubDate>
+</item>
+<item>
+<title>[问与答] NAS 硬盘求推荐 8TB</title>
+<link>https://www.v2ex.com/t/996707</link>
+<guid>https://www.v2ex.com/t/996707</guid>
+<content:encoded><![CDATA[
+
+<p>目前的是 8+4tb 做的镜像，实际容量 3.68tb 左右不够用了，一个硬盘 7w 多小时，另一个 4w 多小时。N 年前亚马逊海淘的 8tb 移动硬盘拆机的，用了 4w 小时竟然还没挂。
+想换成 8+8 ，求推荐一个实惠一点的硬盘</p>
+]]></content:encoded>
+<pubDate>2023-12-01T01:02:49Z</pubDate>
+<pubDate>2023-12-01T01:25:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 你被欠过钱吗...后来咋处理的，被欠 5k 对方沉默，想起诉</title>
+<link>https://www.v2ex.com/t/996705</link>
+<guid>https://www.v2ex.com/t/996705</guid>
+<content:encoded><![CDATA[
+
+有个 5000 块钱，2 年了，明年第三年...<br />拖了这么长时间，一开始每月还说困难，后来就不主动跟我说话了<br /><br />本来说 11 月转钱，问了，也不说理由<br /><br />打算起诉走流程，但是只有对方身份证号码，姓名，和欠条...<br /><br />大伙有啥建议？
+]]></content:encoded>
+<pubDate>2023-12-01T00:57:24Z</pubDate>
+<pubDate>2023-11-23T00:57:24Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 最近各家服务崩的此起彼伏，到底是不是跟裁员有关？</title>
+<link>https://www.v2ex.com/t/996703</link>
+<guid>https://www.v2ex.com/t/996703</guid>
+<content:encoded><![CDATA[
+
+<p>阿里云，滴滴，七牛，美团？。。。。接下来会不会更多。
+所以是不是降本增效进入深水区了。。。</p>
+<p>而且最近 b 站也总是给推荐 “怎么降低代码可读性”、“怎样跟自己代码附魔”.......</p>
+]]></content:encoded>
+<pubDate>2023-12-01T00:49:25Z</pubDate>
+<pubDate>2023-12-01T01:26:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] 透明代理用 nft 出现大量报错，小白求助！</title>
+<link>https://www.v2ex.com/t/996702</link>
+<guid>https://www.v2ex.com/t/996702</guid>
+<content:encoded><![CDATA[
+
+<h3>使用环境</h3>
+<p>1 ，路由器固件是 OpenWRT 23.05.2 x86_64<br />
+2 ，安装了 V2ray v5.11 版本，同时安装了 Luci 插件，插件开源地址：<a href="https://github.com/WordsWorthLess/luci-app-v2ray" rel="nofollow">https://github.com/WordsWorthLess/luci-app-v2ray</a><br />
+3 ，使用的是“只代理 gfwlist”<br />
+4 ，基于第三条，国内外可以分流，可以正常代理，但是出现大量 nftset 报错信息，发了 issue ，作者估计太忙，几个月没有理了，issue 地址：<a href="https://github.com/WordsWorthLess/luci-app-v2ray/issues/9" rel="nofollow">https://github.com/WordsWorthLess/luci-app-v2ray/issues/9</a><br />
+5 ，使用直连 cn ，就不会报错，但是 ipv6 不通  </p>
+<h3>问题排查</h3>
+<p>1 ，由于是小白，现学了几个命令，去看了一下代码，疑似定位到问题所在，但不知道如何解决。</p>
+<h3>疑似问题</h3>
+<p>1 ，启动脚本：<a href="https://github.com/WordsWorthLess/luci-app-v2ray/blob/master/public/root/etc/init.d/v2ray" rel="nofollow">https://github.com/WordsWorthLess/luci-app-v2ray/blob/master/public/root/etc/init.d/v2ray</a> ，第 3052 行开始这里，疑似 nft 写法有问题？才导致大量报错？</p>
+<p>求助大佬，感谢不尽！</p>
+]]></content:encoded>
+<pubDate>2023-12-01T00:48:17Z</pubDate>
+<pubDate>2023-11-27T00:48:17Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 独立开发变现周刊（第 114 期）：一个简单截图 API，月收入 2 千美金</title>
+<link>https://www.v2ex.com/t/996701</link>
+<guid>https://www.v2ex.com/t/996701</guid>
+<content:encoded><![CDATA[
+
+<p>分享独立开发、产品变现相关内容，每周五发布</p>
+<p>目录：</p>
+<ul>
+<li>1 、miniPaint：开源 Photoshop 网页替代</li>
+<li>2 、devtranslate：面向开发者的在线 JSON 格式的翻译应用</li>
+<li>3 、ThumbNailTest：Youtube 视频缩略图和标题的测试工具</li>
+<li>4 、Tldraw：开源绘画白板</li>
+<li>5 、一个简单截图 API ，月收入 2 千美金</li>
+</ul>
+<p>本期详细内容： <a href="https://mp.weixin.qq.com/s/wSzGkxI4IYQBRcW5EP37wA" rel="nofollow">https://mp.weixin.qq.com/s/wSzGkxI4IYQBRcW5EP37wA</a></p>
+]]></content:encoded>
+<pubDate>2023-12-01T00:45:06Z</pubDate>
+<pubDate>2023-11-30T20:45:06Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 请问 Dev 转 Production Support 方向好吗？</title>
+<link>https://www.v2ex.com/t/996700</link>
+<guid>https://www.v2ex.com/t/996700</guid>
+<content:encoded><![CDATA[
+
+<p>帮朋友问的，他目前是多年开发，在外包里做了挺久的，由于工作老板团队没什么人情味，加上想涨工资，最近在寻找机会 ing   </p>
+<p>最近找工作看到 Production Support 的工作，工资还🉑，唯一顾虑的是这岗位会不会太卷太 push</p>
+<p>尽管他本身的工作性质就是比较打杂，又开发又测试还要被迫加上 Support 的角色，他在想要不要看在工资的份上跳跳？</p>
+<p>各位大佬有什么建议吗？感激不尽</p>
+]]></content:encoded>
+<pubDate>2023-12-01T00:37:34Z</pubDate>
+<pubDate>2023-12-01T00:36:34Z</pubDate>
+</item>
+<item>
+<title>[生活] 12 月了，一年又见底了，大家都过得怎样呢？</title>
+<link>https://www.v2ex.com/t/996699</link>
+<guid>https://www.v2ex.com/t/996699</guid>
+<content:encoded><![CDATA[
+
+<p>去年 10 月登陆澳洲，老婆读书，我陪读。</p>
+<p>去年 12 月-3 月，在一家巴西老板小外包公司被 pua 到怀疑自我，精神差点崩溃，然后离职。</p>
+<p>4-5 月，调整心态后重新找工作，拿到两个 offer ，一个博彩相关，两周上 9 天班，拒了。一个区块链相关，接了。</p>
+<p>6-12 月，努力工作，争取下周通过试用期。</p>
+<p>现在仍然不想回顾起上半年的经历，太离谱了，好在下半年都在慢慢变好。</p>
+<p>都会越来越好的不是吗？</p>
+]]></content:encoded>
+<pubDate>2023-12-01T00:22:52Z</pubDate>
+<pubDate>2023-12-01T01:24:15Z</pubDate>
+</item>
+<item>
+<title>[分享创造] AIChat：终端中使用 GPT-4（V）、LocalAI、文心一言、通义千问等大语言模型</title>
+<link>https://www.v2ex.com/t/996693</link>
+<guid>https://www.v2ex.com/t/996693</guid>
+<content:encoded><![CDATA[
+
+<p>项目地址: <a href="https://github.com/sigoden/aichat" rel="nofollow">https://github.com/sigoden/aichat</a></p>
+<p>特性:</p>
+<ul>
+<li>REPL 聊天模式和命令模式</li>
+<li>支持配置并使用角色（自定义 prompt ）</li>
+<li>支持上下文对话（会话）</li>
+<li>支持视觉</li>
+<li>语法高亮</li>
+<li>打字效果的流式输出</li>
+<li>支持代理</li>
+<li>提供深色/浅色主题</li>
+<li>保存消息/会话记录</li>
+</ul>
+<p>支持模型:</p>
+<ul>
+<li>OpenAI: gpt-3.5/gpt-4/gpt-4-vision</li>
+<li>LocalAI: 用户部署的开源 LLM (免费)</li>
+<li>Azure-OpenAI: 用户创建的 gpt3.5/gpt4</li>
+<li>PaLM: chat-bison-001 (免费)</li>
+<li>文心一言: ernie-bot-turbo/ernie-bot/ernie-bot-8k/ernie-bot-4</li>
+<li>通义千问: qwen-turbo/qwen-plus/qwen-max  (免费额度)</li>
+</ul>
+<p>截图:</p>
+<p><img alt="REPL" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/4012553/226499667-4c6b261a-d897-41c7-956b-979b69da5982.gif" /></p>
+<p><img alt="COMMAND" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/4012553/226499595-0b536c82-b039-4571-a077-0c40ad57f7db.png" /></p>
+]]></content:encoded>
+<pubDate>2023-11-30T23:11:18Z</pubDate>
+<pubDate>2023-11-30T23:11:18Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 一觉醒来，电信宽带公网 IP 没了</title>
+<link>https://www.v2ex.com/t/996692</link>
+<guid>https://www.v2ex.com/t/996692</guid>
+<content:encoded><![CDATA[
+
+<p>用的是广州电信宽带。看了一下路由器的拨号记录，00:00 就被强制重拨变为 100.64.*.*的 NAT 地址了。不过也好，电信宽带真贵，可以换便宜的联通/移动从而消费降级。</p>
+]]></content:encoded>
+<pubDate>2023-11-30T22:17:40Z</pubDate>
+<pubDate>2023-12-01T00:54:59Z</pubDate>
+</item>
+
+<item>
 <title>[加密货币] Metamask 的密码是如何被黑客破解的？</title>
 <link>https://www.v2ex.com/t/996691</link>
 <guid>https://www.v2ex.com/t/996691</guid>
 <content:encoded><![CDATA[
-
 <p>根据这篇文章： <a href="https://mp.weixin.qq.com/s/3WUBENxzxyhiPB1EV9gKvA" rel="nofollow">https://mp.weixin.qq.com/s/3WUBENxzxyhiPB1EV9gKvA</a></p>
 <p>上面提到 Chrome 的用户密码保存在 User Login 文件下加密保存，而打开 User Login 的文件又被放在了 User State 的 Json 文件里，值为“encrypted_key”。</p>
 <p>但是 encrypted_key 是 AES 加密保存了，文中没有提到是如何解密这个 encrypted_key 的。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/aB5JDMF.png" /></p>
 <p>另外：我在 macOS 上并没找到 encrypted_key 这个 key</p>
 ]]></content:encoded>
-<pubDate>2023-11-30T22:08:58Z</pubDate>
 <pubDate>2023-11-30T22:06:58Z</pubDate>
 </item>
 <item>
@@ -24,12 +267,10 @@
 <link>https://www.v2ex.com/t/996690</link>
 <guid>https://www.v2ex.com/t/996690</guid>
 <content:encoded><![CDATA[
-
 <p>刚失业那两周疯狂投简历，第三周开始就少投了
 面试机会不多，打算准备多一点再继续投了
 现在已经打算最长失业半年起步了，或者干点别的消磨时间</p>
 ]]></content:encoded>
-<pubDate>2023-11-30T21:52:48Z</pubDate>
 <pubDate>2023-11-30T19:52:48Z</pubDate>
 </item>
 <item>
@@ -37,7 +278,6 @@
 <link>https://www.v2ex.com/t/996688</link>
 <guid>https://www.v2ex.com/t/996688</guid>
 <content:encoded><![CDATA[
-
 <p>第一次做英文简历，如果有不好的地方可以优化，希望大佬指出。</p>
 <p>在国内一家大数据公司做了 4 年全职前端，目前 base 成都，主要是可视化产品自研（对标阿里的 datav ），技术栈 React/Vue 都行。英语 6 级水平，目前正在不断提高英语水平，正常交流应该没多大问题。下面是简历，如果有机会可以联系我或者我联系你~</p>
 <p>确实很久没出来面过试了，本人属于比较踏实的人，本来现在公司还可以继续干，但确实没什么动力了，目前希望踏足新的行业和领域。</p>
@@ -51,23 +291,19 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6568f3c3c458853aef1ddf16.png" /></p>
 ]]></content:encoded>
 <pubDate>2023-11-30T20:46:49Z</pubDate>
-<pubDate>2023-11-30T20:46:49Z</pubDate>
 </item>
 <item>
 <title>[酷工作] 找个兼职网站开发 PHP 方向 钱少...内详</title>
 <link>https://www.v2ex.com/t/996686</link>
 <guid>https://www.v2ex.com/t/996686</guid>
 <content:encoded><![CDATA[
-
 <p>1)准备用 wprdpress+WooCommerce 搭一个商城,纯境外运营(线上+线下 之前叫 O2O 模式?) 想在这基础上拓展一些功能(譬如商品上架是中文编辑 通过 chat-gpt 前台展示的就是各国语言;wordpress 也有翻译插件 但是想更准确+潮流一些)要开发的功能也不会太复杂; 能写后台程序+能写前台页面 就更好了,页面不需要花哨的 简洁 实现功能就行.</p>
 <p>2)简单介绍下自己:大号 80 后 早年间就职于和讯和快车 <a href="http://flashget.com" rel="nofollow">flashget.com</a>(年龄小点的 未必听说过这个软件) 后期在一些不知名的小公司混迹,2018 年因为孩子上学的事情离开了北京 目前在欧洲生活了 5 年.目前也拿到了欧盟永居 还想再做点事情 才有了这个需求.</p>
 <p>3)画个饼:目前也在注册公司 ing,网站如果能正常且盈利的运营 合作愉快的话 可以提供工作签,基本零成本出来
 我表达能力差 不知道能不能看明白.有兴趣的话 留个联系方式可以聊聊 微信 whatsapp 电报 我都可以</p>
 ]]></content:encoded>
-<pubDate>2023-11-30T20:33:29Z</pubDate>
 <pubDate>2023-11-02T16:33:29Z</pubDate>
 </item>
-
 <item>
 <title>[Apple] 土区 Apple ID 氪日区游戏有优惠吗？</title>
 <link>https://www.v2ex.com/t/996685</link>
@@ -15399,60 +15635,6 @@ IDEA 版本范围：2021.3 ~ 2023.3<br />
 </code></pre>
 ]]></content:encoded>
 <pubDate>2023-11-27T02:26:48Z</pubDate>
-</item>
-<item>
-<title>[问与答] Airpod pro 左耳有杂音，求助</title>
-<link>https://www.v2ex.com/t/995468</link>
-<guid>https://www.v2ex.com/t/995468</guid>
-<content:encoded><![CDATA[
-2020 年购买的，已过保。<br />问一下大家，是应该预约 apple store 维修吗？大约要花多少钱？ 700 ？<br />还有没有其他的办法？<br />顺便再问一下，有没有便携降噪耳机推荐？（手上已有 sony xm3 ，Airpod pro 的音质真的一言难尽）
-]]></content:encoded>
-<pubDate>2023-11-27T02:26:40Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 毕业 8-10 年的兄弟们，你们现在咋样？</title>
-<link>https://www.v2ex.com/t/995466</link>
-<guid>https://www.v2ex.com/t/995466</guid>
-<content:encoded><![CDATA[
-<p>中老年也需要关怀</p>
-]]></content:encoded>
-<pubDate>2023-11-26T10:23:22Z</pubDate>
-</item>
-<item>
-<title>[DNS] 深度折腾 DNS 分流的大佬有吗？你们是什么方案呀？</title>
-<link>https://www.v2ex.com/t/995465</link>
-<guid>https://www.v2ex.com/t/995465</guid>
-<content:encoded><![CDATA[
-<p>我目前的方案：</p>
-<p>根 DNS 服务器：</p>
-<pre><code>SmartDNS ，开启乐观缓存
-
-国外回源:tls:8.8.8.8 tls:1.1.1.1
-
-国内回源:tls:233.5.5.5 tls:223.6.6.6 (阿里云 DNS)
-</code></pre>
-<p>回源名单用的这个项目:<a href="https://github.com/felixonmars/dnsmasq-china-list" rel="nofollow">dnsmasq-china-list</a></p>
-<p>二级 DNS 服务器： </p>
-<pre><code>AdGuard
-
-回源：SmartDNS
-</code></pre>
-<p>客户端设备：</p>
-<pre><code>DHCP 下发 AdGuard DNS 地址
-</code></pre>
-<p>问题：偶尔还是会受到污染，但是找不到问题在哪。</p>
-]]></content:encoded>
-<pubDate>2023-11-26T22:26:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 适应了无线外设，再回有线很难啊，求推荐蓝牙耳机发射器</title>
-<link>https://www.v2ex.com/t/995463</link>
-<guid>https://www.v2ex.com/t/995463</guid>
-<content:encoded><![CDATA[
-<p>因为不玩游戏了，键鼠早早都换成无线的了，现在买键鼠，有线的基本不考虑了，办公室配发的电脑我也自费换了。</p>
-<p>最近习惯了手机上 tws 耳机，感觉 PC 上用有线耳机也各种不舒服了，但是单位配发的 PC 较老，没有蓝牙，网上买个几块钱的那种 usb 插头发射器，就能配上无线耳机使用了吧？</p>
-]]></content:encoded>
-<pubDate>2023-11-27T02:24:37Z</pubDate>
 </item>
 </channel>
 </rss>
