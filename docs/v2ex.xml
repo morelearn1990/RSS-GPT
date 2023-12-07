@@ -5,14 +5,62 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[React] 新手问题请教 useEffect</title>
+<link>https://www.v2ex.com/t/998520</link>
+<guid>https://www.v2ex.com/t/998520</guid>
+<content:encoded><![CDATA[
+
+代码是 React 学习手册里面的<br />```javascript<br />import { useState, useEffect } from "react";<br /><br />export default function GitHubUser({ login }) {<br />  return (<br />    &lt;Fetch<br />      uri={`<a href="https://api.github.com/users/$" rel="nofollow noopener" target="_blank">https://api.github.com/users/$</a>{login}`}<br />      renderSucess={UserDetails}<br />    /&gt;<br />  );<br />}<br /><br />function UserDetails({ data }) {<br />  return (<br />    &lt;div className="githubuser"&gt;<br />      &lt;img src={data.avatar_url} alt={data.login} style={{ width: 200 }} /&gt;<br />      &lt;div&gt;<br />        &lt;h1&gt;{data.login}&lt;/h1&gt;<br />        &lt;p&gt;<br />          {<a href="http://data.name" rel="nofollow noopener" target="_blank">data.name</a>} - {data.location}<br />        &lt;/p&gt;<br />      &lt;/div&gt;<br />    &lt;/div&gt;<br />  );<br />}<br /><br />function Fetch({<br />  uri,<br />  renderSucess,<br />  loadingFallback = &lt;p&gt;loading....&lt;/p&gt;,<br />  renderError = (error) =&gt; &lt;pre&gt;{JSON.stringify(error)}&lt;/pre&gt;,<br />}) {<br />  const { loading, data, err } = useFetch(uri);<br />  if (loading) return loadingFallback;<br />  if (err) return renderError(err);<br />  if (data) return renderSucess({ data });<br />}<br /><br />//let uri = `<a href="https://api.github.com/users/$" rel="nofollow noopener" target="_blank">https://api.github.com/users/$</a>{login}`<br /><br />function useFetch(uri) {<br />  const [data, setData] = useState();<br />  const [error, setError] = useState();<br />  const [loading, setLoading] = useState(true);<br /><br />  useEffect(() =&gt; {<br />    console.log(`enter into efffect ${uri} ==== `);<br />    if (!uri) return;<br /><br />    fetch(uri)<br />      .then((res) =&gt; res.json())<br />      .then(setData)<br />      .then(() =&gt; setLoading(false))<br />      .catch((err) =&gt; setError(err));<br />  }, []);<br /><br />  return { loading, data, error };<br />}<br />```<br /><br />在浏览器的控制台里面，useEffect 执行了 2 次，<br />也就是打印了 2 次<br />enter into efffect HELLO  ====<br />enter into efffect HELLO  ====<br /><br />无论 useEffect 里监控的值[] 是哪个，都会执行 2 次。<br />```<br />  useEffect(() =&gt; {<br />    console.log(`enter into efffect ${uri} ==== `);<br />    if (!uri) return;<br /><br />    fetch(uri)<br />      .then((res) =&gt; res.json())<br />      .then(setData)<br />      .then(() =&gt; setLoading(false))<br />      .catch((err) =&gt; setError(err));<br />  }, []);<br />  ```<br />  <br />  书本数如果数组中括号里面没有变量，那么只会低第一次渲染的时候执行。 不知道为什么现在会被执行 2 次的？
+]]></content:encoded>
+<pubDate>2023-12-07T18:07:19Z</pubDate>
+<pubDate>2023-12-07T14:07:19Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] golang Gorm 2.0 是否支持全局的 BeforeSave 钩子函数？我尝试了许多情况，以下是其中一次尝试的概述，但未成功。SQL 日期仍然保持为'0000-00-00'。</title>
+<link>https://www.v2ex.com/t/998518</link>
+<guid>https://www.v2ex.com/t/998518</guid>
+<content:encoded><![CDATA[
+
+问题：<br />求告诉全局注册钩子的范例<br /><br />```go<br />type UserInfo struct {<br />	<a href="http://fmkModel.ID" rel="nofollow noopener" target="_blank">fmkModel.ID</a><br />	Name     string `json:"name" gorm:"not null;comment:用户名称"`<br />	Mobile   string `json:"mobile" gorm:"not null;index;comment:用户手机号"`<br />	Password string `json:"password" gorm:"not null;default:'';comment:用户密码"`<br />	fmkModel.CreateUpdate<br />	fmkModel.SoftDeletes<br />}<br /><br />type CreateUpdate struct {<br />	CreatedBy   uint      `json:"created_by"`<br />	CreatedTime time.Time `json:"created_time"`<br />	UpdatedBy   uint      `json:"updated_by"`<br />	UpdatedTime time.Time `json:"updated_time"`<br />}<br /><br /><br />注册全局 hook<br />DB.Callback().Create().Before("gorm:before_save").Register("my:before_save", bootstrap.MyBeforeSaveHook)<br /><br />func MyBeforeSaveHook(db *gorm.DB) {<br />	statement := db.Statement<br />	setGormCreateTime(statement, nowTime)<br />}<br /><br />func setGormCreateTime(statement *gorm.Statement, nowTime time.Time) {<br />	dest := statement.Dest<br /><br />	value := reflect.ValueOf(dest)<br />	//value  &amp;{{0 0001-01-01 00:00:00 +0000 UTC 0 0001-01-01 00:00:00 +0000 UTC} 111111}<br />	fmt.Println("setGormCreateTime value ", value)<br />	valueElem := value.Elem()<br />	//valueElem  {{0 0001-01-01 00:00:00 +0000 UTC 0 0001-01-01 00:00:00 +0000 UTC} 111111}<br />	fmt.Println("setGormCreateTime valueElem ", valueElem)<br /><br />	createUpdateField := valueElem.FieldByName("CreateUpdate")<br />	if !createUpdateField.IsValid() {<br />		fmt.Println("setGormCreateTime createUpdateValue 是不合法的")<br />		return<br />	}<br />	fmt.Println("setGormCreateTime createUpdateValue ", createUpdateField.Kind())<br />	if reflect.Struct != createUpdateField.Kind() {<br />		return<br />	}<br />	createdTimeField := createUpdateField.FieldByName("CreatedTime")<br />	// Check if the CreatedTime field is valid and can be set<br />	if createdTimeField.IsValid() &amp;&amp; createdTimeField.CanSet() {<br />		// Modify the CreatedTime value<br />		//createdTimeField.Set(reflect.ValueOf(newTime))<br />		statement.SetColumn("CreatedTime", nowTime)<br />	}<br />}<br /><br /><br />```<br /><br />经过如上的尝试，我看到时间已经改变了。但是 sql 执行仍然出现了错误。<br /><br />```sql<br /><br />[5567.310ms] [rows:0] INSERT INTO `user_info` (`name`,`mobile`,`password`,`created_by`,`created_time`,`updated_by`,`updated_time`,`del_flag`) VALUES ('张三','18000855903','$2a$04$VfAU4pidT6wI6llBQKT1GuEcd2bmFfnbuSu.YprgXHYwA7Nl5FoJ.',0,'0000-00-00 00:00:00',0,'0000-00-00 00:00:00',0)<br />[2023-12-08 01:01:05.427]	local.error	controller/userInfoController.go:21	Error 1292 (22007): Incorrect datetime value: '0000-00-00' for column 'created_time' at row 1<br /><br /><br />```
+]]></content:encoded>
+<pubDate>2023-12-07T17:11:10Z</pubDate>
+<pubDate>2023-12-07T17:11:10Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 用 gpt-fast 的性能优化思路优化 baichuan2 13b</title>
+<link>https://www.v2ex.com/t/998517</link>
+<guid>https://www.v2ex.com/t/998517</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/armed-gpt/gpt-blazing" rel="nofollow">https://github.com/armed-gpt/gpt-blazing</a></p>
+<p>tl;dr 思路靠谱，q8 ~45 tok/s ，来个 star</p>
+]]></content:encoded>
+<pubDate>2023-12-07T16:57:48Z</pubDate>
+<pubDate>2023-12-07T16:57:48Z</pubDate>
+</item>
+<item>
+<title>[问与答] 萌新想看看大家的个人网站</title>
+<link>https://www.v2ex.com/t/998516</link>
+<guid>https://www.v2ex.com/t/998516</guid>
+<content:encoded><![CDATA[
+
+<p>如题，毕业半年了，在新公司项目也快完结了，闲暇时间多了，想也做一个自己的网站。
+好吧，我坦白我想看看大哥们的个人网站。
+低情商：我想抄你们的博客样式
+高情商：我想学习如何制作个人博客</p>
+<p>我尝试在 v 社检索“设计”关键词，但是出来的是外网那些一键生成的或者是移动端的，大多都是商业性质的，所以大哥们留下你们的个人博客网址把，球球了</p>
+]]></content:encoded>
+<pubDate>2023-12-07T16:45:28Z</pubDate>
+<pubDate>2023-12-07T18:13:53Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 想搞个和 V 站一样的网站，有没有 Java 语言的模板。求个 Github 仓库</title>
 <link>https://www.v2ex.com/t/998515</link>
 <guid>https://www.v2ex.com/t/998515</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-07T16:23:57Z</pubDate>
 <pubDate>2023-12-07T16:20:57Z</pubDate>
 </item>
 <item>
@@ -20,10 +68,8 @@
 <link>https://www.v2ex.com/t/998513</link>
 <guid>https://www.v2ex.com/t/998513</guid>
 <content:encoded><![CDATA[
-
 兄弟们 最近玩一款游戏比较奇葩只能 ssr 协议的节点加速  求推荐一个 ssr 稳定性好的机场 速度没要求 流量不需要太多 单价贵没事 稳定性好就 OK
 ]]></content:encoded>
-<pubDate>2023-12-07T16:08:32Z</pubDate>
 <pubDate>2023-12-07T16:07:32Z</pubDate>
 </item>
 <item>
@@ -31,7 +77,6 @@
 <link>https://www.v2ex.com/t/998512</link>
 <guid>https://www.v2ex.com/t/998512</guid>
 <content:encoded><![CDATA[
-
 <p>以前一直对相机不了解，最近稍微看了看，有了这么几个粗浅（但未必正确）的印象：</p>
 <ol>
 <li>各种层级的经销商，感觉像新能源潮流以前的汽车行业</li>
@@ -41,14 +86,12 @@
 <p>以前关注的都是消费电子产品，不得不说经过互联网潮流洗礼过的消费行业确实体验要更好些，相比之下对上面提到的这些印象就不太好。还有就是这么看来苹果的供应链管理确实厉害，每次发了新机论坛里都有不少人发帖说自己的机器多久发货甚至提前发货，没注意到过这种排队也考验厂商的实力。小米也是花了这么多年才把这个问题搞好。</p>
 ]]></content:encoded>
 <pubDate>2023-12-07T16:04:26Z</pubDate>
-<pubDate>2023-12-07T16:04:26Z</pubDate>
 </item>
 <item>
 <title>[程序员] 职场准新人求前辈指导</title>
 <link>https://www.v2ex.com/t/998511</link>
 <guid>https://www.v2ex.com/t/998511</guid>
 <content:encoded><![CDATA[
-
 <p>背景：24 届毕业生，中游 985 电子信息硕士，本科是某双非自动化专业。家在农村，条件一般。</p>
 <p>秋招折腾了好一阵子，拿到了一些中小厂的 offer ，也在十月初拿到了于自己而言最好的 offer ，后来开奖开出个后端开发大白菜，年包 37 左右，在北京亦庄，已签三方。其他小厂 offer 已拒，还剩华为云待开奖。</p>
 <p>师门同一级的五人，一个考上了某 985 学校的辅导员（ 12w-15w ，每年 3 个月寒暑假），一个签了某新能源汽车软开（薪资比我高一些）,一个申请上了同校某杰青的博士生，另外一个也正在想办法申请博士。</p>
@@ -57,7 +100,6 @@
 <p>还有有其他的更加体面的生活方式？难道真的只能再从零开始准备读博/考公了？</p>
 <p>可能是我的视野太受局限了，我好像看不到人生未来的希望了，各位前辈们有什么经验可以分享给吗，感谢！</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T16:01:35Z</pubDate>
 <pubDate>2023-12-07T15:58:35Z</pubDate>
 </item>
 <item>
@@ -65,10 +107,8 @@
 <link>https://www.v2ex.com/t/998510</link>
 <guid>https://www.v2ex.com/t/998510</guid>
 <content:encoded><![CDATA[
-
 -什么是 APNs?<br />一旦你允许接受“推送通知”，就会生成一个 APNs ，这个 APNs 会注册到你的设备（比如 iPhone ）和开发者，同时还和你的 Apple ID 关联。<br />某些国家的法律，允许政府通过一定程序获取 APNs 关联的 Apple ID.<br /><br />-可以怎么样？<br />这样，即使端对端加密的消息内容无法破解，但可以根据推送通知的频率和方向缩小搜索范围，最终确定真实世界身份。
 ]]></content:encoded>
-<pubDate>2023-12-07T15:58:49Z</pubDate>
 <pubDate>2023-12-07T16:07:55Z</pubDate>
 </item>
 <item>
@@ -76,7 +116,6 @@
 <link>https://www.v2ex.com/t/998508</link>
 <guid>https://www.v2ex.com/t/998508</guid>
 <content:encoded><![CDATA[
-
 <h1>这是报错</h1>
 <pre><code>Dec 07 22:03:15 tx kubelet[91712]: E1207 22:03:15.489984   91712 reflector.go:147] vendor/k8s.io/client-go/informers/factory.go:150: Failed to watch *v1.Node: failed to list *v1.Node: Get "https://x.x.x.x:6443/api/v1&gt;
 Dec 07 22:03:16 tx kubelet[91712]: E1207 22:03:16.157267   91712 certificate_manager.go:562] kubernetes.io/kube-apiserver-client-kubelet: Failed while requesting a signed certificate from the control plane: cannot create ce&gt;
@@ -118,7 +157,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <p>这是不是说轻量云不能玩 k8s 了？？</p>
 <p>那 k3s 能玩吗？？？？？</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T15:23:12Z</pubDate>
 <pubDate>2023-12-07T16:19:47Z</pubDate>
 </item>
 <item>
@@ -126,7 +164,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998506</link>
 <guid>https://www.v2ex.com/t/998506</guid>
 <content:encoded><![CDATA[
-
 <h2>The Node.js exe serving the documentation is started through a Windows service</h2>
 <h2>However if for any reason you would like to start manually the Node.js server using Java Search,</h2>
 <h2>at the command prompt enter the following command.</h2>
@@ -135,7 +172,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <h2>http://****/English</h2>
 <p>"D:\HardSoftwares*<em><strong>\node.exe" "D:\HardSoftwares*</strong></em>\DSDocNode_http34.js" -rootpath="D:\HardSoftwares**<strong>" -port=4040 -host=</strong>** -proxyurl=http://**** -toc=*<strong><em>.xml -search=javaauto -searchoutput=C:\Users*</em>\AppData\Local\Temp\ds_docsearch4041.log -site=</strong>** -feedback=no &gt; C:\Users**\AppData\Local\Temp\ds_docnode4040.log</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T15:10:46Z</pubDate>
 <pubDate>2023-12-07T15:13:43Z</pubDate>
 </item>
 <item>
@@ -143,7 +179,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998505</link>
 <guid>https://www.v2ex.com/t/998505</guid>
 <content:encoded><![CDATA[
-
 <p>Win10 /server2016 以上版本都移除了 telnet 服务端。</p>
 <p>网上找到两个解决方案</p>
 <p>1.使用 sshd ，客户端又要引入 ssh 包，改动一下就变臃肿，加上加密。我内网自动登录处理。单片机设备 CPU 主频只有 72MHz ，ssh 实在不划算。</p>
@@ -152,7 +187,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <hr />
 <p>Linux 下服务端倒简单，直接安装 telnetd 就行了。但是 Windows 下没有，看了看 inetutils 包 telnet 。cygwin 编译的因为缺少/dev/ptmx, /dev/pts/； telnet Server 被割了？？。只有 telnet Client 。 参考： <a href="https://mirrors.kernel.org/sourceware/cygwin/x86_64/release/inetutils/inetutils-2.4-1.tar.xz" rel="nofollow">https://mirrors.kernel.org/sourceware/cygwin/x86_64/release/inetutils/inetutils-2.4-1.tar.xz</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-07T15:02:58Z</pubDate>
 <pubDate>2023-12-07T16:24:31Z</pubDate>
 </item>
 <item>
@@ -160,10 +194,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998504</link>
 <guid>https://www.v2ex.com/t/998504</guid>
 <content:encoded><![CDATA[
-
 去年 10 月开始订阅美区 Apple One Premier, 一开始只是为了 Music （ Namewee 和 B 哥的歌），另外想看正版高清的「史前星球」，结果发现 Apple One Premier 里包含的不止是 Music 和 TV ，所以列个清单简单复盘一下：<br /><br />价格：去年订阅的时候是 $32.95/月，下个月开始涨价到 $37.95/月。<br /><br />包含：<br />- Music （音乐，应该是曲库最全的音乐平台，或之一？不知道没用过 Spotify ）<br />- TV+ （电影电视 「怪兽遗产」 「史前星球」 即将上映的「拿破仑」，从个人喜好上讲，片库的内容丰富度跟 NetFlix 没法比，奈何不想额外花钱，最主要是 NF 封 IP 封的我头皮发麻，又不想为了看 NF 单独租个机场。）<br />- Arcade （ Apple One 最没用的服务，没有之一。所有游戏没有一个我能玩超过 5 分钟的）<br />- iCloud 2TB 存储 （不用额外买了，Apple One 包含 2TB 的存储）<br />- News+ （至少可以拿来学学英文，看看专业文章。网上很多写怎么在 iPhone 上使用 Apple News 的，因为我只在 Mac 和 iPad 上使用，所以没了解过。在 Mac 和 iPad 使用 Apple News 的方法很简单，就是我把规则放在下面有需要的朋友自取。）<br />- Fitness+ （健身很好用，我在 iPad 上使用，设定好每日计划，然后每次健身时带上 watch ，会自动在 iPad 上显示实时的心跳和卡路里消耗等信息。）<br /><br /><a href="https://i.imgur.com/StbMdiY.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/StbMdiY.png" /></a><br /><br /><a href="https://i.imgur.com/TUdY3Fl.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/TUdY3Fl.png" /></a><br /><br />--------------------<br /><br />我在 Mac 和 iPad 上使用 Apple News 的规则，可能有点儿简单粗暴，但我用着还好没出现什么问题。<br /><br />OR,((USER-AGENT,*apple*), (DOMAIN-SUFFIX,<a href="http://me.com" rel="nofollow noopener" target="_blank">me.com</a>), (DOMAIN-KEYWORD,itunes), (DOMAIN-KEYWORD,aaplimg), (DOMAIN-KEYWORD,cdn-apple), (DOMAIN-KEYWORD,apple-mapkit), (DOMAIN-KEYWORD,autonavi), (DOMAIN-KEYWORD,<a href="http://mzstatic.com" rel="nofollow noopener" target="_blank">mzstatic.com</a>), (DOMAIN-KEYWORD,<a href="http://icloud.com" rel="nofollow noopener" target="_blank">icloud.com</a>), (DOMAIN-KEYWORD,icloud-content), (DOMAIN-KEYWORD,<a href="http://apple.com" rel="nofollow noopener" target="_blank">apple.com</a>)),🚀PROXY
 ]]></content:encoded>
-<pubDate>2023-12-07T14:58:07Z</pubDate>
 <pubDate>2023-12-07T16:20:42Z</pubDate>
 </item>
 <item>
@@ -171,10 +203,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998503</link>
 <guid>https://www.v2ex.com/t/998503</guid>
 <content:encoded><![CDATA[
-
 <a href="http://feinterviews.xyz" rel="nofollow noopener" target="_blank">feinterviews.xyz</a> <br /><br />本来是想自己在 alfred 用 <br /><br />一开始只是一个脚本+alfred workflow 的 hotkey 本地检索 <br /><br />但是后面索性就把它做出来 （不过需要🪜，因为是部署在 vercel 上的= =） <br /><br />暂时是 pgvector + embedding + gpt3.5 如果能帮到你，我会很开心<br /><br /> <a href="https://i.imgur.com/HpIRh3e.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/HpIRh3e.png" /></a><br /> <br /> <a href="https://i.imgur.com/BZ2esaT.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/BZ2esaT.jpeg" /></a><br /> <br /> <a href="https://i.imgur.com/95L7XCa.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/95L7XCa.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:57:34Z</pubDate>
 <pubDate>2023-12-07T14:54:34Z</pubDate>
 </item>
 <item>
@@ -182,10 +212,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998502</link>
 <guid>https://www.v2ex.com/t/998502</guid>
 <content:encoded><![CDATA[
-
 自己网上搜了一下，实在没找到合适的教程，希望技术大神指点一二<br /><br />1 、如何自己制作 VOD 视频源 ？<br />2 、如何将一个在线视频网站制作成 VOD 视频源？类似以下格式<br />https//:hostname/api.php/provide/vod<br />3 、或者提供一些制作的学习思路和方向
 ]]></content:encoded>
-<pubDate>2023-12-07T14:55:46Z</pubDate>
 <pubDate>2023-12-07T14:53:46Z</pubDate>
 </item>
 <item>
@@ -193,7 +221,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998501</link>
 <guid>https://www.v2ex.com/t/998501</guid>
 <content:encoded><![CDATA[
-
 <p>一年又一年，姑姑家赣南脐橙又上市啦，我也又被姑姑拉壮丁干推销来了，哈哈。今年是第四年来 v 站帮我姑姑卖脐橙了，前面几次有过<a href="https://v2ex.com/t/731165" rel="nofollow">反响不错</a>，也被<a href="https://v2ex.com/t/901739" rel="nofollow">质疑坑人</a>，不知这次反响如何，诚惶诚恐。</p>
 <p>姑姑家的脐橙都是自己果园种的，正儿八经的赣南脐橙（赣南宁都县），保证天然无公害。姑姑家的橙子，没有直播、网店啥的，主要靠亲戚朋友吆喝，我也是被拉过来帮忙招呼。</p>
 <p>喜欢吃橙子的 v 友们可以看一下我姑家橙子，欢迎 v 友们咨询，备注 v 友可优惠哦。</p>
@@ -201,7 +228,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <p>[闲鱼]  <a href="https://m.tb.cn/h.5mmg0uq?tk=mTl0Wfhb66d" rel="nofollow">https://m.tb.cn/h.5mmg0uq?tk=mTl0Wfhb66d</a> CZ0001 「我在闲鱼发布了 [包邮正宗赣南宁都脐橙原产地直发果园直发] 」点击链接直接打开</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/12/07/iFjZIe.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:47:40Z</pubDate>
 <pubDate>2023-12-07T15:57:54Z</pubDate>
 </item>
 <item>
@@ -209,10 +235,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998500</link>
 <guid>https://www.v2ex.com/t/998500</guid>
 <content:encoded><![CDATA[
-
 <p>类似之前的爱阅书香和香色闺阁，支持导入书源的，有推荐的吗？</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:45:45Z</pubDate>
 <pubDate>2023-12-07T15:31:06Z</pubDate>
 </item>
 <item>
@@ -220,10 +244,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998498</link>
 <guid>https://www.v2ex.com/t/998498</guid>
 <content:encoded><![CDATA[
-
 好早之前就发现手机端浏览器打开简书的时候会疯狂跳转到其他 app ，最近又发现了这种现象，打开网站几秒钟后就无限复制文本到剪切板，有时候还会跳转到美团等应用程序，基本上可以说是不能用了。<br />难道是 cdn 被投毒了吗，这么就也应该发现了吧。。。
 ]]></content:encoded>
-<pubDate>2023-12-07T14:44:43Z</pubDate>
 <pubDate>2023-12-07T15:21:49Z</pubDate>
 </item>
 <item>
@@ -231,10 +253,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998497</link>
 <guid>https://www.v2ex.com/t/998497</guid>
 <content:encoded><![CDATA[
-
 <p>自从升级 safari 到 17 后，出现一个奇怪现象，有部分网站无法使用自动填充用户名和密码，16 版本是 OK 的，而且用手机也是 OK 的，不知道有没有谁遇到过这个问题，求解决方案。</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:27:13Z</pubDate>
 <pubDate>2023-12-07T14:26:13Z</pubDate>
 </item>
 <item>
@@ -242,11 +262,9 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998496</link>
 <guid>https://www.v2ex.com/t/998496</guid>
 <content:encoded><![CDATA[
-
 <p>安卓 app 的火狐浏览器，打开网页"https://wenjuan.pub/..."</p>
 <p>无论是三指截图，或者快捷键开机键+音量键，截图时都会提示“由于应用限制，该界面无法截屏”，在技术上是怎么实现的？</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:26:02Z</pubDate>
 <pubDate>2023-12-07T15:55:37Z</pubDate>
 </item>
 <item>
@@ -254,13 +272,11 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/998495</link>
 <guid>https://www.v2ex.com/t/998495</guid>
 <content:encoded><![CDATA[
-
 <p>300g icloud 份额。个人车已经在开了, 提醒想加入的朋友想好，长期稳定的来，家庭组频繁进出也有限制。</p>
 <p>拼车季付 140</p>
 <p>备注：需要自备一个美区 id 登陆商店</p>
 <p>tg （ base64 ）：aHR0cHM6Ly90Lm1lL3N1ZG9tdA==</p>
 ]]></content:encoded>
-<pubDate>2023-12-07T14:24:33Z</pubDate>
 <pubDate>2023-12-07T14:23:33Z</pubDate>
 </item>
 <item>
@@ -268,7 +284,6 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 <link>https://www.v2ex.com/t/997174</link>
 <guid>https://www.v2ex.com/t/997174</guid>
 <content:encoded><![CDATA[
-
 <p>又屯了台服务器，又要使用 nginx 搭建网站系统。</p>
 <p>为了以后屯更多服务器时方便配置（狗头），通过 <code>docker</code> 运行 <code>nginx</code>，使用 <code>Let's Encrypt</code> 更新 <code>https/ssl</code>。</p>
 <p>项目地址：<a href="https://github.com/atjason/docker-nginx" rel="nofollow">https://github.com/atjason/docker-nginx</a></p>
@@ -300,10 +315,8 @@ Dec 07 22:03:34 tx kubelet[91712]: E1207 22:03:34.368096   91712 eviction_manage
 </ul>
 <p>欢迎克隆使用，期待提出更好的配置方法。</p>
 ]]></content:encoded>
-<pubDate>2023-12-02T15:14:19Z</pubDate>
 <pubDate>2023-12-04T19:57:36Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 什么样的商业模式适合笔记软件？</title>
 <link>https://www.v2ex.com/t/998494</link>
@@ -15764,191 +15777,6 @@ rm -rf ${VFDIR}
 
 ]]></content:encoded>
 <pubDate>2023-12-03T14:01:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 微信读书好像很多人在用，没搞懂大家看中了她哪一点，求告知？</title>
-<link>https://www.v2ex.com/t/997311</link>
-<guid>https://www.v2ex.com/t/997311</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-03T14:15:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] Chrome 打开 Gtp3.5 内存使用</title>
-<link>https://www.v2ex.com/t/997310</link>
-<guid>https://www.v2ex.com/t/997310</guid>
-<content:encoded><![CDATA[
-占用了 600 多 M 这正常吗？<br /><br /><a href="https://imgur.com/a/bnSIWvR" rel="nofollow noopener" target="_blank">https://imgur.com/a/bnSIWvR</a>
-]]></content:encoded>
-<pubDate>2023-12-03T13:53:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] Outlook 2021 Windows 客户端收取 Foxmail 邮件只能收取十几封（总一千封），未找到设置收取实现的设置参数，是什么原因收取不全？</title>
-<link>https://www.v2ex.com/t/997309</link>
-<guid>https://www.v2ex.com/t/997309</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-03T13:52:40Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么科技类的新闻网站推荐?</title>
-<link>https://www.v2ex.com/t/997308</link>
-<guid>https://www.v2ex.com/t/997308</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-03T14:03:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] Linux 上 215 个汉字的文件名是不是超出长度限制了？</title>
-<link>https://www.v2ex.com/t/997307</link>
-<guid>https://www.v2ex.com/t/997307</guid>
-<content:encoded><![CDATA[
-我尝试 git clone ，但是似乎 215 个汉字的文件名太长了，无法 checkout 出来文件
-]]></content:encoded>
-<pubDate>2023-12-03T14:11:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] unraid 使用 nginx proxy manager 申请证书的时候总是 Internal Error</title>
-<link>https://www.v2ex.com/t/997306</link>
-<guid>https://www.v2ex.com/t/997306</guid>
-<content:encoded><![CDATA[
-<p>Command failed: certbot certonly --config "/etc/letsencrypt.ini" --work-dir "/tmp/letsencrypt-lib" --logs-dir "/tmp/letsencrypt-log" --cert-name "npm-13" --agree-tos --email "lgapple@gmail.com" --domains "*.lgapple.top,lgapple.top" --authenticator dns-aliyun --dns-aliyun-credentials "/etc/letsencrypt/credentials/credentials-13"</p>
-]]></content:encoded>
-<pubDate>2023-12-03T14:11:53Z</pubDate>
-</item>
-<item>
-<title>[iPhone] iPhone 15 Pro 和 Mac 通过 Type-C 连接，备份微信聊天记录的速度有更快吗？</title>
-<link>https://www.v2ex.com/t/997302</link>
-<guid>https://www.v2ex.com/t/997302</guid>
-<content:encoded><![CDATA[
-<p>iPhone 14 Pro 通过 Lightning 数据线连接的速度差不多在 35MB/s 还不如 Wi-Fi 的传输速度快，想知道 iPhone 15 Pro 使用 C 口的雷电线传输速度会不会更快一些？</p>
-]]></content:encoded>
-<pubDate>2023-12-03T13:50:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 帮帮选一下融合套餐把</title>
-<link>https://www.v2ex.com/t/997301</link>
-<guid>https://www.v2ex.com/t/997301</guid>
-<content:encoded><![CDATA[
-RT,本人现在用的是套餐 3 ，月底合约就要到期变回 68/月，因为要到期了所以提前了解了一下其他的融合套餐，想着合约到期后改成别的套餐，但今天给移动客服打电话说是我目前使用的 34 套餐还可以再续约 1 年，等 1 年后她也不清楚还可不可以续约，现在比较纠结了是改成套餐 1/2 一步到位，还是续约再用一年套餐 3 ，帮忙出点建议吧<br /><a href="https://postimg.cc/9DtSPQvT" rel="nofollow noopener" target="_blank">https://postimg.cc/9DtSPQvT</a>
-]]></content:encoded>
-<pubDate>2023-12-03T13:42:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 腾讯视频崩了登上热搜，最近大厂频频出事是开猿的问题吗</title>
-<link>https://www.v2ex.com/t/997300</link>
-<guid>https://www.v2ex.com/t/997300</guid>
-<content:encoded><![CDATA[
-rt ，最近从阿里云到滴滴，到腾讯，感觉上次大规模出事还是疫情饿了么抢口罩的时候
-]]></content:encoded>
-<pubDate>2023-12-02T21:17:59Z</pubDate>
-</item>
-<item>
-<title>[Android] Android 手机可以给特定应用设置语言吗？比如系统语言是英文，想把天气、地图 app 设置成简体中文</title>
-<link>https://www.v2ex.com/t/997299</link>
-<guid>https://www.v2ex.com/t/997299</guid>
-<content:encoded><![CDATA[
-<p>最近入了 Redmi K70 ，在 B 站看了个视频关掉了所有系统和内置系统 app 的广告，然后也把系统语言换成了 English （ United States ），这个主要是避免有些 app 在我的手机上拉屎，因为有些第三方 app 你把语言换成英文或者繁体中文就会发现老实多了。</p>
-<p>暂时还没有 root ，在没有 root 的情况下，可以单独设置特定应用的语言吗？</p>
-<p>很多 app 都是直接读取的系统语言，没有独立的语言设置，从 F-Droid 安装了 Organic Maps ，<a href="https://organicmaps.app/" rel="nofollow">https://organicmaps.app/</a> 这个开源地图应用，但是无法切换成中文，地图上很多 label 都还是英文的，看着难受，有的无法分辨是什么地名。</p>
-<p>root 后能实现吗，用什么 xposed 模块？</p>
-<p>希望路过的安卓大佬解解惑，我是最近 5 年都在用 iPhone ，昨天才换回 Android 。</p>
-]]></content:encoded>
-<pubDate>2023-12-03T13:56:06Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 人手一个书签站：和博客、网文摘手结合在一起的书签网站见过吗</title>
-<link>https://www.v2ex.com/t/997297</link>
-<guid>https://www.v2ex.com/t/997297</guid>
-<content:encoded><![CDATA[
-<p>####自己在用的书签网站，与其他书签站不同的地方：整合了博客、网页采集、记事本、临时文件存储的功能。</p>
-<p>支持书签导入、管理、搜索、导出到本地、导出到邮箱，自动排查 404 网站。根据关键词或拼音快速搜索网址。</p>
-<p>可以绑定一个域名，自动生成博客网站。</p>
-<p><a href="https://bookmark.gm.ws" rel="nofollow">https://bookmark.gm.ws</a></p>
-<p>后端 php+codeigniter ，前端 vue3+ant design ，顺便问一下，这个水平能不能找到全栈的工作......</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/0.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/1.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/2.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/3.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/4.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/5.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/6.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/7.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/8.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://usa.gm.ws/v2ex/9.png" /></p>
-]]></content:encoded>
-<pubDate>2023-12-03T12:54:00Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 腾讯视频的服务器出问题了</title>
-<link>https://www.v2ex.com/t/997296</link>
-<guid>https://www.v2ex.com/t/997296</guid>
-<content:encoded><![CDATA[
-一直加载不了视频,登陆是会员 一直要你重复登录
-]]></content:encoded>
-<pubDate>2023-12-03T12:43:42Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 腾讯视频好像也出了点小问题，登录不上了</title>
-<link>https://www.v2ex.com/t/997295</link>
-<guid>https://www.v2ex.com/t/997295</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-03T13:16:05Z</pubDate>
-</item>
-<item>
-<title>[iOS] iPad 键盘是不是没办法像 win 系统一样用左右方向键移动文字光标？</title>
-<link>https://www.v2ex.com/t/997294</link>
-<guid>https://www.v2ex.com/t/997294</guid>
-<content:encoded><![CDATA[
-<p>如题，是没办法么？</p>
-]]></content:encoded>
-<pubDate>2023-12-03T12:29:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为什么开着代理软件微信经常连接中呢？</title>
-<link>https://www.v2ex.com/t/997293</link>
-<guid>https://www.v2ex.com/t/997293</guid>
-<content:encoded><![CDATA[
-网上各种方法都试过，不行，我喜欢全天开着代理软件，最近使用微信频率变高，经常提示连接中，关闭才正常，有什么解决方案吗？
-]]></content:encoded>
-<pubDate>2023-11-25T12:26:27Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 哪里有便宜的 chatgpt4 api（或同等能力）购买</title>
-<link>https://www.v2ex.com/t/997292</link>
-<guid>https://www.v2ex.com/t/997292</guid>
-<content:encoded><![CDATA[
-<p>自建 chatgpt-next-web 前端，用官方 api ，钱包遭不住。3.5 有点傻，没有 4 来得精准。之前看 V 站有便宜的渠道，帖子找不到了。</p>
-<p>需要支持流式响应，用这个开源的项目把 api 地址部分替换掉就行了那种。</p>
-<p>或者介绍实惠点的同等能力的 ai ，例如 Claude AI （没用过）</p>
-]]></content:encoded>
-<pubDate>2023-12-03T12:31:52Z</pubDate>
-</item>
-<item>
-<title>[Apple TV] sony 电视和 Apple TV 的联动开关机 HDMI CEC 问题求助</title>
-<link>https://www.v2ex.com/t/997291</link>
-<guid>https://www.v2ex.com/t/997291</guid>
-<content:encoded><![CDATA[
-<p>最近买了索尼大法的 75x91L,并且 Apple TV 也换了最新的 Apple TV 4K 三代。
-目前可以通过 Apple TV 的遥控器关机按钮，休眠 Apple TV 的同时让电视关机。并且也可以长按 Apple TV 的遥控器开机按钮实现同时开机索尼电视。
-但是用索尼的遥控器却没法同时让休眠状态的 Apple TV 启动，关机倒是可以同时让 Apple TV 休眠，不知道是什么问题，有懂的朋友吗？
-一开始以为和移动送的电视盒子冲突，但是我已经把移动的电视盒子 HDMI 线都拔掉了，应该不是 HDMI CEC 冲突的问题。</p>
-]]></content:encoded>
-<pubDate>2023-12-03T12:18:25Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] 求助：番茄小说有没有推荐便宜的会员渠道？</title>
-<link>https://www.v2ex.com/t/997290</link>
-<guid>https://www.v2ex.com/t/997290</guid>
-<content:encoded><![CDATA[
-最近入坑在读《第九特区》，因为有时需要开车听书，有时还需要在 iPad 和 iPhone 之间切换，番茄小说比微信读书做的同步性更好一点。<br /><br />看到前面有人问微信读书的渠道，所以也问下番茄小说的。
-]]></content:encoded>
-<pubDate>2023-12-03T12:17:09Z</pubDate>
 </item>
 </channel>
 </rss>
