@@ -5,14 +5,450 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 求问 iOS 的隐私问题</title>
+<link>https://www.v2ex.com/t/998857</link>
+<guid>https://www.v2ex.com/t/998857</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>从 A 应用分享照片之类的内容到 B 应用，B 应用能知道是从哪个应用分享过来的吗？</li>
+<li>从 A 应用复制内容，然后切换到 B 应用后粘贴，B 应用能知道是从哪个应用粘贴的内容吗？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-12-08T16:12:07Z</pubDate>
+<pubDate>2023-12-08T16:12:07Z</pubDate>
+</item>
+<item>
+<title>[编程] 分时调度协程脚本语言</title>
+<link>https://www.v2ex.com/t/998855</link>
+<guid>https://www.v2ex.com/t/998855</guid>
+<content:encoded><![CDATA[
+
+<p>今天的主角是一个分时调度协程的脚本语言——<a href="https://melang.org/" rel="nofollow">Melang</a>。这篇文章主要介绍 Melang 的协程使用。关于 Melang 的安装，可以参考<a href="https://melang.org/installation.html" rel="nofollow">安装文档</a>。</p>
+<p>之所以强调分时调度，其实是为了强调 Melang 协程和其他语言协程的差异。在 Lua 、Go 中，当某一个协程运行时，如果不调用某些特定库函数或者 yield 之类的函数，那么当前协程将一直持有 CPU 执行权，也就导致了其他协程或者 I/O 事件或者其他类型事件无法被响应，进而导致整个系统出现运行异常的情况。诚然，经过精密的设计，可以完全避免这类问题。但也会给开发者增加维护和学习成本。而 Melang 的每个协程，都是运行一段时间后被解释器强制中断挂起，让其他协程或者 I/O 事件等得以运行和处理。</p>
+<p>在 Melang 中，每一个协程就是一个脚本任务，它可能是文件，也可能只是一段代码片段。每一个协程都有相对独立的运行上下文（也就是相对独立的运行环境），但也允许通过脚本库函数使得多个协程间进行通信。</p>
+<p>下面给出两种启用多个协程的方法：</p>
+<h3>方法 1</h3>
+<pre><code>//a.m
+sys = Import('sys');
+
+while (true) {
+  sys.print('a');
+}
+</code></pre>
+<pre><code>//b.m
+sys = Import('sys');
+
+while (true) {
+  sys.print('b');
+}
+</code></pre>
+<p>假设我们有这两个协程示例（也是两个文件），它们的功能就是死循环向终端输出<code>a</code>和<code>b</code>。</p>
+<p>我们可以通过如下命令在单个线程内运行这两个协程：</p>
+<pre><code class="language-bash">melang a.m b.m
+</code></pre>
+<p>可以看到他们的输出大致如下：</p>
+<pre><code>...
+a
+a
+a
+a
+a
+a
+a
+a
+...
+b
+b
+b
+b
+b
+b
+b
+...
+a
+a
+a
+a
+a
+a
+a
+a
+...
+</code></pre>
+<p>由于 lua 等老牌支持协程的语言实现缘故，可能一些读者会怀疑我在<code>sys.print</code>中加入了强制切换协程的代码，那么可以使用如下示例自行验证一下。</p>
+<pre><code>//a.m
+while (true){}
+</code></pre>
+<pre><code>//b.m
+while (true){}
+</code></pre>
+<pre><code>//c.m
+sys = Import('sys')
+while (true) {
+  sys.print('c');
+}
+</code></pre>
+<pre><code class="language-bash">melang a.m b.m c.m
+</code></pre>
+<h3>方法 2</h3>
+<p>使用内置函数<code>Eval</code>拉起协程。</p>
+<p>我们首先假设同一路径下的有两个文件名为：<code>a.m</code>和<code>b.m</code>。当然，实际使用中，可以放在不同路径下，这里只是为了演示方便。</p>
+<pre><code>//a.m
+sys = Import('sys');
+
+Eval('b.m');
+
+while (true) {
+  sys.print('a');
+}
+</code></pre>
+<pre><code>//b.m
+sys = Import('sys');
+
+while (true) {
+  sys.print('b');
+}
+</code></pre>
+<p>然后执行如下命令：</p>
+<pre><code class="language-bash">melang a.m
+</code></pre>
+<p>我们可以得到与方法 1 中第一个示例一样的输出。</p>
+<p><code>Eval</code>还有另一种用法，示例如下：</p>
+<pre><code>//a.m
+sys = Import('sys');
+
+Eval('sys = Import("sys"); while (true) {sys.print("b");}', nil, true);
+
+while (true) {
+  sys.print('a');
+}
+</code></pre>
+<p>然后执行</p>
+<pre><code class="language-bash">melang a.m
+</code></pre>
+<p>依旧可以得到一样的输出效果。</p>
+<p>事实上，上述的两种方法都只是对脚本解释器提供的 API 的不同封装。我们也可以自己开发其他的协程启动形式。</p>
+<p>感谢阅读！</p>
+<p>感兴趣的读者可以访问<a href="https://github.com/Water-Melon/Melang" rel="nofollow">Github 仓库</a>或者<a href="https://melang.org/" rel="nofollow">官方文档</a>了解更多内容。</p>
+]]></content:encoded>
+<pubDate>2023-12-08T16:05:02Z</pubDate>
+<pubDate>2023-12-08T12:04:02Z</pubDate>
+</item>
+<item>
+<title>[Android] Android 14 阻止通过 adb install / pm install shell 命令降级应用程序，除非该应用程序被标记为可调试。</title>
+<link>https://www.v2ex.com/t/998853</link>
+<guid>https://www.v2ex.com/t/998853</guid>
+<content:encoded><![CDATA[
+
+Android 14 阻止通过 adb install / pm install shell 命令降级应用程序，除非该应用程序被标记为可调试。<br /><br />此前，2023 年 5 月的安全版本包含一个补丁，该补丁仅阻止将系统应用程序降级到比系统上预装的版本更旧的版本。<br /><br />但是，从 Android 14 Beta 5.2 开始，这适用于所有应用。据一位线人透露，他们第一次在 Beta 5.2 中看到这种行为。另外，由于 One UI 6 Beta 基于最新的 Android 14 源代码，因此也受到了这一变化的影响。<br /><br />有什么好的方法解决？
+]]></content:encoded>
+<pubDate>2023-12-08T15:54:45Z</pubDate>
+<pubDate>2023-12-08T11:53:45Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 广东佛山电信要回公网 IP 之路，内附和客服斗智斗勇过程，大家参谋参谋</title>
+<link>https://www.v2ex.com/t/998849</link>
+<guid>https://www.v2ex.com/t/998849</guid>
+<content:encoded><![CDATA[
+
+<h1>背景</h1>
+<p>2017 年开通的公网 IP ，一直用到现在；上周凌晨重新拨号后就没了，目前已经和各路客服斗智斗勇一周了。</p>
+<h1>过程</h1>
+<p>先是 10000 号当地电信公司投诉，然后有个客户经理打电话过来巴拉巴拉之前的公告，V2 之前也有人发过：</p>
+<ol>
+<li>新装用户不给公网 IP</li>
+<li>存量私网用户不给公网 IP</li>
+</ol>
+<p>我的诉求依据是：</p>
+<ol>
+<li>我是从 2017 年申请用到现在的，在没有任何沟通的前提下，变更服务内容</li>
+<li>基于有公网 IP 的前提，我购入的智能家居设备没有厂家服务器支持，谁来负责这个损失？因为监控失效带来其他的家庭安全隐患谁负责？</li>
+<li>公示说的是“新装”和“存量私网”，我本来就有公网 IP 不在这个范围</li>
+</ol>
+<p>然后客户经理表示理解，向上反馈，48 小时内答复。接着客户经理就消失了，48 小时后再打客服就是复读机内容，不接受就帮你向上反馈，再等 48 小时吧您嘞；客服复读内容：</p>
+<ol>
+<li>动态公网 IP 也属于“存量私网”</li>
+<li>每个月加 100 可以解决这个问题</li>
+</ol>
+<p>好吧，既然客服拖延我也不想浪费时间了，把沟通的录音、相关服务单号和全过程的文字记录都打包了一下；打开了工信部的网站，同时拨打 4008810000 投诉了地方公司的客服问题（这个后面细说）</p>
+<p>4008810000 转给了地方公司的客服，客服问题就一句我们会继续改进；然后聊到我公网 IP 的诉求，还是复读上面两条答复，额外“大方”的表示既然您这么坚持，可以尝试和领导申请一下再提供一年的免费公网 IP……被我拒绝了，说等工信部申诉结果吧。</p>
+<h1>投诉渠道和进度</h1>
+<ul>
+<li>[✔] 当地 10000 号</li>
+<li>[✔] 4008810000 投诉地方公司</li>
+<li><input disabled="" type="checkbox" /> 4008810000 投诉省公司</li>
+<li><input disabled="" type="checkbox" /> 中国电信 APP 投诉</li>
+<li><input disabled="" type="checkbox" /> 工信部</li>
+</ul>
+<p>4008810000 来电后，目前感觉是陷入了僵局；我的 1 、2 条依据对方避而不谈，或者说让加钱解决（其实这个应该也不合理），我如果要求索赔的话，好像只能法院见了？最后对于“存量私网”的解释，目前也没什么理由反驳……</p>
+<p>如果没法找到更好的角度，感觉后面三个渠道也是浪费时间罢了。</p>
+<p>所以今晚想着发来 V2 大家看看，看看老哥们有没有其他角度的想法，同时也记录下过程让后人参考。</p>
+<h1>最后 BB 一下客服问题</h1>
+<p>这里仅针对佛山电信，就我这几年两三次和他们打交道的经验来看，可以说非常流氓，各种人为制造障碍阻止你投诉他们或者逃避不想解决的问题。</p>
+<p>上面说到 4008810000 投诉客服问题，是我最开始提交的投诉工单，48 小时后直接给我关了；后面去问这个事情的时候，客服说漏嘴，说是工单有处理时效……</p>
+<p>这样一来，你有意见，或者催促，就是 48 小时内答复；如果没回复，再打电话过去又是 48 小时~</p>
+]]></content:encoded>
+<pubDate>2023-12-08T15:47:46Z</pubDate>
+<pubDate>2023-12-08T15:46:46Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 更换了中兴 G7615 网络更不稳定了</title>
+<link>https://www.v2ex.com/t/998848</link>
+<guid>https://www.v2ex.com/t/998848</guid>
+<content:encoded><![CDATA[
+
+之前是华为的 HN8145XR 光猫，虽然不能指定 bars （ ac name ）经常运行在 NAT3 环境下，但十分的稳定，前几天出了一点意外，买了个中兴 G715 光猫，我只能说十分的不稳定，网心云发现 NAT 不稳定，远程桌面各种丢包断网，防火墙一套全关闭，连接数 65535 ，包括玄学的删除连接后再自行建立连接都试过了，依然十分的不稳定...看起来还是得用回以前的 HN8145XR ，要么就把 G7615 当成纯粹的光电转换器，做桥接，想了想还是用回 HN8145XR 算了....<br />宽带运营商：广州联通<br />指定 BARS 有助于我可以选择到 NAT1 的路线而不是 NAT3 的路线
+]]></content:encoded>
+<pubDate>2023-12-08T15:47:09Z</pubDate>
+<pubDate>2023-12-08T15:47:09Z</pubDate>
+</item>
+<item>
+<title>[问与答] 坐标山东，今晚打死了至少八只蚊子。是不是天台暖和的原因，蚊子都从下水道里飞出来了。如果是的话请问怎么杜绝这种情况呢？</title>
+<link>https://www.v2ex.com/t/998847</link>
+<guid>https://www.v2ex.com/t/998847</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-08T15:39:54Z</pubDate>
+<pubDate>2023-11-30T15:37:54Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] sms-activate 接码平台选了境外的号码，怎么仍是接收不到短信验证码？</title>
+<link>https://www.v2ex.com/t/998846</link>
+<guid>https://www.v2ex.com/t/998846</guid>
+<content:encoded><![CDATA[
+
+sms-activate 接码平台选了境外的号码，怎么仍是接收不到短信验证码？<br /><br />试过了几个不同的国家的号码，全部接收不到，已经充值了几美元的。有 XDM 知道哪里的问题嘛？跪谢！
+]]></content:encoded>
+<pubDate>2023-12-08T15:37:39Z</pubDate>
+<pubDate>2023-12-08T15:37:39Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 河南联通手动改桥接后，删除 TR069 配置，路由 pppoe 拨号，获取公网 ip 被固定暂时无法漂移...</title>
+<link>https://www.v2ex.com/t/998845</link>
+<guid>https://www.v2ex.com/t/998845</guid>
+<content:encoded><![CDATA[
+
+主题：如上<br />运营商：联通<br />坐标：郑州<br />宽带：69 元套餐，送的 300M<br /><br />操作：之前移机，被运维工程师强制升级了光猫，后来手动查资料+手动测验尝试突破，获取超级管理密码，后更改桥接，路由 pppoe 拨号，同时删除 TR069 配置。<br /><br />在 2023-12-03 02:30:28 之前，还能公网 IP 飘逸的。<br /><br />目前情况：不管是给光猫断电还是后台重启，路由拨号后，公网 IP 尚未飘逸。从 ddns 解析日志来看，2023-12-03 02:30:28 持续到今天，已有 6 天。<br /><br /><br />困惑：这种情况，不是很常见。后面会不会被识别针对呀？<br /><br />有没有遇到这种情况的大兄弟～～～～
+]]></content:encoded>
+<pubDate>2023-12-08T15:30:38Z</pubDate>
+<pubDate>2023-12-08T16:16:10Z</pubDate>
+</item>
+<item>
+<title>[Apple] 国内的 Sony 电视为什么要把 HomeKit 去掉？</title>
+<link>https://www.v2ex.com/t/998844</link>
+<guid>https://www.v2ex.com/t/998844</guid>
+<content:encoded><![CDATA[
+
+<p>没想明白 Sony 的这一操作</p>
+]]></content:encoded>
+<pubDate>2023-12-08T15:27:46Z</pubDate>
+<pubDate>2023-12-08T16:11:27Z</pubDate>
+</item>
+<item>
+<title>[问与答] bing 通过 proxy 进行代理，经常打不开，提示 ERR_TOO_MANY_REDIRECTS</title>
+<link>https://www.v2ex.com/t/998842</link>
+<guid>https://www.v2ex.com/t/998842</guid>
+<content:encoded><![CDATA[
+
+<a href="http://www.bing.com" rel="nofollow noopener" target="_blank">www.bing.com</a> 流量经过 proxy 进行代理，但是还是会经常出现 ERR_TOO_MANY_REDIRECTS ，有什么办法解决呀
+]]></content:encoded>
+<pubDate>2023-12-08T15:09:39Z</pubDate>
+<pubDate>2023-12-08T15:08:39Z</pubDate>
+</item>
+<item>
+<title>[Android] 安卓的解锁 root 只能靠厂商？是时候靠自己了</title>
+<link>https://www.v2ex.com/t/998840</link>
+<guid>https://www.v2ex.com/t/998840</guid>
+<content:encoded><![CDATA[
+
+<p>随着解锁越来越难，为什么不能换种方法。有种思路，现在新版安卓 boot 都会验证 system 分区签名，如果被篡改，则不能启动。和苹果 ios 的 ssv 类似，解决方法是把可执行文件，例如 su ，sudo 放到 baseband 分区，这个分区并没有签名验证，也有执行二进制文件的权力。通过软件层面的漏洞，remount 分区，再写入 root 相关文件，只是每重启后需要再激活一次 root 环境。完美避开官方解锁门槛，和解锁后丢失保修的问题。我相信安卓肯定有漏洞，只要自己不更新安全补丁，会出现支持当前版本的 root 工具，不需要再低声下气的哀求厂家解锁手机。</p>
+]]></content:encoded>
+<pubDate>2023-12-08T15:02:00Z</pubDate>
+<pubDate>2023-12-08T12:02:00Z</pubDate>
+</item>
+<item>
+<title>[Apple] 还原所有设置后相机里「共享图库」开关消失</title>
+<link>https://www.v2ex.com/t/998839</link>
+<guid>https://www.v2ex.com/t/998839</guid>
+<content:encoded><![CDATA[
+
+<p>前情提要：
+今年刚换完 iPhone 15 Pro Max ，为了省事直接新机恢复的旧手机备份，日常使用电信、移动双卡，电信主流量和打电话，和家庭宽带绑定的套餐，移动用来接电话
+最近发现移动的信号一直很差，频繁无信号，过去用了几年 iPhone 12 Pro Max ，极少遇到过无服务的情况，以为是 sim 卡的问题，用了有些年头了，就去移动营业厅换了张新 sim 卡，发现情况还是诶有改善</p>
+<p>于是就约了零售店的天才吧，跑一下诊断看看是不是硬件或者其他的问题，跑完发现硬件没问题，但是信号异常是的确存在的，工作人员建议我还原一下网络设置，我回到家心想干脆不如还原所有设置算了，以防再遇到其他非网络的一些小毛病，毕竟是恢复的备份，遂还原了两遍</p>
+<p>还原所有设置后陆陆续续又重新设置一遍，开始没在意，最近发现相机里的「共享图库」开关消失不见了，但是设置-照片里还是有之前设置好的和家人的「共享图库」入口，并且入口里的开关全都打开了，包括「共享自相机」，这个就很尴尬了，求助大家，这种问题还能怎么解决？</p>
+]]></content:encoded>
+<pubDate>2023-12-08T14:59:11Z</pubDate>
+<pubDate>2023-12-08T14:56:11Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 闲着没事，重构了 n 年前写的一个诗词网站 demo</title>
+<link>https://www.v2ex.com/t/998838</link>
+<guid>https://www.v2ex.com/t/998838</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="example1" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/honmaple/maple-poetry/master/screenshot/example01.png" />
+<img alt="example1" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/honmaple/maple-poetry/master/screenshot/example02.png" /></p>
+<p>花了两天时间重构，前端用的 Quasar ，后端用 Go ，诗词数据来自 <a href="https://github.com/chinese-poetry/chinese-poetry" rel="nofollow">chinese-poetry/chinese-poetry</a>。</p>
+<p>原本还想加入自动标签和情感分析，但在本地试了一下，现有的词典大都是基于现代语义实现的，自动分词不太准确，需要手动处理，故放弃。</p>
+<p>现在就两个功能：导入 chinese-poetry 的数据、接口查询。有兴趣的可以看看 <a href="https://github.com/honmaple/maple-poetry" rel="nofollow">honmaple/maple-poetry</a></p>
+]]></content:encoded>
+<pubDate>2023-12-08T14:56:16Z</pubDate>
+<pubDate>2023-12-08T14:56:16Z</pubDate>
+</item>
+<item>
+<title>[iOS] 有没有好用的主题 app</title>
+<link>https://www.v2ex.com/t/998837</link>
+<guid>https://www.v2ex.com/t/998837</guid>
+<content:encoded><![CDATA[
+
+像安卓那样一键更换图标的，谷歌系 app 图标在 iOS 上太丑了，都是大白边
+]]></content:encoded>
+<pubDate>2023-12-08T14:55:41Z</pubDate>
+<pubDate>2023-12-08T10:55:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 手机换电池，把屏幕搞没了，怎么办</title>
+<link>https://www.v2ex.com/t/998835</link>
+<guid>https://www.v2ex.com/t/998835</guid>
+<content:encoded><![CDATA[
+
+<p>mi6 换第二次电池了，出了点意外。原因是上一次电池的背胶比较粘，扯电池的时候可能把屏幕排线扯断了，这个是猜测。
+结果就是屏幕不亮了，不是仅仅背光没了，触摸应该也没了。插 usb ，电脑助手提示手机同意 usb 调试。</p>
+<p>现在想问下
+1.在屏幕和触摸没有的情况下，是否可以导出资料</p>
+]]></content:encoded>
+<pubDate>2023-12-08T14:41:46Z</pubDate>
+<pubDate>2023-12-08T14:45:04Z</pubDate>
+</item>
+<item>
+<title>[问与答] 微信群有人发了看着像病毒的 exe 文件，有大佬能看看吗？</title>
+<link>https://www.v2ex.com/t/998834</link>
+<guid>https://www.v2ex.com/t/998834</guid>
+<content:encoded><![CDATA[
+
+集团里的几个群有个人发了同样的内容（像被盗号了一样）：一段文字内容，是一个政策性文件的描述，但是大致能看出是不太真实的政策，然后附了一个文件，文件名是 206.238.221.108_.exe 的一个 exe 文件，大小是 17.5mb ，我用火绒查了查没有毒，公司电脑没敢打开，本来想回家在沙盒里运行看看的，结果我电脑是家庭版不带沙盒。。。干脆直接运行了，没弹出什么窗口，就是任务管理器多了一个 206.238.221.108 这个文件的后台，有大佬分析一下这会是什么东西吗？
+]]></content:encoded>
+<pubDate>2023-12-08T14:39:49Z</pubDate>
+<pubDate>2023-12-08T15:43:46Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 找个运营商锁 nat4 的同学来测一下 frp xtcp 通不通</title>
+<link>https://www.v2ex.com/t/998832</link>
+<guid>https://www.v2ex.com/t/998832</guid>
+<content:encoded><![CDATA[
+
+tg @<a href="https://www.v2ex.com/member/bbonths" rel="nofollow noopener" target="_blank">bbonths</a><br />来个同学测一下这种运营商端限制 nat4 的情况下能不能打洞<br />目前我只测过联通 nat4 和公司员工机 nat4 （实际未必是 nat4 ）的情况可以打通<br />所以想验证一下运营商锁 nat4 的情况下可不可行<br /><br />广东联通 nat4 也可以，任何省份的 nat4 都可以，但是最好确定是运营商锁的 nat4
+]]></content:encoded>
+<pubDate>2023-12-08T14:35:35Z</pubDate>
+<pubDate>2023-12-08T14:32:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求 gh0st 或类似 其他成品。。。</title>
+<link>https://www.v2ex.com/t/998831</link>
+<guid>https://www.v2ex.com/t/998831</guid>
+<content:encoded><![CDATA[
+
+求一个远控，求 gh0st 或类似 其他成品。<br /><br />需求：远程看屏幕，访问文件，可以听音频设备。最好有主动上线提醒，电脑端既可以，类似多年前的鸽子。
+]]></content:encoded>
+<pubDate>2023-12-08T14:24:36Z</pubDate>
+<pubDate>2023-12-08T14:21:36Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 这个 ReadMedium 可以直接把 Medium 的文章翻译成中文了</title>
+<link>https://www.v2ex.com/t/998830</link>
+<guid>https://www.v2ex.com/t/998830</guid>
+<content:encoded><![CDATA[
+
+<p>网址是这个：<a href="http://readmedium.com" rel="nofollow">readmedium.com</a> (在 medium 前面加个 read ）</p>
+<p>用法： </p>
+<ul>
+<li>在 medium 的域名上加个 read ，其它域名就是把整个域名都换成 <a href="http://readmedium.com" rel="nofollow">readmedium.com</a></li>
+<li>可以打开首页，然后输入网址</li>
+<li>右上角可以选择翻译的语言</li>
+</ul>
+<p>中文翻译的例子： <a href="https://readmedium.com/zh/the-corporate-governance-failure-at-the-heart-of-sam-altmans-ouster-from-openai-cbdede5c7d21" rel="nofollow">https://readmedium.com/zh/the-corporate-governance-failure-at-the-heart-of-sam-altmans-ouster-from-openai-cbdede5c7d21</a></p>
+<p>配合这个油猴脚本更方便： <a href="https://greasyfork.org/zh-CN/scripts/481493-medium-unlocker-2023-12-06-updated" rel="nofollow">https://greasyfork.org/zh-CN/scripts/481493-medium-unlocker-2023-12-06-updated</a></p>
+<p>截图：
+<img alt="fIQjI.png" class="embedded_image" rel="noreferrer" src="https://i.imgs.ovh/2023/12/08/fIQjI.png" /></p>
+<p><img alt="fIcLV.png" class="embedded_image" rel="noreferrer" src="https://i.imgs.ovh/2023/12/08/fIcLV.png" /></p>
+]]></content:encoded>
+<pubDate>2023-12-08T14:23:02Z</pubDate>
+<pubDate>2023-12-08T14:23:02Z</pubDate>
+</item>
+<item>
+<title>[Apple] 请教如何把 Mac iPhone 的照片传到 pixel</title>
+<link>https://www.v2ex.com/t/998829</link>
+<guid>https://www.v2ex.com/t/998829</guid>
+<content:encoded><![CDATA[
+
+<p>pixel 的照片 app 不能导入 u 盘照片。Mac 不能打开 pixel ，Mac 的照片 app 也操作不了 pixel 。
+最后是 Mac 安装了 openmtp ，然后把照片直接从 Mac 拷贝到 pixel 的 Camera 文件夹了。
+还有其他简单操作吗？ iPhone Mac 不用梯子的情况下。谢谢</p>
+]]></content:encoded>
+<pubDate>2023-12-08T14:17:33Z</pubDate>
+<pubDate>2023-12-08T16:07:34Z</pubDate>
+</item>
+<item>
+<title>[截图/贴图/OCR/长截图/截动图] PixPin 不止截图的截图工具</title>
+<link>https://www.v2ex.com/t/989393</link>
+<guid>https://www.v2ex.com/t/989393</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>大家好，我是<a href="https://pearocr.com/#/" rel="nofollow">PearOCR</a>的作者，平时的工作流中经常使用图片相关的工具，截图贴图：Snipaste; Ocr：PearOCR; 长截图截动图：QQ 截图; 不过经常切换软件还是比较麻烦，于是写了一个新的截图工具，并且加上 PearOCR 的离线识别引擎，把日常用到的相关功能都集合在一起，PixPin 诞生了  </p>
+</blockquote>
+<h2>下载使用（目前只支持 windows 系统）</h2>
+<h3>onedrive</h3>
+<p><a href="https://1drv.ms/f/s%21Al1Jv9QfhD3Wa1N_CdxT28SdjEY?e=C9bm0f" rel="nofollow">https://1drv.ms/f/s!Al1Jv9QfhD3Wa1N_CdxT28SdjEY?e=C9bm0f</a></p>
+<h3>百度云</h3>
+<p>链接: <a href="https://pan.baidu.com/s/1OWYoZFAo6sNnwBkV8ecX2A?pwd=PIXP" rel="nofollow">https://pan.baidu.com/s/1OWYoZFAo6sNnwBkV8ecX2A?pwd=PIXP</a> 提取码: PIXP  </p>
+<h3>默认热键</h3>
+<p><strong>截图<code>Ctrl + 1</code>， 贴图<code>Ctrl + 2</code></strong></p>
+<blockquote>
+<p>由于 Win 系统限制，启动后托盘图标会被系统隐藏，建议手动移出来  </p>
+</blockquote>
+<h2>功能</h2>
+<p>简单重点的介绍主要功能，PixPin 的功能细节很多，为了避免文章太累赘这里不一一细说，希望大家能慢慢体验发掘，而且 PixPin 依然在快速开发迭代中，如果有哪些你想要的功能细节而 PixPin 没有的话，欢迎回帖提出。</p>
+<h3>截图</h3>
+<ul>
+<li>自动识别窗口元素，可使用滚轮切换父/子元素  </li>
+<li>附带各种标注工具</li>
+</ul>
+<p><img alt="截图功能" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/9bq61hxAl.png" /> </p>
+<h3>贴图</h3>
+<ul>
+<li>把剪贴板的图片/文字贴到其他窗口最上层，方便参考查阅</li>
+<li><strong>自动识别图片上的文字，离线识别引擎，无数据上传</strong> </li>
+<li>提供标注工具方便二次标注
+<img alt="贴图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/e31OTkk2l.png" /></li>
+</ul>
+<h3>截长图</h3>
+<ul>
+<li>智能图像识别算法自动捕捉滚动的图片
+<img alt="截长图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/n98Ds2zpl.png" /></li>
+</ul>
+<h3>截动图</h3>
+<ul>
+<li>把操作过程保存为 Gif/Png/Webp 动图</li>
+<li>提供标注过程，可以在录制过程中方便地标注  </li>
+</ul>
+<p><img alt="截动图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/PEOukL8Ql.png" /></p>
+]]></content:encoded>
+<pubDate>2023-11-07T02:33:19Z</pubDate>
+<pubDate>2023-12-06T15:24:19Z</pubDate>
+</item>
+
+<item>
 <title>[YouTube] 正在逛 youtube，结果搜索结果页给我推 998 Suicide 的提示</title>
 <link>https://www.v2ex.com/t/998827</link>
 <guid>https://www.v2ex.com/t/998827</guid>
 <content:encoded><![CDATA[
-
 <a href="https://www.v2ex.com/i/9iGefPV7.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 9iGefPV7.png"><img class="embedded_image" src="https://i.v2ex.co/9iGefPV7.png" /></a><br /><br />本来我顶多有点累，现在看到这个整个人都不爽了。🤣
 ]]></content:encoded>
-<pubDate>2023-12-08T14:09:22Z</pubDate>
 <pubDate>2023-12-08T14:09:22Z</pubDate>
 </item>
 <item>
@@ -21,9 +457,7 @@
 <guid>https://www.v2ex.com/t/998826</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-08T13:57:37Z</pubDate>
 <pubDate>2023-12-08T13:57:37Z</pubDate>
 </item>
 <item>
@@ -31,13 +465,11 @@
 <link>https://www.v2ex.com/t/998825</link>
 <guid>https://www.v2ex.com/t/998825</guid>
 <content:encoded><![CDATA[
-
 <p>rest 接口：
 <a href="https://developers.generativeai.google/api/rest/generativelanguage" rel="nofollow">https://developers.generativeai.google/api/rest/generativelanguage</a></p>
 <p>apikey：
 <a href="https://makersuite.google.com/app/apikey" rel="nofollow">https://makersuite.google.com/app/apikey</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:56:54Z</pubDate>
 <pubDate>2023-12-08T09:53:54Z</pubDate>
 </item>
 <item>
@@ -45,12 +477,10 @@
 <link>https://www.v2ex.com/t/998824</link>
 <guid>https://www.v2ex.com/t/998824</guid>
 <content:encoded><![CDATA[
-
 <p>需要国外邮箱
 怎么能注册 100 个呢，不想手机号验证
 哪些邮箱可以</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:53:59Z</pubDate>
 <pubDate>2023-12-08T13:45:59Z</pubDate>
 </item>
 <item>
@@ -58,7 +488,6 @@
 <link>https://www.v2ex.com/t/998823</link>
 <guid>https://www.v2ex.com/t/998823</guid>
 <content:encoded><![CDATA[
-
 <p>github: <a href="https://github.com/hymhub/next-axios-network" rel="nofollow">https://github.com/hymhub/next-axios-network</a></p>
 <h1>next-axios-network</h1>
 <p>一款在开发时监控 next.js + axios 项目服务端请求的 Network 面板</p>
@@ -89,7 +518,6 @@ export default async function Dashboard() {
 </code></pre>
 <p>这样的请求是在 node 环境进行的，无法通过浏览器 Network 面板进行监控，有了 next-axios-network 即可解决这个痛点</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:52:47Z</pubDate>
 <pubDate>2023-12-08T13:49:47Z</pubDate>
 </item>
 <item>
@@ -97,11 +525,9 @@ export default async function Dashboard() {
 <link>https://www.v2ex.com/t/998822</link>
 <guid>https://www.v2ex.com/t/998822</guid>
 <content:encoded><![CDATA[
-
 <p>有偿：求贴吧登陆发贴工具.</p>
 <p>Q2326870436</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:49:00Z</pubDate>
 <pubDate>2023-12-08T13:49:00Z</pubDate>
 </item>
 <item>
@@ -109,10 +535,8 @@ export default async function Dashboard() {
 <link>https://www.v2ex.com/t/998820</link>
 <guid>https://www.v2ex.com/t/998820</guid>
 <content:encoded><![CDATA[
-
 <p>最近已经不止十次看到 TikTok 美区小店 跨境电商了，想问问有没有在做的懂哥，能否告知一二，是真的像他们说的在风口，嘎嘎挣钱。</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:31:13Z</pubDate>
 <pubDate>2023-12-08T13:37:54Z</pubDate>
 </item>
 <item>
@@ -120,11 +544,9 @@ export default async function Dashboard() {
 <link>https://www.v2ex.com/t/998818</link>
 <guid>https://www.v2ex.com/t/998818</guid>
 <content:encoded><![CDATA[
-
 <p>#Apple 土区，iCloud 2T ，5 人车差 3 人，iCloud 每人 400G ，任意区可加，季付 24</p>
 <p>张小龙：Yml0c3RyaW5nXwo=</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:26:26Z</pubDate>
 <pubDate>2023-12-08T13:26:26Z</pubDate>
 </item>
 <item>
@@ -132,7 +554,6 @@ export default async function Dashboard() {
 <link>https://www.v2ex.com/t/998817</link>
 <guid>https://www.v2ex.com/t/998817</guid>
 <content:encoded><![CDATA[
-
 <p>一场支原体肺炎，住院治疗花费 6 万+
 分享我一个委托人的真实案例（已经过授权）。家长在很注意的情况下，最后家里的小朋友还是没躲过去，还是感染了支原体肺炎。简单记录一下整体的治疗过程，就诊医院为北京北边的一家比较知名的儿童医院国际部。
 DAY1 早上起来本来要去上学，发现小朋友打蔫儿，一量体温发现发烧了，直接跟老师请假，在家休息。到了晚上发现还是不退烧，去看了门诊，挂号+抽血检查+药品费，总账单 2500 ，想在国际部住院治疗，被告知没有床位了，需要排队等待。
@@ -146,7 +567,6 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <p>之前还有一篇持续在更新的保险科普，欢迎关注： <a href="https://de.v2ex.com/t/981804#reply15" rel="nofollow">https://de.v2ex.com/t/981804#reply15</a>
 我是保险经纪人，跟绝大部分保险公司都有合作，有想了解的保险朋友，可以加 V：WSJianBao 备注 V2</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T13:26:22Z</pubDate>
 <pubDate>2023-12-08T14:03:48Z</pubDate>
 </item>
 <item>
@@ -154,10 +574,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998816</link>
 <guid>https://www.v2ex.com/t/998816</guid>
 <content:encoded><![CDATA[
-
 目前还没有上太多家具，属于硬装加上柜子完事了，打算采用如下的循环：关窗户开足空调热风闷，工业落地扇通风吹加上用布擦家具，检测是否合格，不合格继续执行循环。大家有啥好的思路不？另外检测甲醛想买一个谷宇微家的检测仪，不知道这个靠谱不？
 ]]></content:encoded>
-<pubDate>2023-12-08T13:14:17Z</pubDate>
 <pubDate>2023-12-08T14:04:09Z</pubDate>
 </item>
 <item>
@@ -165,10 +583,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998815</link>
 <guid>https://www.v2ex.com/t/998815</guid>
 <content:encoded><![CDATA[
-
 先说一下需求，主要是开发用，跑一些编译和虚拟机，没有游戏需求，所以没有打算上独显<br /><br />CPU：R9 7590X  ¥3599<br />主板：技嘉 B650M 电竞雕 Wi-Fi ¥1499<br />显卡：核显 ¥0<br />内存：海盗船 D5 5600 48x2 ¥2499<br />硬盘：致态 TiPlus7100 1T ¥499<br />散热：瓦尔基里 GL360 ¥769<br />电源：海韵 全模金牌 FOCUS GX650W ¥599<br />机箱：乔思伯 D31 MESH 版黑色 ¥279<br />合计：¥9743<br /><br />上面的价格都是京东自营价格价格，各位帮忙看看哪里不合适需要调整的，如果可以顺便推荐一下便宜的渠道就更好啦
 ]]></content:encoded>
-<pubDate>2023-12-08T13:07:14Z</pubDate>
 <pubDate>2023-12-08T13:07:14Z</pubDate>
 </item>
 <item>
@@ -176,10 +592,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998814</link>
 <guid>https://www.v2ex.com/t/998814</guid>
 <content:encoded><![CDATA[
-
 <p>比如 Mac 版 Office ，最近文件列表可以自动检测文件名改动，而 Windows 下 Office 文件重命名后应用内会提示文件不存在</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T12:59:09Z</pubDate>
 <pubDate>2023-12-08T13:57:55Z</pubDate>
 </item>
 <item>
@@ -187,10 +601,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998813</link>
 <guid>https://www.v2ex.com/t/998813</guid>
 <content:encoded><![CDATA[
-
 #Apple 土区，iCloud 2T ，5 人车差 3 人，iCloud 每人 400G ，任意区可加，季付 24<br /><br />张小龙：Yml0c3RyaW5nXwo=
 ]]></content:encoded>
-<pubDate>2023-12-08T12:49:27Z</pubDate>
 <pubDate>2023-11-28T12:49:27Z</pubDate>
 </item>
 <item>
@@ -198,10 +610,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998812</link>
 <guid>https://www.v2ex.com/t/998812</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/1paRYvg.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/1paRYvg.png" /></a>
 ]]></content:encoded>
-<pubDate>2023-12-08T12:44:29Z</pubDate>
 <pubDate>2023-12-08T14:06:14Z</pubDate>
 </item>
 <item>
@@ -209,10 +619,8 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998809</link>
 <guid>https://www.v2ex.com/t/998809</guid>
 <content:encoded><![CDATA[
-
 <p>从来没合租过，年龄 30 多</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T12:40:16Z</pubDate>
 <pubDate>2023-12-08T12:37:16Z</pubDate>
 </item>
 <item>
@@ -220,7 +628,6 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998808</link>
 <guid>https://www.v2ex.com/t/998808</guid>
 <content:encoded><![CDATA[
-
 <p>秒表终于登上灵动岛。</p>
 <ol>
 <li>秒表出现在灵动岛上和通知中心</li>
@@ -234,7 +641,6 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <img alt="" class="embedded_image" rel="noreferrer" src="https://www.floattower.tech/img/sw-2.PNG" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://www.floattower.tech/img/sw-3.PNG" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-08T12:38:30Z</pubDate>
 <pubDate>2023-12-08T13:57:45Z</pubDate>
 </item>
 <item>
@@ -242,15 +648,12 @@ DAY5 抽血、测血氧、做心电图，心肌酶、肝功能、肾功能正常
 <link>https://www.v2ex.com/t/998807</link>
 <guid>https://www.v2ex.com/t/998807</guid>
 <content:encoded><![CDATA[
-
 <p>如题，有点好奇 vercel 为啥支持 PostgreSQL 不支持 MySQL ，有什么原因在里面嘛，比如 mysql 在 serverless 方面有什么天然的劣势之类的</p>
 <p>有人说是因为 vercel 这个 pqsql 的功能是别的公司合作提供的？因为那个公司是做 pqsql 的所以 vercel 不支持 mysql ？因为 vercel 用的是 neon 的技术, neon 只支持 pgsql</p>
 <p>有大佬知道嘛</p>
 ]]></content:encoded>
-<pubDate>2023-12-08T12:38:25Z</pubDate>
 <pubDate>2023-12-08T13:47:01Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 还原所有设置后相机里的「共享图库」开关没有了</title>
 <link>https://www.v2ex.com/t/998806</link>
@@ -16607,458 +17010,6 @@ sudo /etc/init.d/ssh restart &gt;/dev/null
 <p>这是什么原因呢，确定没有填错，也没有提示什么错误，直接回到 oyunfor 主页。</p>
 ]]></content:encoded>
 <pubDate>2023-12-04T14:25:42Z</pubDate>
-</item>
-<item>
-<title>[Chrome] 如何关闭第三方应用的链接默认打开无痕式窗口？</title>
-<link>https://www.v2ex.com/t/997617</link>
-<guid>https://www.v2ex.com/t/997617</guid>
-<content:encoded><![CDATA[
-不知道哪个版本之后，xcode 里的链接，vscode 里用 chrome 打开的 web 调试窗口，包括终端里打开的页面，凡是需要调用 chrome 打开的 URL 链接，chrome 都会以无痕窗口打开，导致总要复制网址再在普通窗口打开。<br />翻遍了设置好像也没有类似选项，搜了一圈，也没有什么有用的信息
-]]></content:encoded>
-<pubDate>2023-12-04T14:08:38Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有没有支持使用 webdav/s3 同步的 2FA 软件</title>
-<link>https://www.v2ex.com/t/997616</link>
-<guid>https://www.v2ex.com/t/997616</guid>
-<content:encoded><![CDATA[
-如题。
-]]></content:encoded>
-<pubDate>2023-12-04T14:04:51Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了个查询动漫图片出处的 TUI 小工具</title>
-<link>https://www.v2ex.com/t/997615</link>
-<guid>https://www.v2ex.com/t/997615</guid>
-<content:encoded><![CDATA[
-<p>最近在学 TUI 框架，做了个小工具， 使用 trace.moe API</p>
-<h3>描述</h3>
-<p>输入图片文件路径，查询出处，可从多个结果中选择，可以获取：</p>
-<ul>
-<li>动漫名称</li>
-<li>集数</li>
-<li>视频出处时间段</li>
-<li>相似度</li>
-</ul>
-<h3>Repo</h3>
-<p><a href="https://github.com/acgtools/trace-moe-go" rel="nofollow">https://github.com/acgtools/trace-moe-go</a></p>
-<h3>示例</h3>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/dreamjz/pics/main/pics/2023/202312042051978.gif" /></p>
-]]></content:encoded>
-<pubDate>2023-12-04T13:55:02Z</pubDate>
-</item>
-<item>
-<title>[程序员] 独立开发周记 #42： 11 月总结</title>
-<link>https://www.v2ex.com/t/997613</link>
-<guid>https://www.v2ex.com/t/997613</guid>
-<content:encoded><![CDATA[
-<h1>2023 ，1127-1203</h1>
-<p>周一，App 备案通过</p>
-<p>周二，极简时钟审核通过上架，另外两个「极简时钟」 App 下架，忙活一上午新 app 的准备工作</p>
-<p>周三，兼职</p>
-<p>周四，兼职</p>
-<p>周五，白天兼职，晚上极简日记</p>
-<p>周六，极简日记，买电视</p>
-<p>周日，在新电视上写代码</p>
-<h1>11 月数据总结</h1>
-<p>四个字总结 11 月，就是：<strong>全面下降📉</strong></p>
-<ul>
-<li>App Store ，收入下降 4.85%，其中极简时钟下载量下降 11%，极简日记下载量下降 36%！</li>
-<li>Google Play ，收入下降 8.81%，极简时钟下载量增长 23.18%</li>
-<li>Admob ，收入增长 14.58%，是上个月里唯一一个增长的收入渠道</li>
-<li>国内安卓市场，收入下降 7.02%，其中极简时钟下载量下降 14.02%，极简日记下载量下降 27%</li>
-</ul>
-<h1>新 app 上架前的工作</h1>
-<p>周二早上，在毫无准备的情况下突然要接手一个安卓 app ，于是忙了一上午：</p>
-<ul>
-<li>注册商标</li>
-<li>申请软著</li>
-<li>在各个安卓市场新建应用</li>
-<li>在微信开放平台新建应用</li>
-</ul>
-<p>接下来还得修改官网、申请备案。</p>
-<p>一上午一个代码还没写已经花出去小一千了😭</p>
-<p><strong>安卓不值得！</strong></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/12/04/706ndV.jpeg" /></p>
-<p>说到 App 备案，原来很多独立开发者，包括我在内，都不知道在工信部 App 备案后，还需要公安备案……周二的下午都花在这个公安备案上了，不仅需要把之前 App 备案的信息再填一遍，还需要填写日活和注册用户数……</p>
-<h1>极简时钟 iOS <a href="https://apps.apple.com/cn/app/id1265404088" rel="nofollow">App Store</a></h1>
-<p>上周提到的因为名字里含有「番茄钟」而导致审核不通过的问题解决了，没有改代码，也没有重新提交。</p>
-<p>我只是提交了一个回复：我这个 app 的名字已经使用 5 年多了，而且目前 App Store 里也有很多名字里带有「番茄钟」 的 App ，要求我改名是审核标准不一致吗？</p>
-<p>于是第二天就审核通过上架了。</p>
-<p>另外，三个月前，我对另外两个「极简时钟」提出的申诉终于有了结果（估计工作人员都忘了这个事了，还是我发了封邮件询问进展后才给出了结果），这两个 App 在国区没有改名，而是直接下架了。这和我之前预估的一样，这两个 App 长时间不更新，估计已经放弃经营了。</p>
-<p>通过这两次跟名称相关的事件，我决定对「极简时钟」这个 App 名称进行进一步的保护，等有结果了再公开吧。</p>
-<h1>极简日记 iOS  <a href="https://apps.apple.com/cn/app/id1568936702" rel="nofollow">App Store</a></h1>
-<p>周五晚上根据两个用户反馈的问题，调整了一下编辑的交互，顺便修复了一个崩溃问题，于是就提交了。</p>
-<p>周六晚上发现之前的改动带来一个新的问题，于是赶紧撤回了。又是一轮修改和测试后，感觉没问题了才又提交。</p>
-<p>刚开始写这个 App 的时候对 SwiftUI 的理解还很肤浅，现在虽然也远谈不上精通，但起码比两年前的理解还是更深入了一些。接下来想对极简日记进行一次底层的大更新，包括一些交互的小改进，但不会加入大的新功能：</p>
-<ul>
-<li>最低支持版本升级到 iOS 16</li>
-<li>优化各种交互</li>
-<li>尝试 Revenue Cat 的 Paywall</li>
-</ul>
-<h1>招设计师</h1>
-<p>周六在即刻发了个动态，想招设计师参与合作极简时钟和新 App 。</p>
-<p>极简时钟的设计工作主要就是新表盘的开发，目前 backlog 里积累的表盘 idea 有六七个，而且还都是市面上还没出现过的设计，希望能早日上架。</p>
-<p>新 App 就是上面提到的刚接手的安卓 App ，因为是独立开发者的个人作品，UI 比较接近安卓原生风格，所以需要整体重新设计一下。而且这个 App 我也会开发一个 iOS 版，所以两端的设计风格需要统一。</p>
-<p>诚招各位设计师朋友一起合作，下面是我的联系方式：
-我的微信：wangshudao937
-我的邮箱： <a href="mailto:shudao.wang@me.com">shudao.wang@me.com</a></p>
-<h1>又是买买买的一周</h1>
-<p>这周看到 M2 Max 的 Mac Studio 出了官翻版，就种草了，本来想着 11 月的兼职工资到手后就下单一台，没想到跑出来一个截胡的消费。</p>
-<p>这周可是没少买，无论是数量还是金额，大部分都是在抖音买的：</p>
-<ul>
-<li>
-<p>可以磁吸的眼镜框，可以磁吸墨镜片和偏振镜片</p>
-</li>
-<li>
-<p>据说是瑞士进口的强力胶</p>
-</li>
-<li>
-<p>车载手机支架</p>
-</li>
-<li>
-<p>可以各种旋转+四种水花的水花器</p>
-</li>
-<li>
-<p>泳镜泳裤泳帽三件套</p>
-</li>
-<li>
-<p>三本关于数学教育的书，和一本凑单用的《设计中的设计》</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/12/04/J3Hyjl.jpeg" /></p>
-</li>
-<li>
-<p>Keychron K15 Pro 。之前的 K11 Pro 其实很满意了，但是最近写代码太多，K11 Pro 的青轴敲久了还是有点累，而且晚上孩子睡着后就不能用了，于是就下单了红轴的 K15 Pro ，功能键更多一些。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/12/04/CLEd26.jpeg" /></p>
-</li>
-<li>
-<p>最后这个就是本周最贵的一笔消费了，小米的 86 寸 4K 电视，这是一个蓄谋已久的冲动消费。「蓄谋已久」是我一直想买个 4K 大电视好多年了，家里的电视还是 9 年前结婚时买的一个 50 寸 1080P 的非智能电视，早就想换了。「冲动」是指我本来想买个 65 寸的，最大最大 75 寸的电视。但是到了店里一对比，还是 86 寸更合适我的需求，因为我的梦想就是躺在沙发上看电视写代码。本来 75 寸的价格就已经超出我的预算了，更别说这个 86 寸的了，但是店员「适时地」给了我 400 元优惠，又赠了两年延保，就彻底击溃了我的心理防线。为了梦想成真，就咬咬牙上了。看了一下午 4K 的电视剧，效果太惊人了，感觉之前的影视剧都白看了。又玩了一会游戏，屏幕太大了，有点晕。买了这个电视，就又想买 Apple TV 了，主要是为了用 VidHub 看视频，但是目前来看阿里云盘自己的 TV 版 App 还够用。另外家里的 PS4 和 XSS 也该升级了……Mac Studio 需要再等等了😭
-<img alt="" class="embedded_image" rel="noreferrer" src="https://upload.cc/i1/2023/12/04/iHLrFM.jpeg" /></p>
-</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-12-04T13:38:48Z</pubDate>
-</item>
-<item>
-<title>[生活] 大家家里吃的都是什么牌的大米</title>
-<link>https://www.v2ex.com/t/997611</link>
-<guid>https://www.v2ex.com/t/997611</guid>
-<content:encoded><![CDATA[
-有没有推荐一下的最近家里米吃完了，想换种米试试
-]]></content:encoded>
-<pubDate>2023-12-04T14:08:41Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 请问有推荐的按量计费的动态 ip 代理吗？</title>
-<link>https://www.v2ex.com/t/997610</link>
-<guid>https://www.v2ex.com/t/997610</guid>
-<content:encoded><![CDATA[
-<p>嘤嘤嘤</p>
-]]></content:encoded>
-<pubDate>2023-12-04T13:32:29Z</pubDate>
-</item>
-<item>
-<title>[Apple] 为什么 App Store 不显示余额了</title>
-<link>https://www.v2ex.com/t/997609</link>
-<guid>https://www.v2ex.com/t/997609</guid>
-<content:encoded><![CDATA[
-<p>昨天充了 100 刀，还是显示余额的。今天就不显示了</p>
-]]></content:encoded>
-<pubDate>2023-12-04T14:13:35Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] chatgpt api 有没有便宜的，我只要 3.5 就可以了。</title>
-<link>https://www.v2ex.com/t/997608</link>
-<guid>https://www.v2ex.com/t/997608</guid>
-<content:encoded><![CDATA[
-<p>chatgpt api 有没有便宜的，我只要 3.5 就可以了。
-充值了一家 2.4w token 花了五毛钱 这个价格怎么样？</p>
-]]></content:encoded>
-<pubDate>2023-12-04T13:27:00Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 又一个经济下行的案例： processon 之前建的，现在算在超额的文件已经不能编辑了</title>
-<link>https://www.v2ex.com/t/997607</link>
-<guid>https://www.v2ex.com/t/997607</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-04T11:22:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] MAC mini 2014 休眠以后重启后 app 开机界面进度条走到 1 半外接的 AOC 显示器提示输入不支持...</title>
-<link>https://www.v2ex.com/t/997605</link>
-<guid>https://www.v2ex.com/t/997605</guid>
-<content:encoded><![CDATA[
-rt ，求求如何解决，貌似休眠前更新了
-]]></content:encoded>
-<pubDate>2023-12-04T13:09:52Z</pubDate>
-</item>
-<item>
-<title>[Python] 请教各位大佬，如何利用 Python 修改远端 windows 主机的本地账号密码？</title>
-<link>https://www.v2ex.com/t/997604</link>
-<guid>https://www.v2ex.com/t/997604</guid>
-<content:encoded><![CDATA[
-<p>找了一圈，只找到这种命令行方式修改，wmi 连接太慢，不知各位大佬有无其他更好方法可以提供参考，希望无需变更远端 Windows 主机的方法。</p>
-<pre><code class="language-shell">conn=wmi.WMI("x.x.x.x",user="administrator",password="123456")
-conn.Win32_Process.Create("net user administrator 654321") 
-</code></pre>
-]]></content:encoded>
-<pubDate>2023-12-04T14:09:09Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 墨干理工套件 V1.2.0 发布了</title>
-<link>https://www.v2ex.com/t/997603</link>
-<guid>https://www.v2ex.com/t/997603</guid>
-<content:encoded><![CDATA[
-<h2>官网 <a href="https://mogan.app" rel="nofollow">https://mogan.app</a></h2>
-<p>从 V1.2.0 开始，我们将墨干编辑器重命名为墨干理工套件。因为墨干编辑器主要为理工科相关的日常写作服务，使用墨干编辑器这个名字可能会令人困惑，所以原来的墨干编辑器 V1.x.y ，在墨干理工套件中成为了学术写作产品<strong>Mogan Research</strong>，另外后续墨干理工套件还会发布代码编辑器<strong>Mogan Code</strong>和幻灯片产品<strong>Mogan Beamer</strong>。</p>
-<p><strong>Mogan Code</strong>的中文名为<strong>墨码</strong>，<strong>Mogan Beamer</strong>的中文名为<strong>墨板</strong>。这两个待发布的产品命名比较直观。<strong>Mogan Research</strong>的中文名为<strong>墨砚</strong>，和 2012 年的诺贝尔文学奖获得者莫言发音类似，期待更多的华人获得诺贝尔物理学奖、诺贝尔化学奖。</p>
-<p>墨干理工套件 V1.2.0 包含以下组件：</p>
-<ul>
-<li>墨砚 V1.2.0 (Mogan Research v1.2.0)</li>
-</ul>
-<h2>重要变更</h2>
-<p>在 GNU TeXmacs 2.1.2 的基础上：</p>
-<ul>
-<li>
-开源之夏<code>Mogan Draw on wasm</code>项目：<ul>
-<li>改善绘图工具的用户体验</li>
-<li>将绘图工具编译到了 wasm 可直接在浏览器中使用</li>
-</ul>
-</li>
-<li>
-开源之夏<code>可编辑 PDF</code>项目：<ul>
-<li>新增导出 PDF 并将 tm 文档作为附件嵌入的功能</li>
-<li>可以直接使用墨干打开带有 tm 文档附件的 PDF 文档</li>
-</ul>
-</li>
-<li>新增墨客星球社区文档入口：帮助-&gt;墨客星球</li>
-<li>升级到 Qt 6.5.3</li>
-<li>采用 S7 Scheme 作为底层的 Scheme 脚本引擎以改进性能</li>
-<li>采用 KDE 社区 Breeze 图标以美化用户界面</li>
-<li>在 Windows 和 macOS 修复大量失效或者和系统冲突的快捷键</li>
-<li>大量用户界面的细节改进：比如显示可用快捷键、调整界面翻译等等</li>
-<li>若干中文排版的重要改进：比如中英文之间自动插入很小的间隔等等</li>
-<li>若干字体相关重要改进：比如设置 Linux 平台默认中文字体等等</li>
-<li>修复若干参考文献相关的错误</li>
-<li>调整若干默认配置项，改善用户体验</li>
-<li>修复若干导致墨干直接崩溃或者卡死的错误</li>
-<li>按照 Linux/macOS/Windows 的规范调整 TEXMACS_HOME_PATH 的路径</li>
-<li>移除内置文档，直接加载最新的 GNU TeXmacs 官方文档</li>
-<li>实验功能：Mogan Research 已经通过 WASM 从桌面软件变成浏览器可直接访问的应用</li>
-</ul>
-<h2>已知问题</h2>
-<ul>
-<li>点击<code>工具-&gt;键盘-&gt;编辑键盘快捷键</code>会崩溃</li>
-<li>安装之后初次启动由于需要加载系统所有字体比较慢</li>
-<li>菜单中仍旧有部分没有翻译为中文</li>
-</ul>
-<p>v1.2.1 将于 2024/01/01 发布，以解决以上问题。</p>
-<h2>实际影响用户体验的详细变更</h2>
-<ul>
-<li>
-开源之夏：绘图工具（项目 23 ，27 ，50 ）<ul>
-<li>新增绘制<code>椭圆</code>和<code>扇形</code>的功能，焦点工具栏没有配置相关图标，可以使用<code>插入</code>菜单插入</li>
-<li>画圆的方式从三点画圆改为两点画圆</li>
-<li>复制粘贴一个绘图对象时，新对象会在原对象的位置上少量偏移，避免重合</li>
-<li>按下 Shift 再单击，效果等同于右键，方便不使用鼠标只使用触摸板的场合下绘图</li>
-<li>旋转或者放缩时，将鼠标变成小手的形状</li>
-</ul>
-</li>
-<li>
-用户界面 (项目 69 ，71)<ul>
-<li>在右键菜单中添加了复制和粘贴的快捷方式</li>
-<li>修复数学模式下<code>插入-&gt;高次方根式</code>失效的问题</li>
-<li>模式工具栏中的<code>sys-chinese</code>显示为<code>默认字体</code>，表示中文文档默认采用系统自带的中文字体</li>
-<li>幻灯片模式下，不翻译主题下拉菜单中的主题名</li>
-<li>不翻译<code>调试</code>中的各种调试选项，比如<code>auto</code>，<code>keyboard</code></li>
-<li>不翻译<code>版本-&gt;对比</code>中的菜单项</li>
-<li>在界面和代码中使用 macOS 而不是 Mac OS</li>
-<li>退出墨干的弹出窗口中，开启对于 Cancel 的翻译</li>
-<li>在模式工具栏中，直接使用语言而不是国旗显示当前的文档语言</li>
-</ul>
-</li>
-<li>
-快捷键（项目 20, 59, 71 ）<ul>
-<li>修复无法输入中文全角双引号的问题</li>
-<li>修复<code>工具-&gt;键盘-&gt;显示键盘按键</code>无法显示中文输入的问题</li>
-<li>显示模式工具栏中下拉菜单中的快捷键</li>
-<li>显示模式工具栏中标号、折叠等图标的快捷键</li>
-<li>修复<code>插入-&gt;数学-&gt;多行公式</code>的快捷键提示</li>
-<li>新增用于删除一个单词<code>(kill-word)</code>的 Emacs 风格快捷键</li>
-<li>新增<code>std V</code>（<code>Ctrl+Shift+v</code>或者<code>Command+Shift+v</code>）用于粘贴纯文本</li>
-<li>幻灯片模式下，交换<code>下一个</code>和<code>下一屏</code>的快捷键，方便使用翻页笔展开当前屏幕的折叠内容</li>
-<li>文本模式下，将下上标、下标、上划线、下划线的快捷键调整为 Tab 循环风格的快捷键</li>
-<li>文本模式下，将列表的快捷键<code>Option+e</code>和<code>Option+i</code>改为 Markdown 风格的快捷键，避免和 macOS 系统快捷键冲突</li>
-<li>Windows 平台下，<code>编辑</code>菜单中的复制、粘贴、剪切的快捷键提示改为<code>C-c</code>，<code>C-v</code>, <code>C-x</code></li>
-<li>Linux 和 Windows 平台下，Emacs 风格的 meta 从 Windows 键调整为 Alt ，避免和系统快捷键冲突</li>
-<li>macOS 快捷键风格中，结构化插入的快捷键前缀从 Ctrl 改为 Option ，避免和 macOS 系统快捷键冲突</li>
-<li>macOS 快捷键风格中，将<code>cmd</code>键从<code>Ctrl</code>改为<code>Option</code>，比如<code>插入-&gt;节</code>从<code>Ctrl+1</code>变为<code>Option+1</code></li>
-<li>macOS 快捷键风格中，将插入符号的快捷键从<code>Ctrl+q</code>改为<code>Option+q</code>，避免 Qt 6 无法识别<code>Ctrl+q</code>的问题</li>
-</ul>
-</li>
-<li>
-字体（项目 11 ）<ul>
-<li>Linux 平台下，使用<code>Noto CJK SC</code>作为默认中文字体</li>
-<li>采用默认中文字体来渲染带圈的数字（例如：①、②、③）</li>
-</ul>
-</li>
-<li>
-排版（项目 69 ）<ul>
-<li>书籍样式的章名从<code>章 1</code>调整为<code>第 1 章</code></li>
-<li>依据 W3C 的中文排版需求，调整标点符号的行首行尾禁则（只在文档语言为中文时生效）</li>
-<li>依据 W3C 的中文排版需求，在中文和英文之间加入很小的间隔（只在文档语言为中文时生效）</li>
-<li>修复中文字体大小在使用默认字体时偏小的问题</li>
-<li>修复文档中指示标签无法渲染中文的问题</li>
-</ul>
-</li>
-<li>
-参考文献（项目 12 ，63 ）<ul>
-<li>修复中文乱码的问题</li>
-<li>修复中文关键字无法搜索的问题</li>
-<li>修复参考文献生成若干格式错误</li>
-<li>改进参考文件引用编号的合并</li>
-</ul>
-</li>
-<li>
-表格（项目 52 ）<ul>
-<li>修复子表格宽度设置无效的问题</li>
-</ul>
-</li>
-<li>
-幻灯片（项目 6 ）<ul>
-<li>内置 GNU TeXmacs 官网的幻灯片主题资源，避免下载时间过长的问题</li>
-</ul>
-</li>
-<li>
-格式转换（项目 9 ）<ul>
-<li>修复 PDF 导出文件中文档元数据乱码问题</li>
-<li>修复 PDF 导出文件中含中文超链接目标乱码和悬浮提示乱码的问题</li>
-<li>修复 HTML 导出文件中标题乱码问题</li>
-</ul>
-</li>
-<li>
-用户首选项（项目 10 ）<ul>
-<li><code>通用-&gt;显示询问</code>调整为<code>通过弹出窗口</code></li>
-<li><code>其它-&gt;执行文档更新</code>调整为<code>三次</code></li>
-<li>进入绘图模式（插入绘图区域或者在当前位置绘制）默认显示网格，可使用快捷键<code>#</code>切换</li>
-<li>绘图模式的网格默认单位长度从 1 调整为 2</li>
-<li>默认开启<code>转换-&gt;PDF-&gt;展开幻灯片中的可折叠对象</code></li>
-</ul>
-</li>
-<li>
-稳定性（项目 7 ）<ul>
-<li>修复内存少量泄露的问题</li>
-<li>修复将比较大的数转换为罗马数字崩溃的问题</li>
-<li>修复版本工具中使用粗粒度做文档比较崩溃的问题</li>
-<li>Linux 平台下，修复错误的环境变量 LC_PAPER 导致崩溃的问题</li>
-</ul>
-</li>
-</ul>
-<h2>开发者相关变更</h2>
-<ul>
-<li>使用 xmake 2.8.5 作为构建工具，并配置了 Ubuntu/macOS/Windows 三个平台的 CI 和 CD</li>
-<li>在 Git 仓库的 devel 目录下使用 tm 文档做项目管理，确立了 Git 提交信息的规范</li>
-<li>在<code>开发者</code>菜单中可以直接点击查看当前版本的项目管理，也可以直接打开错误模版和特性模版</li>
-<li>Windows 平台下，使用 msvc 而不是 mingw 来构建整个软件</li>
-<li>HTML 和 LaTeX 的导入导出、各种界面语言的翻译词典、编程语言的高亮初步插件化</li>
-<li>TeXmacs 的基础代码重构为 Lolly 项目作为 Mogan 的依赖</li>
-<li>在 Lolly 项目中引入 tbox 依赖解决棘手的字符编码以及跨平台的文件访问等问题</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-12-04T13:00:50Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 提问使用语言，对 GPT 输出内容质量有影响吗？</title>
-<link>https://www.v2ex.com/t/997602</link>
-<guid>https://www.v2ex.com/t/997602</guid>
-<content:encoded><![CDATA[
-<p>传统搜索引擎，会由于搜索内容的语言，导致结果不同。
-那么对于类似 gpt 这种 llm ，分别使用中文和英文(甚至是小语种)，询问同一个问题，得到的结果质量会差距巨大吗？</p>
-<p>具体到某个情境：我想询问一个关于法国文化的细节内容，当我使用法语提问时，结果会不会更丰富更准确？</p>
-<p>如果有影响，有没有方法可以智能匹配语言，最优化输出结果？</p>
-<p>//题主是在校大学生小白，如果有概念理解错误请随意指出</p>
-]]></content:encoded>
-<pubDate>2023-12-04T12:48:13Z</pubDate>
-</item>
-<item>
-<title>[远程工作] 远程剪辑 1 名</title>
-<link>https://www.v2ex.com/t/997601</link>
-<guid>https://www.v2ex.com/t/997601</guid>
-<content:encoded><![CDATA[
-要求：<br />1.有一定的剪辑影片或者短视频经验，具备视频拍摄脚本策划能力，完成视频脚本及分镜制作。<br />2.有独特的剪辑风格，根据影片的名称风格进行后期的制作输出，思维活跃，想象力丰富。<br />3.对整个视频的创意、主题、镜头衔接、节奏感、音乐等方面有较好的把握。 <br />6~10K<br />联系主页
-]]></content:encoded>
-<pubDate>2023-12-04T13:57:23Z</pubDate>
-</item>
-<item>
-<title>[智能家电] 智能家居如何控制电脑主机睡眠？</title>
-<link>https://www.v2ex.com/t/997600</link>
-<guid>https://www.v2ex.com/t/997600</guid>
-<content:encoded><![CDATA[
-<p>每晚去房间睡觉前，会用智能家居把家里的灯都关了，电脑也想睡眠掉，这样屏幕就不会亮着，请问有什么办法可以从苹果家庭里面控制电脑睡眠呢？ 家里的智能是用的 HomeKit ，也有小燕和 Aqara 的网关。</p>
-]]></content:encoded>
-<pubDate>2023-12-04T12:45:55Z</pubDate>
-</item>
-<item>
-<title>[问与答] 因为同事请假，临时帮忙写的接口，后续出现问题由谁来负责维护？</title>
-<link>https://www.v2ex.com/t/997599</link>
-<guid>https://www.v2ex.com/t/997599</guid>
-<content:encoded><![CDATA[
-<p>背景是因为同事 A 生病请假，恰巧有个业务优化调整需要新增一个接口，由于比较紧急，领导派曾经一年前写过此业务现在在写其他业务的同事 B 来写，同事 B 写完接口并配合前端同事 C 完成联调直到上线。</p>
-<p>现在同事 A 回来了，有用户反馈出现了问题，在无关绩效的情况下</p>
-<p>1.由 A 还是 B 来定位此次问题？</p>
-<p>2.假设定位出是接口的问题（例如部分业务场景没考虑上），由谁来修改？</p>
-<p>3.假设定位出接口没问题，是前端 C 的问题，由谁来配合 C 联调直到上线？</p>
-<p>4.后续此接口的需求变动由谁来写？</p>
-]]></content:encoded>
-<pubDate>2023-12-04T13:35:31Z</pubDate>
-</item>
-<item>
-<title>[截图/贴图/OCR/长截图/截动图] PixPin 不止截图的截图工具</title>
-<link>https://www.v2ex.com/t/989393</link>
-<guid>https://www.v2ex.com/t/989393</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<p>大家好，我是<a href="https://pearocr.com/#/" rel="nofollow">PearOCR</a>的作者，平时的工作流中经常使用图片相关的工具，截图贴图：Snipaste; Ocr：PearOCR; 长截图截动图：QQ 截图; 不过经常切换软件还是比较麻烦，于是写了一个新的截图工具，并且加上 PearOCR 的离线识别引擎，把日常用到的相关功能都集合在一起，PixPin 诞生了  </p>
-</blockquote>
-<h2>下载使用（目前只支持 windows 系统）</h2>
-<h3>onedrive</h3>
-<p><a href="https://1drv.ms/f/s%21Al1Jv9QfhD3Wa1N_CdxT28SdjEY?e=C9bm0f" rel="nofollow">https://1drv.ms/f/s!Al1Jv9QfhD3Wa1N_CdxT28SdjEY?e=C9bm0f</a></p>
-<h3>百度云</h3>
-<p>链接: <a href="https://pan.baidu.com/s/1OWYoZFAo6sNnwBkV8ecX2A?pwd=PIXP" rel="nofollow">https://pan.baidu.com/s/1OWYoZFAo6sNnwBkV8ecX2A?pwd=PIXP</a> 提取码: PIXP  </p>
-<h3>默认热键</h3>
-<p><strong>截图<code>Ctrl + 1</code>， 贴图<code>Ctrl + 2</code></strong></p>
-<blockquote>
-<p>由于 Win 系统限制，启动后托盘图标会被系统隐藏，建议手动移出来  </p>
-</blockquote>
-<h2>功能</h2>
-<p>简单重点的介绍主要功能，PixPin 的功能细节很多，为了避免文章太累赘这里不一一细说，希望大家能慢慢体验发掘，而且 PixPin 依然在快速开发迭代中，如果有哪些你想要的功能细节而 PixPin 没有的话，欢迎回帖提出。</p>
-<h3>截图</h3>
-<ul>
-<li>自动识别窗口元素，可使用滚轮切换父/子元素  </li>
-<li>附带各种标注工具</li>
-</ul>
-<p><img alt="截图功能" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/9bq61hxAl.png" /> </p>
-<h3>贴图</h3>
-<ul>
-<li>把剪贴板的图片/文字贴到其他窗口最上层，方便参考查阅</li>
-<li><strong>自动识别图片上的文字，离线识别引擎，无数据上传</strong> </li>
-<li>提供标注工具方便二次标注
-<img alt="贴图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/e31OTkk2l.png" /></li>
-</ul>
-<h3>截长图</h3>
-<ul>
-<li>智能图像识别算法自动捕捉滚动的图片
-<img alt="截长图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/n98Ds2zpl.png" /></li>
-</ul>
-<h3>截动图</h3>
-<ul>
-<li>把操作过程保存为 Gif/Png/Webp 动图</li>
-<li>提供标注过程，可以在录制过程中方便地标注  </li>
-</ul>
-<p><img alt="截动图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/PEOukL8Ql.png" /></p>
-]]></content:encoded>
-<pubDate>2023-12-02T22:03:12Z</pubDate>
 </item>
 </channel>
 </rss>
