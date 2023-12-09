@@ -5,14 +5,76 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[MacBook Pro] Mac CPU 偶尔会出现未知原因的高占用，求解？</title>
+<link>https://www.v2ex.com/t/999062</link>
+<guid>https://www.v2ex.com/t/999062</guid>
+<content:encoded><![CDATA[
+
+<p>如下图，明明 CPU 高占用，我也明显感觉到系统卡顿了，但是却没有显示到底是哪个进程占用了这么多 CPU ，进活动监视器也看不到。</p>
+<p>M1 MAX MBP ，macOS 13.6.2</p>
+<p>这个问题我只在把 Mac 盒盖移动一段距离、搬到另一个地方继续用的时候偶尔遇到过，但遇到了就很烦，它会随机突然卡一下，几分钟或者几十秒间隔都有可能。目前只发现重启电脑可以解决。</p>
+<p>有什么办法可以不重启电脑来解决吗？比如，既然活动监视器不管用，还有什么看进程 CPU 占用的方法？</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://imgur.com/4gVck2n.png" /></p>
+]]></content:encoded>
+<pubDate>2023-12-09T18:45:30Z</pubDate>
+<pubDate>2023-12-09T18:45:30Z</pubDate>
+</item>
+<item>
+<title>[iOS] 往 SwiftData 的 context 里面塞东西的时候该怎么正确处理 relationship 的关系？</title>
+<link>https://www.v2ex.com/t/999061</link>
+<guid>https://www.v2ex.com/t/999061</guid>
+<content:encoded><![CDATA[
+
+<p>报错的位置在 Model 里面字段属性的 codegen 部分，具体来说大概是这样的位置：</p>
+<pre><code class="language-swift">{
+    @storageRestrictions(accesses: _$backingData, initializes: _child)
+        init(initialValue) {
+                    _$backingData.setValue(forKey: \._child, to: initialValue)
+                    _jobDescription = _SwiftDataNoType()
+        }
+    ...
+}
+</code></pre>
+<p>报错内容是「 illegal attempt to establish a relationship between objects in different contexts 」。</p>
+<p>如果按照字面上的意思，也已经按照这里（ <a href="https://stackoverflow.com/questions/77485748/json-to-swiftdata-decode-of-json-ends-in-error-at-observationregistrar" rel="nofollow">https://stackoverflow.com/questions/77485748/json-to-swiftdata-decode-of-json-ends-in-error-at-observationregistrar</a> ）的说法在所有 Model 的 init 函数里加上了 context 那段代码了。</p>
+<p>之前也遇到类似的情况，不过不在 init 而是在 getValue 里面。报错<code>EXEC_BREAKPOINT Code=1</code>或者<code>Illegal attempt to establish a relationship</code>，查了 stackoverflow 或者 Developer 社区的说法是可以通过给每个 Model 提供无参构造器，给每个 relationship 字段提供默认值来解决问题。也就是例如</p>
+<pre><code class="language-swift">let child = Child()
+modelContext.insert(child)
+
+let parent = Parent()
+modelContext.insert(parent)
+
+parent.child = child
+</code></pre>
+<p>这样先存入 context 再把 relationship 接上来的办法来解决。</p>
+<p>然后在实现 JSON 导入导出的时候又遇到类似的问题。不过 JSONDecoder 是通过调用 Model 里面的构造器来创建对象的吧。也就是这个</p>
+<pre><code class="language-swift">required init(from decoder: Decoder) throws {
+   guard let context = ... else {
+      ...
+   }
+   let container = try decoder.container(keyedBy: CodingKeys.self)
+   
+   self.child = try? container.decode(Child.self, forKey: .child)
+   ...
+}
+</code></pre>
+<p>换句话说就是得先把 Child 构造出来然后赋值给<code>self.child</code>字段，而这就会触发<code>Illegal attempt to establish a relationship 'child' between objects in different contexts</code>。</p>
+<p>但是因为 JSON 的 Decode 过程，没法通过先构造一个无参数的 Parent 再把 child 加到 parent 上面的方式来绕过。</p>
+<p>这种情况下该怎么解决 relationship 的问题呢？</p>
+<p>尝试了加<code>@Relationship</code>或者不加或者加不同的注解，也试过在 relationship 两边的 class 分别加上对面的引用或者只加一边，但每次都会在同样的位置报错。</p>
+<p>另外也在模拟器里面发现有时候虽然报错但是程序退出重启之后会多出来那么一两个原 JSON 里面的数据，也就是说存在解析成功了的情况，所以感觉也很迷惑。</p>
+]]></content:encoded>
+<pubDate>2023-12-09T18:26:28Z</pubDate>
+<pubDate>2023-12-09T18:26:28Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 后端框架 权限 菜单 问题</title>
 <link>https://www.v2ex.com/t/999059</link>
 <guid>https://www.v2ex.com/t/999059</guid>
 <content:encoded><![CDATA[
-
 问各位老大<br /><br />后台的权限控制<br /><br />管理员可以增加和删除菜单,可以设置菜单的权限<br /><br />那么这个 菜单管理,这个权限是给管理员的<br />那么管理员也有权删除<br />如果把 菜单管理 这个给删除了,后台就管理不了任何菜单了<br /><br />请问这个如何防止误删除
 ]]></content:encoded>
-<pubDate>2023-12-09T18:04:55Z</pubDate>
 <pubDate>2023-12-09T18:04:55Z</pubDate>
 </item>
 <item>
@@ -20,10 +82,8 @@
 <link>https://www.v2ex.com/t/999058</link>
 <guid>https://www.v2ex.com/t/999058</guid>
 <content:encoded><![CDATA[
-
 今年美国新毕业生就业太难了，加大 cs 本科毕业，英文第一语言，普通话一般，熟悉 c++/MERN ，求入门开发职位或者实习岗位推荐，前后端/手机应用都成，地点美加或远程都可以，必有重谢。
 ]]></content:encoded>
-<pubDate>2023-12-09T17:36:18Z</pubDate>
 <pubDate>2023-12-09T14:36:18Z</pubDate>
 </item>
 <item>
@@ -31,13 +91,11 @@
 <link>https://www.v2ex.com/t/999056</link>
 <guid>https://www.v2ex.com/t/999056</guid>
 <content:encoded><![CDATA[
-
 <p>前言： <a href="https://v2ex.com/t/846259" rel="nofollow">https://v2ex.com/t/846259</a></p>
 <p>2024 年我们开发团队继续前行、继续探索。</p>
 <p>如果您使用过我们的产品，欢迎您打开手机微信搜索“云中转”，关注我们的官方订阅号，获取帮助或反馈问题。</p>
 <p>我们提供最纯粹、最便捷的文件分享服务的决心坚定不移。</p>
 ]]></content:encoded>
-<pubDate>2023-12-09T17:27:58Z</pubDate>
 <pubDate>2023-12-09T17:24:58Z</pubDate>
 </item>
 <item>
@@ -45,10 +103,8 @@
 <link>https://www.v2ex.com/t/999055</link>
 <guid>https://www.v2ex.com/t/999055</guid>
 <content:encoded><![CDATA[
-
 <p>想起一个 nfs server 同步手机的照片，但是找了半天也没找到安卓挂载 nfs 的方法，问问大佬有办法没。</p>
 ]]></content:encoded>
-<pubDate>2023-12-09T17:21:37Z</pubDate>
 <pubDate>2023-12-09T17:19:37Z</pubDate>
 </item>
 <item>
@@ -56,7 +112,6 @@
 <link>https://www.v2ex.com/t/999054</link>
 <guid>https://www.v2ex.com/t/999054</guid>
 <content:encoded><![CDATA[
-
 <p>想给我姐换个笔记本，攒了点钱，预算 4k-6k ，要求大概如下：</p>
 <ul>
 <li>内存 16GB 起步，她喜欢好几个浏览器同时用而且页面不关，内存要求高。</li>
@@ -67,7 +122,6 @@
 <p>其实我知道英特尔 Ultra 芯片快发布了，但估计售价会超出预算，而且初代新架构不想当小白鼠，就不等了</p>
 <p>谢谢各位大佬！</p>
 ]]></content:encoded>
-<pubDate>2023-12-09T17:15:37Z</pubDate>
 <pubDate>2023-12-09T17:22:21Z</pubDate>
 </item>
 <item>
@@ -75,10 +129,8 @@
 <link>https://www.v2ex.com/t/999053</link>
 <guid>https://www.v2ex.com/t/999053</guid>
 <content:encoded><![CDATA[
-
 研究了下<br />redmi note 11t<br />oneplus ace 竞速版<br />oppo k10x<br />有 12G RAM<br /><br />现在已经不打机海战术？<br />求教 5G+NFC 还有什么能打的型号
 ]]></content:encoded>
-<pubDate>2023-12-09T17:02:34Z</pubDate>
 <pubDate>2023-12-09T16:59:34Z</pubDate>
 </item>
 <item>
@@ -86,10 +138,8 @@
 <link>https://www.v2ex.com/t/999052</link>
 <guid>https://www.v2ex.com/t/999052</guid>
 <content:encoded><![CDATA[
-
 想看看各位佬们对于创业融资和创业赛道啥看法 麻烦各位佬了
 ]]></content:encoded>
-<pubDate>2023-12-09T16:56:00Z</pubDate>
 <pubDate>2023-12-02T05:07:27Z</pubDate>
 </item>
 <item>
@@ -97,10 +147,8 @@
 <link>https://www.v2ex.com/t/999050</link>
 <guid>https://www.v2ex.com/t/999050</guid>
 <content:encoded><![CDATA[
-
 <p>她</p>
 ]]></content:encoded>
-<pubDate>2023-12-09T16:46:49Z</pubDate>
 <pubDate>2023-12-09T16:58:03Z</pubDate>
 </item>
 <item>
@@ -108,7 +156,6 @@
 <link>https://www.v2ex.com/t/999049</link>
 <guid>https://www.v2ex.com/t/999049</guid>
 <content:encoded><![CDATA[
-
 <p>最近考虑把自己的贵重物品做一个电子化储存，防丢防忘。</p>
 <p>但是自己拍照手残，使用的还是 xr 这种老古董</p>
 <p>于是打算找一些高清好看的图片</p>
@@ -120,7 +167,6 @@
 <a href="https://s3gw.cmbimg.com/lb61.16-crdcardapply-prd/app/7602_VG.gif" rel="nofollow">https://s3gw.cmbimg.com/lb61.16-crdcardapply-prd/app/7602_VG.gif</a></p>
 <p><a href="https://s3gw.cmbimg.com/lb61.16-crdcardapply-prd/app/7569_UG.gif" rel="nofollow">https://s3gw.cmbimg.com/lb61.16-crdcardapply-prd/app/7569_UG.gif</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-09T16:33:19Z</pubDate>
 <pubDate>2023-12-09T16:57:17Z</pubDate>
 </item>
 <item>
@@ -128,11 +174,9 @@
 <link>https://www.v2ex.com/t/999048</link>
 <guid>https://www.v2ex.com/t/999048</guid>
 <content:encoded><![CDATA[
-
 <p>如题，想了解下有没有人知道如何屏蔽 <a href="http://fofa.info" rel="nofollow">fofa.info</a> 这个引擎的扫描器，在网上没查到关于这个东西的屏蔽规则，他们也没有公开自己使用的 User-Agent / ASN / IP Block 。</p>
 <p>FOFA 相比较于 Censys 流氓太多了，Censys 公开了自己的 IP Block ，FOFA 不但不公开，还拿数据卖钱。</p>
 ]]></content:encoded>
-<pubDate>2023-12-09T16:33:07Z</pubDate>
 <pubDate>2023-12-09T17:12:55Z</pubDate>
 </item>
 <item>
@@ -140,14 +184,11 @@
 <link>https://www.v2ex.com/t/999047</link>
 <guid>https://www.v2ex.com/t/999047</guid>
 <content:encoded><![CDATA[
-
 <p>WPS 表格，可以在底部显示表格累加数据。但是双击最大化，底部被 Dock 挡住，需要再手动调整尺寸。
 WPS 也不改改？</p>
 ]]></content:encoded>
 <pubDate>2023-12-09T16:28:11Z</pubDate>
-<pubDate>2023-12-09T16:28:11Z</pubDate>
 </item>
-
 <item>
 <title>[分享发现] 推荐一个我喜欢的 UP 主-----小梅 vlog</title>
 <link>https://www.v2ex.com/t/999045</link>
@@ -16678,125 +16719,6 @@ TG: @<a href="https://www.v2ex.com/member/okdoing">okdoing</a></p>
 原因应该都是 app 不支持 64 位，而安卓 14 不再支持 32 位应用。<br />目前遇到：<br />com.webank.wemoney<br />com.cmbchina.ccd.pluto.cmbActivity<br />cn.com.spdb.mobilebank.per<br />com.pingan.carowner<br />com.alibaba.android.rimet<br />com.tmri.app.main<br />com.wudaokou.hippo<br />com.bankcomm.maidanba<br />com.icbc<br /><a href="http://cn.samsclub.app" rel="nofollow noopener" target="_blank">cn.samsclub.app</a><br /><br /><br />怎么办，怎么办？
 ]]></content:encoded>
 <pubDate>2023-12-05T10:19:58Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [字节跳动] 国际化电商-数据智能团队， base 杭州，急招</title>
-<link>https://www.v2ex.com/t/997839</link>
-<guid>https://www.v2ex.com/t/997839</guid>
-<content:encoded><![CDATA[
-TL;DR ，前后端都要，对标 P6/P7.<br /><br />具体 JD 见链接： <a href="https://people.bytedance.net/hire/referral/position/1?job_post_id=7052625538368145701" rel="nofollow noopener" target="_blank">https://people.bytedance.net/hire/referral/position/1?job_post_id=7052625538368145701</a><br /><br />职位描述<br />1 、参与国际电商数据产品相关的系统开发；<br />2 、负责持续改善已有服务，优化系统薄弱点，提升系统性能和稳定性；<br />3 、深入发掘和分析业务需求，撰写技术方案和系统设计；<br />4 、完善基础组件支持，更好地支撑业务迭代，根据业务需求，为团队引入新技术和方案。<br />职位要求<br />1 、本科及以上学历，计算机、通信等相关专业，5 年及以上工作经验；<br />2 、扎实的计算机基础知识，较强的逻辑理解能力和学习能力；<br />3 、熟悉 Python 、PHP 、C++、Java 、Golang 中的至少一门语言；<br />4 、熟悉 MySQL 、Memcache 、Redis 、消息队列等常用服务组件，有定制化改进经验者优先；<br />5 、有较强软件架构设计能力，较强的代码优化能力；<br />6 、熟悉互联网架构体系，对微服务拆分、服务治理、负载均衡、流控等有较好的理解和实践；<br />7 、积极主动、自驱力强，深入了解业务并与业务中各角色建立沟通，能独立负责一块业务，迅速推进项目与问题解决；<br />8 、有团队搭建和管理经验者优先；<br />9 、英语基础较好者优先，有海外电商从业经验者优先；<br />10 、有 Spark ，Hadoop ，Hive ，ODPS 等大数据基建相关使用或者开发经验优先。
-]]></content:encoded>
-<pubDate>2023-12-05T09:53:13Z</pubDate>
-</item>
-<item>
-<title>[Apple] Apple One 寻长期稳定车友</title>
-<link>https://www.v2ex.com/t/997837</link>
-<guid>https://www.v2ex.com/t/997837</guid>
-<content:encoded><![CDATA[
-<p>寻长期稳定的车友。</p>
-<p>Apple One 包括内容:
-Apple Music （美国区曲库最全）
-Apple TV+
-Apple Arcade
-Apple News+
-Apple Fitness+
-iCloud 2T 共享（人均 333G ）
-享受 Apple One 所有服务需车友自备美区账号</p>
-<p>价格会根据订阅价格和汇率的变化而变化，最近涨价到每月 37.95 美元</p>
-<p>费用季付 140 元。</p>
-<p>纯自用，不挣差价。</p>
-]]></content:encoded>
-<pubDate>2023-12-05T05:39:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] copilot 肉眼可见的越来越聪明了</title>
-<link>https://www.v2ex.com/t/997836</link>
-<guid>https://www.v2ex.com/t/997836</guid>
-<content:encoded><![CDATA[
-最近半年日常高频使用 copilot,肉眼可见的越来越聪明了,只要写个简单注释它能猜的八九不离十,太离谱了啊,估计我 70%-80%的代码都是自动提示下完成的
-]]></content:encoded>
-<pubDate>2023-12-05T09:58:06Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 招 flutter 经验丰富的移动端开发 [远程]</title>
-<link>https://www.v2ex.com/t/997834</link>
-<guid>https://www.v2ex.com/t/997834</guid>
-<content:encoded><![CDATA[
-我们移动端团队的 flutter 岗位还有一个 hc ，薪酬 28k ～ 35k 人民币/月，有兴趣的同学们欢迎投递简历～<br /><br />岗位职责：<br />- 负责客户端的开发和改进<br />- 负责移动平台新技术研究、功能扩展、现有开发方法的改进、架构优化<br />- 参与客户端产品的架构设计，分析和发现系统的优化点<br />- 持续优化相关产品的质量、性能、用户体验<br /><br />任职要求：<br />- 计算机相关专业本科及以上学历，2 年以上 Flutter 研发经验，5 年以上 iOS/Android 研发经验<br />- 熟悉 Flutter 框架，Dart 语言，熟练使用各种 Flutter 布局、动画<br />- 有 Flutter 基础建设经验和完整的混合架构经验<br />- 精通 iOS/Android 开发平台及框架原理，以及 iOS/Android 控件的使用，熟练掌握 iOS/Android 界面和交互开发<br />- 精通 Kotlin/Swift 开发语言，有良好编码峰峰，追求代码执行效率<br />- 具备扎实的数据架构算法基础及良好的架构设计能力，熟练运用设计模式<br />- 具备良好的责任心、上进心、执行力以及良好的沟通能力和团队合同能力<br /><br />加分项：<br />- 有 Web3 开发经验<br />- 有马甲包及 Appstore 上架经验<br />- 对前沿技术的预研和引入充满兴趣<br /><br />有兴趣的候选人请发简历至 hr@openblock.com<br /><br />我们只会联系进入短名单的候选人，不便之处，敬请谅解。<br /><br />祝大家求职都顺利！
-]]></content:encoded>
-<pubDate>2023-12-05T09:25:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 在全渠客/精准获客这家传销公司骗了 1.68 万，有被骗的一起进来维权。</title>
-<link>https://www.v2ex.com/t/997833</link>
-<guid>https://www.v2ex.com/t/997833</guid>
-<content:encoded><![CDATA[
-<p>骗子网站： <a href="https://www.altmantraderc.com/?gad_source=1&amp;gclid=EAIaIQobChMI5byR3O_3ggMVfC97Bx3o4AnOEAAYASAAEgKhpfD_BwE" rel="nofollow">https://www.altmantraderc.com/?gad_source=1&amp;gclid=EAIaIQobChMI5byR3O_3ggMVfC97Bx3o4AnOEAAYASAAEgKhpfD_BwE</a></p>
-<p>这是一个被骗的经历，我在网上搜索看到这家叫全渠客的软件可以做社交媒体宣传，就抱着试一试的心态。但这个客服人员一开始说什么都行，什么都可以发，功能也都有，这种误导语气，但就不给我们测试，但由于我们迫切需要一个宣传软件，所有就花了 1.68 万买了。但后续却问题越来越多，功能不完善，售后处理极慢，而且根本用不了，甚至无法退款。</p>
-<p>这是一家大陆公司，大家还是选择海外的比较靠谱。他们一直说直接说大陆公司，但软件全部都是海外软件，说有违禁词过滤啥的，导致很多广告都要跟大陆的规则来，所以软件根本无法使用。</p>
-<p>骗子微信：xdx1685</p>
-<p>骗子公司：浙江省金华市义乌市佛堂镇朝阳东路 91 号 9 楼 901 ，法人代表：闵雪梅 （之前他们收款我们的钱的公司，现在已经注销了，大家可以去查查。）</p>
-<p>证据我都放在电报群中，大家可以自己看下证据： <a href="https://t.me/yh111666jueke" rel="nofollow">https://t.me/yh111666jueke</a></p>
-<p>相信这家应该套路了很多人，网上都是他们的广告，希望大家擦亮双眼，不要被套路了，做广告还是找正规企业做宣传，有能力的自己找人外包开发一个，不要贪图因为这种花了钱还办不了事的，成本更大。</p>
-]]></content:encoded>
-<pubDate>2023-12-04T17:23:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教一下如何自定义 macOS 的功能快捷键（例如 Look Up）</title>
-<link>https://www.v2ex.com/t/997831</link>
-<guid>https://www.v2ex.com/t/997831</guid>
-<content:encoded><![CDATA[
-<p>我记得好像之前我可以把 「 Look Up 」（目前的 control + command + D ）设置为我指定的快捷键？
-但是问了 Apple Care 表示无法更换的</p>
-<p>同时我记得 Speech 功能（ Start Speaking ）也可以设置为快捷键的，但是 Apple Care 也表示无法自定义，很奇怪，目前的 14.1 的版本也确实没找到当时我好像在「 Keyboard Shortcuts 」设置的地方</p>
-]]></content:encoded>
-<pubDate>2023-12-05T09:23:46Z</pubDate>
-</item>
-<item>
-<title>[游戏] 用胡桃工具箱解锁原神的帧率限制后只有枫丹地图会卡会严重掉帧，其他地方不会</title>
-<link>https://www.v2ex.com/t/997830</link>
-<guid>https://www.v2ex.com/t/997830</guid>
-<content:encoded><![CDATA[
-有碰到过的么，PC 配置应该能跑得动的，期间整机温度都上不去的<br /><br />cpu i7 13700k<br /><br />gpu 4070
-]]></content:encoded>
-<pubDate>2023-12-05T09:36:14Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 一些 AI 小工具分享</title>
-<link>https://www.v2ex.com/t/997829</link>
-<guid>https://www.v2ex.com/t/997829</guid>
-<content:encoded><![CDATA[
-以下内容来自 <a href="https://t.me/iyouport/13538" rel="nofollow noopener" target="_blank">https://t.me/iyouport/13538</a><br /><br />1. Simple Video Tools ( <a href="https://videobolt.net/browse-all-simple-video-tools" rel="nofollow noopener" target="_blank">https://videobolt.net/browse-all-simple-video-tools</a> ) - 一个不错的在线视频编辑器；<br />2. Predis AI ( <a href="https://predis.ai/free-ai-tools/ai-meme-generator" rel="nofollow noopener" target="_blank">https://predis.ai/free-ai-tools/ai-meme-generator</a> ) - meme 生成器；<br />3. Kapwing ( <a href="https://www.kapwing.com/" rel="nofollow noopener" target="_blank">https://www.kapwing.com/</a> )- 在浏览器中使用的简单视频编辑器； <br />4. GetHeadShots ( <a href="https://www.getheadshots.ai/" rel="nofollow noopener" target="_blank">https://www.getheadshots.ai/</a> ) - 用任何照片都能制作精美的肖像；<br />5. The Daily Dad Joke ( <a href="https://dailydadjoke.app/" rel="nofollow noopener" target="_blank">https://dailydadjoke.app/</a> ) - 笑话生成器 (这个用例似乎有点无语)；<br />6. Smry ( <a href="https://www.smry.ai/" rel="nofollow noopener" target="_blank">https://www.smry.ai/</a> ) - 拆除付费墙的工具, 可以总结/综述文章内容；<br />7. Versatile Audio Resolution ( <a href="https://github.com/haoheliu/versatile_audio_super_resolution" rel="nofollow noopener" target="_blank">https://github.com/haoheliu/versatile_audio_super_resolution</a> ) - 提高音频文件的质量；<br />8. HuggingFace ( <a href="https://huggingface.co/ostris/ikea-instructions-lora-sdxl" rel="nofollow noopener" target="_blank">https://huggingface.co/ostris/ikea-instructions-lora-sdxl</a> )- 生成宜家风格的各种说明 (也似乎比较无聊)；<br />9. OSA by Loopsie ( <a href="https://apps.apple.com/us/app/loopsie-ai-art-generator/id1259909228" rel="nofollow noopener" target="_blank">https://apps.apple.com/us/app/loopsie-ai-art-generator/id1259909228</a> ) - 以动漫风格重绘照片；<br />10. MatchColors ( <a href="https://apps.apple.com/us/app/loopsie-ai-art-generator/id1259909228" rel="nofollow noopener" target="_blank">https://apps.apple.com/us/app/loopsie-ai-art-generator/id1259909228</a> ) - 按需重绘视频和图像；<br /><br />#tools #AI
-]]></content:encoded>
-<pubDate>2023-12-05T09:02:40Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [北京]坐标美团，招服务器运维工程师</title>
-<link>https://www.v2ex.com/t/997828</link>
-<guid>https://www.v2ex.com/t/997828</guid>
-<content:encoded><![CDATA[
-JD 见下<br />部门介绍<br />基础研发平台是美团的核心技术平台，旨在打造公司级高性能技术架构、数据科学、服务运维、开发质效提升、信息安全、视觉智能以及企业办公数字智能化等系列关键能力，持续强化平台技术，保障基础设施稳定安全、低成本、高效可持续，全面赋能公司各个业务高速发展。<br />在这里，我们会参与到最前沿的技术研发和探索；能够接触超规模集群、海量数据，挑战高复杂业务场景，有机会与业界一流的工程师一起并肩前行。<br />在这里，我们有超强的技术氛围，持续向社区贡献业界实践，加速行业技术发展；我们有完善的互联网学习生态圈，重视底层逻辑和方法论，助力职业生涯的非线性成长。<br />真诚地邀请你，和我们一起驱动技术发展，创造行业价值。<br />岗位职责<br />1 、负责服务器设备的故障诊断、故障维修、运维支撑等工作<br />2 、负责服务器相关的技术方案和项目实施，以及日常 GPU 服务器生命周期内的系统运维工作。<br />3 、学习和研究服务器相关新技术，并将新技术与运维自动化环境进行兼容适配。<br />岗位基本要求<br />1 、本科及以上学历，计算机相关专业。<br />2 、关于服务器设备的技术研究，异常处理，日常维护，具有 5 年以上相关经验。<br />3 、对服务器的组成结构，服务器的计算链路，服务器的 IO 链路有深入的理解，并具有很强的故障定位和问题解决能力。<br />4 、熟悉 Linux 基本管理，熟练使用 Shell 、Go 、Python 中的至少一门脚本语言。<br />5 、强烈的责任心，良好的团队协作精神，优秀的表达和沟通能力、乐于接受挑战，能承受工作压力<br />具备以下条件优先<br />1 、能熟练阅读英文文档。<br />2 、对 GPU 服务器相关软硬件技术有体系化的理论研究及技术博客等相关沉淀<br />3 、对驱动，内核，Firmware 有较丰富的知识积累。<br />4 、有大型互联网公司服务器运维经验优先。<br />岗位亮点<br />1 、能接触到公司所有 PaaS 场景，体验并掌握各个 PaaS 的场景要素，对接 PaaS 的需求，加深对 PaaS 的理解<br />2 、能经历业务快速发展给基础设施带来的持续挑战，不断突破自我，和团队一起成长<br />3 、在团队里既可以持续探索技术深度，又能不断加宽广度
-]]></content:encoded>
-<pubDate>2023-12-03T09:05:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 备用机求推荐，不考虑拍照，预算 1500 以内。</title>
-<link>https://www.v2ex.com/t/997827</link>
-<guid>https://www.v2ex.com/t/997827</guid>
-<content:encoded><![CDATA[
-<p>RT</p>
-<p>只追求 CPU 、内存等性能，相机能扫码即可，求备用机推荐。</p>
-]]></content:encoded>
-<pubDate>2023-12-05T06:02:49Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 远程 web 前端/flutter2 名</title>
-<link>https://www.v2ex.com/t/997826</link>
-<guid>https://www.v2ex.com/t/997826</guid>
-<content:encoded><![CDATA[
-3 年以上经验，有播放器项目经验优先<br />前端 15~20K 范围，flutter15~25K 范围
-]]></content:encoded>
-<pubDate>2023-12-05T09:46:31Z</pubDate>
 </item>
 </channel>
 </rss>
