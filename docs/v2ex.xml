@@ -5,14 +5,82 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] ToDesk 现在做大了 基本上不鸟用户需求了</title>
+<link>https://www.v2ex.com/t/999230</link>
+<guid>https://www.v2ex.com/t/999230</guid>
+<content:encoded><![CDATA[
+
+局域网远程小主机玩游戏， 这货直接给我从外网转一大圈，链接显示什么 vip 高级转发<br />我搜了下能不能内网直连，发现早就有人提这个需求了， 都两三年了<br />ToDesk 根本不鸟。<br />果然当前的少年变恶龙了。<br />已经换了 RustDesk 了 直接内网直连， 再也不用走外网再转一圈了<br /><br />为啥不用 mstsc <br />因为上面这俩远程软件 toDesk 和 rustDesk 都不能跟 mstsc 共享桌面， 也就是说这俩软件只要开远程，mstsc 就得断开。
+]]></content:encoded>
+<pubDate>2023-12-10T18:38:44Z</pubDate>
+<pubDate>2023-12-10T15:38:44Z</pubDate>
+</item>
+<item>
+<title>支持远程调试的 “vConsole”</title>
+<link>https://www.v2ex.com/t/995495</link>
+<guid>https://www.v2ex.com/t/995495</guid>
+<content:encoded><![CDATA[
+
+<h2>背景</h2>
+<p>前阵子一直在做业务需求，是嵌在公司 APP 里的 H5 。而且是跨地区协作，我在 A 城市，测试和产品都在 B 城市。</p>
+<p>由于是 H5 项目，开发的时候一般都会实例化个 vConsole ，方便查看项目的上下文信息。同时我想着当程序出现问题之后，测试小姐姐可以直接截个 vConsole 的图给我，可以减少沟通时间。</p>
+<h2>痛点</h2>
+<p>后来发现一切都是想象之中，我们两个在沟通问题上依旧没少花时间！如果把程序出现的问题分级，那么会有：</p>
+<ul>
+<li>😄 简单问题：测试小姐姐 <em><strong>描述问题</strong></em> 发生的过程后，基本可以定位、解决；</li>
+<li>😅 中等问题：测试流程走不下去或者程序报错，这时候得查看调试信息去分析。此时需要测试小姐姐 <em><strong>截图</strong></em> vConsole 上面显示的内容发我，但由于截的图并不一定是关键信息或者信息数据不够，导致这中间会产生几轮沟通；</li>
+<li>😥 复杂问题：遇到一些依赖外部信息或者奇奇怪怪的问题的时候，可能会 <em><strong>远程视频</strong></em> 操作测试机给我看，同时我会告诉她什么时候打开 vConsole 查看什么面板的信息。</li>
+</ul>
+<p>可以看到只要问题牵扯到了项目的运行信息，前前后后就会导致很多沟通上的时间成本</p>
+<p>不禁让人思考是什么原因导致的这个问题……</p>
+<h2>问题的本质</h2>
+<p>结合前面的描述我们得知，由于物理空间、跨地域的限制，程序的错误信息都是由测试人员转达给技术人员，不得不说这对测试人员有点勉为其难了，而另一方面造成问题的关键就在于此：技术人员无法和 Bug 直接来个正面交锋！</p>
+<p>那么该如何解决这个「中间人」的问题呢？</p>
+<p>这个问题的答案其实很简单，我们只要将浏览器的原生 API 进行一层包装将运行时调用的参数收集起来，然后再整一套类似控制台的 UI ，最后整合成 SDK 处理参数 -&gt; 中间层网络通信 -&gt; UI 控制台展示的样子，开发同学直接和控制台上的 BUG 切磋，就能完美的解决这个问题！</p>
+<p>虽然说起来简单，但是这一整套下来开发的工作量可不容小觑：</p>
+<ul>
+<li>包装原生 API 的 SDK</li>
+<li>负责通信的服务</li>
+<li>控制台 UI……</li>
+</ul>
+<p>不用慌！我们带着开箱即用的 PageSpy 来了！</p>
+<h2>PageSpy</h2>
+<blockquote>
+<p>点击加入 <a href="https://github.com/HuolalaTech/page-spy-web#%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81" rel="nofollow">技术支持群</a></p>
+</blockquote>
+<p><a href="https://github.com/HuolalaTech/page-spy-web" rel="nofollow">Page Spy</a> 是由货拉拉大前端开源的一款用于调试 H5 、或者远程 Web 项目的工具。基于对原生 API 的封装，它将调用原生方法时的参数进行过滤、转化，整理成格式规范的消息供调试端消费；调试端收到消息数据，提供类控制台可交互式的功能界面将数据呈现出来。</p>
+<p>PageSpy 是一个强大的开源前端远程调试平台，它可以显著提高我们在面对前端问题时的效率。以下是 PageSpy 的一些主要特点：</p>
+<ul>
+<li><strong>一眼查看客户端信息</strong> PageSpy 会对客户端的运行环境进行识别，其中系统识别支持 Mac / iOS / Window / Linux / Android ，浏览器识别支持谷歌、火狐、Safari 、Edge 、微信、UC 、百度、QQ ；</li>
+<li><strong>实时查看输出：</strong> PageSpy 可以实时捕获并显示程序输出，包括 Console 、Network 、Storage 和 Element 。这使开发人员能够直观地了解页面的外观和行为，无需依赖用户的描述或截图。</li>
+<li><strong>网络请求监控：</strong> PageSpy 还可以捕获和显示页面的网络请求，有助于开发人员更好的查看与后端的交互。</li>
+<li><strong>远程控制台：</strong> PageSpy 支持远程调试 JavaScript 代码，允许开发人员执行 JavaScript 代码在用户的浏览器上运行。这对于排查特定问题或测试代码修复非常有帮助。</li>
+<li><strong>跨浏览器兼容性：</strong> SDK 可以在各种主流浏览器中运行，确保你可以检查和调试不同浏览器上的问题。</li>
+<li><strong>用户体验提升：</strong> 通过快速识别和解决前端问题，PageSpy 可以显著提升用户体验，减少用户因前端问题而受到的不便。</li>
+</ul>
+<h2>相关截图</h2>
+<h4>门户首页</h4>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/542d962629614b8ebc6b4b2db1465590%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2876&amp;h=1506&amp;s=286810&amp;e=png&amp;b=1a1a1a" /></p>
+<h4>待调试列表</h4>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/77fe6573ea6a416ca8756f0ff022785e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2878&amp;h=1512&amp;s=266157&amp;e=png&amp;b=fafafa" /></p>
+<h4>调试界面</h4>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/552668b7cba646cc999ce79ed35e8d0f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2878&amp;h=1522&amp;s=432593&amp;e=png&amp;b=fbfbfb" /></p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/98fe9ea8c07c42e68cfe99417b3166f8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2876&amp;h=1514&amp;s=342755&amp;e=png&amp;b=fdfdfd" /></p>
+<h2>结语</h2>
+<p>前端远程调试对于快速而准确地解决前端问题至关重要。<a href="https://github.com/HuolalaTech/page-spy-web" rel="nofollow">Page Spy</a> 作为一个强大的开源工具，支持开箱即用，为开发人员提供了一个高效的方式来查看用户端的页面输出、网络请求和执行远程调试。它有助于加速问题的定位和解决，减少了对用户反馈和日志的依赖，提高了整体开发效率。除了解决跨地区协同的场景之外，还覆盖了本地开发时的调试 H5 的场景。</p>
+<p>希望本文能够帮到大家对 PageSpy 有个初步的认识，感谢阅读。</p>
+]]></content:encoded>
+<pubDate>2023-11-27T03:03:47Z</pubDate>
+<pubDate>2023-12-08T01:38:29Z</pubDate>
+</item>
+
+<item>
 <title>[VPS] warp 解锁 chatgpt 出错</title>
 <link>https://www.v2ex.com/t/999229</link>
 <guid>https://www.v2ex.com/t/999229</guid>
 <content:encoded><![CDATA[
-
 谷歌直接搜索“warp 解锁 chatgpt”就能出现一大堆教程，但几乎所有教程都是相同的步骤<br /><br /><br /><br />我在最后一步会出现如下错误<br /><br /><br /><br />root@racknerd-3c77b7:-# curl <a href="http://ifconfig.me" rel="nofollow noopener" target="_blank">ifconfig.me</a> --proxy socks5://127.0.0.1:40000<br /><br />curl:(52) Empty reply from server<br /><br /><br /><br />搜了一圈也没找到解决办法
 ]]></content:encoded>
-<pubDate>2023-12-10T18:03:57Z</pubDate>
 <pubDate>2023-12-10T18:01:57Z</pubDate>
 </item>
 <item>
@@ -20,7 +88,6 @@
 <link>https://www.v2ex.com/t/999228</link>
 <guid>https://www.v2ex.com/t/999228</guid>
 <content:encoded><![CDATA[
-
 <p>没有什么游戏需求，主要除了日常影音需求就是 cad 制图，任务多开。
 没有自己装过机，不知道这个配置单有没有什么问题，请各位老哥帮忙看看。</p>
 <table>
@@ -89,7 +156,6 @@
 </tr>
 </tbody></table>
 ]]></content:encoded>
-<pubDate>2023-12-10T17:55:14Z</pubDate>
 <pubDate>2023-12-10T17:53:14Z</pubDate>
 </item>
 <item>
@@ -97,10 +163,8 @@
 <link>https://www.v2ex.com/t/999226</link>
 <guid>https://www.v2ex.com/t/999226</guid>
 <content:encoded><![CDATA[
-
 <p>可以是那种机械重复简单的数据操作，这样写个程序可以自动化完成……</p>
 ]]></content:encoded>
-<pubDate>2023-12-10T17:39:51Z</pubDate>
 <pubDate>2023-12-10T17:38:51Z</pubDate>
 </item>
 <item>
@@ -108,7 +172,6 @@
 <link>https://www.v2ex.com/t/999225</link>
 <guid>https://www.v2ex.com/t/999225</guid>
 <content:encoded><![CDATA[
-
 <pre><code>webpack 5.89.0 compiled successfully in 5082 ms
  DONE  Packaged: /home/vagrant/vcode/xxx-file-split/xxx-file-split-0.0.1.vsix (9 files, 4.72KB)
 </code></pre>
@@ -116,18 +179,15 @@
 有什么办法可以解决吗?</p>
 ]]></content:encoded>
 <pubDate>2023-12-10T17:19:12Z</pubDate>
-<pubDate>2023-12-10T17:19:12Z</pubDate>
 </item>
 <item>
 <title>[加密货币] 请教下有没有专门讨论币的论坛或者网站推荐的</title>
 <link>https://www.v2ex.com/t/999223</link>
 <guid>https://www.v2ex.com/t/999223</guid>
 <content:encoded><![CDATA[
-
 <p>朋友们，有没有经常逛的专门讨论币的论坛或者网站推荐一些</p>
 <p>之前常去的币乎关了，8btc 改成 AI 站了，没有专门的地方讨论</p>
 ]]></content:encoded>
-<pubDate>2023-12-10T17:17:43Z</pubDate>
 <pubDate>2023-12-10T17:17:43Z</pubDate>
 </item>
 <item>
@@ -135,10 +195,8 @@
 <link>https://www.v2ex.com/t/999222</link>
 <guid>https://www.v2ex.com/t/999222</guid>
 <content:encoded><![CDATA[
-
 订阅了 gitlen ，但是发现在 vscode 上面无法登录。请问是国内网络的问题吗，该如何解决呢？<br /><br /><br />目前的情况是这样的，点击 vscode 里面 gitlen 插件上面的 sign in ，然后弹出浏览器窗口提示登录，登录完成之后重新跳转到 vscode 里面，然后就没有反应了。反复试了很多次，都是这样的。<br /><br />请大神帮忙解决一下，钱已经花了，还是不能用，心里面感觉非常苦恼。感谢！<br /><br /><a href="https://i.imgur.com/eZPicFx.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/eZPicFx.png" /></a>
 ]]></content:encoded>
-<pubDate>2023-12-10T17:07:09Z</pubDate>
 <pubDate>2023-12-10T17:06:09Z</pubDate>
 </item>
 <item>
@@ -146,7 +204,6 @@
 <link>https://www.v2ex.com/t/999221</link>
 <guid>https://www.v2ex.com/t/999221</guid>
 <content:encoded><![CDATA[
-
 <p><strong>背景：</strong>毕业后在阿里总部所在省份某运营商当 IT 狗，接触不少行业内信息。套餐资费&amp;内容存在较多信息差。线下网点各种套餐起步 169 199 甚至 299 ；线上渠道有开放高流量套餐（不公开，私域产品）；</p>
 <p><strong>本贴目的：</strong>消除信息差，帮 V2EXER 降低每月通信费用（主要提供浙江产品）</p>
 <p><strong>利益相关：</strong>一方面帮市场线同事 and 朋友完成指标，总所周知运营商市场线指标五花八门，某项完不成其它再好当月绩效打骨折。另一方面推广下自己的公众号。以下内容不在线下发行，别去线下营业厅问能不能办，肯定是不能的（线下没有私域产品）低调！</p>
@@ -224,17 +281,14 @@
 <p>中国电信 APP-搜”宽带新装“-选 12.12 杭州单宽 100M ，进去的价格就是 360 元包年 100M ，599 元包年 200M</p>
 ]]></content:encoded>
 <pubDate>2023-12-10T17:03:15Z</pubDate>
-<pubDate>2023-12-10T17:03:15Z</pubDate>
 </item>
 <item>
 <title>[酷工作] [上海] 米哈游 miHoYo 2023.12 最新招聘信息</title>
 <link>https://www.v2ex.com/t/999220</link>
 <guid>https://www.v2ex.com/t/999220</guid>
 <content:encoded><![CDATA[
-
 米哈游 2023 年 12 月最新招聘信息来啦！更新于 2023 年 12 月，持续更新中~~~<br />社招持续进行中～通过内推链接可查看各个岗位具体要求，各位优秀的小伙伴们，简历赶紧投起来吧。<br /><br />社招内推链接：<br /><a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position</a><br /><br />薪资福利参考我司 boss 直聘主页： <a href="https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1" rel="nofollow noopener" target="_blank">https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1</a><br /><br />2 、加入米哈游你将享受以下福利：<br /><br />- - 每年 10 天年假，3 天带薪病假<br /><br />16+薪 六险二金 （全额五险一金+补充住房公积金+商业医疗保险）<br /><br />每年两次薪资回顾机会（根据绩效评估是否调薪），分别在 4 月、10 月<br /><br />免费定期体检（本人+一位家属），免费午餐晚餐，内部专属咖啡吧<br /><br />早十晚七，内部各种福利群，猫群，鱼群，ps 群。。。。<br /><br />不限量零食饮料，丰富多彩的节日礼品，年会百分百中奖，丰厚年终奖。<br /><br />福利多多停不下来，我在 miHoYo ，等你一起拯救世界，米哈游期待你的到来。<br /><br />3 、关于米哈游<br /><br />米哈游成立于 2011 年，致力于为用户提供美好的、超出预期的产品与内容。米哈游陆续推出了多款高品质人气产品，包括《崩坏学园 2 》、《崩坏 3 》、《未定事件簿》、《原神》、《崩坏:星穹铁道》，动态桌面软件《人工桌面》以及社区产品《米游社》，并围绕原创 IP 打造了动画、音乐及周边等多元产品。即将上线的《绝区零》等同样受到全球玩家广泛关注。<br /><br />秉承着“技术宅拯救世界”的使命，米哈游始终致力于技术研发、探索前沿科技，在卡通渲染、人工智能、云游戏技术等领域积累了先进的技术能力。<br /><br />米哈游总部位于中国上海，并在新加坡、美国、加拿大、日本、韩国等国家和地区进行全球化布局。目前，公司员工 5,000 人，来自世界知名游戏/互联网/科技公司。<br /><a href="https://www.v2ex.com/i/X4WBwI4A.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 X4WBwI4A.png"><img class="embedded_image" src="https://i.v2ex.co/X4WBwI4A.png" /></a>
 ]]></content:encoded>
-<pubDate>2023-12-10T16:43:55Z</pubDate>
 <pubDate>2023-12-10T16:42:55Z</pubDate>
 </item>
 <item>
@@ -242,7 +296,6 @@
 <link>https://www.v2ex.com/t/999219</link>
 <guid>https://www.v2ex.com/t/999219</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.v2ex.com/t/980952" rel="nofollow">https://www.v2ex.com/t/980952</a></p>
 <p><a href="https://www.v2ex.com/t/990465" rel="nofollow">https://www.v2ex.com/t/990465</a></p>
 <p><a href="https://www.v2ex.com/t/995067" rel="nofollow">https://www.v2ex.com/t/995067</a></p>
@@ -256,7 +309,6 @@
 <p>我也知道我配不上她，城市中等家庭出身，长相还可以，我长得不好看，出生也不好，之前介绍人问我怎么样的时候，我说了我配不上她。但她姑妈和她妈找我谈话了，希望我继续追求她，她们会支持我。</p>
 <p>是不是及时抽身而退，及时止损才是人生智慧？毕竟我年纪也大了。</p>
 ]]></content:encoded>
-<pubDate>2023-12-10T16:43:38Z</pubDate>
 <pubDate>2023-12-10T18:02:09Z</pubDate>
 </item>
 <item>
@@ -264,10 +316,8 @@
 <link>https://www.v2ex.com/t/999218</link>
 <guid>https://www.v2ex.com/t/999218</guid>
 <content:encoded><![CDATA[
-
 一个网页横向展示若干个 100x100 的链接方格，不换行，用 javascript 实现可以按住鼠标左右拖拽来实现内容的左右滚动。<br /><br /><a href="https://jsfiddle.net/1r6k4b7n/" rel="nofollow noopener" target="_blank">https://jsfiddle.net/1r6k4b7n/</a><br /><br />现在的问题是，如果拖拽滚动后，松开鼠标会直接打开鼠标下方的链接<br />需求是如果进行拖拽则不会激活方格的链接。<br /><br />在我之前的理解中，只需要在 mouseup 事件中加一个阻止事件冒泡即可实现：<br />const stopDragging = () =&gt; {<br />  isDragging = false;<br />  e.stopPropagation(); //阻止事件冒泡<br />  e.preventDefault(); //或者加这个，阻止默认事件<br />}<br /><br />但事实不是如此，仍然会在拖拽后激活链接。<br /><br />然后针对这个问题与 ChatGPT 进行了长时间对话，ChatGPT 给的方案就是在拖拽时移除所有 a 的 click 事件，然后 mouseup 后加回去，但实际的情况是打开链接是在 mouseup 后激活的，所以无效。<br /><br /><br />所以求助各位大神，就是拖拽滚动松开鼠标后不要打开链接，应该如何优雅的实现？<br /><br />例子代码非常简单，放在： <a href="https://jsfiddle.net/1r6k4b7n/" rel="nofollow noopener" target="_blank">https://jsfiddle.net/1r6k4b7n/</a>
 ]]></content:encoded>
-<pubDate>2023-12-10T16:42:14Z</pubDate>
 <pubDate>2023-12-10T17:12:14Z</pubDate>
 </item>
 <item>
@@ -275,10 +325,8 @@
 <link>https://www.v2ex.com/t/999217</link>
 <guid>https://www.v2ex.com/t/999217</guid>
 <content:encoded><![CDATA[
-
 正在做新网站，一天发上百条，而且只有标题和图片，因为是资源下载的。这样会不会有很大问题，搜索引擎有没有可能不收录？？
 ]]></content:encoded>
-<pubDate>2023-12-10T16:38:57Z</pubDate>
 <pubDate>2023-12-10T16:38:57Z</pubDate>
 </item>
 <item>
@@ -286,17 +334,14 @@
 <link>https://www.v2ex.com/t/999216</link>
 <guid>https://www.v2ex.com/t/999216</guid>
 <content:encoded><![CDATA[
-
 <p>最近小朋友吃饭老是不扶碗，要经常口头提醒。今天突然脑洞打开，与其我一直盯着他提醒他，是不是可以有一个摄像头对着他，实时识别有没有正确扶碗，假如没有就播放一段语音。</p>
 <p>这个想法可以扩展延伸一下，比如写字的时候坐姿是否正确，手的握笔姿势是否正确等等。</p>
 <p>只是觉得好玩，并没有监视的意思。</p>
 <p>这里要涉及到的技术应该不少，包括视觉识别，人工智能训练，还涉及到硬件。</p>
 <p>有没有做过类似项目的小伙伴可以分享或者指点一下，感谢。</p>
 ]]></content:encoded>
-<pubDate>2023-12-10T16:33:58Z</pubDate>
 <pubDate>2023-12-10T17:36:54Z</pubDate>
 </item>
-
 <item>
 <title>[SSD] 长时间不通电的固态硬盘重新通电，主控会对已有数据进行刷新吗</title>
 <link>https://www.v2ex.com/t/999215</link>
@@ -17179,289 +17224,6 @@ wechat Base64：YmFieSBzb25n</p>
 <p>复制出来的结果是带引号的，想去掉引号但注册表里找不到在哪</p>
 ]]></content:encoded>
 <pubDate>2023-12-06T04:03:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 哪些 eSIM 可以在线补卡？</title>
-<link>https://www.v2ex.com/t/997999</link>
-<guid>https://www.v2ex.com/t/997999</guid>
-<content:encoded><![CDATA[
-当手机遗失时，可以通过运营商账号密码登陆在线补卡，不需要去线下或等待邮寄实体卡（ Giffgaff 、Ultra go ），可以接受实名。<br /><br />T-Mobile 被要求去线下补卡： <a href="https://shuzijumin.com/forum.php?mod=viewthread&amp;tid=998" rel="nofollow noopener" target="_blank">https://shuzijumin.com/forum.php?mod=viewthread&amp;tid=998</a><br /><br />最好有实际经历的，问客服我怕不够准确，因为客服不熟悉外国人的情况。
-]]></content:encoded>
-<pubDate>2023-12-06T04:05:44Z</pubDate>
-</item>
-<item>
-<title>[生活] 滴滴是不是悄咪咪的涨价了</title>
-<link>https://www.v2ex.com/t/997997</link>
-<guid>https://www.v2ex.com/t/997997</guid>
-<content:encoded><![CDATA[
-<p>同起始点，同路线，快车原先 12.5 的涨到了 13.5 ，特惠快车之前没怎么打到过不知道涨了多少
-坐标杭州</p>
-]]></content:encoded>
-<pubDate>2023-12-06T04:14:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在社招后端面试算法的难度如何</title>
-<link>https://www.v2ex.com/t/997996</link>
-<guid>https://www.v2ex.com/t/997996</guid>
-<content:encoded><![CDATA[
-已经一两年没碰这些题目，之前校招的时候时不时都有 hard 难度，还是挺冷门那种。目前有年后更换工作的打算，但是对于算法之类的题目一直不太会，打算这两个月重刷一下，要是面试不考更好了。
-]]></content:encoded>
-<pubDate>2023-12-06T02:58:58Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 🆒Webviso:一个开源免费 web 访客统计，网页计数器</title>
-<link>https://www.v2ex.com/t/997995</link>
-<guid>https://www.v2ex.com/t/997995</guid>
-<content:encoded><![CDATA[
-<p><strong>Webviso</strong> 是一个基于 Cloudflare worker 服务+Cloudflare D1 数据库实现的完全免费的在线 web 访客统计服务。 功能与目前常用的 不蒜子 - 极简网页计数器 相同。所不同的就是 Webviso 完全开源您可以自己修改实现自己的版本，实现一些自定义需求。 完全免费，基于 Cloudflare 的微服务架构可快速自行部署上线。</p>
-<p><img alt="Webviso:一个开源免费 web 访客统计，网页计数器" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/HAScOJD.png" /></p>
-<p>未来计划加入主动查询功能，方便在文章列表页进行查询多个页面的访问数量。</p>
-<p>站点查看详细说明： <a href="https://yestool.org/webviso/" rel="nofollow">https://yestool.org</a></p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:55:34Z</pubDate>
-</item>
-<item>
-<title>[投资] 最近看了量化科普视频，所谓的普通人能做的量化交易都是低频量化交易？</title>
-<link>https://www.v2ex.com/t/997994</link>
-<guid>https://www.v2ex.com/t/997994</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>根据盘口挂单高频跟单撤单或者多品种套利的，拼的是挂单时间，所以要好的网络，好的设备，靠近交易所，一般人没这个成本？</li>
-<li>量化本质是 具体数值点位交易，不是 逢高做空，逢低开多，而是价格到 100 买入，价格低于 20 日均价做空，所以只要是具体数值客观交易，都算量化，不论是不是自动化交易？</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-12-06T02:53:28Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 求助：公司将我税计算错误，我自己不得不支付滞纳金</title>
-<link>https://www.v2ex.com/t/997993</link>
-<guid>https://www.v2ex.com/t/997993</guid>
-<content:encoded><![CDATA[
-上周收到上家公司财务说收到税务局报告说我 2022 年的税有问题，关于合并股票计税的，需要我自己去税务局处理，然后我去了，交了一笔滞纳金。问税务局人员，关于报税这块，我是不是哪里犯了错误，人员说不是，完全是你公司的问题。<br /><br />妈的，垃圾公司，搞的我想起诉他们了。花了我一笔滞纳金，请问广大 v 友，这块我可以维权吗？就是讨回滞纳金，最好还能拿赔偿，因为浪费了好大精力去处理。<br /><br />还有一个问题是，这家公司有一部分股票，因为是外企，预先扣了我 45%的税，问财务人员，也说不知道什么时候会将多抠的税补给我们，这块有老哥有经验吗，应该如何处理。<br /><br />先谢过大家了。
-]]></content:encoded>
-<pubDate>2023-12-06T03:11:32Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了一个每日热点资讯阅读网站， 收集了 Google trends, GIthub Trends, Hacker news</title>
-<link>https://www.v2ex.com/t/997992</link>
-<guid>https://www.v2ex.com/t/997992</guid>
-<content:encoded><![CDATA[
-<p>追风口(chase trend)</p>
-<p><a href="https://chasetrend.news/" rel="nofollow">https://chasetrend.news/</a></p>
-<p>出发点是给做海外产品提供一些方向，聚焦当下的一些热点，欢迎各位提提建议, 以及提供一些好的信源</p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:49:31Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一个自己写的 gpt-crawlerx, 已开源, 欢迎大家使用或做出贡献</title>
-<link>https://www.v2ex.com/t/997991</link>
-<guid>https://www.v2ex.com/t/997991</guid>
-<content:encoded><![CDATA[
-<p><a href="https://gitee.com/yinhaixiang77/gpt-crawlerx" rel="nofollow">https://gitee.com/yinhaixiang77/gpt-crawlerx</a></p>
-<p>项目本身是参考 <a href="https://github.com/BuilderIO/gpt-crawler" rel="nofollow">https://github.com/BuilderIO/gpt-crawler</a>, 只是因为我需要爬取的几个网站 gpt-crawler 都不支持, 所以就自己写了个 gpt-crawlerx, 因此使用方法和 gpt-crawler 都一样, 可以参考 gpt-crawler 的 readme.</p>
-<p>刚写好, 可能不是很完善, 希望大家能多提建议或直接贡献代码, 嘿嘿。</p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:46:34Z</pubDate>
-</item>
-<item>
-<title>[Kubernetes] K8s Network: 容器网络实现.md</title>
-<link>https://www.v2ex.com/t/997990</link>
-<guid>https://www.v2ex.com/t/997990</guid>
-<content:encoded><![CDATA[
-<p>诸如 <a href="https://github.com/containerd/containerd" rel="nofollow">containerd</a> 这样的容器运行时在 Linux 上通过网络命名空间
-(<a href="https://man7.org/linux/man-pages/man7/network_namespaces.7.html" rel="nofollow">Network Namespace</a>) 实现容器之间的网络隔离.</p>
-<p>为了让容器和容器之间, 容器和宿主机之间可以互相通信, 我们需要借助 <a href="https://man7.org/linux/man-pages/man4/veth.4.html" rel="nofollow">veth</a>
-和 <a href="https://wiki.archlinux.org/title/network_bridge" rel="nofollow">network brdige</a>.
-veth 的全称是 Virtual Ethernet Device, 即虚拟网卡, 用于在容器网络和宿主机网络之间架起桥梁.
-bridge 则是链接着所有容器的交换机, 简化路由逻辑.</p>
-<p>当 containerd 创建新的容器时, 其新建一个 veth, 连接容器和宿主机的网络空间.
-类似命令 <code>ip link add &lt;p1-name&gt; netns &lt;p1-ns&gt; type veth peer &lt;p2-name&gt; netns &lt;p2-ns&gt;</code>.</p>
-<p>我们在一个测试集群中寻找一个容器, 并确定其 veth 对应的 if.</p>
-<pre><code class="language-shell">~ k get -n dev -l app=signin pods
-NAME                            READY   STATUS    RESTARTS   AGE
-signin-test-a-8bcd5db69-9z2c5   2/2     Running   0          6d3h
-~ k exec -n dev -ti signin-test-a-8bcd5db69-9z2c5 -- ip link show
-1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-2: eth0@if220: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu 1500 qdisc noqueue state UP
-    link/ether c2:ce:72:1b:97:6e brd ff:ff:ff:ff:ff:ff
-~ k exec -n dev -ti signin-test-a-8bcd5db69-9z2c5 -- cat /sys/class/net/eth0/iflink
-220
-</code></pre>
-<p>随后, 我们可以在宿主机的网络空间中找到对应的设备.</p>
-<pre><code class="language-shell">~ grep -l 220 /sys/class/net/veth*/ifindex
-/sys/class/net/veth12acb4c1/ifindex
-~ ip link show dev veth12acb4c1
-220: veth12acb4c1@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue master cni0 state UP mode DEFAULT group default
-    link/ether be:78:61:7f:a4:25 brd ff:ff:ff:ff:ff:ff link-netnsid 50
-</code></pre>
-<p>我们可以发现该设备链接到了名为 cni0 的 bridge 上.</p>
-<pre><code class="language-shell">~ ls -alht /sys/class/net/veth12acb4c1/ | grep master
-lrwxrwxrwx.   1 root root    0 12 月  5 21:49 master -&gt; ../cni0
-</code></pre>
-<p>或者更准确的说, 这台宿主机上和容器绑定的设备都链接到了 cni0.</p>
-<pre><code class="language-shell">~ ls -alht /sys/class/net/cni0/ | grep veth | head
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth0c9a5076 -&gt; ../veth0c9a5076
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth75d5e70a -&gt; ../veth75d5e70a
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth12acb4c1 -&gt; ../veth12acb4c1
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth25c523a3 -&gt; ../veth25c523a3
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth54236aab -&gt; ../veth54236aab
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth69d77b1d -&gt; ../veth69d77b1d
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_vethd81e7b63 -&gt; ../vethd81e7b63
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth2ea2cc31 -&gt; ../veth2ea2cc31
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_veth534bb0ad -&gt; ../veth534bb0ad
-lrwxrwxrwx.   1 root root    0 12 月  5 23:44 lower_vethabcf68fe -&gt; ../vethabcf68fe
-</code></pre>
-<p>此时容器内看路由表, 可以发现:</p>
-<ul>
-<li>发送给同宿主机上其他容器的数据包, 不需要 cni0 做 gateway</li>
-<li>其他数据包通过 eth0 发送给 cni0</li>
-</ul>
-<pre><code class="language-shell"># k exec -n dev -ti signin-test-a-8bcd5db69-9z2c5 -- ip route
-default via 172.22.0.1 dev eth0
-172.22.0.0/24 dev eth0 scope link  src 172.22.0.253
-172.22.0.0/16 via 172.22.0.1 dev eth0
-# k get -n dev pods signin-test-a-8bcd5db69-9z2c5 -o wide
-NAME                            READY   STATUS    RESTARTS   AGE    IP             NODE           NOMINATED NODE   READINESS GATES
-signin-test-a-8bcd5db69-9z2c5   2/2     Running   0          6d4h   172.22.0.253   10.30.180.56   &lt;none&gt;           &lt;none&gt;
-</code></pre>
-<p>上文中 172.22.0.0./24 是当前宿主机的 podCIDR, 172.22.0.0/16 是整个集群的 CIDR, 172.22.0.1 是宿主机上 cni0 对应的地址.</p>
-<pre><code class="language-shell"># ip addr show dev cni0
-7: cni0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000
-    link/ether aa:8d:2f:44:14:b0 brd ff:ff:ff:ff:ff:ff
-    inet 172.22.0.1/24 brd 172.22.0.255 scope global cni0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::a88d:2fff:fe44:14b0/64 scope link
-       valid_lft forever preferred_lft forever
-</code></pre>
-<p>在宿主机上看路由表, 可以发现:</p>
-<ul>
-<li>发送给本宿主机上其他容器的数据包转发给 cni0</li>
-<li>
-发送给其他宿主机上容器的数据包经 eth0 转发给对应宿主机<ul>
-<li>10.30.180.55 是维二的宿主机, 其 podCIDR 是 172.22.1.0/24</li>
-</ul>
-</li>
-</ul>
-<pre><code class="language-shell">ip route | grep -v -E "172.1(7|8)"
-default via 10.30.180.254 dev eth0 proto static metric 100
-10.30.180.0/24 dev eth0 proto kernel scope link src 10.30.180.56 metric 100
-172.22.0.0/24 dev cni0 proto kernel scope link src 172.22.0.1
-172.22.1.0/24 via 10.30.180.55 dev eth0
-</code></pre>
-<p>Source: <a href="https://github.com/j2gg0s/j2gg0s/blob/main/_posts/2023-12-06-k8s%20network%3A%20%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E5%AE%9E%E7%8E%B0.md" rel="nofollow">https://github.com/j2gg0s/j2gg0s/blob/main/_posts/2023-12-06-k8s%20network%3A%20%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E5%AE%9E%E7%8E%B0.md</a></p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:41:24Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 尝试下基于 ipfs 的构建网站，这是一种彻底去中心抗监管架构</title>
-<link>https://www.v2ex.com/t/997989</link>
-<guid>https://www.v2ex.com/t/997989</guid>
-<content:encoded><![CDATA[
-<p>尝试下 ipfs 架构的网站，点击下面链接应该可以不翻墙直接打开</p>
-<p>网页是个单页面 html ，展示今年还剩多少天</p>
-<p>这个链接应该不翻墙能打开
-<a href="https://hardbin.com/ipfs/Qme6GDyqtb6jkERD1LVYC4dWSHDtMoRyn5pcTRk5KaHQPA" rel="nofollow">https://hardbin.com/ipfs/Qme6GDyqtb6jkERD1LVYC4dWSHDtMoRyn5pcTRk5KaHQPA</a></p>
-<p>这个链接似乎被墙了,要翻墙
-<a href="https://cloudflare-ipfs.com/ipfs/Qme6GDyqtb6jkERD1LVYC4dWSHDtMoRyn5pcTRk5KaHQPA/" rel="nofollow">https://cloudflare-ipfs.com/ipfs/Qme6GDyqtb6jkERD1LVYC4dWSHDtMoRyn5pcTRk5KaHQPA/</a> </p>
-<p>架构原理说明</p>
-<p>1 访问</p>
-<p>ipfs 可以认为就是一个 CDN 服务，提供去中心资源下载能力
-那么对于静态网站，其实就是一堆 url 资源，在 ipfs 网络发布后就可以直接访问了</p>
-<p>由于是去中心存储，就像磁力链接一样，内容是存储在官方服务和每个用户本地的，只要有人做种，这个页面就永远能打开</p>
-<p>可以使用公共或者自建 ipfs 网关，在用户不安装 ipfs 客户端场景直接访问
-不过毕竟基于域名，是会被墙的，但是公共网关很多，应该总能找到未被墙的网关
-实际很多 cdn 服务商提供了 ipfs 网关服务,所以即便在强屏蔽环境下,也应该能找到访问网站的路径
-如果安装 ipfs 客户端，就不可能被墙了，直接使用本地网关在 ipfs 网络加载数据</p>
-<p>2 后端服务和存储分发
-如果是静态网站,那就不需要后端服务,直接把静态网站资源发布到 ipfs 即可</p>
-<p>这个场景下非常的自由,无需任何审批,也不怕屏蔽,甚至连后端服务都没有
-网站内容一经发布,即便作者本人也无法撤回,因为内容已经去中心存储到各个 ipfs 节点了,只要有人看就会永远存在</p>
-<p>如果是动态网站,可以通过定期发布的方法来实现内容定期更新,不过此种场景后端服务还是要有中心化实体的
-纯粹去中心后端服务方案也有,但是就要求用户安装 ipfs 客户端去访问其他 peer 节点了,不能做到像网站一样用户直接访问</p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:40:17Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 在 markdown 文件中展示随机二次元图片(动图/静态图)，可按种类获取，可用在博客/GitHub 主页上</title>
-<link>https://www.v2ex.com/t/997986</link>
-<guid>https://www.v2ex.com/t/997986</guid>
-<content:encoded><![CDATA[
-<h3>说明</h3>
-<p>这是一个 fork 的项目，我决定创建一个新的仓库是因为:</p>
-<ul>
-<li>fork 的仓库不能改名字，原仓库名叫做 <code>waifu.pics</code>, 如果部署到 Vercel, 那么项目的域名将以 <code>waifu.pics</code> 开头(例如 <a href="http://waifu.pics-xxx-xxx.xxx" rel="nofollow">waifu.pics-xxx-xxx.xxx</a>). 当我使用 Chrome 访问该域名时, 我会收到 Google 的警告: <code>这似乎是一个假冒网站，你想访问 waifu.pics 吗?</code></li>
-<li>原仓库似乎几年没维护了，我更新和移除了一些依赖，改了一些 BUG (原仓库的图片刷新 github 网页无法更新图片)，添加了部署教程</li>
-</ul>
-<h3>描述</h3>
-<p>简单封装了 waifu.pics API 用于获取随机的二次元图片直接用在 markdown 文件中(比如 GitHub profile).</p>
-<h3>repo</h3>
-<p><a href="https://github.com/dreamjz/waifu-getter" rel="nofollow">https://github.com/dreamjz/waifu-getter</a></p>
-<h3>应用场景</h3>
-<p>可以用在 GitHub 个人主页上： <a href="https://github.com/dreamjz" rel="nofollow">https://github.com/dreamjz</a></p>
-<h3>使用示例</h3>
-<p>详情查看 README 文档</p>
-<p>刷新网页，图片是随机的：</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://waifu-getter.vercel.app/sfw/dance" /></p>
-<p>PS: <del>什么？可以随机涩图？但我劝你少看</del></p>
-]]></content:encoded>
-<pubDate>2023-12-06T02:27:52Z</pubDate>
-</item>
-<item>
-<title>支持远程调试的 “vConsole”</title>
-<link>https://www.v2ex.com/t/995495</link>
-<guid>https://www.v2ex.com/t/995495</guid>
-<content:encoded><![CDATA[
-<h2>背景</h2>
-<p>前阵子一直在做业务需求，是嵌在公司 APP 里的 H5 。而且是跨地区协作，我在 A 城市，测试和产品都在 B 城市。</p>
-<p>由于是 H5 项目，开发的时候一般都会实例化个 vConsole ，方便查看项目的上下文信息。同时我想着当程序出现问题之后，测试小姐姐可以直接截个 vConsole 的图给我，可以减少沟通时间。</p>
-<h2>痛点</h2>
-<p>后来发现一切都是想象之中，我们两个在沟通问题上依旧没少花时间！如果把程序出现的问题分级，那么会有：</p>
-<ul>
-<li>😄 简单问题：测试小姐姐 <em><strong>描述问题</strong></em> 发生的过程后，基本可以定位、解决；</li>
-<li>😅 中等问题：测试流程走不下去或者程序报错，这时候得查看调试信息去分析。此时需要测试小姐姐 <em><strong>截图</strong></em> vConsole 上面显示的内容发我，但由于截的图并不一定是关键信息或者信息数据不够，导致这中间会产生几轮沟通；</li>
-<li>😥 复杂问题：遇到一些依赖外部信息或者奇奇怪怪的问题的时候，可能会 <em><strong>远程视频</strong></em> 操作测试机给我看，同时我会告诉她什么时候打开 vConsole 查看什么面板的信息。</li>
-</ul>
-<p>可以看到只要问题牵扯到了项目的运行信息，前前后后就会导致很多沟通上的时间成本</p>
-<p>不禁让人思考是什么原因导致的这个问题……</p>
-<h2>问题的本质</h2>
-<p>结合前面的描述我们得知，由于物理空间、跨地域的限制，程序的错误信息都是由测试人员转达给技术人员，不得不说这对测试人员有点勉为其难了，而另一方面造成问题的关键就在于此：技术人员无法和 Bug 直接来个正面交锋！</p>
-<p>那么该如何解决这个「中间人」的问题呢？</p>
-<p>这个问题的答案其实很简单，我们只要将浏览器的原生 API 进行一层包装将运行时调用的参数收集起来，然后再整一套类似控制台的 UI ，最后整合成 SDK 处理参数 -&gt; 中间层网络通信 -&gt; UI 控制台展示的样子，开发同学直接和控制台上的 BUG 切磋，就能完美的解决这个问题！</p>
-<p>虽然说起来简单，但是这一整套下来开发的工作量可不容小觑：</p>
-<ul>
-<li>包装原生 API 的 SDK</li>
-<li>负责通信的服务</li>
-<li>控制台 UI……</li>
-</ul>
-<p>不用慌！我们带着开箱即用的 PageSpy 来了！</p>
-<h2>PageSpy</h2>
-<blockquote>
-<p>点击加入 <a href="https://github.com/HuolalaTech/page-spy-web#%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81" rel="nofollow">技术支持群</a></p>
-</blockquote>
-<p><a href="https://github.com/HuolalaTech/page-spy-web" rel="nofollow">Page Spy</a> 是由货拉拉大前端开源的一款用于调试 H5 、或者远程 Web 项目的工具。基于对原生 API 的封装，它将调用原生方法时的参数进行过滤、转化，整理成格式规范的消息供调试端消费；调试端收到消息数据，提供类控制台可交互式的功能界面将数据呈现出来。</p>
-<p>PageSpy 是一个强大的开源前端远程调试平台，它可以显著提高我们在面对前端问题时的效率。以下是 PageSpy 的一些主要特点：</p>
-<ul>
-<li><strong>一眼查看客户端信息</strong> PageSpy 会对客户端的运行环境进行识别，其中系统识别支持 Mac / iOS / Window / Linux / Android ，浏览器识别支持谷歌、火狐、Safari 、Edge 、微信、UC 、百度、QQ ；</li>
-<li><strong>实时查看输出：</strong> PageSpy 可以实时捕获并显示程序输出，包括 Console 、Network 、Storage 和 Element 。这使开发人员能够直观地了解页面的外观和行为，无需依赖用户的描述或截图。</li>
-<li><strong>网络请求监控：</strong> PageSpy 还可以捕获和显示页面的网络请求，有助于开发人员更好的查看与后端的交互。</li>
-<li><strong>远程控制台：</strong> PageSpy 支持远程调试 JavaScript 代码，允许开发人员执行 JavaScript 代码在用户的浏览器上运行。这对于排查特定问题或测试代码修复非常有帮助。</li>
-<li><strong>跨浏览器兼容性：</strong> SDK 可以在各种主流浏览器中运行，确保你可以检查和调试不同浏览器上的问题。</li>
-<li><strong>用户体验提升：</strong> 通过快速识别和解决前端问题，PageSpy 可以显著提升用户体验，减少用户因前端问题而受到的不便。</li>
-</ul>
-<h2>相关截图</h2>
-<h4>门户首页</h4>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/542d962629614b8ebc6b4b2db1465590%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2876&amp;h=1506&amp;s=286810&amp;e=png&amp;b=1a1a1a" /></p>
-<h4>待调试列表</h4>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/77fe6573ea6a416ca8756f0ff022785e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2878&amp;h=1512&amp;s=266157&amp;e=png&amp;b=fafafa" /></p>
-<h4>调试界面</h4>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/552668b7cba646cc999ce79ed35e8d0f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2878&amp;h=1522&amp;s=432593&amp;e=png&amp;b=fbfbfb" /></p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/98fe9ea8c07c42e68cfe99417b3166f8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2876&amp;h=1514&amp;s=342755&amp;e=png&amp;b=fdfdfd" /></p>
-<h2>结语</h2>
-<p>前端远程调试对于快速而准确地解决前端问题至关重要。<a href="https://github.com/HuolalaTech/page-spy-web" rel="nofollow">Page Spy</a> 作为一个强大的开源工具，支持开箱即用，为开发人员提供了一个高效的方式来查看用户端的页面输出、网络请求和执行远程调试。它有助于加速问题的定位和解决，减少了对用户反馈和日志的依赖，提高了整体开发效率。除了解决跨地区协同的场景之外，还覆盖了本地开发时的调试 H5 的场景。</p>
-<p>希望本文能够帮到大家对 PageSpy 有个初步的认识，感谢阅读。</p>
-]]></content:encoded>
-<pubDate>2023-12-06T01:12:36Z</pubDate>
 </item>
 </channel>
 </rss>
