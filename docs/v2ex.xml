@@ -5,11 +5,523 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 凹语言在 KCD 深圳 2023</title>
+<link>https://www.v2ex.com/t/1001014</link>
+<guid>https://www.v2ex.com/t/1001014</guid>
+<content:encoded><![CDATA[
+
+<p>凹语言项目联合发起人柴树杉在 KCD 深圳 2023 论坛分享了凹语言最新的进展和案例，以下是本次分享的内容回顾：</p>
+<hr />
+<p>案例-NES 模拟器：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-01.png" /></p>
+<p>在线演示地址：<a href="https://wa-lang.org/nes/" rel="nofollow">https://wa-lang.org/nes/</a></p>
+<p>模拟器代码地址：<a href="http://gitee.com/wa-lang/nes-wa" rel="nofollow">http://gitee.com/wa-lang/nes-wa</a>，将仓库克隆至本地，下载最新版凹语言编译器，在控制台输入以下命令（其中 <code>./nes-wa</code> 为模拟器代码的本地路径）：</p>
+<pre><code>wa run ./nes-wa
+</code></pre>
+<p>即可编译模拟器，并在本地 8000 端口（ localhost:8000 ）发布页面应用。</p>
+<p>桌面版浏览器访问，使用键盘控制：小键盘方向键对应手柄方向键；空格对应手柄<code>select</code>键；回车对应手柄<code>start</code>键 Ctrl 对应手柄<code>A</code>键； Shift 对应手柄<code>B</code>键。</p>
+<p>手机等触屏设备浏览器访问，直接在 UI 触控：左下方摇杆操作为先在中心按下，然后四向摇动（类似于王者荣耀等手游）；按住<code>X</code>键为<code>A</code>键连发；按住<code>Y</code>键为<code>B</code>键连发。</p>
+<hr />
+<p>案例-WebGPU：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-02.png" /></p>
+<p>在线演示地址：<a href="https://wa-lang.org/webgpu/" rel="nofollow">https://wa-lang.org/webgpu/</a></p>
+<p>WebGPU 示例代码地址：<a href="https://gitee.com/wa-lang/webgpu" rel="nofollow">https://gitee.com/wa-lang/webgpu</a>，将仓库克隆至本地，下载最新版凹语言编译器，在控制台输入以下命令（其中 <code>./webgpu</code> 为 WebGPU 示例代码的本地路径）：</p>
+<pre><code>wa run ./webgpu
+</code></pre>
+<p>即可编译示例，并在本地 8000 端口（ localhost:8000 ）发布页面应用。</p>
+<p>WebGPU 标准尚处于实验阶段，移动设备的浏览器普遍尚不支持，本案例建议使用 Chrome 等最新版的桌面版浏览器访问。</p>
+<hr />
+<p>分享讲稿全文：</p>
+<h2>0. 自我介绍</h2>
+<p>大家好，我是来自凹语言社区的柴树杉。很荣幸能够参加这次 KCD 深圳大会，感谢主办方和各个赞助者、志愿者和参加的朋友。我要分享的题目是：WASM 初体验——以凹语言为例。</p>
+<p>凹语言是一个开源的、针对 WebAssembly 设计的通用编程语言。借此机会，给各位朋友介绍下。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-101.png" /></p>
+<h2>1. 为何选择 WASM 为目标</h2>
+<h3>1.1 背景历程（ 2018 ）——WASM 代表计算的自由</h3>
+<p>首先：民主的技术，是通向计算自由的基石</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-102.png" /></p>
+<p>WASM 在 2018 年发布了草案，当时我们觉得 WASM 技术可能可以给我们计算的自由。哪怕是以开源软件为例，现在能够真正拥有自由的计算环境对个体程序员非常奢侈。而 WASM 计算，其核心思想是提供一套中间表达指令集和虚拟机，运行在浏览器内置的 WASM 虚拟机中。而 WASM 虚拟机的初始版本非常简单，不考虑极致性能的话，几乎每个程序员都可以自己实现一个，而这恰恰给了目前程序员最大的自由。</p>
+<p>同时，作为 W3C 的国际标准，WASM 技术前景非常广阔。基于这些判断，我们在 19 年底出版了《 WebAssembly 标准入门》这本书，尝试在国内推广这门技术。图书的封面引用了 Ending 定律的观点：所有可被编译为 WASM 的，终将被编译为 WASM 。</p>
+<p>目前，各大主流语言都已经支持 WASM 。包括 Docker 技术的创始人也表达了类似的观点：如果 WASM 早点出现，可能就没有 Docker 了。</p>
+<h3>1.2 背景历程（ 2019 ）——WASM 缺少好用的语言</h3>
+<p>到了 2019 年，我和丁尔男将之前在公司的实践经验总结成章，在机械工业出版了《面向 WebAssembly 编程》这本书。书中系统介绍了如何通过 Emscripten 使用 C/C++来开发 WASM 程序。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-103.png" /></p>
+<p>虽然 Emscripten 工具链非常成熟，但是对于有经验的 C++程序员来说，开发 WASM 程序依然是一个巨大挑战。
+C++虽然支持 WASM 最好，但不是最好的 WASM 语言——我们想做一个简单易用的 WASM 语言。</p>
+<p>最开始语言的名字叫 wasmlang ，后来简化为 Wa-lang 。后来根据拼音 Wa 取了“凹语言”的名字。
+“凹”不仅仅音同 Wasm 的前缀，形状也和 WASM 的图标很像。后来“凹”字又被社区小伙伴赋予了不同的解读。</p>
+<h2>2. 我们是如何构建以 WASM 为目标的凹语言的</h2>
+<h3>2.1 凹语言项目筹备阶段（ 2019-2020 ）</h3>
+<p>为了启动语言项目，我们选择了以 Go 语言为蓝本开始设计语言，但是砍掉了 WASM 不需要的并发特性。
+当时的 V 语言和 TinyGo 项目也给了我们很多启发。Go 语言编译器本身是开源的，我们决定从 Go 蓝本开始这个线路极大降低了起步的难度。我们经常说，凹语言是站在 Go 语言的腰上成长起来的。</p>
+<p>我们出版了《 Go 语言定制指南》这本书，并且首次公开了“凹语言”这个概念。在 2020 年，我们初步达成共识：“不做玩具车！”</p>
+<h3>2.2 凹语言开源大事记</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-104.png" /></p>
+<h3>2.3 凹语言-国内首个实现纯浏览器编译+执行（ 2022.9 ）</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-107.png" /></p>
+<p>这是凹语言的 Playground ，主要是扈梦明负责实现。</p>
+<h3>2.4 凹语言-游戏-贪吃蛇(2023.1.8)</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-108.png" /></p>
+<p>贪吃蛇是凹语言开源半年时间，用凹语言第一次实现的小游戏。其虽然是通过比较原始的 API 来和 Canvas 交互，但第一次验证了凹语言在该方向的潜力。</p>
+<h3>2.5 凹语言-入选 CNCF wasm 语言全景图(2023.9)</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-109.png" /></p>
+<p>今年，凹语言有幸进入了 CNCF 的 wasm 语言全景图，其中很多都是 C/C++、Go 这种世界级的著名项目。
+能够和他们同列我们很荣幸，对凹语言项目组也是极大的鼓励。</p>
+<h2>3. 如何以凹语言构建 WASM 程序</h2>
+<h3>3.1 凹语言-脚手架</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-110.png" /></p>
+<p>为了让 WASM 编程简单，凹语言内置了脚手架。在安装凹语言编译器之后，只需要 2 步即可生成并运行一个 WASM 示例。</p>
+<h3>3.2 凹语言-Canvas - 简介</h3>
+<p>在之前实现贪吃蛇时，使用的是比较底层的 API ，在编程的过程中经常需要在凹语言和宿主 JS 语言之间做深度切换，对于编程体验是一个极大的挑战。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-111.png" /></p>
+<p>为此，在 9 月份项目组通过设计好用的 FFI ，以达到对跨 JS/凹语言提供更友好 API 的能力。在 FFI 的基础上我们重新次抽象了 Canvas 包。这是完全在凹语言环境直接操作 Canvas 对象，大大降低跨语言编程的噪声。</p>
+<h3>3.3 凹语言-Canvas-更多案例</h3>
+<p>有了更友好的 Canvas 接口之后，同类型的程序构造就会变成非常容易。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-105.png" /></p>
+<p>这里的 3 个案例都是基于 Canvas 的例子：</p>
+<ul>
+<li>左边是在凹语言实现对文本信息的 QR 码编码为图片，然后显示在 Canvas 上。</li>
+<li>中间的例子也是类似，基于分型的算法产生图片，然后显示在 Canvas 上。</li>
+<li>右边的例子则是生命游戏，从静止的 Canvas 图片进化为视频，其中每一帧图片的处理逻辑依然类似。</li>
+</ul>
+<p>同样，基于新的 Canvas 接口重新实现贪吃蛇游戏也会更加简单。有兴趣的同学可以试一试。</p>
+<h3>3.4 凹语言-游戏-任天堂 NES/FS 模拟器(2023.12.15)</h3>
+<p>我第一次见到小霸王游戏机是在 90 年代初期，当时还是上小学的时候。然后在大学期间下载过游戏模拟器来玩坦克大战、超级玛丽这些经典游戏。当我们刚开始决定做凹语言的时候，有一个共识：“不做玩具车”。其实当时的想法是，通过凹语言能够来开发一些小玩具就可以了。而 NES 模拟器刚好可以满足小时候不花钱玩游戏的梦想，对于凹语言刚好也是一次很好的检验。开发组的小伙伴通过通力合作最终完成了凹语言版本 NES 模拟器的开发工作。整个核心凹语言代码将近 3 千行，在手机浏览器中执行非常的流畅——我当时突然意识到当初“不做玩具车”的小目标真的达成了！</p>
+<p>感兴趣的图像可以通过二维码打开页面体验。项目的全部代码在 Gitee 仓库开源。</p>
+<h3>3.5 凹语言-WebGPU-模拟土星(电脑浏览器打开)</h3>
+<p>WASM 诞生之初是为了提升 JS 的性能，是面向的计算密集型的应用。而浏览器中的 WebGPU 也是通过新兴的 API 来释放本地硬件的计算能力。换言之，WASM 和 WebGPU 在计算密集型这个方向是有很大交集的。因此，凹语言的联合发起人丁尔男，在凹语 FFI 的基础上开始封装 WebGPU 特性，最终实现了模拟土星的 Demo 。由于 WebGPU 是电脑浏览器才有的能力，大家可以在电脑浏览器查看。项目的全部代码也是在 Gitee 开源。</p>
+<h3>3.6 小结</h3>
+<p>以上的例子都是在今年 8 月份凹语言发布 MVP 版本之后的成果。它们在本地都可以通过 wa run 命令执行，非常简单。</p>
+<h2>4. 凹语言的未来规划</h2>
+<p>通过前面展示的几个例子，我们相信凹语言已经可以用于生产，是一个可以真正开上路的车子了。对于未来发展我们依然保持灵活策略，目前阶段主要是打磨已有的功能，补充缺失的关键特性。可能包含：扩展标准库和测试；完善 Canvas 和 WebGPU 的库封装；优化性能和实现包管理工具。</p>
+<h2>5. 最后</h2>
+<p>凹语言项目是一次草根程序员对重新掌握工具的尝试。感谢凹语言的小伙伴们：项目联合发起人丁尔男，临委会委员扈梦明和赵普明，开发者通力合作完成了项目的一次次突破。我们希望通过这次努力能够获得更多的自由。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0036-106.png" /></p>
+<p>最后也欢迎大家加入凹语言社区，共同推动 WASM 生态的发展。对于程序员来说，这个过程既有趣又很酷！</p>
+<p>谢谢大家！</p>
+<hr />
+<p>原文链接：<a href="https://wa-lang.org/smalltalk/st0036.html" rel="nofollow">https://wa-lang.org/smalltalk/st0036.html</a></p>
+]]></content:encoded>
+<pubDate>2023-12-16T17:30:52Z</pubDate>
+<pubDate>2023-12-16T13:30:52Z</pubDate>
+</item>
+<item>
+<title>[香港] 从上海高铁去香港旅游，有住宿酒店的建议和极客式旅游的建议吗？ 送感谢</title>
+<link>https://www.v2ex.com/t/1001013</link>
+<guid>https://www.v2ex.com/t/1001013</guid>
+<content:encoded><![CDATA[
+
+<p>看看上海到香港 差不多 7 小时，感觉不是不能接受。</p>
+<p>酒店不太熟悉，预算 1.5K/晚 上下五百都没问题</p>
+]]></content:encoded>
+<pubDate>2023-12-16T17:11:51Z</pubDate>
+<pubDate>2023-12-16T17:18:10Z</pubDate>
+</item>
+<item>
+<title>[微信] 微信公众号回复文本如何插入快捷回复的链接？</title>
+<link>https://www.v2ex.com/t/1001012</link>
+<guid>https://www.v2ex.com/t/1001012</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="" class="embedded_image" rel="noreferrer" src="http://mmbiz.qpic.cn/sz_mmbiz_jpg/TJUPP58nkeMvA1yKEjyYvicxKdoAMCa9CIicTKST2cUTrABicib6KmLH1jicUsXpq9Bia3bX0Sft2JibZVGdjPX1IIBoQ/0?wx_fmt=jpeg" />
+图片地址： <a href="http://mmbiz.qpic.cn/sz_mmbiz_jpg/TJUPP58nkeMvA1yKEjyYvicxKdoAMCa9CIicTKST2cUTrABicib6KmLH1jicUsXpq9Bia3bX0Sft2JibZVGdjPX1IIBoQ/0?wx_fmt=jpeg" rel="nofollow">http://mmbiz.qpic.cn/sz_mmbiz_jpg/TJUPP58nkeMvA1yKEjyYvicxKdoAMCa9CIicTKST2cUTrABicib6KmLH1jicUsXpq9Bia3bX0Sft2JibZVGdjPX1IIBoQ/0?wx_fmt=jpeg</a></p>
+<p>比如上图，用户扫码关注自动登录，用户可以直接点击链接，就会自动回复“确认登录”，这个应该不是 a 链接，应该有特殊的代码。想知道是如何实现的呢？</p>
+]]></content:encoded>
+<pubDate>2023-12-16T16:54:44Z</pubDate>
+<pubDate>2023-12-16T16:54:44Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 成都电信 9998 及以下端口被封了</title>
+<link>https://www.v2ex.com/t/1001011</link>
+<guid>https://www.v2ex.com/t/1001011</guid>
+<content:encoded><![CDATA[
+
+成都电信 9998 及以下端口被封了。有成都的朋友测试一下吗？<br />今天发现 NAS 不能访问，测试了一下 9998 以下的全都不能用了。
+]]></content:encoded>
+<pubDate>2023-12-16T16:53:55Z</pubDate>
+<pubDate>2023-12-16T17:54:32Z</pubDate>
+</item>
+<item>
+<title>[Apple] mac 高刷下切换桌面动画变慢</title>
+<link>https://www.v2ex.com/t/1001010</link>
+<guid>https://www.v2ex.com/t/1001010</guid>
+<content:encoded><![CDATA[
+
+系统 sonoma14.2<br /><br />特别是最后一点动画，明显比 60hz 慢<br /><br />有人知道怎么解决吗？
+]]></content:encoded>
+<pubDate>2023-12-16T16:35:34Z</pubDate>
+<pubDate>2023-12-16T16:42:22Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 如何设置快捷指令，解锁手机启动 shadowracket，锁屏关闭 shadowracket？</title>
+<link>https://www.v2ex.com/t/1001009</link>
+<guid>https://www.v2ex.com/t/1001009</guid>
+<content:encoded><![CDATA[
+
+<p>如题，有办法吗</p>
+]]></content:encoded>
+<pubDate>2023-12-16T16:34:28Z</pubDate>
+<pubDate>2023-12-16T17:00:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何修改邮箱地址？</title>
+<link>https://www.v2ex.com/t/1001008</link>
+<guid>https://www.v2ex.com/t/1001008</guid>
+<content:encoded><![CDATA[
+
+<p>当前账号是用 Google 账号授权登录的，电子邮箱地址是 Gmail 地址，但是后来 Google 账号被盗，找不回来了，怎样修改本站的电子邮件地址？
+<img alt="d9" class="embedded_image" rel="noreferrer" src="https://i2.100024.xyz/2023/12/17/ijtva.webp" /></p>
+]]></content:encoded>
+<pubDate>2023-12-16T16:31:34Z</pubDate>
+<pubDate>2023-12-16T16:35:37Z</pubDate>
+</item>
+<item>
+<title>[iPhone] QX 规则不同也会影响节点延迟测试结果吗？</title>
+<link>https://www.v2ex.com/t/1001007</link>
+<guid>https://www.v2ex.com/t/1001007</guid>
+<content:encoded><![CDATA[
+
+我分别在两台 iPhone 同时测试同一节点资源 耳东橙懒人规则和墨鱼懒人规则<br />耳东橙 延迟 90+ 高的时候可以到 170 <br />墨鱼 延迟 60+ 很稳定<br />现在两个懒人包各有优缺如何只取优避缺？如果把两个懒人包拆开重组应该怎么做？
+]]></content:encoded>
+<pubDate>2023-12-16T16:12:53Z</pubDate>
+<pubDate>2023-12-16T16:09:53Z</pubDate>
+</item>
+<item>
+<title>[Mac mini] 新入手 Macmini M2 type-c 转 DP 无信号</title>
+<link>https://www.v2ex.com/t/1001006</link>
+<guid>https://www.v2ex.com/t/1001006</guid>
+<content:encoded><![CDATA[
+
+<p>目前 HDMI 连接，开启 HDR ，访达侧边栏图标显示有重影。而且刚才显示器疯狂闪屏。。。</p>
+<p>所以想换成 type-c 转 DP ，但是无法点亮。</p>
+<p>用朋友的 MacBook pro m1 ，同一根线可以点亮。开启 HDR ，访达侧边栏图标显示正常。</p>
+<p>下单新买了一根线，不知道能不能行。。。</p>
+]]></content:encoded>
+<pubDate>2023-12-16T16:10:39Z</pubDate>
+<pubDate>2023-12-16T16:10:39Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 这个 vite 插件让 console.log 究极进化</title>
+<link>https://www.v2ex.com/t/1001004</link>
+<guid>https://www.v2ex.com/t/1001004</guid>
+<content:encoded><![CDATA[
+
+<h1>前言</h1>
+<p>之前开源了 <a href="https://github.com/baozouai/babel-plugin-enhance-log" rel="nofollow">babel-plugin-enhance-log</a>，也通过写了文章<a href="https://juejin.cn/post/7231577806189133884" rel="nofollow">偏爱 console.log 的你，肯定会觉得这个插件泰裤辣！</a>来分享该插件如何使用，不过，看到评论里面有好几个都在问 vite+vue 如何使用：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/3c4db873-b525-4772-b046-993360029b71.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/4abf6473-6a52-4a2e-b2b9-a39b3ee95998.png" /></p>
+<p>我稍微看了下，vite+vue 使用的是 esbuild ，没有用到 babel ，确实没法直接使用。但既然有小伙伴需要，我则尽量满足。所以抱着试试的心态看能否实现，幸好，皇天不负有心人，经过昨天几个小时的折腾，终于将其开源 👉🏻 <a href="https://github.com/baozouai/vite-plugin-enhance-log" rel="nofollow">vite-plugin-enhance-log</a>，有兴趣可以看看~</p>
+<h1>咋使用捏，先安装呗 📦</h1>
+<p>国际惯例，先安装插件</p>
+<pre><code class="language-shell">pnpm add vite-plugin-enhance-log -D
+# or
+yarn add vite-plugin-enhance-log -D
+# or
+npm i vite-plugin-enhance-log -D
+</code></pre>
+<h2>vue 中如何使用</h2>
+<p>然后再 vite.config.ts 里面配置即可，比如 vue：</p>
+<pre><code class="language-ts">import { defineConfig } from 'vite'
+import Vue from '@vitejs/plugin-vue'
+import EnhanceLog from 'vite-plugin-enhance-log'
+
+const config = defineConfig({
+  plugins: [
+    Vue(),
+    EnhanceLog({
+      splitBy: ';',
+      preTip: '🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥',
+    }),
+  ],
+})
+
+export default config
+</code></pre>
+<p>跑项目后就有这效果啦：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/8f732d35-ba86-44ae-9fb7-4919bd72b220.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/03e4eb76-c3f3-4987-b739-5079b910c336.png" /></p>
+<h2>react 呢？</h2>
+<p>react 里面实际上有两种：</p>
+<p>1.第一种还是使用 babel-plugin-enhance-log ，然后再 react 插件里面配置即可：</p>
+<pre><code class="language-ts">export default defineConfig({
+  plugins: [
+    react({
+      babel: {
+        plugins: ['enhance-log'],
+      },
+    }),
+    ]
+  })
+</code></pre>
+<p>2.跟 vue 一样，使用 vite-plugin-enhance-log</p>
+<pre><code class="language-ts">import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import EnhanceLog from 'vite-plugin-enhance-log'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    EnhanceLog({
+      splitBy: '\n',
+    }),
+
+  ],
+})
+</code></pre>
+<h1>通过 playgrounds 来了解其他参数吧</h1>
+<p>实际上 vite-plugin-enhance-log 已经尽量做到开箱即用了，但如何你想要自定义，可以把项目拉下来，看下 playgrounds 里面是<a href="https://github.com/baozouai/vite-plugin-enhance-log/blob/master/playgrounds/vue/vite.config.ts" rel="nofollow">vue</a>或者<a href="https://github.com/baozouai/vite-plugin-enhance-log/blob/master/playgrounds/react/vite.config.ts" rel="nofollow">react</a>是如何使用的。</p>
+<p>以下是目前提供的参数：</p>
+<pre><code class="language-ts">interface Options {
+  /**
+   * 打印文件名
+   * 如果你文件名太长，希望不显示文件 path 的目录，比如 src/pages/xxx/yyy/a.tsx, 那么可以配置 enableDir 为 false ，则只打印 a.tsx
+   *
+   * @default true
+   */
+  enableFileName?: boolean | {
+    enableDir?: boolean
+  }
+  /**
+   * 打印的前缀提示，这样方便快速找到 log 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+   * @example
+   * console.log(' 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀', ...)
+   */
+  preTip?: string
+  /** 每个参数分隔符，默认空字符串，你也可以使用换行符\n ，分号；逗号，甚至猪猪🐖都行~ */
+  splitBy?: boolean
+}
+</code></pre>
+<p>我们来一个个了解。</p>
+<h2>👇 例子</h2>
+<p>拉项目后通过运行启动 playgrounds：</p>
+<pre><code class="language-shell">pnpm play # 对应 vue
+# 或者
+pnpm play:react # 对应 react
+</code></pre>
+<p>来启动项目。</p>
+<p>比如说，你不喜欢小 🚀，你喜欢猪猪 🐖，那可以配置 preTip 为 🐖🐖🐖🐖🐖🐖🐖🐖🐖🐖：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/bc7d40ba-9fdc-485b-9835-f30cfd129dc2.png" /></p>
+<p>比如说，在参数较多的情况下，你希望 log 每个参数都换行，那可以配置 splitBy 为 \n：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/681bbddc-bd8a-487b-a87f-ea8b942d5e61.png" /></p>
+<p>或者分隔符是;:</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/a1b70dc7-ae2b-4666-b0b5-c896bf01f257.png" /></p>
+<p>当然，你也可以随意指定，比如用个狗头 🐶 来分隔：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/60a6ba33-9a46-4daa-b967-6a7a8c3f6dd5.png" /></p>
+<p>比如说，你希望知道 log 所在的文件名，那么可以配置 enableFileName 为 true （当然默认就是 true ）：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/03237308-87be-4788-83ee-eeef9fbde13e.png" /></p>
+<p>如果文件路径太长:</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/1078f561-db5e-4cc5-a63f-c2a5e0c78f4e.png" /></p>
+<p>你只希望打印文件名，不需要目录前缀，那么可以配置 <code>enableFileName: { enableDir: false }</code>:</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/19727/f0fc762b-b1f8-4891-a9d2-d17a27d77a3c.png" /></p>
+<p>当然，你不希望打印文件名的话，把 enableFileName 设为 false 就好啦。</p>
+<h1>最后</h1>
+<p>本文介绍了 vite-plugin-enhance-log 插件的由来，尽量满足了 vite+vue 中实现同等的 babel-plugin-enhance-log 功能，同时也支持了打印文件名的功能。</p>
+]]></content:encoded>
+<pubDate>2023-12-16T16:04:35Z</pubDate>
+<pubDate>2023-12-16T16:15:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 买了本 Python 书籍入门</title>
+<link>https://www.v2ex.com/t/1001003</link>
+<guid>https://www.v2ex.com/t/1001003</guid>
+<content:encoded><![CDATA[
+
+我该如何找到自己方向，我看他的学习路线很多，但是我不知道哪种适合自己的，求指点
+]]></content:encoded>
+<pubDate>2023-12-16T15:58:10Z</pubDate>
+<pubDate>2023-12-16T17:28:27Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] netbird 很火，有没有详细看过他代码的，大佬们来唠唠嗑</title>
+<link>https://www.v2ex.com/t/1001002</link>
+<guid>https://www.v2ex.com/t/1001002</guid>
+<content:encoded><![CDATA[
+
+<h1>评论送感谢，有帮助送红包</h1>
+<h1>我测试过 wg 的打洞和 netbird 的打洞，明明都是一个 wg 协议，但是 netbird 打洞成功率是比 wg 更高速度更快，有没有大佬知道怎么实现的</h1>
+]]></content:encoded>
+<pubDate>2023-12-16T15:41:11Z</pubDate>
+<pubDate>2023-12-16T15:53:05Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 有人 iPhone 会出现视频突然变亮，其他其他地方变暗的情况吗？</title>
+<link>https://www.v2ex.com/t/1001001</link>
+<guid>https://www.v2ex.com/t/1001001</guid>
+<content:encoded><![CDATA[
+
+抖音、微信朋友圈的视频广告都出现过这个情况，视频突然变得很亮，除了视频意外的地方就很暗。当跳过那个视频之后又变得正常了，什么情况？感觉像是 iOS17 之后才有的？
+]]></content:encoded>
+<pubDate>2023-12-16T15:39:44Z</pubDate>
+<pubDate>2023-12-16T17:31:06Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 ios 低电量模式浏览器如何自动播放<video></title>
+<link>https://www.v2ex.com/t/1000999</link>
+<guid>https://www.v2ex.com/t/1000999</guid>
+<content:encoded><![CDATA[
+
+ios 低电量模式下无法自动播放&lt;video&gt;标签的视频，然后我想着用 js 脚本模拟用户点击，发现还是无法播放，滑动屏幕时会开始播放了。 但是这种情况下，进去页面的时候视频上方的那个播放按钮很丑陋，请问一下，有没有什么办法去除？如果能直接低电量模式自动播放就更好了<br />&lt;div class="content-video-mob newmob_vid"&gt;<br />&lt;video autoplay playsinline muted loop id="mobile-Video"&gt;<br />&lt;source src="&lt;?php echo get_site_url(); ?&gt;xxxx.mp4" type="video/mp4" /&gt;<br />&lt;/video&gt;<br />&lt;/div&gt;
+]]></content:encoded>
+<pubDate>2023-12-16T15:19:10Z</pubDate>
+<pubDate>2023-12-16T15:16:10Z</pubDate>
+</item>
+<item>
+<title>[问与答] 对于有 Home 键的 iPhone ，更新到 iOS 17.2 后，在各种需要指纹识别的地方，比如登入银行 App 等，短暂的识别过程中总会出现一次『重试触控 ID』的提示，尽管最终能识别成功</title>
+<link>https://www.v2ex.com/t/1000998</link>
+<guid>https://www.v2ex.com/t/1000998</guid>
+<content:encoded><![CDATA[
+
+有同样情况的人吗？
+]]></content:encoded>
+<pubDate>2023-12-16T15:17:30Z</pubDate>
+<pubDate>2023-12-16T15:39:58Z</pubDate>
+</item>
+<item>
+<title>[YouTube] 打算写个 React Native iOS 自用，用来下载油管视频，求指点思路</title>
+<link>https://www.v2ex.com/t/1000997</link>
+<guid>https://www.v2ex.com/t/1000997</guid>
+<content:encoded><![CDATA[
+
+<p>原因是，貌似没有上架的 iOS App 可以下载油管视频</p>
+<p>有经验的 v2er 能指点一下，如何根据一个油管链接，解析出所有清晰度的视频资源，以及下载方式吗？</p>
+<p>纯自用，我知道无法上架 App Store</p>
+]]></content:encoded>
+<pubDate>2023-12-16T15:09:38Z</pubDate>
+<pubDate>2023-12-16T16:00:14Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 关于旅行证件（护照）的一些想法</title>
+<link>https://www.v2ex.com/t/1000996</link>
+<guid>https://www.v2ex.com/t/1000996</guid>
+<content:encoded><![CDATA[
+
+<p>近日打算出国旅游。
+然而，环顾各大发达国家目的地，无一例外全部需要签证。办理签证需要花大量的精力准备签证材料。
+然而 我国的两个特别行政区的护照，使用起来却无比丝滑。
+除了美国需要提前申请签证以外，其他大部分发达国家 免签/落地签/ETA 。</p>
+<p>这大概是出于偷渡哥太多的原因。毕竟“金牌导师”太火。</p>
+<p>此时提出一个想法。国家签发一个 “商务（具有足够经济能力人士的）护照”，并申请加入各国免签。
+虽然已经有 APEC 卡的存在，但 APEC 卡的签发条件过于苛刻。</p>
+<p>此护照具有如下条件才可签发：
+1.缴纳一定数额的押金。
+2.一旦被外国政府以犯罪/打黑工/或其他合理理由遣返，护照被吊销且押金没收。并且五年以内不予签发护照。
+3.同意条款 犯罪/打黑工的情况下，判处五年有期徒刑起步。</p>
+<p>这样的护照限制了申请人的条件 且 有效警告申请人不要打黑工。</p>
+<p>对外国政府来说 给出以下条件
+遣返一个人 赔偿多少数额的钱 这样其他国家的移民警察也愿意监督黑工的问题。</p>
+<p>想法可能不完善，也可能得罪某些人，欢迎 v 友批判和指点。</p>
+]]></content:encoded>
+<pubDate>2023-12-16T15:01:36Z</pubDate>
+<pubDate>2023-12-16T15:34:28Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 换了个交换机有两个模式，想问问各位大神一般家庭用哪个模式比较好</title>
+<link>https://www.v2ex.com/t/1000994</link>
+<guid>https://www.v2ex.com/t/1000994</guid>
+<content:encoded><![CDATA[
+
+<p>一个是 DUMB
+一个是 WEB</p>
+<p>问了客服推荐说是 WEB ，但是我就用他交换机功能，其他任何功能都不会用，感觉是不是打到 DUMB 模式比较好</p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:54:39Z</pubDate>
+<pubDate>2023-12-16T15:13:16Z</pubDate>
+</item>
+<item>
+<title>[macOS] Mac 的声音里设备多了 GneAudioDevice</title>
+<link>https://www.v2ex.com/t/1000993</link>
+<guid>https://www.v2ex.com/t/1000993</guid>
+<content:encoded><![CDATA[
+
+Mac 的声音里设备多了 GneAudioDevice 这让我很苦恼的是，我现在接 AirPods 切换会出现没有声音或者声音很小很小，即使我把音量调到最大…<br />并且这个设备无法删除，这个有什么办法查询到是什么应用安装了这个？
+]]></content:encoded>
+<pubDate>2023-12-16T14:52:54Z</pubDate>
+<pubDate>2023-12-16T15:21:11Z</pubDate>
+</item>
+<item>
+<title>[Linux] 大佬们 Arch Linux 用国内源老是缺依赖怎么办？ docker 安装了但是启动不起来，我换官方源速度很慢，但是一切正常</title>
+<link>https://www.v2ex.com/t/1000992</link>
+<guid>https://www.v2ex.com/t/1000992</guid>
+<content:encoded><![CDATA[
+
+<p>有没有又全又快的国内解决方案</p>
+<p>不挂梯子的情况下</p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:33:43Z</pubDate>
+<pubDate>2023-12-16T18:11:23Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 能执行 Python 代码并提供文件上传下载能力的自定义 GPT 是如何实现的？</title>
+<link>https://www.v2ex.com/t/1000991</link>
+<guid>https://www.v2ex.com/t/1000991</guid>
+<content:encoded><![CDATA[
+
+<p>OpenAI 的 GPTs 功能中，自定义的 GPT 如何能执行 Python 代码并提供文件上传下载能力呢？</p>
+<p>比如有人做了个 ConvertAnything GPT ，做文件格式转换的，从它的错误 log 看是用 Python 代码执行文件格式转换，然后在 <a href="http://files.oaiusercontent.com" rel="nofollow">files.oaiusercontent.com</a> 上提供转换好的文件下载。</p>
+<p>这种 GPT 的实现方法和原理是什么呢？我问 ChatGPT ，它不给我好好回答。谁能解答一下？</p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:31:38Z</pubDate>
+<pubDate>2023-12-16T14:31:38Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 有无第三方 ios App 支持 Azure OpenAI 和 Latex 的？</title>
+<link>https://www.v2ex.com/t/1000990</link>
+<guid>https://www.v2ex.com/t/1000990</guid>
+<content:encoded><![CDATA[
+
+<p>目前在用 OpenCat,但不支持 latex 。</p>
+<p>有无其他 App 支持的？</p>
+<p>谢谢</p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:22:10Z</pubDate>
+<pubDate>2023-12-16T14:22:10Z</pubDate>
+</item>
+<item>
+<title>[macOS] OrbStack 的内存占用问题</title>
+<link>https://www.v2ex.com/t/1000989</link>
+<guid>https://www.v2ex.com/t/1000989</guid>
+<content:encoded><![CDATA[
+
+<p>我的 OrbStack 只开启了一个 debian 的虚拟机，并且绝大多数时候，这个虚拟机都是关机状态，但是 OrbStack 似乎还是能占用 5g 左右的内存，我的 m1pro 只有 16g 内存，有办法降低它的内存占用吗？</p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:20:34Z</pubDate>
+<pubDate>2023-12-16T14:34:03Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 开源可重现的 Homelab for DevOps，全站 HTTPS - homeinfra.org</title>
+<link>https://www.v2ex.com/t/1000988</link>
+<guid>https://www.v2ex.com/t/1000988</guid>
+<content:encoded><![CDATA[
+
+<p>在 1C1G 的小机器搭建了这些服务 :)</p>
+<ul>
+<li>
+<p>traefik + DNS Challenge 配置全站 HTTPS 。</p>
+</li>
+<li>
+<p><a href="https://git.homeinfra.org" rel="nofollow">gitea</a> 作为 git server 和 OAuth Provider ，支持通过 Github 登录。</p>
+</li>
+<li>
+<p>基于 Gitea Actions (与 Github Actions 兼容）实现<a href="https://git.homeinfra.org/root/cronjobs/actions" rel="nofollow">定时任务</a>。 </p>
+</li>
+<li>
+<p><a href="https://portainer.homeinfra.org" rel="nofollow">portainer</a>管理 Docker ，并支持通过 Gitea 单点登录。</p>
+</li>
+<li>
+<p><a href="https://uptime.homeinfra.org" rel="nofollow">uptime-kuma</a> 监控，监控各个 https 站点、docker container</p>
+</li>
+</ul>
+<p>repo: <a href="https://github.com/homeinfra-org/infra" rel="nofollow">https://github.com/homeinfra-org/infra</a></p>
+]]></content:encoded>
+<pubDate>2023-12-16T14:20:28Z</pubDate>
+<pubDate>2023-12-16T14:44:07Z</pubDate>
+</item>
+
+<item>
 <title>[求职] [远程办公] 金融科技公司招聘若干岗位</title>
 <link>https://www.v2ex.com/t/1000987</link>
 <guid>https://www.v2ex.com/t/1000987</guid>
 <content:encoded><![CDATA[
-
 <h1>公司是全球 TOP10 交易所</h1>
 <h1>目前热招岗位有</h1>
 <p>产品经理
@@ -30,17 +542,14 @@ App 开发
 <p>Email：cWl1amlhbnpob25nODg4QGdtYWlsLmNvbQ== (base64)</p>
 ]]></content:encoded>
 <pubDate>2023-12-16T14:16:08Z</pubDate>
-<pubDate>2023-12-16T14:16:08Z</pubDate>
 </item>
 <item>
 <title>[分享发现] 阿里云盘不限速？</title>
 <link>https://www.v2ex.com/t/1000984</link>
 <guid>https://www.v2ex.com/t/1000984</guid>
 <content:encoded><![CDATA[
-
 当年百度说给 2T 空间起码到现在没缩水，阿里云盘吹着不限速到现在家用下行 1000M 的带宽下载 10mb/s 不到，真的服了
 ]]></content:encoded>
-<pubDate>2023-12-16T13:39:45Z</pubDate>
 <pubDate>2023-12-16T13:57:42Z</pubDate>
 </item>
 <item>
@@ -48,12 +557,10 @@ App 开发
 <link>https://www.v2ex.com/t/1000983</link>
 <guid>https://www.v2ex.com/t/1000983</guid>
 <content:encoded><![CDATA[
-
 <p>感觉枭龙 888 之后的 u ，几乎很少见到有第三方的 rom ，</p>
 <p>这个是因为手机厂 rom 不开源，还是机器无法解锁造成的？</p>
 <p>或者说从硬件厂，比如高通层面就开始不开放代码，导致第三方 rom 无法开发？</p>
 ]]></content:encoded>
-<pubDate>2023-12-16T13:36:43Z</pubDate>
 <pubDate>2023-12-16T13:51:34Z</pubDate>
 </item>
 <item>
@@ -61,10 +568,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000982</link>
 <guid>https://www.v2ex.com/t/1000982</guid>
 <content:encoded><![CDATA[
-
 <p>，我想用 cpu 训练一个微型的 chatgpt ，不要步骤都有哪些，大佬可以提提意见</p>
 ]]></content:encoded>
-<pubDate>2023-12-16T13:31:19Z</pubDate>
 <pubDate>2023-12-16T14:09:40Z</pubDate>
 </item>
 <item>
@@ -72,10 +577,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000981</link>
 <guid>https://www.v2ex.com/t/1000981</guid>
 <content:encoded><![CDATA[
-
 如何优化 圈 x 的配置
 ]]></content:encoded>
-<pubDate>2023-12-16T13:29:27Z</pubDate>
 <pubDate>2023-12-16T13:27:27Z</pubDate>
 </item>
 <item>
@@ -83,13 +586,11 @@ App 开发
 <link>https://www.v2ex.com/t/1000980</link>
 <guid>https://www.v2ex.com/t/1000980</guid>
 <content:encoded><![CDATA[
-
 <p>华硕天选 4 FX507VV 2023</p>
 <p>笔记本独显直连 RTX 3060 Laptop 8GB ，核显 Iris Xe ，64GB 运存，1 TB SSD Linux 分区。</p>
 <p>工作：编译 AOSP ，跑 Cuttlefish ，跑 JB 全家桶，C 、go 、rust 开发，android 内核编译</p>
 <p>最好可以调整屏幕亮度</p>
 ]]></content:encoded>
-<pubDate>2023-12-16T13:17:12Z</pubDate>
 <pubDate>2023-12-16T14:12:07Z</pubDate>
 </item>
 <item>
@@ -97,10 +598,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000978</link>
 <guid>https://www.v2ex.com/t/1000978</guid>
 <content:encoded><![CDATA[
-
 坐标杭州，关于自己：<br />1 15 年开始做安卓应用方向开发，熟悉 Kotlin 、Jetpack 库，有一定的 Flutter 、vue 经验；<br />2 985 、211 本硕；<br />3 有独立开发的 App （已上线，如有视频面试机会可查看代码）；<br />4 家里有一位 UI 设计，在岗；<br />5 参与过 Tapatalk 开发 。<br /><br />如有团队对我有意向，可以与我联系：wx 15658801591 ；邮箱 343775541@qq.com
 ]]></content:encoded>
-<pubDate>2023-12-16T13:06:51Z</pubDate>
 <pubDate>2023-12-16T13:03:51Z</pubDate>
 </item>
 <item>
@@ -108,10 +607,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000977</link>
 <guid>https://www.v2ex.com/t/1000977</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://github.com/dotnet/maui/assets/42172631/96efe4f6-0904-4c07-874d-a2cdaaec5f78" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-16T13:02:56Z</pubDate>
 <pubDate>2023-12-16T13:00:56Z</pubDate>
 </item>
 <item>
@@ -119,13 +616,11 @@ App 开发
 <link>https://www.v2ex.com/t/1000976</link>
 <guid>https://www.v2ex.com/t/1000976</guid>
 <content:encoded><![CDATA[
-
 <p>几年前开发了一个免费的 chrome 扩展，现在累计了 5 万的周活跃用户，由于这个扩展是只针对了一个平台，所以用户量不大。</p>
 <p>最近我收到一个公司的收购合同，谈了几天最后他们愿意最多以 1 个用户 10 刀也就是 50 万美元（税前）收购这个扩展。</p>
 <p>我心里很矛盾，因为 50 万刀交完税剩下也不多，而且我很清楚他们收购后会干嘛，这个扩展使用了 scripts 权限，他们收购后可以很轻松的获取用户的账号密码，甚至获取用户公司的管理权限。</p>
 <p>想想心里很难受，这可能会导致多少个家庭破碎。所以我应该让他们加钱（加多少？），还是放弃这个收购机会？（我感觉扩展货币化行不通，因为只是一些小功能达不到赚钱的目的）有没有这方面经验的老哥。</p>
 ]]></content:encoded>
-<pubDate>2023-12-16T13:02:51Z</pubDate>
 <pubDate>2023-12-16T14:11:01Z</pubDate>
 </item>
 <item>
@@ -133,10 +628,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000974</link>
 <guid>https://www.v2ex.com/t/1000974</guid>
 <content:encoded><![CDATA[
-
 最近我频繁的发现，在使用 Chrome 打开 JD-我的订单或者首页的时候，会自动跳转到  [ Linkhaitao] 这个网站（我个人分析这个是返利网站，在我的浏览器打开后，购物后有可能会给别人的账户返利或者什么的），但是由于我安装的有 Adguard 插件，导致这个网站不能打开，Chrome 是正常官网下载的 Chrome ，问题大概率出现在 Chrome 安装的插件里，但是我无法判断是那个王八蛋插件导致的这个事情，所以可否请大家一起来讨论下，真是气到我了。<br />PS：我个人的插件列表如下：<br />1.Adguard<br />2.Wetab 新标签页<br />3.篡改猴<br />4.SmartProxy<br /><a href="http://5.TG" rel="nofollow noopener" target="_blank">5.TG</a> downloader<br />6.在线下载管理器-视频下载器/opjjpmhoiojifppkkcdabiobhakljdgm<br />7.fetchv 网页视频下载器 hlsm3u8mp4bl/imleiiaoeclikefimmcdkjabjbpcdgaj<br />以及若干主题
 ]]></content:encoded>
-<pubDate>2023-12-16T12:49:42Z</pubDate>
 <pubDate>2023-12-16T13:29:39Z</pubDate>
 </item>
 <item>
@@ -144,10 +637,8 @@ App 开发
 <link>https://www.v2ex.com/t/1000973</link>
 <guid>https://www.v2ex.com/t/1000973</guid>
 <content:encoded><![CDATA[
-
 <p>买来基本没带出去过，一直在家接显示器插电用，因为要合盖接显示器必须要插电（就是可能几个月不拔电源的那种。。。）之前家里一台用来转发短信的旧 iPhone 因为一直插电鼓包了，担心笔记本也这样，大概多久放一次电比较好？一个月？还是说现在有什么智能电池系统，一直插着没事，最好是能让电脑使用直连电源的模式不用电池，目前系统是 Monterey</p>
 ]]></content:encoded>
-<pubDate>2023-12-16T12:32:51Z</pubDate>
 <pubDate>2023-12-16T13:12:59Z</pubDate>
 </item>
 <item>
@@ -155,7 +646,6 @@ App 开发
 <link>https://www.v2ex.com/t/997589</link>
 <guid>https://www.v2ex.com/t/997589</guid>
 <content:encoded><![CDATA[
-
 <h2>懒农 （ LazyCoder ）</h2>
 <p>一款实现可视化生成代码的代码生成器</p>
 <p><a href="http://www.apache.org/licenses/LICENSE-2.0.html" rel="nofollow"><img alt="License" class="embedded_image" rel="noreferrer" src="http://img.shields.io/:license-apache-brightgreen.svg" /></a> </p>
@@ -201,10 +691,8 @@ App 开发
 </td></tr>
 </tbody></table>
 ]]></content:encoded>
-<pubDate>2023-12-04T11:15:25Z</pubDate>
 <pubDate>2023-12-16T13:16:53Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 过冬装备</title>
 <link>https://www.v2ex.com/t/1000972</link>
@@ -16346,204 +16834,6 @@ dns:
 <p>更新 14.2 之后，微信新消息提示音变成了 “反弹”，有方法可以设置回“三全音” 吗？</p>
 ]]></content:encoded>
 <pubDate>2023-12-12T09:42:05Z</pubDate>
-</item>
-<item>
-<title>[Kubernetes] k8s 某个 deployment 如何自动伸缩到 node 的数量</title>
-<link>https://www.v2ex.com/t/999755</link>
-<guid>https://www.v2ex.com/t/999755</guid>
-<content:encoded><![CDATA[
-<p>如果，如何自动伸缩后，保持每个 node 上都有这个 deployment 的 pod</p>
-<p>有没有运维大佬指点一下</p>
-]]></content:encoded>
-<pubDate>2023-12-12T09:58:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于调整管理网站一些按钮的位置 或者表格的高低等样式的请教</title>
-<link>https://www.v2ex.com/t/999754</link>
-<guid>https://www.v2ex.com/t/999754</guid>
-<content:encoded><![CDATA[
-op 纯后端 不过难免需要调整一下网站的样式 想问一下有没有什么工具或者可视化的捷径可以走 一点点调试太痛苦了 还有可能遇到 自适应分辨率的问题
-]]></content:encoded>
-<pubDate>2023-12-10T21:02:48Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [可远程] 小团队招募兼职安卓客户端、服务端各一人，可长期合作</title>
-<link>https://www.v2ex.com/t/999753</link>
-<guid>https://www.v2ex.com/t/999753</guid>
-<content:encoded><![CDATA[
-项目背景：做一款游戏 launcher 启动器，面向海外市场。有明确的商业模式和海外资源来维持项目长期运转。<br /><br />本人介绍：BAT 均待过，现在准备自己搭团队做小而美的产品。开发可以选择技术入股或者单纯拿钱办事，都接受。<br /><br />安卓客户端职位 JD：<br /><br />-熟悉安卓 UI 开发，2 年以上开发经验<br />-熟悉 frame work 层，优先有虚拟机相关开发经验（ must ）<br />-具有服务端或者 HTML 开发经验者优先<br /><br />服务端职位 JD：<br />-1 年及以上后端开发经验<br /><br />薪资范围加 v 私聊，薪资预期不会很高，因为在拿自己钱做事。<br />有意向加 v：18928720126
-]]></content:encoded>
-<pubDate>2023-12-12T09:47:51Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 外企上海分部前端/后端/移动端</title>
-<link>https://www.v2ex.com/t/999752</link>
-<guid>https://www.v2ex.com/t/999752</guid>
-<content:encoded><![CDATA[
-上海入职岗位需求：<br />项目：欧洲游戏研发<br />需求 2 中级 web 开发工程师：18~27K<br />需求 3 初级 web 开发工程师：8~15K<br />需求 2 中级 go 服务器开发：20~30K<br />需求 1 高级 IOS/Android 开发工程师：27~35K<br />需求 1 中级 IOS/Android 开发工程师：18~27K<br />关于 remote：薪资-30%可能 open<br />工作时间：10 点~晚 8 点双休制<br />base：上海徐汇区 or 漕河泾开发区<br />简历投递： xiaoxiangjiao97@gmail.com
-]]></content:encoded>
-<pubDate>2023-12-12T09:18:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] 焦虑症、高血脂、颈椎病求助（头晕、眼花、手脚无力）</title>
-<link>https://www.v2ex.com/t/999751</link>
-<guid>https://www.v2ex.com/t/999751</guid>
-<content:encoded><![CDATA[
-<p>背景：低密度脂蛋白 4.2 以上已经三年，三年前最高到过 5.0 ，目前在 4.3 ，中间无饮食、生活方式和运动调节，基本放任自由；半年前确诊焦虑症，目前正在减药期（文拉法辛）；颈椎病患者。</p>
-<p>近期感觉头晕严重、眼睛模糊、手脚无力，怀疑高血脂的问题（当然本人也有颈椎病和焦虑症，不一定是高血脂造成的）。所以去医院求助医生，医生建议服用他汀进行治疗，但考虑他汀副作用：肝肾损伤、横肌纹溶解、血糖异常等，所以咨询一下有没有通过生活方式、饮食等方法控制血脂成功的案例，感谢大家</p>
-<p>最后头晕、眼花、手脚无力等症状最近困扰我比较严重，特别是头晕（无天旋地转感觉要摔倒的情况），基本伴随一整天，不知道有没有道友也有类似的症状？</p>
-<p>我目前怀疑对象有三个：焦虑症、高血脂、颈椎病，不知道这方面有没有大佬能提供一些身边的案例</p>
-]]></content:encoded>
-<pubDate>2023-12-12T10:04:59Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 知链短链接新 UI 上线啦！</title>
-<link>https://www.v2ex.com/t/999750</link>
-<guid>https://www.v2ex.com/t/999750</guid>
-<content:encoded><![CDATA[
-<p>知链短链接新 UI 上线啦！
-<a href="http://zhiurl.cn" rel="nofollow">zhiurl.cn</a>
-支持。
-*自定义链接后缀<br />
-*API 调用  </p>
-<p>欢迎你的使用</p>
-]]></content:encoded>
-<pubDate>2023-12-12T09:52:38Z</pubDate>
-</item>
-<item>
-<title>[酷工作] TapTap（TDS）招聘后端工程师（上海）</title>
-<link>https://www.v2ex.com/t/999749</link>
-<guid>https://www.v2ex.com/t/999749</guid>
-<content:encoded><![CDATA[
-<p>大家好，上次通过 v 站顺利的找到了靠谱的全栈同事，这次我们团队需要一位后端专精的同事，因此首先想到了 v 站。先放 JD：</p>
-<p><strong>要求</strong></p>
-<ul>
-<li>有扎实的工程师基础：熟悉常用数据结构与算法，了解现代 web 应用是如何工作的。</li>
-<li>熟悉 MongoDB / ClickHouse 或其他 NoSQL 数据库，理解索引、分布式事务、磁盘存储等机制。</li>
-<li>精通 Go 或 Java （我们后端服务使用的主要语言），了解后端开发涉及的常见网络协议和 RPC 协议，熟悉各类开源中间件和工具。</li>
-<li>有优秀的学习、沟通与协作能力。</li>
-<li>工作地点：上海。</li>
-</ul>
-<p><strong>加分项</strong></p>
-<ul>
-<li>有游戏行业从业经历。</li>
-<li>了解 Clojure 语言。</li>
-<li>有后端之外的其他技术或能力栈。</li>
-</ul>
-<p><strong>职责</strong></p>
-<ul>
-<li>负责面向 2B 服务部分后端产品，保障服务稳定的同时响应新的需求。</li>
-<li>参与新产品后端系统的设计与开发。</li>
-</ul>
-<p>简历请发送到 <a href="mailto:tds-jobs@taptap.com">tds-jobs@taptap.com</a> 。</p>
-<hr />
-<p>之前在招聘全栈工程师的时候详细描述了我们的要求、不要求以及团队的工作方式等，这部分内容在招聘过程中帮助我们与候选人节约了大量的时间。这些内容与具体的职位无关，当前也仍然适用，这里我稍微调整了一下全文引用了：</p>
-<blockquote>
-<h3>关于要求</h3>
-</blockquote>
-<blockquote>
-<p>首先，你需要是一个优秀的工程师。一个优秀的工程师需要做到在为你做代码 review 时你的同事不需要关心命名、逻辑正确性、是否存在性能问题这些方面，而是可以把重点放在问题抽象、模块拆分、接口设计层面。要做到这点并不容易，你需要有良好的英语水平，需要有扎实的计算机基础、熟悉常用的数据结构与算法，需要了解现代 web 应用的各个部分大约是如何工作的，当遇到不熟悉的领域时知道如何快速学习对应的知识，以及最重要的一点，需要有动手能力把所有的这些变成可以运行的工具或服务。</p>
-</blockquote>
-<blockquote>
-<p>然后，你需要是一个专业的后端工程师。你需要了解后端领域的最新状态，知道要解决的问题是什么，哪些已经被解决了，哪些进展到了什么程度。你需要熟悉现代的后端工程的完整流程，有能力选择合适的方法与工具，独立完成一个需求的后端部分从需求分析到方案设计、开发、测试、发布、运维的完整流程。你还需要对其他与后端有交集的角色—包括但不限于产品 /运营、设计、前端 、SRE—负责的事情有基本的认知，知道不同角色之间的边界与接口，有能力辨别合作方案中不合理的设计。</p>
-</blockquote>
-<blockquote>
-<p>最后是沟通能力。正如「代码是写给人看的」，工程师很大一部分工作是在与各种各样的人沟通。因此你需要能通过书面或口头的形式有效地描述事实（问题、方案）、表达观点。</p>
-</blockquote>
-<blockquote>
-<p>此外我们非常希望你会后端之外的另一个栈：产品、用户体验设计或前端开发。拥有跨栈的能力有以下优势：1. 减少沟通成本，可以更灵活地分配时间 ，从而更快的进行迭代； 2. 可以从更高的视角看问题，从整体利益出发设计更合理的方案。「会」的定义是：你不一定有像后端领域一样全面的知识体系，但依然要有独立完成相关工作的能力。</p>
-</blockquote>
-<blockquote>
-<p><strong>说完了要求，再来说说不要求什么。</strong></p>
-</blockquote>
-<blockquote>
-<p>首先，不要求工作经验。能力比经验重要的多，只要你能证明你满足上述的能力要求我们都会邀请你来面试（当然项目经历是最常见的能力证明，如果你在工作经验上没有优势，请务必确保你在简历中体现出了能力）。出于同样的原因，我们也会按照简历中与面试时展现出的能力提供我们认为与之匹配 offer ，而非根据过往的职级或薪资（我们甚至不会问）。</p>
-</blockquote>
-<blockquote>
-<p>然后，这个职位不要求你是某个领域的技术专家。我们目前阶段，绝大部分需求依然来自业务。能在广泛的领域中选择合适的工具把一个需求从 0 做到 80 分要比在某个具体领域把需求从 80 分优化到 99 分对当前的我们更有价值。当然这并不是说我们不重视技术深度，只是说如果你的职业规划是深耕某个技术方向的专家，对具体业务兴趣不大，那这个职位可能不能满足你的期望。</p>
-</blockquote>
-<blockquote>
-<h3>关于团队</h3>
-</blockquote>
-<blockquote>
-<p>说了很多对候选人的期望，接下来分享一下我们团队的更多细节。其中很多是我们与候选人沟通时经常被问到的，本也不是什么需要保密的信息，不如在这里公开介绍一下。</p>
-</blockquote>
-<blockquote>
-<h4>关于 TapTap 与 TDS</h4>
-</blockquote>
-<blockquote>
-<p>公司层面，包括部门的基本情况，以及文化、面试流程、工作方式等信息，可以参考<a href="https://blog.taptap.dev/pages/culture-management-and-tools" rel="nofollow">《文化、制度和工具 | TDS 博客》</a>，不在此赘述了。</p>
-</blockquote>
-<blockquote>
-<h4>关于我们组</h4>
-</blockquote>
-<blockquote>
-<p>我们是 TDS 负责云服务的研发团队，目前由 10 位工程师组成，其中有 5 位专精后端。我们的目标是提供产品和服务让游戏开发者们更容易做出功能丰富的游戏。我们负责的业务主要面向游戏开发者，覆盖数据库、IM 、容器平台等各种不同类型的能力。使用的主要的技术栈是 Go 与 Java ，也有部分 TypeScript 项目，还有一些老代码是 Clojure 的。</p>
-</blockquote>
-<blockquote>
-<h4>关于我们的工作方式</h4>
-</blockquote>
-<blockquote>
-<p>我们按照需求分工，一个人负责一个完整的需求，从需求分析一直推进到最终发布。如果某些重要的工作不在你擅长的领域，你可能会需要在组内或组外找到合适的人与你合作完成（ TDS 层面还是有专精产品、设计、测试、DevOps 的团队的）。同时我们要求每个人又都是一个或多个模块的 owner 。这个模块可大可小，大到一整个业务方向，小可以是某个具体功能，相同的是都要求这个人是全公司最了解这个模块的人，要对这个模块负责（更具体一点，要收集与分析模块的需求、思考与决定模块的目标与计划、review 涉及到该模块的方案与 MR ）。</p>
-</blockquote>
-<blockquote>
-<p>公司践行 OKR ，每个团队有自上而下对齐的目标（ O ），它们是我们日常大小决策的依据。我们组每个月初会根据团队目标讨论并确定当月的工作计划，然后每个人独立拆分更细的任务与个人计划。</p>
-</blockquote>
-<blockquote>
-<p>我们的日常议事原则是提供完整上下文、广泛充分发表意见、owner 拥有最终决定权。为了做到这些，团队几乎所有的代码都是内部公开的，工作中所有的沟通都需要以公开的方式进行（比如 Slack 公开频道、Confluence / GitLab / Figma comments ），保证任何人都可以在任何时候看到整个决策过程。</p>
-</blockquote>
-<hr />
-<p>工程师招聘是一个相互了解与选择的过程，我们深知互相坦诚在这个过程中的重要性。因此如果你看完上面这些后，认同我们的目标与追寻目标的方式，并认为可以胜任该职位，请不吝将简历发送到 <a href="mailto:tds-jobs@taptap.com">tds-jobs@taptap.com</a> （或者 <a href="mailto:liye+v2ex@xd.com">liye+v2ex@xd.com</a> ，如果你想单独找我聊聊）。</p>
-<p>感谢你的关注。</p>
-]]></content:encoded>
-<pubDate>2023-12-12T08:37:09Z</pubDate>
-</item>
-<item>
-<title>[重庆] 重庆江北免费做小区宣传广告</title>
-<link>https://www.v2ex.com/t/999748</link>
-<guid>https://www.v2ex.com/t/999748</guid>
-<content:encoded><![CDATA[
-<p>可免费做小区公益广告宣传，欢迎咨询</p>
-]]></content:encoded>
-<pubDate>2023-12-12T08:21:46Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] GPT-PLUS 用户如何才能使用 GPT-4 的 API 啊</title>
-<link>https://www.v2ex.com/t/999747</link>
-<guid>https://www.v2ex.com/t/999747</guid>
-<content:encoded><![CDATA[
-<p>我调用 models list 接口发现居然没有 4 ，查了一圈才知道 GPT-4 的 API 得是 Pay-As-You-Go customer 同时成功付费过。</p>
-<p>这个要怎么付费呢</p>
-<p>官方的回答： <a href="https://help.openai.com/en/articles/7102672-how-can-i-access-gpt-4" rel="nofollow">https://help.openai.com/en/articles/7102672-how-can-i-access-gpt-4</a></p>
-]]></content:encoded>
-<pubDate>2023-12-12T09:59:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家春节有什么计划吗</title>
-<link>https://www.v2ex.com/t/999746</link>
-<guid>https://www.v2ex.com/t/999746</guid>
-<content:encoded><![CDATA[
-如果出去玩的话有没有推荐的地方？
-]]></content:encoded>
-<pubDate>2023-12-12T08:22:17Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 关于 apple tv 登陆 icloud 账号看不到 store 的问题</title>
-<link>https://www.v2ex.com/t/999745</link>
-<guid>https://www.v2ex.com/t/999745</guid>
-<content:encoded><![CDATA[
-问题如下：<br />icloud 是美区 ID ，上了个土耳其的 icloud 家庭车，手机上 store 账号有时候切国区，有时候切美区<br />用 icloud 登陆 apple tv 默认账号后，发现找不到 store 商店，后面发现 tv 上的 store 账号显示是国区的账号，并且显示灰色还不能退出，万能的 V 友有什么办法可以解决这个问题吗
-]]></content:encoded>
-<pubDate>2023-12-12T08:14:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 坐标广东，想入门学习下帆船运动和攀岩，有大佬分享下经验吗</title>
-<link>https://www.v2ex.com/t/999744</link>
-<guid>https://www.v2ex.com/t/999744</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-12T08:00:08Z</pubDate>
 </item>
 </channel>
 </rss>
