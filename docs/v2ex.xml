@@ -5,14 +5,299 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享创造] 微信小程序一键清除手写体</title>
+<link>https://www.v2ex.com/t/1002744</link>
+<guid>https://www.v2ex.com/t/1002744</guid>
+<content:encoded><![CDATA[
+
+<h4>背景</h4>
+<p>小盆友上学了，有家庭作业的时候有时候会遇到作业忘带的情况，这时候麻烦其他家长发过来的作业拍照经常会已经有了书写痕迹和答案。这个时候我们就需要有款软件能方便的擦除作业的手写体。</p>
+<p>市面上也有类似的工具比如 全能扫描王之类的，还有作业帮啥的，不过这玩意有些需要收费，有些交互做的很繁琐。于是我调研了一圈准备自己撸一个小程序来实现。</p>
+<h3>初步方案</h3>
+<p>一开始实现的思路也很简单，主要分四部步</p>
+<ol>
+<li>用户选择图片</li>
+<li>上传图片到服务端</li>
+<li>服务端调用 OCR 接口返回手写体的区域</li>
+<li>客户端擦除相关手写体</li>
+</ol>
+<p>于是就开始在各大云平台找相关 OCR 的 API ，主要是阿里云，腾讯云以及百度云。
+在调研试用了主流的三大云平台记录一下各个平台在 OCR 服务方面的一些个人体验</p>
+<h4>腾讯云</h4>
+<p>腾讯云在这次使用体验上表现较好，
+在 OCR 的调用方面有相关的在线试用平台<a href="https://cloud.tencent.com/product/ocr" rel="nofollow">https://cloud.tencent.com/product/ocr</a>可以体验相关的 API
+相关的技术文档也比较健全 <a href="https://cloud.tencent.com/document/product/866/36212" rel="nofollow">https://cloud.tencent.com/document/product/866/36212</a></p>
+<p>在文档里有一个比较关键的参数:
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/003.jpg" /></p>
+<blockquote>
+<p>Scene 选值: only_hw 表示只输出手写体识别结果过滤印刷体   ---有了这个参数我们就可以知道哪些是手写体，哪些是印刷体</p>
+</blockquote>
+<p>在实际调用的时候发现了问题： 在腾讯云的 OCR 手写体的接口里识别的区域不够准确，具体见下面的截图标黄的区域为根据腾讯云 OCR 识别后绘制，可以明显的看出有些误差的。不过在可接受范围内。</p>
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/001.JPG" />
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/002.jpg" />
+<p>免费额度：OCR 属于同一个共享资源包的接口共同享受 1,000 次/月的免费调用额度。</p>
+<h4>阿里云</h4>
+<p>阿里云识别手写体在这方面表现的比较差劲：
+阿里云 OCR 相关的服务 <a href="https://ai.aliyun.com/ocr/general" rel="nofollow">https://ai.aliyun.com/ocr/general</a>,也有在线体验的示例，
+<a href="https://market.aliyun.com/apimarket/detail/cmapi00040832" rel="nofollow">相关技术文档&amp;在线接口调试</a>
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/004.jpg" /></p>
+<blockquote>
+<p>但是--他没有参数区分是否只输出手写体--- 阿里云惨败
+免费额度：手写体识别享用 200 次/月的免费额度。</p>
+</blockquote>
+<h4>百度云</h4>
+<p>百度云的 OCR 识别 API 文档<a href="https://cloud.baidu.com/doc/OCR/s/hk3h7y2qq" rel="nofollow">https://cloud.baidu.com/doc/OCR/s/hk3h7y2qq</a>
+百度云在识别手写体方面表现比较普通，同样的他的手写体识别里也没有区分是否只标识手写体，印刷体和手写体识别没发区分。</p>
+<blockquote>
+<p>没有参数区分是否只输出手写体--- 百度云惨败
+免费额度：手写文字识别 ：500 次/月赠送；通用文字识别（标准版）：1000 次/月赠送  这块百度是区分开的，比较大方</p>
+</blockquote>
+<h4>此方案的结论：</h4>
+<p>只识别手写体然后前端手动擦除有点麻烦，没有想象中那么简单。作为备选方案。</p>
+<h3>新的方案 --直接调用去除手写体的 API</h3>
+<p>翻百度云的 API 的时候发现了 <a href="https://cloud.baidu.com/doc/OCR/s/il4tb1jay" rel="nofollow">文档去手写 API</a>
+使用了一下欣喜若狂，效果很好，官方的示例一目了然<img alt="" class="embedded_image" rel="noreferrer" src="https://bce.bdstatic.com/doc/ai-cloud-share/OCR/3_48a66d6.JPG" />
+腾讯云与阿里云都没有类似的 API 。 唯一可惜的是这个 API 的免费额度是每个月 50 次。
+免费额度：50 次/月
+百度云这波好感倍增。</p>
+<h4>有道智云</h4>
+<p>于是继续搜刮其他云平台有没有相关的 API ，找到了有道智云有一个<a href="https://ai.youdao.com/handwritingErasure.s" rel="nofollow">试卷擦除手写体</a>
+有道智云的文档写的比较简单，官方有个 demo ，试用了一下，比百度云的略微逊色，但是也基本满足需要。
+有道智云的接口有个缺点就是返回的接口里也会返回原图的 base64 编码，没有参数选择只返回处理后图片的 base64 ，这样就比较浪费接口流量。
+免费额度：有道云会赠送 100 元的充值券，这个 API 调用一次是 0.1 元。(⊙o⊙)…。。。</p>
+<h4>特别提醒</h4>
+<p>需要注意的一点是</p>
+<h4>此方案的结论：</h4>
+<blockquote>
+<p>服务端接口封装，优先调用百度云的 API ，50 次额度用完后再调用有道云的 API</p>
+</blockquote>
+<h3>正式的方案</h3>
+<p>因为首先微信小程序作为前端开发，故直接使用了微信小程序的云服务器方案(免费 90 天) golang 作为服务端。顺便薅了腾讯云的 COS 存储的羊毛。
+微信云在 web 接口层面有个两个限制：</p>
+<ol>
+<li>post 数据不能超过 10K --对于一个 base64 的图片来说这个 size 基本上不可能。</li>
+<li>接口响应超时时间为 10S</li>
+</ol>
+<p>所有一通调研下来实际的落地方案如下：</p>
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/006.jpg" />
+<h3>最终的实际效果</h3>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/001.webp" /></p>
+<p>大家可以扫码体验，或者微信搜索小程序: 番茄小能手 </p>
+<img class="embedded_image" rel="noreferrer" src="https://noway-img.oss-rg-china-mainland.aliyuncs.com/blog/qrCode.png" />
+<h3>一些感想：</h3>
+<p>做这个小工具功能比较简单，实际的开发中大量的时间消耗在调研各大应用平台的接口以及前后端联调上。整体体验因为是纯调用接口，最好的方案应该是把这些处理都放在前端来，OCR 模型识别啥的也下放到前端，不过暂时没找到合适的开源框架，大家有了解的可以评论区告诉我。</p>
+]]></content:encoded>
+<pubDate>2023-12-22T12:22:30Z</pubDate>
+<pubDate>2023-12-22T12:22:30Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 用 SwiftUI 做了个简易的找工作记录用的 App</title>
+<link>https://www.v2ex.com/t/1002743</link>
+<guid>https://www.v2ex.com/t/1002743</guid>
+<content:encoded><![CDATA[
+
+一开始的想法只是看到 Swift Charts 觉得很喜欢这种简洁又美观的图形效果，想用多层饼图的形式展现一些数据。<br /><br />正好是毕业后找工季，经常看到有人发 Sankey 图，感觉如果用多层饼图说不定会有新意而且也很漂亮。<br /><br />然后想着都做了这么多了要不干脆写个 app 出来。香蕉猴子森林了属于是。<br /><br />UI 还是蛮简陋的。上面那个导航条感觉也不太 Swifty 。之前有 v 友建议用 Sheet ，不过急着把功能先做完也就没顾得上了。感觉还是有很多东西需要重新考虑。<br /><br />自我评价的话感觉一个月弄完这东西，虽然比起 GitHub 上能搜到的竞品可能还是更完整，但还是有很多不足的地方。<br /><br />预览图如下：<br /><br />![]( <a href="https://www.v2ex.com/i/M7CwwiNIl.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 M7CwwiNIl.png"><img class="embedded_image" src="https://i.v2ex.co/M7CwwiNIl.png" /></a>)<br /><br />主要功能就是记录投递的岗位，更新状态然后可视化投递结果。好像也没什么值得说的东西。<br /><br />写这个东西之前对 SwiftUI 的了解仅限于「 Swift 的 lambda 挺强大，语言看起来有点像 Kotlin 」，写的时候遇到了一大堆问题，不过还好都解决了，主要的参考资料包括 Apple 的官方文档、Apple Developer 社区、StackOverflow 和 V2EX ，还有一些不同的技术 blog 例如 hackingwithswift 。<br /><br />代码以 GPL 协议开源在 GitHub 上。写得太搓了就不去 App Store 骗钱了（
+]]></content:encoded>
+<pubDate>2023-12-22T12:18:52Z</pubDate>
+<pubDate>2023-12-22T12:18:52Z</pubDate>
+</item>
+<item>
+<title>[程序员] idea 的编译真的是让人难受</title>
+<link>https://www.v2ex.com/t/1002742</link>
+<guid>https://www.v2ex.com/t/1002742</guid>
+<content:encoded><![CDATA[
+
+编译的时候老是提示堆内存不足，打开自动编译也报一堆错误，打开具体文件报错信息又消失了，让人捉摸不透，想彻底放弃 eclipse 不太可能了，编译还得是 eclipse
+]]></content:encoded>
+<pubDate>2023-12-22T12:18:39Z</pubDate>
+<pubDate>2023-12-22T12:30:07Z</pubDate>
+</item>
+<item>
+<title>[程序员] FastDFS 与 Minio 文件存储系统，大家一般用哪个比较多呢？</title>
+<link>https://www.v2ex.com/t/1002740</link>
+<guid>https://www.v2ex.com/t/1002740</guid>
+<content:encoded><![CDATA[
+
+<p>请教一下：  FastDFS  与  Minio  文件存储系统，大家一般用哪个比较多呢？</p>
+]]></content:encoded>
+<pubDate>2023-12-22T11:53:59Z</pubDate>
+<pubDate>2023-12-22T12:01:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] Win10 除了 CKS 还有别的办法加载自签名驱动么？</title>
+<link>https://www.v2ex.com/t/1002739</link>
+<guid>https://www.v2ex.com/t/1002739</guid>
+<content:encoded><![CDATA[
+
+<p>Custom Kernel Signers 要求 Secure Boot ，对双系统不友好。<br />
+尝试了一下过期证书+自定义时间戳的方式。（ <a href="https://github.com/PIKACHUIM/FakeSign" rel="nofollow">https://github.com/PIKACHUIM/FakeSign</a> ）<br />
+好像网上流出来的过期证书都被拉黑了。。</p>
+]]></content:encoded>
+<pubDate>2023-12-22T11:50:40Z</pubDate>
+<pubDate>2023-12-22T11:50:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教 IOS 自动化测试</title>
+<link>https://www.v2ex.com/t/1002738</link>
+<guid>https://www.v2ex.com/t/1002738</guid>
+<content:encoded><![CDATA[
+
+<p>iOS 16.5 系统，WebDriverAgent.ipa 装上了，tidevice wdaproxy 启不来。</p>
+<p>tidevice xctest --debug 一大堆日志，感觉有用的信息就如下：</p>
+<pre><code class="language-tex">'NSFilePath': '/var/containers/Bundle/Application/55B6B0AE-5416-4657-86B5-9EEC8B51F9D2/WebDriverAgentRunner-Runner.app/PlugIns/WebDriverAgentRunner.xctest/WebDriverAgentRunner',
+'NSLocalizedDescription': '未能载入软件包“WebDriverAgentRunner”。',
+'NSLocalizedFailureReason': '未能载入该软件包。',
+'NSLocalizedRecoverySuggestion': '请尝试重新安装软件包。'})})])
+</code></pre>
+<p>折腾一两天了，换了好几个 ipa 都这样。</p>
+<p>由于没有 MAC 系统，WebDriverAgent.ipa 是我用别人分享的，然后用 Sideloadly 个人自签后安装，官方都没有提供 ipa ，都是教如何编译 ipa ，请问 WebDriverAgent.ipa 是必须自己用 XCode 编译安装吗？</p>
+]]></content:encoded>
+<pubDate>2023-12-22T11:37:30Z</pubDate>
+<pubDate>2023-12-22T11:36:30Z</pubDate>
+</item>
+<item>
+<title>[Python] 大家最近新项目用什么 Web 框架？</title>
+<link>https://www.v2ex.com/t/1002736</link>
+<guid>https://www.v2ex.com/t/1002736</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-22T11:05:45Z</pubDate>
+<pubDate>2023-12-22T11:55:13Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] mac 外接 U2723QX 疑问求解</title>
+<link>https://www.v2ex.com/t/1002735</link>
+<guid>https://www.v2ex.com/t/1002735</guid>
+<content:encoded><![CDATA[
+
+<p>刚购入 2723qx ，平时用来敲敲代码。我现在接的是有 90w 充电的口，有办法让这个接口不发挥供电的作用吗？或者是使用其他接口比较好。另外，使用同款显示器作为外接的用户们，你们使用哪个分辨率，默认还是缩放多少呢？</p>
+]]></content:encoded>
+<pubDate>2023-12-22T11:00:59Z</pubDate>
+<pubDate>2023-12-22T11:25:23Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 若依框架 懒人福利，一键安装启动即可快速访问使用</title>
+<link>https://www.v2ex.com/t/1002734</link>
+<guid>https://www.v2ex.com/t/1002734</guid>
+<content:encoded><![CDATA[
+
+<h3>精简版，只为服务 SpringBoot 管理，方便快捷</h3>
+<h4>先看安装成功后，各服务管理效果：</h4>
+<p><img alt="精简版，只为服务 SpringBoot 管理，方便快捷" class="embedded_image" rel="noreferrer" src="https://i.postimg.cc/WbKDj7Mb/Sping-Boot.png" /></p>
+<h4>再看登录成功效果：</h4>
+<p><img alt="若依-VUE 版主界面" class="embedded_image" rel="noreferrer" src="https://i.postimg.cc/gJZqRT6F/ruoyi-login-sucess.jpg" /></p>
+<h3>SCM 工具安装说明</h3>
+<p>一键安装完成后，自带 JDK 、MySQL 、Nginx 、Redis 、BootSys （即 SpringBoot 的启动 Jar 包），只需要将各服务启动即可。</p>
+<p>里面自带若依框架-vue 版部署包，直接用~~~~~~~~~~~~~</p>
+<p>若想要部署自己的项目，可根据下面的方式使用：</p>
+<p>注意 SpringBoot 的 Jar 包放置目录为：</p>
+<p><img alt="Jar 包目录" class="embedded_image" rel="noreferrer" src="https://i.postimg.cc/DZCz5vVt/Sping-Boot.jpg" /></p>
+<h4>开机自启动：</h4>
+<p>设置为开机自启动时，当电脑或服务器重启：会自动启动服务（ SCM 要首先设置为开机自启动）。</p>
+<h4>进程守护：</h4>
+<p>当某服务不小心停止，无须人为操作，该服务会自动启动。</p>
+<h3>目前是支持 Windows 、Windows Server 服务器、统信 UOS 等服务器版本</h3>
+<p>Linux 、Mac 版本陆续更新中...</p>
+<p>感谢关注</p>
+]]></content:encoded>
+<pubDate>2023-12-22T10:59:23Z</pubDate>
+<pubDate>2023-12-22T10:57:23Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 这个 ipv6 问题真折磨，大佬帮我分析下</title>
+<link>https://www.v2ex.com/t/1002732</link>
+<guid>https://www.v2ex.com/t/1002732</guid>
+<content:encoded><![CDATA[
+
+<p>上一个帖子<a href="https://v2ex.com/t/1001626#reply7" rel="nofollow">IPv6 没问题，但夜间看不了 ipv6 源的电视</a>。</p>
+<p>今天查看了一下问题，应该是 OpenWRT ipv6 的问题。具体表现在，每天凌晨一点多 OpenWRT 会执行自动重启，到白天 ipv6 都是 work 的，到了晚上连接它的客户端就无法访问 ipv6 地址了。研究了一会，发现重新连接一下 WAN6 这个网口(DHCPv6)后，就可以恢复正常，也就是用命令 (ifdown WAN6 &amp;&amp; ifup WAN6)。</p>
+<p>在出问题的时候，客户端（手机）无法观看 IPV6 源的电视，电脑（ macOS ）使用命令执行<code>ping6 2409:8087:1e03:21::2</code> 无响应; 但是 ssh 进 OpenWRT 后执行 ping6 都是正常的。使用 traceroute6 命令也是一样，客户端(macOS)执行后只有一条 <code>1  2408:8224:f27:cc71::1  4.568 ms  4.953 ms  3.863 ms</code>, 但在 OW 内部则是正常有跳转的。</p>
+<p>即使出问题的时候，macOS 也是有 ipv6 地址的:</p>
+<pre><code>en0: flags=8863&lt;UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST&gt; mtu 1500
+	options=6460&lt;TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM&gt;
+	ether 51:ed:3d:03:02:0c
+	inet6 fe80::1c00:7578:921:68c1%en0 prefixlen 64 secured scopeid 0xc
+	inet6 2408:8224:f27:cc71:cfd:83f:84d8:2748 prefixlen 64 autoconf secured
+	inet6 2408:8224:f27:cc71:740e:450:7753:f472 prefixlen 64 autoconf temporary
+	inet 192.168.11.109 netmask 0xffffff00 broadcast 192.168.11.255
+	inet6 2408:8224:f27:cc71::ea1 prefixlen 64 dynamic
+	inet6 fd72:53a3:521f:4e91:1003:46e:4ce2:710a prefixlen 64 autoconf secured
+</code></pre>
+<p>使用 <code>netstat -nr -f inet6</code> 查看路由表也是没有用信息。</p>
+<p>仅仅重启了 WAN6 这个网口，没有重启 ipv4 的网口，防火墙也没有改变，所以应该不是防火墙问题。</p>
+<p>重启过路由器，也是没有影响。开关过 OpenClash ，也没影响。</p>
+<p>难道是租约到期了？但我不知道如何排查租约问题。不能每次挂掉后再登录 OW 重新连接 WAN6 吧。</p>
+]]></content:encoded>
+<pubDate>2023-12-22T10:58:18Z</pubDate>
+<pubDate>2023-12-22T11:03:38Z</pubDate>
+</item>
+<item>
+<title>[程序员] 公司准备研发物联网设备，请教一下大家通信协议选型问题</title>
+<link>https://www.v2ex.com/t/1002731</link>
+<guid>https://www.v2ex.com/t/1002731</guid>
+<content:encoded><![CDATA[
+
+<p>设备量级：一套服务 20W 左右；
+通信方式：4G(优先，主要,占比为 90%),lora,zigbee,485 ；需要共用一套协议格式。</p>
+<p>请问用 mqtt json 好还是 TCP 字节流。</p>
+]]></content:encoded>
+<pubDate>2023-12-22T10:55:39Z</pubDate>
+<pubDate>2023-12-22T11:38:48Z</pubDate>
+</item>
+<item>
+<title>[Android] 求助， iPhone 转安卓，如何把照片按照 iPhone 的相册顺序一样，同步到安卓手机上</title>
+<link>https://www.v2ex.com/t/1002730</link>
+<guid>https://www.v2ex.com/t/1002730</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-22T10:55:19Z</pubDate>
+<pubDate>2023-12-22T10:54:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 当前是否有网站或项目汇总世界各国使用的主流网站(主要是小语种)?</title>
+<link>https://www.v2ex.com/t/1002729</link>
+<guid>https://www.v2ex.com/t/1002729</guid>
+<content:encoded><![CDATA[
+
+<p>比较好奇各国网名平常都关注或聊什么, 所以想找一下相关的本地站点, 但像 reddit/quora/推特这些主流面向英语圈的网站, 我发现想找到特定语种的讨论很难, 首先机翻以及英语圈特有的英语缩写非圈内人一般很难找到入口. 另外像俄语网站也比较难找.</p>
+]]></content:encoded>
+<pubDate>2023-12-22T10:44:10Z</pubDate>
+<pubDate>2023-12-22T10:48:18Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 反正我觉得八个戏是够看了，《智取威虎山》《红灯记》还不够你看的？</title>
+<link>https://www.v2ex.com/t/1002728</link>
+<guid>https://www.v2ex.com/t/1002728</guid>
+<content:encoded><![CDATA[
+
+早该管管了，钱叫唱戏的挣走了，名都叫唱戏的得了，现在规定八个精品戏，对观众是重大利好。<br /><br />也可以倒逼戏剧从业人员出精品，出海，开发给外国人看，到外国挣外汇的戏剧。<br /><br />那谁家小孩，天天看戏，人都看傻了，也不干活，浪费时间浪费钱去看戏，这样定了八个戏以后花钱就少了。<br /><br />那些唱戏的深谙人性弱点，戏演得很多人天天去看，看了还想看，还有给名角疯狂打赏的。<br /><br />这次戏曲新政虽然会让以藤熏剧团，往忆剧团为代表的有点不好过，但对玩家肯定是重大利好。
+]]></content:encoded>
+<pubDate>2023-12-22T10:19:56Z</pubDate>
+<pubDate>2023-12-22T07:19:56Z</pubDate>
+</item>
+<item>
+<title>[杭州] 坐标阿里云，招聘云原生研发工程师</title>
+<link>https://www.v2ex.com/t/974960</link>
+<guid>https://www.v2ex.com/t/974960</guid>
+<content:encoded><![CDATA[
+
+岗位描述：<br />1. 负责容器服务产品平台化及底层核心服务能力建设，同时支撑多个垂直领域的企业业务运行；<br /><br />2. 负责容器平台相关云原生技术的架构演进，包括但不限于安全容器、Serverless 基础设施、AI 等新计算技术；能在具备创新活力的上游生态（如开源技术创新、阿里经济体内部创新），把握行业需求，推动创新产品化落地；<br /><br />3. 负责容器服务平台智能化运营系统的架构与建设，能结合容器平台之上复杂多样的业务类型，提出产品能力的评估模型与优化建议，提升平台的稳定性与高效性。<br /><br />职位要求：<br />1. 对容器和基础设施相关领域的云原生技术充满热情，在相关的领域如 Kubernetes 、Serverless 平台、容器网络与存储、运维平台等云原生基础设施其中某一方向有丰富的积累和突出成果（如产品落地，创新的技术实现，开源的突出贡献，学术研究成果等）；<br /><br />2. 有 3 年以上互联网应用开发、运维的经验，有额外企业级应用开发、开发经验者优先；<br /><br />3. 优秀的表达能力，沟通能力，和团队协作能力；对技术和业务有前瞻性的思考；具备较强的 ownership ，以结果为导向，负责或强项业务领域内善于决策；<br /><br />4. 熟悉 Java 、Golang 其中至少一项编程语言。<br /><br />岗位 JD： <a href="https://careers.aliyun.com/off-campus/position-detail?positionId=1041117" rel="nofollow noopener" target="_blank">https://careers.aliyun.com/off-campus/position-detail?positionId=1041117</a><br /><br />联系方式（ base64 ）<br />有意向的朋友可以加微信聊：bGl1YmVueGkwMDEK<br />或者直接发送简历到邮箱：YmVueGkubGJ4QGFsaWJhYmEtaW5jLmNvbQo=
+]]></content:encoded>
+<pubDate>2023-09-18T11:38:48Z</pubDate>
+<pubDate>2023-12-22T02:38:22Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 我觉得淘宝确实该死了</title>
 <link>https://www.v2ex.com/t/1002727</link>
 <guid>https://www.v2ex.com/t/1002727</guid>
 <content:encoded><![CDATA[
-
 没有 Root ，什么权限都没给。<br />没有强制结束，也没有意外断电，就这样摆烂。<br /><a href="https://i.imgur.com/fzrkF76.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fzrkF76.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2023-12-22T10:15:23Z</pubDate>
 <pubDate>2023-12-22T10:16:02Z</pubDate>
 </item>
 <item>
@@ -20,10 +305,8 @@
 <link>https://www.v2ex.com/t/1002726</link>
 <guid>https://www.v2ex.com/t/1002726</guid>
 <content:encoded><![CDATA[
-
 <p>例如:apt-get install openssh-server ，他的二进制文件被写入到 /usr/bin 下，除了这个还有其他的目录的写入情况吗</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T10:15:15Z</pubDate>
 <pubDate>2023-12-22T10:12:15Z</pubDate>
 </item>
 <item>
@@ -31,10 +314,8 @@
 <link>https://www.v2ex.com/t/1002725</link>
 <guid>https://www.v2ex.com/t/1002725</guid>
 <content:encoded><![CDATA[
-
 用来 保修用
 ]]></content:encoded>
-<pubDate>2023-12-22T10:15:14Z</pubDate>
 <pubDate>2023-12-22T02:15:14Z</pubDate>
 </item>
 <item>
@@ -42,14 +323,12 @@
 <link>https://www.v2ex.com/t/1002724</link>
 <guid>https://www.v2ex.com/t/1002724</guid>
 <content:encoded><![CDATA[
-
 <p>摘要：</p>
 <blockquote>
 <p>昨天偶然在微信里看到 Requests 的作者 Kenneth Reitz 发Ｘ说自己因为 躁郁症 失业了，为了不流离失所在社交网络上向粉丝求助</p>
 </blockquote>
 <p>请移步：<a href="https://mp.weixin.qq.com/s/lGpD6Dr0pmYjBi5ZggLmyA" rel="nofollow">公众号文章</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T10:14:12Z</pubDate>
 <pubDate>2023-12-22T06:14:12Z</pubDate>
 </item>
 <item>
@@ -57,10 +336,8 @@
 <link>https://www.v2ex.com/t/1002723</link>
 <guid>https://www.v2ex.com/t/1002723</guid>
 <content:encoded><![CDATA[
-
 <a href="https://www.v2ex.com/i/CsS1m1T1l.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 CsS1m1T1l.png"><img class="embedded_image" src="https://i.v2ex.co/CsS1m1T1l.png" /></a><br /><br />今年 6 月初的时候，随着 Chrome 开始支持侧边栏 API ，我做了一个在侧边栏中垂直显示标签页的扩展 ( <a href="https://v2ex.com/t/947287" rel="nofollow noopener" target="_blank">https://v2ex.com/t/947287</a> )。功能非常简单，就是一个标签列表。即使如此还是很受欢迎，特别是来自中国的用户占比超过一半。<br /><br />当时只是一个列表，所以结构、代码、UI 都非常简单。很多用户表示希望支持更多标签分组的功能。不过要支持标签分组的话，结构就复杂了很多（类似于从数组变成了数组的数组，还有拖拽问题）。UI 怎么设计也没有特别好的参考。所以就一直拖着没做。<br /><br />前几天，终于下决心把分组的功能加上。现在已经发布，如上图所示。设计结合了 卡片 + 折叠模式。<br /><br />安装地址： <a href="https://chromewebstore.google.com/detail/akahnknmcbmgodngfjcflnaljdbhnlfo" rel="nofollow noopener" target="_blank">https://chromewebstore.google.com/detail/akahnknmcbmgodngfjcflnaljdbhnlfo</a>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:59:31Z</pubDate>
 <pubDate>2023-12-22T10:18:01Z</pubDate>
 </item>
 <item>
@@ -68,10 +345,8 @@
 <link>https://www.v2ex.com/t/1002722</link>
 <guid>https://www.v2ex.com/t/1002722</guid>
 <content:encoded><![CDATA[
-
 有 2 台服务器，一台是 RedHat 7,一台是 centos stream 9 ，两台服务器上面的内存都是一样的 128G ，Clickhouse 版本配置文件一模一样，但是同样的 sql ，在 RedHat 7 上面可以执行，在 centos stream 9 报错 <br /><br /> executeQuery: Code: 240, e.displayText() = DB::ErrnoException: Allocator: Cannot mremap memory chunk from 64.00 MiB to 128.00 MiB., errno: 12, strerror: Cannot allocate memory (version 21.1.9.41 (official build)) <br /><br /><br /><br />服务器的内存足够的，max_memory_usage ，max_bytes_before_external_group_by ，max_server——memory_usage 都改过，没效果
 ]]></content:encoded>
-<pubDate>2023-12-22T09:54:14Z</pubDate>
 <pubDate>2023-12-22T09:54:14Z</pubDate>
 </item>
 <item>
@@ -79,10 +354,8 @@
 <link>https://www.v2ex.com/t/1002721</link>
 <guid>https://www.v2ex.com/t/1002721</guid>
 <content:encoded><![CDATA[
-
 请教下各位，在 mac 上用 qq 音乐听歌，当在 qq 音乐程序界面的时候，歌词是会显示在菜单栏的，也会显示在 touchbar ，但是切换到其他应用，比如打开浏览器，歌词就没了，显示的就是那个软件的信息了。 <br /><br />所以怎么样可以把歌词一直保持在菜单栏或者 touchbar 呢？
 ]]></content:encoded>
-<pubDate>2023-12-22T09:52:32Z</pubDate>
 <pubDate>2023-12-22T09:51:32Z</pubDate>
 </item>
 <item>
@@ -90,14 +363,12 @@
 <link>https://www.v2ex.com/t/1002720</link>
 <guid>https://www.v2ex.com/t/1002720</guid>
 <content:encoded><![CDATA[
-
 <p>在隔壁帖子看到有的朋友问为什么这种利好玩家的政策还会被喷。</p>
 <p>问题不在政策，而在过度管辖的问题上。举个例子，我们国内的游戏现在是不允许出现类似血的红色液体的。那游戏中的血就不存在了吗？只是换成了绿色换成了光，它依然存在。</p>
 <p>你觉得这个政策利好玩家，打击了游戏厂商的嚣张气焰，事实是他们如果想要继续盈利，还是要想出其他办法来保住用户在线率或者他们直接放弃抵抗倒闭算了。所以最后你可能会看到这些厂商出现的更恶心的机制。</p>
 <p>希望你们能动动你的脑袋瓜好好想一想。</p>
 <p>类似的还有禁播穿越剧。所以现在穿越剧改成了 VR 体验古装游戏了，本质上不还是穿越剧吗。</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:52:13Z</pubDate>
 <pubDate>2023-12-22T10:10:24Z</pubDate>
 </item>
 <item>
@@ -105,12 +376,10 @@
 <link>https://www.v2ex.com/t/1002718</link>
 <guid>https://www.v2ex.com/t/1002718</guid>
 <content:encoded><![CDATA[
-
 <p>之前一直用的光轴机械键盘，一开始用的还挺开心，声音脆脆的，手感也不错。但是用久了之后，经常会在无意中的某一个瞬间，会觉得键盘有点聒噪，然后想着换一把。了解了几天，打算入手一把薄膜键盘试试。之前体验过罗技的 mx keys ，也挺趁手，不过感觉键程稍微短了一些，另外我的主板网卡是不带 wifi 的版本，价格也比较高昂，然后就放弃了这款。</p>
 <p>最后入了不少人推荐的联想 SK 8827 ，全尺寸键盘，到手发现非常香。首先这款键盘的做工非常扎实，里面内置一块钢板，导致键盘重量达到了 1 公斤，这款键盘好像是专门为服务器配的吧（企业级的产品，就算一个键盘的做工都挺不错）。键程，回弹力度反馈也挺不错。声音小，瞬间觉得整个世界都安静了许多。</p>
 <p>真心不错的一把键盘，虽然只有几十块，但还是值得推荐。</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:48:56Z</pubDate>
 <pubDate>2023-12-22T10:10:37Z</pubDate>
 </item>
 <item>
@@ -119,9 +388,7 @@
 <guid>https://www.v2ex.com/t/1002717</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T09:44:38Z</pubDate>
 <pubDate>2023-12-22T10:16:35Z</pubDate>
 </item>
 <item>
@@ -129,10 +396,8 @@
 <link>https://www.v2ex.com/t/1002716</link>
 <guid>https://www.v2ex.com/t/1002716</guid>
 <content:encoded><![CDATA[
-
 V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的 Data AI 这块业务怎么样。我了解下来主要是给甲方做 AI 项目的。我目前是在互联网公司做算法，从职业发展的角度，跳到埃森哲做算法是不是一个好的选择呢
 ]]></content:encoded>
-<pubDate>2023-12-22T09:43:01Z</pubDate>
 <pubDate>2023-12-22T09:51:56Z</pubDate>
 </item>
 <item>
@@ -140,10 +405,8 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002715</link>
 <guid>https://www.v2ex.com/t/1002715</guid>
 <content:encoded><![CDATA[
-
 <p>页面一直卡在"请根据弹框提示输入电脑密码以允许此次配对。"</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:42:06Z</pubDate>
 <pubDate>2023-12-22T09:42:06Z</pubDate>
 </item>
 <item>
@@ -151,11 +414,9 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002714</link>
 <guid>https://www.v2ex.com/t/1002714</guid>
 <content:encoded><![CDATA[
-
 <p>我主卡用的电信保号套餐 5 块钱一个月，最近准备买个流量卡，当做副卡来用，提供上网服务。 问下有经验的各位彦祖们，这三家的信号差距大不？</p>
 <p>我是在成都市内上班，90%+的时间都在市里面，只有周末偶尔去乡下或者山里面玩。</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:40:46Z</pubDate>
 <pubDate>2023-12-22T09:37:46Z</pubDate>
 </item>
 <item>
@@ -163,10 +424,8 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002713</link>
 <guid>https://www.v2ex.com/t/1002713</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="php.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/21/YIXUax6n4vb9Q7t.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:38:42Z</pubDate>
 <pubDate>2023-12-22T09:38:42Z</pubDate>
 </item>
 <item>
@@ -174,14 +433,12 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002712</link>
 <guid>https://www.v2ex.com/t/1002712</guid>
 <content:encoded><![CDATA[
-
 <p>1 、内测&lt;2w 人，老手游吃鸡这种没版号赚吆喝不允许了</p>
 <p>2 、不得同时发行游戏币和提供游戏币交易平台，网易的藏宝阁挂了</p>
 <p>3 、必须为金额设定上限，那些国战手游是可以手输充值金额，找客服一次充几万都没问题，真的主打花钱如流水，现在你试试，对手举报你版号寄</p>
 <p>4 、打广告视作游戏盈利，微信小游戏免版号直接哀号一片，不对，准确点说提供可以公开下载的客户端就视作盈利，也就是说不打广告的微信小游戏都不允许，除非不允许搜索只能邀请进去</p>
 <p>其余的在我这跟废话差不多</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:37:06Z</pubDate>
 <pubDate>2023-12-22T09:50:13Z</pubDate>
 </item>
 <item>
@@ -189,11 +446,9 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002711</link>
 <guid>https://www.v2ex.com/t/1002711</guid>
 <content:encoded><![CDATA[
-
 <p>图片太多，就不再复制粘贴过来了</p>
 <p><a href="https://juejin.cn/post/7315242945454735414" rel="nofollow">https://juejin.cn/post/7315242945454735414</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:32:17Z</pubDate>
 <pubDate>2023-12-22T09:46:10Z</pubDate>
 </item>
 <item>
@@ -202,9 +457,7 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <guid>https://www.v2ex.com/t/1002710</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T09:29:32Z</pubDate>
 <pubDate>2023-12-22T09:46:53Z</pubDate>
 </item>
 <item>
@@ -212,13 +465,11 @@ V 站有没有在埃森哲工作或者有所了解的，想咨询下埃森哲的
 <link>https://www.v2ex.com/t/1002709</link>
 <guid>https://www.v2ex.com/t/1002709</guid>
 <content:encoded><![CDATA[
-
 <p>目前使用的有 MySql 、MongoDB 、Redis
 Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间缓存数据库使用
 现在问题就是线上用户很少，但是有位同事不小心把测试环境的库干没了，领导很生气很重视这件事情，之前线上也一直没有上数据备份，现在准备把数据备份加上，想请教一下各位老哥，这几种数据库的数据备份大概需要做到哪种程度？需要一步到位还是一点一点来比较好</p>
 <p>PS：目前目前开发的软件和系统确实有点玩具的意思在，完全不抗造，只能尽量想到哪些去做哪些了...</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:27:40Z</pubDate>
 <pubDate>2023-12-22T10:11:38Z</pubDate>
 </item>
 <item>
@@ -226,7 +477,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002707</link>
 <guid>https://www.v2ex.com/t/1002707</guid>
 <content:encoded><![CDATA[
-
 <p>之前见到一个新闻站点，是一个中国开发者开发的。</p>
 <p>重点是横向布局的，每个新闻源一行，每个新闻一个正方形小方块，可以选择有图片或者没有图片。</p>
 <p>可以展开这个新闻源。
@@ -236,14 +486,12 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 有人知道链接吗？分享一下。</p>
 ]]></content:encoded>
 <pubDate>2023-12-22T09:24:02Z</pubDate>
-<pubDate>2023-12-22T09:24:02Z</pubDate>
 </item>
 <item>
 <title>[生活] 2023 总结</title>
 <link>https://www.v2ex.com/t/1002706</link>
 <guid>https://www.v2ex.com/t/1002706</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>
 <p>活到了 2024 （完成 97.5%）。</p>
@@ -267,7 +515,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 </li>
 </ol>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:21:24Z</pubDate>
 <pubDate>2023-12-22T09:54:00Z</pubDate>
 </item>
 <item>
@@ -275,7 +522,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002705</link>
 <guid>https://www.v2ex.com/t/1002705</guid>
 <content:encoded><![CDATA[
-
 <p>base64 在线解码工具可以帮助你将 Base64 编码的字符串解码为原始的文本或数据。</p>
 <p><a href="https://base64.icu" rel="nofollow">http://base64.icu</a></p>
 <p>以下是一个简单的 base64 在线解码工具的示例：</p>
@@ -311,7 +557,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <li><a href="https://developer.mozilla.org/en-US/docs/Glossary/Base64" rel="nofollow">https://developer.mozilla.org/en-US/docs/Glossary/Base64</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:20:56Z</pubDate>
 <pubDate>2023-12-22T09:41:15Z</pubDate>
 </item>
 <item>
@@ -319,10 +564,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002704</link>
 <guid>https://www.v2ex.com/t/1002704</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://stackoverflow.com/questions/77702494/c8051f410-adc-not-working-after-programming" rel="nofollow">https://stackoverflow.com/questions/77702494/c8051f410-adc-not-working-after-programming</a>  问题描述在这边，单片机内部晶振没工作</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:20:53Z</pubDate>
 <pubDate>2023-12-22T09:17:53Z</pubDate>
 </item>
 <item>
@@ -330,10 +573,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002703</link>
 <guid>https://www.v2ex.com/t/1002703</guid>
 <content:encoded><![CDATA[
-
 <p>就喜欢下载玩玩 app</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:20:28Z</pubDate>
 <pubDate>2023-12-22T01:20:28Z</pubDate>
 </item>
 <item>
@@ -341,14 +582,12 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002702</link>
 <guid>https://www.v2ex.com/t/1002702</guid>
 <content:encoded><![CDATA[
-
 <p>前情提要： <a href="https://v2ex.com/t/1000523#reply7" rel="nofollow">https://v2ex.com/t/1000523#reply7</a></p>
 <p>网址： <a href="https://www.recruitment-copilot.com/" rel="nofollow">https://www.recruitment-copilot.com/</a></p>
 <p>不用注册不用登录，上传 pdf 简历，会即时输出打分、优缺点和改进建议</p>
 <p>免费码（ 2 天有效）：<a href="http://V2EX_recruitment-copilot.com" rel="nofollow">V2EX_recruitment-copilot.com</a></p>
 <p>喜欢的朋友可以收藏，也可以发个空邮件到 <a href="mailto:hr.copilot.beta@gmail.com">hr.copilot.beta@gmail.com</a> ，后面推出新功能的时候会推送给大家~</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:17:58Z</pubDate>
 <pubDate>2023-12-22T09:44:50Z</pubDate>
 </item>
 <item>
@@ -357,9 +596,7 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <guid>https://www.v2ex.com/t/1002700</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T09:15:14Z</pubDate>
 <pubDate>2023-12-22T09:50:20Z</pubDate>
 </item>
 <item>
@@ -367,7 +604,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002698</link>
 <guid>https://www.v2ex.com/t/1002698</guid>
 <content:encoded><![CDATA[
-
 <p>2022 年学习的 Vue ，现在还在学 Vue ，学了忘，忘了学</p>
 <p>这个项目当时只写了简单的首页，现在把数据完善了一下</p>
 <p>又加了个 万能搜索 页面</p>
@@ -382,7 +618,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <h2>网站地址</h2>
 <p>网站地址：<a href="https://home.wwkejishe.top/" rel="nofollow">https://home.wwkejishe.top/</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:13:28Z</pubDate>
 <pubDate>2023-12-22T10:06:35Z</pubDate>
 </item>
 <item>
@@ -390,10 +625,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002697</link>
 <guid>https://www.v2ex.com/t/1002697</guid>
 <content:encoded><![CDATA[
-
 从昨天早上开始，发现我的 X 账号个人主页显示账号不存在，但可以正常浏览关注的账号以及推荐的 X 文，甚至可以回复，但不能点赞。我是使用自建服务访问 X 的，换成机场服务后，就正常了。切回自建服务后，就又不行了。X 现在是限制机房 IP 了吗？还是我的账号被降权了？
 ]]></content:encoded>
-<pubDate>2023-12-22T09:13:03Z</pubDate>
 <pubDate>2023-12-22T09:53:44Z</pubDate>
 </item>
 <item>
@@ -401,7 +634,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002696</link>
 <guid>https://www.v2ex.com/t/1002696</guid>
 <content:encoded><![CDATA[
-
 <p>使用举例 <a href="https://imgur.com/a/lgcQcb0" rel="nofollow">https://imgur.com/a/lgcQcb0</a></p>
 <p>网站地址 <a href="https://chat.bulita.net/" rel="nofollow">https://chat.bulita.net/</a></p>
 <p>这样最近一次问题和答案就会被记录在 <a href="https://bulita.net/post/1080020692" rel="nofollow">https://bulita.net/post/1080020692</a></p>
@@ -411,7 +643,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 还可以通过"-bbs #数据库 #计算机基础" 自定义帖子的标签 默认不写标签为#八股文</p>
 <p>备注: 匿名用户使用该命令是通过网站的一个叫 Jobs 的用户发帖 只有管理员可以删除 如果想自己可以删帖 只能注册用户了(当然谁也删不了 ipfs 的内容)</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:12:44Z</pubDate>
 <pubDate>2023-12-22T09:09:44Z</pubDate>
 </item>
 <item>
@@ -419,10 +650,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002695</link>
 <guid>https://www.v2ex.com/t/1002695</guid>
 <content:encoded><![CDATA[
-
 如题，请问具体是什么策略吗，请让我知道，这样才能改正避免。<br /><br />帖子为： <a href="https://www.v2ex.com/t/1002597#reply0" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1002597#reply0</a>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:10:33Z</pubDate>
 <pubDate>2023-12-20T21:21:41Z</pubDate>
 </item>
 <item>
@@ -430,14 +659,12 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002693</link>
 <guid>https://www.v2ex.com/t/1002693</guid>
 <content:encoded><![CDATA[
-
 <p>EDGE 更新到最新版本访问 bing 的时候，出现了一个以前没见过的节日小组件，可以实现下雪、冰冻、灯饰、音效等效果，太好 van 了。</p>
 <p>已知</p>
 <pre><code>&lt;div class="hpapp"&gt;&lt;div class="hp_body  "&gt;&lt;div&gt;&lt;div class="hp_top_cover_container hp_top_cover_contrast show" data-priority="2"&gt;
 </code></pre>
 <p>不知道有无大佬把他引用的元素扒出来单独做成小组件 套在各种博客上 23333</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T09:08:53Z</pubDate>
 <pubDate>2023-12-22T09:12:55Z</pubDate>
 </item>
 <item>
@@ -445,10 +672,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002691</link>
 <guid>https://www.v2ex.com/t/1002691</guid>
 <content:encoded><![CDATA[
-
 为什么全国的自助彩票机都停售了？福彩、体彩，全国范围内好像都停了？
 ]]></content:encoded>
-<pubDate>2023-12-22T09:00:09Z</pubDate>
 <pubDate>2023-12-22T10:06:52Z</pubDate>
 </item>
 <item>
@@ -456,14 +681,12 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002690</link>
 <guid>https://www.v2ex.com/t/1002690</guid>
 <content:encoded><![CDATA[
-
 <p>他的手机用了好几年了，手机屏幕也烂了，而且还经常说手机很卡，而且经常内存不足，被迫要清微信聊天记录，所以我想着给他换个手机，我把这个想法跟他说了，他说可以。</p>
 <p>预算最高 2000-2500 左右，老人用的手机不需要多贵，太贵了反而会被说</p>
 <p>内存要大，必须是 256G 的</p>
 <p>电池续航高一点，他很讨厌手机需要经常充电</p>
 <p>基于以上条件，有推荐的手机型号吗？</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:54:57Z</pubDate>
 <pubDate>2023-12-22T10:11:41Z</pubDate>
 </item>
 <item>
@@ -471,7 +694,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002689</link>
 <guid>https://www.v2ex.com/t/1002689</guid>
 <content:encoded><![CDATA[
-
 <p>因为经常使用 <code>scrapy</code> 开发，所以有很多的 <code>scrapy</code> 项目需要创建和维护，但是项目中的一些模块中的结构和内容大都一致，就想有一些方便的操作。一开始就知道 <code>scrapy</code> 有模板方法，但我也想添加一些其它功能比如不用关心 <code>item</code> 模块的赋值。主要目的就是尽量使开发者只需专心于 <code>spider</code> 模块的开发即可。</p>
 <p>当然项目中有很多地方不优雅甚至不太合适的地方，比如自动创建 <code>Mysql</code> 表字段的功能的实现方法，我会慢慢完善。</p>
 <p>希望这个项目能给有扩展 <code>scrapy</code> 需求的开发者有点指引。</p>
@@ -481,7 +703,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <a href="https://ayugespidertools.readthedocs.io/en/latest/" rel="nofollow">AyugeSpiderTools readthedocs</a>:  <a href="https://ayugespidertools.readthedocs.io/en/latest/" rel="nofollow">https://ayugespidertools.readthedocs.io/en/latest/</a></p>
 <p>大家也可以讨论下都是使用的什么爬虫框架，管理平台之类的。</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:51:17Z</pubDate>
 <pubDate>2023-12-22T08:50:17Z</pubDate>
 </item>
 <item>
@@ -489,10 +710,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002688</link>
 <guid>https://www.v2ex.com/t/1002688</guid>
 <content:encoded><![CDATA[
-
 <p>上午还红彤彤的挺喜人，结果因为游戏管理草案，把整个大盘打趴了。持仓的传媒、恒科、中钙跌的最惨。</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:51:13Z</pubDate>
 <pubDate>2023-12-22T09:37:53Z</pubDate>
 </item>
 <item>
@@ -500,10 +719,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002687</link>
 <guid>https://www.v2ex.com/t/1002687</guid>
 <content:encoded><![CDATA[
-
 <p>搜了一下站里之前的帖子，好多推荐的机场都跑路失效了，所以重发一帖求推荐～</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:46:29Z</pubDate>
 <pubDate>2023-12-22T10:03:46Z</pubDate>
 </item>
 <item>
@@ -511,12 +728,10 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002686</link>
 <guid>https://www.v2ex.com/t/1002686</guid>
 <content:encoded><![CDATA[
-
 <p>最近好多劳动纠纷的，有的想自己起诉，不知道流程。</p>
 <p>家属是律师，想尽自己所能帮助下，写了这篇文章，帮助大家知道怎么立案。</p>
 <p><a href="https://selfboot.cn/2023/12/22/lawsuit_steps/" rel="nofollow">网上立案流程(广东省)详细图文教程</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:44:57Z</pubDate>
 <pubDate>2023-12-22T09:09:32Z</pubDate>
 </item>
 <item>
@@ -524,12 +739,10 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002685</link>
 <guid>https://www.v2ex.com/t/1002685</guid>
 <content:encoded><![CDATA[
-
 <p>有正在使用 cloudflare 的 ai-gateway 的吗 </p>
 <p>想用 ai-gateway 代理 openai 的 api, 看其他帖子有说会被 openAI 封号的，真的吗。 </p>
 <p>如果是真的，有其他解决方案吗</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:44:44Z</pubDate>
 <pubDate>2023-12-22T08:41:44Z</pubDate>
 </item>
 <item>
@@ -538,9 +751,7 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <guid>https://www.v2ex.com/t/1002684</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T08:43:04Z</pubDate>
 <pubDate>2023-12-22T08:59:12Z</pubDate>
 </item>
 <item>
@@ -548,10 +759,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002682</link>
 <guid>https://www.v2ex.com/t/1002682</guid>
 <content:encoded><![CDATA[
-
 屏蔽冲电 直接给电脑供电  10 分钟 掉了 10%<br /><br />之前买了个 10000 毫安的 只能充进去 2000 多毫安   10 分钟放完电。。这也太快了。。。转化率太低了
 ]]></content:encoded>
-<pubDate>2023-12-22T08:34:23Z</pubDate>
 <pubDate>2023-12-22T00:34:23Z</pubDate>
 </item>
 <item>
@@ -559,13 +768,11 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002681</link>
 <guid>https://www.v2ex.com/t/1002681</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://copilot.microsoft.com/" rel="nofollow">https://copilot.microsoft.com/</a></p>
 <p>排除了梯子问题，手机 Chrome 和 Bing App 里都能正常使用，
 唯独电脑 chrome/safari 里都一直显示「尝试重新连接...」
 什么情况啊？你们都正常吗？</p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:33:19Z</pubDate>
 <pubDate>2023-12-22T08:30:19Z</pubDate>
 </item>
 <item>
@@ -573,12 +780,10 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002680</link>
 <guid>https://www.v2ex.com/t/1002680</guid>
 <content:encoded><![CDATA[
-
 <p>气温 0°左右, 触控必须, 灵活和耐用其次, 可选亮色调</p>
 <p>还是说某宝上随便挑一个地摊货就好了</p>
 <p><del>码字的时候手就快成冰棍了</del></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:32:29Z</pubDate>
 <pubDate>2023-12-22T09:02:16Z</pubDate>
 </item>
 <item>
@@ -586,12 +791,10 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002679</link>
 <guid>https://www.v2ex.com/t/1002679</guid>
 <content:encoded><![CDATA[
-
 <p>#微牛 #投资 最近有些小伙伴问我，有哪些适合存量用户的或者增量用户的股票投资平台，如何将股票转入其他平台，或者最小损失出金等问题。 首先我想说这个事情在几个月前有点苗头了，我提醒过在这个平台有账户的朋友，他们有些提前出金或者转股了，损失减少很多。目前大陆用户最多的平台是富途，长桥，老虎，都有优惠，但是目前支持存量开户，我都在用，给有优势，对于中文支持友好，我目前常用的是长桥，最近长桥活动力度很大，且对微牛的用户，关于出金和转股有相应的方案，能让你的损失降低了很多，如果目前还没有确定去哪个平台，不妨先了解下。我的联系方式 tg @<a href="https://www.v2ex.com/member/marktoown">marktoown</a> 也可以私信我，我拉你进群。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/Jasondeepny/pic_block/main/img/IMG_1217.jpg" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/Jasondeepny/pic_block/main/img/2023-12-22%2016.04.05.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:28:26Z</pubDate>
 <pubDate>2023-12-22T08:28:26Z</pubDate>
 </item>
 <item>
@@ -599,13 +802,11 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/1002678</link>
 <guid>https://www.v2ex.com/t/1002678</guid>
 <content:encoded><![CDATA[
-
 <p>NAS 升级了，盘位完全够用了，所以出掉。</p>
 <p>报价：80</p>
 <p><a href="https://imgse.com/i/pi7pdOS" rel="nofollow"><img alt="pi7pdOS.jpg" class="embedded_image" rel="noreferrer" src="https://s11.ax1x.com/2023/12/22/pi7pdOS.jpg" /></a></p>
 <p><a href="https://imgse.com/i/pi7pBwQ" rel="nofollow"><img alt="pi7pBwQ.md.png" class="embedded_image" rel="noreferrer" src="https://s11.ax1x.com/2023/12/22/pi7pBwQ.md.png" /></a></p>
 ]]></content:encoded>
-<pubDate>2023-12-22T08:28:25Z</pubDate>
 <pubDate>2023-12-12T10:34:20Z</pubDate>
 </item>
 <item>
@@ -614,9 +815,7 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <guid>https://www.v2ex.com/t/1002677</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T08:28:15Z</pubDate>
 <pubDate>2023-12-22T09:47:23Z</pubDate>
 </item>
 <item>
@@ -625,9 +824,7 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <guid>https://www.v2ex.com/t/1002676</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2023-12-22T08:22:11Z</pubDate>
 <pubDate>2023-12-22T10:07:19Z</pubDate>
 </item>
 <item>
@@ -635,7 +832,6 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 <link>https://www.v2ex.com/t/803669</link>
 <guid>https://www.v2ex.com/t/803669</guid>
 <content:encoded><![CDATA[
-
 <div><h1>UI 优先的统一身份认证系统 Casdoor</h1>
 <h2>Casdoor 是什么？</h2>
 <p>Casdoor 是一个基于 OAuth 2.0 / OIDC 的 UI 优先集中认证 / 单点登录 (SSO) 平台，简单点说，就是 Casdoor 可以帮你解决 <strong>用户管理</strong> 的难题，你无需开发用户登录注册等与用户鉴权相关的一系列功能，只需几个步骤，简单配置，与你的主应用配合，便可完全托管你的用户模块，简单省心，功能强大。</p>
@@ -672,10 +868,8 @@ Mysql 和 Mongo 主要是存放业务数据使用，Redis 是作为一个中间�
 </ul>
 </div>
 ]]></content:encoded>
-<pubDate>2021-09-23T07:24:06Z</pubDate>
 <pubDate>2023-12-22T07:28:20Z</pubDate>
 </item>
-
 <item>
 <title>[分享发现] 🚀 前端 DApp 开发利器， Ant Design Web3 发布 1.0 🎉🎉🎉</title>
 <link>https://www.v2ex.com/t/1002675</link>
@@ -14943,646 +15137,6 @@ AltTab 、Clipy 、Snipaste 、Spectacle 、obsidian ，其他就是 jetbrains �
 <p>有什么好办法吗？或者 ，换个按键映射的软件？</p>
 ]]></content:encoded>
 <pubDate>2023-12-19T01:17:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于公司搭建 AI 问答的一些风险</title>
-<link>https://www.v2ex.com/t/1001521</link>
-<guid>https://www.v2ex.com/t/1001521</guid>
-<content:encoded><![CDATA[
-<p>这是上一个问题，<a href="https://www.v2ex.com/t/999563#reply52" rel="nofollow">https://www.v2ex.com/t/999563#reply52</a> 关于搭建 AI 问答的
-经过几天研究讨论，最终定下我们内部先搭建一个基于 chatGPT3.5-turbo 的问答的应用，先让公司内部习惯使用此工具；
-这里有几个问题问一下各位大佬彦祖：
-公司背景：处于国内，非互联网公司，传统零售业</p>
-<ol>
-<li>肯定需要 vpn ，如果我使用买的 vpn 是否有风险，改应用只限内部使用，也就是公司内网，以后也不会开放外部人员使用；</li>
-<li>如果 1 有风险，使用中转 api 是否有稳定可行；</li>
-<li>开发聚合的多模型的类似这种 <a href="https://anakin.ai" rel="nofollow">https://anakin.ai</a> 有没有成熟的方案？
-最后：其实我理解上层的想法，就是增加效率，降低成本，都不好过；
-将来可能会淘汰一部分运营，设计，做报表的。</li>
-</ol>
-]]></content:encoded>
-<pubDate>2023-12-19T01:15:52Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 求教，给虚拟交易平台远程打工需要承担哪些风险</title>
-<link>https://www.v2ex.com/t/1001520</link>
-<guid>https://www.v2ex.com/t/1001520</guid>
-<content:encoded><![CDATA[
-收到些虚拟交易平台远程岗位的面试邀约，但不确定其中的风险，如果到时候面试过了，入职远程打工的话有哪些风险，至少要多少薪资比较合理，求教各位大佬。
-]]></content:encoded>
-<pubDate>2023-12-19T01:08:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 专心工作的时候大脑紧绷过早累, 你们呢?</title>
-<link>https://www.v2ex.com/t/1001519</link>
-<guid>https://www.v2ex.com/t/1001519</guid>
-<content:encoded><![CDATA[
-<p>专心工作的时候应该是全神贯注的, 很容易进入忘我的阶段, 但是我发现我自己特别容易一专注就让大脑紧绷, 别人说我一工作就皱起了眉头, 我自己却感觉不到. 但是不一会儿就感觉后脑勺重, 自己判断应该是大脑发热了. 这种工作状态持续一会就会感觉不适, 感觉大脑过载. 我看到有些同事很牛掰, 共坐下开始工作, 一连几个小时, 可以持续这么长的时间, 都不会感觉脑袋累的么? 哪怕看新闻看几个小时也累不行了吧? 各位有什么建议么?</p>
-]]></content:encoded>
-<pubDate>2023-12-19T00:50:23Z</pubDate>
-</item>
-<item>
-<title>[推广] Giffgaff eSIM 空中激活 + 发卡</title>
-<link>https://www.v2ex.com/t/1001516</link>
-<guid>https://www.v2ex.com/t/1001516</guid>
-<content:encoded><![CDATA[
-<p>从 2023 年 11 月开始，Giffgaff 已经支持 eSIM 了，不需要再占用卡槽，但依然需要领取实体卡 + 支持的设备 + 英国本地 IP ，领卡难度依然较高</p>
-<p>鉴于我目前就在英国，因此我可以激活 eSIM 后 空中远程发卡，省去邮寄领取的漫长等待（ 5~7 工作日）以及平邮丢件的风险，<strong>跨越时差，当天下卡</strong> (不超过 24 小时)</p>
-<table>
-<thead>
-<tr>
-<th>ㅤ</th>
-<th>实体卡</th>
-<th>eSIM</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>开卡耗时</td>
-<td>5~7 天邮寄</td>
-<td>当天发卡（工作日）</td>
-</tr>
-<tr>
-<td>风险</td>
-<td>邮寄丢件</td>
-<td>几乎无风险</td>
-</tr>
-<tr>
-<td>支付方式</td>
-<td>需要信用卡</td>
-<td>原价充值券代充</td>
-</tr>
-<tr>
-<td>成本</td>
-<td>充值费用+购卡费用（如第三方购买）</td>
-<td>只有充值费用</td>
-</tr>
-<tr>
-<td>优点</td>
-<td>不挑设备</td>
-<td>快+方便</td>
-</tr>
-<tr>
-<td>缺点</td>
-<td>慢+贵一点</td>
-<td>需要支持的设备</td>
-</tr>
-</tbody></table><h2>如何上车？</h2>
-<p>通过 Google Form 填写 上车登记表</p>
-<p><a href="https://forms.gle/SPRx95cNhN139JuD9" rel="nofollow">https://forms.gle/SPRx95cNhN139JuD9</a></p>
-<ol>
-<li>上车前请先确认：你的设备是支持 eSIM 的，如美版或日版 iPhone 11 以上，Google Pixel 系列等等（完整列表），或使用 <a href="http://eSIM.net" rel="nofollow">eSIM.net</a>  或 5ber 等。国产及国行手机均不支持！</li>
-<li>确认支持后，填写上方上车登记表</li>
-<li>我会帮你激活实体卡，并转换成 eSIM 远程下发</li>
-<li>发卡仅限每天的英国时间 4AM - 9:30PM ，即中国时间 12PM - 5:30AM</li>
-<li>您会通过 邮箱或 Telegram 收到 eSIM 二维码 和 Giffgaff 网站登录信息</li>
-<li>将 eSIM 添加到设备中，等待信号</li>
-<li>初次登录网站后，修改登录邮箱和密码</li>
-</ol>
-<h2>更多信息</h2>
-<p>申请表可用表示本品依然有库存，您可以放心登记！</p>
-<p>详细更新及库存可以前往 <a href="https://t.me/MyTricksCollection/288" rel="nofollow">Telegram 频道</a> 查看</p>
-<p>点击这里查看完整版 <a href="https://notion.mykeyvans.space/article/giffgaff-esim" rel="nofollow">上车指南</a></p>
-]]></content:encoded>
-<pubDate>2023-12-19T01:15:10Z</pubDate>
-</item>
-<item>
-<title>[硬件] 8 寸左右看书的平板有推荐么？</title>
-<link>https://www.v2ex.com/t/1001515</link>
-<guid>https://www.v2ex.com/t/1001515</guid>
-<content:encoded><![CDATA[
-除了 ipad mini ，目前在等明年新发布的机器，<br /><br />希望是 Android 的机器，谢谢
-]]></content:encoded>
-<pubDate>2023-12-19T01:17:15Z</pubDate>
-</item>
-<item>
-<title>[远程工作] 澳洲远程 前端兼职</title>
-<link>https://www.v2ex.com/t/1001514</link>
-<guid>https://www.v2ex.com/t/1001514</guid>
-<content:encoded><![CDATA[
-<p>之前在 V2EX 找到好几个靠谱的伙伴，合作都非常愉快。</p>
-<p>现需要中级前端一名</p>
-<ul>
-<li>
-<p>兼职，全远程办公</p>
-</li>
-<li>
-<p>精通 react ，nextjs 13+</p>
-</li>
-<li>
-<p>能够设计出漂亮的页面 （重要，因为是婚礼相关行业）</p>
-</li>
-<li>
-<p>一周最好能贡献 10-15 小时</p>
-</li>
-</ul>
-<p>欢迎投递简历和作品到 ZGFuY2ViZWUxMDAxQGdtYWlsLmNvbQ==</p>
-]]></content:encoded>
-<pubDate>2023-12-19T00:17:52Z</pubDate>
-</item>
-<item>
-<title>[生活] 地震应急准备想法</title>
-<link>https://www.v2ex.com/t/1001512</link>
-<guid>https://www.v2ex.com/t/1001512</guid>
-<content:encoded><![CDATA[
-<p>今天看到了地震新闻，想网上买一些东西，放在上下班随身背包里，增加存活率。
-目前放了充电宝，一瓶农夫三泉矿泉水，刚下单 840g 的压缩饼干。
-然后网上搜了，成人每日至少需要 8400 千焦，压缩饼干写着每 100 克热量 2000 千焦，理论能活 2 天，省着慢慢吃能 4,5 天的样子。
-但是说人最少一天要喝 500ml 的水，也是醉了。不准备还不知道。
-只能说尽人事听天命吧，运气不好的话，下楼的机会都木有。</p>
-]]></content:encoded>
-<pubDate>2023-12-19T01:05:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问各路大神，有没有办法可以自动保存群图片和群文件，长期征询。</title>
-<link>https://www.v2ex.com/t/1001511</link>
-<guid>https://www.v2ex.com/t/1001511</guid>
-<content:encoded><![CDATA[
-有一些微信群是想要保持关注的，这些群的图片和文件不想错过，但是平时又没办法一直盯着。 有没有什么办法可以自动下载到电脑或者转发邮件附件之类的，实在不行下载到手机也可以。<br />长期征询，相信也是很多人的刚需，欢迎高手指点，有类似需求的小伙伴欢迎围观。
-]]></content:encoded>
-<pubDate>2023-12-19T00:57:07Z</pubDate>
-</item>
-<item>
-<title>[硬件] 用 PC 当监控 NVR 的方案</title>
-<link>https://www.v2ex.com/t/1001510</link>
-<guid>https://www.v2ex.com/t/1001510</guid>
-<content:encoded><![CDATA[
-目前在用海康的 NVR ， 几年前买的时候没注意号称能接 8 个摄像头， 实际上只有 4 个接口，如果要接 8 个还要买 POE 交换机， 最主要的问题是就算 4 个接口只接三个摄像头外接显示器预览就已经卡出翔了。<br />现在不想买海康的新的 NVR 了，16 口的 POE NVR 价格 1600-2000+.<br /><br />目前计划用闲置的 PC (有两个网口)加上 POE 交换机.<br /><br />现知道的方案:<br />1. SMZDM 上有人用 海康的 IVMS-4200 加上 PC 做 NVR ，但是貌似其中的 storage server 已经被 discontinued 了， 但是老版本还是可以安装使用的，有使用 4200 加上 PC 的小伙伴吗？ 有啥限制吗？ 比如摄像头数量限制？<br /><br />2. Blue Iris 软件， 目前活动， 折扣价 50 刀，可以直接在 Windows 上用， 不知道需要有没有中文支持？<br /> <br /><br />3. Shinobi Pro 据说免费？<br /><br />4. 免费开源 Frigate <br /><br />5. 黑裙，6.x 的版本可以，7.X 的版本最多只能 8 个摄像头，稳定性如何，欢迎用过的分享一下<br /><br />欢迎有经验的小伙伴分享一下，谢谢
-]]></content:encoded>
-<pubDate>2023-12-18T21:36:41Z</pubDate>
-</item>
-<item>
-<title>[云修电脑] 有高人能分析下蓝屏原因吗？</title>
-<link>https://www.v2ex.com/t/1001509</link>
-<guid>https://www.v2ex.com/t/1001509</guid>
-<content:encoded><![CDATA[
-<a href="https://i.imgur.com/zrfKBEk.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zrfKBEk.png" /></a><br /><br /><br />已经差不多一年了，不定时随机蓝屏，无法稳定复现，每次蓝屏代码都不一样。<br /><br />有时候是在打 LOL ，有时候是在用 edge 浏览网页，有时候电脑开着待机也会蓝屏（没有开休眠，连关闭显示器都没开）。<br /><br />但是玩 3A 大作的时候，几个小时也不会蓝屏，敲代码的时候也基本没出现过。<br /><br />重装过系统，CPU 内存 显卡都拆下来重新插过，问题依旧。<br /><br />Windows 11 beta channel ，有装 wsl wsa ，BIOS 以及各种驱动肯定都是最新的。<br /><br />配置如下，19 年自己装的，除了显卡是二手，其他都是新的，有怀疑过是显卡的原因，但前几年一直没出现过问题，现在也没钱买新的换掉。这套配置除了后来加过硬盘，也一直没变过，总不能是硬盘的问题吧。<br /><br /><a href="https://i.imgur.com/BX5lSpy.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/BX5lSpy.png" /></a><br /><br /><br />最近 5 个 minidump：<br /><br /><a href="https://1drv.ms/u/s!Aou8qoiaK4Sms1O8ogpRCl2BjK-H" rel="nofollow noopener" target="_blank">https://1drv.ms/u/s!Aou8qoiaK4Sms1O8ogpRCl2BjK-H</a>
-]]></content:encoded>
-<pubDate>2023-12-18T20:24:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 美区 app store 有 0.01 美元的软件吗？</title>
-<link>https://www.v2ex.com/t/1001507</link>
-<guid>https://www.v2ex.com/t/1001507</guid>
-<content:encoded><![CDATA[
-<p>RT
-通过客服清空余额，要 support pin ，账号不是我的主账号，不想登陆在我 apple 设备上，所以生成不了。只能问问有没有 0.01 美元的东西</p>
-]]></content:encoded>
-<pubDate>2023-12-18T17:58:06Z</pubDate>
-</item>
-<item>
-<title>[游戏] 有没有那种写实风格的武侠或者历史类 rpg 游戏？</title>
-<link>https://www.v2ex.com/t/1001506</link>
-<guid>https://www.v2ex.com/t/1001506</guid>
-<content:encoded><![CDATA[
-一直希望有一个武侠或者真是中国历史背景下的 rpg 游戏<br />风格写实（个人很讨厌各种中日韩单机网游里面那种夸张的美型人设以及极度不真实的酷炫光污染特效）<br />整体氛围阳光偏多（类似塞尔达荒野之息那种阳光感觉，不是现在要么清一色暗黑写实风，或者过于子供向的卡通阳光风格）<br />非回合制（有一定的打击感的动作类最好）<br />希望能够基于一段中国历史的时期（一定程度的架空也挺好）（比如两宋，多个政权割据，宋辽金夏等等，结合一些当时的历史做一些长支线任务树，主角可以是一个无名氏参与沉浸在那段历史中去）<br />3d 或者 2d 等视角都是极好的<br />我个人十几年前玩的《秦殇》感觉一定程度上达到了这个要求
-]]></content:encoded>
-<pubDate>2023-12-18T17:56:54Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 已经存在很多年的垃圾邮件套路网易邮箱没有识别到呀</title>
-<link>https://www.v2ex.com/t/1001504</link>
-<guid>https://www.v2ex.com/t/1001504</guid>
-<content:encoded><![CDATA[
-<p>用网易邮箱二十年了，最近这些年垃圾邮件越来越少，还是很满意的。但是今天收到的一个垃圾邮件，让我觉得有些诧异。<br />
-刚才发现一封名为《系统退信》的邮件，通常说来这种名称的邮件我都会当作垃圾邮件看都不看一眼直接删，但是因为今天是登录的邮箱网页版，所以看到发件人是网易的图标、地址是 <a href="mailto:Postmaster@163.com">Postmaster@163.com</a> 时，我还是点进去看了一下。然后就觉得真的很有趣了：1 、这真的是网易系统邮件； 2 、退信时间是今天 04:59 ，我在睡觉的时候。虽然觉得自己密码不太可能泄漏，但还是立刻在邮箱的自主查询处检查了邮箱的使用情况，结果当然是今天清晨并没有登录和发信的记录。<br />
-我下载了被“退回”的邮件，并直接查看源码。邮件内容很简单，但是我发现“Return-Path”字段是我的邮箱地址，这似乎不太寻常。查了一下这个字段的资料，发现确实是可以被用作垃圾邮件攻击的方法，事情这下就清楚了，网易在拒收这个垃圾邮件时，给伪造的 Return-Path 发送了退信通知，从而将邮件内容以这种非常规的方式送达了他想要的收件人。
-我还发现，很多年前在网上就有人在讨论网易邮箱的这个问题了（比如 <a href="https://www.zhihu.com/question/19816712" rel="nofollow">https://www.zhihu.com/question/19816712</a> ），所以为什么网易还有这样的空子可以被钻呢？
-<img alt="2023-12-18_mail-1.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/19/pnVqDZyiarJQUsz.png" />
-<img alt="2023-12-18_mail-2.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/19/9skt1QwmVvdLiR5.png" /></p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:51:52Z</pubDate>
-</item>
-<item>
-<title>[Linux] 刷抖音看到个挺好看的终端配色</title>
-<link>https://www.v2ex.com/t/1001503</link>
-<guid>https://www.v2ex.com/t/1001503</guid>
-<content:encoded><![CDATA[
-<p>有大佬知道视频里的终端配色是哪个吗？使用的什么终端软件？<br /><br /><a href="https://imgur.com/l9lULXD" rel="nofollow">https://imgur.com/l9lULXD</a><br /><br />6.66 09/24 DHV:/ <a href="mailto:f@B.GV">f@B.GV</a> 复制打开抖音，看看 [ Linux 的作品] 检查进程使用 swap 的情况 # linux 运维... <a href="https://v.douyin.com/i8ya468D/" rel="nofollow">https://v.douyin.com/i8ya468D/</a></p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:46:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小程序备案会审查主体以前提交的网站域名备案吗？</title>
-<link>https://www.v2ex.com/t/1001502</link>
-<guid>https://www.v2ex.com/t/1001502</guid>
-<content:encoded><![CDATA[
-<p>第一次备案小程序，已提交到工信部，在审核的时候，他们会审核相同主体以前备案的网站域名吗？</p>
-<p>现在网站内容做了调整和当时备案时的名称不一致，审核小程序的时候他们会把主体下备过案的域名又再检查一遍吗？</p>
-<p>新域名备案是会审查已有域名的。</p>
-<p>有大佬了解吗</p>
-]]></content:encoded>
-<pubDate>2023-12-18T18:01:48Z</pubDate>
-</item>
-<item>
-<title>[Android] 小米 BL 解锁答题真的是在抽象的道路上越走越远</title>
-<link>https://www.v2ex.com/t/1001500</link>
-<guid>https://www.v2ex.com/t/1001500</guid>
-<content:encoded><![CDATA[
-<p><img alt="1776689541.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/18/bXjrJ6WU2FIxE5Q.png" /></p>
-<p>不知道有没有高手可以 6 秒之内答完这道题</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:58:26Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享自己的跨平台剪切板同步方案</title>
-<link>https://www.v2ex.com/t/1001499</link>
-<guid>https://www.v2ex.com/t/1001499</guid>
-<content:encoded><![CDATA[
-<p><strong>特性</strong></p>
-<ul>
-<li>支持剪切板（文字和图片）和文件</li>
-<li>不要求在同一个局域网内（但是代价是需要在线数据库）</li>
-<li>多客户端支持：webpage/iOS/Linux/Windows</li>
-</ul>
-<p><strong>地址</strong></p>
-<p><a href="https://github.com/yusanshi/cloud-clipboard" rel="nofollow">https://github.com/yusanshi/cloud-clipboard</a></p>
-<p><strong>视频演示：剪切板 文本</strong></p>
-<p><a href="https://github.com/yusanshi/cloud-clipboard/assets/36265606/ff3d73cb-7af4-462f-9687-d41a98eb98a7" rel="nofollow">https://github.com/yusanshi/cloud-clipboard/assets/36265606/ff3d73cb-7af4-462f-9687-d41a98eb98a7</a></p>
-<p><strong>视频演示：剪切板 图片</strong></p>
-<p><a href="https://github.com/yusanshi/cloud-clipboard/assets/36265606/1734eb8f-3873-4b70-905c-0b5ec3b73ec5" rel="nofollow">https://github.com/yusanshi/cloud-clipboard/assets/36265606/1734eb8f-3873-4b70-905c-0b5ec3b73ec5</a></p>
-<p><strong>视频演示：文件</strong></p>
-<p><a href="https://github.com/yusanshi/cloud-clipboard/assets/36265606/50029f91-8355-4705-9521-c7d26b21e17c" rel="nofollow">https://github.com/yusanshi/cloud-clipboard/assets/36265606/50029f91-8355-4705-9521-c7d26b21e17c</a></p>
-<p>顺便求吸收波意见～</p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:02:11Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 关于游戏服务器被 D</title>
-<link>https://www.v2ex.com/t/1001498</link>
-<guid>https://www.v2ex.com/t/1001498</guid>
-<content:encoded><![CDATA[
-<p>出于个人爱好，用家庭宽带开了某个 steam 游戏的私服。由于比较用心维护服务器，服务器在线人数能排到国服 top3.
-然后热点时间段就会被 D ，家里的下行带宽是 1000M ，每次被 D 路由器都能监控到流量打满。
-我也没什么办法，只能重新拨号换个 ip 。
-只是想问下，有没有懂行的，用大于 1Gb/s 的流量打我，对方有经济成本吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:23:57Z</pubDate>
-</item>
-<item>
-<title>[程序员] 为什么打开 leetcode 中文网要验证手机号啊，能不验证吗</title>
-<link>https://www.v2ex.com/t/1001497</link>
-<guid>https://www.v2ex.com/t/1001497</guid>
-<content:encoded><![CDATA[
-<p>如图
-<img alt="leetcode.cn" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/BcP1dqB.png" /></p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:01:00Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] ChatGPT Plus 账号独享 可改密 价格比官网低</title>
-<link>https://www.v2ex.com/t/1001495</link>
-<guid>https://www.v2ex.com/t/1001495</guid>
-<content:encoded><![CDATA[
-<p>ChatGPT plus 账号 独享
-当天开通会员 质保售后 29 天
-（多个论坛长期经营 ai 业务 信誉保证)
-独享 可改邮箱密码 gpt 密码
-是官方的 plus 账号 不是那种转发</p>
-<p>价格 135 元/个
-（本论坛 12.19 号前 5 个特价 120 元）
-5 个后恢复原价 135</p>
-<p>联系 tg ＝ gpt9900</p>
-<p>联系 v ＝ gpt9922</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:28:31Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 通過幣的方式讓自己的收入回家 意外的順利</title>
-<link>https://www.v2ex.com/t/1001494</link>
-<guid>https://www.v2ex.com/t/1001494</guid>
-<content:encoded><![CDATA[
-<p>事情是這樣的：我是一個從台灣來大陸福建工作的設計師，近些年一直在福建寧德的一家企業工作，因此也累積了一定的收入。我原本以為一切都挺好的，但自從今年 12 月想把收入打給家裡，卻發現困難來了。</p>
-<p>我在大陸工作期間所取得的收入一直是存放在我在大陸開的帳戶裡的。可能是因為我在福建省的關係，又或者一些銀行業風控的關係，當我想要結匯，準備匯一筆較大金額的錢給家人時，卻發現銀行一直以「風控」、「材料不完整」的緣故一直拒絕我的要求，我很無奈，向當地主管部門詢問也無任何實際方法上的指示，所以我就萌生了能不能通過別的渠道完成這件事的想法。</p>
-<p>大陸這邊的好友都推薦我以通過各種幣方式回家，經過其指點，最後我成功了，我想與大家分享一下我的方法。（ 200W 在彈指之間回家了，全程耗費 1.5 小時躺在床上完成的，並且損耗也只有 3%，開心）</p>
-<p>路徑如下：
-大陸本人銀行帳戶--&gt;P2P 兌換對 USDT--&gt;一家大陸人常用的交易所--&gt;OP 鏈上提現轉帳--&gt;一家台灣人常用的交易所--&gt;台灣本人銀行帳戶--&gt;家人銀行帳戶</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:59:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 「过去分词」中的「分」是怎来的，有什么缘由吗？</title>
-<link>https://www.v2ex.com/t/1001493</link>
-<guid>https://www.v2ex.com/t/1001493</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-18T16:06:10Z</pubDate>
-</item>
-<item>
-<title>[求职] [求职/远程]五年全栈，寻岗位</title>
-<link>https://www.v2ex.com/t/1001492</link>
-<guid>https://www.v2ex.com/t/1001492</guid>
-<content:encoded><![CDATA[
-<h1>练习时常五年半全栈开发寻岗位</h1>
-<h2>node 全栈</h2>
-<p>前端使用 angular+antd/weui ，后端使用 nestjs ，db 使用 postgresql/sql server ，使用 redis 缓存。</p>
-<p>项目部署在 aws 上，使用 s3 ，cloudfront ，lambda 等相关内容。</p>
-<p>从 sql server 迁移到 postgresql ，也有从 postgresql 迁移到 sql server 上。</p>
-<h2>.net 全栈</h2>
-<p><a href="http://使用.net" rel="nofollow">使用.net</a> framework/.net core 进行全栈开发，.net core 进行接口开发。使用 redis 缓存，使用 mq 进行消息的异步处理。</p>
-<p>进行过数据改造和优化性能。</p>
-<h2>拥有证书</h2>
-<p>AWS Certified Solutions Architect – Associate</p>
-<h2>个人的项目(玩具)</h2>
-<ul>
-<li>一个可以自定义提醒标题、内容、时间的项目，基于 windows api 。</li>
-<li>一个把 Json 转换成 Excel 的工具。</li>
-</ul>
-<h2>联系方式</h2>
-<p>base64：d3V5dWlpOQ==</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:21:31Z</pubDate>
-</item>
-<item>
-<title>[前端开发] 想搞一个照片墙的静态页面，图片文件为 zip 包，有没有现成的轮子？</title>
-<link>https://www.v2ex.com/t/1001490</link>
-<guid>https://www.v2ex.com/t/1001490</guid>
-<content:encoded><![CDATA[
-RT ，最近下载了很多大姐姐的照片，被分门别类打包成 zip 包了，查看起来非常不方便，更不方便局域网共享直接看。<br /><br />GitHub 找了一圈也没找到类似的产品，但是感觉又属于轮子范畴里的，不知道大家有什么好的轮子没？
-]]></content:encoded>
-<pubDate>2023-12-18T15:21:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] AP 面板防水吗，可以装到卫生间吗？</title>
-<link>https://www.v2ex.com/t/1001489</link>
-<guid>https://www.v2ex.com/t/1001489</guid>
-<content:encoded><![CDATA[
-<p>卫生间信号差，想在里面装一个</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:11:17Z</pubDate>
-</item>
-<item>
-<title>[程序员] 本地文件批量重命名，现在可以用 web 实现了</title>
-<link>https://www.v2ex.com/t/1001486</link>
-<guid>https://www.v2ex.com/t/1001486</guid>
-<content:encoded><![CDATA[
-<p>批量重命名是一个低频但时不时又会遇到的需求，非常适合在线工具的形式，然后还真发现了相关的 API 。</p>
-<p><a href="https://chromestatus.com/feature/6271579653144576" rel="nofollow">FileSystemFileHandle.move() for local files - Chrome Platform Status</a></p>
-<p>chrome 于 111 版本添加的 <code>move</code> API ，可以直接对本地文件进行重命名，目前 MDN 上还没有文档，应该还不是标准。</p>
-<p>在线体验: <a href="https://rename.jgrass.xyz/" rel="nofollow">Rename - 批量文件重命名工具</a></p>
-<p>Github: <a href="https://github.com/JasonGrass/rename" rel="nofollow">JasonGrass/rename: 在线文件批量重命名</a></p>
-<p>功能还不是很丰富，等之后有空了再完善吧。不过，正则表达式替换，已经可以覆盖很多高级场景了。</p>
-<p>感叹于浏览器的能力边界越来越大了，加上 webassembly ，估计以后很多功能都可以直接在浏览器上实现了，多方便。🤣</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:35:27Z</pubDate>
-</item>
-<item>
-<title>[DevOps] 开源 CMDB 新增支持多种认证方式: CAS、OAuth2.0、OIDC，并已兼容测试 casdoor</title>
-<link>https://www.v2ex.com/t/1001485</link>
-<guid>https://www.v2ex.com/t/1001485</guid>
-<content:encoded><![CDATA[
-开源 CMDB 发布了新版本 v2.3.8<br /><br />支持用户在后台设置中配置不同的认证方式，如: LDAP 、CAS 、OAuth2.0 、OIDC<br /><br />第三方认证已经兼容测试过 casdoor <br /><br />changelog: <a href="https://github.com/veops/cmdb/releases/tag/2.3.8" rel="nofollow noopener" target="_blank">https://github.com/veops/cmdb/releases/tag/2.3.8</a>
-]]></content:encoded>
-<pubDate>2023-12-18T14:41:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助，学校实习不给请假怎么办</title>
-<link>https://www.v2ex.com/t/1001484</link>
-<guid>https://www.v2ex.com/t/1001484</guid>
-<content:encoded><![CDATA[
-<p>目前大四，学校给安排了最后五周的实习，现在是第二周。</p>
-<p>我是学网络工程的，学校给安排的实习就是学 Java （其实就是找的校外的培训机构来学校上课，但是质量不怎么样），但是个人目前的技术栈用不上 Java ，以后也大概率用不上，找关系给开了个实习证明（实习的这段时间本来打算在学校校园网及核心实习学点技术的，以及处理一些别的事）</p>
-<p>但是给辅导员交材料，非得要负责的老师签字，那个老师说一律不许请假（ PS:在学院里同学们对他印象都非常差，但是是我系主任，大概 50 多岁），微信加他好友也不同意，找班长转述也说不许请假。不知道该怎么办，来问问各位彦祖，不知道有什么办法</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:39:09Z</pubDate>
-</item>
-<item>
-<title>[写周报] 独立开发周记 #44：只想做一个沙发土豆</title>
-<link>https://www.v2ex.com/t/1001483</link>
-<guid>https://www.v2ex.com/t/1001483</guid>
-<content:encoded><![CDATA[
-<h1>独立开发周记 #44：只想做一个沙发土豆</h1>
-<h1>2023 ，1211-1217</h1>
-<p>这周几乎没写代码，所以这个周记只能写一些代码之外的事情了。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/bf262abb-78e4-4656-9a6d-59aca91f83b4.jpeg?imageView2/2/w/1920/q/100" /></p>
-<p>题图由美图秀秀生成。</p>
-<h1>设计</h1>
-<p>这周收到了极简时钟新表盘的样稿，修改了两轮，最后还是没能击中我。和上次一样，虽然没能继续合作下去，但是还是长了见识，学到了一个专业名词：FUI 。</p>
-<p>经 Patrick 的帮忙推荐，又接触了几个设计师，令我惊讶的是，这几位都是在国外学习或工作的。不过也不得不说，国内外的设计风格差异很大，价格差异也很大……</p>
-<p>好在还有一个设计工作步入了下一阶段，极简时钟 Android 新版本的商店截图正在设计中。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/4604ab81-c293-440e-95bc-da3c4baaa76c.png?imageView2/2/w/1920/q/100" /></p>
-<h1>小恙</h1>
-<p>周一到周三，高烧+浑身疼痛无力，疑似甲流。</p>
-<p>这三天每天就吃一顿饭，毫无胃口，整日躺在床上，迷迷糊糊，昏昏睡睡。</p>
-<p>这三天陪我熬过来的就是抖音上各种鉴宝视频，国宝帮可太尼玛逗了。</p>
-<p>评论都说「华山论鉴」节目应该改名为「华山论犟」😂</p>
-<ul>
-<li>汉白玉晾衣架。</li>
-<li>故宫一件，我一件。</li>
-<li>你别管是不是微波炉专用，你就看这釉色怎么样？</li>
-</ul>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/ea25d7e3-a1a7-4c95-a226-1536339088ce.png?imageView2/2/w/1920/q/100" /></p>
-<h1>挫败感</h1>
-<ul>
-<li>这周因为孩子和自己都生病了，心情很差</li>
-<li>设计工作推进得不理想</li>
-<li>专注力下降，难得有的空闲时间也不想工作，只是想沉迷于奶头乐，做一个沙发土豆</li>
-<li>兼职工作遇到一些无法解决的难点</li>
-</ul>
-<p>比较欣慰的好消息是，不知道是不是上周针对付费墙的优化， 这周极简时钟 iOS 的数据好了一些</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/3a60c665-3488-4186-ade5-5f265a7de78f.png?imageView2/2/w/1920/q/100" /></p>
-<h1>居家一周</h1>
-<ul>
-<li>这周孩子没上学，我没有了起床压力，自然又晚睡了。</li>
-<li>周一到周六都没出屋，外面下了两场雪。周日出去了一趟，一下子无法适应零下 20 度的温度。</li>
-<li>和孩子一起看了四集《地球脉动》第三季，太震撼了，电视买得太超值了。</li>
-<li>开始玩战神 5 ，没想到 PS4 Slim 也很流畅。</li>
-</ul>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/0825d40f-2877-4a6e-a4c1-c1097784e413.jpeg?imageView2/2/w/1920/q/100" /></p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:40:31Z</pubDate>
-</item>
-<item>
-<title>[Apple] 15promax 屏幕被我拍到了水泥地板上，怎么检查屏幕是否有留下暗病？</title>
-<link>https://www.v2ex.com/t/1001482</link>
-<guid>https://www.v2ex.com/t/1001482</guid>
-<content:encoded><![CDATA[
-<p>昨天在路上被重重绊了一跤，当时手下意识地撑地，结果手机屏幕那面被我直接拍到了水泥地板上</p>
-<p>看着屏幕上的裂纹我心态都崩了。但没想到居然撕开钢化膜发现只有膜碎了，屏幕似乎没啥瑕疵，仔细检查也只在边框看到了一处很细小的磕痕</p>
-<p>但是还是挺不安的，毕竟之前从没买过 15promax 这种价位的电子产品，担心虽然表面没事，但是万一后续屏幕出问题就遭心了</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:21:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] 发现即便是搜索简体中文内容， google 也比百度更精准</title>
-<link>https://www.v2ex.com/t/1001481</link>
-<guid>https://www.v2ex.com/t/1001481</guid>
-<content:encoded><![CDATA[
-<p>以前我是习惯搜墙内内容用百度，墙外内容用谷歌。</p>
-<p>最近 10 几天即便搜索墙内内容也基本用 google ，发现搜索同一个简体中文关键词，百度给出的结果基本全是些文不对题的答辩，而且是十几页的答辩。而谷歌虽然也能搜到答辩，这主要是由于简体中文互联网内容全是答辩造成的，但是即便去掉这些答辩，谷歌仍然能搜到很多符合关键词的结果，结果比起百度也更准确。</p>
-<p>至于搜英文和繁体中文，那就不用说了，我准备浏览器搜索引擎全部换成 google,百度搜索现在已经没有存在的价值了。</p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:13:05Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 35+，失业了，好慌</title>
-<link>https://www.v2ex.com/t/1001480</link>
-<guid>https://www.v2ex.com/t/1001480</guid>
-<content:encoded><![CDATA[
-小厂的老龄 PM ，投简历有反馈的寥寥无几，来询价的基本都是外派岗位。<br />以前也有过空窗期，但是从来没现在这么慌，仿佛被社会抛弃了，满满的凄凉感
-]]></content:encoded>
-<pubDate>2023-12-18T16:03:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 实在忍不住吐槽苹果现在垃圾到连鼠标都不能自理</title>
-<link>https://www.v2ex.com/t/1001479</link>
-<guid>https://www.v2ex.com/t/1001479</guid>
-<content:encoded><![CDATA[
-<p><a href="https://pomf2.lain.la/f/872so8w.mp4" rel="nofollow">https://pomf2.lain.la/f/872so8w.mp4</a> <br />
-干活的机器天天就这鬼样子，鼠标时不时完全不更新 <br />
-指向链接也不变成手，一直是指针，真让人崩溃 <br />
-原来积极更新系统，现在 iOS 我也不升级了，macOS 准备降级 <br />
-这鬼样子瞬间就没心情干活了，有大佬知道怎么解决这个问题吗 <br /></p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:42:41Z</pubDate>
-</item>
-<item>
-<title>[程序员] 去哪里获取一些新消息比较好呀</title>
-<link>https://www.v2ex.com/t/1001478</link>
-<guid>https://www.v2ex.com/t/1001478</guid>
-<content:encoded><![CDATA[
-<p>有关注一些公众号比如量子位之类的，但是感觉他们的标题制造焦虑很严重，感觉有点过于自媒体了，新闻也就是一个论文为 base ，然后包装成一个很耸人听闻的观点，吸引人点进去；看完之后除了情绪受到调动也没什么收获</p>
-]]></content:encoded>
-<pubDate>2023-12-18T16:05:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 腾讯视频会员现在有没有优惠渠道</title>
-<link>https://www.v2ex.com/t/1001476</link>
-<guid>https://www.v2ex.com/t/1001476</guid>
-<content:encoded><![CDATA[
-<p>就是联合会员那种，或者便宜的</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:26:02Z</pubDate>
-</item>
-<item>
-<title>[程序员] 感觉 Java 方面能指引方向的大神比 Javascript 少很多</title>
-<link>https://www.v2ex.com/t/1001475</link>
-<guid>https://www.v2ex.com/t/1001475</guid>
-<content:encoded><![CDATA[
-<p>这里的指引方向是指，当后来者面临十字路口时，能有一些选择和参考。</p>
-<p>比如 Java 领域，之前有个大神：Rednaxelafx 。之前非常活跃于网络，既能切实的解决 Java 相关的技术问题，又能给人指明方向。但是他已经潜水很多年了。</p>
-<p>但是 Javascipt 领域，还有很多正在活跃的大神：比如 i5ting(狼叔)、justjavac 等等还有好些个都是现在正在活跃的。</p>
-<p>现在不活跃的就不算了哈，为啥 Java 这边基本没人了呢。如果大家有知道的，请不吝赐教。</p>
-]]></content:encoded>
-<pubDate>2023-12-18T15:45:25Z</pubDate>
-</item>
-<item>
-<title>[Windows] 公司要买正版 Windows，什么途径靠谱而且又优惠呢？有没有大佬知道</title>
-<link>https://www.v2ex.com/t/1001474</link>
-<guid>https://www.v2ex.com/t/1001474</guid>
-<content:encoded><![CDATA[
-要求提供发票和对公转账，有推荐吗？
-]]></content:encoded>
-<pubDate>2023-12-18T14:30:23Z</pubDate>
-</item>
-<item>
-<title>[杭州] 坐标阿里云，招聘云原生研发工程师</title>
-<link>https://www.v2ex.com/t/974960</link>
-<guid>https://www.v2ex.com/t/974960</guid>
-<content:encoded><![CDATA[
-岗位描述：<br />1. 负责容器服务产品平台化及底层核心服务能力建设，同时支撑多个垂直领域的企业业务运行；<br /><br />2. 负责容器平台相关云原生技术的架构演进，包括但不限于安全容器、Serverless 基础设施、AI 等新计算技术；能在具备创新活力的上游生态（如开源技术创新、阿里经济体内部创新），把握行业需求，推动创新产品化落地；<br /><br />3. 负责容器服务平台智能化运营系统的架构与建设，能结合容器平台之上复杂多样的业务类型，提出产品能力的评估模型与优化建议，提升平台的稳定性与高效性。<br /><br />职位要求：<br />1. 对容器和基础设施相关领域的云原生技术充满热情，在相关的领域如 Kubernetes 、Serverless 平台、容器网络与存储、运维平台等云原生基础设施其中某一方向有丰富的积累和突出成果（如产品落地，创新的技术实现，开源的突出贡献，学术研究成果等）；<br /><br />2. 有 3 年以上互联网应用开发、运维的经验，有额外企业级应用开发、开发经验者优先；<br /><br />3. 优秀的表达能力，沟通能力，和团队协作能力；对技术和业务有前瞻性的思考；具备较强的 ownership ，以结果为导向，负责或强项业务领域内善于决策；<br /><br />4. 熟悉 Java 、Golang 其中至少一项编程语言。<br /><br />岗位 JD： <a href="https://careers.aliyun.com/off-campus/position-detail?positionId=1041117" rel="nofollow noopener" target="_blank">https://careers.aliyun.com/off-campus/position-detail?positionId=1041117</a><br /><br />联系方式（ base64 ）<br />有意向的朋友可以加微信聊：bGl1YmVueGkwMDEK<br />或者直接发送简历到邮箱：YmVueGkubGJ4QGFsaWJhYmEtaW5jLmNvbQo=
-]]></content:encoded>
-<pubDate>2023-12-18T14:45:09Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 我用 GPT 3.5 为 20 万个图标和 5 千个 Emoji 分别构建了多语言搜索引擎</title>
-<link>https://www.v2ex.com/t/1001472</link>
-<guid>https://www.v2ex.com/t/1001472</guid>
-<content:encoded><![CDATA[
-<p>OpenAI 造了一座金山，在过去一年里，全世界的开发者都趋之若鹜，我也加入到了这波淘金热中，并成功挖到了属于自己的两块金砖：</p>
-<p>✊ <strong>Yesicon</strong> (<a href="https://yesicon.app/" rel="nofollow">https://yesicon.app/</a>) ：支持 8 个语言的矢量图标搜索引擎，收录了超过 20 万个高质量图标，开发者和设计师的 ⌘CV 好帮手</p>
-<p>🧐 <strong>SearchEmoji</strong> (<a href="https://searchemoji.app/" rel="nofollow">https://searchemoji.app/</a>)： 支持 30 个语言的 Emoji 搜索引擎，丰富多彩的 Emoji 让你的文章和社交文字更生动</p>
-<p>我的一个前端开发者，日常工作中会使用到很多图标，Iconify 很大程度上解决了我使用图标的需求，但仍有一个痛点：我是个非英语母语者，在搜索图标时经常要借助翻译软件。当 OpenAI 推出 API 服务时，我第一反应就是：我要用它来构建一个多语言的图标搜索引擎，于是 Yesicon 就这样诞生了。</p>
-<p>由于我只能使用业余时间来开发，所以我花了将近半年的时间才将其发布上线。另我惊喜的是上线后反响非常好，不断的有社交媒体的大 V 帮我推荐，目前每个月访客量已高达 121k ，用户来自世界各地，某种意义上我成功了！</p>
-<p>我感觉我发现了流量密码，因为我发现用同一种思路，其实能做很多事情，只要你有资源，你都可以利用 AI 将资源推送给全世界的用户，并且只需 GPT-3.5 就能做到。但我并没有像样的资源，所以我只能将目光对准免费的资源，Iconify 是这样，Emoji 也是这样。</p>
-<p>其实做 emoji 搜索引擎也是基于我自身的需求出发，因为我日常写文档时，找到心仪的 Emoji 也是一件痛苦的事情。目前 SearchEmoji 刚刚上线，诚邀你来试用体验！如果能给我些建议，将感激不尽！ SearchEmoji 的代码是开源的，你可以从网站右上角进入 Github 仓库。</p>
-<p>当然，我也非常希望你能去体验 Yesicon 并给我些反馈，如果你是设计师或前端开发者，你将离不开他。我目前也在想怎么将流量变现，也想听听你的建议。</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:06:13Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Android（AIGC、远程办公）</title>
-<link>https://www.v2ex.com/t/1001471</link>
-<guid>https://www.v2ex.com/t/1001471</guid>
-<content:encoded><![CDATA[
-<p>Hi ，
-我正在帮一家估值近亿美元的 Web3+AI 机器人厂商招聘 Android 人选，公司目前的主要产品是陪聊机器人，增长和口碑都不错，所有员工都是远程办公的。
-目前在招 Android 开发工程师，总包 50W~60W+，需要您有比较好的 To C 经验，如果有过远程办公经验是很好的加分项。
-如果有兴趣，可以加我微信：WadeDXK
-JD：
-[Responsibilities] </p>
-<p>Responsible for the development of Android's App as well as SDK, writing high quality code;
-Cooperate with the product manager, deeply involved in the product requirements discussion, function definition, etc.;
-Design good code structure, continuous iterative refactoring.
-[Who you are]</p>
-<p>Bachelor degree or above in Computer Science or related majors;
-3 years and above Android development experience, with solid foundation in Java, Kotlin, TypeScript language and ReactNative development ability;
-Proficiency in Android development, testing, tuning and other technologies, proficiency in multi-threading, common data structures, operating system knowledge;
-Strong sense of responsibility and independent thinking, strong communication skills and teamwork spirit.</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:02:53Z</pubDate>
-</item>
-<item>
-<title>[问与答] 你们的 Palm Phone 可以开启热点么?</title>
-<link>https://www.v2ex.com/t/1001469</link>
-<guid>https://www.v2ex.com/t/1001469</guid>
-<content:encoded><![CDATA[
-<p>朋友们, 你们的 Palm phone, 就是 <a href="https://global.v2ex.com/t/499553" rel="nofollow">https://global.v2ex.com/t/499553</a> 这个信用卡大的小安卓手机, 8.0 的安卓系统, 你们可以开启热点么? 我买的国行的 PVG 100, 没有开启热点的菜单.</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:01:47Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教如何把一个已经写好的 shell 脚本“内置”到 C 语言程序里并运行。</title>
-<link>https://www.v2ex.com/t/1001468</link>
-<guid>https://www.v2ex.com/t/1001468</guid>
-<content:encoded><![CDATA[
-shell 脚本的加密方法目前知道两种，一种是 shc ，另一种是 gzexe ，想试试一个新思路。<br /><br />以下代码仅实现在 C 语言程序中运行 shell 脚本：<br /><br />#include &lt;stdio.h&gt;<br />#include &lt;stdlib.h&gt;<br /><br />int main() {<br />    // 使用 system 函数调用 shell 脚本<br />    int result = system("sh <a href="http://your_script.sh" rel="nofollow noopener" target="_blank">your_script.sh</a>");<br /><br />    // 检查执行结果<br />    if (result == -1) {<br />        perror("Error executing the shell script");<br />        return EXIT_FAILURE;<br />    } else {<br />        printf("Shell script executed successfully\n");<br />        return EXIT_SUCCESS;<br />    }<br />}<br /><br />也在网上搜索到很多在 C 语言中逐行写入 shell 脚本命令的方法，觉得不太方便。请教大佬们怎么把一个已经编写好的 shell 脚本文件“内置”或者说“隐藏”到程序中，让人看起来就是一个可执行程序，每次运行程序时，就会“释放”这个 shell 脚本到/tmp 目录下，再执行 sh /tmp/<a href="http://myshell.sh" rel="nofollow noopener" target="_blank">myshell.sh</a> 。
-]]></content:encoded>
-<pubDate>2023-12-18T13:59:45Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 大家一起来探索下躺平财富自由的可行性...</title>
-<link>https://www.v2ex.com/t/1001467</link>
-<guid>https://www.v2ex.com/t/1001467</guid>
-<content:encoded><![CDATA[
-写在前面<br />1.财富自由是相对我自己而言，完全不上班的情况下年入 20w<br />2.排除吃利息，看过最低消费攒钱的理念，个人不愿接受<br /><br />为啥有这个想法<br />1.高收入不可持续，现在已经 30 了<br />2.也不想转管理，管理真的费心神，而且需要有脾气，敢发脾气，否则竞争资源或者甩锅扯皮的时候容易吃亏<br />3.对做开发感到厌倦，这个见仁见智，我自己是觉得技术就这样，技术一定服务于业务，永远是业务为王，只有在突破性技术刚面试的短暂时期内技术为先，例如 OpenAI<br /><br />我的想法<br />1.写书；参考余华不想当牙医，《活着》出版后现在一年版费上千万（他自己说的）<br />2.插画、漫画；个人爱好，喜欢瞎画，例如画个兽人战士之类，也许会上数位板慢慢学更专业的知识<br />3.独立游戏开发；同个人爱好，不一定我自己做，但是先 Unity3D ，MaYa 什么的可以先学着捣鼓<br /><br />不排除个人爱好一旦变成工作以后就对它失去了兴趣，所以我的这些想法其实都有点一锤子买卖，例如书出版了活着游戏做完了，每年都会产生收益，不需要重复劳动<br /><br />以上，欢迎讨论你自己的想法，欢迎有相似想法的人拉个水群<br />套用一下雷布斯的话“年轻人要敢想敢干，说不定就成了呢”
-]]></content:encoded>
-<pubDate>2023-12-18T14:11:32Z</pubDate>
-</item>
-<item>
-<title>[游戏开发] 求推荐 2D 游戏引擎</title>
-<link>https://www.v2ex.com/t/1001464</link>
-<guid>https://www.v2ex.com/t/1001464</guid>
-<content:encoded><![CDATA[
-<p>想和朋友开发个游戏，因为我没有相关的开发经验，不知道选什么引擎好。</p>
-<ul>
-<li>平台目前只考虑 windows (10+/11)</li>
-<li>2D 横版</li>
-<li>语言: C, C++, Python, Rust 都写过一点，但是没写过 gui ，可以学新语言</li>
-<li>项目打算开源，不考虑盈利</li>
-</ul>
-<p>之前有看过 godot 和 bevy ，不知道生态怎么样，希望找个生态丰富、开发效率高的。</p>
-]]></content:encoded>
-<pubDate>2023-12-18T14:17:50Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 求转移/合并 iCloud 账号的最优解</title>
-<link>https://www.v2ex.com/t/1001463</link>
-<guid>https://www.v2ex.com/t/1001463</guid>
-<content:encoded><![CDATA[
-由于种种原因，目前有两个苹果账号在使用，现在想要试试能不能合并或转移为一个。<br /><br />其中<br />账号 A 为美区账号，被应用为：<br />iPhone/mac/ipad/homepod 等设备的主要 apple ID<br />app store 中一些比较贵的 app 购买，比如 infuse<br />icloud 2t 套餐，储存了几年的照片<br />云端文件备份/同步<br />建立家庭，成员是我老婆国区账号，用来分享 icloud 空间<br /><br />账号 B 为新加坡区账号，被应用为：<br />日常 app store 使用，因为人在新加坡，大量本地 app 需要使用<br />apple music ，需要听华语音乐<br />apple arcade 订阅<br />想要订阅 apple one<br /><br />因为以后都在新加坡了，就像主要使用新加坡区的所有服务：<br /><br />方案 1：<br />放弃 B 账号,然后把账号 A 转为新加坡区-- 不知道会不会有什么问题，购买过的 app 怎么办，如果新加坡区没有的话还能更新吗？<br /><br />放弃账号 A ，把所有设备重新登陆为账号 B ，下载 iCloud 照片，文件等等，全部重新上传到账号 B -- 工程量巨大，而且已经买过的 infuse 还是在这个账号里。
-]]></content:encoded>
-<pubDate>2023-12-18T14:09:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] CPE 的奇怪重启问题</title>
-<link>https://www.v2ex.com/t/1001462</link>
-<guid>https://www.v2ex.com/t/1001462</guid>
-<content:encoded><![CDATA[
-<p>一个 CPE （超能犇）在地点 A 反复重启，但是在地点 B 就一切使用正常。在两地使用同样的电源输入设备。请问这是什么原因？是有锁区或者当地有屏蔽？谢谢。</p>
-]]></content:encoded>
-<pubDate>2023-12-18T13:32:07Z</pubDate>
 </item>
 </channel>
 </rss>
