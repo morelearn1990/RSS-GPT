@@ -5,14 +5,270 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] Nginx Proxy Manager 为什么不 work 呢？</title>
+<link>https://www.v2ex.com/t/1002935</link>
+<guid>https://www.v2ex.com/t/1002935</guid>
+<content:encoded><![CDATA[
+
+<p>OP 是网络苦手，麻烦大佬们帮忙看下，谢谢</p>
+<h2>之前的情况</h2>
+<p>OP 有公网 IP ，原来的内网穿透方案是 ROS 做端口映射，在 NAT 里做了 dst-nat ，例如将外网的 11190 映射到 192.168.0.110 机器的 1190 ，</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xRWsfg6.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6HaawrG.png" /></p>
+<p>192.168.0.110 机器是一台黑群晖，在上面用自带的反向代理服务器把 http 的 1189 代理成 https 的 1190</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/QyZH6GS.png" /></p>
+<p>用起来没有问题。后来 OP 想要把网络相关的都放在一个软路由上，于是在软路由虚拟 Alpine 的 docker 上（ ip 为 192.168.0.3 ）搞了一个 Nginx Proxy Manager</p>
+<h2>Nginx Proxy Manager</h2>
+<p>首先是 docker 的端口映射，80-&gt;51080,443-&gt;51443 ，此时访问 <a href="http://192.168.0.3:51080" rel="nofollow">http://192.168.0.3:51080</a> 有 NPM 的欢迎页，但是访问 <a href="https://192.168.0.3:51443" rel="nofollow">https://192.168.0.3:51443</a> 提示无法访问此网站。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KUj6c0S.png" /> </p>
+<p>因为阿里云的 ssl 免费证书是单域名的，还在 NPM 上搞了个 lets encrypt 的 ssl 证书。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/MylQsFq.png" /> </p>
+<p>添加了一个 flare 开头的二级域名指向 192.168.0.110 的 1189 ，群晖上那条 http 的 1189 代理成 https 的 1190 的规则也删掉了</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/MA2P8sA.png" /> </p>
+<h2>阿里云</h2>
+<p>在阿里云上好像没有特别多设置 ，只是 cname 操作了下 flare 二级域名</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WY2nxDK.png" /> </p>
+<h1>ROS</h1>
+<p>ROS 软路由上加了一条映射，把外网的 51443 映射到 NPM 那台机器的 51443 上</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4Hgc2W1.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Xs00i7O.png" /> </p>
+<h2>ping 和 端口开放情况</h2>
+<p>至此，ping 域名和 flare.域名，都可以得到公网 IP ，可以 ping 通，端口检测域名和 flare.域名的 51443 端口都是开放的。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xZwF2CI.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/z2yyhfz.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/iEfYgsk.png" /> </p>
+<h2>结果</h2>
+<p>手机切了 5G ，https://flare.域名:51443 无法访问。OP 猪脑过载了，问题是出在哪里呢？感觉公网映射的端口还有解析的域名子域名这些都没有问题，应该是把请求给到了 NPM 了，是因为我的 SSL 证书有问题吗？ 另外我怀疑是内网访问不了 <a href="https://192.168.0.3:51443" rel="nofollow">https://192.168.0.3:51443</a> ，于是我把 NPM 里面改成 http 的代理，ROS 配置了 51080 的映射，但是外网还是访问不了。</p>
+]]></content:encoded>
+<pubDate>2023-12-23T16:06:15Z</pubDate>
+<pubDate>2023-12-23T16:05:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 通过反向代理自动登录网站，并且过滤 REST API 返回的数据，可以吗？</title>
+<link>https://www.v2ex.com/t/1002934</link>
+<guid>https://www.v2ex.com/t/1002934</guid>
+<content:encoded><![CDATA[
+
+<p>有个合作商的系统，权限管理不太完善。我司普通员工的账号打开能看见所有历史客户的所有数据。</p>
+<p>我们想不再给普通员工发这个系统的用户名和密码了，通过反代，做一个专门的入口，员工输入与他相关的某一个客户的代码，自动登入反代过的合作商系统，只查看这一个客户的信息。</p>
+<p>可行吗？应该如何配置？这个系统用 Bearer Token ，Token 我们可以生成。</p>
+]]></content:encoded>
+<pubDate>2023-12-23T15:56:56Z</pubDate>
+<pubDate>2023-12-23T16:02:30Z</pubDate>
+</item>
+<item>
+<title>[程序员] 前端上传 base64 格式的图片的时候，为什么 Java 后端要对 byte 类型的负数值+256？</title>
+<link>https://www.v2ex.com/t/1002933</link>
+<guid>https://www.v2ex.com/t/1002933</guid>
+<content:encoded><![CDATA[
+
+<p>这几天看了好几个关于前端上传 base64 格式的图片到 java 后端，后端需要 for 循环 byte 类型的数据，对于小于 0 的 byte 值要加 256 ，这一点没看懂，java byte 值的范围不是-128~127 么，负数值的 byte 数据+256 也是原值，感觉好像没变化~~~，这一点处理代码没看懂，是有啥隐藏知识么，有没有大佬指点一下？</p>
+<blockquote>
+<p>代码如下</p>
+</blockquote>
+<pre><code> byte[] b = new byte[0];
+ b = decoder.decodeBuffer(baseStrs[1]);
+
+ for (int i = 0; i &lt; b.length; ++i) {
+     if (b[i] &lt; 0) {
+         b[i] += 256;
+     }
+ } 
+</code></pre>
+<blockquote>
+<p>资料来源
+csdn <a href="https://blog.csdn.net/ShuSheng0007/article/details/118230374?spm=1001.2101.3001.6650.1&amp;utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-1-118230374-blog-119354309.235%5Ev39%5Epc_relevant_3m_sort_dl_base4&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-1-118230374-blog-119354309.235%5Ev39%5Epc_relevant_3m_sort_dl_base4&amp;utm_relevant_index=2" rel="nofollow">https://blog.csdn.net/ShuSheng0007/article/details/118230374?spm=1001.2101.3001.6650.1&amp;utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-1-118230374-blog-119354309.235%5Ev39%5Epc_relevant_3m_sort_dl_base4&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-1-118230374-blog-119354309.235%5Ev39%5Epc_relevant_3m_sort_dl_base4&amp;utm_relevant_index=2</a></p>
+</blockquote>
+<hr />
+<blockquote>
+<p>chatgpt 的回答:
+在 Java 中，对于负数进行 Base64 编码时，通常需要加上 256 ，这是因为 Java 中的 byte 类型是有符号的，其取值范围是-128 到 127 。而 Base64 编码是基于字节的，它期望输入的字节是无符号的。</p>
+</blockquote>
+<blockquote>
+<p>在进行 Base64 编码时，负数的二进制表示形式和正数不同。如果不进行处理，可能导致 Base64 编码输出的结果与预期不符。</p>
+</blockquote>
+<blockquote>
+<p>假设有一个负数 x ，其在二进制中表示为 b1b2b3b4b5b6b7b8 。由于 Java 中的 byte 是有符号的，b8 表示符号位，如果直接对其进行 Base64 编码，可能会导致编码器处理符号位的问题。因此，为了确保正确的 Base64 编码，可以将负数加上 256 ，将其转换为一个正数，然后再进行 Base64 编码。</p>
+</blockquote>
+<blockquote>
+<p>以下是一个简单的例子，演示了对负数进行 Base64 编码的问题和解决方法：</p>
+</blockquote>
+<pre><code>import java.util.Base64;
+
+public class Base64Example {
+    public static void main(String[] args) {
+        int negativeNumber = -42;
+
+        // 直接对负数进行 Base64 编码，可能导致意外结果
+        String base64Direct = Base64.getEncoder().encodeToString(new byte[]{(byte) negativeNumber});
+        System.out.println("Base64 Direct: " + base64Direct);
+
+        // 将负数加上 256 ，然后进行 Base64 编码
+        int adjustedNumber = negativeNumber + 256;
+        String base64Adjusted = Base64.getEncoder().encodeToString(new byte[]{(byte) adjustedNumber});
+        System.out.println("Base64 Adjusted: " + base64Adjusted);
+    }
+}
+
+</code></pre>
+<p>有大佬指点一下么~~~ 感谢！</p>
+]]></content:encoded>
+<pubDate>2023-12-23T15:47:58Z</pubDate>
+<pubDate>2023-12-23T15:46:58Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 分享一个反应速度测试和 CPS 的工具</title>
+<link>https://www.v2ex.com/t/1002932</link>
+<guid>https://www.v2ex.com/t/1002932</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://reactiontest.online/" rel="nofollow">https://reactiontest.online/</a></p>
+]]></content:encoded>
+<pubDate>2023-12-23T15:36:36Z</pubDate>
+<pubDate>2023-12-23T15:33:36Z</pubDate>
+</item>
+<item>
+<title>[生活] 我喝完酒后，完全就是另一个人</title>
+<link>https://www.v2ex.com/t/1002931</link>
+<guid>https://www.v2ex.com/t/1002931</guid>
+<content:encoded><![CDATA[
+
+我不是一个酒鬼，我大概一个礼拜喝 1 到 2 次酒，这是有原因的，因为一直喝酒的话人就会进入酒精适应状态，酒精带来的快乐就会被抚平。所以为了不浪费酒就保持了这个节奏。<br /><br />我喝完酒后：<br /><br />- 人变开朗了<br />- 社交牛逼属性激活了<br />- 人变大方了<br />- 平时让人烦心的小事情变得无关紧要了<br />- 我开始关心其他人了<br />- 我变得更加“善良”了<br />- 生活似乎充满希望了<br /><br />好奇怪啊，多巴胺对脑子的作用这么大的吗。我认为平时的我脑袋是有某种缺陷的，酒精似乎给我一种补全的感觉，真的好奇怪啊人的脑袋，为什么一点酒就会让人的心态发生这么大的变化。<br /><br />我真的很喜欢喝醉的自己，可惜短暂，可惜我会酒醒，那种缺憾感还是会回来。我真的很讨厌清醒的自己。
+]]></content:encoded>
+<pubDate>2023-12-23T15:22:29Z</pubDate>
+<pubDate>2023-12-23T13:21:29Z</pubDate>
+</item>
+<item>
+<title>[机械键盘] 手上静电电了下正在用的机械键盘，结果按下字母 C 键出来 ZXCVBN</title>
+<link>https://www.v2ex.com/t/1002929</link>
+<guid>https://www.v2ex.com/t/1002929</guid>
+<content:encoded><![CDATA[
+
+<p>可惜可惜，这个键盘已经撑过了大学四年和疫情三年，还以为能传下去。</p>
+]]></content:encoded>
+<pubDate>2023-12-23T15:06:31Z</pubDate>
+<pubDate>2023-12-23T13:06:31Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 1985 年至 2021 年的裁判文书全量数据，共 94.36G</title>
+<link>https://www.v2ex.com/t/1002928</link>
+<guid>https://www.v2ex.com/t/1002928</guid>
+<content:encoded><![CDATA[
+
+<p>磁力 magnet:?xt=urn:btih:c6aac12ebd697041ba60a8cba9f7326155921fae</p>
+<p>Resilio sync 密钥:BC76W4N26A3ZCOQEIAQYMMBGY7PRWE6TG</p>
+<p>网盘:<a href="https://pan.baidu.com/share/init?surl=hzy4Pg62PeBHI4mtgx8DYA&amp;pwd=4p46" rel="nofollow">https://pan.baidu.com/share/init?surl=hzy4Pg62PeBHI4mtgx8DYA&amp;pwd=4p46</a></p>
+<p>来源:<a href="https://weibo.com/1881588645/NwNEpnTC9" rel="nofollow">https://weibo.com/1881588645/NwNEpnTC9</a>
+<a href="https://www.reddit.com/r/China_irl/comments/18n748n" rel="nofollow">https://www.reddit.com/r/China_irl/comments/18n748n</a></p>
+]]></content:encoded>
+<pubDate>2023-12-23T15:04:30Z</pubDate>
+<pubDate>2023-12-23T15:39:00Z</pubDate>
+</item>
+<item>
+<title>[iPhone] App Store 日区的扣款时间</title>
+<link>https://www.v2ex.com/t/1002927</link>
+<guid>https://www.v2ex.com/t/1002927</guid>
+<content:encoded><![CDATA[
+
+<p>家庭成员通过 Apple 家庭组的家长的付款方式，给日区手游氪金，我可以收到银行短信、Apple 账单邮件。</p>
+<p>一般收到短信（银行付款）的时间很及时，不过有时相隔长达十几天以后，银行才付款，Apple 才发送账单邮件。</p>
+<p>这样对账起来还挺麻烦的，Apple 邮件中仅记录了付款时间，除非直接去家庭成员的 iPhone 上看对方的账单。</p>
+<p>ie 12 月 23 日收到短信，付款 2400 日元，实际为 12 月 16 日氪金。</p>
+<p>不知道这样的时间差异，是在日区或者其他地区普遍存在的么？</p>
+]]></content:encoded>
+<pubDate>2023-12-23T14:57:00Z</pubDate>
+<pubDate>2023-12-23T14:57:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] 从你人生的哪一刻开始，你觉得命运的齿轮开始转动？</title>
+<link>https://www.v2ex.com/t/1002926</link>
+<guid>https://www.v2ex.com/t/1002926</guid>
+<content:encoded><![CDATA[
+
+命运的齿轮也是 2023 年很火的一个热词，欢迎分享你的经历和看法，比如读书、工作、人生选择等方面。
+]]></content:encoded>
+<pubDate>2023-12-23T14:51:43Z</pubDate>
+<pubDate>2023-12-23T15:28:14Z</pubDate>
+</item>
+<item>
+<title>[路由器] 关于爱快网关吞吐量和 pps 的疑问</title>
+<link>https://www.v2ex.com/t/1002925</link>
+<guid>https://www.v2ex.com/t/1002925</guid>
+<content:encoded><![CDATA[
+
+准备采购一台网关设备，看到爱快的 msg560x 这款，吞吐量达到 20G ，但是包转发率 1300kpps ，这个数值合理吗？不知同等级的 h3c 能达到多少？<br /><br />附参数文档：<br /><br /><a href="https://ikyun.oss-cn-beijing.aliyuncs.com/file/2022/11/24/a5290f1b7c966c4a.pdf" rel="nofollow noopener" target="_blank">https://ikyun.oss-cn-beijing.aliyuncs.com/file/2022/11/24/a5290f1b7c966c4a.pdf</a>
+]]></content:encoded>
+<pubDate>2023-12-23T14:43:07Z</pubDate>
+<pubDate>2023-12-23T14:43:07Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 如何在关闭 mac 屏幕后，外接显示器不进入待机状态</title>
+<link>https://www.v2ex.com/t/1002924</link>
+<guid>https://www.v2ex.com/t/1002924</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>背景：MacBook 14 pro + 4k 外接显示器，通过 type-c 显示+供电</p>
+</blockquote>
+<blockquote>
+<p>起因：前段时间入手了漫步者的一个外置音箱（具体型号是 M230 ），这台音箱的缺点就是只要一断开 usb 供电连接，音箱就会切换为蓝牙模式，并且过一会就会自动关机。不仅如此，音箱开机时自带 bgm ，开机后默认为蓝牙模式，当你手动切换至声卡模式时，还要给你大声地喊一下。出于懒得每次切换，就需要对这台音箱<strong>保持供电</strong>。</p>
+</blockquote>
+<h3>方案一：将音箱连接至 mbp</h3>
+<ul>
+<li>
+<p>此办法可以解决上面的问题，可以实现在锁屏界面按 esc 关闭显示器后，音箱仍可以一直保持连接</p>
+</li>
+<li>
+<p><strong>但是这样子布局后 usb 线是水平出现的在桌面上（有一点强迫症，看着很不舒服），且 mbp 在上下移动时不方便（使用了支架臂）</strong></p>
+</li>
+</ul>
+<h3>方案二：将音箱连接至显示器上</h3>
+<ul>
+<li>
+<p>因为音箱放在显示器的正下方，这样就可以完美的藏线，mbp 还可以灵活的移动。</p>
+</li>
+<li>
+<p>但是只要在锁屏界面按下 esc ，屏幕自动关闭后，<strong>显示器就自动进入了待机模式</strong>，导致显示器的外接设备断开供电，无法达到我想要的效果</p>
+</li>
+</ul>
+<p>已经把各个设置摸了个遍，也使用了 Amphetamine 等第三方软件，但是始终解决不了<strong>关闭 mac 屏幕后，外接显示器自动进入待机模式</strong>的问题，请问下 v 友们有没有什么好的建议</p>
+<h4>放张图感受一下这条线有多难受</h4>
+<p><img alt="desktop" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/k34ELqB.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2023-12-23T14:33:16Z</pubDate>
+<pubDate>2023-12-23T14:32:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有双软路由 VLAN 隔离的方案？</title>
+<link>https://www.v2ex.com/t/1002923</link>
+<guid>https://www.v2ex.com/t/1002923</guid>
+<content:encoded><![CDATA[
+
+如题，国内家中有一条下行 1000Mbps 的电信宽带，光猫已改为桥接模式并禁用 tr069 自动下发配置。有一台多网口 pve 软路由通过 WAN 口连接到光猫的 LAN 口，安装了爱快和 OpenWrt 的虚拟机，爱快作为主路由负责拨号上网+行为管理+AC ，OpenWrt 作为旁路由提供科学上网和去广告服务。现在软路由的网口都直通到爱快，各个房间的爱快 AP 通过墙内网线连接到爱快主路由。还有一台连接到爱快的硬路由不支持配置 VLAN ，只有科学上网的设备会连接它的 WIFI 。<br /><br />现在想在爱快上配置多个 VLAN 把正常上网的设备、科学上网的设备、智能家居（例如 nas 、监控、电视盒子）和访客设备隔离开，已知 AP 可以把不同的无线网络绑定到不同 VLAN 且实现漫游。请问各位大佬，VLAN 应该怎么划分呢？爱快和 AP 的有线以太网口应该怎么配置 VLAN ？
+]]></content:encoded>
+<pubDate>2023-12-23T14:31:06Z</pubDate>
+<pubDate>2023-12-23T10:29:06Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 群晖✖️百度网盘 套件发布，百度 nas 会员 79/年</title>
+<link>https://www.v2ex.com/t/1002921</link>
+<guid>https://www.v2ex.com/t/1002921</guid>
+<content:encoded><![CDATA[
+
+<p>群晖终于发布了百度网盘的套件，实际上是依赖 docker 部署的，需要系统支持 container manager ，dsm7.2 以上。</p>
+<p>有意思的是同步推出的百度 nas 版会员，79/年，专门用在百度网盘 nas 版上。对于我这种只是偶尔下载点影视资源、软件资源的人很实用。再也不用花 200 左右买会员了，手机上也不用下载恶心的百度云盘 app ，乱七八糟的功能一大堆</p>
+]]></content:encoded>
+<pubDate>2023-12-23T14:17:41Z</pubDate>
+<pubDate>2023-12-23T14:21:58Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 免费可用的谷歌 Gemini Pro 尝鲜版来啦！实测与 GPT3.5 不相上下，接近 GPT4 水平</title>
 <link>https://www.v2ex.com/t/1002920</link>
 <guid>https://www.v2ex.com/t/1002920</guid>
 <content:encoded><![CDATA[
-
 AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端体验：AI 智研院 公众号<br /><br />体验网址  <a href="https://www.ai4you.top/gemini/index.html" rel="nofollow noopener" target="_blank">https://www.ai4you.top/gemini/index.html</a><br /><br />AI 智研院的星界 AI 平台可以同时对比 ChatGPT 、ChatG4.0 、文心一言、讯飞星火、ChatGLM 多个大模型，实测 Gemini Pro 的效果 GPT3.5 不相上下，接近 GPT4 水平。
 ]]></content:encoded>
-<pubDate>2023-12-23T14:13:26Z</pubDate>
 <pubDate>2023-12-23T14:10:26Z</pubDate>
 </item>
 <item>
@@ -20,12 +276,10 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002919</link>
 <guid>https://www.v2ex.com/t/1002919</guid>
 <content:encoded><![CDATA[
-
 <p>如题，用了 <a href="http://lscr.io/linuxserver/freshrss:latest" rel="nofollow">lscr.io/linuxserver/freshrss:latest</a> 的 image</p>
 <p>NAS 本身是买了官方的 SSL 证书，管理页面用浏览器访问 https 显示证书没问题。</p>
 <p>但是 Container 里面的 FreshRSS 就不行了，没法用 Reeder 通过 SSL 同步，是不是需要想办法把证书文件拷贝到的 Container 里面去？</p>
 ]]></content:encoded>
-<pubDate>2023-12-23T14:02:35Z</pubDate>
 <pubDate>2023-12-23T14:02:35Z</pubDate>
 </item>
 <item>
@@ -33,10 +287,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002918</link>
 <guid>https://www.v2ex.com/t/1002918</guid>
 <content:encoded><![CDATA[
-
 在 V 站买了一张 Red pocket 电话卡，直接梯子挂着 US 节点，没开无痕，一路注册接码，设置密码，注册成功，绑上卡，整个过程不超过 3 分钟，直接丢弃老账号
 ]]></content:encoded>
-<pubDate>2023-12-23T13:42:54Z</pubDate>
 <pubDate>2023-12-23T13:55:35Z</pubDate>
 </item>
 <item>
@@ -44,10 +296,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002916</link>
 <guid>https://www.v2ex.com/t/1002916</guid>
 <content:encoded><![CDATA[
-
 本人目前大三在读，想一边考研，一边学习一些新技术找工作用(以备不时之需)。就是现在想问下大家学一门新技术的时候是专门买本书学啃着学？还是跟着网上的那些教程学？而且直接看官方文档学？<br /><br />我最近尝试了下第三种，感觉对我来说太吃力了，有种费力不讨好的感觉，经常是花一晚上的时间去理解很少的知识点，而且官方文档写的太全了，有时候给我看的头晕目眩的。就是现在想问大家都咋学的，希望大家能给小白一些建议😐😐？(ps:本人还比较喜欢记笔记(Markdown))
 ]]></content:encoded>
-<pubDate>2023-12-23T13:38:34Z</pubDate>
 <pubDate>2023-12-23T13:35:34Z</pubDate>
 </item>
 <item>
@@ -55,10 +305,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002915</link>
 <guid>https://www.v2ex.com/t/1002915</guid>
 <content:encoded><![CDATA[
-
 在 2021 年建立了一个收集和保存中文 Classic Mac 资源的网站，classicmac dot top ，看看在 V2EX 里有没有同好
 ]]></content:encoded>
-<pubDate>2023-12-23T13:36:13Z</pubDate>
 <pubDate>2023-12-23T09:36:13Z</pubDate>
 </item>
 <item>
@@ -66,10 +314,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002914</link>
 <guid>https://www.v2ex.com/t/1002914</guid>
 <content:encoded><![CDATA[
-
 <a href="https://imgur.com/a/TDqjncj" rel="nofollow noopener" target="_blank">https://imgur.com/a/TDqjncj</a><br />应该是 doh 的功劳，如图 http3 启用，但是 sni 还是没加密，现在墙真的拿 http3 没办法吗
 ]]></content:encoded>
-<pubDate>2023-12-23T13:33:58Z</pubDate>
 <pubDate>2023-12-23T13:50:16Z</pubDate>
 </item>
 <item>
@@ -77,10 +323,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002913</link>
 <guid>https://www.v2ex.com/t/1002913</guid>
 <content:encoded><![CDATA[
-
 看网上介绍都说一些关键设备需要在线式，但没看懂什么样的设备不能接受 10 毫秒的断电， 是指没有自带变压器的电路吗？
 ]]></content:encoded>
-<pubDate>2023-12-23T13:27:10Z</pubDate>
 <pubDate>2023-12-23T13:27:10Z</pubDate>
 </item>
 <item>
@@ -88,11 +332,9 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002911</link>
 <guid>https://www.v2ex.com/t/1002911</guid>
 <content:encoded><![CDATA[
-
 <p>4 核 2GHz 的处理器，1GB 内存</p>
 <p>3000 以内还有更好的选择吗</p>
 ]]></content:encoded>
-<pubDate>2023-12-23T13:14:30Z</pubDate>
 <pubDate>2023-12-23T13:21:34Z</pubDate>
 </item>
 <item>
@@ -100,10 +342,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002910</link>
 <guid>https://www.v2ex.com/t/1002910</guid>
 <content:encoded><![CDATA[
-
 印象中王自如去了格力后没多久，就出了这个格力接班人，是否是当时王自如一手炮制的？比较好奇，有知道内幕的吗？
 ]]></content:encoded>
-<pubDate>2023-12-23T12:56:13Z</pubDate>
 <pubDate>2023-12-23T08:56:13Z</pubDate>
 </item>
 <item>
@@ -111,7 +351,6 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002908</link>
 <guid>https://www.v2ex.com/t/1002908</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="frame" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/heAJHB1.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://www.v2ex.com/" /> </p>
 <h1>青蛙短信</h1>
@@ -126,7 +365,6 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Cn56b5g.jpeg" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/a5RUHl7.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-23T12:48:53Z</pubDate>
 <pubDate>2023-12-23T13:31:17Z</pubDate>
 </item>
 <item>
@@ -134,11 +372,9 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1002907</link>
 <guid>https://www.v2ex.com/t/1002907</guid>
 <content:encoded><![CDATA[
-
 <p>在校大学生通过朋友介绍，对想学编程的毕业正在找工作的研究生一对一线上教学 python ，然后收取学费。请问这样是法律允许的吗
 很纠结到底教不教捏</p>
 ]]></content:encoded>
-<pubDate>2023-12-23T12:36:24Z</pubDate>
 <pubDate>2023-12-23T12:53:51Z</pubDate>
 </item>
 <item>
@@ -146,7 +382,6 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 <link>https://www.v2ex.com/t/1001447</link>
 <guid>https://www.v2ex.com/t/1001447</guid>
 <content:encoded><![CDATA[
-
 <p>人才难寻；
 良心的开源 IM 亦然难寻；</p>
 <p>第一次做 IM 相关的私域项目，失败以后，继续寻找人才和优秀的开源 IM ，从头再来；
@@ -157,10 +392,8 @@ AI 智研院出品的 Gemini Pro 免费尝鲜版来了！<br /><br />微信端�
 等你上车，我们一起出发
 求贤若渴，刘备三顾茅庐，才能三分天下，我在找你，你在何方？</p>
 ]]></content:encoded>
-<pubDate>2023-12-18T12:24:22Z</pubDate>
 <pubDate>2023-12-20T22:18:14Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 快 2024 年， Go 语言下 vscode 对比 Goland 还有哪些劣势？</title>
 <link>https://www.v2ex.com/t/1002906</link>
@@ -15325,186 +15558,6 @@ ps.我本人的阿里云学生优惠用完了，原价去买非常贵，1 台 6 
 </blockquote>
 ]]></content:encoded>
 <pubDate>2023-12-18T17:21:15Z</pubDate>
-</item>
-<item>
-<title>[Bing] Bing 现已集成由 Ookla 提供的 SpeedTest 测速服务</title>
-<link>https://www.v2ex.com/t/1001718</link>
-<guid>https://www.v2ex.com/t/1001718</guid>
-<content:encoded><![CDATA[
-<a href="https://www.cnbeta.com.tw/articles/tech/1405559.htm" rel="nofollow noopener" target="_blank">https://www.cnbeta.com.tw/articles/tech/1405559.htm</a><br />Bing 中国版可通过搜索 speed test 使用此功能.
-]]></content:encoded>
-<pubDate>2023-12-19T09:15:57Z</pubDate>
-</item>
-<item>
-<title>[Linux] 如何安装出一个 Linux -to-go？做到类似 Windows-to-go 需要怎么操作？</title>
-<link>https://www.v2ex.com/t/1001717</link>
-<guid>https://www.v2ex.com/t/1001717</guid>
-<content:encoded><![CDATA[
-最近两年一直是用一个高速 u 盘装操作系统，设置好的东西可以随身带走，蛮方便的。<br /><br />但是最近安装好的最新版的 manjaro 系统在换了机器后就无法正常启动了，提示的文字好像是驱动不能正常加载（最早开始这么用操作系统的时候我记得在一台机器上安装好的 Linux 系统可以直接在别的机器上启动）<br /><br />那么现在安装 Linux 操作系统到 u 盘的时候需要怎么操作才能确保在别的机器上也能正常启动？<br /><br />还有一个问题就是：已经在 u 盘上安装好的系统，能不能通过什么方式给这个系统“灌注”、“添加”所有常见的 Linux 驱动、好让这个系统在别的机器上也能正常启动？毕竟调试好的系统，花了很多时间才做到用的顺手，再重新弄，想想都累<br /><br />谢谢大家
-]]></content:encoded>
-<pubDate>2023-12-19T10:10:17Z</pubDate>
-</item>
-<item>
-<title>[杭州] 有没有从杭州去往南方生活的人？</title>
-<link>https://www.v2ex.com/t/1001716</link>
-<guid>https://www.v2ex.com/t/1001716</guid>
-<content:encoded><![CDATA[
-<p>目前定居杭州，今年得了场大病，对温度要求比较敏感，冬天比较难熬。
-目前想去广州这样的南方城市生活，去了要拖家带口，杭州小孩子明年快要上小学了。
-有没有过来人介绍下经验，主要关于小孩子上学已经广州附近房子选购（杭州的房子卖了，估计到手有个 700w 左右）的问题，最主要不要耽误孩子上学。</p>
-]]></content:encoded>
-<pubDate>2023-12-19T09:10:13Z</pubDate>
-</item>
-<item>
-<title>[电动汽车] 新能源车代理， V 站额外优惠</title>
-<link>https://www.v2ex.com/t/1001715</link>
-<guid>https://www.v2ex.com/t/1001715</guid>
-<content:encoded><![CDATA[
-<p>最近在做新能源车的销售代理，拿到手的价格比 4S 店跟官方的更低。想买电车的朋友买之前不如问一下我，比个价。（🉑提车地区:杭州、台州、嘉兴、宁波、合肥、马鞍山、武汉）为了回馈 V 站的朋友，成交后个人额外给个 200 的红包。
-有意向的加我微信报价：zhaohan2048
-备注 V 友。有意向的也可以提前加我，有备无患。</p>
-]]></content:encoded>
-<pubDate>2023-12-19T09:12:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] Windows10 下如何屏蔽一个软件的快捷键</title>
-<link>https://www.v2ex.com/t/1001714</link>
-<guid>https://www.v2ex.com/t/1001714</guid>
-<content:encoded><![CDATA[
-目前正在用对拷线实现两台电脑共享键鼠<br />对拷线可选的切换电脑的方式是鼠标中键，或者自定义键盘热键。<br />这两个必须同时用，只有在选择 [使用鼠标中键] 这个选项的时候，才可以使用自定义热键<br />鼠标中键作用太大，不想被这个软件占用，就想问下大家有没有办法可以屏蔽掉这个软件对鼠标中键的占用，只用 alt+s 键来切换电脑<br /> <a href="https://i.imgur.com/Qimdc3T.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Qimdc3T.png" /></a>
-]]></content:encoded>
-<pubDate>2023-12-19T09:12:17Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] go 大小写对导出的影响</title>
-<link>https://www.v2ex.com/t/1001713</link>
-<guid>https://www.v2ex.com/t/1001713</guid>
-<content:encoded><![CDATA[
-<pre><code>package inner
-
-type inner struct {
-	I int
-}
-
-func New() inner {
-	return inner{I: 1}
-}
-
-</code></pre>
-<pre><code>package outter
-
-import (
-	"testing"
-)
-
-func TestGet(t *testing.T) {
-	i := inner.New()
-	t.Log(i.I)
-}
-</code></pre>
-<p>inner 是小写，理论上不应该被外部能访问，但是通过一个大写的函数，却把它暴露出来了。今天第一次看到这个写法，有点惊讶。</p>
-<p>之前我一般都是下面两种写法：</p>
-<pre><code>package inner
-
-type Inner interface {
-	Get() int
-}
-
-type inner struct {
-	i int
-}
-
-func (i *inner) Get() int {
-	return i.i
-}
-
-func New() Inner {
-	return &amp;inner{i: 1}
-}
-</code></pre>
-<pre><code>package inner
-
-type Inner struct {
-	I int
-}
-
-func New() Inner {
-	return Inner{I: 1}
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2023-12-19T10:18:35Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 镇江的 IDC 加个为啥那么便宜？</title>
-<link>https://www.v2ex.com/t/1001712</link>
-<guid>https://www.v2ex.com/t/1001712</guid>
-<content:encoded><![CDATA[
-兄弟们，大家知道为啥么？
-]]></content:encoded>
-<pubDate>2023-12-19T09:06:22Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 生活所迫，交点朋友搞搞副业</title>
-<link>https://www.v2ex.com/t/1001711</link>
-<guid>https://www.v2ex.com/t/1001711</guid>
-<content:encoded><![CDATA[
-<p>最近因各种原因个人经济形势不好，想看看能不能有什么事能和各位合作的。</p>
-<p>我应该算是行业老人了，小学开始搞共享软件，那时候还是 Win95 时代吧。眼看着互联网一路发展，基本全程参与，也多次创业，啥都有点经验。</p>
-<p>因为现在有工作在身但比较闲，想看看自己有什么价值可以变现的，也想多交交朋友。</p>
-<p>担任过多家公司联创、技术负责人和产品负责人，深度参与公司运营、招人、战略、管理，最高近百人团队。</p>
-<p>技术方面，20+年软件开发经验，基本上大多数技术都接触过（桌面端、前后端、App/小程序、高并发架构、区块链、AI 、LLM 大语言模型、NFT 、DevOps 等），懂一些硬件，设计过硬件产品，也懂一些物联网。有数十个发明专利。</p>
-<p>个人想法比较开放，各种各样的事情都可以去尝试，但目前本人不是找全职工作哈，手头还有别的事情，看有没有什么可以合作搞搞，交交朋友，也缓解一下经济的。因为本人经历比较复合，也不一定是纯技术相关的，能发挥价值赚钱的都可以考虑。</p>
-<p>wx：d2Fjbmh6 （ base64 ）</p>
-]]></content:encoded>
-<pubDate>2023-12-19T06:05:24Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 今天遇到鬼了？网页登陆 iCloud 一分钟，密码就被篡改了</title>
-<link>https://www.v2ex.com/t/1001710</link>
-<guid>https://www.v2ex.com/t/1001710</guid>
-<content:encoded><![CDATA[
-本来想登入一个很久没用的 AppleID 看看里面的数据，Google 搜索了 iCloud<br />进入 <a href="http://icloud.com" rel="nofollow noopener" target="_blank">icloud.com</a> ，输入账密，提示区域错误，跳转至 <a href="http://icloud.com.cn" rel="nofollow noopener" target="_blank">icloud.com.cn</a><br />再次输入账密，输入手机验证码，进入了 iCloud ，在首页看到了自己的相册缩略图<br />点击进去备忘录，加载菊花了几十秒未能加载出来，点击浏览器后退，发现账号已经登出<br />再次输入账密，提示密码错误。。。<br />请问我这是被钓鱼了吗。。。但是我翻看浏览记录，<a href="http://icloud.com" rel="nofollow noopener" target="_blank">icloud.com</a> 和 <a href="http://icloud.com.cn" rel="nofollow noopener" target="_blank">icloud.com.cn</a> 域名都没错，这是哪里出现的漏洞<br /><a href="https://imgloc.com/image/6NR8j" rel="nofollow noopener" target="_blank">https://imgloc.com/image/6NR8j</a>
-]]></content:encoded>
-<pubDate>2023-11-29T11:31:17Z</pubDate>
-</item>
-<item>
-<title>[生活] 你们在微信有建家庭群吗？怎么组建最合适呢？</title>
-<link>https://www.v2ex.com/t/1001709</link>
-<guid>https://www.v2ex.com/t/1001709</guid>
-<content:encoded><![CDATA[
-<p>大约五六年前，我拉我姐夫进我们家庭群里，因为这个姐夫不是我们当地的人，听不懂广东话，然后他呆了一段时间退出了。</p>
-<p>我们现在是几个姐弟一个群，还有一个父母+姐弟+媳妇一个群。</p>
-<p>过几年下一辈都可以建一个群了。</p>
-<p>你们的家庭群成员构成是怎样的？有没有把你们的姐夫/妹夫拉进群里，还是说年轻人一个群，然后不邀请父母进群？</p>
-]]></content:encoded>
-<pubDate>2023-12-19T09:16:02Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] vscode 如何临时回车到下一行禁止自动缩进</title>
-<link>https://www.v2ex.com/t/1001707</link>
-<guid>https://www.v2ex.com/t/1001707</guid>
-<content:encoded><![CDATA[
-<p>平时自动缩进很好用，但是偶尔想回车的时候光标直接到第 1 列行首，有快捷键吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-19T09:54:13Z</pubDate>
-</item>
-<item>
-<title>[程序员] 我头铁，继续在 supadoc.ai 增加了新生成文档类型</title>
-<link>https://www.v2ex.com/t/1001706</link>
-<guid>https://www.v2ex.com/t/1001706</guid>
-<content:encoded><![CDATA[
-<p>在 <a href="http://supadoc.ai" rel="nofollow">supadoc.ai</a> 增加了市场推广计划的文档的 AI 生成</p>
-<p>这个文档相对来说，跟需求文档、设计文档、测试文档相比，精度要求就不那么高了。</p>
-<p>感觉应该更符合一些场景。</p>
-<p>后续还在开发更多生活场景，而不仅仅是业务场景的文档</p>
-<p>大家可以帮忙看看中文的样例</p>
-<p><a href="https://www.supadoc.ai/samples/Marketing%20Plan%20CN.docx" rel="nofollow">https://www.supadoc.ai/samples/Marketing%20Plan%20CN.docx</a></p>
-<p>大家如果还有什么建议想要讨论的，欢迎欢迎，真理越辩越明！</p>
-<p>我们会坚持到 1 月底，然后整体复盘来看，具体要不要继续坚持这个方向</p>
-<p>感谢大家的关注 #buildinpublic</p>
-]]></content:encoded>
-<pubDate>2023-12-19T08:57:53Z</pubDate>
 </item>
 </channel>
 </rss>
