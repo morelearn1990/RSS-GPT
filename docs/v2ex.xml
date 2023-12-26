@@ -5,14 +5,1114 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[推广] 招募强直性脊柱炎受试者 有补贴</title>
+<link>https://www.v2ex.com/t/1003552</link>
+<guid>https://www.v2ex.com/t/1003552</guid>
+<content:encoded><![CDATA[
+
+<h2>发个广告 临床试验招募 有补贴</h2>
+<h3>受试者招募-AK111 注射液治疗活动性强直性脊柱炎受试者</h3>
+<h3>01:研究背景</h3>
+<p>医院正在开展一项“评价 AK111 注射液治疗活动性强直性脊柱炎受试者疗效与安全性的随机、双盲、安慰剂对照、多中心 III 期临床研究”。本研究已获得国家药品监督管理局的批准，并经由参加单位伦理委员会审批同意。AK111 是中山康方生物医药有限公司研发的一种靶向于人 IL-17A 的人源化单克隆抗体，可特异性和高亲和力结合人 IL-17 细胞因子。为评估 AK111 注射液与安慰剂治疗活动性强直性脊柱炎(AS)受试者的有效性和安全性，开展本临床试验。共招募约 510 例受试者。如您有意愿，且符合以下条件，您可与我们进行联系。</p>
+<h3>02:主要入选条件</h3>
+<p>1 、年龄 18 岁及以上[以签署知情同意书(ICF)当天为准的男性或女性受试</p>
+<p>2 、筛选前已确诊患强直性炎，有放射学证据证实符合 1984 年修订的 AS 纽约标准(Modified New York criteria for AS)</p>
+<p>3 、筛选时和随机前存在活动性 AS ，定义为:BASDAI 评分 24 分;总背痛评分 24 分;</p>
+<p>4 、筛选前已接受 22 种非体抗炎药(NSAIDS)治疗疗效不佳(定义为:2 种及以上 NSAIDs 推荐剂量下共治疗 24 周且每种 NSAIDS 治疗不少于 2 周但疗效不佳)或存在不能使用 NSAIDS 的禁忌症或无法耐受;</p>
+<p>5 、如果正在服用 NSAIDS 或弱效阿片类或口服糖皮质激素的受试者，随机前 2 周及整个研究期间应保持稳定剂量，每日口服糖皮质激素剂量需 10mg 泼尼松或等效剂量糖皮质激素;如随机时受试者未口服以上药物，则随机前至少停用 22 周;</p>
+<p>6 、服用甲氨喋(&lt;25mg/周)或柳氮磺(&lt;3g/天)受试者(随机前至少持续用药 212 周)可继续用药，随机前 4 周及整个研究期间应保持稳定剂量。如既往曾经口服以上药物但现已停用，需随机前至少已停药 24 周。服用甲氨噪岭的受试者必须在随机前同时补充叶酸(不小于 5mg/周，每周口服 1 次或分次口服)</p>
+<p>7 、若为育龄妇女，则应处于非孕期及非哺乳期，且受试者以及他们的伴侣在试验期间以及最后一次接受试验药物后至少 6 个月内自愿采取方案规定的避孕措施并避免捐精捐卵;</p>
+<p>8 受试者能够理解并自愿签署 ICF ，ICF 必须在执行任何试验指定的研究程序前签署;</p>
+<p>9 、受试者必须自愿并能完成研究程序和随访检查</p>
+<p>以上仅为部分入选标准，如需要详细了解，请您联系研究医生进行沟通。您是否符合研究要求需要进行一系列的检查判断，以研究医生判断为准</p>
+]]></content:encoded>
+<pubDate>2023-12-26T08:17:13Z</pubDate>
+<pubDate>2023-12-26T08:17:13Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] Go Runtime: atomic 及内存一致模型初步</title>
+<link>https://www.v2ex.com/t/1003551</link>
+<guid>https://www.v2ex.com/t/1003551</guid>
+<content:encoded><![CDATA[
+
+<h3>atomic</h3>
+<p>抛开 <a href="https://research.swtch.com/mm" rel="nofollow">Memory Consistency Model</a> 不谈,
+<a href="https://pkg.go.dev/sync/atomic" rel="nofollow">sync/atomic</a> 的实现是简单而直观的.</p>
+<p>我们首先构造一个案例, 基于 linux/amd64 编译后, 使用 objdump 查看汇编结果.</p>
+<pre><code class="language-go">import (
+	"fmt"
+	"sync/atomic"
+)
+
+var x atomic.Int64
+
+func main() {
+	x.Store(32)
+	x.Add(1)
+	x.CompareAndSwap(33, 34)
+	i := x.Load()
+	fmt.Println(i)
+}
+</code></pre>
+<pre><code class="language-shell">~ GOOS=linux GOARCH=amd64 go build main.go
+~ x86_64-linux-gnu-objdump -D -S main | grep -A 65 "main.main&gt;:" | cat -n -
+ 1	000000000047ad60 &lt;main.main&gt;:
+ 2		"sync/atomic"
+ 3	)
+ 4
+ 5	var x atomic.Int64
+ 6
+ 7	func main() {
+ 8	  47ad60:	49 3b 66 10          	cmp    0x10(%r14),%rsp
+ 9	  47ad64:	0f 86 81 00 00 00    	jbe    47adeb &lt;main.main+0x8b&gt;
+10	  47ad6a:	55                   	push   %rbp
+11	  47ad6b:	48 89 e5             	mov    %rsp,%rbp
+12	  47ad6e:	48 83 ec 38          	sub    $0x38,%rsp
+13		x.Store(32)
+14	  47ad72:	90                   	nop
+15
+16	// Load atomically loads and returns the value stored in x.
+17	func (x *Int64) Load() int64 { return LoadInt64(&amp;x.v) }
+18
+19	// Store atomically stores val into x.
+20	func (x *Int64) Store(val int64) { StoreInt64(&amp;x.v, val) }
+21	  47ad73:	b9 20 00 00 00       	mov    $0x20,%ecx
+22	  47ad78:	48 8d 15 89 16 0d 00 	lea    0xd1689(%rip),%rdx        # 54c408 &lt;main.x&gt;
+23	  47ad7f:	48 87 0a             	xchg   %rcx,(%rdx)
+24		x.Add(1)
+25	  47ad82:	90                   	nop
+26	func (x *Int64) CompareAndSwap(old, new int64) (swapped bool) {
+27		return CompareAndSwapInt64(&amp;x.v, old, new)
+28	}
+29
+30	// Add atomically adds delta to x and returns the new value.
+31	func (x *Int64) Add(delta int64) (new int64) { return AddInt64(&amp;x.v, delta) }
+32	  47ad83:	b9 01 00 00 00       	mov    $0x1,%ecx
+33	  47ad88:	f0 48 0f c1 0a       	lock xadd %rcx,(%rdx)
+34		x.CompareAndSwap(33, 34)
+35	  47ad8d:	90                   	nop
+36		return CompareAndSwapInt64(&amp;x.v, old, new)
+37	  47ad8e:	b8 21 00 00 00       	mov    $0x21,%eax
+38	  47ad93:	b9 22 00 00 00       	mov    $0x22,%ecx
+39	  47ad98:	f0 48 0f b1 0a       	lock cmpxchg %rcx,(%rdx)
+40	  47ad9d:	0f 94 c1             	sete   %cl
+41		i := x.Load()
+42	  47ada0:	90                   	nop
+43	func (x *Int64) Load() int64 { return LoadInt64(&amp;x.v) }
+44	  47ada1:	48 8b 05 60 16 0d 00 	mov    0xd1660(%rip),%rax        # 54c408 &lt;main.x&gt;
+45		fmt.Println(i)
+46	  47ada8:	44 0f 11 7c 24 28    	movups %xmm15,0x28(%rsp)
+47	  47adae:	e8 ed e9 f8 ff       	call   4097a0 &lt;runtime.convT64&gt;
+48	  47adb3:	48 8d 0d 06 70 00 00 	lea    0x7006(%rip),%rcx        # 481dc0 &lt;type:*+0x6dc0&gt;
+49	  47adba:	48 89 4c 24 28       	mov    %rcx,0x28(%rsp)
+50	  47adbf:	48 89 44 24 30       	mov    %rax,0x30(%rsp)
+51		return Fprintln(os.Stdout, a...)
+52	  47adc4:	48 8b 1d 5d 37 0a 00 	mov    0xa375d(%rip),%rbx        # 51e528 &lt;os.Stdout&gt;
+53	  47adcb:	48 8d 05 36 75 03 00 	lea    0x37536(%rip),%rax        # 4b2308 &lt;go:itab.*os.File,io.Writer&gt;
+54	  47add2:	48 8d 4c 24 28       	lea    0x28(%rsp),%rcx
+55	  47add7:	bf 01 00 00 00       	mov    $0x1,%edi
+56	  47addc:	48 89 fe             	mov    %rdi,%rsi
+57	  47addf:	90                   	nop
+58	  47ade0:	e8 7b ae ff ff       	call   475c60 &lt;fmt.Fprintln&gt;
+59	}
+60	  47ade5:	48 83 c4 38          	add    $0x38,%rsp
+61	  47ade9:	5d                   	pop    %rbp
+62	  47adea:	c3                   	ret
+63	func main() {
+64	  47adeb:	e8 10 fc fd ff       	call   45aa00 &lt;runtime.morestack_noctxt.abi0&gt;
+65	  47adf0:	e9 6b ff ff ff       	jmp    47ad60 &lt;main.main&gt;
+66
+</code></pre>
+<p>runtime/internal/atomic 中的实现通过 inline 的形式直接嵌入到了 main.main 中, 稍显杂乱, 但是并不妨碍阅读.
+Store/Add/CompareAndSwap/Load 分别依赖 CPU 指令 XCHG/LOCK XADD/LOCK CMPXCHG/MOV 实现.</p>
+<p><a href="https://www.felixcloutier.com/x86/lock" rel="nofollow">LOCK</a> 是加在特定指令前的前缀, 用于将对应指令转化为原子指令.
+例如, <a href="https://www.felixcloutier.com/x86/xadd" rel="nofollow">XADD</a> 将第一个参数和第二个参数相加后的值保存到第一个参数,
+添加 LOCK 前缀后可以保证整个过程是排他且原子的.</p>
+<p><a href="https://www.felixcloutier.com/x86/xchg" rel="nofollow">XCHG</a> 用于交换两个寄存器的值.
+也可以用于交换寄存器和内存地址的值, 此时自带 LOCK 效果.</p>
+<p><a href="https://www.felixcloutier.com/x86/cmpxchg" rel="nofollow">CMPXCHG</a> 借用寄存器 RAX 实现 CAS 效果.
+如果 RAX 和第一个参数相等, 则将第二个参数的值赋给第一个参数.
+否则将第一个参数赋给第二个参数.</p>
+<p><a href="https://pdos.csail.mit.edu/6.828/2014/readings/ia32/IA32-3A.pdf" rel="nofollow">Intel® 64 and IA-32 Architectures Software Developer’s Manual</a> 中
+Strengthening or Weakening the Memory Ordering Model 相关章节指明了 XCHG/LOCK 等相关指令会刷新缓存的写指令.</p>
+<blockquote>
+<p>Synchronization mechanisms in multiple-processor systems may depend upon a
+strong memory-ordering model. Here, a program can use a locking instruction such
+as the XCHG instruction or the LOCK prefix to insure that a read-modify-write operation on memory is carried out atomically.
+Locking operations typically operate like I/O operations in that they wait for all previous instructions to complete and for all
+buffered writes to drain to memory (see Section 7.1.2, “Bus Locking”).</p>
+</blockquote>
+<p>因此 Store/Add/CompareAndSwap 等操作修改后直接可以被其他处理器看到.
+同时, Go 也保证了内存数据的对齐.
+那么, Load 操作就可以直接用 MOV 来实现.</p>
+<h2>Memory Model</h2>
+<p>虽然 Memory Model 是计算机中的一个重要概念, 但可能真的是绝大多数程序员无需关心的领域.
+同时因其针对的主要是硬件(CPU)和编译器, 我们也很难彻底理解, 但是花时间树立一个大体正确的概念依然是一件很有价值的事情.
+Russ Cox 为 Memory Model 写的<a href="https://research.swtch.com/mm" rel="nofollow">三篇文章</a>是一个不错的切入点.</p>
+<p>首先我们要注意, Memory Model 并不是指如何管理内存, 其定义的是多处理系统中, 不同处理器之间如何共享和同步内存.
+在下述例子中, 我们假设两个处理器分别运行如下的代码:</p>
+<pre><code>// Thread 1             // Thread 2
+x = 1;                  r1 = x;
+y = 1;                  r2 = y;
+</code></pre>
+<p>那么 (r1, r2) 可能的结果是 (0, 0), (1, 0), (1, 1), (0, 1).
+在没有明确 CPU 和编译器的 Memory Model 时, (0, 1) 也是有可能的.
+CUP/编译器的重排指令都可能导致最终结果为 (0, 1).</p>
+<p>而当我们约定 Memory Model 为 Sequential Consistency(SC) 时, (0, 1) 就是一种不可能的结果.
+因为 SC 要求在所有处理器上观察到的内存操作顺序与单个处理器上的执行顺序一致.</p>
+<p>现实世界中, CPU 为了更高的性能, 会选择比 SC 更宽松的内存模型,
+比如 Total Store Order(TSO).
+相对 SC, TSO 依然保证所有的写操作(Store)在所有处理器上观察到的顺序是一致的.
+但 TSO 并不保证, 读(Load)和写(Store)在不同处理器上观察到的顺序是一致的.
+在下面的例子中, r1=1&amp;&amp;r2=0 在 SC 中是不被允许的, 但在 TSO 中是可能出现的.</p>
+<pre><code>// Thread 1             // Thread 2
+x = 1;                  y = 1;
+r1 = y;                 r2 = x;
+</code></pre>
+<p>x86 等架构在实现 TSO 时, 基本都会为每个处理器维护一个 write buffer,
+避免每个写操作都需要直接和内存交互, 进而提高 CPU 执行效率.
+同时, x86 也提供了 FENCH 等内存屏障指令,
+允许用户主动清空 write buffer, 确保指令前的写操作对所有处理器可见.</p>
+<p>诸如 Java/C++/Go 等高级语言也会定义自己的的内存模型.
+Go 在没有数据竞争的情况下保证 SC, 即 data-race-free sequential-consistency(DRF-SC).</p>
+<p>数据竞争是指同时有两个以上的处理器访问同一个变量, 其中至少有一个是写操作.
+在下述的代码中, 就包括 race:</p>
+<pre><code class="language-go">package main
+
+import "time"
+
+var x int
+
+func load() int {
+	return x
+}
+
+func store(i int) {
+	x = i
+}
+
+func main() {
+	go store(32)
+	go load()
+	time.Sleep(1)
+}
+</code></pre>
+<pre><code class="language-shell">~ go build -race main.go
+~ ./main
+==================
+WARNING: DATA RACE
+Read at 0x000100a128a0 by goroutine 6:
+  main.load()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:8 +0x28
+  main.main.func2()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:17 +0x28
+
+Previous write at 0x000100a128a0 by goroutine 5:
+  main.store()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:12 +0x2c
+  main.main.func1()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:16 +0x2c
+
+Goroutine 6 (running) created at:
+  main.main()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:17 +0x34
+
+Goroutine 5 (finished) created at:
+  main.main()
+      /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-race/main.go:16 +0x28
+==================
+Found 1 data race(s)
+</code></pre>
+<p>当存在数据竞争时, Go 并不提供任何保证, 我们需要通过使用 lock/chan/atomic 等机制避免数据竞争.
+一种方式是加锁保护数据.</p>
+<pre><code class="language-go">package main
+
+import (
+	"sync"
+	"time"
+)
+
+var x int
+var mu sync.Mutex
+
+func load() int {
+	mu.Lock()
+	defer mu.Unlock()
+	return x
+}
+
+func store(i int) {
+	mu.Lock()
+	defer mu.Unlock()
+	x = i
+}
+
+func main() {
+	go store(32)
+	go load()
+	time.Sleep(1)
+}
+</code></pre>
+<p>另一种方式使用 atomic.</p>
+<pre><code>package main
+
+import (
+	"sync/atomic"
+	"time"
+)
+
+var x atomic.Int64
+
+func load() int64 {
+	return x.Load()
+}
+
+func store(i int) {
+	x.Store(int64(i))
+}
+
+func main() {
+	go store(32)
+	go load()
+	time.Sleep(1)
+}
+</code></pre>
+<p>Source: <a href="https://github.com/j2gg0s/j2gg0s/blob/main/_posts/2023-12-26-Go%20Runtime%3A%20atomic%20%E5%8F%8A%E5%86%85%E5%AD%98%E4%B8%80%E8%87%B4%E6%A8%A1%E5%9E%8B%E5%88%9D%E6%AD%A5.md" rel="nofollow">https://github.com/j2gg0s/j2gg0s/blob/main/_posts/2023-12-26-Go%20Runtime%3A%20atomic%20%E5%8F%8A%E5%86%85%E5%AD%98%E4%B8%80%E8%87%B4%E6%A8%A1%E5%9E%8B%E5%88%9D%E6%AD%A5.md</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T08:16:37Z</pubDate>
+<pubDate>2023-12-26T08:15:37Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 赴日 IT 进行时！诚招 24 年优秀新卒赴日！日语零基础者也可！</title>
+<link>https://www.v2ex.com/t/1003550</link>
+<guid>https://www.v2ex.com/t/1003550</guid>
+<content:encoded><![CDATA[
+
+日本上市公司 24 年新卒纳新！！！<br />招聘名额 20 名左右！<br />要求：985 计算机相关专业应届生！无日语基础也可以！<br />公司有完善的薪酬晋升体系和福利待遇~<br />想去日本发展的小伙伴不要错过机会哦~<br />有意者请与我联系：Ujob_7 (备注 V2ex)
+]]></content:encoded>
+<pubDate>2023-12-26T08:14:17Z</pubDate>
+<pubDate>2023-12-26T08:12:17Z</pubDate>
+</item>
+<item>
+<title>[Java] 咨询一个关于 springboot 集成 mybatis-plus 的查询返回问题？</title>
+<link>https://www.v2ex.com/t/1003549</link>
+<guid>https://www.v2ex.com/t/1003549</guid>
+<content:encoded><![CDATA[
+
+<h2>环境</h2>
+<pre><code>jdk8, spirngboot ，mysql,mybatis ,mybatis-plus
+</code></pre>
+<h2>问题</h2>
+<pre><code>例如：mysql 一张表，a,b,c,d,e,f,g 这几个字段，然后有一个实体类 demoEntity 跟数据库表对应
+
+需求： 我现在一个接口，我只需要 a,b,c 三个字段就足够了，然后我返回给前端，也只想返回这三个，如果不用 mybatis-plus 我可以把 a b c 封装成一个 vo ，mapper 里直接返回 vo ， 如果用 Mybatis-plus ， 可以先用实体类接到数据，然后再 set 给 vo ，这太鸡肋了，还有就是 封装一下 mp ，让他能够兼容 vo 返回，也可以； 但是我现在又有一个接口 只需要 d,e,f,g 这四个字段，那么我就得在封装个 vo,这时候 之前封装的 mp 返回的 vo 就不能用了，就得在建一个 server 类 在去继承另个 vo ；
+
+解决：我能想的就是 用一个 vo ，但是接口返回可能会存在冗余字段，不想存在,就得手写 sql 查，完全用不到了 mp ，我想问问大家怎么解决这种问题
+</code></pre>
+<h2>问题 2</h2>
+<pre><code>例如 我同样一个 sql：
+
+select * from user where rid in (1,2,3,4....); rid 可能有上万个,但 rid 不是主键;
+
+然后我用 mp 手写一个批量查方法
+
+LambdaQueryWrapper&lt;User&gt; lambdaQueryWrapper = new LambdaQueryWrapper&lt;&gt;();
+lambdaQueryWrapper.in(User::getRid, Arrays.stream(new Integer[]{1, 2, 3, 4, ....}));
+
+userMapper.list(lambdaQueryWrapper);
+
+我执行下来发现，打印的 sql 是一样的，但是 mp 的查询时间就很快； 这是为啥；
+
+大家在去批量差一个表里的非主键字段的时候 会用什么方法提高效率，mysql 用 in 应该不会走索引吧
+</code></pre>
+<h2>问题 3</h2>
+<pre><code>spring cloud 项目，例如有 A B 两个服务，每个服务有自己的库；
+
+需求： 我现在 A 服务里一个接口，我需要关联查 B 服务的数据，并且合并以后分页 按照 B 库里的时间字段倒序 返回，这类大家会怎么做；
+
+我百度搜了很多方法，用远程调用，拿到数据在合并，或者用 mq 解耦，或者数据仓库， 是能解决，我想问问大家都是在用什么方法？
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-12-26T08:11:39Z</pubDate>
+<pubDate>2023-12-26T08:08:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家是怎样推广自己的项目的呢</title>
+<link>https://www.v2ex.com/t/1003548</link>
+<guid>https://www.v2ex.com/t/1003548</guid>
+<content:encoded><![CDATA[
+
+<p>推广不像写程序，立刻就能给出反馈，没有反馈总感觉少了些乐趣。</p>
+<p>这是学习前端后，第一个从 0 到 1 独立开发完成的项目，想听听 V 站彦祖们经验或建议，好坏都行，爱聊天。</p>
+<p>月初第一次推广，估计 30 万的展现，10 万的站点访问，现在每天大概只有几十个活跃。</p>
+<p><img alt="推广" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/jiannei/snc-pro/master/images/202312261600798.jpg" /></p>
+<p>站点地址： <a href="https://sinan.fun" rel="nofollow">https://sinan.fun</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T08:10:45Z</pubDate>
+<pubDate>2023-12-26T08:07:45Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 博主/up 主管理 | My Library 3.7.0</title>
+<link>https://www.v2ex.com/t/1003547</link>
+<guid>https://www.v2ex.com/t/1003547</guid>
+<content:encoded><![CDATA[
+
+<p>自从 B 站关注的 up 主超过 300 以后，动态功能就像灾难一样，移动端砍掉了动态仅查看视频，导致动态里有 up 主视频、广告动态、up 主捞以前发布的视频。</p>
+<p>我之前习惯囤一周的视频筛选到收藏再慢慢看，现在光筛选视频就得花上个把小时，还容易漏掉。</p>
+<p>所以我开发了这个功能，把以前的根据时间线管理，改为单个 up 主管理。用户可以单独设置每个 up 主的优先级，更新频率，以满足整理的功能。
+（当用户超过更新频率没观看时，边框会变红，如果超过三倍更新频率没观看时，背景颜色会变红，这样也可以分析是否还需要关注这个 up 主）</p>
+<p>如果有需要还可以通过 RSSHhub 来获取更新视频（见图 2 ）</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/26/c4ZRAbOhyFvYzoi.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2023/12/26/R3hHpXAOyQxikYd.png" /></p>
+<p>下载地址： <a href="https://mylibrary.cc/" rel="nofollow">https://mylibrary.cc/</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T08:09:23Z</pubDate>
+<pubDate>2023-12-26T08:08:23Z</pubDate>
+</item>
+<item>
+<title>[求职] 还有没有矿场招运维的啊</title>
+<link>https://www.v2ex.com/t/1003546</link>
+<guid>https://www.v2ex.com/t/1003546</guid>
+<content:encoded><![CDATA[
+
+<p>不是高原地区都可以，有没有</p>
+]]></content:encoded>
+<pubDate>2023-12-26T08:02:19Z</pubDate>
+<pubDate>2023-12-26T07:59:19Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了一个 url/utctime/繁体转简体的在线工具</title>
+<link>https://www.v2ex.com/t/1003545</link>
+<guid>https://www.v2ex.com/t/1003545</guid>
+<content:encoded><![CDATA[
+
+<p>有时候在标题栏复制 url ，中文会变成%E8 ，总觉得看起来很别扭，就随手写了一个转换工具。</p>
+<p>utctime 没什么好说的，烂大街的整形日期转换。</p>
+<p>繁体转简体是因为我看一些繁体 youtube 频道，下载的字幕和视频都是繁体中文。</p>
+<p><a href="https://tool2d.com/#convert" rel="nofollow">https://tool2d.com/#convert</a></p>
+<p><img alt="图片" class="embedded_image" rel="noreferrer" src="https://tool2d.com/img/screen_convert.jpg?markdown=1" /></p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:59:11Z</pubDate>
+<pubDate>2023-12-26T07:58:11Z</pubDate>
+</item>
+<item>
+<title>[Python] 请问下 Java 如何调用含有第三方依赖的 Python 项目</title>
+<link>https://www.v2ex.com/t/1003544</link>
+<guid>https://www.v2ex.com/t/1003544</guid>
+<content:encoded><![CDATA[
+
+<p>公司想搞 AI 相关的，但老企业用的全是 java ，结果就是要用 java 调 python 。</p>
+<p>目前只能搞成 java 调 python 打包的 exe 。</p>
+<p>也想过用 JNI-CPython-Python 的思路，但是解决不了 python 依赖大量第三方库的问题，没法把 python 代码包括第三方依赖一起给打包成 so 文件。</p>
+<p>想问问有没有技术大佬有啥解决思路或者方案。</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:58:22Z</pubDate>
+<pubDate>2023-12-26T08:16:23Z</pubDate>
+</item>
+<item>
+<title>[程序员] 一个疑问，现在是人均一台开发机了？</title>
+<link>https://www.v2ex.com/t/1003543</link>
+<guid>https://www.v2ex.com/t/1003543</guid>
+<content:encoded><![CDATA[
+
+现在都看中 remote ssh 开发。也都说自己的开发离不开 remote ssh 的功能。<br /><br />不过公司会给程序员配一个电脑，再一人配一整套环境(64G+那种)？你要说你直接 remote 到开发和测试环境，但那是公共的啊。人肉上去改代码？没有 CICD ？<br /><br />我身边是一个都没有的，当然，这可能是幸存者偏差。我自己尝试了好几次。。完全没 get 到点，网络再好都有延迟，肉眼可见的输入延迟啊。。。当然可能是因为我是 32G 内存的机器，反正和本地比起来我很想请教一下 G 点到底在哪里。。直接连线上 DEBUG ？但凡有运维的，这个要求都会被打死。。<br /><br />我对这点非常的好奇。。但抛开 remote ssh 。。在很容易人均 32G 内存的机器上。ide 是毫无压力的啊。
+]]></content:encoded>
+<pubDate>2023-12-26T07:57:56Z</pubDate>
+<pubDate>2023-12-26T08:16:37Z</pubDate>
+</item>
+<item>
+<title>[Java] 花两周写了一个后端脚手架</title>
+<link>https://www.v2ex.com/t/1003541</link>
+<guid>https://www.v2ex.com/t/1003541</guid>
+<content:encoded><![CDATA[
+
+<p>🔗 代码仓库：<a href="https://github.com/EnigmaGuest/fnk-server" rel="nofollow">fnk-server</a></p>
+<p>使用 Spring Boot 3.2.0 和 Vue 3 配合 TypeScript 、UnoCSS 、Pinia 和 Axios 构建。 🛠️</p>
+<p>快来看看，如果你觉得有趣的话给个⭐️吧！ 🎉</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:54:20Z</pubDate>
+<pubDate>2023-12-26T07:53:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有买了天翼云上海 7 这个区域的吗，今天网络断了 3 次，其他区域的也经常断线，天翼云就是个垃圾</title>
+<link>https://www.v2ex.com/t/1003540</link>
+<guid>https://www.v2ex.com/t/1003540</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-26T07:51:05Z</pubDate>
+<pubDate>2023-12-26T07:51:05Z</pubDate>
+</item>
+<item>
+<title>[Android] 请教 adb 加密的提示问题</title>
+<link>https://www.v2ex.com/t/1003539</link>
+<guid>https://www.v2ex.com/t/1003539</guid>
+<content:encoded><![CDATA[
+
+<p>目前需要在 android11 上加入 adb 加密功能,已经实现了如下
+<a href="https://imgur.com/juiWUkV" rel="nofollow">Imgur</a></p>
+<p>现在需要完善加入一个提示词 Login 类似如下效果，参考了网上博客和 gpt 都是各种报错，附上修改代码，请教一下有啥方法可以实现，谢谢
+<a href="https://imgur.com/o2u6cyA" rel="nofollow">Imgur</a></p>
+<pre><code class="language-C">system/core$
+diff --git a/adb/adb.cpp b/adb/adb.cpp 
+old mode 100644
+new mode 100755
+index c3e9731a3..ce1ed0b21
+--- a/adb/adb.cpp
++++ b/adb/adb.cpp
+@@ -99,7 +99,11 @@ apacket* get_apacket(void)
+     memset(&amp;p-&gt;msg, 0, sizeof(p-&gt;msg));
+     return p;
+ }
+-
++//evan add
++#if !ADB_HOST
++int accept_shell;
++#endif
++//evan end
+ void put_apacket(apacket *p)
+ {
+     delete p;
+@@ -107,13 +111,20 @@ void put_apacket(apacket *p)
+ 
+ void handle_online(atransport *t)
+ {
++//evan add
+     D("adb: online");
++	LOG(INFO) &lt;&lt; "handle_online xwg";
+     t-&gt;online = 1;
+     t-&gt;SetConnectionEstablished(true);
++	#if !ADB_HOST
++	accept_shell=0;
++	#endif
++//evan end
+ }
+ 
+ void handle_offline(atransport *t)
+ {
++//evan add
+     if (t-&gt;GetConnectionState() == kCsOffline) {
+         LOG(INFO) &lt;&lt; t-&gt;serial_name() &lt;&lt; ": already offline";
+         return;
+@@ -125,7 +136,10 @@ void handle_offline(atransport *t)
+ 
+     // Close the associated usb
+     t-&gt;online = 0;
+-
++	#if !ADB_HOST
++	accept_shell=0;
++	#endif
++//evan end
+     // This is necessary to avoid a race condition that occurred when a transport closes
+     // while a client socket is still active.
+     close_all_sockets(t);
+@@ -329,8 +343,12 @@ static void handle_new_connection(atransport* t, apacket* p) {
+         send_tls_request(t);
+     } else if (!auth_required) {
+         LOG(INFO) &lt;&lt; "authentication not required";
++		//evan add
+         handle_online(t);
++		LOG(INFO) &lt;&lt; "authentication 22222222 xwg";
+         send_connect(t);
++		LOG(INFO) &lt;&lt; "authentication 33333333333 xwg";
++		//evan end
+     } else {
+         send_auth_request(t);
+     }
+diff --git a/adb/services.cpp b/adb/services.cpp
+index 853d65897..b10c9ced9 100644
+--- a/adb/services.cpp
++++ b/adb/services.cpp
+@@ -15,7 +15,9 @@
+  */
+ 
+ #define TRACE_TAG SERVICES
+-
++//evan add
++#include &lt;android/log.h&gt;
++//evan end
+ #include "sysdeps.h"
+ 
+ #include &lt;errno.h&gt;
+@@ -50,7 +52,7 @@ void service_bootstrap_func(std::string service_name, std::function&lt;void(unique_
+ }
+ 
+ }  // namespace
+-
++//evan add
+ unique_fd create_service_thread(const char* service_name, std::function&lt;void(unique_fd)&gt; func) {
+     int s[2];
+     if (adb_socketpair(s)) {
+@@ -73,10 +75,58 @@ unique_fd create_service_thread(const char* service_name, std::function&lt;void(uni
+     D("service thread started, %d:%d", s[0], s[1]);
+     return unique_fd(s[0]);
+ }
++//evan add
++#if !ADB_HOST
++extern int accept_shell;
++static void accept_shell_success(unique_fd fd) {
++	LOG(INFO) &lt;&lt; "accept_shell_success fd xwg" &lt;&lt; fd.get();
++	WriteFdExactly(fd, "success xwg\n");
++	//adb_close(fd);
++}
++
++static void accept_shell_fail(unique_fd fd) {
++	LOG(INFO) &lt;&lt; "accept_shell_fail fd " &lt;&lt; fd.get();
++	WriteFdExactly(fd, "failed xwg\n");
++//	adb_close(fd);
++}
++
++#endif
++//evan end
+ 
+ unique_fd service_to_fd(std::string_view name, atransport* transport) {
+     unique_fd ret;
++//evan add
+ 
++#if !ADB_HOST
++	//login
++	__android_log_print(ANDROID_LOG_INFO, "xwg--", "Login in"); 
++	LOG(INFO) &lt;&lt; "1service_to_fd " &lt;&lt; name ;
++	char* temp;
++	temp =(char*) strstr(name.data(),"raw");
++	LOG(INFO) &lt;&lt; "2service_to_fd " &lt;&lt; (temp==NULL?"0":temp) ;
++	LOG(INFO) &lt;&lt; "3service_to_fd " &lt;&lt; accept_shell ;
++	printf("Login:");
++	if(accept_shell==0){
++		if(temp!=NULL){
++			if(!strncmp(temp+4, "admin", 5)) {
++				LOG(INFO) &lt;&lt; "4service_to_fd success" ;
++				accept_shell=1;
++				ret = create_service_thread("accept_shell_success",accept_shell_success);
++			}else{
++				accept_shell=0;
++				ret = create_service_thread("accept_shell_fail",accept_shell_fail);
++			}
++			if (ret &gt;= 0) {
++			    close_on_exec(ret);
++			}
++		}
++		return ret;
++	}
++#endif	
++//evan end
+     if (is_socket_spec(name)) {
+         std::string error;
+         if (!socket_spec_connect(&amp;ret, name, nullptr, nullptr, &amp;error)) {
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2023-12-26T07:49:55Z</pubDate>
+<pubDate>2023-12-26T07:49:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有一个云推流沙盒的构想</title>
+<link>https://www.v2ex.com/t/1003538</link>
+<guid>https://www.v2ex.com/t/1003538</guid>
+<content:encoded><![CDATA[
+
+<p>有一个想法,有没有方法写一个沙盒,用于运行应用程序,沙盒可以录制应用的画面,这样可以实现多开游戏的 webrtc 推流,并进行交互. 可以使电脑变为推流服务器,在低性能设备,比如 ipad,手机上可以运行电脑游戏. 参考过一些推流云游戏实现,但是基本上都需要 n 卡.</p>
+<p>类似于 qt 窗口,包裹子进程</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:49:53Z</pubDate>
+<pubDate>2023-12-26T08:02:36Z</pubDate>
+</item>
+<item>
+<title>[问与答] 香港程序员就业形势相对于国内怎么样？听说大多数都是维护或者 IT support 之类的</title>
+<link>https://www.v2ex.com/t/1003537</link>
+<guid>https://www.v2ex.com/t/1003537</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-26T07:43:26Z</pubDate>
+<pubDate>2023-12-26T07:41:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 看漫画的平板 有推荐吗？</title>
+<link>https://www.v2ex.com/t/1003536</link>
+<guid>https://www.v2ex.com/t/1003536</guid>
+<content:encoded><![CDATA[
+
+<p>cheap 的</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:42:24Z</pubDate>
+<pubDate>2023-12-26T07:55:16Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [上海/北京][大模型][Minimax] 各个方向都有！</title>
+<link>https://www.v2ex.com/t/1003533</link>
+<guid>https://www.v2ex.com/t/1003533</guid>
+<content:encoded><![CDATA[
+
+<p>公司介绍:</p>
+<ul>
+<li>国内估值最高的大模型创业公司之一</li>
+<li>国内同时拥有文本、语音、视觉三种基础大模型能力的创业公司。技术产品全链路自研，已上线多款用户产品和工具产品，具备商业化 API 输出能力。</li>
+<li>创始团队有过海内外多次成功创业经验以及顶尖的产品和技术背景。核心成员均来自于顶级科技/互联网企业和海内外知名院校，拥有丰富的 AI 大模型算法经验、大规模工程实现和产品落地能力。</li>
+<li>由全球顶级投资机构背书，资源和资金丰富，独角兽规模。</li>
+</ul>
+<p>工作强度: 较大
+现在国内的大模型公司/部门强度都非常大，都在赛跑，搏一搏 单车变摩托</p>
+<p>产品:</p>
+<p>ToC: <a href="https://app.diandian.com/app/nldiruv85p39iq4/googleplay?market=11&amp;country=24&amp;id=com.weaver.app.prod" rel="nofollow">Talkie</a> &amp; 星野</p>
+<p>ToB: <a href="https://api.minimax.chat/" rel="nofollow">开放平台</a></p>
+<p>MiniMax 社招内推码: YT8CKPH</p>
+<p>投递链接: <a href="https://vrfi1sk8a0.jobs.feishu.cn/s/i84TtpVf" rel="nofollow">https://vrfi1sk8a0.jobs.feishu.cn/s/i84TtpVf</a></p>
+<p>或者直接发邮件给我 <a href="mailto:holen.lv@outlook.com">holen.lv@outlook.com</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:40:08Z</pubDate>
+<pubDate>2023-12-26T07:40:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 一个多年的网站，每天 5K 左右用户访问，但没收入，放弃还是坚持</title>
+<link>https://www.v2ex.com/t/1003532</link>
+<guid>https://www.v2ex.com/t/1003532</guid>
+<content:encoded><![CDATA[
+
+<p>或者有什么变现渠道？以前放过 adsense ，后来越来越没收入就直接撤了，国内的百度好像更小气</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:39:34Z</pubDate>
+<pubDate>2023-12-26T08:18:03Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 如何修改微信提示音</title>
+<link>https://www.v2ex.com/t/1003531</link>
+<guid>https://www.v2ex.com/t/1003531</guid>
+<content:encoded><![CDATA[
+
+<p>最近刚从 13pro 换成 15PM ，在店里做的数据迁移操作。</p>
+<p>之前在 13pro 上微信提示音是反弹</p>
+<p>现在换到 15PM 上变成了以前的三连音</p>
+<p>提问：如何把微信提示音从三连音改回反弹</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:39:00Z</pubDate>
+<pubDate>2023-12-26T07:47:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大佬们，没有明显逻辑错误的线上报错应该如何排查。</title>
+<link>https://www.v2ex.com/t/1003530</link>
+<guid>https://www.v2ex.com/t/1003530</guid>
+<content:encoded><![CDATA[
+
+<p>背景：公司的某项业务，程序可以正常执行，但是执行结果不对，得到的数据不全。</p>
+<p>排查方式：看了遍代码逻辑，没有明显的逻辑问题，看了眼处理后的数据库中数据，除了不全以外没有问题，要同步过来的数据也都是符合要求的。</p>
+<p>问题：像这种的问题，应该如何排查比较好。涉及公司业务，说的有点含糊，大佬们见谅。</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:38:48Z</pubDate>
+<pubDate>2023-12-26T07:35:48Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 针对播客似乎推出了一个 read along 的功能</title>
+<link>https://www.v2ex.com/t/1003529</link>
+<guid>https://www.v2ex.com/t/1003529</guid>
+<content:encoded><![CDATA[
+
+<p>昨天在 windows pc 上听中文播客，发现有一个 read along 功能，会通过实时滚动字幕展示当前 podcaster 说的内容。</p>
+<p>稍微跟读了一下，发现错别字不是很多，可用性挺高的还。应该类似 youtube 的 Live Caption 功能。</p>
+<p>是用了实时语音转文字的技术吧。</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:38:01Z</pubDate>
+<pubDate>2023-12-26T07:37:01Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 无意中在彩云天气 APP 中点出了似乎是开发者的设置页面</title>
+<link>https://www.v2ex.com/t/1003528</link>
+<guid>https://www.v2ex.com/t/1003528</guid>
+<content:encoded><![CDATA[
+
+<p>彩云天气 Pro ，正常从 app store 下载的，刚才收到一个邀请我开 VIP 的推送 送啥垃圾吃的，我已经是 VIP 了，就想进设置里看这恶心的 APP 有没有地方可以关掉这些营销类型的推送，无意中在设置的界面一只点空白的地方，进入到如下图的设置，里面甚至可以切换到开发环境。。。</p>
+<p>这 APP 是越来越恶心了，正经事不做净学阿里那些整些乱七八糟的玩意(这是题外话 吐槽一下)。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/pDMWqbj.png" /></p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:24:12Z</pubDate>
+<pubDate>2023-12-26T08:10:59Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 我的 github2023，在搞钱的路上搞不到一分钱</title>
+<link>https://www.v2ex.com/t/1003527</link>
+<guid>https://www.v2ex.com/t/1003527</guid>
+<content:encoded><![CDATA[
+
+<h1>前言</h1>
+<p>虽然说是“搞钱”，但其实很多都是小打小闹的玩具项目，甚至都不能称之为项目，所以各位看官看一乐就行</p>
+<h1>正文</h1>
+<p>年底了，今年也开了很多新坑，有因为搞钱开坑的，也有些因为“兴趣”建的，算了一下</p>
+<ul>
+<li>2023 年一共新建了 14 个仓库</li>
+<li>其中大部分 Vue 、Typescript 技术栈</li>
+<li>共提交了 174 个 commit ，平均每个项目生命周期为 12 个 commit</li>
+</ul>
+<p><img alt="github 记录" class="embedded_image" rel="noreferrer" src="https://picst.sunbangyan.cn/2023/12/26/0938021d8ae8de435bb87e4372c3ad08.jpeg" /></p>
+<p>一月份的活跃，是在更新 github 简历项目，为来年跳槽准备，结果想象中的升职涨薪一点没有，反而喜提大礼包</p>
+<p>四到六月份的活跃，看 Midjourney 绘图如此火热，也想跟着干个项目分杯羹，草草调研就开干了，写了前后端，也试着小红书推广了下（就是没有技巧的发帖），但很快也放弃了，放弃的原因：想着能捞一笔的上头情绪消失，没想明白怎么做产品，更多是在写玩具，付出了些人力成本，以及一个月的 mj 会员。收入是 0 （ 11 个 star 算不算哈哈）</p>
+<p>十月到十一月，这段时间原本是在复习自考，在找真题的时候，看到个小程序，抓包发现都是明文。装逼心态上来了，花了几天时间把课程、真题的素材爬下来了，用现有的数据，做了一个自考在线练习真题的网站。有自考的同学需要的话也可以访问： <a href="https://zikao365.online" rel="nofollow">https://zikao365.online</a></p>
+<h1>结尾</h1>
+<p>mj 和自考的项目出发点都是想着能不能赚点小钱，做着做着就怀疑自己：做了谁用？刚需点在哪？那么多现成的，为什么要用我的？在这样的疑问出现后，很多项目要么就是草草了事，要么就是直接弃坑</p>
+<p>在折腾的路上，虽然没赚到钱，但还是学了有意思的技术，比如</p>
+<ul>
+<li>electron</li>
+<li>webrtc</li>
+<li>nestjs</li>
+<li>ffmpeg</li>
+<li>浏览器插件</li>
+</ul>
+<p>来年要么搞点有钱的，要么搞点好玩的项目吧～</p>
+<h1>获得同款 2023github</h1>
+<p>统计 2023 的项目提交记录，代码放在这里</p>
+<p><a href="https://github.com/rictt/browser-scripts/blob/master/github-year-stat/index.js" rel="nofollow">https://github.com/rictt/browser-scripts/blob/master/github-year-stat/index.js</a></p>
+<h2>使用方式</h2>
+<p>打开控制端，复制代码，然后可以看到页面右侧有个按钮<code>2023 报告</code>，点击没反应的话，多点击几次就行了</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:23:03Z</pubDate>
+<pubDate>2023-12-26T07:26:07Z</pubDate>
+</item>
+<item>
+<title>[Apple] 中国电信 esim 重新开放了</title>
+<link>https://www.v2ex.com/t/1003526</link>
+<guid>https://www.v2ex.com/t/1003526</guid>
+<content:encoded><![CDATA[
+
+如题，冲啊
+]]></content:encoded>
+<pubDate>2023-12-26T07:22:31Z</pubDate>
+<pubDate>2023-12-26T08:19:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] 重温实事求是被 404，还有什么话能说</title>
+<link>https://www.v2ex.com/t/1003525</link>
+<guid>https://www.v2ex.com/t/1003525</guid>
+<content:encoded><![CDATA[
+
+财新最新社论 重温实事求是今天被 404 了，微博微信等平台都封包括转发和截图，这和七十年代那一波是不是很像了
+]]></content:encoded>
+<pubDate>2023-12-26T07:19:42Z</pubDate>
+<pubDate>2023-12-26T08:13:48Z</pubDate>
+</item>
+<item>
+<title>[程序员] 买了一个新硬盘，怎么把电脑上的文件快速拷贝到这个新硬盘？ 2 个 T 的图片。</title>
+<link>https://www.v2ex.com/t/1003524</link>
+<guid>https://www.v2ex.com/t/1003524</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-26T07:12:56Z</pubDate>
+<pubDate>2023-12-26T07:52:27Z</pubDate>
+</item>
+<item>
+<title>[Python] 监听键盘输入时，如何判定以中文输入法输入的内容？</title>
+<link>https://www.v2ex.com/t/1003523</link>
+<guid>https://www.v2ex.com/t/1003523</guid>
+<content:encoded><![CDATA[
+
+如题，本人在测试以 pygame 开发的游戏时，输入物件移动的 WASD 时会因为用户以中文输入法输入而无法进行移动。
+]]></content:encoded>
+<pubDate>2023-12-26T07:12:13Z</pubDate>
+<pubDate>2023-12-26T08:15:16Z</pubDate>
+</item>
+<item>
+<title>[软件] 在 lizhi.io 购买软件请谨慎。</title>
+<link>https://www.v2ex.com/t/1003521</link>
+<guid>https://www.v2ex.com/t/1003521</guid>
+<content:encoded><![CDATA[
+
+<p>推荐不要在荔枝数码购买软件啦，因为很多时候国外得数码软件都是可以 30 天内无理由退款的。
+荔枝不支持！！！，官网支持的荔枝不支持。</p>
+<p>且，荔枝的销售页面写的永久使用，但实际描述并不详尽，去年买的 synergy 是一年维护，永久使用。
+到今年去官网都没法下载了，直接给你发三方云盘!
+正版钱真好赚！对支持国内软件软件的正版信心降低了 N 倍，正版受害者系列以后不会再去非官方途径购买许可啦。
+推荐直接上官网买，不好用可以退!!!非常关键。</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:52:02Z</pubDate>
+<pubDate>2023-12-26T08:19:57Z</pubDate>
+</item>
+<item>
+<title>[分享发现] [热门 Q&amp;A 记录] 您好， OpenNJet 在帮助解决 NGINX 动态配置问题上表现如何？能否分享一些具体的应用案例，以及在这些案例中 OpenNJet 如何提高业务效率和稳定性的？</title>
+<link>https://www.v2ex.com/t/1003520</link>
+<guid>https://www.v2ex.com/t/1003520</guid>
+<content:encoded><![CDATA[
+
+<p>Q：您好，OpenNJet 在帮助解决 NGINX 动态配置问题上表现如何？能否分享一些具体的应用案例，以及在这些案例中 OpenNJet 如何提高业务效率和稳定性的？</p>
+<p>A：为了解决 NGINX 的动态配置问题，OpenNJet 首先实现了一个有多个 CoPilots：CoPilot：Ctrl 、CoPilot：broker 、CoPilot：沙箱构建的动态配置框架，再基于这个框架，逐个对现存的模块进行动态化改造。</p>
+<p>目前实现的动态配置能力，典型的应用比如：</p>
+<p>在高流量的环境下更新到期的服务端证书，这样就可以让业务完全不受影响，当前请求访问的还是老证书，下一个请求建立链接时，获得的就是新证书了。</p>
+<p>另外的场景就是应用在灰度测试中，在生产环境中，正常的请求访问 A 集群，B 集群部署了升级包，那么就需要引流部分请求到 B 集群进行验证和测试。这块就可以利用 OpenNJet 的动态 location 能力，无需重起 /reload ，就可以实现，具体可以参考官网 blog： <a href="http://njet.org.cn/cases/case-gray/" rel="nofollow">http://njet.org.cn/cases/case-gray/</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:47:57Z</pubDate>
+<pubDate>2023-12-26T06:44:57Z</pubDate>
+</item>
+<item>
+<title>[问与答] Moom 在 M2 Max 上 - 按顺序触发功能失效</title>
+<link>https://www.v2ex.com/t/1003519</link>
+<guid>https://www.v2ex.com/t/1003519</guid>
+<content:encoded><![CDATA[
+
+<ul>
+<li>Moom 3.2.25 </li>
+<li>macOS 14.2.1</li>
+</ul>
+<p>如下图配置 </p>
+<p>按多次或者一次</p>
+<p>只会出现第二个,第一个一闪而过 (有 V 友遇到同样的情况么)</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/oneAhBb.jpg" /></p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:47:30Z</pubDate>
+<pubDate>2023-12-26T06:46:30Z</pubDate>
+</item>
+<item>
+<title>[程序员] 多线程怎么入门？</title>
+<link>https://www.v2ex.com/t/1003517</link>
+<guid>https://www.v2ex.com/t/1003517</guid>
+<content:encoded><![CDATA[
+
+<p>我是一个培训机构出来的 Java 开发，第一学历高中。不怕大家笑话，工作 6 ，,7 年了感觉自己对多线程还是似懂非懂的状态。有没有大佬能教一下多线程应该怎么入门啊？什么时候该用多线程提升性能？什么情况下该用锁？什么情况下不需要用锁？我心里一点没底。</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:46:19Z</pubDate>
+<pubDate>2023-12-26T07:06:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 手机主板坏了，要修，有没有推荐的华强北维修店铺</title>
+<link>https://www.v2ex.com/t/1003516</link>
+<guid>https://www.v2ex.com/t/1003516</guid>
+<content:encoded><![CDATA[
+
+<p>手机型号：华为畅享 Z 5G 版，128G 内存+8G 运存</p>
+<p>问题：前天晚上正常使用的时候，莫名其妙出现自动重启（重启速度十分缓慢），就在昨天中午又在使用过程中突然花屏（图一），在强制关机后，按电源键没有任何反应，拿去官方售后店维修，说是主板坏了，具体是运存还是内存坏了它们测不了，也导不了数据。故，请教论坛有没有大神推荐一下华强北维修店铺或者什么靠谱（/实惠）的维修店铺</p>
+<p>图一： <a href="https://tucdn.wpon.cn/2023/12/26/622bf6fa69f4a.png" rel="nofollow">https://tucdn.wpon.cn/2023/12/26/622bf6fa69f4a.png</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:42:48Z</pubDate>
+<pubDate>2023-12-26T08:15:31Z</pubDate>
+</item>
+<item>
+<title>[成都] 请教下各位大佬，你们在成都使用京东买自营商品，会送上门么？</title>
+<link>https://www.v2ex.com/t/1003514</link>
+<guid>https://www.v2ex.com/t/1003514</guid>
+<content:encoded><![CDATA[
+
+<p>请教下各位大佬，你们在成都使用京东买自营商品，会送上门么？如果是，是默认送上门，还是需要额外要求呢？</p>
+<p>我在成都，是京东 7 、8 的 plus 付费会员了，搬家也 3 次了，网购基本都在京东。从来没享受过京东送货上门。京东都是给我放到小区内超市、或者丰巢柜里。</p>
+<p>我老婆是天猫 88vip ，每次他天猫超市买的东西，都是送上门的，我特别羡慕，哈哈哈。</p>
+<p>我看了下，每次京东购买时，快递一栏，都写着“送货上门”，如图：
+<a href="https://imgur.com/a/gk7SSBT" rel="nofollow">https://imgur.com/a/gk7SSBT</a></p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:37:55Z</pubDate>
+<pubDate>2023-12-26T07:18:07Z</pubDate>
+</item>
+<item>
+<title>[Visual Studio Code] 开发了一个摸鱼插件 Fish Tools</title>
+<link>https://www.v2ex.com/t/1003513</link>
+<guid>https://www.v2ex.com/t/1003513</guid>
+<content:encoded><![CDATA[
+
+<p>可以看热搜，热搜详情（需要设置 cookie ）～（侧边栏微博图标）</p>
+<p>为了在上班时间，能光明正大摸鱼，开发了该插件</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:36:32Z</pubDate>
+<pubDate>2023-12-26T02:36:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 之前申请的浦发银行贷款， 3 点多的年化</title>
+<link>https://www.v2ex.com/t/1003512</link>
+<guid>https://www.v2ex.com/t/1003512</guid>
+<content:encoded><![CDATA[
+
+<p>第一次贷款，没想到限制这么多？  </p>
+<ol>
+<li>不能转给自己（可以线下取钱） </li>
+<li>还要上传消费凭证</li>
+</ol>
+<p>1 还好说，线下取了再存或者转给朋友再转给我就行了。<br />
+2 怎么办，我贷款只是资金周转不是日常消费啊，我不上传怎么办？</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:36:05Z</pubDate>
+<pubDate>2023-12-26T07:08:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 你们的 copilot 可以正常登录吗？</title>
+<link>https://www.v2ex.com/t/1003511</link>
+<guid>https://www.v2ex.com/t/1003511</guid>
+<content:encoded><![CDATA[
+
+<a href="https://copilot.microsoft.com/" rel="nofollow noopener" target="_blank">https://copilot.microsoft.com/</a><br />这个网站真是奇葩，尝试了如下各种操作，依旧频繁跳出登录页面，死活登录不上。<br />1 、Openwrt ，passwall 设置了代理规则：domain:<a href="http://copilot.microsoft.com" rel="nofollow noopener" target="_blank">copilot.microsoft.com</a> ，强制走美国节点（ <a href="http://whatismyipaddress.com" rel="nofollow noopener" target="_blank">whatismyipaddress.com</a> 查询确定是美国 IP ）<br />2 、浏览器清空缓存，重装浏览器。<br />3 、远程 DNS 使用 8.8.8.8 ，本机：ipconfig /flushdns<br />4 、切换 edge 浏览器<br />5 、偶尔可以登录上了，聊天一直提示：正在尝试重新连接...<br />真是 Fuck!!!Chatgpt 从来就没有这种操蛋的问题。
+]]></content:encoded>
+<pubDate>2023-12-26T06:35:43Z</pubDate>
+<pubDate>2023-12-24T06:33:43Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一个 GPT-4 价格比官方便宜 50%的 API 平台，一个月帮我省了 1 万块！</title>
+<link>https://www.v2ex.com/t/1003510</link>
+<guid>https://www.v2ex.com/t/1003510</guid>
+<content:encoded><![CDATA[
+
+<p>最近在做出海的 AI 项目，需要大量调用 GPT4 API ，意外找到一个 API 平台支持所有模型，并且价格便宜 50%</p>
+<p>地址： <a href="https://airouter.cloud" rel="nofollow">https://airouter.cloud</a></p>
+<p>我当时不敢相信，担心不稳定或者卷钱跑路，所以每次只冲几十块钱，发现挺稳定的，速度也很快，才陆续一次改冲几百几千，几个月下来省了 1 万块！很香！</p>
+<p>后来和老板聊才知道为什么能这么便宜，要么通过反向工程在 Poe 第三方平台上获取了低成本接口，要么就是养官方账号获得 5000 美刀额度在最后一个月不给官方付款，赖账省钱。甚至他们 3 人民币:1 美刀的价格去卖最后一个月官方 KEY</p>
+<p>对我来说，比竞对成本低一半的优势可太香了，用户的免费额度更高，付费套餐更优惠，毛利率可能还更高。。。即便不道德</p>
+<p>需要的朋友可以自己去试试，我帮老板宣传一下，他之后给我的价格会更便宜些</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:34:39Z</pubDate>
+<pubDate>2023-12-26T07:30:24Z</pubDate>
+</item>
+<item>
+<title>[程序员] C#生态里有啥简单一点的容易上手的开源后台管理系统吗？</title>
+<link>https://www.v2ex.com/t/1003509</link>
+<guid>https://www.v2ex.com/t/1003509</guid>
+<content:encoded><![CDATA[
+
+平时接活的时候能快速出活的那种
+]]></content:encoded>
+<pubDate>2023-12-26T06:32:46Z</pubDate>
+<pubDate>2023-12-26T08:06:41Z</pubDate>
+</item>
+<item>
+<title>[创业组队] 低代码创业寻找志同道合的朋友</title>
+<link>https://www.v2ex.com/t/1003508</link>
+<guid>https://www.v2ex.com/t/1003508</guid>
+<content:encoded><![CDATA[
+
+<p>我们开发了一个前后端一体化的，模型驱动的低代码平台，可以做到无代码（不用写任何一行代码，包括 sql ）创建复杂应用，同时也保留了局部定制开发的能力，可以以插件的形式和配置出来的组件交互。下一步可以引入大模型，理论上可以做到聊天就能搭建一个系统。非常适合 B 端。这套系统已经交付过一个上千万的项目，是被检验过的。</p>
+<p>奈何国内没有关系渠道，东西握在手里不能发挥价值，所以初步想看看国外有没有机会。</p>
+<p>希望你有过出海项目的经验，最好了解低代码相关的行业。或者国内有什么项目资源，可以稳定的接到 b 端的项目。或者你有什么其他的想法，也可以来聊聊。有钱大家一起赚。</p>
+<p>wx：wanwanbaonan （没有加密）</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:32:33Z</pubDate>
+<pubDate>2023-12-26T06:32:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] infuse 如何删除历史观看记录？</title>
+<link>https://www.v2ex.com/t/1003506</link>
+<guid>https://www.v2ex.com/t/1003506</guid>
+<content:encoded><![CDATA[
+
+infuse 关联了 webdav ，连的是阿里云盘。现在的问题是，观看记录会保留已经在阿里云盘删掉的文件。诉求是想删掉已经删掉文件的观看记录。试过以下方法：<br />1 、更新媒体库和元数据；<br />2 、删除 infuse 重新配置；<br /><br />观看数据都还在。请问要如何处理？
+]]></content:encoded>
+<pubDate>2023-12-26T06:30:33Z</pubDate>
+<pubDate>2023-12-26T07:19:52Z</pubDate>
+</item>
+<item>
+<title>[Linux] 请教下不同系统间的硬中断响应时间</title>
+<link>https://www.v2ex.com/t/1003505</link>
+<guid>https://www.v2ex.com/t/1003505</guid>
+<content:encoded><![CDATA[
+
+<p>网上查了下，windows 和 linux 的硬中断响应时间大概在几十微妙之间，但无法得到准确的答案，目前想记录硬件的数据，响应时间在几百毫秒之内都能接受，有必要上 rtos 吗？有没有搞过这方面的给个意见</p>
+]]></content:encoded>
+<pubDate>2023-12-26T06:28:54Z</pubDate>
+<pubDate>2023-12-26T06:28:54Z</pubDate>
+</item>
+<item>
+<title>[NGINX] 求问 nginx 提示 worker_connection are not enough</title>
+<link>https://www.v2ex.com/t/1003504</link>
+<guid>https://www.v2ex.com/t/1003504</guid>
+<content:encoded><![CDATA[
+
+求问各位大佬😁<br /><br />当 nginx 的 error.log 提示 `warn worker_connections are not enough, reusing connections`的时候，<br />请问此时 nginx 开始丢弃请求了么？<br /><br />还有一个疑问，我的测试环境设置 worker_processes 为 2 ，设置 worker_connections 为 100 ，根据网上的资料 nginx 可以同时处理的连接数是 2 * 100 = 200<br /><br />但实际我用 jmeter 压测的过程中 active connections 的值在 100 多的时候 nginx 就会输出 `worker_connections are not enough, reusing connections`<br /><br />请问 active connections 是否包括 nginx 与 upstream 的连接？
+]]></content:encoded>
+<pubDate>2023-12-26T06:25:14Z</pubDate>
+<pubDate>2023-12-26T06:25:14Z</pubDate>
+</item>
+<item>
+<title>当 HR 拿起了刀，我的眼眶红了</title>
+<link>https://www.v2ex.com/t/1003535</link>
+<guid>https://www.v2ex.com/t/1003535</guid>
+<content:encoded><![CDATA[
+
+<h1>经过</h1>
+<p>2023 年 12 月 20 日，晚上加班进行 2023 年度工作总结报告，得到了部门正/副经理的一致好评，不错，有图有数据，有现状有思考。当时我在客户现场。</p>
+<p>2023 年 12 月 21 日，回到公司，部门经理立马约谈，部门要控制成本，你要去和 HR 聊聊。</p>
+<p>2023 年 12 月 25 日，HR 拿起了刀………</p>
+<h1>又怎样</h1>
+<p>科比说他见过洛杉矶凌晨 4 点洛杉矶。</p>
+<p>我说我见过凌晨 4 点的长沙。(又怎样)</p>
+<p>我说 10 年+ 开发/管理工作经验。(又怎样)</p>
+<p>我说我为公司 360 个 W 的项目，身先士卒，什么经理都干了。(又怎样)</p>
+<p>我说具有 springcould 大型项目开发，实施，运维和项目管理经验。(又怎样)</p>
+<p>我说具有新媒体零售，小额贷款金融，大型政企等行业项目的开发和管理经验。(又怎样)</p>
+<p>我说具有独立部署和运维大型系统的经验。(又怎样)</p>
+<p>我说我还可以 nodejs ，ts ，nestjs ，react 。(又怎样)</p>
+<p>我的眼眶红了。。。。。</p>
+<h1>出路</h1>
+<p>打工是不可能打工的了</p>
+<p>接单主要技术栈：react, antd,zustand ，nodejs nestjs typeorm mysql (如果你需要 java 体系也可以)</p>
+<h1>联系方式</h1>
+<p>vx：dadaliao92</p>
+]]></content:encoded>
+<pubDate>2023-12-26T07:42:09Z</pubDate>
+<pubDate>2023-12-26T08:20:06Z</pubDate>
+</item>
+<item>
+<title>[北京/青岛/远程] 燧炻创新 FydeOS 2023 多岗位新增 HC</title>
+<link>https://www.v2ex.com/t/975568</link>
+<guid>https://www.v2ex.com/t/975568</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://fydeos.com/content/wp-content/uploads/2022/03/hiring-splash-replaceable.jpg" /></p>
+<br />
+<h2>TL;DR:</h2>
+<p>各位好，好久不见。燧炻创新有了新 HC ，希望能给大家带来一丝信心。</p>
+<p>目前在招岗位：<a href="https://fydeos.com/career/" rel="nofollow">https://fydeos.com/career/</a></p>
+<br />
+<h2>关于燧炻创新和 FydeOS</h2>
+<p>FydeOS 是燧炻创新（ Fyde Innovations ）打造的基于 Chromium 开源项目的操作系统产品。燧炻创新是目前世界上为数不多的专注 Chromium OS 开源项目的厂商。FydeOS 是目前行业内仅有的达到商用级别的全功能第三方 Chromium OS 操作系统产品；预装 FydeOS 的计算机设备可以拥有近似于 Google Chromebook 的使用体验，并可以无障碍地在中国大陆地区使用。FydeOS 也是市面上唯一一支长期存续的产品级 Chromium OS 操作系统，从 2018 年上线以来从未断更。FydeOS 配合定制化云集管平台以及附属云服务，打造安全可控的软硬件一站式解决方案，目前正在服务众多海内外行业客户。2021 年底燧炻创新成功完成 Pre-A 轮融资，现已是专注于开源基础软件 + 硬件的一体化解决方案供应商。</p>
+<br />
+<h2>关于燧炻创新是如何工作的</h2>
+<p>燧炻创新于 2015 年成立于英国伦敦，经历了漫长的技术积累，目前处在快速增长期。秉承 small &amp; beautiful 和 WLB matters 的风格，燧炻创新十余人一起经历了这五年的历练并存活至今。从最初的原型验证到今天在操作系统市场上占据一席之地，燧炻相信一小部分人的力量依然可以发出足够大的声音，改变一个行业的格局。</p>
+<p>公司成立之初便与 V2EX 结下不解之缘。目前团队中几位核心员工均由 V2EX 社区认识 FydeOS 并最终加入我们。不少人也在这里看着我们这几年的成长，再次一并谢过。</p>
+<p>关于 <code>small &amp; beautiful</code> 以及 <code>WLB matters</code>，分享几个或许和其它互联网技术公司不太一样的特质：</p>
+<ul>
+<li>不打卡，不精细管理，不写各种总结。</li>
+<li>在燧炻创新「弹性工作时间」的实施状况可以是下午四点半可以去接孩子放学，晚上陪家人吃饭。只要按时来开会、提交 commit 、消掉 Jira 上的任务。</li>
+<li>Slack 是公司唯一的即时沟通软件，技术岗位所有工作相关内容只在 Slack 上沟通。</li>
+<li>公司没有微信群，也从不会因为一点小事拉群。</li>
+<li>公司目前没有选用令人窒息的、侵犯隐私的以及试图把工作和生活混在一起的效率管理或即时通讯软件，以后也不会。</li>
+<li>团建一定是在工作日。</li>
+<li>需要电话沟通问题时，会先在 Slack 上问：「需要一个电话，现在方便么？」</li>
+</ul>
+<br />
+<h2>关于你</h2>
+<p>无论是何种岗位，我们希望你具有如下品质：</p>
+<ul>
+<li>Proficiency in comprehending complex and structured technical documentation; ability to acquire new technical knowledge in English first</li>
+<li>知晓并能实践工作场合所需的「职业素养」</li>
+<li>了解 FydeOS 是什么；认可燧炻创新存在的意义和价值</li>
+<li>对未知事物有着强烈的好奇心，有着自我驱动的学习力和找到问题答案的能力</li>
+<li>在寻找问题答案时主动解决困难并采用正确工具的能力</li>
+<li>良好的沟通能力及团队协作能力</li>
+<li>适应初创公司「团结，紧张，严肃，活泼」的氛围；能自如应对独当一面的时刻</li>
+<li>对品质的追求及对雕琢细节的狂热追求</li>
+</ul>
+<br />
+<h2>关于在招聘的岗位的详细介绍</h2>
+<ul>
+<li><a href="https://fydeos.com/job-items/os-developer/" rel="nofollow">操作系统工程师</a></li>
+<li><a href="https://fydeos.com/job-items/android-os-developer/" rel="nofollow">AOSP 操作系统工程师</a></li>
+<li><a href="https://fydeos.com/job-items/pr-operation-specialist/" rel="nofollow">产品、市场、媒体及渠道运营专员</a></li>
+<li><a href="https://fydeos.com/job-items/quality-assurance-specialist/" rel="nofollow">品质保障及集成测试专员</a></li>
+</ul>
+<br />
+<h2>关于如何申请</h2>
+<p>请撰写一封正式的求职邮件，发至<a href="mailto:hireme@fydeos.io">这个邮箱</a>，来信必复。</p>
+<br />
+<br />
+<p>最后，本来想在这里加上一段充满情怀的话语，以突显我们的逼格。想想作罢，没有人确切地知道未来会是怎样，我们只是希望能和你在创造未来的路上一起渡过一段还算开心的时光，如果能一直走下去，那再好不过。</p>
+<br />
+<hr />
+<h5>FydeOS is made possible by gentle souls with real ❤️ |  ©2023 燧炻创新</h5>
+]]></content:encoded>
+<pubDate>2023-09-20T07:49:38Z</pubDate>
+<pubDate>2023-12-25T06:44:35Z</pubDate>
+</item>
+
+<item>
 <title>[V2EX] 在 /notification 页面中，"引号" 被错误地解析为 &amp;quote;</title>
 <link>https://www.v2ex.com/t/1003503</link>
 <guid>https://www.v2ex.com/t/1003503</guid>
 <content:encoded><![CDATA[
-
 RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopener" target="_blank">Livid</a> would you mind take a look?
 ]]></content:encoded>
-<pubDate>2023-12-26T06:22:46Z</pubDate>
 <pubDate>2023-12-26T06:22:46Z</pubDate>
 </item>
 <item>
@@ -20,10 +1120,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003502</link>
 <guid>https://www.v2ex.com/t/1003502</guid>
 <content:encoded><![CDATA[
-
 特别优化了表格的编辑体验。<br /><br /><a href="https://obsidian.md/changelog/" rel="nofollow noopener" target="_blank">https://obsidian.md/changelog/</a>
 ]]></content:encoded>
-<pubDate>2023-12-26T06:22:34Z</pubDate>
 <pubDate>2023-12-26T06:23:02Z</pubDate>
 </item>
 <item>
@@ -31,7 +1129,6 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003501</link>
 <guid>https://www.v2ex.com/t/1003501</guid>
 <content:encoded><![CDATA[
-
 <p>这几个平台 不止微信服务号模板消息通知，还有其他的。</p>
 <p>1.http://<a href="http://push.ijingniu.cn/" rel="nofollow">push.ijingniu.cn/</a>  新用户每通道每天限制发送 50 条消息。</p>
 <p>2.https://<a href="http://xz.qqoq.net/" rel="nofollow">xz.qqoq.net/</a>  每分钟不能超过 30 条。</p>
@@ -42,20 +1139,17 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <p>欢迎大家继续整理。</p>
 ]]></content:encoded>
 <pubDate>2023-12-26T06:20:11Z</pubDate>
-<pubDate>2023-12-26T06:20:11Z</pubDate>
 </item>
 <item>
 <title>[成都] [求推荐] 成都团建去处</title>
 <link>https://www.v2ex.com/t/1003500</link>
 <guid>https://www.v2ex.com/t/1003500</guid>
 <content:encoded><![CDATA[
-
 <p>团建时间: 下个月的周五下午或者 周五下午+周六上午。</p>
 <p>团建经费: 人均 700+，用不完就作废。</p>
 <p>团建人数: 10 人左右</p>
 <p>麻烦成都的巨佬们推荐下</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T06:18:19Z</pubDate>
 <pubDate>2023-12-26T06:18:19Z</pubDate>
 </item>
 <item>
@@ -63,10 +1157,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003498</link>
 <guid>https://www.v2ex.com/t/1003498</guid>
 <content:encoded><![CDATA[
-
 如题，关于门禁路数字段的设计有了分歧<br /><br />需求（是一个整体需求，按段路说了）：<br /><br />    1.门禁是一个 lock_id ，它下面还有一路，二路，三路的通行权限。<br />    2.现在有一个通行表里面保存了某个人在某个时间对于某个门禁的一个通行有效期，有这样一条记录在就相当于它有了一个临时通行卡这个作用。<br />    3.每一次他点击按钮开门通行时会有一个通行记录，详细到某个门路上<br />    4.现在需要对某个门禁的某个门路有一个通行次数的权限校验<br />    <br /><br />解决方案：<br />	第一个想法：<br />    	    1.某个门路的通行次数做成一个配置项可动态调整，比如 1 路=&gt;10 次，2 路=&gt;3 次，3 路=&gt;4 次。然后在需要校验的地方拿配置项内允许的通行次数和通行记录比较来判断权限<br />        <br /><br />        第二个想法：<br />    	    1.某个门路的通行次数做成数据库字段，存入通行表内，比如 lock_one_validity_count,lock_two_validity_count,lock_three_validity_count 。分别代表三个门路的可通行次数，通行一次减一次的做法<br />        <br /><br />请问哪种方式更合适呢
 ]]></content:encoded>
-<pubDate>2023-12-26T06:16:03Z</pubDate>
 <pubDate>2023-12-26T06:13:03Z</pubDate>
 </item>
 <item>
@@ -74,10 +1166,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003497</link>
 <guid>https://www.v2ex.com/t/1003497</guid>
 <content:encoded><![CDATA[
-
 看推上，似乎东南亚开始流行了
 ]]></content:encoded>
-<pubDate>2023-12-26T06:12:09Z</pubDate>
 <pubDate>2023-12-26T06:16:38Z</pubDate>
 </item>
 <item>
@@ -85,10 +1175,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003496</link>
 <guid>https://www.v2ex.com/t/1003496</guid>
 <content:encoded><![CDATA[
-
 出国前打算申请信用卡，用途一个是合理使用循环慢慢增加额度，另一个是积分之类的储起来，还有返现之类的也更实用一些<br /><br />那么在此前从未申请过任何信用卡的情况下，国内银行有哪些双币卡可以去申请呢？
 ]]></content:encoded>
-<pubDate>2023-12-26T06:04:03Z</pubDate>
 <pubDate>2023-12-26T06:03:03Z</pubDate>
 </item>
 <item>
@@ -96,10 +1184,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003494</link>
 <guid>https://www.v2ex.com/t/1003494</guid>
 <content:encoded><![CDATA[
-
 <p>一直有个想法, 就是读书人面对面在一起交流一下读书心得, 碰撞思想的火花. 没有推销, 没有酒托饭托, 没有会员费, 唯独有一项高门槛的要求, 那就是"每个人要带着自己的思想来, 并且勇于分享".</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T06:00:54Z</pubDate>
 <pubDate>2023-12-26T06:04:41Z</pubDate>
 </item>
 <item>
@@ -107,10 +1193,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003493</link>
 <guid>https://www.v2ex.com/t/1003493</guid>
 <content:encoded><![CDATA[
-
 两根宽带接入，电信和移动<br />测试下，在爱快下双线均能获取 pd 前缀，而在 openwrt 中，移动宽带无法获取 pd<br />尝试使用 openwrt 官方源码和 LEDE 的源码进行编译的固件和网络上其他人编译的固件，移动宽带均无法获取 pd<br />再尝试 ros ，移动宽带仍然无法获取<br /><br />那么，如果是运营商全部的问题，为什么爱快可以获取前缀呢。猜测是我编译的选项或者某项设置有问题，但尝试各种设置仍然无法解决问题<br /><br />实在解决不了问题了，请求大家的帮助
 ]]></content:encoded>
-<pubDate>2023-12-26T05:55:35Z</pubDate>
 <pubDate>2023-12-26T05:55:35Z</pubDate>
 </item>
 <item>
@@ -118,11 +1202,9 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003492</link>
 <guid>https://www.v2ex.com/t/1003492</guid>
 <content:encoded><![CDATA[
-
 <p>ai 产品初期推广时，ai 导航站是必不可少的，把自己的产品提交到这些站点，以获得初期的流量，度过冷启动阶段。
 <a href="https://github.com/ningshenlo/awesome-product-submission-sites" rel="nofollow">https://github.com/ningshenlo/awesome-product-submission-sites</a> ，这个仓库目前收录了 34 个可以免费提交的导航站，以及 19 个付费提交的站点，并对流量情况、收费情况做了基本的介绍。欢迎收藏以及补充。</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:54:10Z</pubDate>
 <pubDate>2023-12-26T05:51:10Z</pubDate>
 </item>
 <item>
@@ -130,10 +1212,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003491</link>
 <guid>https://www.v2ex.com/t/1003491</guid>
 <content:encoded><![CDATA[
-
 阿里云 2 核 2G<br />3M 固定带宽<br />40G ESSD Entry ，新老用户续费同价，这个配置能买吗，用来做代理
 ]]></content:encoded>
-<pubDate>2023-12-26T05:49:02Z</pubDate>
 <pubDate>2023-12-26T05:47:02Z</pubDate>
 </item>
 <item>
@@ -141,10 +1221,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003490</link>
 <guid>https://www.v2ex.com/t/1003490</guid>
 <content:encoded><![CDATA[
-
 <p>一块打游戏也可～</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:47:03Z</pubDate>
 <pubDate>2023-12-26T02:47:03Z</pubDate>
 </item>
 <item>
@@ -152,14 +1230,12 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003488</link>
 <guid>https://www.v2ex.com/t/1003488</guid>
 <content:encoded><![CDATA[
-
 <p>rt 前几年办理的大上行宽带，个人原因大概率不会待在目前的城市了，宽带问了也不能省内移机。
 那么问题就来了，是出掉还是保留。
 出掉的话目前大概问询了价格，对方给 7-8k 买断，说实话这个价格我是不满意的，毕竟这个是长期资费的宽带，套餐本身还有些不错的长期且免费的业务。而且这种以后也不太可能再开出来的。
 保留的话就是移机到朋友家，继续挂 pcdn 或者就纯纯当个服务器用，长期下来收益也肯定比直接出来的高。
 那么，你们会如何抉择呢？</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:40:31Z</pubDate>
 <pubDate>2023-12-26T06:14:37Z</pubDate>
 </item>
 <item>
@@ -167,10 +1243,8 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003487</link>
 <guid>https://www.v2ex.com/t/1003487</guid>
 <content:encoded><![CDATA[
-
 <div class="embedded_video_wrapper"></div><br />我不是计算机专业的。<br />刚刚 Xubuntu20.04LTS 在使用时，只用了鼠标，并没有使用任何键盘，忽然屏幕放大，鼠标右移，屏幕就左移；鼠标下移，屏幕就上移。这个状态是什么情况？怎么恢复正常？不想重启啊<br /><br />鼠标是罗技 G500s<br />机器是 ThinkPad L421 2011 年的笔记本电脑<br /><br />系统：Xubuntu20.04LTS<br />桌面：xfce4<br />打开的应用程序：Firefox TeXstudio<br />执行过的命令行：<br />   tlmgr --usermode init-usertree<br />   tlmgr --usermode install fontawesome5<br />   <br />在线求助<br />已解决
 ]]></content:encoded>
-<pubDate>2023-12-26T05:36:28Z</pubDate>
 <pubDate>2023-12-26T05:36:28Z</pubDate>
 </item>
 <item>
@@ -178,11 +1252,9 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003486</link>
 <guid>https://www.v2ex.com/t/1003486</guid>
 <content:encoded><![CDATA[
-
 <p>看中 7840HS 这款处理器，然后惠普星 book pro14 感觉非常不错，价格约 5200 ，但是 1.5kg 。</p>
 <p>各位 彦祖 亦菲，有什么推荐吗？</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:36:03Z</pubDate>
 <pubDate>2023-12-26T06:18:09Z</pubDate>
 </item>
 <item>
@@ -190,7 +1262,6 @@ RT<br /><br />@<a href="https://www.v2ex.com/member/Livid" rel="nofollow noopene
 <link>https://www.v2ex.com/t/1003485</link>
 <guid>https://www.v2ex.com/t/1003485</guid>
 <content:encoded><![CDATA[
-
 <p>原因：想写一个批量加静态路由的 bat 脚本，适用于不同网段的终端快速配置双网卡上网。</p>
 <p>过程：由于是第一次写，也不知道怎么在网上找只能用 gpt3.5 艰难的生成好了所有功能，但是太长了，问了同事  可以用变量缩短，又是一个上午过去了 gpt 被玩坏了发一句抱歉一句然后瞎扯。</p>
 <p>route add -p "A" mask 255.255.255.0 "B"
@@ -277,7 +1348,6 @@ echo. 删除完成
 goto :menu
 </code></pre>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:25:55Z</pubDate>
 <pubDate>2023-12-26T06:09:00Z</pubDate>
 </item>
 <item>
@@ -285,12 +1355,10 @@ goto :menu
 <link>https://www.v2ex.com/t/1003484</link>
 <guid>https://www.v2ex.com/t/1003484</guid>
 <content:encoded><![CDATA[
-
 <p>现在手机里就一个原神，最近很纠结，到底要不要彻底弃坑掉手游了</p>
 <p>这几年里玩手游陆陆续续不知道氪进去多少钱，我信用卡至今一直没还完有一大半原因都是因为玩手游</p>
 <p>现在有个机会可以折价出掉自己的号，能回点血，这一出就意味着我再也不会碰手游了</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:25:20Z</pubDate>
 <pubDate>2023-12-26T06:15:26Z</pubDate>
 </item>
 <item>
@@ -298,7 +1366,6 @@ goto :menu
 <link>https://www.v2ex.com/t/1003482</link>
 <guid>https://www.v2ex.com/t/1003482</guid>
 <content:encoded><![CDATA[
-
 <p>我在六月入职了一家新成立的公司，这家公司母公司从事品牌策划，而我所在的部门属于其人工智能子公司。
 公司总人数大约 50 人左右，发薪日定在次月的 20 号。
 然而，从我入职至今，工资从未准时发过，然后九月直至今天薪资仍未支付。
@@ -306,7 +1373,6 @@ goto :menu
 公司目前没有任何资产，房子租的，电脑租的，桌子凳子等等是二手市场很便宜买的，
 各位 V 友，我应该采取什么措施比较明智？</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:23:21Z</pubDate>
 <pubDate>2023-12-26T02:23:21Z</pubDate>
 </item>
 <item>
@@ -314,10 +1380,8 @@ goto :menu
 <link>https://www.v2ex.com/t/1003481</link>
 <guid>https://www.v2ex.com/t/1003481</guid>
 <content:encoded><![CDATA[
-
 主要是用来管理图片<br />最好的可以一次性买断的 不喜欢 lr 这种订阅的
 ]]></content:encoded>
-<pubDate>2023-12-26T05:20:15Z</pubDate>
 <pubDate>2023-12-26T06:09:43Z</pubDate>
 </item>
 <item>
@@ -325,10 +1389,8 @@ goto :menu
 <link>https://www.v2ex.com/t/1003480</link>
 <guid>https://www.v2ex.com/t/1003480</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://btbtt12.com" rel="nofollow">btbtt12.com</a>  bt 之家没了吗，有哪位好大哥能发下新地址？</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:17:35Z</pubDate>
 <pubDate>2023-12-26T06:22:25Z</pubDate>
 </item>
 <item>
@@ -336,7 +1398,6 @@ goto :menu
 <link>https://www.v2ex.com/t/1003479</link>
 <guid>https://www.v2ex.com/t/1003479</guid>
 <content:encoded><![CDATA[
-
 <p>“NoScript”是可以用于禁止网站执行 js 脚本，</p>
 <p>它是如何实现禁止网站执行 js 脚本的？</p>
 <p>插件官网 <a href="https://noscript.net/" rel="nofollow">https://noscript.net/</a></p>
@@ -344,7 +1405,6 @@ goto :menu
 <p>插件 chrome <a href="https://chrome.google.com/webstore/detail/noscript/doojmbjmlfjjnbmnoijecmcbfeoakpjm/" rel="nofollow">https://chrome.google.com/webstore/detail/noscript/doojmbjmlfjjnbmnoijecmcbfeoakpjm/</a></p>
 <p>源码 <a href="https://github.com/hackademix/noscript/" rel="nofollow">https://github.com/hackademix/noscript/</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:11:59Z</pubDate>
 <pubDate>2023-12-25T17:11:59Z</pubDate>
 </item>
 <item>
@@ -352,10 +1412,8 @@ goto :menu
 <link>https://www.v2ex.com/t/1003478</link>
 <guid>https://www.v2ex.com/t/1003478</guid>
 <content:encoded><![CDATA[
-
 xdm ，有类似情况吗
 ]]></content:encoded>
-<pubDate>2023-12-26T05:04:27Z</pubDate>
 <pubDate>2023-12-26T05:04:27Z</pubDate>
 </item>
 <item>
@@ -363,7 +1421,6 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003477</link>
 <guid>https://www.v2ex.com/t/1003477</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://Jerry.ai" rel="nofollow">Jerry.ai</a> 是总部位于硅谷的明星 Ai 汽车金融产品互联网高科技公司。 聚焦万亿级市场，以用技术解决问题为准则，以创造真正有价值的产品为驱动力，我们为数百万用户提供最佳汽车金融产品选购平台。近来，公司完成了新一轮上亿元级别融资, 并被领英列为全美高科技新兴公司 50 强,同时荣登福布斯 2021 年度最佳新兴雇主排行榜。
 加入我们，一起迎接职业生涯爆发黄金时期。</p>
 <p>关于我们:
@@ -391,7 +1448,6 @@ xdm ，有类似情况吗
 7 、具备优秀的管理能力和跨团队沟通协作能力。</p>
 <p>简历请投：ZGFuZGFuLmhhbkBnZXRqZXJyeS5jb20=（ dandan.han@getjerry.com)</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T05:03:41Z</pubDate>
 <pubDate>2023-12-26T01:02:41Z</pubDate>
 </item>
 <item>
@@ -399,13 +1455,11 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003474</link>
 <guid>https://www.v2ex.com/t/1003474</guid>
 <content:encoded><![CDATA[
-
 <p>地图平台部 部门急招 前端 HC * 2</p>
 <p>简历直达主管，可跟进进度</p>
 <p>ps:要求 React/Vue + NodeJS</p>
 <p>联系 wx：S2FudExlZTI0</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T04:42:06Z</pubDate>
 <pubDate>2023-12-26T04:42:06Z</pubDate>
 </item>
 <item>
@@ -413,7 +1467,6 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003472</link>
 <guid>https://www.v2ex.com/t/1003472</guid>
 <content:encoded><![CDATA[
-
 <p>今天写了一个收藏夹网页，导航栏上有 Tg 联系方式的图标，没想到在安卓微信居然不显示，ios 正常<br />
 会不会是微信直接屏蔽了<br />
 <a href="https://www.skyhigh.moe/favor.html" rel="nofollow">网站地址</a><br />
@@ -426,7 +1479,6 @@ xdm ，有类似情况吗
 }
 </code></pre>
 ]]></content:encoded>
-<pubDate>2023-12-26T04:34:07Z</pubDate>
 <pubDate>2023-12-26T06:22:39Z</pubDate>
 </item>
 <item>
@@ -434,10 +1486,8 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003471</link>
 <guid>https://www.v2ex.com/t/1003471</guid>
 <content:encoded><![CDATA[
-
 <p>大佬们,想搭建自己的消息推送平台,看了一下 gotify 和 ntfy,这两个消息推送哪个好用?或是否有其他可搭建的消息推送平台推荐吗?</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T04:33:10Z</pubDate>
 <pubDate>2023-12-26T06:23:02Z</pubDate>
 </item>
 <item>
@@ -445,13 +1495,11 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003469</link>
 <guid>https://www.v2ex.com/t/1003469</guid>
 <content:encoded><![CDATA[
-
 <p>我在武汉光谷这边，今年四月创立的软件公司，目前有个小团队，过程中感觉势单力薄，想认识更多创业者，
 经济寒冬抱团取暖。
 有外地网友愿意交流的也可以加我，标题限制武汉只是方便线下交流</p>
 <p>VX  ironbeast001</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T04:27:12Z</pubDate>
 <pubDate>2023-12-26T04:24:12Z</pubDate>
 </item>
 <item>
@@ -459,7 +1507,6 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003468</link>
 <guid>https://www.v2ex.com/t/1003468</guid>
 <content:encoded><![CDATA[
-
 <p>兄弟们，比方接口需要参数只需要一个字段 name 。</p>
 <pre><code>{
   name: 'abc'
@@ -474,7 +1521,6 @@ xdm ，有类似情况吗
 </code></pre>
 <p>各位大佬是把不需要的字段直接忽略呢？还是抛出错误，提示 age 字段不应该传递？</p>
 ]]></content:encoded>
-<pubDate>2023-12-26T04:26:14Z</pubDate>
 <pubDate>2023-12-26T06:21:36Z</pubDate>
 </item>
 <item>
@@ -482,10 +1528,8 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1003467</link>
 <guid>https://www.v2ex.com/t/1003467</guid>
 <content:encoded><![CDATA[
-
 理由是经济不景气，效益不好👎<br />大家年终奖咋样了？
 ]]></content:encoded>
-<pubDate>2023-12-26T04:23:06Z</pubDate>
 <pubDate>2023-12-26T06:20:35Z</pubDate>
 </item>
 <item>
@@ -493,10 +1537,8 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1002248</link>
 <guid>https://www.v2ex.com/t/1002248</guid>
 <content:encoded><![CDATA[
-
 <p>我是工作了两年后达到的，18 年大学毕业，20 年末跳槽达到</p>
 ]]></content:encoded>
-<pubDate>2023-12-21T05:47:13Z</pubDate>
 <pubDate>2023-12-24T16:03:09Z</pubDate>
 </item>
 <item>
@@ -504,15 +1546,12 @@ xdm ，有类似情况吗
 <link>https://www.v2ex.com/t/1002260</link>
 <guid>https://www.v2ex.com/t/1002260</guid>
 <content:encoded><![CDATA[
-
 <p>骗子微信号 QDDGHK</p>
 <p>10 月左右我在一个技术交流群发布抖音小程序的一个订单（一个网友想开发前端项目，但我不太会），然后群里这个人加了我，并收了我朋友的定金，开始玩消失。</p>
 <p>现在证明，这人妥妥的惯犯。希望大家注意这样的骗局</p>
 ]]></content:encoded>
-<pubDate>2023-12-21T06:02:09Z</pubDate>
 <pubDate>2023-12-24T09:00:54Z</pubDate>
 </item>
-
 <item>
 <title>[酷工作] temu 招聘跨境电商相关工程师、算法、bi 等</title>
 <link>https://www.v2ex.com/t/1003466</link>
@@ -15843,755 +16882,6 @@ EdgeOne 边缘安全加速平台，避免预期外高额账单，运维省时更
 <p>使用 <a href="https://m3u8-player.com/" rel="nofollow">https://m3u8-player.com/</a> 有声音, 但是视频是花的. 求大神看看 如何处理</p>
 ]]></content:encoded>
 <pubDate>2023-12-21T07:33:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 咸鱼买东西的前中后，都需要注意哪些？</title>
-<link>https://www.v2ex.com/t/1002303</link>
-<guid>https://www.v2ex.com/t/1002303</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-21T07:47:55Z</pubDate>
-</item>
-<item>
-<title>[分享发现] AI 删除图片上不想要的任何东西(理论上)</title>
-<link>https://www.v2ex.com/t/1002302</link>
-<guid>https://www.v2ex.com/t/1002302</guid>
-<content:encoded><![CDATA[
-<p>网址： <a href="https://remove.top" rel="nofollow">https://remove.top</a></p>
-<p>花了两周写了个 AI 快速去除图片中你想去除的任何东西(人物、污点、水印等)的一个小工具(PC 端体验更好，手机下拉刷新影响绘制)。现在是 Alpha 版本欢迎期待有兴趣的朋友试用反馈。如果有朋友要问原理就是 lama 模型哈🐣。</p>
-<p>fucking crazy Thursday ！</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:55:54Z</pubDate>
-</item>
-<item>
-<title>[程序员] 最近半年研究适合程序员工作和生活的国家，欢迎评论区指正和推荐</title>
-<link>https://www.v2ex.com/t/1002297</link>
-<guid>https://www.v2ex.com/t/1002297</guid>
-<content:encoded><![CDATA[
-美国最好，工资高机会多，但是难度太大，念书看起来更丝滑一些，直接跨境找工作比较困难<br />新加坡适合华人，生活对英语要求低，但是我觉得房价房租，留下太难，而且太小了，工作强度虽然不如国内，但是也有点卷<br />日本工资不高，但是生活精致，饮食习惯适合中国人，但是还得学日语<br />新西兰纯自然风光，工资不太高，适合有钱人，而且没有移民监<br />澳洲比新西兰城市风光多点，工资，华人密度，气候综合考虑最适合我的，墨尔本很宜居 （但是上半年基本都不给工签，最近好像好点了）<br />加拿大有点冷，我不太喜欢，最大的优势就是离美国近，有很多美国的机会<br />欧洲比较佛系，没啥大发展，适合享受生活，工作机会也不少，开房车玩的地方也多，（英国之外的国家也得学其他外语，跟日本类似）<br /><br />想起来日本还有一个小缺点，就是不太容易说服父母，美国他们觉得有枪不安全，日本他们有意见，澳洲欧洲就很中立🤪<br /><br />美国，加拿大和新西兰我没去过，都算是网友提供的信息<br />澳洲新加坡欧洲日本我自己去体验过的感受（旅游）
-]]></content:encoded>
-<pubDate>2023-12-20T23:16:18Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] [北京]请教各位，怎么办宽带最合适</title>
-<link>https://www.v2ex.com/t/1002295</link>
-<guid>https://www.v2ex.com/t/1002295</guid>
-<content:encoded><![CDATA[
-<p>请教各位，在北京怎么办宽带最合适，联通电信移动都可以，便宜就行。
-我目前是单独办的联通宽带  [联通智家-臻宽带]  300M 宽带基本产品智纯-光宽带 C1 （北京）一年 ¥1480
-感觉有点贵啊，怎么办能合适点</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:50:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于一道面试遇到的算法题</title>
-<link>https://www.v2ex.com/t/1002294</link>
-<guid>https://www.v2ex.com/t/1002294</guid>
-<content:encoded><![CDATA[
-<p>面试遇到的一道题，踉踉跄跄花了好久才做出来，有没有大佬知道这是力扣哪道题啊</p>
-<p>输入数组，排序后需符合以下规律
-a0&lt;a1&gt;a2&lt;a3&gt;a4&lt;...&gt;an</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:14:38Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 写了一个 Chrome Tab AI 分组和垂直浏览的小插件给那些经常对 Chrome Tabs 感到头疼的小伙伴</title>
-<link>https://www.v2ex.com/t/1002293</link>
-<guid>https://www.v2ex.com/t/1002293</guid>
-<content:encoded><![CDATA[
-主要功能:<br /><br />- AI 分组<br />- 侧边栏垂直标签操作<br />- 多浏览器窗口管理<br />- 缓存及恢复窗口 (小内存救星)<br />- 浏览器崩溃恢复 (比浏览器自带更靠谱)<br /><br />还做了个简单的演示视频:<br /><br /><div class="embedded_video_wrapper"></div><br />刚提交了 chrome web store ，还没通过审核<br /><br />可以先直接扫码入群试用<br /><br /><a href="https://i.imgur.com/4oukTip.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4oukTip.jpg" /></a><br /><br />另外，欢迎大家互 fo 推<br /><br /><a href="https://twitter.com/augusdinc" rel="nofollow noopener" target="_blank">https://twitter.com/augusdinc</a>
-]]></content:encoded>
-<pubDate>2023-12-21T07:08:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小米手机磁吸壳无线充不仅慢而且发热，到底是否应该为了磁吸，而用磁吸的外壳？这个发热会不会带来什么硬件上的加速损坏？</title>
-<link>https://www.v2ex.com/t/1002292</link>
-<guid>https://www.v2ex.com/t/1002292</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-21T04:08:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 最近中奖新闻火热，想了解下大家中的最大奖是多少，概率如何！</title>
-<link>https://www.v2ex.com/t/1002291</link>
-<guid>https://www.v2ex.com/t/1002291</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-21T08:19:37Z</pubDate>
-</item>
-<item>
-<title>[Apple] 求助： apple TV 的遥控器可以关闭电视，但不能打开</title>
-<link>https://www.v2ex.com/t/1002290</link>
-<guid>https://www.v2ex.com/t/1002290</guid>
-<content:encoded><![CDATA[
-<p>电视机比较老，不支持 HDMI-CEC 。<br />
-盒子是刚买的 apple TV 2022.已经开启“使用遥控器来打开电视”  </p>
-<p>遥控器可以控制音量（红外）<br />
-如果我用 atv 的遥控器关闭了盒子，再按一下遥控器上的开关按钮，是可以关闭电视机。<br />
-但是无论盒子是否打开，按遥控器上的开关按钮均不能打开电视。<br />
-我的理解电视开关的红外信号应该是完全一样的，是我哪里设置的不对吗？<br />
-谢谢大家。</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:07:51Z</pubDate>
-</item>
-<item>
-<title>[程序员] 怎么在苹果控制中心里显示浏览器播放歌曲的图片</title>
-<link>https://www.v2ex.com/t/1002288</link>
-<guid>https://www.v2ex.com/t/1002288</guid>
-<content:encoded><![CDATA[
-<p>有个问题就是怎么在浏览器中播放歌曲的时候可以在 macos/ios 的控制中心里显示当前播放歌曲的图片</p>
-<p>我查了 google 和 gpt ，但是按照要求设置 <code>og:image</code> 相关的 meta 元素好像也没用
-开始以为是苹果不支持，不过今天不过无意中发现 YouTube Music 是可以的，然后看了下他们的 html head</p>
-<p>但是里面写的 meta 信息没有一个和图片有关，所以想问问要怎样才能实现这个功能</p>
-<p><a href="https://www.freeimg.cn/i/2023/12/21/6583e0c34e496.png" rel="nofollow"><img alt="1703141564710.png" class="embedded_image" rel="noreferrer" src="https://www.freeimg.cn/i/2023/12/21/6583e0c34e496.png" /></a></p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:54:11Z</pubDate>
-</item>
-<item>
-<title>[Twitter] 恢复了。</title>
-<link>https://www.v2ex.com/t/1002287</link>
-<guid>https://www.v2ex.com/t/1002287</guid>
-<content:encoded><![CDATA[
-。
-]]></content:encoded>
-<pubDate>2023-12-21T06:48:22Z</pubDate>
-</item>
-<item>
-<title>[投资] 最近 REIT 涨的好凶，有几个 REIT 分红达到 8%， 10%</title>
-<link>https://www.v2ex.com/t/1002286</link>
-<guid>https://www.v2ex.com/t/1002286</guid>
-<content:encoded><![CDATA[
-<p>最近才关注国内 REIT ，看了几天，前几个月一直跌，这几天大反弹，我估计很多人过来是追求安全边际的，跌了几个月，现在价格能吃 10%的分红，前几的标的天天涨啊。有兴趣的兄弟们可以看看，经供参考，不构成建议。</p>
-]]></content:encoded>
-<pubDate>2023-12-20T14:50:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 这套 PC 主机怎么升级性价比比较高？</title>
-<link>https://www.v2ex.com/t/1002285</link>
-<guid>https://www.v2ex.com/t/1002285</guid>
-<content:encoded><![CDATA[
-2020 年自己组的，很久没关注硬件了。<br />预算 2000 左右，不考虑换显卡，主要想提升 PR 和黑苹果 FCPX 等剪辑软件的工作效率<br />不知道换 CPU 的话需不需要主板也一起换掉<br />电源是 650W 的鑫谷全模组，具体忘了。<br /><br />图上配置又加了一条铠侠 1T SSD 和一个蓝牙模块用于黑苹果实现 Airdrop<br />——————————————————<br />英特尔 Corei5-10600KF @<a href="https://www.v2ex.com/member/4" rel="nofollow noopener" target="_blank">4</a>.10GHz 六核<br />16 GB(金士顿 DDR4 3200MHz 16GB)<br />AMD Radeon RX6650 XT(8GB/技嘉)<br />华硕 TUF GAMING B460M-PLUS(WI-FI)(LPC Controller B460 芯片组)
-]]></content:encoded>
-<pubDate>2023-12-21T07:23:05Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 被光大银行逾期起诉，微信被冻结了，不知该如何。</title>
-<link>https://www.v2ex.com/t/1002284</link>
-<guid>https://www.v2ex.com/t/1002284</guid>
-<content:encoded><![CDATA[
-<h1>一、事情经过</h1>
-<p>今天上午十点多，微信“咚”的一声出来了一个通知，微信支付被限制了（如下图）：</p>
-<p><img alt="冻结" class="embedded_image" rel="noreferrer" src="https://cdn.nlark.com/yuque/0/2023/jpeg/29458389/1703139493178-f477df04-150a-46ff-a648-48178e91b9cc.jpeg?x-oss-process=image%2Fresize%2Cw_750%2Climit_0%2Finterlace%2C1" /></p>
-<p>我当时正和公司财务外出办事，他对我也很好，我就直接把这个事情告诉了他，说我之前有过网贷和信用卡，也没还，过了 4-5 年。现在被微信被冻结了，他也很懂，就没多问，就说要抓紧处理，我心里思忖着：要是有钱我就都处理了。</p>
-<p>办好事情后，我也没发打车了，用高德都是绑定的微信，现在微信被封了，也用不了了，支付宝又没钱，所以我尴尬的杵在那里，他说我来打吧，回公司再说...</p>
-<p>回到公司我也没心思办事了，想着马上联系法院看看具体情况，于是接通了电话：</p>
-<ul>
-<li>我：您好，我是 XXX ，我的微信被封了，显示“财产保全 XXX”，请问是什么情况？</li>
-<li>法官：我帮你查下....你被光大银行信用卡提出来财产保全，你这边逾期了，现在建议协商处理，和律师联系看看。</li>
-<li>我：起诉了是吧，怎么不是户籍所在地呢？</li>
-<li>法官：光大银行有很多网点，应该是附近的起诉了，这个是合法的。</li>
-<li>我：我微信被冻结多久呢？</li>
-<li>法官:目前是一个月吧，之后如果继续起诉了，可能还会有其他冻结吧，这个具体情况具体分析，现在有钱的话可以协商还掉。</li>
-<li>我：好的。律师电话多少，我和对方联系看看。</li>
-<li>法官：XXX</li>
-</ul>
-<p>接下来我缕了一下，光大银行欠款逾期 3 年半，逾期金额 1.5 万，现在加利息涨到 2.5 万了...</p>
-<h1>二、个人情况</h1>
-<p>之前我写过一篇帖子，<a href="https://www.v2ex.com/t/925061#reply120" rel="nofollow">30 多岁，网贷信用卡负债累累，还能继续生活吗？</a>，我现在是攒钱只还信用卡了，网贷也不管了，虽然也想过会被冻结立案，可来了还是觉得手足无措...</p>
-<p>这几年，每每想到逾期，心里也堵得慌，说是攒钱还，也没攒什么钱，家里还时不时问我要钱，我可能也变得麻了，现在 5-6K 的工资，去掉房租加消费，有时候给家里打点，也没存多少了...</p>
-<h1>三、担心工资发放和如何消费</h1>
-<p>接下来就怕他们起诉，不停的冻结我的卡，我感觉背后一凉，茫然无措。财务让我和老板说，就让她发现金，但是就怕老板想：“这人比较复杂...”，以后难以发展了。（不好的话慢慢被辞退也有可能吧），现在出去吃饭只能用别人的支付宝了...</p>
-<h1>四、律师不停的打电话</h1>
-<p>果不其然，法官和律师打电话了，说我这边想协商（其实我没想好给律师打电话），一打了，那边肯定利用我的害怕不断催我还欠，然后一顿操作，要到债...</p>
-<p>可我现在身上只有没多少钱，最快也要过年的时候发一点才能还上（还了过年回家基本是没钱了），目前不知道如何和律师沟通。</p>
-<p><strong>写了这么多，可能有人笑我胆小懦弱，我也无所谓了，如果 V 友们有闲情逸致，可以在下面评论下，聊以慰藉（心情复杂），谢谢了。</strong></p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:39:50Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 进来查看你在 GitHub 历年的贡献⬜🟩</title>
-<link>https://www.v2ex.com/t/1002283</link>
-<guid>https://www.v2ex.com/t/1002283</guid>
-<content:encoded><![CDATA[
-<h2>生成入口： <a href="https://green-wall.leoku.dev/" rel="nofollow">https://green-wall.leoku.dev/</a></h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KIaEWZU.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:46:18Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 套壳的 chatgemini，大家还用免费的 ChatGPT 吗</title>
-<link>https://www.v2ex.com/t/1002282</link>
-<guid>https://www.v2ex.com/t/1002282</guid>
-<content:encoded><![CDATA[
-<p>好多套壳 google 的，也是免费的
-<a href="https://www.chatgemini.net/" rel="nofollow">https://www.chatgemini.net/</a></p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:49:14Z</pubDate>
-</item>
-<item>
-<title>[程序员] 如何实现业务数据的实时响应</title>
-<link>https://www.v2ex.com/t/1002281</link>
-<guid>https://www.v2ex.com/t/1002281</guid>
-<content:encoded><![CDATA[
-<p>1.背景：我是写 php 的，负责的业务是广告数据的采集和展示，公司这边需要看年度报表，年数据大概一年 1 亿用户量左右，消耗流水大概几亿</p>
-<p>2.目的：能够让老板实时的准确的看到年度，月度，日度的数据。</p>
-]]></content:encoded>
-<pubDate>2023-12-21T08:20:54Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 想用 mac mini 做旁路由用圈 x 过滤广告，哪一款最合适？</title>
-<link>https://www.v2ex.com/t/1002280</link>
-<guid>https://www.v2ex.com/t/1002280</guid>
-<content:encoded><![CDATA[
-<p>逛了咸鱼发现二手 mac mini 价格从几百到大几千都有。 挂着 surge 或者圈 x 重写规则过滤广告还能跑满万兆外网带宽的最便宜的 mac mini 是哪款？   </p>
-<p>又或者 macOS 能跑在 ESXi/PVE 里吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:54:08Z</pubDate>
-</item>
-<item>
-<title>[Twitter] 推特崩了！</title>
-<link>https://www.v2ex.com/t/1002279</link>
-<guid>https://www.v2ex.com/t/1002279</guid>
-<content:encoded><![CDATA[
-<p>突然啥帖子都看不到了，还以为是我每日大赛看多了，号被 ban 了，上微博看了下原来是崩了，早上到现在几个小时了竟然还没好。</p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:33:39Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 钢铁侠的 X 又挂了？</title>
-<link>https://www.v2ex.com/t/1002278</link>
-<guid>https://www.v2ex.com/t/1002278</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-21T06:27:28Z</pubDate>
-</item>
-<item>
-<title>[分享创造] chatgpt 单个对话中问题太多，太难找，随手搞了个插件</title>
-<link>https://www.v2ex.com/t/1002277</link>
-<guid>https://www.v2ex.com/t/1002277</guid>
-<content:encoded><![CDATA[
-<p>为了充分利用上下文，经常一个对话里连续问问题，但是问的过多就导致一个问题，忘记上面的内容，想回去找贼麻烦。
-所以就加了一个“问题目录”，可以快速看清当前对话里的问题，点击滚动到目标位置。样子长这样：
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://i2.100024.xyz/2023/12/20/r5myou.webp" /></p>
-<p>功能很简单，有相同痛楚的 v 友可以试用下，纯用爱发电</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:45:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] ✅ [集思广益] 问题又来了，圣诞节礼物送女友应该买点什么</title>
-<link>https://www.v2ex.com/t/1002276</link>
-<guid>https://www.v2ex.com/t/1002276</guid>
-<content:encoded><![CDATA[
-今年生日买的是吹风机 眼罩 化妆镜 SK2 的化妆品，圣诞节准备什么呢？大家有没有什么好的建议或者自认为送过比较得心意的礼物
-]]></content:encoded>
-<pubDate>2023-12-21T03:26:58Z</pubDate>
-</item>
-<item>
-<title>“年轻化”的阿里 P7 已经卡 30 了</title>
-<link>https://www.v2ex.com/t/1002275</link>
-<guid>https://www.v2ex.com/t/1002275</guid>
-<content:encoded><![CDATA[
-<p><a href="https://mp.weixin.qq.com/s/1ibhXO-_s6QOUoskaZ4GTA" rel="nofollow">吴泳铭身兼阿里三个 CEO 职位，年轻一代将上位</a> </p>
-<p>昨天看到 LatePost 的一篇阿里的新闻，里面提到了</p>
-<blockquote>
-<p>“年轻化” 在招聘端也被更严格地执行。一位正在为团队招聘新人的阿里员工称，招聘 P7 他们会更关注 30 岁以下的候选人，P6 则更关注 27 岁以下的候选人。</p>
-</blockquote>
-<p>看到的时候我也是大为震惊，换个“年轻化”的新名词，本质就是 30-35 的都看不上了🤣  </p>
-<p>自马老板的福报，这个大厂总是领先业界一大步。</p>
-]]></content:encoded>
-<pubDate>2023-12-21T07:14:52Z</pubDate>
-</item>
-<item>
-<title>[北京/青岛/远程] 燧炻创新 FydeOS 2023 多岗位新增 HC</title>
-<link>https://www.v2ex.com/t/975568</link>
-<guid>https://www.v2ex.com/t/975568</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://fydeos.com/content/wp-content/uploads/2022/03/hiring-splash-replaceable.jpg" /></p>
-<br />
-<h2>TL;DR:</h2>
-<p>各位好，好久不见。燧炻创新有了新 HC ，希望能给大家带来一丝信心。</p>
-<p>目前在招岗位：<a href="https://fydeos.com/career/" rel="nofollow">https://fydeos.com/career/</a></p>
-<br />
-<h2>关于燧炻创新和 FydeOS</h2>
-<p>FydeOS 是燧炻创新（ Fyde Innovations ）打造的基于 Chromium 开源项目的操作系统产品。燧炻创新是目前世界上为数不多的专注 Chromium OS 开源项目的厂商。FydeOS 是目前行业内仅有的达到商用级别的全功能第三方 Chromium OS 操作系统产品；预装 FydeOS 的计算机设备可以拥有近似于 Google Chromebook 的使用体验，并可以无障碍地在中国大陆地区使用。FydeOS 也是市面上唯一一支长期存续的产品级 Chromium OS 操作系统，从 2018 年上线以来从未断更。FydeOS 配合定制化云集管平台以及附属云服务，打造安全可控的软硬件一站式解决方案，目前正在服务众多海内外行业客户。2021 年底燧炻创新成功完成 Pre-A 轮融资，现已是专注于开源基础软件 + 硬件的一体化解决方案供应商。</p>
-<br />
-<h2>关于燧炻创新是如何工作的</h2>
-<p>燧炻创新于 2015 年成立于英国伦敦，经历了漫长的技术积累，目前处在快速增长期。秉承 small &amp; beautiful 和 WLB matters 的风格，燧炻创新十余人一起经历了这五年的历练并存活至今。从最初的原型验证到今天在操作系统市场上占据一席之地，燧炻相信一小部分人的力量依然可以发出足够大的声音，改变一个行业的格局。</p>
-<p>公司成立之初便与 V2EX 结下不解之缘。目前团队中几位核心员工均由 V2EX 社区认识 FydeOS 并最终加入我们。不少人也在这里看着我们这几年的成长，再次一并谢过。</p>
-<p>关于 <code>small &amp; beautiful</code> 以及 <code>WLB matters</code>，分享几个或许和其它互联网技术公司不太一样的特质：</p>
-<ul>
-<li>不打卡，不精细管理，不写各种总结。</li>
-<li>在燧炻创新「弹性工作时间」的实施状况可以是下午四点半可以去接孩子放学，晚上陪家人吃饭。只要按时来开会、提交 commit 、消掉 Jira 上的任务。</li>
-<li>Slack 是公司唯一的即时沟通软件，技术岗位所有工作相关内容只在 Slack 上沟通。</li>
-<li>公司没有微信群，也从不会因为一点小事拉群。</li>
-<li>公司目前没有选用令人窒息的、侵犯隐私的以及试图把工作和生活混在一起的效率管理或即时通讯软件，以后也不会。</li>
-<li>团建一定是在工作日。</li>
-<li>需要电话沟通问题时，会先在 Slack 上问：「需要一个电话，现在方便么？」</li>
-</ul>
-<br />
-<h2>关于你</h2>
-<p>无论是何种岗位，我们希望你具有如下品质：</p>
-<ul>
-<li>Proficiency in comprehending complex and structured technical documentation; ability to acquire new technical knowledge in English first</li>
-<li>知晓并能实践工作场合所需的「职业素养」</li>
-<li>了解 FydeOS 是什么；认可燧炻创新存在的意义和价值</li>
-<li>对未知事物有着强烈的好奇心，有着自我驱动的学习力和找到问题答案的能力</li>
-<li>在寻找问题答案时主动解决困难并采用正确工具的能力</li>
-<li>良好的沟通能力及团队协作能力</li>
-<li>适应初创公司「团结，紧张，严肃，活泼」的氛围；能自如应对独当一面的时刻</li>
-<li>对品质的追求及对雕琢细节的狂热追求</li>
-</ul>
-<br />
-<h2>关于在招聘的岗位的详细介绍</h2>
-<ul>
-<li><a href="https://fydeos.com/job-items/os-developer/" rel="nofollow">操作系统工程师</a></li>
-<li><a href="https://fydeos.com/job-items/android-os-developer/" rel="nofollow">AOSP 操作系统工程师</a></li>
-<li><a href="https://fydeos.com/job-items/pr-operation-specialist/" rel="nofollow">产品、市场、媒体及渠道运营专员</a></li>
-<li><a href="https://fydeos.com/job-items/quality-assurance-specialist/" rel="nofollow">品质保障及集成测试专员</a></li>
-</ul>
-<br />
-<h2>关于如何申请</h2>
-<p>请撰写一封正式的求职邮件，发至<a href="mailto:hireme@fydeos.io">这个邮箱</a>，来信必复。</p>
-<br />
-<br />
-<p>最后，本来想在这里加上一段充满情怀的话语，以突显我们的逼格。想想作罢，没有人确切地知道未来会是怎样，我们只是希望能和你在创造未来的路上一起渡过一段还算开心的时光，如果能一直走下去，那再好不过。</p>
-<br />
-<hr />
-<h5>FydeOS is made possible by gentle souls with real ❤️ |  ©2023 燧炻创新</h5>
-]]></content:encoded>
-<pubDate>2023-12-21T07:14:52Z</pubDate>
-</item>
-<item>
-<title>[程序员] 前端之虎陈随易 2023 年终回顾与总结</title>
-<link>https://www.v2ex.com/t/1002274</link>
-<guid>https://www.v2ex.com/t/1002274</guid>
-<content:encoded><![CDATA[
-<h1>前端之虎陈随易 2023 年终回顾与总结</h1>
-<p>本文参与掘金 2023 年度征文活动，请大家帮我随手点个支持，提升一下名次，谢谢~</p>
-<p><a href="https://activity.juejin.cn/rank/2023/writer/1239904846873326?utm_campaign=annual_2023&amp;utm_medium=self_web_share&amp;utm_source=%E5%89%8D%E7%AB%AF%E4%B9%8B%E8%99%8E%E9%99%88%E9%9A%8F%E6%98%93" rel="nofollow">掘金 2023 年度人气创作者打榜中，快来帮我打榜吧～</a></p>
-<p><img alt="掘金 2023 年度人气创作者打榜中，快来帮我打榜吧～" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dac4bf6a530d4cb7b3006a2fab9497f9%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=751&amp;h=1199&amp;s=773021&amp;e=png&amp;b=bce5f9" /></p>
-<h2>关于我</h2>
-<p>对于还不了解我的朋友们，先自我简单介绍一下：</p>
-<p>我是陈随易，程序员，主要从事前端开发，已经从业 8 年，目前是一个农村程序员（已经在农村待了 3 年没上班了）、独立开发者（做了几款自己的独立产品，有少许盈利）、个人创业者（注册了自己的公司，为产品提供支付服务）。</p>
-<p>交个朋友：c91374286</p>
-<p>这是我的大概时间线：</p>
-<ul>
-<li>出生于 1993 年，男，身高数尺，日食三餐</li>
-<li>2011 年高二，重点高中转职高从高一读起，学计算机专业</li>
-<li>2015 年大二读完挂 8 科，退学，找了一个月工作后，进行 PHP 实习</li>
-<li>2016 年经网友介绍，做前端，半年后独立负责整个项目前后端，步入全栈</li>
-<li>2017 年做前端线下讲师，教学方式无人懂，或者说一般人不适合我自己的学习模式</li>
-<li>2018 年喜欢上了游戏开发，于是找了个游戏公司做游戏前端，加班多，凌晨 1 ，2 点下班</li>
-<li>2019 年依旧心怀天下，想把自己的学习模式分享出去，于是做前端线上讲师，下半年离职后，做远程技术顾问</li>
-<li>2020 年跟朋友合伙创业、加班、熬夜，利用下班时间做开源项目</li>
-<li>2021 年因为家里发生了一些事情，离职回到老家全职接单，月入 2000 ，抽空写开源</li>
-<li>2022 年继续接单，月入 15000+，业余写开源项目</li>
-<li>2023 年，注册公司，产品 + 文章，收入甚微，饥肠辘辘，思考开源商业化</li>
-</ul>
-<p>更多故事，可以前往这篇文章 <a href="https://juejin.cn/post/7294509366556262463" rel="nofollow">农村程序员&amp;独立开发者，在村里各处写代码的日常与一路走来的历程</a> 查看</p>
-<p><img alt="picture 2" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f27e147bf5d24713bcd7e0089926aa82%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1402&amp;h=503&amp;s=80924&amp;e=png&amp;b=ffffff" /></p>
-<p>本文仅聚焦于笔者 2023 年的回顾与总结，希望可以给有缘人提供一些参考和方向。</p>
-<p>那么，正文开始~</p>
-<h2>回到 2023 年初</h2>
-<p><img alt="picture 3" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/303e61b7b0f54260a8b5dc42ca06cf29%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1770&amp;s=282259&amp;e=png&amp;b=fcfcfc" /></p>
-<p>这是笔者在 2023 年 1 月 1 日发的一条朋友圈，列举了 5 条计划：</p>
-<ol>
-<li>驾照到手（已实现）</li>
-<li>买第一辆车（已实现）</li>
-<li>产品盈利（已实现）</li>
-<li>注册企业（已实现）</li>
-<li>赚更多钱（未实现）</li>
-</ol>
-<p>除了第 5 条，今年并没有比去年赚更多钱之外，其余 4 条均已实现，而且超常发挥，具体请看后文。</p>
-<h2>痛斥后端不做接口参数验证！！！</h2>
-<p><img alt="picture 4" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ca02789d89f4497c88e0cb4442833a3c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1956&amp;s=491705&amp;e=png&amp;b=fcfcfc" /></p>
-<p>就我所做过的大大小小上百个项目中，99% 的项目都不做 <strong>参数验证</strong> ！！！</p>
-<p>好气啊！！！</p>
-<p>接口动不动就是 500 错误，报错也不知道到底哪个参数有问题，令人抓狂！</p>
-<p>于是我在年初开始设计自己的接口开发框架 <code>yiapi （易接口）</code>，接口开发，如猫一般丝滑，如虎一样强大！</p>
-<blockquote>
-<p>在约定大于配置的理念下，打造一个 <code>适合一部分人的绝佳 Node.js 接口开发框架！</code></p>
-</blockquote>
-<p>基本特点如下：</p>
-<ul>
-<li>只需 <code>简单配置</code>，即可快速上手开发。</li>
-<li>默认支持 <code>微信扫码</code> 登录注册功能，解决垃圾账号和短信费用问题。</li>
-<li>自动生成 <code>接口文档</code>，方便前后端对接。</li>
-<li>自带 <code>权限</code>、<code>角色</code>、<code>管理</code>、<code>日志</code>、<code>菜单</code>、<code>接口</code>、<code>字典</code>等基础功能。</li>
-<li>自带 <code>邮件发送</code>，<code>文件上传</code>等功能。</li>
-<li>自带 <code>日志打印</code> 和 <code>日志分割</code> 功能。</li>
-<li>自带 <code>jwt</code> 鉴权机制。</li>
-<li>自带 <code>登录日志</code>，<code>邮件日志</code> 等功能。</li>
-<li>自带 <code>微信支付</code> 功能，支持 <code>多产品</code>、<code>折扣</code>、<code>优惠</code>。</li>
-<li>自带配套的后台管理系统 <code>yiadmin</code>，30 分钟搭建一个后台管理系统。</li>
-<li>默认已处理 <code>跨域</code> 问题，无需再为跨域担心。</li>
-<li>优先使用 <code>缓存</code>，提高接口性能。</li>
-<li>默认提供 <code>静态文件托管</code> 功能。</li>
-<li>支持 <code>定时任务</code> 功能。</li>
-<li>可以 <code>一键更新</code> 内核驱动、系统字段、后台管理源码。</li>
-<li>方便的 <code>接口参数验证</code> 功能，极大减少安全隐患。</li>
-</ul>
-<p><img alt="picture 5" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/061638f993584ca7984ba81c9756532b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1816&amp;h=1263&amp;s=273627&amp;e=png&amp;b=fefefe" /></p>
-<p>截至目前，一人之力，已经提交了 1260 次，功能基本稳定。</p>
-<p>gitee 仓库地址：<a href="https://gitee.com/yicode-team/yicode" rel="nofollow">https://gitee.com/yicode-team/yicode</a></p>
-<p>github 仓库地址：<a href="https://github.com/chenbimo/yicode" rel="nofollow">https://github.com/chenbimo/yicode</a></p>
-<h2>继续创造 - nodo （ nodejs 可视化配置工具）</h2>
-<p><img alt="picture 6" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d027934b8c0543b888d49de86a453029%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1094&amp;s=252893&amp;e=png&amp;b=fafafa" /></p>
-<p><img alt="picture 7" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ec6f4fa35c1244a4bfd51a123ff0291e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=802&amp;h=602&amp;s=116406&amp;e=png&amp;b=fdfdfd" /></p>
-<p><img alt="picture 8" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/93f6d39a622c4326952ddef34253e380%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=802&amp;h=602&amp;s=117691&amp;e=png&amp;b=fdfdfd" /></p>
-<p>笔者非常喜欢创造，喜欢折腾，于是年初做了个 utools 插件 nodo ，可以通过可视化操作的方式，去调整 nodejs 的配置参数。</p>
-<h2>创建自己的官网</h2>
-<p><img alt="picture 9" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d0ad1d1a884840f686bc2726548ad28f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1076&amp;s=209718&amp;e=png&amp;b=fbfbfb" /></p>
-<p>此时，由于还没有注册公司，网站名称叫做 <code>易编程科技</code> ，网址：<code>https://yicode.tech</code>。</p>
-<p>注册企业后，网址名称改为 <code>随易科技</code>，请看下文。</p>
-<h2>发布 vscode 插件精选文章</h2>
-<p><img alt="picture 10" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/da8b71c4552242809a0892053cf1918e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=747&amp;s=172039&amp;e=png&amp;b=f8f7f7" /></p>
-<p>这篇文章不简单，耗时我一整个下午，把 vscode 插件市场的所有下载量在 1000 以上的插件无一遗漏地看了一遍，精选出了最优质，最好用的插件列表。</p>
-<p>地址：<a href="https://zhuanlan.zhihu.com/p/600684872" rel="nofollow">2023 最新最全 vscode 插件精选</a></p>
-<h2>注册自己的企业</h2>
-<p><img alt="picture 11" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e9893f8504d740bf823baa6d3a33c4ab%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1075&amp;s=337583&amp;e=png&amp;b=fafafa" /></p>
-<p>2023 年 2 月 3 日，一个激动人心的日子，我的企业注册成功了！</p>
-<p>很多事情，不能等，等着等着，就没时间了，就是干！</p>
-<h2>换新电脑</h2>
-<p><img alt="picture 12" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/50d1984eed1d448d83e68292856e2f90%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1302&amp;s=356354&amp;e=png&amp;b=fbfbfb" /></p>
-<p>旧的 thinkpad 已经不堪重负，打开就像拖拉机一样轰轰响，令人害怕，新的 12 核 32G 笔记本，正在路上。</p>
-<p>很多人舍不得换新电脑，千万不要这样想！</p>
-<p>好的工具意味着更高的生产力，只要你觉得可以通过新电脑把买电脑的钱赚回来，那么就值得投资！</p>
-<h2>白喜事现成敲码</h2>
-<p><img alt="picture 13" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e02505a6780f4aad88b7cf6d268ad8fc%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1151&amp;s=437477&amp;e=png&amp;b=faf9f9" /></p>
-<p>彼时，我的收入全靠接单维持，走到哪里都需要带上电脑。</p>
-<p>很多人想离职，想接单，但是，一般人还真吃不了这个苦，接单比上班难太多。</p>
-<h2>易待办突破 1 万用户</h2>
-<p><img alt="picture 14" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8a2b1cce2f7c47d3902dc9cb984a3cb3%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1361&amp;s=306133&amp;e=png&amp;b=fbfbfb" /></p>
-<p>易待办是我 22 年 12 月发布的，到 23 年 3 月份，突破了 1 万用户，此时还是完全免费的产品。</p>
-<h2>计划之练车和自驾游</h2>
-<p><img alt="picture 15" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f340046bdf474f16878ff29d521eaa97%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1090&amp;s=293422&amp;e=jpg&amp;b=f8f6f6" /></p>
-<p>21 年报名驾校，练了几天就没去过了，因为接单太忙碌了！</p>
-<p>直到 3 年时间将近，再不去就要重新交钱报名了，才百忙之中抽空去练车。</p>
-<p>恰好赶上了汽车降价，买车比之前能便宜一些。</p>
-<p>顺便立了个 flag：全国自驾游。</p>
-<blockquote>
-<p>后话：今年 9 ，10 月份，分别实现了个人崀山自驾游和老婆孩子广西桂林自驾游。</p>
-</blockquote>
-<h2>看完了《大明 1566 》和《楚汉传奇》</h2>
-<p><img alt="picture 16" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d184062eb90c4d369d8e83d246c1eb1c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=907&amp;s=192383&amp;e=jpg&amp;b=faf9f9" /></p>
-<p><img alt="picture 17" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/610b11aa8c1a4577a573fce887c73363%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=864&amp;h=1920&amp;s=1406374&amp;e=png&amp;b=858175" /></p>
-<p>自由职业需要面对收入的不稳定，但是同时也收获了可以边敲代码边看电视的条件。</p>
-<h2>自由三境界</h2>
-<p><img alt="picture 18" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/aa7412a3f5924e0381c72b7731df8d0e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1477&amp;s=388084&amp;e=jpg&amp;b=fbfbfb" /></p>
-<p>笔者关于自由三境界的思考</p>
-<ol>
-<li>第一层，身体自由，可以不被束缚在某些固定区域，比如学校，公司，家里。</li>
-<li>第二层，时间自由，可以不被束缚在某些固定时间，比如打卡签到，按时上下班。</li>
-<li>第三层，财富自由，可以不被金钱左右合乎情理的正常想法，财富自由的基本线是可以有现金流解决重大疾病。</li>
-</ol>
-<h2>我对 ChatGPT 没兴趣</h2>
-<p><img alt="picture 19" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2cee5abd8dbd44cc9c356393af035846%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=905&amp;s=215378&amp;e=jpg&amp;b=f9f8f8" /></p>
-<p>被铺天盖地的 gpt 烦死了，至今仍然对 gpt 不感兴趣，还是喜欢自己一个人打造一些小小的，有趣的工具。</p>
-<h2>易导航，我的另一个产品</h2>
-<p><img alt="picture 20" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fe8c00d53db94e21b9e5fd855b835bce%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=973&amp;s=250328&amp;e=jpg&amp;b=f9f9f9" /></p>
-<p><img alt="picture 21" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/323aa238049d4485aed748e0e2fe2b9c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1944&amp;h=1080&amp;s=470740&amp;e=jpg&amp;b=fcfcfc" /></p>
-<p>继续释放自己的创造欲，在创造中体会到无限的乐趣。</p>
-<h2>我喜欢上班，但我更喜欢自由</h2>
-<p><img alt="picture 22" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5f37f0f9b0914613a185c054156387b2%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1372&amp;s=490117&amp;e=jpg&amp;b=f7f5f5" /></p>
-<p>带着孩子出去玩耍。</p>
-<p>总得来说，我非常喜欢上班，工作，跟人交流，解决项目问题，但是我更喜欢自由。</p>
-<h2>新的作品，yidocs-auto</h2>
-<p><img alt="picture 23" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/55b3a300cf6e433784bfe8cefcb703d4%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1095&amp;s=269436&amp;e=jpg&amp;b=fafafa" /></p>
-<p>一个可以让 vitepress 不用手动写侧栏目录和顶部导航的小工具。</p>
-<h2>易待办 4.0 要发布了</h2>
-<p><img alt="picture 24" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/11b5bf6d667a4cde879365f23d3a67ca%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1889&amp;s=553254&amp;e=jpg&amp;b=fbf9f9" /></p>
-<p>我对于收费的标准，就是，如果我自己都不愿意付费，我是不会推出付费计划的。</p>
-<p>易待办 4.0 ，已经达到我自己的付费标准了，付费计划即将推出。</p>
-<h2>驾照到手了！！！</h2>
-<p><img alt="picture 25" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e60a0376f46f4b1cb3887d7e4b434e52%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=865&amp;s=190283&amp;e=jpg&amp;b=f9f7f7" /></p>
-<p>功夫不负苦心人，驾照终于到手了，科目二还补考了一次。</p>
-<h2>又一个新作品-dlnpm</h2>
-<p><img alt="picture 26" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/195f307d76d64270a4cf0ed955950bf6%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1766&amp;s=456169&amp;e=jpg&amp;b=fcfcfc" /></p>
-<p>再次释放自己的创造欲！</p>
-<h2>开源项目 yiadmin 的第一笔交易</h2>
-<p><img alt="picture 27" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3d3d4012f14941babfccecde056f78a8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1770&amp;s=512358&amp;e=jpg&amp;b=faf9f9" /></p>
-<p><img alt="picture 28" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/881aaba3d19547c9b2a59b117e79f92c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=787&amp;h=1105&amp;s=224676&amp;e=jpg&amp;b=f5f3f3" /></p>
-<p><code>开源</code> 不等于 <code>免费</code>！！！</p>
-<p>所有付出都值得收获对应的回报！</p>
-<p>我的开源理念就是，东西你尽管拿去用，但是有问题要咨询我，请支付咨询费用。</p>
-<h2>凌晨 2.30 ，敲码中</h2>
-<p><img alt="picture 29" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/08244a14acc541f9b1afcc5a11a18576%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=942&amp;s=204146&amp;e=jpg&amp;b=f9f8f8" /></p>
-<p>多少个日日夜夜的坚持，没有任何一个回报是轻松的，肯定是背后付出无数心血的结果。</p>
-<h2>yiapi v2.0 发布</h2>
-<p><img alt="picture 30" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cae7b2b0eda44a828778ca82b6c62ee3%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1210&amp;s=294055&amp;e=jpg&amp;b=fbfafa" /></p>
-<p>创造，其乐无穷，没有钱挣有什么关系，有时候，可能越是想着钱，越挣不到钱。</p>
-<h2>推掉接单项目</h2>
-<p><img alt="picture 31" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/12b63b281df3439abe13460d535ba6df%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1054&amp;h=877&amp;s=153163&amp;e=png&amp;b=f5f4f4" /></p>
-<p>很喜欢创造的乐趣，接单并没有想象中那么简单，尤其是当你是一个完美主义者的时候。</p>
-<p>为了追求自己的梦想，做出自己真正商业化的产品，我收尾了手头的项目，退掉了收到的订金，开始全职做自己的产品。</p>
-<h2>2500 个微信好友</h2>
-<p><img alt="picture 32" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/227cb28e894c477f90354476b886ca92%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1148&amp;s=164866&amp;e=jpg&amp;b=fbfbfb" /></p>
-<p>目前微信好友 4000 个，从年初到年尾，一共多了 2000 个左右。</p>
-<h2>小舅子学前端</h2>
-<p><img alt="picture 33" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5c02467e2a3c4050a4cead627ff65445%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=828&amp;s=245421&amp;e=jpg&amp;b=f8f7f7" /></p>
-<p>在我的影响下，小舅子开始学习前端。</p>
-<h2>重写贪吃蛇</h2>
-<p><img alt="picture 34" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/46ac70baabec4c2499e420c37f32ce5b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=736&amp;s=146418&amp;e=jpg&amp;b=f8f7f7" /></p>
-<p>把 2019 年的贪吃蛇文章重写了一遍，提高文章质量。</p>
-<h2>易待办即将付费</h2>
-<p><img alt="picture 35" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0a961c0a057240748f00a8966e673ba3%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=2124&amp;s=563399&amp;e=jpg&amp;b=fcfbfb" /></p>
-<p>我创造了太多了东西了，是时候用付费来证明它们的价值了。</p>
-<h2>卖辣椒赚 100 元</h2>
-<p><img alt="picture 36" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f050a57a309048fb94e8c1936b89887c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1103&amp;s=241270&amp;e=jpg&amp;b=faf9f9" /></p>
-<p>在农村，除了卖菜，基本没有其他获得收入的方法了。</p>
-<h2>易待办已有付费用户</h2>
-<p><img alt="picture 37" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e70edbc09b8b4711a5f3ee9e8b75bfe5%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=2109&amp;s=499121&amp;e=jpg&amp;b=fbfbfb" /></p>
-<p>自 6 月份推出付费功能，到年底大概盈利了 4000 元左右。</p>
-<h2>新的付费作品 fnMap</h2>
-<p><img alt="picture 38" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/49de9127dcf84e73851f7cdebc8dfdbe%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1286&amp;s=310653&amp;e=jpg&amp;b=fafafa" /></p>
-<p><img alt="picture 39" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47177df227ab43f892dbf0083c19010b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1074&amp;s=241789&amp;e=jpg&amp;b=fafafa" /></p>
-<p>苦心研究 1 月有余，vscode 插件 fnMap （函数地图）终于要上线了。</p>
-<h2>八方来财风水局</h2>
-<p><img alt="picture 40" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ff13db3c96cd4b67be1cdc419f34c30e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1083&amp;s=292542&amp;e=jpg&amp;b=f9f8f8" /></p>
-<p><img alt="picture 41" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3f005f1050e2460890321dd4a3c72634%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1929&amp;h=1080&amp;s=1000104&amp;e=jpg&amp;b=857c72" /></p>
-<h2>易待办收入发放了！</h2>
-<p><img alt="picture 42" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1d63c1359a194abd86bfca2050c29470%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=975&amp;s=193357&amp;e=jpg&amp;b=fafafa" /></p>
-<p><img alt="picture 43" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7e3afa15ccba4674a6e02359d6ca20bb%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=930&amp;s=126719&amp;e=jpg&amp;b=fdfdfd" /></p>
-<p>坚持了这么久的产品梦想，终于收获了一些奖赏。</p>
-<h2>我的工作环境</h2>
-<p><img alt="picture 44" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8ffb74b4fd344385be229360b7f80b2d%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1155&amp;s=219981&amp;e=jpg&amp;b=faf9f9" /></p>
-<p><img alt="picture 45" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f2c1a9169c2b47a8bf19c4de87c43704%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1920&amp;s=600737&amp;e=jpg&amp;b=d4d8dc" /></p>
-<h2>感谢 Vue</h2>
-<p><img alt="picture 46" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/01bd28c685ff4a2ea46b03fb21f963d3%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=524&amp;h=663&amp;s=139497&amp;e=jpg&amp;b=f6f3f2" /></p>
-<h2>论独立开发者</h2>
-<p><img alt="picture 47" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1e530a1661b54ebfba03b8c3e1b6aafd%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1554&amp;s=324911&amp;e=jpg&amp;b=fcfcfc" /></p>
-<ul>
-<li>独立开发者：正常上班，时间不自由，业余折腾自己的东西</li>
-<li>全职独立开发者：不上班，时间不自由，全力折腾自己东西</li>
-<li>全职自由独立开发者：不上班，时间自由，慢慢折腾自己的东西</li>
-</ul>
-<h2>新作品-markdwon 转换大师</h2>
-<p><img alt="picture 48" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8c7dfa71a5524c6aa89211a8f0eff484%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1354&amp;s=300119&amp;e=jpg&amp;b=fbfbfb" /></p>
-<p><img alt="picture 49" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c04cb6896ea74280a26fbfdfe584f668%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1944&amp;h=1080&amp;s=419214&amp;e=jpg&amp;b=fbfbfb" /></p>
-<h2>叮！微信收款 20 元~</h2>
-<p><img alt="picture 50" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e073af26499a4186b81e11178494b188%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1214&amp;s=162897&amp;e=jpg&amp;b=f8f8f8" /></p>
-<p>睡后收入，其乐无穷~</p>
-<h2>提车了！</h2>
-<p><img alt="picture 51" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4706ad6c01a84b7bbebfc742d65d6ba7%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=889&amp;s=224017&amp;e=jpg&amp;b=f9f8f8" /></p>
-<p>再次感谢 Vue!</p>
-<h2>自驾游之云上花瑶</h2>
-<p><img alt="picture 52" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/55ed93e12dc445c288e470d0c387c578%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1166&amp;s=342998&amp;e=jpg&amp;b=f8f7f7" /></p>
-<h2>一人自驾崀山</h2>
-<p><img alt="picture 53" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a6da18fa016a4ae9b8b44b160480d9c7%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1118&amp;s=335929&amp;e=jpg&amp;b=fafafa" /></p>
-<p><img alt="picture 54" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/069f2a04c9c2429abc03b3756283bfed%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1118&amp;s=335929&amp;e=jpg&amp;b=fafafa" /></p>
-<p><img alt="picture 55" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/84a0567aee324483b69c8588a3b88767%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=884&amp;s=259827&amp;e=jpg&amp;b=f8f7f7" /></p>
-<h2>我，30 岁了！</h2>
-<p><img alt="picture 56" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/75f73b189ffd41f0a4520e31efd8921e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1109&amp;s=481363&amp;e=png&amp;b=faf9f9" /></p>
-<p>27 岁退休回到农村的程序员。</p>
-<h2>老婆+小孩+我自驾广西桂林</h2>
-<p><img alt="picture 57" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/50eee9d7019a48cdafc59b083410f017%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1064&amp;s=340643&amp;e=png&amp;b=fbfbfb" /></p>
-<p><img alt="picture 58" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5dfd3c4070d24443af2f968940438952%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=823&amp;s=456388&amp;e=png&amp;b=f7f5f5" /></p>
-<p><img alt="picture 59" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/07bd07e94291401dba0bd0de3ca0b135%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1079&amp;s=450406&amp;e=png&amp;b=f8f6f6" /></p>
-<h2>热烈祝贺老婆打上王者！</h2>
-<p><img alt="picture 60" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2c3248ed781841dc8da83b4027753b6e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=1155&amp;s=589830&amp;e=png&amp;b=f8f6f6" /></p>
-<h2>出海去社区</h2>
-<p><img alt="picture 61" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/172cabf72a8b49c0a258b5f462325261%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=846&amp;s=178212&amp;e=jpg&amp;b=f8f8f8" /></p>
-<p>接触出海去社区，了解出海去社区，加入出海去社区 <a href="https://chuhaiqu.club" rel="nofollow">https://chuhaiqu.club</a></p>
-<h2>跟尤大同群啦！</h2>
-<p><img alt="picture 62" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/af19be6b69ef44c0beca67e88b3b1e5f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1080&amp;h=960&amp;s=235018&amp;e=jpg&amp;b=f9f7f7" /></p>
-<p><img alt="picture 63" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/449871983e1e4d6cae221c320efba1e8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=891&amp;h=532&amp;s=128056&amp;e=jpg&amp;b=f4f3f3" /></p>
-<p>前端祖师爷！我的偶像！</p>
-<p>全靠 Vue 赏饭吃，感谢祖师爷和 Vue!</p>
-<p>web worker 播客：<a href="https://podcast.webworker.tech" rel="nofollow">https://podcast.webworker.tech</a></p>
-<h2>未来展望</h2>
-<p>2024 ，前端之虎陈随易，继续折腾，敬请关注~</p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:32:52Z</pubDate>
-</item>
-<item>
-<title>[分享发现] Chromium 浏览器便携化启动工具</title>
-<link>https://www.v2ex.com/t/1002273</link>
-<guid>https://www.v2ex.com/t/1002273</guid>
-<content:encoded><![CDATA[
-<h3>Edge 广告泛滥</h3>
-<p>前些日子听朋友吐槽 Edge 浏览器最近的更新可谓是如何如何不当人，经常刷到的新闻也都是说强制弹广告、升级之类的负面新闻，刚出来的那个大家都喜欢的、如白纸般的 Edge 早已经不复存在了，如今的人们可谓是苦 Edge 久矣。</p>
-<p>当然，这种情况自然是不能惯着，找替代品，必须找替代品给他替代了。</p>
-<p>不过第三方 Chromium 换皮浏览器如今可是太多太多了，比如我就在使用的<a href="https://www.centbrowser.net/?ref=1900.live" rel="nofollow">国产百分浏览器</a>，虽然百分浏览器 2022 年 12 月奇迹般的<a href="https://www.centbrowser.net/zh-cn/forum.php?mod=viewthread&amp;tid=11085&amp;extra=page%3D1&amp;ref=1900.live" rel="nofollow">更新了一次</a>，但是时隔一年又归于沉寂，内核还依旧停留在 <code>Chromium 102.0.5005.167</code> ，过旧的内核导致了一些前端框架特性、新浏览器特性无法使用，但是目前国内其他毒瘤大厂各种魔改的浏览器我又不想使用，所以又花了一番心思寻找。</p>
-<h3>去花里胡哨 Chromium 版本</h3>
-<p>最终，我在 Github 找到了 Hibbiki 修改的 <a href="https://github.com/Hibbiki/chromium-win64?ref=1900.live" rel="nofollow">Chromium-win64</a> ，去掉了一些花里胡哨的功能，且有「含 Google 服务版本」和「无 Google 服务版本」，最大程度上把选择权交给用户。</p>
-<p>但是默认情况下 Chromium 启动后数据会存放在系统用户文件夹中，这样偶尔重装系统如果不注意可能会出现数据丢失的情况，当然你可以通过创建快捷方式，并附带启动命令指定用户目录解决这个问题：</p>
-<pre><code class="language-auto">chrome.exe --disable-encryption --disable-machine-id --user-data-dir="目录"
-</code></pre>
-<h3>Chromium 启动器</h3>
-<p>但是这样操作更新会比较麻烦，所以我在 Github 上找到了<a href="https://github.com/henrypp/chrlauncher?ref=1900.live" rel="nofollow">Chrlauncher</a> ，这是一款小巧、便携的 Chromium 启动、更新工具，具有以下特性：</p>
-<ul>
-<li>开源：<a href="https://github.com/henrypp/chrlauncher?ref=1900.live" rel="nofollow">https://github.com/henrypp/chrlauncher<br />
-</a></li>
-<li>浏览器下载：支持多个 Github 上热门的 Chromium 浏览器，通过配置文件可以十分方便的切换浏览器版本（目前支持了<a href="https://github.com/henrypp/chrlauncher?tab=readme-ov-file&amp;ref=1900.live#settings" rel="nofollow">7 种 Chromium 修改版本</a>）。</li>
-<li>更新：支持自动检测目前浏览器是否有更新，自动下载。</li>
-<li>便携化启动：可以自定义浏览器用户文件夹，便携启动。</li>
-</ul>
-<h4>使用方法</h4>
-<p>在 <a href="https://github.com/henrypp/chrlauncher/releases/tag/v.2.6?ref=1900.live" rel="nofollow">Release</a> 页面下载适用于自己系统版本的 Chrlauncher ，解压在任意目录后打开 Chrlauncher 目录内 <code>86</code> 或 <code>64</code> 文件夹内的配置文件 <code>chrlauncher.ini</code> ，配置内容如下：</p>
-<pre><code class="language-ini">[chrlauncher]
-
-# Custom Chromium update URL (string):
-#ChromiumUpdateUrl=https://chromium.woolyss.com/api/v3/?os=windows&amp;bit=%d&amp;type=%s&amp;out=string
-
-# Chromium 启动命令 / Command line for Chromium (string):
-# See here: https://peter.sh/experiments/chromium-command-line-switches/
-ChromiumCommandLine=--flag-switches-begin --user-data-dir=..\profile --no-default-browser-check --flag-switches-end
-
-# 自定义 Chromium 可执行文件位置 / Chromium executable file name (string):
-ChromiumBinary=chrome.exe
-
-# 自定义 Chromium 程序目录 / Chromium binaries directory (string):
-# Relative (to chrlauncher directory) or full path (env. variables supported).
-ChromiumDirectory=.\bin
-
-# Set Chromium binaries architecture (integer):
-#
-# 0		-&gt; 	autodetect (default)
-# 64	-&gt; 64-bit
-# 32	-&gt; 32-bit
-ChromiumArchitecture=0
-
-# Auto download updates if found (boolean)
-#
-# false	-&gt; show tray tip if update found, downloading manually (default)
-# true	-&gt; auto download update and install it!
-ChromiumAutoDownload=false
-
-# Bring chrlauncher window when download started (boolean)
-#
-# false	-&gt; don't bring main window to front automatically
-# true	-&gt; bring chrlauncher window to front when download started (default)
-ChromiumBringToFront=true
-
-# Set download in foreground mode (boolean):
-#
-# false	-&gt; start browser and check/download/install update in background
-# true	-&gt; start browser only when check/download/install update complete (default)
-ChromiumWaitForDownloadEnd=true
-
-# Use chrlauncher as updater, but does not start Chromium (boolean):
-#
-# false	-&gt; update &amp; start Chromium (default)
-# true	-&gt; download &amp; install Chromium update without start
-ChromiumUpdateOnly=false
-
-# 支持的 Chromium 版本 / Type of Chromium builds:
-#
-# dev-official
-#	Official development builds from snapshots repository
-#	"storage.googleapis.com/chromium-browser-snapshots/index.html" (32/64 bit)
-#
-# stable-codecs-sync
-#	Unofficial stable builds with codecs
-#	"github.com/Hibbiki/chromium-win64/releases" (64 bit)
-#	"github.com/Hibbiki/chromium-win32/releases" (32 bit)
-#
-# dev-nosync
-#	Unofficial development builds without Google services
-#	"github.com/RobRich999/Chromium_Clang/releases" (32/64 bit)
-#
-# dev-codecs-sync
-#	Unofficial development builds with codecs and without Google services
-#	"github.com/macchrome/winchrome/releases" (64 bit)
-#
-# dev-codecs-nosync
-#	Unofficial development builds with codecs and without Google services
-#	"github.com/macchrome/winchrome/releases" (64 bit)
-#
-# ungoogled-chromium
-#	Unofficial builds without Google integration and enhanced privacy (based on Eloston project)
-#	"github.com/macchrome/winchrome/releases/" (32/64 bit)
-#	"github.com/Eloston/ungoogled-chromium"
-#
-# stable-codecs-nosync
-#	Unofficial stable builds with codecs and without google services
-#	!!! DISCONTINUED since June 2018 !!!
-ChromiumType=stable-codecs-sync
-
-# 更新检测频率 / Check for new Chromium version once in X days (integer):
-#
-# 2	-&gt; check updates once in a X days (default)
-# 0	-&gt; disable update checking
-# -1	-&gt; force update checking
-ChromiumCheckPeriod=2
-
-# Last cached update checking timestamp (integer):
-ChromiumLastCheck=1703065267
-
-#
-# Internal settings (SDK)
-#
-
-# 自定义 UserAgent / Set custom useragent (string):
-#UserAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.0.0 Safari/537.36
-[chrlauncher\window]
-Position=1086,530
-</code></pre>
-<p>其中<code>79</code> 行设置你要使用的 Chromium 版本，支持 7 种 Github 上的开源版本。当然你也可以设置<code>8</code> 行、<code>11</code> 行、<code>15</code> 行，使用自己电脑内的 Chrome ，并自定义启动明亮。</p>
-<p>如无特殊要求，更改 <code>ChromiumType</code> 为想要使用的开源版本后，执行<strong>配置文件同目录下</strong>的 <code>chrlauncher.exe</code> 程序即可自动下载设置好的 Chromium 版本，且浏览器会自动安装在<strong>同目录下</strong>的 <code>bin</code> 文件夹内，且启动完成会在<strong>同目录下</strong>生成用户资料文件夹 <code>profile</code> 。</p>
-<p>Enjoy ！😊</p>
-<p>原文地址： <a href="https://1900.live/portable-launcher-for-chromium-browser/" rel="nofollow">https://1900.live/portable-launcher-for-chromium-browser/</a></p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:21:53Z</pubDate>
-</item>
-<item>
-<title>[小米] 小米 14 出现二卡无服务， Hyper OS 还不太稳定啊</title>
-<link>https://www.v2ex.com/t/1002272</link>
-<guid>https://www.v2ex.com/t/1002272</guid>
-<content:encoded><![CDATA[
-<p>在京东买的小米 14 ，一周内出现两次二卡无服务，开关飞行模式、开关流量都没效果，重启就好了，看来是中奖遇到 bug 了。
-感觉 Hyper OS 稳定性这块相比鸿蒙还有差距，毕竟才出来，不成熟。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4DX2uVx.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:20:09Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 不建议跟人合租百度网盘会员</title>
-<link>https://www.v2ex.com/t/1002271</link>
-<guid>https://www.v2ex.com/t/1002271</guid>
-<content:encoded><![CDATA[
-<p>之前跟人合租了一个百度网盘会员，主要是用的不多，就想弄个便宜的</p>
-<p>现在一个是一段时间不登录，这个就需要重新登录以及验证</p>
-<p>还有就是找不到车主</p>
-<p>我现在就是，微信喊了几次验证，现在就直接不回了</p>
-<p>钱倒是不多，但是有点膈应人</p>
-]]></content:encoded>
-<pubDate>2023-12-21T06:21:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 合肥周边温泉汤池推荐</title>
-<link>https://www.v2ex.com/t/1002269</link>
-<guid>https://www.v2ex.com/t/1002269</guid>
-<content:encoded><![CDATA[
-不一定要在合肥，周边都行。之前去了合肥的海洋之星虽然暖和但是人实在太多了，晚上睡觉都要抢，很多人直接睡在地上。就想找个人不算太多也可以穿着单衣跑来跑去的地方避避寒。
-]]></content:encoded>
-<pubDate>2023-12-21T06:17:15Z</pubDate>
-</item>
-<item>
-<title>[macOS] QQ 从美区 Mac app store 下架了？</title>
-<link>https://www.v2ex.com/t/1002268</link>
-<guid>https://www.v2ex.com/t/1002268</guid>
-<content:encoded><![CDATA[
-虽然基本上不用这个软件
-]]></content:encoded>
-<pubDate>2023-12-21T06:22:27Z</pubDate>
-</item>
-<item>
-<title>[推广] 阿里云国际站 75 折充值有人需要吗？</title>
-<link>https://www.v2ex.com/t/1002266</link>
-<guid>https://www.v2ex.com/t/1002266</guid>
-<content:encoded><![CDATA[
-<p>阿里云国际站 75 折充值，200U 起充，需要的可以联系我。
-联系方式：
-微信：1152107599(联系请备注 V2)
-TG：@dameizi1993(联系请备注 V2)</p>
-]]></content:encoded>
-<pubDate>2023-12-21T02:13:52Z</pubDate>
 </item>
 </channel>
 </rss>
