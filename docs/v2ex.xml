@@ -5,15 +5,429 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Android] android ssl pinning 有什么简单方法？</title>
+<link>https://www.v2ex.com/t/1004614</link>
+<guid>https://www.v2ex.com/t/1004614</guid>
+<content:encoded><![CDATA[
+
+<p>root 了配置了 magisk 和 rootca 都不完美
+有 v 站看到 ecapture 需要 kernel 5+ ，我的设备内核最高 4.9</p>
+<ul>
+<li>-！！！</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-12-30T06:18:40Z</pubDate>
+<pubDate>2023-12-30T06:18:40Z</pubDate>
+</item>
+<item>
+<title>[Linux] 求助: 搭建 IPv6 软路由遇到的问题 ( 主要是 RA 消息方面 )</title>
+<link>https://www.v2ex.com/t/1004613</link>
+<guid>https://www.v2ex.com/t/1004613</guid>
+<content:encoded><![CDATA[
+
+<h2>问题总结(如果你时间宝贵直接看前三条即可)</h2>
+<ol>
+<li>
+<p>Linux 的 IP Forward 到底是怎么一个流程, A 网卡流入需要 Forward 到 B 网卡的包, 对于 B 网卡来说是内核直接发给他的, 还是退回到 INPUT 之前再 Forward, 这个描述好像不是很恰当! </p>
+</li>
+<li>
+<p>Linux 网络接口 SLAAC 模式下 IPv6 有子接口 ID 的参数吗? <a href="https://openwrt.org/docs/guide-user/network/ipv6/configuration" rel="nofollow">OpenWRT</a> 中 <code>ip6hint</code> 参数</p>
+</li>
+<li>
+<p>Linux 网络接口如何过滤不需要的 RA 消息, 只使用制定的 RA 消息. 及 <a href="https://openwrt.org/docs/guide-user/network/ipv6/configuration" rel="nofollow">OpenWRT</a> 中 <code>ip6class</code> 参数</p>
+</li>
+</ol>
+<h2>目标:</h2>
+<ul>
+<li>基于 Linux(CentOS 7)搭建一个 IPv6 软路由, 且实现多网口独立 IPv6 网段(子网)功能</li>
+</ul>
+<h2>参考:</h2>
+<ul>
+<li>
+<p><a href="https://zhuanlan.zhihu.com/p/482143394?utm_id=0" rel="nofollow">使用 PD 获得运营商 ipv6</a></p>
+</li>
+<li>
+<p><a href="https://www.bilibili.com/read/cv20000918/?spm_id_from=333.999.0.0" rel="nofollow">[Linux 软路由第二弹] - 6.设置 DNS 和 DHCP 服务</a></p>
+</li>
+<li>
+<p><a href="https://www.bilibili.com/read/cv13140452/" rel="nofollow">ubuntu18.04 做软路由总结(3):ipv6 相关</a></p>
+</li>
+<li>
+<p>......</p>
+</li>
+</ul>
+<h2>问题:</h2>
+<ul>
+<li>内网地址分配目前打算只开启 RA, 不开启 DHCPv6. RA 通过 DNSmasq 但现状是<strong>每个接口下的的设备都能收到配置中全部 IPv6 网段(子网)RA 消息,且会生成所有 IPv6 网段(子网)的多个地址</strong>. 配置文件如下:</li>
+</ul>
+<pre><code>......
+
+ra-param=ens1, 120, 3600
+dhcp-range=ens1, ::, constructor:ens1, ra-only, 1h
+
+ra-param=ens*, 120, 3600
+dhcp-range=ens*, ::, constructor:ens*, ra-only, 1h
+
+enable-ra
+
+......
+
+</code></pre>
+<h3>分析:</h3>
+<blockquote>
+<p>多网卡 Linux 默认情况下, 自身也不开启任何 DHCP(v6)或 RA 服务, 只要任意一个接口上游有 RA 或 DHCP(v6)所有网卡都能获得或者是生成地址, 且之前使用的 radvd 实现 RA 也都有这个问题, 所以我怀疑是系统方面的问题居多(不排除 RA 服务的问题).</p>
+</blockquote>
+<h3>尝试:</h3>
+<ol>
+<li>
+<p>设置内核参数 <code>net.ipv6.conf.*.forwarding = 0</code> 问题依旧</p>
+</li>
+<li>
+<p>防火墙拦截: 很遗憾 FORWARD 链 filter 没有任何 RA 包, 只有 INPUT OUTPUT 链 filter 表中有, 测试 INPUT 链拦截无作用, 测试 OUTPUT 链能成功但是只能这个拦截, 无法分类只拦截其他接口, 因为 OUTPUT 链 ICMPv6 除了 --icmpv6-type router-advertisement 类似参数之外不能使用 mac-source 模块, 不知道咋实现区分了. 各位有建议吗?</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2023-12-30T06:12:56Z</pubDate>
+<pubDate>2023-12-30T06:09:56Z</pubDate>
+</item>
+<item>
+<title>[酷工作] Avenge of the Nerd - Health 3 项目(二)</title>
+<link>https://www.v2ex.com/t/1004612</link>
+<guid>https://www.v2ex.com/t/1004612</guid>
+<content:encoded><![CDATA[
+
+<p>Average of the Nerd 书呆子的复仇</p>
+<p>我们前文提到的不算新的概念: <a href="https://www.v2ex.com/t/1003282#reply3" rel="nofollow">https://www.v2ex.com/t/1003282#reply3</a> 今天再补充一些. </p>
+<p>起初的问题</p>
+<p>2021 年初 Steve 的问题:
+Why do scientists have to sue the FDA to see the Pfizer clinical trial data?
+为什么科学家们要起诉 FDA 才能看到辉瑞公司的临床试验数据？</p>
+<p>Using a URF of 41 (calculated using the CDC methodology), we find over 300,000 excess deaths in VAERS.
+If the vaccine didn’t kill them, what did?
+使用 41 的 URF （漏报系数, 使用疾病预防控制中心的方法计算），我们可以在 VAERS 中发现超过 300,000 例超额死亡。如果针没有杀死他们，那是什么杀死了他们？</p>
+<p>你知道 2021-2022 年有数百篇科研论文被强行撤稿吗? 你知道医疗领域系统性作假导致的后果意味着什么吗? </p>
+<p>故事</p>
+<p>独孤求败的 Steve. 你可能不认识他和他素未谋面, 但他的发明你一定熟悉并且很多人每天都要用:光电鼠标. 他就是 Steve Kirsch , Steve 1980 年获得了麻省理工学院的计算机科学学位和理学硕士学位. 作为光电鼠标的两个独立发明人之一, 他创办了很多企业, 是身价几十亿美元的超级富翁. 他与妻子两个孩子住在加州. 到 2020 年这一切都非常正常, 所到之处都受人追捧. </p>
+<p>2021 年 Steve 提出了一系列问题, 总结成一个 PDF, 提出了对 Covid 疫苗的质疑. 随后他就一发不可收拾的在这条路上狂奔. 截止到目前, 如果你在 Google 上检索 Steve Kirsch, 对他的评价第一条是: Super Misinformation Spreader 超级错误信息传播者 😂 他被自己创建的公司从董事会除名, 母校杂志《 MIT 科技评论》评价他是失业者[1]. 媒体嘲笑他疯子, 甚至被警察上门询问. </p>
+<p>富豪的世界普通人不懂, 因为有钱, 他挑战各类权威人士, 从 CDC 总监到疫苗生产商再到监管机构负责人. 他到处约人打赌公开辩论, 辩输(输赢由观众投票决定)的话就付钱, 50 万, 100 万, 最新的辩论对象是同为 MIT 的学者、Moderna 公司的联合创始人 CTO Robert Langer 教授, 打赌 1000 万美元, 输了他就捐给 MIT. [2] 一个硕士生还是生物医药领域门外汉敢挑战学术泰斗, 而且声明对方可以带 12 个人, 对他一个人. 可能也是真疯 😄</p>
+<p>就这样一个人, 三年间很多观点输出, 错误信息超级传播者的标签贴到现在. 竟然没人出面和他辩论!!  难道监管机构不应该站出来维护自己批准的产品么? 公司 CTO 不应该挺身而出维护自己的如儿子一样的产品声誉吗? 不应该由学界泰斗驳倒 Steve 让他再也抬不起头, 停止传播错误信息危害其他人吗? 为什么没人做! 甚至连出场就拿钱都不愿意? 难道都不喜欢钱?  奇怪甚至诡异! </p>
+<p>你或许怀疑, 这类人一定是博眼球, 捞好处. 甚至行为艺术, 捞取名利. 但请你关注他的观点, 从他对一线医生, 护士, 政客, 媒体人, 牧师, 亿万富翁等人的互动看, 从他对保险数据, 各国公开数据, 利用理工男常用的数学分析方法通盘分析他说的对错与否. [3] 三年时间跨度足以验证一个人在一个话题上是谎言制造机还是真相传播者了! 你也可以关注福奇, 钟南山博士三年言论的变化, 对比验证. </p>
+<p>真理从来不怕被质疑, 谎言耽于被挑战?  一两个人的反对的声音不足为奇. 你还可以关注亿万富翁 Kim Dotcom, Dr. Peter McCullough 医生, mRNA 发明人 Dr. Malone, Jane Ruby 医生, James Thorp 医生, MIT 教授 Stephanie Seneff 斯蒂芬妮.塞内夫, 已经去世的 Zelenko 泽连科医生，诺贝尔奖得主 Luc Montagnier 卢克.蒙塔尼耶博士. </p>
+<p>Health3</p>
+<p>看到上面罗列的事实, 如果您依然感觉这些不算问题的话, 那可以关掉网页节省时间去做别的了.  医疗体系亟待一个打破这个药厂(部分)、监管机构(部分)、ZF 都是赢家, 个人是输家的困境. 在 YouTube 上知名的 Dr.Berg 伯格医生有 2000 万粉丝, 他的追随者们都不同程度的实践着 health3 的理念. 今天我们介绍 Dr. Kalcker, 他在他的著作中提到的符合 health3 的:</p>
+<ul>
+<li>去中心化:
+Dr. Kalcker 在他的作品中所提倡的自主健康管理和数据透明性相呼应。虽然他的作品主要集中在特定的治疗方法上，去中心化的概念可以被视为鼓励个人获取、控制并共享自己的医疗信息，分享见证。</li>
+<li>用户自我干预:
+在 Kalcker 的作品中，特别是在讨论二氧化氯和其他替代治疗方法时，有一种鼓励个体采取主动行动、自我教育和自我治疗的倾向。这一点与 Health3 模式中推崇的用户自我干预不谋而合，用户被鼓励使用各种工具和知识进行有效的自我监测和干预。</li>
+<li>自我治疗:
+Health3 模式中的自我治疗思想与 Kalcker 的观点相吻合，特别是在其提倡的使用特定的替代疗法中。这些方法通常不依赖传统医疗体系，而是强调个体的能力和资源来进行自我治疗。</li>
+<li>开放治疗协议（方案）:
+Health3 模式提倡开放、共享验证有效的治疗方法，这与 Kalcker 以及其他替代医学领域的作品中提倡的理念相符。他们倡导对各种治疗方法，无论是传统的还是替代的，进行更广泛的讨论和使用，特别是那些被证明有效的方法。</li>
+<li>安全高效:
+尽管 Kalcker 的方法在医学界存在争议，但 Health3 模式中强调所有健康解决方案应当经过严格的科学验证，且有的已经经过了近 20 年的验证. 确保它们既有效又安全。这意味着即使是替代疗法也应当追求可靠的证据支持，以保障治疗的安全性和效率。</li>
+<li>廉价清洁:
+和其他替代医学倡导者通常强调治疗的可获取性和可负担性，这与 Health3 模式中追求经济可行、环境友好的医疗解决方案的目标相一致。他们倡导使用成本较低、对个体和环境影响较小的治疗方法。</li>
+</ul>
+<p>关于我们的补充:</p>
+<ul>
+<li>在我的架构里, 还不能完全去中心化, 至少我们现在有一个 LLM 调优出来的专家模型是必须的. 但熟悉之后用户可以完全抛开软件. </li>
+<li>目前产品矩阵中一款硬件从口腔护理切入, 巧妙的解决上面提到的一些问题. </li>
+<li>我本人在互联网健康领域工作了 7 年, 曾在全球领先的智能可穿戴产品公司创业, 这是我第二次创业</li>
+<li>软件提供个性化咨询服务, 硬件协助实施. 软件和硬件配套快消品都可以采取订阅式收费模式. </li>
+<li>可能有人误解要发 token, 这是没有可能的事情.</li>
+</ul>
+<p>人员招募继续. 开放式学习, 鼓励/批评/提建议都欢迎联系我: 联系方式依旧, 请携带 code: 交流 wechat:cocoageek
+<a href="https://www.v2ex.com/t/1003282#reply3" rel="nofollow">https://www.v2ex.com/t/1003282#reply3</a></p>
+<p>其他:
+上次有朋友跟帖评论, 要那么多合伙人是不是开律所, 我觉得这个模式有必要做成开源企业, 从资料, 训练结果集, 平台软件, 甚至硬件设计(供应商许可,)都可以开源. 所以, 合伙人的说法都不算什么. </p>
+<p>PS. 利益相关, 和 Steve Kirsch 有项目合作 不构成任何医疗建议. </p>
+<p>PS. Avenge of the Nerd 标题来自这个月 Steve 约辩论的辩论现场 PPT 主题(Moderna 公司的联合创始人 CTO Robert Langer 当然没出现)</p>
+<p>PS. 有心人可以找到 Dr. Kalcker 的书看一下, 相信会改变你的健康观念并大大受益! </p>
+<p>[1]. <a href="https://www.technologyreview.com/2021/10/05/1036408/silicon-valley-millionaire-steve-kirsch-covid-vaccine-misinformation/" rel="nofollow">https://www.technologyreview.com/2021/10/05/1036408/silicon-valley-millionaire-steve-kirsch-covid-vaccine-misinformation/</a></p>
+<p>[2]. <a href="https://twitter.com/stkirsch/status/1723769230422945992" rel="nofollow">https://twitter.com/stkirsch/status/1723769230422945992</a></p>
+<p>[3]. <a href="https://www.vacsafety.org/category/vsrf-features/" rel="nofollow">https://www.vacsafety.org/category/vsrf-features/#</a></p>
+<p>[4]. <a href="https://kirschsubstack.com" rel="nofollow">https://kirschsubstack.com</a></p>
+]]></content:encoded>
+<pubDate>2023-12-30T06:06:08Z</pubDate>
+<pubDate>2023-12-30T06:06:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] win11 如何拯救 tg 客户端字体?</title>
+<link>https://www.v2ex.com/t/1004610</link>
+<guid>https://www.v2ex.com/t/1004610</guid>
+<content:encoded><![CDATA[
+
+显示器是 2723qe 系统缩放是 200% 字体用 noMeiryoUI 换成苹方了 <br />电报每天要用 这个字体 通过 reg 导入了微软雅黑 还是有锯齿 （ FontMod 貌似不生效<br /><br />win11 23H2 (屏保不能吹泡泡 - <br />还有新的这个输入法 输入框和文本感觉太小了啊 看着难受 不改变全局情况下有方法可以调么
+]]></content:encoded>
+<pubDate>2023-12-30T05:58:55Z</pubDate>
+<pubDate>2023-12-30T05:58:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] 兄弟们如何入坑电商行业？</title>
+<link>https://www.v2ex.com/t/1004609</link>
+<guid>https://www.v2ex.com/t/1004609</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2023-12-30T05:55:26Z</pubDate>
+<pubDate>2023-12-30T05:58:35Z</pubDate>
+</item>
+<item>
+<title>[Cloudflare] 私人用的域名绑定在 cloudflare dns 上总有外国 ip 访问正常吗？</title>
+<link>https://www.v2ex.com/t/1004608</link>
+<guid>https://www.v2ex.com/t/1004608</guid>
+<content:encoded><![CDATA[
+
+我 nas 反代了几个域名自己用，dns 用的 cf 家，开启了小云朵，我发现每天都有老外在请求我的域名 dns 比我自己还频，这安全吗，我有点慌慌的。
+]]></content:encoded>
+<pubDate>2023-12-30T05:53:02Z</pubDate>
+<pubDate>2023-12-30T06:01:46Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 在国内拿到日本 Mercari Offer</title>
+<link>https://www.v2ex.com/t/1004606</link>
+<guid>https://www.v2ex.com/t/1004606</guid>
+<content:encoded><![CDATA[
+
+<p>无职了将近一年，11 月我终于鼓起勇气开始找 Base 在东京的 Remote 的工作，工作机会少得可怜，一个是位于日本的研发中心本来就很少，一个是年底了可能很多公司都 Hiring Freeze 了，我只投了 3 家公司，拿到了 Mercari 的面试机会。</p>
+<p>Mercari 的面试流程很慢，Hackerrank 接着一轮 90 分钟两位面试官的 Technical Interview ，之后是 Manager 以及和 Head of Engineering 的 Culture Fit 。面试有 Options 可选英语或日语面试，我选择既可以英语也可以日语面试，不过是用英语准备的 Behavior Questions ，Manager 面的面试官是日本人所以最后用日语简单问了问题。</p>
+<p>面试感觉不错，反馈 All positive 但是 Recruiter 告诉我内部有一个 Headcount issue 以及 Shuffling of priorities ，感觉希望渺茫不过 Recruiter 还是很积极地和我 Follow up ，本来已经不抱什么希望了，一周后和我 Catchup 告诉我他们解决了 Headcount issue 并且想要招我，我找了前同事来做 Reference 之后等审批 Offer ，Recruiter 和我说很难 Match 我之前的薪资不过一周后我拿到了非常满意的 Written Offer ，当天我就签字接下了。</p>
+<p>对比上家强制要求 Onsite ，Mercari 可以自由选择 Remote 或 Onsite ，我投的岗位所在的 Team 大家都是 Remote 所以我也要在东京 Remote 工作！</p>
+<hr />
+<p>Mercari sponsor 高度专门 visa ，已经提交完材料等办在留了。</p>
+]]></content:encoded>
+<pubDate>2023-12-30T05:37:11Z</pubDate>
+<pubDate>2023-12-30T05:57:13Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 分享一个 overleaf professional plan 白嫖的方法</title>
+<link>https://www.v2ex.com/t/1004605</link>
+<guid>https://www.v2ex.com/t/1004605</guid>
+<content:encoded><![CDATA[
+
+<p>快毕业了才在知乎某帖子发现居然能白嫖，借此分享给大家，希望有用。</p>
+<p>主要方法就是注册 IEEE Collabratec ，然后绑定到 overleaf 。 </p>
+<p>详细方法地址 <a href="https://zhuanlan.zhihu.com/p/667078196" rel="nofollow">https://zhuanlan.zhihu.com/p/667078196</a></p>
+<img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/H65WeEH.png" />
+]]></content:encoded>
+<pubDate>2023-12-30T05:35:53Z</pubDate>
+<pubDate>2023-12-30T05:34:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求问这个软件是啥</title>
+<link>https://www.v2ex.com/t/1004604</link>
+<guid>https://www.v2ex.com/t/1004604</guid>
+<content:encoded><![CDATA[
+
+<p>感觉是 pdf 阅读或者 epub 阅读的吧。图片来源 bilibili 截图。如有侵权请联系我删除 谢谢
+<img alt="" class="embedded_image" rel="noreferrer" src="https://private-hepta.oss-cn-beijing.aliyuncs.com/202312281146925.png" /></p>
+]]></content:encoded>
+<pubDate>2023-12-30T05:27:33Z</pubDate>
+<pubDate>2023-12-30T02:27:33Z</pubDate>
+</item>
+<item>
+<title>[macOS] mac os 拓展坞倒序排列</title>
+<link>https://www.v2ex.com/t/1004603</link>
+<guid>https://www.v2ex.com/t/1004603</guid>
+<content:encoded><![CDATA[
+
+有大佬知道 mac 的拓展坞图标咋倒序排列的，我放在左侧，感觉倒着排能顺手些
+]]></content:encoded>
+<pubDate>2023-12-30T05:16:47Z</pubDate>
+<pubDate>2023-12-30T01:16:47Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 在一个平台统一管理多个云存储的 APP</title>
+<link>https://www.v2ex.com/t/1004602</link>
+<guid>https://www.v2ex.com/t/1004602</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.ricedrive.com/static/en/best-app-to-manage-multiple-cloud-accounts.html" rel="nofollow">https://www.ricedrive.com/static/en/best-app-to-manage-multiple-cloud-accounts.html</a></p>
+]]></content:encoded>
+<pubDate>2023-12-30T05:09:44Z</pubDate>
+<pubDate>2023-12-30T01:09:44Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 请教一下 4k 显示器,可以设置到 2560*1440 这个分辨率吧</title>
+<link>https://www.v2ex.com/t/1004601</link>
+<guid>https://www.v2ex.com/t/1004601</guid>
+<content:encoded><![CDATA[
+
+<p>但是比 2k 显示器细腻?
+顺便求推荐显示器.4000 以内的</p>
+]]></content:encoded>
+<pubDate>2023-12-30T04:51:02Z</pubDate>
+<pubDate>2023-12-22T17:10:53Z</pubDate>
+</item>
+<item>
+<title>[跑步] 国内市场的佳明 FR265Music 支持 Spotify 吗？</title>
+<link>https://www.v2ex.com/t/1004600</link>
+<guid>https://www.v2ex.com/t/1004600</guid>
+<content:encoded><![CDATA[
+
+<p>最近考虑购买这款手表，主要是冲着可以安装 Spotify ，跑步时离线听音乐。</p>
+<p>想问下有没有用过或在用的朋友，京东佳明旗舰店买的话，国内使用时，可以安装并正常使用 Spotify 吗？</p>
+<p>另外一个关注点：我查了一下使用方法，好像是手表连接 WIFI ，可以在线把播放列表中的曲目下载到手表，然后跑步期间就可以离线播放了。在 WIFI 下载曲目过程中，需要科学上网么？</p>
+]]></content:encoded>
+<pubDate>2023-12-30T04:50:21Z</pubDate>
+<pubDate>2023-12-30T04:50:21Z</pubDate>
+</item>
+<item>
+<title>[分享创造] jQuery Hook</title>
+<link>https://www.v2ex.com/t/1004598</link>
+<guid>https://www.v2ex.com/t/1004598</guid>
+<content:encoded><![CDATA[
+
+<h1>jQuery Hook</h1>
+<h1>一、此脚本的作用是什么？</h1>
+<p>用于快速定位使用<code>jQuery</code>绑定到<code>DOM</code>元素上的事件的代码的真实位置，辅助逆向分析。</p>
+<h1>二、为什么会有这个？</h1>
+<p><code>jQuery</code>曾经引领过一个时代，虽然现已没落，但是很多遗留下来的系统都用到了<code>jQuery</code>，其市场还是比较大的， 而笔者在做<code>js</code>逆向的时候发现用<code>Chrome</code>自带的开发者工具查看元素绑定事件的功能，看到的值是被<code>jQuery</code>包裹着一层的代码：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/160b9e7a.png" />
+这是因为<code>jQuery</code>在原生的<code>DOM</code>元素事件机制上自己定义了一套事件管理机制，这套机制为开发者带来了便利，比如可以很方便的对某个<code>DOM</code>元素的相同事件绑定多个回调方法，但同时也为逆向带来不方便，逆向者不太容易能定位到<code>DOM</code>事件代码逻辑真实代码所在的位置，而这个小脚本就是解决这个问题的，<strong>提供了一种简单有效的方法能够快速定位到<code>jQuery DOM</code>元素事件对应的真实代码的位置</strong>。</p>
+<h1>三、安装</h1>
+<h2>3.1 从油猴商店安装（推荐方式）</h2>
+<p>此脚本已在油猴商店上架，点击下面的链接，直接在油猴商店安装快捷方便，并且后续此脚本有版本更新油猴插件会自动提示升级：  </p>
+<p><a href="https://greasyfork.org/zh-CN/scripts/435556-jquery-hook" rel="nofollow">https://greasyfork.org/zh-CN/scripts/435556-jquery-hook</a></p>
+<h2>3.2 手动安装</h2>
+<p>手动复制此仓库的<code>main</code>分支的根目录下的<code>jQuery-hook.js</code>文件到您自己的油猴插件新建一个脚本粘贴代码即可： </p>
+<pre><code>https://github.com/JSREI/jQuery-hook/blob/main/jQuery-hook.js
+</code></pre>
+<p>注意此种方式后续此脚本有版本更新油猴插件不会自动提醒升级，不过您可以<code>star</code>/<code>watch</code>本仓库关注后续更新。</p>
+<h1>四、使用案例</h1>
+<p>随便找一个使用<code>jQuery</code>开发的网站，比如这个：  </p>
+<p><a href="http://wap.wfu.edu.cn:8001/authz/login/slogin" rel="nofollow">http://wap.wfu.edu.cn:8001/authz/login/slogin</a></p>
+<p>尝试触发登录请求，会发现它发出的登录请求中密码对应的参数<code>mm</code>是被加密传输的：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/69f2a236.png" />
+通过这里可以看到，发出的请求是<code>doc</code>类型的请求，看起来是使用表单提交的方式发送的请求：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/d4bf6528.png" />
+那么按照我们以往的 js 逆向经验来推测：</p>
+<ul>
+<li>应该是单击“登录”按钮的时候触发了按钮绑定的<code>click</code>事件</li>
+<li><code>click</code>事件的<code>js</code>代码获取密码对应的名为<code>mm</code>的<code>input</code>里的明文密码的值，进行加密得到密码的加密值</li>
+<li>然后更新密码的<code>mm input</code>的值为加密后的密码的值</li>
+<li>然后提交表单，此时请求中的密码参数<code>mm</code>就是被加密后的值了 </li>
+</ul>
+<p>当然上面都是我们基于经验脑补出来的过程，具体还是得找到事件代码看一眼才靠谱，在<code>Chrome</code>中使用查看元素功能选中这个登录按钮，左侧会自动切换到<code>Elements</code>标签并定位到<code>DOM</code>元素的代码位置，然后在右侧切换到<code>Event Listener</code>标签查看此元素绑定的事件，发现是有一个<code>click</code>事件，只是代码位置是在<code>jQuery</code>里，不必在意这些细节，大喜，于是单击跟进去这个代码位置：  </p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/160b9e7a.png" /><br />
+然后会陷入到<code>jQuery</code>的闭包中无法自拔，喜早了，这是因为<code>jQuery</code>自己封装了一套事件机制不太容易逆向：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/bb826340.png" /><br />
+此时就是这个脚本发挥作用的时候了，油猴插件开启本脚本<code>jQuery hook</code>，刷新页面重新加载以便脚本能够注入到页面，如果加载成功控制台会有提示：  </p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/90f8932a.png" /><br />
+再次对登录按钮检查元素，不必理睬右边<code>Event Listener</code>里<code>Chrome</code>给出的的绑定事件， 注意左边<code>Elements</code>面板中使用<code>jQuery</code>绑定的事件都已经以元素属性的方式展示出来了：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/a39e269d.png" /><br />
+比如：</p>
+<pre><code class="language-text">cc11001100-jquery-click-event-function="cc11001100_click_5"
+</code></pre>
+<p>表示此元素上有一个 click 类型的事件，这个事件所关联的回调函数的代码已经赋值到这个名称的全局变量上：</p>
+<pre><code class="language-text">cc11001100_click_5
+</code></pre>
+<p>然后我们在开发者工具中切换到<code>console</code>，粘贴这个全局变量的名称<code>cc11001100_click_5</code>并回车，查看它的内存地址：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/f12e305d.png" />
+然后单击内存地址跟进去，就直接定位到了登录按钮的<code>click</code>事件所绑定的代码：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/3409d649.png" />
+往下拉，可以看到参数<code>mm</code>的加密方式：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/JSREI/jQuery-hook/main/markdown-images/README_images/0e8288d7.png" /></p>
+<p>至此梳理完毕，以比较科学的方式很轻松就定位到了加密位置，逆向不是体力活，这才是逆向的乐趣啊！</p>
+<h1>五、原理概述</h1>
+<p>通过<code>hook</code> <code>jQuery</code>的<code>$.fn</code>原型上的一些设置事件的方法来实现，目前支持的<code>jQuery</code>事件方法：</p>
+<pre><code class="language-text">"click", 
+"dblclick", 
+"blur", 
+"change", 
+"contextmenu", 
+"error", 
+"focus",
+"focusin", 
+"focusout", 
+"hover", 
+"holdReady", 
+"proxy", 
+"ready", 
+"keydown", 
+"keypress",
+"keyup", 
+"live", 
+"load", 
+"mousedown", 
+"mouseenter", 
+"mouseleave", 
+"mousemove", 
+"mouseout",
+"mouseover", 
+"mouseup"
+"on"
+</code></pre>
+<p>元素每被设置一个事件就会多一个属性，复制这个属性的值，对应着一个全局变量，在<code>console</code>上粘贴，这个就是此元素的此事件对应着的真实代码位置。</p>
+<h1>六、问题反馈</h1>
+<ul>
+<li>如果发现有<code>Hook</code>不到的情况，请在<a href="https://github.com/JSREI/jQuery-hook/issues" rel="nofollow">issue</a>中反馈</li>
+<li>任何诉求与建议，请在<a href="https://github.com/JSREI/jQuery-hook/issues" rel="nofollow">issue</a>中反馈</li>
+<li>如果您觉得此项目有任何可改进的地方（不仅局限于文档、代码）并且懒得说一堆话解释想直接上手改，欢迎提<code>pr</code></li>
+</ul>
+<h1>七、TODO</h1>
+<ul>
+<li>
+对<code>jQuery</code>发出的请求进行监控和<code>Hook</code> <ul>
+<li>如果希望有其它功能在<a href="https://github.com/CC11001100/jQuery-hook/issues" rel="nofollow">issue</a>区留言讨论</li>
+</ul>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2023-12-30T04:41:46Z</pubDate>
+<pubDate>2023-12-30T04:41:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] Linux 下有 json 的文本查看编辑工具推荐吗？</title>
+<link>https://www.v2ex.com/t/1004597</link>
+<guid>https://www.v2ex.com/t/1004597</guid>
+<content:encoded><![CDATA[
+
+<p>linux 下 带 ui 的。</p>
+<p>想找一个 可以自动格式化后显示，保存的时候可以自动压缩成一行的。</p>
+<p>类似 another redis desktop manager 编辑 json 格式的 string 键的那种效果。</p>
+<p>轻量的文件查看编辑一般是使用 sublime 。但是它这方面不太行。</p>
+<p>有其他的工具推荐吗</p>
+]]></content:encoded>
+<pubDate>2023-12-30T04:36:28Z</pubDate>
+<pubDate>2023-12-30T05:35:45Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 传输照片从 dropbox 到 Google 相册的 2 种方式</title>
+<link>https://www.v2ex.com/t/1004596</link>
+<guid>https://www.v2ex.com/t/1004596</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.ricedrive.com/guides/free-methods-to-transfer-photos-from-dropbox-to-google-photos.html" rel="nofollow">https://www.ricedrive.com/guides/free-methods-to-transfer-photos-from-dropbox-to-google-photos.html</a></p>
+]]></content:encoded>
+<pubDate>2023-12-30T04:34:45Z</pubDate>
+<pubDate>2023-12-30T00:34:45Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 五章 - 我博览古今诗词歌赋，只为能够为你写诗</title>
+<link>https://www.v2ex.com/t/1004595</link>
+<guid>https://www.v2ex.com/t/1004595</guid>
+<content:encoded><![CDATA[
+
+<p>五章，指五言诗。唐·李白《劳劳亭歌》：“昔闻牛渚吟五章，今来何谢袁家郎。” 五章 APP 收集了数十万首古诗，唐诗宋词元曲以及明清的小诗等无所不包，它还内置了写诗引擎，能帮您即兴赋诗、命题作诗等等。开发这款产品，是为了重新唤起大家对诗歌的热爱。</p>
+<p>这是我的第二个独立开发作品，前端用的 uniapp, 后端在腾讯云。这是小程序页面
+<img alt="诗歌推荐" class="embedded_image" rel="noreferrer" src="https://mmbiz.qpic.cn/mmbiz_png/NgBAcGxhBvdCLs1AXwWxyB9uY4gvAmOgP2kyDRicS6AoTfoEibn2XXicPPFCe24bO9APTgUekJqmAr5TQLVQIbibNA/640?wx_fmt=png&amp;wxfrom=5&amp;wx_lazy=1&amp;wx_co=1" /></p>
+<p><img alt="微信小程序" class="embedded_image" rel="noreferrer" src="https://wallpaper-1306428841.file.myqcloud.com/poem.jpg" /></p>
+]]></content:encoded>
+<pubDate>2023-12-30T04:28:33Z</pubDate>
+<pubDate>2023-12-30T00:28:33Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] M1 Air AppleCare 快到期了，终于用了一次，换了电池和 TopCase</title>
 <link>https://www.v2ex.com/t/1004594</link>
 <guid>https://www.v2ex.com/t/1004594</guid>
 <content:encoded><![CDATA[
-
 <p>21 年 1 月出厂的，之前设置电池健康显示 85%，coconutBattery 显示 75 ～ 79%，去 AppleStore 测了一下 82%，给换了电池，顺便有一个键手感有问题把 TopCase 也换上了，保费算是刚好值维修成本了。</p>
 <p>早期 M1 用户应该都差不多时间了，大家记得去换一下又能用不少时间</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T04:14:26Z</pubDate>
 <pubDate>2023-12-30T04:14:26Z</pubDate>
 </item>
 <item>
@@ -21,10 +435,8 @@
 <link>https://www.v2ex.com/t/1004592</link>
 <guid>https://www.v2ex.com/t/1004592</guid>
 <content:encoded><![CDATA[
-
 有没有好用的静音鼠标推荐 dpi 可以 3200 的，平常用 304
 ]]></content:encoded>
-<pubDate>2023-12-30T04:08:40Z</pubDate>
 <pubDate>2023-12-30T04:12:10Z</pubDate>
 </item>
 <item>
@@ -32,10 +444,8 @@
 <link>https://www.v2ex.com/t/1004591</link>
 <guid>https://www.v2ex.com/t/1004591</guid>
 <content:encoded><![CDATA[
-
 背景：<br />最近时时不给娃娃看 Youtube kids 的视频，都不是短视频。<br />去社区社区医生说不好不能看。<br />回来老婆就一直不准看，网上还找各种对小孩不好的文章给我看。<br />娃不能看就总是闹着各种哭，简直没法带。<br /><br />问题：<br />不知道有什么研究证明会对娃有什么影响？<br /><br />个人观点：<br />我总是认为看一些可以学习的动画视频是可以的，因为娃确实最近很多好的东西都是跟着动画视频上学习的。<br /><br />远期规划：<br />以后想让娃多看学习英语的视频，让娃提前接受英语教学，自己也一直吃英语短缺的亏。
 ]]></content:encoded>
-<pubDate>2023-12-30T04:00:36Z</pubDate>
 <pubDate>2023-12-30T04:00:36Z</pubDate>
 </item>
 <item>
@@ -43,10 +453,8 @@
 <link>https://www.v2ex.com/t/1004590</link>
 <guid>https://www.v2ex.com/t/1004590</guid>
 <content:encoded><![CDATA[
-
 招聘岗位：<br />前端，Java ，测试，产品经理<br /><br />薪资区间：<br />3000-7000 刀（区分远程和到岗）<br /><br />工作模式：<br />公司是做线下实体赌场（有牌照，合法经验）和线上体育的，但工作地点国外，鉴于很多人对于人身安全的担忧，公司以上岗位开放短暂远程，进一步双向选择，待了解公司业务且信任公司后到岗入职。<br /><br />联系方式：<br />telegram：@hanmeimei2022<br />远程交流群： <a href="https://t.me/Hanmeimei1998_remote" rel="nofollow noopener" target="_blank">https://t.me/Hanmeimei1998_remote</a><br />公司招牌频道： <a href="https://t.me/Baishajituan_ABC" rel="nofollow noopener" target="_blank">https://t.me/Baishajituan_ABC</a><br />Gmail 邮箱（我是听劝的，但是上邮箱时间比较少哦）： lihao3806@gmail.com
 ]]></content:encoded>
-<pubDate>2023-12-30T03:58:14Z</pubDate>
 <pubDate>2023-12-30T03:55:14Z</pubDate>
 </item>
 <item>
@@ -54,10 +462,8 @@
 <link>https://www.v2ex.com/t/1004589</link>
 <guid>https://www.v2ex.com/t/1004589</guid>
 <content:encoded><![CDATA[
-
 <p>因为父母年纪大了，对于手机那些操作不是太熟悉，不知道充话费啥操作，有木有将父母手机上的信息同步更新到我的红米 note10 pro 设备上，这样我在小程序就可以查询一下具体花费啥的，比较方便一点</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:48:11Z</pubDate>
 <pubDate>2023-12-30T03:58:29Z</pubDate>
 </item>
 <item>
@@ -65,10 +471,8 @@
 <link>https://www.v2ex.com/t/1004588</link>
 <guid>https://www.v2ex.com/t/1004588</guid>
 <content:encoded><![CDATA[
-
 <p>杭州联通可以要公网嘛，刚问师傅要了超密改桥接，不知道能不能要个公网，坐标西湖区</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:47:57Z</pubDate>
 <pubDate>2023-12-30T04:05:41Z</pubDate>
 </item>
 <item>
@@ -76,12 +480,10 @@
 <link>https://www.v2ex.com/t/1004587</link>
 <guid>https://www.v2ex.com/t/1004587</guid>
 <content:encoded><![CDATA[
-
 <p>我不是 dokemon 开发人员，只是在 Reddit 看到一个可以在线使用 docker compose 管理部署镜像的项目，自己试用后感觉还可以，推荐给大家。</p>
 <p>1.<a href="https://www.reddit.com/r/selfhosted/comments/18kc20h/dokemon_is_open_source_now/" rel="nofollow">Dokemon is open source now!</a></p>
 <p>2.<a href="https://github.com/productiveops/dokemon" rel="nofollow">项目地址</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:36:53Z</pubDate>
 <pubDate>2023-12-30T04:01:04Z</pubDate>
 </item>
 <item>
@@ -89,10 +491,8 @@
 <link>https://www.v2ex.com/t/1004586</link>
 <guid>https://www.v2ex.com/t/1004586</guid>
 <content:encoded><![CDATA[
-
 <p>新旧电影皆可</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:36:15Z</pubDate>
 <pubDate>2023-12-30T04:03:28Z</pubDate>
 </item>
 <item>
@@ -100,10 +500,8 @@
 <link>https://www.v2ex.com/t/1004585</link>
 <guid>https://www.v2ex.com/t/1004585</guid>
 <content:encoded><![CDATA[
-
 闲鱼这 app 平时不会有开屏广告，但我观察后发现深夜例如凌晨三四点时就会有开屏广告，不知是不是今早出现开屏广告后我点了那广告，现在不分白天黑夜一定会出现开屏广告，小火箭开了去开屏广告 Ultra+模块还是有，哪位高人有办法去除那广告吗？
 ]]></content:encoded>
-<pubDate>2023-12-30T03:34:27Z</pubDate>
 <pubDate>2023-12-30T03:31:27Z</pubDate>
 </item>
 <item>
@@ -111,7 +509,6 @@
 <link>https://www.v2ex.com/t/1004583</link>
 <guid>https://www.v2ex.com/t/1004583</guid>
 <content:encoded><![CDATA[
-
 <p>国内的独立开发氛围基于各种原因，一直没有国外那么活跃。<br />
 很多人都想做一个独立开发者，但不知道怎么开始，怎么让自己的产品逐渐获得稳定的盈利；<br />
 因此我做了一个内容网站：<a href="https://www.91wink.com" rel="nofollow">独立开发前线</a><br />
@@ -126,7 +523,6 @@
 如果你觉得这个网站对你有用，可以收藏一下。<br />
 2024 ，一起加油！<br /></p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:13:18Z</pubDate>
 <pubDate>2023-12-30T00:12:18Z</pubDate>
 </item>
 <item>
@@ -134,10 +530,8 @@
 <link>https://www.v2ex.com/t/1004582</link>
 <guid>https://www.v2ex.com/t/1004582</guid>
 <content:encoded><![CDATA[
-
 今年好像各地都有意的叫停了一些跨年活动，像深圳就没有烟火表演了。那么问题来了哪里还可以去呢？
 ]]></content:encoded>
-<pubDate>2023-12-30T03:04:11Z</pubDate>
 <pubDate>2023-12-30T03:50:01Z</pubDate>
 </item>
 <item>
@@ -145,11 +539,9 @@
 <link>https://www.v2ex.com/t/1004581</link>
 <guid>https://www.v2ex.com/t/1004581</guid>
 <content:encoded><![CDATA[
-
 <p>您好，邀请您注册 XXXX 平台，请您及时通过 网址 进行注册。</p>
 <p>场景基本上都是企业之间的，这个模板咋修改呢，有经验的麻烦给点建议</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T03:02:24Z</pubDate>
 <pubDate>2023-12-30T03:02:24Z</pubDate>
 </item>
 <item>
@@ -157,10 +549,8 @@
 <link>https://www.v2ex.com/t/1004579</link>
 <guid>https://www.v2ex.com/t/1004579</guid>
 <content:encoded><![CDATA[
-
 “他们这个主题是为了帮宝珀做广告……要我接的话，说实在话，从此刻出发，不知去哪里，这是比历年都更加突出的一个情绪跟心理，以前大家对道路方向都比较有信心，现在面临着一个新时代，（忽然大声）当然我们都知道，这个新时代会越来越好。但是从此刻出发（笑）此刻出发噼里啪啦噼里啪啦这个钟表我们就不知道是……但这些都不重要……”<br /><br />“……我总觉得，现在的伤痛只是你的感官敏锐了，你才觉得现在特别伤痛。我小时候就被人家这么说。你们觉得现在伤痛？我父亲给我说这个日本人占领的时候，你走到街上都要去跟他鞠躬。那我的阿姨就跟我说过，她六七岁读小学，他们宁可绕一大圈子，也不经过那个路口，有日本兵站着，他们为了避免给他鞠躬。他们的意思，他跟我讲这个话是六七十年代。意思说你们觉得很大屈辱了，你去插队落户啦？你家里有人去干校啦？这屈辱的这个事情我以前多了（笑），我们倒过来现在也可以返回来再讲。这两年你就躺平内卷，你就觉得很大屈辱啦？哎呀小意思（笑）。之所以觉得屈辱是因为你的感官磨得敏锐了。你的感官敏锐了，所以一点点事情你就特别，当然我不要大家都麻木，都说老想想过去，只吃一口饭然后就思想想通了，我不是这个意思。但是还是历史的看，我们远不是，我们现在是不是处在一个历史上最接近伟大复兴的时刻，这个当然是（笑），但是刚有朋友说觉得现在是处在一个非常痛苦的时候，我也保留有这个说法。我们回头看，远不是，还远不是。所以，虚构当然是一个方法，但我的意思，现在不是特别痛苦的最痛苦的时候。当然你也可以这样说，因为你有过某一种经历了，那么你也许对一些状态就感觉上特别痛苦了。也可以这样说，但是实际上不是（笑）。”<br /><br />“窦文涛说他爸爸有一句话非常经典，他看电视吧，他们说哎呀电视不好看呐，他爸爸说再坚持一下，再多看一下就好看了。”
 ]]></content:encoded>
-<pubDate>2023-12-30T02:50:03Z</pubDate>
 <pubDate>2023-12-30T04:07:04Z</pubDate>
 </item>
 <item>
@@ -168,10 +558,8 @@
 <link>https://www.v2ex.com/t/1004578</link>
 <guid>https://www.v2ex.com/t/1004578</guid>
 <content:encoded><![CDATA[
-
 1 、安卓手机+Clash for Android3.0.3<br />2 、微信双开，两个账号，其中一个是 wechat 账号<br /><br />问题：<br />1 、图片偶尔可以发成功，绝大部分时候都是失败<br />2 、跟别人语音或视频聊天都失败<br /><br />就一平时和家人联系的账号，个人推测是网络设置问题，但是也没破案，各位有经验的帮忙指导一下
 ]]></content:encoded>
-<pubDate>2023-12-30T02:41:56Z</pubDate>
 <pubDate>2023-12-30T03:24:28Z</pubDate>
 </item>
 <item>
@@ -179,14 +567,12 @@
 <link>https://www.v2ex.com/t/1004577</link>
 <guid>https://www.v2ex.com/t/1004577</guid>
 <content:encoded><![CDATA[
-
 <p>之前看到 <a href="https://developers.cloudflare.com/email-routing/email-workers/" rel="nofollow">Cloudflare Email Workers</a> 觉得很有趣。 刚好手上的 <a href="http://Email.ML" rel="nofollow">Email.ML</a> 一直闲置，就做了个一次性邮箱服务。</p>
 <p><a href="http://Email.ML" rel="nofollow">Email.ML</a> 100% 运行在 Cloudflare 网络中，支持多个域名。使用技术栈 Cloudflare Workers + Nuxt 。</p>
 <h2>体验</h2>
 <p><a href="https://email.ml/" rel="nofollow"><strong>EMail.ML</strong></a></p>
 <p><img alt="EMail.ML" class="embedded_image" rel="noreferrer" src="https://static.miantiao.me/share/2023/oiuKEZ/mNXd7G.png" /></p>
 ]]></content:encoded>
-<pubDate>2023-12-30T02:40:16Z</pubDate>
 <pubDate>2023-12-30T04:08:00Z</pubDate>
 </item>
 <item>
@@ -194,11 +580,9 @@
 <link>https://www.v2ex.com/t/1004576</link>
 <guid>https://www.v2ex.com/t/1004576</guid>
 <content:encoded><![CDATA[
-
 <p>很久之前搭建了内部的 emby ，最近移动到一个内部网络上在线观看或下载但是在路由器能还是能抓到视频流或者视频地址进行下载，使用 https 能防止被监控吗或者有其他的方案吗？
 目的就是其他人无法识别或进行中间人识别的方式能够看到或者识别到正在播放或者正在下载的视频或者状态。</p>
 ]]></content:encoded>
-<pubDate>2023-12-30T02:39:14Z</pubDate>
 <pubDate>2023-12-30T02:41:48Z</pubDate>
 </item>
 <item>
@@ -206,14 +590,11 @@
 <link>https://www.v2ex.com/t/1004575</link>
 <guid>https://www.v2ex.com/t/1004575</guid>
 <content:encoded><![CDATA[
-
 <p>每次查询 ip 是随机几个 ip ，现在外网使用了“IP 负载均衡”？</p>
 <p><a href="https://imgur.com/299b76j" rel="nofollow">https://imgur.com/299b76j</a></p>
 ]]></content:encoded>
-<pubDate>2023-12-30T02:31:16Z</pubDate>
 <pubDate>2023-12-30T03:27:06Z</pubDate>
 </item>
-
 <item>
 <title>[OpenAI] coze 发布到 t 卡顿是怎么回事</title>
 <link>https://www.v2ex.com/t/1004570</link>
@@ -16244,237 +16625,6 @@ OpenAI 风控拦截<ul>
 官方的不支持中文,想用 chrome 的 plantuml viewer 插件,支持用本地文本编辑器写 plantuml,server 渲染.
 ]]></content:encoded>
 <pubDate>2023-12-25T16:44:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有办法在不分独立域名的情况下合并两个内网互通的服务器的公网出口带宽吗？</title>
-<link>https://www.v2ex.com/t/1003389</link>
-<guid>https://www.v2ex.com/t/1003389</guid>
-<content:encoded><![CDATA[
-现在有六台轻量云服务器，内网互通 1000mbps+，但是每台的出口带宽都只有 5mbps<br /><br /><br />现在其中一台服务器是 slack 服务器，其他都是跑内部服务公网带宽基本用不到，然后这个 slack 里面有文件下载功能，平时只有我和朋友用来同步文件，但是因为单台服务器公网出口带宽只有 5mbps 很低所以下载很慢，我下载东西时候如果朋友正好访问他网页都打不开<br /><br />有没有简单的办法聚合这几个服务器的出口带宽用？单独再去拆 slack 里面的服务分域名意义不大因为东西本来也不多用户就我们三个人也基本不是一直在访问的状态
-]]></content:encoded>
-<pubDate>2023-12-23T16:33:11Z</pubDate>
-</item>
-<item>
-<title>[智能家电] 如何利用米家语音（小爱同学）产生自定义 HTTP 请求？</title>
-<link>https://www.v2ex.com/t/1003387</link>
-<guid>https://www.v2ex.com/t/1003387</guid>
-<content:encoded><![CDATA[
-<p>发现新买的 Sony 电视能够<a href="https://github.com/breunigs/bravia-auth-and-remote/" rel="nofollow">用 HTTP 请求控制开关</a>。想将其接入米家，实现以下控制：</p>
-<ol>
-<li>语音“开启电视” -&gt; 预设 HTTP 请求 1 -&gt; 电视开启</li>
-<li>语音“关闭电视” -&gt; 预设 HTTP 请求 2 -&gt; 电视待机</li>
-</ol>
-<p>在琢磨怎么实现这个功能，家里有米家中枢网关、几台运行 Linux 的常开设备，以及一个多余的米家智能插座。</p>
-<p>想到一个方法是给这个插座起名叫“电视”，然后监测这个插座是否有电来触发 HTTP 请求。然而插座和电视的开、关状态不能保持同步（因为也会用遥控器控制电视）。</p>
-<p>请教下各位，有什么更可靠些的技术路线吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-25T16:22:24Z</pubDate>
-</item>
-<item>
-<title>[程序员] Move CTF 安全竞赛招人 奖金 3.2 万人民币</title>
-<link>https://www.v2ex.com/t/1003386</link>
-<guid>https://www.v2ex.com/t/1003386</guid>
-<content:encoded><![CDATA[
-赛 事: Move CTF <br />奖 池: 约 3 万 2 千人民币 (4500USDC)<br />报 名: 火热报名中<br />比 赛: 1 月 12 号-13 号<br />QQ 群: 163569170<br />电报： <a href="https://t.me/sui_dev_cn" rel="nofollow noopener" target="_blank">https://t.me/sui_dev_cn</a>   <a href="https://t.me/movectf" rel="nofollow noopener" target="_blank">https://t.me/movectf</a><br />方 式: 全球个人赛(允许组队)，在线<br />网 站: <a href="https://movectf2024.movebit.xyz" rel="nofollow noopener" target="_blank">https://movectf2024.movebit.xyz</a><br />提 示: 比赛用的是特定的 Move 编程语言，大家提前加 QQ 群学习相关前置知识
-]]></content:encoded>
-<pubDate>2023-12-25T16:11:31Z</pubDate>
-</item>
-<item>
-<title>[程序员] 何时才能逃离写 bug 怪圈</title>
-<link>https://www.v2ex.com/t/1003385</link>
-<guid>https://www.v2ex.com/t/1003385</guid>
-<content:encoded><![CDATA[
-<p>作为一名合格的程序猿，拥有各种奇怪的经历。很久以前为了给 app 加功能，把整个 app 弄崩了，打开就闪退。</p>
-<p>今天下午修了一个 bug ，在测试机上打开发现修的按钮会导致 app 全部卡死。从同事那里复制的代码会报错，在他那里没问题。</p>
-<p>我在想每天花时间做的改进不如不做。以前同事调侃说：又在写 bug 呢？现在想想其实他说的很对。</p>
-<p>好难受，感觉自己真没用，我不想当一个平凡甚至平庸的人。还记得在刚毕业的时候，我总想出人头地，成为行业的大佬，可是现在早已经被生活和 bug 磨平了棱角。</p>
-]]></content:encoded>
-<pubDate>2023-12-25T16:03:16Z</pubDate>
-</item>
-<item>
-<title>[程序员] 蚂蚁岗位求助</title>
-<link>https://www.v2ex.com/t/1003383</link>
-<guid>https://www.v2ex.com/t/1003383</guid>
-<content:encoded><![CDATA[
-<p>想知道蚂蚁集团网商银行的基础架构部门怎么样，有蚂蚁的同学展开讲讲不
-技术氛围，卷不卷，成长性等等，先谢谢大家啦</p>
-]]></content:encoded>
-<pubDate>2023-12-25T15:34:50Z</pubDate>
-</item>
-<item>
-<title>[VPS] 出一个三网精品线路 vps，年付 299 的 1.2T 月流量</title>
-<link>https://www.v2ex.com/t/1003382</link>
-<guid>https://www.v2ex.com/t/1003382</guid>
-<content:encoded><![CDATA[
-<p>活动限量套餐，去程直连，回程电信 cn2 gia ，联通 9929 ，移动 cmin2 。
-续费 299 元 rmb/年。解锁奈飞<br />
-剩余价值出。站内信联系</p>
-]]></content:encoded>
-<pubDate>2023-12-25T11:31:27Z</pubDate>
-</item>
-<item>
-<title>[C#] .NET6 HttpClient 无反应也不超时？</title>
-<link>https://www.v2ex.com/t/1003381</link>
-<guid>https://www.v2ex.com/t/1003381</guid>
-<content:encoded><![CDATA[
-<p>这个代码哪里有问题吗？请求后一直无反应，也不会报超时，但是抓包软件已经看到正常请求和返回了？是不是 HOST 和请求 URI 不一直的问题》？？
-<code>
-var handler = new HttpClientHandler
-{
-AllowAutoRedirect = false,
-CookieContainer = new CookieContainer(),
-UseCookies = true,
-UseProxy = true,
-Proxy = new WebProxy("http://127.0.0.1:8888", false),
-ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =&gt; { return true; },
-MaxAutomaticRedirections = 1,</code></p><code>
-<p>};
-using HttpClient webclient = new(handler);
-webclient.DefaultRequestVersion = HttpVersion.Version20;
-webclient.Timeout = TimeSpan.FromSeconds(10);</p>
-<p>webclient.DefaultRequestHeaders.Host = urls[1];
-webclient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", ua(mobile));
-webclient.DefaultRequestHeaders.TryAddWithoutValidation("x-requested-with", "com.ct.client");
-webclient.DefaultRequestHeaders.TryAddWithoutValidation("upgrade-insecure-requests", "1");
-HttpResponseMessage response = await webclient.GetAsync(urls[0]);
-<code>
-然后就一直没反应了</code></p><code>
-</code></code>
-]]></content:encoded>
-<pubDate>2023-12-25T15:17:33Z</pubDate>
-</item>
-<item>
-<title>[Windows] 英文版 windows 11 中文字体粗细不一怎么解决</title>
-<link>https://www.v2ex.com/t/1003380</link>
-<guid>https://www.v2ex.com/t/1003380</guid>
-<content:encoded><![CDATA[
-部分中文程序字体粗细不一, NeatConverter 转换生成的 pdf 效果如下:<br /><a href="https://imgur.com/Bn1C4Qp" rel="nofollow noopener" target="_blank">https://imgur.com/Bn1C4Qp</a>
-]]></content:encoded>
-<pubDate>2023-12-25T15:43:11Z</pubDate>
-</item>
-<item>
-<title>[生活] 深圳附近元旦有什么宝藏地儿吗</title>
-<link>https://www.v2ex.com/t/1003379</link>
-<guid>https://www.v2ex.com/t/1003379</guid>
-<content:encoded><![CDATA[
-<p>v 友们推荐一下～</p>
-]]></content:encoded>
-<pubDate>2023-12-25T15:34:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] 谷歌 GCP 有办法固定使用成本吗？</title>
-<link>https://www.v2ex.com/t/1003377</link>
-<guid>https://www.v2ex.com/t/1003377</guid>
-<content:encoded><![CDATA[
-最近在研究 GCP 的运维<br />发现几乎所有东西都是按量付费的<br />包括 DDOS 高防，100 万个请求/$0.6<br />一亿个请求就是$60<br /><br />有办法固定使用成本吗？<br />比如 限制最大带宽位 20M 这样子
-]]></content:encoded>
-<pubDate>2023-12-25T15:04:44Z</pubDate>
-</item>
-<item>
-<title>[分享创造] Pager 又一个浏览器主页</title>
-<link>https://www.v2ex.com/t/1003376</link>
-<guid>https://www.v2ex.com/t/1003376</guid>
-<content:encoded><![CDATA[
-<h2>先上地址</h2>
-<p>Demo：<a href="https://pager--labs.cyberrain.dev/" rel="nofollow">Pager</a></p>
-<p>GitHub：<a href="https://github.com/Rainscall/Pager" rel="nofollow">Rainscall/Pager</a></p>
-<h2>它能做什么</h2>
-<ul>
-<li>搜</li>
-</ul>
-<p>作为一个浏览器主页，搜索当然是本职工作了</p>
-<ul>
-<li>记</li>
-</ul>
-<p>加入了一个小记事本，所有更改都会立刻保存</p>
-<ul>
-<li>标</li>
-</ul>
-<p>左/右滑动或右键空白处可以打开或关闭书签功能，可添加自定义书签，右键/长按项可删除</p>
-<ul>
-<li>史</li>
-</ul>
-<p>可记录搜索历史（默认关闭）</p>
-<ul>
-<li>景</li>
-</ul>
-<p>可自定义背景/从必应获取并自动更新</p>
-<ul>
-<li>时</li>
-</ul>
-<p>点击“Pager”可将其切换为实时时间模式</p>
-<ul>
-<li>隐</li>
-</ul>
-<p>所有数据均存储于浏览器的 LocalStorage 之中，服务器不存储任何数据</p>
-<h2>截图</h2>
-<p><img alt="fbfd176f442dea1ba9da01b16671321f.jpeg" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2023/12/25/fbfd176f442dea1ba9da01b16671321f.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2023-12-25T14:51:34Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教如何一次性批量复制浏览器 websocket 消息</title>
-<link>https://www.v2ex.com/t/1003375</link>
-<guid>https://www.v2ex.com/t/1003375</guid>
-<content:encoded><![CDATA[
-<p>不才，还没谷歌到答案，请教各位彦祖们。</p>
-<p>谷歌浏览器控制台网络，可以录制网络日志，看到所有请求，其中包含 websocket 消息。</p>
-<p>ws 消息中也能清晰看到每一条发送以及收到的消息，这些消息也能一条一条复制。但是我想批量全部复制下来（主要复制发送的报文），最好是以 base64 的格式保存下来，请问各位彦祖有什么法子。（包括但不限于各种插件，油猴脚本等）</p>
-]]></content:encoded>
-<pubDate>2023-12-25T15:29:30Z</pubDate>
-</item>
-<item>
-<title>[Node.js] 有没有什么工具能做到访问一个页面记录全链路的耗时？</title>
-<link>https://www.v2ex.com/t/1003373</link>
-<guid>https://www.v2ex.com/t/1003373</guid>
-<content:encoded><![CDATA[
-<p>有一个 next.js 项目，走的是 SSR 模式，在服务端会调用一些接口，想通过工具记录每一次访问调用各个接口的耗时，维度是访问的 URL 。</p>
-]]></content:encoded>
-<pubDate>2023-12-25T14:43:31Z</pubDate>
-</item>
-<item>
-<title>[反馈] 申请删除发表到错误节点的帖子</title>
-<link>https://www.v2ex.com/t/1003371</link>
-<guid>https://www.v2ex.com/t/1003371</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.v2ex.com/t/992930#reply1" rel="nofollow">https://www.v2ex.com/t/992930#reply1</a>
-<a href="https://www.v2ex.com/t/1001297#reply12" rel="nofollow">https://www.v2ex.com/t/1001297#reply12</a>
-<a href="https://www.v2ex.com/t/1001309#reply3" rel="nofollow">https://www.v2ex.com/t/1001309#reply3</a></p>
-<p>由于希望进一步完善产品功能，申请删除之前发表的推广帖。
-另外今后宣传会按照版规要求发到推广节点～谢谢站长。 @<a href="https://www.v2ex.com/member/Livid">Livid</a></p>
-]]></content:encoded>
-<pubDate>2023-12-25T14:37:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 工作机会和学历该选哪个？希望前辈给一点建议。</title>
-<link>https://www.v2ex.com/t/1003370</link>
-<guid>https://www.v2ex.com/t/1003370</guid>
-<content:encoded><![CDATA[
-<p>我们学校时一所还不错的公立大专。最近海康威视和我们学校合作，预计我们学校相关专业的学生会前往杭州海康威视总部实习。</p>
-<p>话虽如此，我们实习之后留在杭州总部的可能性不大，大概率会被分配到下属的子公司工作。工作是外派性质的，就是帮企业安装&amp;调试海康威视的智能安防系统。</p>
-<p>因为是第三年（我们第四年春节后实习）达成的合作，所以之前我们都不知道有这个事。我学习成绩不错，在知道这个事情之前就在准备考专转本。因为我们学校是强制实习的，而且我们学校也不在杭州，考试的日期在实习之后，所以海康威视的工作和考本科的机会只能二选一。</p>
-<p>大家也都知道最近国内工作不好找，能得到这么正规的工作机会属实是我的荣幸。但是转本也是我的目标，在工作和转本之间我该选择哪个？希望各位前辈们可以给一点人生建议。</p>
-<p>我居住在国内某工业非常发达的城市，城市规模比杭州稍差，如果前往杭州的新价比高吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-25T15:55:22Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 通过 iCloud 恢复需要强制更新系统吗？</title>
-<link>https://www.v2ex.com/t/1003369</link>
-<guid>https://www.v2ex.com/t/1003369</guid>
-<content:encoded><![CDATA[
-<p>小弟刚收了个 ios16 系统的新手机，旧手机是 ios15 ，在 iPhone 到 iPhone 传输是显示必须要更新的，如果走 iCloud 恢复需要必须要更新吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-25T15:42:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] [求游戏] 有哪些好玩的摸鱼页游？</title>
-<link>https://www.v2ex.com/t/1003368</link>
-<guid>https://www.v2ex.com/t/1003368</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2023-12-25T14:11:01Z</pubDate>
 </item>
 </channel>
 </rss>
