@@ -5,14 +5,285 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 想测测手里这些充电头充电线的功率，求推荐个检测表</title>
+<link>https://www.v2ex.com/t/1004944</link>
+<guid>https://www.v2ex.com/t/1004944</guid>
+<content:encoded><![CDATA[
+
+<p>搜了下 Power-Z 等品牌动辄一二百块，感觉有点发烧了，我只想测试一下充电功率，不需要检测协议之类的，只要精准靠谱即可，有没有推荐的产品？</p>
+]]></content:encoded>
+<pubDate>2024-01-01T08:16:18Z</pubDate>
+<pubDate>2024-01-01T08:13:18Z</pubDate>
+</item>
+<item>
+<title>[Logseq] 各位平时可以流畅使用开了图模式 (Graph) 的 Logseq 吗？</title>
+<link>https://www.v2ex.com/t/1004942</link>
+<guid>https://www.v2ex.com/t/1004942</guid>
+<content:encoded><![CDATA[
+
+<p>手持暗影精灵 5 Archlinux i5 9300H ，日常开了图模式的占用如下：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/14HyCQEG.png" /></p>
+<p>页面复杂度</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/LjwR3mAk.png" /></p>
+<p>风扇起飞，有点难以忍受，特别是每点击一个页面都要渲染 1-2s ，整得我特别想换电脑😭。关闭图模式岁月静好，但是回顾起来非常费劲，缺少导航总感觉无处下手。</p>
+<p>我想问问 V 友手上什么样的机器可以流畅运行这个软件？最近眼馋 M3Max 丐版 与 R7-7840HS 64G 的笔记本，不知道这两款机器在运行这个软件的时候是什么效果 🤔</p>
+]]></content:encoded>
+<pubDate>2024-01-01T08:09:11Z</pubDate>
+<pubDate>2024-01-01T08:08:11Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如何在 Node 中实现类似于 docker-cli 的效果</title>
+<link>https://www.v2ex.com/t/1004939</link>
+<guid>https://www.v2ex.com/t/1004939</guid>
+<content:encoded><![CDATA[
+
+<p>在给 Cronicle 开发一个 plugin,调用 docker 接口来启动一个任务实例,想把任务实例的 stdout 输出到 Cronicle 提供的任务日志功能里,目前可以实现一个字节不少的输出,只是我模拟了一下程序隔一段时间输出一次,但是因为 nodejs 的 http 收到数据后不会立刻触发 data 事件,需要等待一个缓冲区满了再一次性触发.
+然后现象就是卡一段时间出一批,然后再卡一段时间出一批,而不是如 docker-cli 一样时间均匀地输出.
+我试了一下,plugin 中直接定时输出一些数据,cronicle 是支持运行时实时展示程序输出的.</p>
+<p>我使用的是 nodejs 的 dockerode 库来连接 docker,写了如下程序,基本排除了 cronicle 的问题,发现就是 node 在拷贝 docker attach 响应的流到 stdout 时有个缓冲区:</p>
+<pre><code class="language-js">#!/usr/local/bin/node
+//const JSONStream = require('pixl-json-stream');
+//const Logger = require('pixl-logger');
+const Docker = require('dockerode')
+
+// setup stdin / stdout streams 
+process.stdin.setEncoding('utf8');
+process.stdout.setEncoding('utf8');
+
+async function run() {
+    const client = new Docker({ host: "http://dockerhost", port: 2375 });
+    console.log("client created")
+    const container = await client.createContainer({
+        Image: 'jerry/test:latest',
+        AttachStdin: false,
+        AttachStdout: true,
+        AttachStderr: true,
+        Tty: false,
+        OpenStdin: false,
+        StdinOnce: false,
+
+        Env: [
+            "TIMES=2000"
+        ]
+    })
+    // 启动容器
+    console.log("container created!")
+    await container.start();
+    console.log("container started!")
+
+    // 连接到容器的输出流
+    const attachOpts = { stream: true, stdout: true, stderr: true };
+    const stream = await container.attach(attachOpts);
+
+    console.log("container attached!")
+    stream.setEncoding("utf-8")
+    
+	// 方案 1:dockerode 给的方案,数据不会丢,但不够实时
+    //container.modem.demuxStream(stream, process.stdout, process.stderr);
+
+	// 方案 2:data 事件触发
+    stream.on('data',function(data){
+    	console.log(data);
+    });
+
+	// 方案 3:发现 readable 和 data 一样
+    //// 按行读取容器的输出
+    //stream.on('readable', function () {
+    //    while ((line = stream.read()) != null) {
+    //        logger.debug(1, new Date().getTime() + line)
+    //    }
+    //});
+
+    // 等待容器自动退出
+    await new Promise((resolve, reject) =&gt; {
+        container.wait((err, data) =&gt; {
+            clearInterval(timer)
+            if (err) {
+                reject(err);
+            } else {
+                console.log('Container exited with code:', data.StatusCode);
+                resolve();
+            }
+        });
+    });
+
+    // 停止并删除容器
+    await container.remove();
+
+    console.log('Container removed.');
+}
+
+run()
+</code></pre>
+<p>想知道 node 是否有接口可以干掉那个缓冲区,或者把缓冲区搞得足够小,亦或者每隔 1 秒强制刷一次缓冲区.</p>
+<p>模拟的用的程序,打包在了 jerry/test 中:</p>
+<pre><code class="language-python">#!/bin/python
+
+import time
+import os
+
+times = os.environ.get('TIMES')
+
+if times:
+    times = int(times)
+else:
+    times = 10
+
+for i in range(times):
+    print(f"Running {i}...")
+    time.sleep(0.01)
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-01-01T07:50:59Z</pubDate>
+<pubDate>2024-01-01T07:47:59Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] M3 MBP 信号差过 M1 MBA</title>
+<link>https://www.v2ex.com/t/1004938</link>
+<guid>https://www.v2ex.com/t/1004938</guid>
+<content:encoded><![CDATA[
+
+<p>最近升级了 M3 MBP ，发现合盖情况下 Wifi 信噪比原来 M1 MBA 平均差 10dBm 左右，有人类似么？</p>
+<p>开盖差别不大。</p>
+]]></content:encoded>
+<pubDate>2024-01-01T07:46:35Z</pubDate>
+<pubDate>2024-01-01T08:11:40Z</pubDate>
+</item>
+<item>
+<title>[macOS] Spark 在 mac 端为何登录不上</title>
+<link>https://www.v2ex.com/t/1004936</link>
+<guid>https://www.v2ex.com/t/1004936</guid>
+<content:encoded><![CDATA[
+
+<p>一直显示无法验证身份
+节点选择的美国没问题啊
+重装了下系统就成这个样子了
+求助下兄弟们</p>
+]]></content:encoded>
+<pubDate>2024-01-01T07:36:59Z</pubDate>
+<pubDate>2024-01-01T08:15:24Z</pubDate>
+</item>
+<item>
+<title>[问与答] 不理解 google photo 的“伴侣共享”功能</title>
+<link>https://www.v2ex.com/t/1004934</link>
+<guid>https://www.v2ex.com/t/1004934</guid>
+<content:encoded><![CDATA[
+
+<h2>A 和 B 设置了“伴侣共享”</h2>
+<h2>假设 A 拍了并上传 10 张到 A 的谷歌相册，由于设置了“伴侣共享”，A 的照片会自动共享到 B 的谷歌相册。</h2>
+<h2>按照目前谷歌的政策，这 10 张照片也会出现在 B 相册但只会占用 A 的谷歌储存空间。</h2>
+<h2>假设一开始 A 用原画质上次，并且已经共享到了 B 相册，之后 A 选择将之前的原画质压缩成“高质量”,对 B 相册有影响吗？</h2>
+<p>再假设，A 上传这 10 张照片，并且已经共享到了 B 相册，之后 A 将其永久删除，B 相册会有影响吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-01T07:05:44Z</pubDate>
+<pubDate>2024-01-01T07:56:54Z</pubDate>
+</item>
+<item>
+<title>[分享发现] [共享] 2024 中国大陆法定节假日</title>
+<link>https://www.v2ex.com/t/1004933</link>
+<guid>https://www.v2ex.com/t/1004933</guid>
+<content:encoded><![CDATA[
+
+<h2>TLDR</h2>
+<p>这是一个可订阅的法定节假日日历，更新好多年了。</p>
+<p>本来发现苹果官方的日历也带法定节假日，今年都不打算更新了。结果发现到现在还没更新，还是我来吧。</p>
+<p>点下面链接，有反应就时成功，没反应就算了。</p>
+<p><a href="" rel="nofollow">webcal://p42-caldav.icloud.com/published/2/Mjk1MjUyNzU2Mjk1MjUyN3InbiAUgtR-77GMA1aDk_4tLextGI1NIjkDeSYbJgMnkBfggxSBN5Q-OKqIOcv0xDkmRJKU5s5tHyuOgqabBv0</a></p>
+<p><a href="https://p42-caldav.icloud.com/published/2/Mjk1MjUyNzU2Mjk1MjUyN3InbiAUgtR-77GMA1aDk_4tLextGI1NIjkDeSYbJgMnkBfggxSBN5Q-OKqIOcv0xDkmRJKU5s5tHyuOgqabBv0" rel="nofollow">https://p42-caldav.icloud.com/published/2/Mjk1MjUyNzU2Mjk1MjUyN3InbiAUgtR-77GMA1aDk_4tLextGI1NIjkDeSYbJgMnkBfggxSBN5Q-OKqIOcv0xDkmRJKU5s5tHyuOgqabBv0</a></p>
+<hr />
+<h2>下面的可以不读</h2>
+<p>苹果官方日历附带了节假日及换休👇
+<a href="https://calendars.icloud.com/holidays/ch_zh.ics" rel="nofollow">https://calendars.icloud.com/holidays/ch_zh.ics</a></p>
+<h2>Calendar 编撰规则</h2>
+<table>
+<thead>
+<tr>
+<th>节假日名</th>
+<th>调休补班</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>元旦假期</td>
+<td>上班（补元旦假期）</td>
+</tr>
+<tr>
+<td>春节假期</td>
+<td>上班（补春节假期）</td>
+</tr>
+<tr>
+<td>清明假期</td>
+<td>上班（补清明假期）</td>
+</tr>
+<tr>
+<td>劳动节假期</td>
+<td>上班（补劳动节假期）</td>
+</tr>
+<tr>
+<td>端午假期</td>
+<td>上班（补端午假期）</td>
+</tr>
+<tr>
+<td>中秋假期</td>
+<td>上班（补中秋假期）</td>
+</tr>
+<tr>
+<td>国庆假期</td>
+<td>上班（补国庆假期）</td>
+</tr>
+</tbody></table><ul>
+<li>休假使用<strong>连续全天事件</strong>，无提醒。</li>
+<li>调休上班如果连续多日使用<strong>连续全天事件</strong>。</li>
+<li>调休<strong>上班提醒</strong>时间为<strong>前一天晚 8 点</strong>。1 day before(20:00)。</li>
+</ul>
+<blockquote>
+<p>Apple 官方没有提醒，并且调休会按日显示，非连续。但考虑提醒的场景，第一天调休上班需要提醒，后几日应该就不必了。</p>
+</blockquote>
+<h2>官方通知</h2>
+<h3>2024</h3>
+<p><a href="https://www.gov.cn/zhengce/content/202310/content_6911527.htm" rel="nofollow">https://www.gov.cn/zhengce/content/202310/content_6911527.htm</a></p>
+<p>一、元旦：1 月 1 日放假，与周末连休。
+二、春节：2 月 10 日至 17 日放假调休，共 8 天。2 月 4 日（星期日）、2 月 18 日（星期日）上班。鼓励各单位结合带薪年休假等制度落实，安排职工在除夕（ 2 月 9 日）休息。
+三、清明节：4 月 4 日至 6 日放假调休，共 3 天。4 月 7 日（星期日）上班。
+四、劳动节：5 月 1 日至 5 日放假调休，共 5 天。4 月 28 日（星期日）、5 月 11 日（星期六）上班。
+五、端午节：6 月 10 日放假，与周末连休。
+六、中秋节：9 月 15 日至 17 日放假调休，共 3 天。9 月 14 日（星期六）上班。
+七、国庆节：10 月 1 日至 7 日放假调休，共 7 天。9 月 29 日（星期日）、10 月 12 日（星期六）上班。</p>
+]]></content:encoded>
+<pubDate>2024-01-01T07:05:03Z</pubDate>
+<pubDate>2024-01-01T07:05:03Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 从自己的需求出发，写了一个表格匹配的网站</title>
+<link>https://www.v2ex.com/t/1004932</link>
+<guid>https://www.v2ex.com/t/1004932</guid>
+<content:encoded><![CDATA[
+
+<p>从自己的需求出发，写了一个表格匹配的网站，可以替换 excel 的 vlookup 功能，更加方便；还可以做模糊匹配，根据相似度，自己调整阈值，欢迎大家使用 <a href="https://www.yipipei.com/" rel="nofollow">https://www.yipipei.com/</a></p>
+]]></content:encoded>
+<pubDate>2024-01-01T06:42:49Z</pubDate>
+<pubDate>2024-01-01T06:41:49Z</pubDate>
+</item>
+<item>
+<title>[软件] 为什么有的软件、网页不支持符号成对输入？</title>
+<link>https://www.v2ex.com/t/1004931</link>
+<guid>https://www.v2ex.com/t/1004931</guid>
+<content:encoded><![CDATA[
+
+<p>Word 、长毛象、微信 支持。
+Notion 、Sublime 不支持。</p>
+]]></content:encoded>
+<pubDate>2024-01-01T06:34:04Z</pubDate>
+<pubDate>2024-01-01T08:15:15Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 迁移 dropbox 到 Google Drive 的 3 种方法</title>
 <link>https://www.v2ex.com/t/1004930</link>
 <guid>https://www.v2ex.com/t/1004930</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.ricedrive.com/guides/how-to-transfer-files-from-Dropbox-to-Google-Drive.html" rel="nofollow">https://www.ricedrive.com/guides/how-to-transfer-files-from-Dropbox-to-Google-Drive.html</a></p>
 ]]></content:encoded>
-<pubDate>2024-01-01T06:24:47Z</pubDate>
 <pubDate>2024-01-01T06:21:47Z</pubDate>
 </item>
 <item>
@@ -20,7 +291,6 @@
 <link>https://www.v2ex.com/t/1004929</link>
 <guid>https://www.v2ex.com/t/1004929</guid>
 <content:encoded><![CDATA[
-
 <p>我搞了一个 YouTube 观看记录的年度报告，如果想要看看过去这一年看了啥的话，可以试试。</p>
 <p><a href="https://youtube-history-report-c80c692ddefb.herokuapp.com/" rel="nofollow">https://youtube-history-report-c80c692ddefb.herokuapp.com/</a></p>
 <p>要梯子。</p>
@@ -43,18 +313,15 @@
 </ol>
 ]]></content:encoded>
 <pubDate>2024-01-01T06:21:47Z</pubDate>
-<pubDate>2024-01-01T06:21:47Z</pubDate>
 </item>
 <item>
 <title>[程序员] 怎么让 RustDesk 走 tailscale 的网络？我想让两台设备直接用 ip 连接</title>
 <link>https://www.v2ex.com/t/1004928</link>
 <guid>https://www.v2ex.com/t/1004928</guid>
 <content:encoded><![CDATA[
-
 <p>这样我的其他电脑也安装 rustdesk 也走 tailscale 的网络</p>
 <p>就可以直接用内网 ip 远程</p>
 ]]></content:encoded>
-<pubDate>2024-01-01T05:59:45Z</pubDate>
 <pubDate>2024-01-01T06:04:18Z</pubDate>
 </item>
 <item>
@@ -62,10 +329,8 @@
 <link>https://www.v2ex.com/t/1004927</link>
 <guid>https://www.v2ex.com/t/1004927</guid>
 <content:encoded><![CDATA[
-
 滴滴其他车型例如快车，滴滴特快之类都好贵啊。平峰 20 公里，特惠 40 块钱。快车都要 70 了，特快 80 。<br /><br /><br /><br />看了其他平台，例如曹操最贵，都要 75 到 80 。高德的聚合平台，叫其他例如 T3 出行神州出行大概 45 － 50 。这是正常情况吗？
 ]]></content:encoded>
-<pubDate>2024-01-01T05:33:27Z</pubDate>
 <pubDate>2024-01-01T05:38:47Z</pubDate>
 </item>
 <item>
@@ -73,13 +338,10 @@
 <link>https://www.v2ex.com/t/1004926</link>
 <guid>https://www.v2ex.com/t/1004926</guid>
 <content:encoded><![CDATA[
-
 主路由是 openwrt ，想通过公网访问与主路由连接的群晖 NAS ，家里宽带只有动态 IPv6 的公网 IP ，该如何配置 openwrt 的防火墙规则呢？<br />iptables 想指定目标设备，只能通过目标设备的 IP 来指定，但这公网 IP 又是动态的...<br />请教一下各位有什么好方法吗？
 ]]></content:encoded>
-<pubDate>2024-01-01T05:14:48Z</pubDate>
 <pubDate>2024-01-01T05:59:42Z</pubDate>
 </item>
-
 <item>
 <title>[推广] 技术书看多了顿感无聊，这次就推荐三本哲学方面的书籍</title>
 <link>https://www.v2ex.com/t/1004923</link>
@@ -15933,71 +16195,6 @@ Amphion：一个开源的音频、音乐和语音生成项目。由香港中文�
 <p>这一路上唯一的乐趣就是：猜歌名。 还猜对了很多!!!</p>
 ]]></content:encoded>
 <pubDate>2023-12-27T01:07:48Z</pubDate>
-</item>
-<item>
-<title>[Linux] 类似 tinyML，做个运行在嵌入式 Linux 的《轻量级的》深度学习系统，有意义吗？</title>
-<link>https://www.v2ex.com/t/1003698</link>
-<guid>https://www.v2ex.com/t/1003698</guid>
-<content:encoded><![CDATA[
-<p>tinyML 这个开放的组织里已经有很多公司了。
-<a href="https://www.tinyml.org/" rel="nofollow">https://www.tinyml.org/</a></p>
-<p>我想的这个《轻量级的》深度学习系统包括：
-= 《轻量级的》深度学习框架，例如：TensorFlow Lite, PyTorch Edge, tinygrade, 等等。
-= 从轻量级的深度学习框架一直到 NPU kernel module 的《轻量级》的库，例如：tiny OpenCV 。
-= NPU kernel module</p>
-<p>tinyML 和我想的这个轻量级的深度学习系统的比较是：
-= tinyML 基于实时操作系统；轻量级的深度学习系统运行在 Linux （有更多的软件工具）。
-= tinyML 运行在 MCU 单片机（例如：400MHz ） + NPU ，轻量级的深度学习系统运行在华为昇腾或其它国产芯片（ arm64 + NPU ）。
-= MCU 单片机里的 NPU 计算能力要比华为昇腾里的 NPU 弱不少。</p>
-<p>如果 tinyML 有意义，这个轻量级的深度学习系统有存在的意义吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-27T00:57:24Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 安卓端 ChatGPT 可以用国内信用卡开通订阅了</title>
-<link>https://www.v2ex.com/t/1003696</link>
-<guid>https://www.v2ex.com/t/1003696</guid>
-<content:encoded><![CDATA[
-昨天晚上日常使用 chatgpt 软件，也就是安卓移动端，突然发现订阅按钮亮了，就点了一下直接开通了 plus ；<br /><br />手机：小米 13<br />付款方式：直接用得 Google play 商店付款<br />信用卡：Google play 商店很早绑定了国内的工行双币信用卡<br /><br />开通过程中无任何问题，就是输了下 Google 账号的密码，就直接扣款开通了<br /><br /><a href="https://imgur.com/a/SABbJMv" rel="nofollow noopener" target="_blank">https://imgur.com/a/SABbJMv</a>
-]]></content:encoded>
-<pubDate>2023-12-27T01:12:15Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 北京联通 VPN 回家，为什么有时候可以连上，有时候连不上？</title>
-<link>https://www.v2ex.com/t/1003695</link>
-<guid>https://www.v2ex.com/t/1003695</guid>
-<content:encoded><![CDATA[
-<p>连不上的时候没有任何提示。</p>
-<p>使用的是花生壳 DDNS 服务，有的时候很快，有的时候连不上。</p>
-]]></content:encoded>
-<pubDate>2023-12-27T01:12:14Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 外企工程师推荐</title>
-<link>https://www.v2ex.com/t/1003693</link>
-<guid>https://www.v2ex.com/t/1003693</guid>
-<content:encoded><![CDATA[
-<p>公司（上海外企）招 3 年以上前端，后端，移动端，DevOps ，测试，机会难得。
-有需要可内推跟进度。这些岗位都要求英语，但是要求不高，敢说就可以。接受年前面试，年后到岗。</p>
-<p>前端：React ，小程序</p>
-<p>后端：Java</p>
-<p>移动端：ios / 安卓 + flutter</p>
-<p>DevOps：接受 sre ，develper （熟悉部署流程，容器化）转岗</p>
-<p>测试：自动化测试</p>
-<p>感兴趣可加微信 qiaoyf2014 ，备注<strong>v2ex 内推</strong></p>
-]]></content:encoded>
-<pubDate>2023-12-26T00:48:50Z</pubDate>
-</item>
-<item>
-<title>[Apple] 敢问大家 iPhone15 pro 开 4g 还是 5g</title>
-<link>https://www.v2ex.com/t/1003692</link>
-<guid>https://www.v2ex.com/t/1003692</guid>
-<content:encoded><![CDATA[
-<p>如题
-本人左边山东济南  开 5g 感觉体验贼差,
-延迟高的离谱  而且经常有网刷不出东西</p>
-]]></content:encoded>
-<pubDate>2023-12-27T01:12:31Z</pubDate>
 </item>
 </channel>
 </rss>
