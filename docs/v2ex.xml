@@ -5,14 +5,166 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] 求助大佬们！ Mac Surge Hysteria2 无法连接问题</title>
+<link>https://www.v2ex.com/t/1005331</link>
+<guid>https://www.v2ex.com/t/1005331</guid>
+<content:encoded><![CDATA[
+
+<h2>在 aws 的 vps 搭建了 Hysteria2 服务，用的自己的域名并且在 cf 解析了。反正没啥敏感服务，aws 面板里防火墙全部出入 tcp 、udp 都放行，也 ufw disable 了。</h2>
+<h2>遇到问题的是，我 iPhone 上的 Shadowrockets 、安卓的 sing-box 、Windows 的 V2rayN 配置完成后都能正常使用，唯独 Mac 上的 Surge 用不了了。这样看应该就是 surge 的配置问题。但之前一个月一直好好的，由于换了个弹性 IP ，我在配置文件中仅修改了 IP ，但是居然连不上了，也尝试清理过 dns 等操作。因为配置文件我咋看咋没问题😂折腾到了半夜还没解决，只能放到 V2 上，希望大佬点拨！！！</h2>
+<p>下面是几个我截取的日志和文件</p>
+<p>1 、 [ Mac Surge 客户端内执行网络诊断] </p>
+<blockquote>
+<p>检查配置<br />
+配置检查成功<br />
+网络配置<br />
+首选网络接口（ IPv4 ）：en0<br />
+首选 IP 地址（ IPv4 ）：192.168.124.9<br />
+默认路由（ IPv4 ）：192.168.124.1<br />
+首选网络接口（ IPv6 ）：不适用<br />
+首选 IP 地址（ IPv6 ）：不适用<br />
+DNS 服务器：1.1.1.1, 8.8.8.8<br />
+未配置 DNS-over-HTTPS<br />
+路由器<br />
+Ping 192.168.124.1: 2 ms<br />
+测试 DNS<br />
+收到 8.8.8.8 的应答：43 ms<br />
+收到 1.1.1.1 的应答：368 ms<br />
+测试直连策略<br />
+直接连接到 <a href="http://bing.com/%EF%BC%9A47" rel="nofollow">http://bing.com/：47</a> ms<br />
+测试代理策略<br />
+通过 hy2 连接到 <a href="http://www.gstatic.com/generate_204" rel="nofollow">http://www.gstatic.com/generate_204</a> 失败：ERR_HANDSHAKE_TIMEOUT<br />
+UDP 代理转发<br />
+通过 hy2 转发 UDP 流量到 <a href="mailto:apple.com@8.8.8.8">apple.com@8.8.8.8</a> 失败。<br />
+错误：ERR_HANDSHAKE_TIMEOUT<br />
+[测试完成]  </p>
+</blockquote>
+<p>2 、 [ Mac Surge 客户端配置 vps.conf ] </p>
+<blockquote>
+<p>[Proxy]<br />
+hy2 = hysteria2, 我的 vps 的 IP, 443, password=pwd, sni=我的域名(已在 cf 解析到 ip), download-bandwidth=100, udp-relay=true<br />
+[Proxy Group]<br />
+Proxy = select, hy2<br />
+[General]<br />
+loglevel = notify<br />
+doh-server = <a href="https://doh.pub/dns-query" rel="nofollow">https://doh.pub/dns-query</a><br />
+dns-server =  1.1.1.1, 8.8.8.8<br />
+skip-proxy = localhost, *.local, <a href="http://injections.adguard.org" rel="nofollow">injections.adguard.org</a>, <a href="http://local.adguard.org" rel="nofollow">local.adguard.org</a>, <a href="http://captive.apple.com" rel="nofollow">captive.apple.com</a>, <a href="http://guzzoni.apple.com" rel="nofollow">guzzoni.apple.com</a>, 0.0.0.0/8, 10.0.0.0/8, 17.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.0.2.0/24, 192.168.0.0/16, 192.88.99.0/24, 198.18.0.0/15, 198.51.100.0/24, 203.0.113.0/24, 224.0.0.0/4, 240.0.0.0/4, 255.255.255.255/32  </p>
+</blockquote>
+<blockquote>
+<p>wifi-assist = true<br />
+allow-wifi-access = true<br />
+wifi-access-http-port = 6152<br />
+wifi-access-socks5-port = 6153<br />
+http-listen = 0.0.0.0:6152<br />
+socks5-listen = 0.0.0.0:6153<br />
+external-controller-access = <a href="mailto:surgepasswd@0.0.0">surgepasswd@0.0.0</a>.0:6170<br />
+exclude-simple-hostnames = true<br />
+ipv6 = false<br />
+test-timeout = 4<br />
+proxy-test-url = <a href="http://www.gstatic.com/generate_204" rel="nofollow">http://www.gstatic.com/generate_204</a><br />
+geoip-maxmind-url = <a href="https://github.com/Hackl0us/GeoIP2-CN/raw/release/Country.mmdb" rel="nofollow">https://github.com/Hackl0us/GeoIP2-CN/raw/release/Country.mmdb</a><br />
+show-error-page-for-reject = true<br />
+http-api-web-dashboard = true<br />
+read-etc-hosts = false  </p>
+</blockquote>
+<p>3 、 [服务器端 Hysteria2 的日志] </p>
+<blockquote>
+<p>● hysteria-server.service - Hysteria Server Service (config.yaml)<br />
+Loaded: loaded (/etc/systemd/system/hysteria-server.service; enabled; vendor preset: enabled)<br />
+Active: active (running) since Tue 2024-01-02 18:22:09 UTC; 39min ago<br />
+Main PID: 1169 (hysteria)<br />
+Tasks: 4 (limit: 1121)<br />
+Memory: 5.0M<br />
+CPU: 1.771s<br />
+CGroup: /system.slice/hysteria-server.service<br />
+└─1169 /usr/local/bin/hysteria server -config/etc/hysteria/config.yaml<br />
+ERROR TCP error        {"addr": "我家公网 ip:64691", "id": "user", "reqAddr": "116.198.14.177:443", "error": "readfrom tcp4 172.31.19.120:58786-&gt;116.198.14.177:443: timeout: no recent network activity"}<br />
+ERROR TCP error        {"addr": "我家公网 ip:64691", "id": "user", "reqAddr": "142.251.10.95:443", "error": "readfrom tcp4 172.31.19.120:48714-&gt;142.251.10.95:443: timeout: no recent network activity"}<br />
+ERROR TCP error        {"addr": "我家公网 ip:64691", "id": "user", "reqAddr": "74.125.24.95:443", "error": "readfrom tcp4 172.31.19.120:46898-&gt;74.125.24.95:443: timeout: no recent network activity"}<br />
+ERROR TCP error        {"addr": "我家公网 ip:64691", "id": "user", "reqAddr": "64.233.170.188:5228", "error": "readfrom tcp4 172.31.19.120:59380-64.233.170.188:5228: timeout: no recent network activity"}<br />
+INFO client disconnected        {"addr": "我家公网 ip:64691", "id": "user", "error": "accepting stream failed: timeout: no recent network activity"}</p>
+</blockquote>
+]]></content:encoded>
+<pubDate>2024-01-02T19:30:36Z</pubDate>
+<pubDate>2024-01-02T15:27:36Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 想探讨一点汉语名称，例如动视和深信服</title>
+<link>https://www.v2ex.com/t/1005330</link>
+<guid>https://www.v2ex.com/t/1005330</guid>
+<content:encoded><![CDATA[
+
+有没有人和我一样总觉得这些中文名称拗口？虽然我理解动视是一家电子游戏开发商，英文名称叫作 activision ，而深信服是一家深圳市的 IT 公司，但是无论怎么读，都感觉有一种不太舒服的感觉。<br /><br />例如动视，拆开为动作+电视？动态+视力？动作+视觉？<br /><br />深信服，深信+信服？ 深信+服务器？幸福？凭什么信服你？<br /><br />反观其他其他公司，丽台=美丽+台湾 很好理解，瑞昱≈锐利，华为=中华+有为，三星三颗星星，微软≈细软（收拾细软），戴尔=戴上耳机，惠普=优惠普及，还有一些水果公司以及更多，名称都是比较悦耳的，只有暂时想到的标题这两个公司单单从名字上给我的感官就不好，通常阅读或观看到相关内容我都会尽量避开，因为相对反感。<br /><br />当然，这仅仅是我的思考，可能有人因为某些原因和我意见完全相反，我也可以接受，前提是理性讨论。
+]]></content:encoded>
+<pubDate>2024-01-02T19:05:54Z</pubDate>
+<pubDate>2024-01-02T19:35:25Z</pubDate>
+</item>
+<item>
+<title>[Apple] 同一系统推送通知， MacBook Pro 通知比 iPhone 和 iPad 慢若干秒，有无人遇到类似情况？</title>
+<link>https://www.v2ex.com/t/1005329</link>
+<guid>https://www.v2ex.com/t/1005329</guid>
+<content:encoded><![CDATA[
+
+场景一般是收邮件，我 iPad ，iPhone 和 MacBook 都有装自带的 Mail 和 spark ，而且都开了通知。但每次来邮件都是 iPad 最先亮屏，而 MacBook Pro 最慢，很奇怪，有人知道为什么吗？
+]]></content:encoded>
+<pubDate>2024-01-02T18:52:54Z</pubDate>
+<pubDate>2024-01-02T18:52:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] archive.org 上的资源可信度怎么样？</title>
+<link>https://www.v2ex.com/t/1005328</link>
+<guid>https://www.v2ex.com/t/1005328</guid>
+<content:encoded><![CDATA[
+
+<p>op 知道这主要是个 web page 档案管。<br />
+最近在上面下载过 tiny11 和 windows10 1903.</p>
+<p>tiny11 的一个页面的 reviews 中有一些不堪入目的垃圾评论，让我差点以为走错了地方。</p>
+]]></content:encoded>
+<pubDate>2024-01-02T18:44:25Z</pubDate>
+<pubDate>2024-01-02T18:44:25Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 今天获发了一个很好的邮箱</title>
+<link>https://www.v2ex.com/t/1005327</link>
+<guid>https://www.v2ex.com/t/1005327</guid>
+<content:encoded><![CDATA[
+
+<p>@z<a href="http://-lib.se" rel="nofollow">-lib.se</a></p>
+<p>懂的朋友应该知道我入职哪里了</p>
+]]></content:encoded>
+<pubDate>2024-01-02T18:43:52Z</pubDate>
+<pubDate>2024-01-02T14:42:52Z</pubDate>
+</item>
+<item>
+<title>[求职] 2024 UI 设计 + 静态样式前端</title>
+<link>https://www.v2ex.com/t/1005326</link>
+<guid>https://www.v2ex.com/t/1005326</guid>
+<content:encoded><![CDATA[
+
+<p>擅长：pc 端的----商城、交互、门户、及其他大型平台、系统量身定制 UI 设计、 手机 wap 、app （ 只设计）  </p>
+<p>技术：photo 、div+css(CSS 手写)，JS 特效、html 、Jquery 、d3.js  </p>
+<p>作品链接：</p>
+<p><a href="https://ludesala.blogspot.com/" rel="nofollow">https://ludesala.blogspot.com/</a>    （ oversea 客户浏览） 有联系方式</p>
+<p><a href="https://www.zcool.com.cn/u/521379" rel="nofollow">https://www.zcool.com.cn/u/521379</a>  （ mainland 的站酷平台晒得作品案例）</p>
+<p>上线案例：</p>
+<p><a href="http://www.zefeigc.com" rel="nofollow">http://www.zefeigc.com</a>  服务：UI 设计 +响应前端</p>
+<p><a href="https://www.aiznx.com" rel="nofollow">https://www.aiznx.com</a>    服务：UI 设计 +响应前端</p>
+<p><a href="https://payment.chainpaygo.com/" rel="nofollow">https://payment.chainpaygo.com/</a>    服务：UI 设计 +响应前端</p>
+<p><a href="https://www.otcc.io/" rel="nofollow">https://www.otcc.io/</a>  服务：UI 设计 +响应前端</p>
+<p><a href="https://transformer.knn3.xyz/homepage" rel="nofollow">https://transformer.knn3.xyz/homepage</a>   服务：UI 设计 +响应前端</p>
+]]></content:encoded>
+<pubDate>2024-01-02T18:38:27Z</pubDate>
+<pubDate>2024-01-02T18:35:27Z</pubDate>
+</item>
+
+<item>
 <title>[酷工作] 项目：抖音 - 匿名直播间 - 弹幕获取</title>
 <link>https://www.v2ex.com/t/1005325</link>
 <guid>https://www.v2ex.com/t/1005325</guid>
 <content:encoded><![CDATA[
-
 <p>能做的。绿色软件 linode16</p>
 ]]></content:encoded>
-<pubDate>2024-01-02T17:44:56Z</pubDate>
 <pubDate>2024-01-02T17:43:56Z</pubDate>
 </item>
 <item>
@@ -20,7 +172,6 @@
 <link>https://www.v2ex.com/t/1005324</link>
 <guid>https://www.v2ex.com/t/1005324</guid>
 <content:encoded><![CDATA[
-
 <p>例如</p>
 <pre><code>POST /jars/upload HTTP/1.1
 Host: localhost:8081
@@ -40,7 +191,6 @@ success
 </code></pre>
 <p>这样一段 HTTP 包，无论用 postman ，postwoman, curl 之类的工具都需要自行修改这个字符串以符合他们的使用格式， 有些不方便。</p>
 ]]></content:encoded>
-<pubDate>2024-01-02T17:19:45Z</pubDate>
 <pubDate>2024-01-02T18:02:29Z</pubDate>
 </item>
 <item>
@@ -48,11 +198,9 @@ success
 <link>https://www.v2ex.com/t/1005323</link>
 <guid>https://www.v2ex.com/t/1005323</guid>
 <content:encoded><![CDATA[
-
 <p>看到一些平台上有售卖 AWS 优惠券，好奇这些优惠券是怎么获得的，似乎是参加了 AWS 的某些活动？<br />
 使用这些优惠券安全么？如果我的 AWS 账号经常使用这些优惠券，会不会被风控，比如被封号？</p>
 ]]></content:encoded>
-<pubDate>2024-01-02T17:11:59Z</pubDate>
 <pubDate>2024-01-02T18:05:54Z</pubDate>
 </item>
 <item>
@@ -60,14 +208,12 @@ success
 <link>https://www.v2ex.com/t/1005322</link>
 <guid>https://www.v2ex.com/t/1005322</guid>
 <content:encoded><![CDATA[
-
 <p>想一起聊聊 35 岁之后的问题。</p>
 <p>建了个群，随便聊聊</p>
 <p>如果有可能的话，认识一些人共同做一些应用和项目</p>
 <p>加微信 menebel
 然后加群。</p>
 ]]></content:encoded>
-<pubDate>2024-01-02T16:56:46Z</pubDate>
 <pubDate>2024-01-02T17:58:25Z</pubDate>
 </item>
 <item>
@@ -75,7 +221,6 @@ success
 <link>https://www.v2ex.com/t/1005321</link>
 <guid>https://www.v2ex.com/t/1005321</guid>
 <content:encoded><![CDATA[
-
 <p>我想找到一个好用的文件管理器，需要满足以下几个要求：</p>
 <ul>
 <li>最好可以通过 docker 部署</li>
@@ -86,7 +231,6 @@ success
 </ul>
 <p>有没有大佬分享下珍藏的好用的文件管理器啊，太难了，找了好多这些基础功能都不太给力。</p>
 ]]></content:encoded>
-<pubDate>2024-01-02T16:43:26Z</pubDate>
 <pubDate>2024-01-01T04:57:59Z</pubDate>
 </item>
 <item>
@@ -94,13 +238,10 @@ success
 <link>https://www.v2ex.com/t/1003852</link>
 <guid>https://www.v2ex.com/t/1003852</guid>
 <content:encoded><![CDATA[
-
 经常有朋友问我，这个品牌有没有优惠券，那个店有没有折扣，这不，开发了可以实时在线找优惠券的网站。<br /><br />CouponGPTs 链接： <a href="https://www.coupongpts.com/" rel="nofollow noopener" target="_blank">https://www.coupongpts.com/</a><br /><br />操作非常简单，只要输入你想要的店铺或者品牌名称，CouponGPTs 就会广泛搜索全网，实时查找可用的最佳优惠券。等待几秒钟，即可展现最相关的折扣列表。找到你需要的优惠券后，只需在结帐时复制折扣码即可省钱。<br /><br />欢迎朋友们体验，提出宝贵意见。感谢兄弟姐妹们~
 ]]></content:encoded>
-<pubDate>2023-12-27T07:26:36Z</pubDate>
 <pubDate>2023-12-30T00:10:49Z</pubDate>
 </item>
-
 <item>
 <title>[酷工作] AI Agent 方向初创公司诚聘 前后端和 UI 设计师</title>
 <link>https://www.v2ex.com/t/1005318</link>
@@ -17500,63 +17641,6 @@ base: shanghai</p>
 email: <a href="mailto:pjiang726@gmail.com">pjiang726@gmail.com</a></p>
 ]]></content:encoded>
 <pubDate>2023-12-28T06:18:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问有没有 TV web 前端的框架？</title>
-<link>https://www.v2ex.com/t/1004092</link>
-<guid>https://www.v2ex.com/t/1004092</guid>
-<content:encoded><![CDATA[
-<p>就是主要用在电视浏览器上，不是那种数据大屏类。不知道有没有相关 web 框架可以推荐</p>
-]]></content:encoded>
-<pubDate>2023-12-28T05:59:44Z</pubDate>
-</item>
-<item>
-<title>[Telegram] telegram-电报登不上</title>
-<link>https://www.v2ex.com/t/1004091</link>
-<guid>https://www.v2ex.com/t/1004091</guid>
-<content:encoded><![CDATA[
-手机和电脑 app 都接了水管，手机 app 登让从电脑上收码，电脑 app 上登让从手机 app 收码。<br /><br />两边都收不到，咋整?
-]]></content:encoded>
-<pubDate>2023-12-25T05:55:50Z</pubDate>
-</item>
-<item>
-<title>[Spotify] Spotify 美区家庭组拼车长期</title>
-<link>https://www.v2ex.com/t/1004090</link>
-<guid>https://www.v2ex.com/t/1004090</guid>
-<content:encoded><![CDATA[
-<p>美区 Spotify 合租 美区 Spotify 家庭组 美区 Spotify 拼车 Spotify 美区会员 需要上车的小伙伴可以加我微信 dudu03jia1</p>
-]]></content:encoded>
-<pubDate>2023-12-28T05:52:27Z</pubDate>
-</item>
-<item>
-<title>[生活] 用什么可以预测节假日远途路程用时</title>
-<link>https://www.v2ex.com/t/1004089</link>
-<guid>https://www.v2ex.com/t/1004089</guid>
-<content:encoded><![CDATA[
-前几次出门发现高德未来用时在节假日预测并不准，尤其是遇到天气影响，实际用时直接翻倍。<br />早晚高峰拥堵预测感觉挺准，但是附加了长途，节假日，天气等因素预测就没有参考价值了，甚至耽误一些计划。<br />感觉这个需求是能够解决的，如果车流量和天气数据过硬，那么预测准确度肯定随之增加。<br />如果数据不够，可以通过告知使用者，附加什么情况时间会增加多少。<br />或者在使用预测时，自己选择附加情况进行预测。<br />但上面这种方案给出后，预测准确度还不行那么也没用意义了。<br /><br />用什么可以准确预测用时，给个预计区间准的也行，有个心里结果
-]]></content:encoded>
-<pubDate>2023-12-28T06:12:11Z</pubDate>
-</item>
-<item>
-<title>[iPhone] ios 的通知机制发生变化了吗，现在需要翻墙的应用如果不长期开代理就收不到通知</title>
-<link>https://www.v2ex.com/t/1004087</link>
-<guid>https://www.v2ex.com/t/1004087</guid>
-<content:encoded><![CDATA[
-<p>如题，我记得 iOS 的通知是苹果自己的通道，所以需要翻墙的应用例如 whatsapp,telegram 这些，即使不打开，不开梯子，有信息也能收到通知。以前记得是这样。
-但最近几天开始用回这些 app ，测试了一下，如果后台不长期开着代理，别人发信息给我，whatsapp 这种是不会收到推送通知的，telegram 同理。
-想问下大家是这种情况吗，是 ios 通知机制改变了吗？要长期开代理也行，只是觉得没必要</p>
-]]></content:encoded>
-<pubDate>2023-12-28T06:15:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教在 goland 中有没有快速重置 map 索引的快捷键</title>
-<link>https://www.v2ex.com/t/1004086</link>
-<guid>https://www.v2ex.com/t/1004086</guid>
-<content:encoded><![CDATA[
-<p>请教在 goland 中有没有快速重置 map 索引的快捷键，如下图，将 0, 1, 3, 4, 5, 6, 7 快速改成 0, 1, 2, 3, 4, 5, 6
-<img alt="Go" class="embedded_image" rel="noreferrer" src="https://cdn.learnku.com/uploads/images/202312/28/56022/tBWLKASrW3.png%21large" /></p>
-]]></content:encoded>
-<pubDate>2023-12-28T05:45:08Z</pubDate>
 </item>
 </channel>
 </rss>
