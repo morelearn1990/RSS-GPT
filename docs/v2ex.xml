@@ -5,16 +5,816 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 使用 ChatGPT 突破能力边界 之 前端小白实现沉浸式翻译的核心功能</title>
+<link>https://www.v2ex.com/t/1005534</link>
+<guid>https://www.v2ex.com/t/1005534</guid>
+<content:encoded><![CDATA[
+
+<p>作为一个后端开发, 一直比较好奇沉浸式翻译的效果是如何实现的, 所以咱也当了回甲方, 让 ChatGPT 帮我实现想要的效果</p>
+<h3>场景</h3>
+<p>为了锻炼英文阅读能力, 在英文文章阅读时还是期望能多读外文, 如果一把梭翻译一遍, 普遍是只读中文不看英文了, 那么也就起不到我们锻炼英文能力的要求了.</p>
+<h3>需求</h3>
+<p>如果我遇到了一些不认识或者不确定意思的单词，我希望得到一个贴合当前语境的翻译，这样既能理解文章，又能在语境中学习单词。</p>
+<h3>需求拆解</h3>
+<p>如果鼠标在某个单词上方悬浮超过 xx 毫秒, 那么则结合当前语境翻译这个单词及这个句子.</p>
+<p>好的, 需求有了, 思路也有了, 具体咋做咱就不知道了, 现在轮到我最强的小弟 ChatGPT 大显身手了</p>
+<h3>效果图</h3>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1751baee274b4dc2bae9f353ccd6566e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1386&amp;h=544&amp;s=291107&amp;e=png&amp;b=fdfdfd" /></p>
+<p>具体功能点:</p>
+<ol>
+<li>关键词的翻译, 译文紧跟在关键词后面</li>
+<li>当前语句的翻译</li>
+</ol>
+<p>实现此效果的完整 ChatGPT 对话: <a href="https://chat.openai.com/share/f38f1d72-45a7-433a-a7ad-764b9a3f2c5b" rel="nofollow">实现沉浸式翻译的核心功能</a></p>
+<p>插播广告:</p>
+<p>推荐一个 ChatGPT Plus 拼车服务, 客服<a href="https://dow.chatbee.cc/qrcode.png" rel="nofollow">wx</a>, 无需科学上网/会话隔离</p>
+<h3>最终完整代码</h3>
+<pre><code class="language-javascript">import type { PlasmoCSConfig } from "plasmo"
+import { generate } from 'short-uuid'
+
+export const config: PlasmoCSConfig = {
+    matches: ["&lt;all_urls&gt;"],
+    all_frames: true
+}
+
+const loading = `
+&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"&gt;&lt;radialGradient id="a11" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"&gt;&lt;stop offset="0" stop-color="#85A2B6"&gt;&lt;/stop&gt;&lt;stop offset=".3" stop-color="#85A2B6" stop-opacity=".9"&gt;&lt;/stop&gt;&lt;stop offset=".6" stop-color="#85A2B6" stop-opacity=".6"&gt;&lt;/stop&gt;&lt;stop offset=".8" stop-color="#85A2B6" stop-opacity=".3"&gt;&lt;/stop&gt;&lt;stop offset="1" stop-color="#85A2B6" stop-opacity="0"&gt;&lt;/stop&gt;&lt;/radialGradient&gt;&lt;circle transform-origin="center" fill="none" stroke="url(#a11)" stroke-width="15" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"&gt;&lt;animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="2" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"&gt;&lt;/animateTransform&gt;&lt;/circle&gt;&lt;circle transform-origin="center" fill="none" opacity=".2" stroke="#85A2B6" stroke-width="15" stroke-linecap="round" cx="100" cy="100" r="70"&gt;&lt;/circle&gt;&lt;/svg&gt;
+`
+const cssCode = `
+.ct-loading {
+    width: 1em;
+    display: inline-block;
+}
+
+.ct-span {
+    display: inline-block;
+    margin-right: 2px;
+    margin-left: 2px;
+}
+`
+
+var xy = { x: 0, y: 0 }
+
+document.head.insertAdjacentHTML('beforeend', '&lt;style type="text/css"&gt;' + cssCode + '&lt;/style&gt;');
+// 存储已经翻译过的单词，以避免重复翻译
+var translatedWords = new Set(); // 用于存储已翻译的单词及其父元素
+var pool = {}
+
+document.addEventListener('mousemove', function (event) {
+    // 获取鼠标位置
+    var x = event.clientX, y = event.clientY;
+    xy = { x, y }
+
+    // 获取鼠标位置下的文本范围
+    var range, textNode, offset;
+    range = document.caretRangeFromPoint(x, y);
+    textNode = range.startContainer;
+    if (!textNode) {
+        return
+    }
+    if (textNode.parentElement.hasAttribute('data-ct-translation')) { // 翻译结果节点
+        return;
+    }
+    if (hasPreOrCodeParent(textNode)) {
+        return
+    }
+    offset = range.startOffset;
+
+    var text = textNode.textContent;
+    var words = text.split(/\s+/);
+    for (var i = 0; i &lt; words.length; i++) {
+        var word = removeSpecialCharacters(words[i]);
+        if (!isEnglishWord(word)) {
+            continue;
+        }
+        // 检测鼠标是否在当前单词上
+        var wordRange = document.createRange();
+        wordRange.setStart(textNode, text.indexOf(word));
+        wordRange.setEnd(textNode, text.indexOf(word) + word.length);
+        var rects = wordRange.getClientRects();
+        for (var j = 0; j &lt; rects.length; j++) {
+            var rect = rects[j];
+            if (!(x &gt;= rect.left &amp;&amp; x &lt;= rect.right &amp;&amp; y &gt;= rect.top &amp;&amp; y &lt;= rect.bottom)) {
+                continue;
+            }
+            var parentElementId = textNode.parentElement.getAttribute('data-ct-id');
+            if (parentElementId) {
+                translatedWords[word] = parentElementId;
+            } else {
+                parentElementId = generate();
+                textNode.parentElement.setAttribute('data-ct-id', parentElementId);
+            }
+
+            if (translatedWords.has(word + '-' + parentElementId)) {
+                continue;
+            }
+
+            // 创建包装的 span 元素
+            // console.log();
+            var spanElement = document.createElement('span');
+            const wordId = generate()
+            spanElement.setAttribute('id', wordId);
+            spanElement.setAttribute('data-pid', parentElementId);
+            spanElement.setAttribute('data-ct-translation', '0');
+            spanElement.setAttribute('data-ct-word', word);
+            spanElement.setAttribute('data-ct-rect', `${rect.left},${rect.right},${rect.top},${rect.bottom}`);
+            spanElement.setAttribute('data-ct-parent', getFullSentenceContainingWord(textNode.parentElement));
+            wordRange.collapse(false); // 将光标移到范围的末尾
+            wordRange.insertNode(spanElement);
+            translatedWords.add(word + '-' + parentElementId);
+            pool[wordId] = {}
+            // console.log('Word under mouse:', word);
+        }
+    }
+});
+
+setInterval(() =&gt; {
+    for (const wordId in pool) {
+        const wordElement = document.getElementById(wordId);
+        if (!wordElement) {
+            continue;
+        }
+        const rect = wordElement.getAttribute('data-ct-rect').split(',').map(Number);
+        const word = wordElement.getAttribute('data-ct-word');
+        const pid = wordElement.getAttribute('data-pid');
+        if (!isMouseOnTranslation({ left: rect[0], right: rect[1], top: rect[2], bottom: rect[3] }, xy.x, xy.y)) {
+            translatedWords.delete(word + '-' + pid)
+            wordElement.remove()
+            delete pool[wordId]
+            continue
+        }
+        wordElement.classList.add('ct-loading')
+        wordElement.innerHTML = loading
+
+        fetch('http://localhost:8787/translate', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                word: word,
+                sentence: wordElement.getAttribute('data-ct-parent')
+            })
+        }).then(res =&gt; res.json()).then(res =&gt; {
+            console.log(res)
+            wordElement.classList.remove('ct-loading')
+            wordElement.classList.add('ct-span')
+            wordElement.innerHTML = `(${res.word_result})`
+            const p = document.querySelector(`[data-ct-id="${pid}"]`)
+            const cp = p.cloneNode(true)
+            cp.textContent = res.sentence_result
+            p.after(cp)
+        }).catch(e =&gt; console.log)
+
+        wordElement.setAttribute('data-ct-translation', '1');
+        delete pool[wordId]
+    }
+}, 1500)
+
+// 判断鼠标是否在翻译内容上
+function isMouseOnTranslation(rect, mouseX, mouseY) {
+    return rect &amp;&amp; mouseX &gt;= rect.left &amp;&amp; mouseX &lt;= rect.right &amp;&amp; mouseY &gt;= rect.top &amp;&amp; mouseY &lt;= rect.bottom
+}
+
+function isEnglishWord(word) {
+    // 使用正则表达式匹配英文单词，这里假设一个英文单词由大小写字母组成
+    var regex = /^[a-zA-Z0-9]+$/;
+    return regex.test(removePunctuation(word));
+}
+
+
+function removePunctuation(word) {
+    // 使用正则表达式匹配标点符号并替换为空字符串
+    return word.replace(/[.,\/#!$%\^&amp;\*;:{}=\-_`~()]/g, '');
+}
+
+function getFullSentenceContainingWord(parentNode) {
+    // const tokens = parentNode.innerText.replace(/\n/, '').split('.');
+    // return tokens[0];
+    return parentNode.innerText.replace(/\n/, '')
+}
+
+function removeSpecialCharacters(str) {
+    return str.replace(/[^a-zA-Z0-9]/g, '');
+}
+
+function hasPreOrCodeParent(node) {
+    let parent = node.parentNode;
+
+    while (parent) {
+        if (parent.tagName === 'PRE' || parent.tagName === 'CODE') {
+            return true;
+        }
+        parent = parent.parentNode;
+    }
+
+    return false;
+}
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-01-03T08:20:28Z</pubDate>
+<pubDate>2024-01-03T08:18:28Z</pubDate>
+</item>
+<item>
+<title>[云计算] 云服务器 2 核 4G5M</title>
+<link>https://www.v2ex.com/t/1005533</link>
+<guid>https://www.v2ex.com/t/1005533</guid>
+<content:encoded><![CDATA[
+
+<p>企业级的云服务器 2 核 4G5M ，看了下国内三大云服务的，大佬们还有别的推荐的吗
+腾讯云 252 元/年，传送门： <a href="https://reurl.cc/kr7rqG" rel="nofollow">https://reurl.cc/kr7rqG</a>
+华为云 198 元/年，传送门： <a href="https://reurl.cc/Xq4ql7" rel="nofollow">https://reurl.cc/Xq4ql7</a>
+阿里云没看到多少兆的，传送门： <a href="https://reurl.cc/mrGMgM" rel="nofollow">https://reurl.cc/mrGMgM</a></p>
+]]></content:encoded>
+<pubDate>2024-01-03T08:15:20Z</pubDate>
+<pubDate>2024-01-03T08:12:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 小米电动车有点漂啊</title>
+<link>https://www.v2ex.com/t/1005532</link>
+<guid>https://www.v2ex.com/t/1005532</guid>
+<content:encoded><![CDATA[
+
+首发预售价 60w? <br /><br /><a href="https://i.imgur.com/fUsgbPX_d.webp?maxwidth=760&amp;fidelity=grand" rel="nofollow noopener" target="_blank">https://i.imgur.com/fUsgbPX_d.webp?maxwidth=760&amp;fidelity=grand</a>
+]]></content:encoded>
+<pubDate>2024-01-03T08:13:13Z</pubDate>
+<pubDate>2024-01-03T08:21:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有提供类似"恋爱体验"的平台或者 App？</title>
+<link>https://www.v2ex.com/t/1005531</link>
+<guid>https://www.v2ex.com/t/1005531</guid>
+<content:encoded><![CDATA[
+
+RT ，受限于单身，想体验仅限于正规的吃火锅、看电影的服务<br /><br />预算 200-300/小时，请各位不要嘲笑我
+]]></content:encoded>
+<pubDate>2024-01-03T08:09:19Z</pubDate>
+<pubDate>2024-01-03T08:18:18Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 希望大家给点软路由的选购意见</title>
+<link>https://www.v2ex.com/t/1005530</link>
+<guid>https://www.v2ex.com/t/1005530</guid>
+<content:encoded><![CDATA[
+
+购入了一个小米 BE6500PRO 想着有双网聚合然后就把老 J4125 卖了(我贱啥啊)<br />	然后发现 我的双动态公网会导致下联设备全部断网<br />		双网聚合/wan1 或 2 主备也不行 必须关掉或者是断开一个 PPPOE 才可以正常上网<br />        <br />然后拿群辉虚拟机搞了个 ikuai 现在是正常上网 2 个群辉千兆（ e1000 ）+USB2.5G 网卡（ virtio ）<br />   	内网可以跑 2.1Gbps(虚拟机) 外网下载测速是 150~500Mbps 飘忽不定<br />        <br />所以想着再搞一套 Ikuai 物理机（搞好差不多 1.5K 以内？ 电费一天 3 度？）<br />	1:爱快-Q6000 （ 399 纯路由 小米路由器当 AP ）<br />    2:N100 6 网口的小主机（物理机 Ikuai ）<br />    3:你们给我推荐一下呗<br />    （下面的可能会搞个 Ubuntu/Docker ）<br />    4:超微 X10SLH-N6-ST031+E3 （然后换风扇 毕竟群辉天天炒豆子我已经听习惯了）<br />    5:6900H ES 双网口+USB2.5G 网卡
+]]></content:encoded>
+<pubDate>2024-01-03T08:08:17Z</pubDate>
+<pubDate>2024-01-03T08:06:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有什么方法可以防止推特被封号？</title>
+<link>https://www.v2ex.com/t/1005529</link>
+<guid>https://www.v2ex.com/t/1005529</guid>
+<content:encoded><![CDATA[
+
+马斯克上台后，我一个没任何互动和违规的号突然被封了，注册了一个新号没几天也被封了，无论如何申诉也回不来。不知道是不是因为梯子换了 IP 的原因被封，而最近又注册了一个新号，听说要多发点帖子和评论才不会被封号，想问一下有什么方法可以不让新号被封呢？
+]]></content:encoded>
+<pubDate>2024-01-03T08:08:01Z</pubDate>
+<pubDate>2024-01-03T08:22:10Z</pubDate>
+</item>
+<item>
+<title>[问与答] [求助] 在.net 中集成 watchdog ？</title>
+<link>https://www.v2ex.com/t/1005528</link>
+<guid>https://www.v2ex.com/t/1005528</guid>
+<content:encoded><![CDATA[
+
+项目线上一直有个问题，偶尔性的发生。所以集成了 watchdog (.net6)，监测接口，感受了 watchdog 强大，<a href="http://但是现在有个.NET" rel="nofollow noopener" target="_blank">但是现在有个.NET</a> Framework 4.5 的项目，同样也需要集成类似功能的日志记录。<a href="http://所以说老版本的.net" rel="nofollow noopener" target="_blank">所以说老版本的.net</a> 有没有类似于 watchdog 的类库。开箱即用，使用方便。
+]]></content:encoded>
+<pubDate>2024-01-03T08:07:12Z</pubDate>
+<pubDate>2024-01-03T08:04:12Z</pubDate>
+</item>
+<item>
+<title>[程序员] zerotier 不能用了？</title>
+<link>https://www.v2ex.com/t/1005526</link>
+<guid>https://www.v2ex.com/t/1005526</guid>
+<content:encoded><![CDATA[
+
+刚刚还在命令行各种操作，忽然键盘各种输入都没响应，以为是键盘电池没电了，排查一圈发现是 zerotier 获取不到我本机的物理 IP 了，另外一台机器也出现这种情况，目前仅剩一台 ipv6 的机器还能获取到物理 IP ，两台 ipv4 的都获取不到了，应该不是被墙，因为登录状态还在一直刷新，你们出现这种问题了么？
+]]></content:encoded>
+<pubDate>2024-01-03T08:05:50Z</pubDate>
+<pubDate>2024-01-03T08:19:00Z</pubDate>
+</item>
+<item>
+<title>[NVIDIA] 4090 阉割版即将上线， 12999 起</title>
+<link>https://www.v2ex.com/t/1005525</link>
+<guid>https://www.v2ex.com/t/1005525</guid>
+<content:encoded><![CDATA[
+
+“目前已有多个英伟达中国大陆区的合作伙伴宣布推出 GeForce RTX 4090 D 显卡，据博板堂透露，厂商已准备好新品，最多在周末或者下周初，各个品牌都会陆续开始出货新显卡，售价 12999 元起。<br /><br />RTX 4090 D 搭载了 AD102-250 GPU ，CUDA 核心数量从 RTX 4090 的 16384 个减至 14592 个，Tensor 核心数量从 512 个减至 456 个，RT 核心数量从 128 个减至 114 个。不过 RTX 4090 D 的基础频率比 RTX 4090 的 2235 MHz 要高一些，达到了 2280 MHz ，而加速频率则与 RTX 4090 相同，维持在 2520 MHz 。新产品仍会配备 24GB 的 GDDR6X 显存，位宽是 384 位，速率为 21 Gbps 。”<br /><br />楼主评价：减量不减价，AD102-250 ，连名字都这么有中国特色。
+]]></content:encoded>
+<pubDate>2024-01-03T08:05:25Z</pubDate>
+<pubDate>2024-01-03T08:02:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 冷门方向：问一下 PC 端软件或者网站有没有比较靠谱的开发者接入的激励广告平台？</title>
+<link>https://www.v2ex.com/t/1005524</link>
+<guid>https://www.v2ex.com/t/1005524</guid>
+<content:encoded><![CDATA[
+
+<p>像穿山甲这些平台都是移动端的
+PC 端软件没人玩了吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T08:04:51Z</pubDate>
+<pubDate>2024-01-03T08:09:27Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 目前正待业的程序员老北北们看过来～</title>
+<link>https://www.v2ex.com/t/1005523</link>
+<guid>https://www.v2ex.com/t/1005523</guid>
+<content:encoded><![CDATA[
+
+<p>之前发过一个招聘帖子，期间收到了不少的简历，不过约面试的很多同学对岗位职责的理解都有些偏差，所以我们重新发个帖子，再把岗位需求认真讲一下。</p>
+<p>请注意这是个纯的行政管理岗，不涉及任何代码开发，所以如果后续职业生涯还是计划走技术和代码开发的，那可能就不太合适了哈。岗位详细 JD 如下：</p>
+<p>岗位：项目管理 （ 10k ～ 20k 人民币/月）</p>
+<p><strong>岗位职责</strong></p>
+<ol>
+<li>协助项目负责人完成项目的全流程管理；</li>
+<li>负责项目的日常管理和推进，定期收集项目的日常信息、数据，保证项目准时、高质量的交付；</li>
+<li>跟踪项目过程中出现的问题，发现并推动解决项目问题；</li>
+<li>其他项目管理相关工作；</li>
+</ol>
+<p><strong>任职要求</strong></p>
+<ol>
+<li>有开发经验（全栈或 web3.0 经验者重点考虑）；</li>
+<li>熟练使用办公管理软件及项目管理软件；</li>
+<li>工作细心踏实，可以做好项目进行过程中的资料收集、整理、分析及归档工作；</li>
+<li>具有较强的责任心、推动能力和沟通能力，可以组织跨部门沟通和协调；</li>
+<li>良好的职业操守、良好的团队协作意识;</li>
+<li>本科及以上学历,有项目管理经验者优先；</li>
+</ol>
+<p>感兴趣的老北北欢迎简历发送至 <a href="mailto:hr@openblock.com">hr@openblock.com</a> 投递岗位。</p>
+<p>考虑到时间和效率问题，我们只会联系简历经过初筛的候选人参加面试，谢谢！</p>
+<p>祝大家都求职顺利！</p>
+]]></content:encoded>
+<pubDate>2024-01-03T08:02:34Z</pubDate>
+<pubDate>2024-01-03T08:08:58Z</pubDate>
+</item>
+<item>
+<title>[互联网] 合肥有没有程序员交流群啊？</title>
+<link>https://www.v2ex.com/t/1005522</link>
+<guid>https://www.v2ex.com/t/1005522</guid>
+<content:encoded><![CDATA[
+
+<p>我用谷歌搜索直接搜到 2016 或者 2017 年发的帖子，还都是 QQ 群，醉了这是。</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:58:18Z</pubDate>
+<pubDate>2024-01-03T08:09:07Z</pubDate>
+</item>
+<item>
+<title>[Apple] 知乎 ios 最新版本 进入必闪退发热</title>
+<link>https://www.v2ex.com/t/1005521</link>
+<guid>https://www.v2ex.com/t/1005521</guid>
+<content:encoded><![CDATA[
+
+机型 xsm 不知道什么原因
+]]></content:encoded>
+<pubDate>2024-01-03T07:56:03Z</pubDate>
+<pubDate>2024-01-03T08:14:05Z</pubDate>
+</item>
+<item>
+<title>[Apple] M1 Air 升级到 Monterey 12.7.2， Safari 非常卡顿，如何降级</title>
+<link>https://www.v2ex.com/t/1005520</link>
+<guid>https://www.v2ex.com/t/1005520</guid>
+<content:encoded><![CDATA[
+
+<p>M1 Air 16G 内存 12.7.1 Safari 非常丝滑，50 个网页 tab+ 20 个油管都不在话下。但是自从前几天升级到 12.7.2 后，开了不到 10 个油管 tab ，全屏，网页大小缩放总感觉有点卡顿，打开 Activity Monitor ，果然 4 个 P 核占用率也很高，非常奇怪。</p>
+<p>早知道就不升级了，现在国外程序袁都还在度假，也不知道 12.7.3 何时能推出。</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:56:01Z</pubDate>
+<pubDate>2024-01-03T07:53:01Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 来，都来讲讲现在的工作到底有多难找，来比比看！</title>
+<link>https://www.v2ex.com/t/1005519</link>
+<guid>https://www.v2ex.com/t/1005519</guid>
+<content:encoded><![CDATA[
+
+<p>去年 11 月底公司砍掉整个业务线，在一线城市玩了个把月 觉得这几年勤勤恳恳上班太累了想先放松下再说，没有急着找工作，然后决定回老家发展，不看不知道，原来自己太天真，找了一年了还没找到工作。我吐了</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:53:33Z</pubDate>
+<pubDate>2024-01-03T04:53:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] p40 显卡控温风扇</title>
+<link>https://www.v2ex.com/t/1005518</link>
+<guid>https://www.v2ex.com/t/1005518</guid>
+<content:encoded><![CDATA[
+
+这运算卡没风扇，买了一个配了一个 pmw 模块，可以设置什么温度开始转，转速什么的。现在这个临界值不好把握，像是这种电子产品多少度开始需要散热比较合适？ 40,50,60? 看见有人说有的普通显卡自带风扇的，60 度才开始转？
+]]></content:encoded>
+<pubDate>2024-01-03T07:51:00Z</pubDate>
+<pubDate>2024-01-01T07:51:00Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 求助： openwrt 突然无法访问 web 管理页面</title>
+<link>https://www.v2ex.com/t/1005516</link>
+<guid>https://www.v2ex.com/t/1005516</guid>
+<content:encoded><![CDATA[
+
+<p>早上上网到一半，就发现网络掉了。
+然后无法访问 192.168.10.1 软路由的 web 管理页面，也无法访问互联网。使用网线和软路由链接也一样，重启也无效。
+但是，软路由本身是可以访问互联网的。通过让软路由连接到显示器，可以访问到系统。</p>
+<p>使用 /ect/init.d/uhttpd restart 也没作用。</p>
+<p>请问该怎么处理？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:43:53Z</pubDate>
+<pubDate>2023-12-24T07:58:31Z</pubDate>
+</item>
+<item>
+<title>[微软] win11 自带邮箱应用无法同步邮件，有人遇到过没？</title>
+<link>https://www.v2ex.com/t/1005515</link>
+<guid>https://www.v2ex.com/t/1005515</guid>
+<content:encoded><![CDATA[
+
+<p>自带邮箱没有最新邮件，发送邮件出去也无法被收到，可能是什么原因导致？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:42:52Z</pubDate>
+<pubDate>2024-01-03T07:45:12Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如果我开发一款聊天 APP 能自定义信息提示音，能否超越微信?</title>
+<link>https://www.v2ex.com/t/1005514</link>
+<guid>https://www.v2ex.com/t/1005514</guid>
+<content:encoded><![CDATA[
+
+目前微信在国内聊天是巨无霸存在，但它有个痛点就是无法自定义信息提示音，导致一群人在一起经常错把别人的提示音当做自己的新信息，那么针对这一痛点，我开发一款聊天 APP ，可以用户自己上传提示音文件，可否撼动微信的地位?
+]]></content:encoded>
+<pubDate>2024-01-03T07:38:01Z</pubDate>
+<pubDate>2024-01-03T08:20:54Z</pubDate>
+</item>
+<item>
+<title>[酷工作] Java -外企-上海长宁-50-80k/m-876217551</title>
+<link>https://www.v2ex.com/t/1005513</link>
+<guid>https://www.v2ex.com/t/1005513</guid>
+<content:encoded><![CDATA[
+
+<p>‘资深 Java 开发（ 50-80k/M ，配股票）’</p>
+<p>地址：上海长宁淞虹路</p>
+<p>邮箱： <a href="mailto:sevensun@Geniusbanks.com">sevensun@Geniusbanks.com</a>
+wechat:876217551</p>
+<p>岗位职责:</p>
+<p>1.开发大规模 IoT 系统</p>
+<p>2.开发工厂自动化软件</p>
+<p>3.打造下一代 Android 与后端开发平台</p>
+<p>4.打造内部代码基础设施</p>
+<p>"任职要求:"</p>
+<p>1.8 年以上软件开发经验</p>
+<p>2.5 年以上后端及架构开发经验</p>
+<p>3.框架/工具：spring docker </p>
+<p>4.数据库 mongo postgresql</p>
+<p>5.精通 Java 及 Python</p>
+<p>6.熟练掌握系统设计，简洁代码以及面向对象编程</p>
+<p>7.统招本科学历，计算机科学相关专业</p>
+<p>8.英语听说读写流利，满足日常技术开发沟通需求</p>
+<p>加分项：</p>
+<p>1.Github 100+星项目所有者</p>
+<p>2.精通 Kotlin</p>
+<p>3.大规模分布式系统开发经验网络安全相关经验</p>
+<p>4.运维 DevOps 相关经验</p>
+<p>5.云平台(GCP/AWS/Azure) 相关开发经验</p>
+<p>6.操作系统相关经验</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:37:24Z</pubDate>
+<pubDate>2024-01-03T07:36:24Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [远程工作] 大数据开发工程师， 20k ～ 30K</title>
+<link>https://www.v2ex.com/t/1005512</link>
+<guid>https://www.v2ex.com/t/1005512</guid>
+<content:encoded><![CDATA[
+
+<p>大数据开发工程师(三年以上工作经验)：</p>
+<ul>
+<li>
+<p>熟悉数据、数仓建模，有 架构能力、模型设计能力</p>
+</li>
+<li>
+<p>熟悉 Hive 、Spark 、Flink 、Kafka 等大数据开源项目的使用，具备故障定位、以及性能调优能力；</p>
+</li>
+<li>
+<p>熟练使用 Scala 、Java 语言进行开发；具备 3 年以上的实时、离线数仓开发经验；</p>
+</li>
+<li>
+<p>优秀的技术设计能力、沟通协作能力和学习研究能力；</p>
+</li>
+<li>
+<p>加分项：熟悉 web3 、区块链 </p>
+</li>
+<li>
+<p>加分项：熟悉 阿里云大数据产品 MaxCompute 、Hologres 等</p>
+</li>
+</ul>
+<hr />
+<p>公司背景，链上数据分析公司</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:34:33Z</pubDate>
+<pubDate>2024-01-03T08:05:15Z</pubDate>
+</item>
+<item>
+<title>[汽车] 有没有杭州这边喜欢下赛道的伙伴</title>
+<link>https://www.v2ex.com/t/1005511</link>
+<guid>https://www.v2ex.com/t/1005511</guid>
+<content:encoded><![CDATA[
+
+现在主要跑浙赛，天马，武义这几个赛道，在城东有个三个举升机的小车房，可以方便进行一些车辆升级（当然也可以来修车，哈哈）。有同好可以聚集一下。<br />甩一张在赛道的照片吧<br /><a href="https://i.imgur.com/T9piYlT.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/T9piYlT.jpg" /></a><br /><br />vx：ccwwcc
+]]></content:encoded>
+<pubDate>2024-01-03T07:33:46Z</pubDate>
+<pubDate>2024-01-03T07:33:46Z</pubDate>
+</item>
+<item>
+<title>[Apple] 美区 apple one 求中杯车</title>
+<link>https://www.v2ex.com/t/1005510</link>
+<guid>https://www.v2ex.com/t/1005510</guid>
+<content:encoded><![CDATA[
+
+如题，张小龙 YXBjaGVuMDUxOA==
+]]></content:encoded>
+<pubDate>2024-01-03T07:32:38Z</pubDate>
+<pubDate>2024-01-03T07:29:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] v 友们，你们真的喜欢敏捷开发的这种节奏和方式吗？</title>
+<link>https://www.v2ex.com/t/1005509</link>
+<guid>https://www.v2ex.com/t/1005509</guid>
+<content:encoded><![CDATA[
+
+<p>不知道大家公司的实践是怎样的？真的有在实践敏捷吗？比如说我们目前的每日站会就是报告昨天和今天做了啥，计划做啥，并没有按着流程来走，只是单纯汇报而已。</p>
+<p>大家为什么喜欢或者不喜欢敏捷？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:31:55Z</pubDate>
+<pubDate>2024-01-03T07:53:02Z</pubDate>
+</item>
+<item>
+<title>[投资] 一百万如何进行简单的理财</title>
+<link>https://www.v2ex.com/t/1005508</link>
+<guid>https://www.v2ex.com/t/1005508</guid>
+<content:encoded><![CDATA[
+
+身为一个理财小白，想让大佬推荐一下一百万该如何进行简单一点保本或者低风险的理财方式。<br />我在网上又看到这几种<br /><br />1.银行定期存款<br />  邮政这边 1 年 1.75%，2 年 1.9%，网商银行 1 年 1.9% 2 年 2.4% 3 年 3.1%<br />  各个银行应该差不多把，好处是操作简单，但是一旦存进去，想拿出来就不方便了  <br /><br />2.支付宝的余额宝和余利宝<br />  余额宝 2.0%  余利宝 2.6%<br />  两个都操作比较简单且想用就用，比定存 2 年利息相差不大。余额宝没有限制入金，而余利宝有一些入金限制(用银行卡入金貌似没有限制<br /><br />3.国债逆回购<br />  平常 2.4%上下，季度末和年末买 4 天-7 天年化率分别差不多是 6%-5%<br />  需要使用个人基本信息 家庭地址 人脸信息来开通证券账号，买入卖出后需要一定的手续费。只有在季度末和年末买比较高，买 7 天的比较麻烦，买 28 天利息又太少。平常时间只有 2.4%的利息感觉有点食之无味 弃之可惜。<br /><br />4.纯债券基金<br />  好一点的基金在 4%-6%左右的年化率<br />  收益稍微多一点，但好像存在低风险，大部分基金需要收取管理费 托管费 和卖出费率，有些会收取入金手续费和销售服务费。<br />  <br />5.标普 500 和纳斯达克 ETF<br />  小白不太懂，感觉像是炒股吧，收益更大，风险也更大。<br />  <br />6.存美元定期<br />  汇率波动比较大，资金进出困难，需要货币转化手续费<br /><br /><br />求大佬推荐以上哪种或者其他的更好的理财方式
+]]></content:encoded>
+<pubDate>2024-01-03T07:25:26Z</pubDate>
+<pubDate>2024-01-03T08:15:32Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 语言模型使得谁的工作更加轻松了？</title>
+<link>https://www.v2ex.com/t/1005507</link>
+<guid>https://www.v2ex.com/t/1005507</guid>
+<content:encoded><![CDATA[
+
+<p>语言模型流行开之后，老板觉得你的效率也相应的提高了，进而停止招人或者裁撤一部分员工，并且要求大家以更快的速度工作。语言模型把人从低端重复的工作解脱出来去做高级的、有创造性的工作这点我真的没体会到。</p>
+<p>那么语言模型的流行让什么职业的人受益？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:23:41Z</pubDate>
+<pubDate>2024-01-03T07:36:59Z</pubDate>
+</item>
+<item>
+<title>[云计算] 免费华为云服务器新活动</title>
+<link>https://www.v2ex.com/t/1005506</link>
+<guid>https://www.v2ex.com/t/1005506</guid>
+<content:encoded><![CDATA[
+
+<p>华为云的羊毛，免费用： <a href="https://reurl.cc/blr1Lv" rel="nofollow">https://reurl.cc/blr1Lv</a></p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:16:38Z</pubDate>
+<pubDate>2024-01-03T07:42:22Z</pubDate>
+</item>
+<item>
+<title>[程序员] 个人博客访问速度优化～ 各位大佬帮忙看看有啥改进点没</title>
+<link>https://www.v2ex.com/t/1005505</link>
+<guid>https://www.v2ex.com/t/1005505</guid>
+<content:encoded><![CDATA[
+
+<p>文章在这里：</p>
+<p><a href="https://selfboot.cn/2024/01/03/hexo_blog_speed/" rel="nofollow">个人博客访问速度优化：CDN, 图片压缩, HTTP2</a></p>
+<p>可以访问下看看加载速度如何。</p>
+<p>希望大家多批评指针～</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:14:55Z</pubDate>
+<pubDate>2024-01-03T07:56:47Z</pubDate>
+</item>
+<item>
+<title>[Apple] MacOS 怎样才能做到：一键点击 Chrome 图标直接打开无痕窗口？正常需要点击图标启动，再从点击“文件”选择“打开新的无痕窗口”。</title>
+<link>https://www.v2ex.com/t/1005503</link>
+<guid>https://www.v2ex.com/t/1005503</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-01-03T07:10:48Z</pubDate>
+<pubDate>2024-01-03T07:37:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想听下大家的建议：我这英文发音，可以做抖音英文阅读直播吗？</title>
+<link>https://www.v2ex.com/t/1005501</link>
+<guid>https://www.v2ex.com/t/1005501</guid>
+<content:encoded><![CDATA[
+
+<p>在抖音能经常刷到英语类的直播，水平参差不齐，却有着巨大的流量，很多账号也在积极寻求变现，主要是卖课。</p>
+<p>我一直想做英语学习类的自媒体或 APP ，奈何能力水平有限，只能将自己定位为“英语学习者”。看过几个英语阅读类的直播，觉得自己的发音在横向对比后整体上稍显优势，想在这块进行切入。</p>
+<p>当然，关于有声阅读，我的词汇量以及发音还很欠缺，在内容为核心的媒体时代，“用户生成”是个核心且流行的方法论。</p>
+<p>这个词汇也某种程度以某种方式启发我：以“英语学习者”的角色切入，不断在与观众用户的交流反馈中来提升自己，进行技能专业化养成，最终也达成了自媒体账号的养成。</p>
+<p>关于以上，在语言学习或是自媒体账号打造等方面，大家有什么建议或经验分享吗？希望能够与志同道合的朋友们一起共同进步，共同成长！</p>
+<p><a href="https://www.chengguoqing.com/activity/?status/1-1-1704204298/" rel="nofollow">点击英语朗读 Demo&gt;&gt;</a></p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:07:45Z</pubDate>
+<pubDate>2024-01-03T07:04:45Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] gRpc 有无方法可以手动发送一个 error？</title>
+<link>https://www.v2ex.com/t/1005500</link>
+<guid>https://www.v2ex.com/t/1005500</guid>
+<content:encoded><![CDATA[
+
+<p>某个 grpc 转发服务遇到一个问题，一次双向 stream 的请求，中间可能会有两个负责转发的节点，大概是：</p>
+<p>client--&gt;proxyA--&gt;proxyB--&gt;server</p>
+<p>proxy 的处理过程是，来自请求发起方(client 方向)的 stream 是 grpc.ServerStream ，之后根据路由表建立向 server 端方向的服务器的 ClientStream 。一个 goroutine 负责从 client 收消息然后发给 server ，一个负责从 server 收消息发给 client 。</p>
+<p>目前遇到的问题是，如果 server 返回 error 并关闭连接，proxyB 上负责接收 client 方向请求的 goroutine 会卡在 client 方向的 stream 的 RecvMsg 这里，需要接收一次来自 proxyA 的请求才能退出。同理，proxyA 也需要 client 发送一次请求才能退出。</p>
+<p>结果就是当 server 出了问题，需要等 client 发送两次请求才能正常返回 error （第一次请求断开 proxyA 到 proxyB 的连接，第二次断开 client 到 proxyA 的连接）。更严重的是，第一次请求会一直阻塞在这里，直到超时后 context 被 cancel 掉。</p>
+<p>我现在的想法是，能不能让 proxyB 在收到 server 返回的错误后手动给 proxyA 发送一个 error 以改善这一过程？毕竟不是所有的 stream 连接都能接受加心跳请求或是重试的，这对业务也是额外的负担。</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:03:37Z</pubDate>
+<pubDate>2024-01-03T07:00:37Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] rpa 工具副业?</title>
+<link>https://www.v2ex.com/t/1005499</link>
+<guid>https://www.v2ex.com/t/1005499</guid>
+<content:encoded><![CDATA[
+
+<p>RPA 这个赛道我们程序员适合吗?
+自己有 uibot 的经验,前几天用 uibot 写了个爬虫,发现软件已经一年半不更新了
+但是影刀还是挺活跃的
+而且看到过生财有术里面分享过 rpa,无非也是做些自动化的工具
+想问问,怎么去发现先小众的/能赚钱的需求?用程序员的优点加 rpa 操作应该能有些门路吧
+自己在小红书上发 rpa 开发也是没几个人看,很冷门</p>
+]]></content:encoded>
+<pubDate>2024-01-03T07:03:29Z</pubDate>
+<pubDate>2024-01-03T07:28:04Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 上海联通宽带被局方停机处理流程</title>
+<link>https://www.v2ex.com/t/1005498</link>
+<guid>https://www.v2ex.com/t/1005498</guid>
+<content:encoded><![CDATA[
+
+发了帖子以后刚刚看到又有两位被局停了，这边分享一下处理流程<br /><br />1.这次应该是无通知封上行流量大的，做 PCDN 的，玩 PT 的，甚至像我一样只是给网盘备份东西的（因为看到有朋友说单日上传超过 100G 也会触发 PCDN 特征）<br /><br />2.不用打 10010 ，普通 10010 客服只会告诉你被停机了，原因不知道，记录一下上报，然后等人联系，投诉也是一样的话术<br /><br />3.不用去营业厅，营业厅能看到你被局停了，也会看到局停原因，但他们点击复机会失败，无权限，还是得小工上门核实<br /><br />4.如果打了 10010 ，等到最后会有人跟你联系，联系的内容是留下地址电话等待工程师（小工）上门核实<br /><br />5.联通小工是最终处理者，直接联系小工是效率最高的，如果安装宽带时留了联系方式可以直接联系，没有联系方式可以去中国联通 APP 看工程师电话<br /><br />6.本次局停有复机标准流程，小工不上门拍照不能复机，上门要给光猫和门牌拍照，并且要签一个告知书<br /><br />7.小工来了之后不会立刻恢复，要等复机
+]]></content:encoded>
+<pubDate>2024-01-03T07:02:19Z</pubDate>
+<pubDate>2024-01-03T08:17:51Z</pubDate>
+</item>
+<item>
+<title>[生活] 牙齿根管治疗记录</title>
+<link>https://www.v2ex.com/t/1005497</link>
+<guid>https://www.v2ex.com/t/1005497</guid>
+<content:encoded><![CDATA[
+
+右上大牙，三年前发现有一个洞，但是不疼（未伤到牙髓），遂进行补牙。<br /><br />12 月底的某天牙齿隐隐痛了几下，没在意，元旦假期开始有明显阵痛。（此时分辨不出具体是哪颗牙在痛，但我猜测是那颗补过的大牙）<br /><br />昨天挂了广东省口腔医院的号，经检查就是那颗大牙，已经伤到牙髓，治疗方案是根管后安装牙冠。昨天已进行第一次根管治疗，打了麻药，两个医生一顿鼓捣，全程无痛感，时长约 40 分钟。就是口水都聚集在嘴巴都快流出来了；喉咙聚集了粘液，很难受，不过完事医生拿一根管子放在嘴巴，一顿猛吸，基本就没了。<br /><br />费用：<br />挂号费：10 元<br />检查费（拍片）：53.25 元，报销 32.5 元，自费 20.75 元<br />第一次根管治疗费：1709.61 元，报销 1110.12 元，自费 599.49 元<br />目前总计自费：10+20.75+599.49 元=630.24 元<br /><br />后续根管治疗还需要 1-2 次，预计一颗牙齿下来根管治疗自费在 1500-2000 元之间。根管治疗后看情况是否安装牙冠，医生目前说是需要安装，但我基本使用左边大牙咀嚼，右边大牙很少使用，想着补一下就行了，到时候再看情况跟医生沟通吧。（牙冠不报销，广东省口腔医院预计要 4000-5000 元，有点贵，安装牙冠的话准备换家医院了）
+]]></content:encoded>
+<pubDate>2024-01-03T06:55:35Z</pubDate>
+<pubDate>2024-01-03T08:22:24Z</pubDate>
+</item>
+<item>
+<title>[分享发现] [开源硬件] 拟辉光时钟已经正式发布</title>
+<link>https://www.v2ex.com/t/1005496</link>
+<guid>https://www.v2ex.com/t/1005496</guid>
+<content:encoded><![CDATA[
+
+<p>[拟辉光时钟 Lixie 时钟（ STC8H 单片机主控）]  <a href="https://www.bilibili.com/video/BV1og4y1S7mm" rel="nofollow">https://www.bilibili.com/video/BV1og4y1S7mm</a></p>
+<p>淘宝已经上架，168 包邮，B 站关注 UP 立减 10 元。V 友下单时发送 V2EX ，联系卖家改价。不想买的可以 B 站看看视频，欢迎在评论区给出合理建议，一经采用，将赠送一套全散件套件。淘宝链接：
+<a href="https://item.taobao.com/item.htm?ft=t&amp;id=760214323807" rel="nofollow">https://item.taobao.com/item.htm?ft=t&amp;id=760214323807</a></p>
+<p>该套件在本年会以教程方式开源！！！从 2023 年开始，我们在摸索一种可持续性的开源道路，简而言之，就是赚钱。通过出售部分开源套件，赚取适当利润。让工作室兼职成员能回本、有收益、有动力；并尝试以此方式养活一个全职人员（以大学生为主），鼓励支持大学生参与开源事业。</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:49:50Z</pubDate>
+<pubDate>2024-01-03T07:24:35Z</pubDate>
+</item>
+<item>
+<title>[分享创造] All-in-One 搞基手册</title>
+<link>https://www.v2ex.com/t/1005495</link>
+<guid>https://www.v2ex.com/t/1005495</guid>
+<content:encoded><![CDATA[
+
+<p>All-in-One 搞基手册
+<a href="https://allinone.quickso.cn/" rel="nofollow">https://allinone.quickso.cn/</a></p>
+<p><a href="https://github.com/muzihuaner/all-in-one" rel="nofollow">https://github.com/muzihuaner/all-in-one</a>
+什么是 All in One ？
+All in One 是一种集成计算机，它将显示器、主机和键盘组合在一起，构成一个整体。它的优势在于可以减少电脑的体积，使用更加方便，而且价格也比传统台式电脑要低得多。
+还需要写一些什么呢</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:46:33Z</pubDate>
+<pubDate>2024-01-03T04:46:33Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 一张国内，一张澳门，是不是关闭一张不用的出门能省点电？</title>
+<link>https://www.v2ex.com/t/1005493</link>
+<guid>https://www.v2ex.com/t/1005493</guid>
+<content:encoded><![CDATA[
+
+<p>不知道关闭了澳门卡，再开启用不用重启手机？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:43:32Z</pubDate>
+<pubDate>2024-01-02T22:43:32Z</pubDate>
+</item>
+<item>
+<title>[iDev] apple 个人开发者账号申请, 遇到砍了. 
+通过 developer App 申请注册, 身份验证说我验证有问题, 然后让我联系官方团队.</title>
+<link>https://www.v2ex.com/t/1005492</link>
+<guid>https://www.v2ex.com/t/1005492</guid>
+<content:encoded><![CDATA[
+
+<p>官方说我身份验证过, 但实际我从来没有用我的身份验证过开发者, 后台还没有办法查出我的身份验证过的账号, 只能让我回忆, 然后发给客服去校验判断. 有遇到类似情况的朋友么</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:43:30Z</pubDate>
+<pubDate>2024-01-03T06:40:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有可以监控 12123 号牌号段公布的工具</title>
+<link>https://www.v2ex.com/t/1005491</link>
+<guid>https://www.v2ex.com/t/1005491</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-01-03T06:39:12Z</pubDate>
+<pubDate>2024-01-03T06:37:12Z</pubDate>
+</item>
+<item>
+<title>[分享发现] notion 和 loop</title>
+<link>https://www.v2ex.com/t/1005490</link>
+<guid>https://www.v2ex.com/t/1005490</guid>
+<content:encoded><![CDATA[
+
+今天无意间看到 v 站大佬有提到 loop 的。我当时用手机试了一下，这个 app ，emmm 是中文的，和 notion 类似，但是我记得 notion 不支持中文呢。<br />  尝试创建了几个 idea ，尝试了一下，发现手机上刚创建的我就写了一点点东西，再打开要好长时间，就和刚从微软服务器上同步下来似的。还有没有删除选项（手机上）。<br />  我在想这么大个厂子不能犯这种低级错误，果然下午电脑看了一下删除选项再电脑上（没有 pc 版，只有网页端）<br />  令我崩溃的是，网页端是英文的并且我的浏览器自带的翻译无法对其生效<br />  我想 v 友们，你们有没有在用的，你们是怎么适应的，网页端友汉化插件嘛？
+]]></content:encoded>
+<pubDate>2024-01-03T06:37:42Z</pubDate>
+<pubDate>2024-01-03T07:40:27Z</pubDate>
+</item>
+<item>
+<title>[北京] 北纬三十度鲜甜健康现摘 耙耙柑分享</title>
+<link>https://www.v2ex.com/t/1005487</link>
+<guid>https://www.v2ex.com/t/1005487</guid>
+<content:encoded><![CDATA[
+
+微店名  鹿福果<br /><br />链接  <a href="https://weidian.com/?userid=1234384743" rel="nofollow noopener" target="_blank">https://weidian.com/?userid=1234384743</a><br /><br />微信小程序名 鹿福果 (试用)<br /><br />北纬三十度 耙耙柑 产地气温<br />雨 136 天，阴 105 天，     多云 82 天，晴 39 天，沙雾霾 3 天。<br />平均高温：23℃，       平均低温：15℃；<br />日均空气指数 60 优     总降雨量 568.3(mm)<br />30 年果农专业培育，多年耙耙柑果树，土壤环境管理，我们用心与道德产出健康产品。<br /><br />产品 不含甜蜜素、无蜡 ； <br />果实生育期 280 天左右，<br />归经 脾、胃、膀胱经；<br /><br />现摘现发果质鲜甜，自然熟甜带些许果酸，正常温度此水果可放置 15 天，纯甜；<br />用心分享一份美好的果实给你，<br />2024 年加油！
+]]></content:encoded>
+<pubDate>2024-01-03T06:28:08Z</pubDate>
+<pubDate>2024-01-03T08:04:41Z</pubDate>
+</item>
+<item>
+<title>[健康] 天天吃鸡蛋，实际上是在吃抗生素🥚</title>
+<link>https://www.v2ex.com/t/1005486</link>
+<guid>https://www.v2ex.com/t/1005486</guid>
+<content:encoded><![CDATA[
+
+<p>最近想要健身，想增加蛋白质的补充，天天吃鸡蛋，最近吃了下个头很小的土鸡蛋，和超市里大点的鸡蛋。</p>
+<p>感觉口感是不同，刚刚搜索了下，感觉超市里的鸡蛋科技好像挺多的啊。</p>
+<h2>抗生素</h2>
+<p>鸡蛋中添加氟苯尼考，恩诺沙星，阿莫西林，甲硝锉，四环素，青霉素，等等：
+<a href="https://www.enping.gov.cn/zwgk/zdlyxxgk/spypaqxxgk/aq/content/post_281668.html" rel="nofollow">https://www.enping.gov.cn/zwgk/zdlyxxgk/spypaqxxgk/aq/content/post_281668.html</a></p>
+<p><a href="https://www.chinanews.com.cn/m/cj/2017/11-21/8381739.shtml" rel="nofollow">https://www.chinanews.com.cn/m/cj/2017/11-21/8381739.shtml</a></p>
+<p><a href="https://scjgj.nantong.gov.cn/ntsgsj/upload/0853505f-3f13-4c2c-aedd-ae17f9304d57.pdf" rel="nofollow">https://scjgj.nantong.gov.cn/ntsgsj/upload/0853505f-3f13-4c2c-aedd-ae17f9304d57.pdf</a></p>
+<h2>苏丹红，增色：</h2>
+<p><a href="http://news.sohu.com/s2006/06yadan/" rel="nofollow">http://news.sohu.com/s2006/06yadan/</a></p>
+<h2>催蛋素（一天一个蛋）：</h2>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KJczgsW.png" /></p>
+<p>感觉很多 v 友还没有意识到这个问题，尤其是经常健身的朋友，值得注意</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:27:55Z</pubDate>
+<pubDate>2024-01-03T04:27:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有买 strongbox pro 的用户</title>
+<link>https://www.v2ex.com/t/1005485</link>
+<guid>https://www.v2ex.com/t/1005485</guid>
+<content:encoded><![CDATA[
+
+<p>348 永久的 ios 密码管理器，用起来咋样，pc 可以用吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:25:46Z</pubDate>
+<pubDate>2024-01-03T08:20:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 查找我的 iPhone 功能说是找不到设备是什么原因</title>
+<link>https://www.v2ex.com/t/1005484</link>
+<guid>https://www.v2ex.com/t/1005484</guid>
+<content:encoded><![CDATA[
+
+<p>即便是离线，关机，没网络，没开定位，是不是显示最近一次的位置？<br />
+现在这个情况不知道是怎么回事?只可能是之前把查找功能关掉了？</p>
+]]></content:encoded>
+<pubDate>2024-01-03T06:25:07Z</pubDate>
+<pubDate>2024-01-03T06:25:07Z</pubDate>
+</item>
+
+<item>
 <title>[macOS] 有什么好用的进程管理器，能启动新进程的</title>
 <link>https://www.v2ex.com/t/1005483</link>
 <guid>https://www.v2ex.com/t/1005483</guid>
 <content:encoded><![CDATA[
-
 <p>类似 supervisor 那样带 GUI 的</p>
 <p>不用 launchctl 的，不会创建 plist 的，不会给 “允许后台运行的程序” 项目里添加新东西的</p>
 <p>GUI 里添加程序 /usr/local/bin/xx -xx -xx 然后可以点击运行、停止、查看 std 输出的</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:23:10Z</pubDate>
 <pubDate>2024-01-03T06:23:10Z</pubDate>
 </item>
 <item>
@@ -22,7 +822,6 @@
 <link>https://www.v2ex.com/t/1005482</link>
 <guid>https://www.v2ex.com/t/1005482</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/u1paxDN.png" /> </p>
 <ul>
 <li>
@@ -39,7 +838,6 @@
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:22:43Z</pubDate>
 <pubDate>2024-01-03T06:21:43Z</pubDate>
 </item>
 <item>
@@ -47,11 +845,9 @@
 <link>https://www.v2ex.com/t/1005481</link>
 <guid>https://www.v2ex.com/t/1005481</guid>
 <content:encoded><![CDATA[
-
 <p>近一段时间断断续续在做这方面的工作，注册发现、优雅启停、性能提升方面都有一些沉淀。就比如官方那个 xds-sample 需要手动添加在 Consumer 添加 Provider 的 ServiceName ，这可忍不了，我们是在不修改原框架的基础上通过 Agent 实现了真的平滑接入。</p>
 <p>打算分享一些踩坑经验，同时希望在遇到问题时有小伙伴可以沟通沟通，官方群问个话都没人回。有兴趣的可以加 VX：b2RpcnVz</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:22:34Z</pubDate>
 <pubDate>2024-01-03T06:22:34Z</pubDate>
 </item>
 <item>
@@ -59,10 +855,8 @@
 <link>https://www.v2ex.com/t/1005480</link>
 <guid>https://www.v2ex.com/t/1005480</guid>
 <content:encoded><![CDATA[
-
 如题,我在这家百强制造业为主的外企工作将近两年, 主要工作是桌面应用上云( DevOps 和业务 CRUD), 由于项目没啥客户且研发投入较高( 主要是 EC2 成本 ), manager 期望我们转岗做 CAD 桌面应用开发( C++ ), 学习周期这些我不太担心, 我担心的是这个行业值得深耕吗?在 AIGC 快速迭代的背景下,这种行业能坚持多久.
 ]]></content:encoded>
-<pubDate>2024-01-03T06:20:57Z</pubDate>
 <pubDate>2024-01-01T06:20:57Z</pubDate>
 </item>
 <item>
@@ -70,7 +864,6 @@
 <link>https://www.v2ex.com/t/1005478</link>
 <guid>https://www.v2ex.com/t/1005478</guid>
 <content:encoded><![CDATA[
-
 <h1>需求</h1>
 <pre><code>如题，准备一个企业内部问题的知识库，做一个聊天机器人，回答的问题都是知识库相关的。
 </code></pre>
@@ -90,7 +883,6 @@
 <p>找一些分析工具，将用户输入的问题进行分词匹配，但是这有可能会匹配到多条回答，如何找出最优的回答呢？</p>
 <p><strong>各位路过的大佬，有好的思路或好的开源工具欢迎一起讨论一下</strong></p>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:17:09Z</pubDate>
 <pubDate>2024-01-03T06:20:13Z</pubDate>
 </item>
 <item>
@@ -99,9 +891,7 @@
 <guid>https://www.v2ex.com/t/1005476</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-03T06:14:12Z</pubDate>
 <pubDate>2024-01-03T06:11:12Z</pubDate>
 </item>
 <item>
@@ -109,10 +899,8 @@
 <link>https://www.v2ex.com/t/1005475</link>
 <guid>https://www.v2ex.com/t/1005475</guid>
 <content:encoded><![CDATA[
-
 最近刷 B 站看到许多搞主播游戏录屏的账号（我听说也有人买个服务器，写个脚本去自动录屏+上传的），一个视频就 4-5 个小时。像这种视频的单个存储成本有多少呢？
 ]]></content:encoded>
-<pubDate>2024-01-03T06:13:42Z</pubDate>
 <pubDate>2024-01-03T02:13:42Z</pubDate>
 </item>
 <item>
@@ -120,10 +908,8 @@
 <link>https://www.v2ex.com/t/1005474</link>
 <guid>https://www.v2ex.com/t/1005474</guid>
 <content:encoded><![CDATA[
-
 需求：两个 app 需要合并成一个 app ，app 分两个模块，通过权限控制访问，目前待合并的 app 有各自的登录鉴权接口，需要整合成一个。<br />领导要求合并工作完成后，再有其他 app 合并进来的时候，不要再改动登录接口。<br />我的理解是把登录接口做成通用的，目前想到一个方案就是把用户已有权限都返回给前端，前端根据权限做动态路由，是否可行？
 ]]></content:encoded>
-<pubDate>2024-01-03T06:13:05Z</pubDate>
 <pubDate>2024-01-03T06:10:05Z</pubDate>
 </item>
 <item>
@@ -131,11 +917,9 @@
 <link>https://www.v2ex.com/t/1005473</link>
 <guid>https://www.v2ex.com/t/1005473</guid>
 <content:encoded><![CDATA[
-
 <p>这两天打开电脑，就自己弹出 BetterAndBetter 升级小窗口，然后确定后就弹出 safari 浏览器窗口，关掉就不管了
 然后今天同样操作，safari 无法打开，强制关闭再打开也无效，状态栏上的 BetterAndBetter 点击没反应，应该卡死了，现在是卸载也没法卸载提示程序已经激活，关闭也关闭不了，怎么搞才好</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:10:04Z</pubDate>
 <pubDate>2024-01-03T06:10:04Z</pubDate>
 </item>
 <item>
@@ -144,9 +928,7 @@
 <guid>https://www.v2ex.com/t/1005472</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-03T06:09:59Z</pubDate>
 <pubDate>2024-01-02T14:09:59Z</pubDate>
 </item>
 <item>
@@ -154,13 +936,11 @@
 <link>https://www.v2ex.com/t/1005471</link>
 <guid>https://www.v2ex.com/t/1005471</guid>
 <content:encoded><![CDATA[
-
 <p>Producthunt 是海外知名的为新产品提供展示的网站，它专注于为新技术产品和创新提供曝光和发现的平台。如果你希望你的产品在海外获得一定的种子用户，那上 PH 一定是一个不错的机会。</p>
 <p>不过上 PH 不是发布了就完事，最重要的还是尽可能拿到当日的高名次，这样你就可能获得额外的流量曝光机会，比如获得当日排名 Top5 可以获得第二天在 producthunt newsletter 曝光的机会，高投票有助于在子类目获得更高的排名等</p>
 <p>提高当日投票排名是每一个上 Producthunter 必须要面对的挑战。所以我创建了一个微信群，希望我们可以通过社群的力量，凝聚一群互帮互助的热心小伙伴，当群内小伙伴有新产品发布的时候，可以帮助互相支持，增加国内小伙伴产品上榜的概率。</p>
 <p>有需要进群的小伙伴。联系小吉 vx：piapiazhao 。加我请备注：PH</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:07:16Z</pubDate>
 <pubDate>2024-01-03T06:07:16Z</pubDate>
 </item>
 <item>
@@ -169,9 +949,7 @@
 <guid>https://www.v2ex.com/t/1005470</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-03T06:05:39Z</pubDate>
 <pubDate>2024-01-03T06:04:39Z</pubDate>
 </item>
 <item>
@@ -179,7 +957,6 @@
 <link>https://www.v2ex.com/t/1005469</link>
 <guid>https://www.v2ex.com/t/1005469</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 证书管理里，可以看到 Charles 的证书<ul>
@@ -193,7 +970,6 @@
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-01-03T06:00:59Z</pubDate>
 <pubDate>2024-01-03T05:59:59Z</pubDate>
 </item>
 <item>
@@ -201,12 +977,10 @@
 <link>https://www.v2ex.com/t/1005468</link>
 <guid>https://www.v2ex.com/t/1005468</guid>
 <content:encoded><![CDATA[
-
 <p>年底被裁，也是挺无语，整个研发端掉了，10 多年前后端经验，主要技术栈 Spring 全家桶、Vue.js 、React.js ，带了七八年研发团队，一直参与一线写代码，自考的本科学历（介意学历的公司就算了），有意向的 V 友求捞或者推荐，感谢！</p>
 <p>绿色软件：YnJhaW5xaQ==</p>
 <p>顺便吐槽下 Boss 直聘，刷职位，经常推一堆半年前发布的，HR 基本不回复，活跃状态一直停留再半年前或者三个月，其它看上去正常的招聘也是大部分时候打招呼都是消息未读。服了这平台。</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:59:53Z</pubDate>
 <pubDate>2024-01-03T06:04:32Z</pubDate>
 </item>
 <item>
@@ -214,10 +988,8 @@
 <link>https://www.v2ex.com/t/1005467</link>
 <guid>https://www.v2ex.com/t/1005467</guid>
 <content:encoded><![CDATA[
-
 <p>兄弟们，企业微信群聊机器人 Webhook ，目前有公司在用吗？收费吗？现在钉钉机器人商业收费了哎</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:56:53Z</pubDate>
 <pubDate>2024-01-03T06:04:11Z</pubDate>
 </item>
 <item>
@@ -225,10 +997,8 @@
 <link>https://www.v2ex.com/t/1005466</link>
 <guid>https://www.v2ex.com/t/1005466</guid>
 <content:encoded><![CDATA[
-
 如上，谢谢参与分享
 ]]></content:encoded>
-<pubDate>2024-01-03T05:54:38Z</pubDate>
 <pubDate>2024-01-03T01:53:38Z</pubDate>
 </item>
 <item>
@@ -236,7 +1006,6 @@
 <link>https://www.v2ex.com/t/1005465</link>
 <guid>https://www.v2ex.com/t/1005465</guid>
 <content:encoded><![CDATA[
-
 <p>open jdk 17, ByteBuffer 的一段代码</p>
 <pre><code class="language-java">  private ByteBuffer getArray(int index, byte[] dst, int offset, int length) {
         if (
@@ -264,7 +1033,6 @@
 </code></pre>
 <p>我想知道这个左移 0 位目的是什么</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:53:45Z</pubDate>
 <pubDate>2024-01-03T06:09:58Z</pubDate>
 </item>
 <item>
@@ -272,10 +1040,8 @@
 <link>https://www.v2ex.com/t/1005463</link>
 <guid>https://www.v2ex.com/t/1005463</guid>
 <content:encoded><![CDATA[
-
 <p>看文档和技术咨询说仅支持 V2 现在？</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:46:01Z</pubDate>
 <pubDate>2024-01-03T06:13:39Z</pubDate>
 </item>
 <item>
@@ -283,11 +1049,9 @@
 <link>https://www.v2ex.com/t/1005461</link>
 <guid>https://www.v2ex.com/t/1005461</guid>
 <content:encoded><![CDATA[
-
 <p>最近准备订 2024 的 BMW 530 ，试驾之后还挺喜欢的，唯一的担心就是尺寸问题：长 5.1 米 宽 1.9 米。其实也不是特别夸张的大车，但我以前除了旅游租车以外从来没长期开过大车，总担心容易剐蹭还有城市里会不会很难开。</p>
 <p>量了一下车库门是 2.4 米宽，这几天特意试了一下进出的时候不收起后视镜（应该和大车收起后视镜后宽度差不太多），这样的话可以模拟一下更宽的车身，但不知道车更长会有什么想不到的问题。现在就怕到时候车到了不敢停车就尴尬了。</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:44:07Z</pubDate>
 <pubDate>2024-01-03T06:19:39Z</pubDate>
 </item>
 <item>
@@ -295,11 +1059,9 @@
 <link>https://www.v2ex.com/t/1005460</link>
 <guid>https://www.v2ex.com/t/1005460</guid>
 <content:encoded><![CDATA[
-
 <p>针对 HTTP API 调用，如果发生了错误，应该怎样返回错误信息呢？这是很多进行 API 设计的人都会面临的问题，其实 IANA 已经定义了标准，就是 RFC 9457：Problem Details for HTTP APIs</p>
 <p>这篇文章介绍了 RFC 9457： <a href="https://www.jitao.tech/posts/problem-details-for-http-apis" rel="nofollow">https://www.jitao.tech/posts/problem-details-for-http-apis</a></p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:42:07Z</pubDate>
 <pubDate>2024-01-03T05:42:07Z</pubDate>
 </item>
 <item>
@@ -307,10 +1069,8 @@
 <link>https://www.v2ex.com/t/1005459</link>
 <guid>https://www.v2ex.com/t/1005459</guid>
 <content:encoded><![CDATA[
-
 月均 10t 上传不到，家里无 pcdn 设备，找官网在线客服投诉记了名字和宽带账号直接断开了对话，正在准备找通信管理局寄书面投诉信。<br /><a href="https://i.imgur.com/xStoPNv.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xStoPNv.jpg" /></a><br /><a href="https://i.imgur.com/KzpZPqs.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KzpZPqs.jpg" /></a><br /><a href="https://i.imgur.com/BeXQQcf.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/BeXQQcf.png" /></a><br /><a href="https://i.imgur.com/c5Lfv6q.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/c5Lfv6q.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:41:56Z</pubDate>
 <pubDate>2024-01-03T06:17:09Z</pubDate>
 </item>
 <item>
@@ -318,10 +1078,8 @@
 <link>https://www.v2ex.com/t/1005458</link>
 <guid>https://www.v2ex.com/t/1005458</guid>
 <content:encoded><![CDATA[
-
 24 届物联网工程，全日制本科<br />目前事业编了解中，有很多疑惑<br /><br />我准备报考本县事业单位，我们县每年 5 月联考（单独招考和编外暂不考虑）<br />考试内容为：综应+职测<br /><br />为什么要付费咨询？<br />自己有疑惑，想要详细咨询，加了几个机构老师，回复效率低，回答大多无效<br /><br />目前已有的疑惑<br />1. 未毕业考编，报名(初审)需要填写什么资料？<br />（主要疑点是，资格复审写明了所需材料，例如已毕业、未毕业、其他人员。而初审阶段需要提供什么呢，是否需要提供就业推荐表，若需要如何提供）<br /><br />2. 如何知道自已该学哪个综合应用能力？<br />（具体看我上一个帖子）<br /><br />目前是这俩，可能还有些小问题<br /><br />有没有前辈能够解决呢，个人付费预算在 20-50 ，如果觉得不够可以进一步协商<br /><br />只能解决一个问题也行
 ]]></content:encoded>
-<pubDate>2024-01-03T05:41:21Z</pubDate>
 <pubDate>2024-01-03T05:38:21Z</pubDate>
 </item>
 <item>
@@ -329,13 +1087,11 @@
 <link>https://www.v2ex.com/t/1005457</link>
 <guid>https://www.v2ex.com/t/1005457</guid>
 <content:encoded><![CDATA[
-
 <p>我原本一直使用的 macOS 的 「 speech -&gt; start speaking 」，但是发现读音好像很有问题。
 例如「 donation 」的发音就非常奇怪（不知道原因），但是 Google 搜索中的 「 Dictionary 」模块发音似乎是更加准确的
 <img alt="Google" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/itaZM1UG.jpeg" /></p>
 <p>有没有什么类似的（例如相同源）的工具呢</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:36:38Z</pubDate>
 <pubDate>2024-01-03T05:36:38Z</pubDate>
 </item>
 <item>
@@ -343,10 +1099,8 @@
 <link>https://www.v2ex.com/t/1005456</link>
 <guid>https://www.v2ex.com/t/1005456</guid>
 <content:encoded><![CDATA[
-
 <p>上一部手机 iphone12 在 22 年 4 月份买的，买了之后没多久就入了一款多多买的全包手机壳。壳是全包的而且质量也不错，但是因为我一直带壳没有注意摄像头附近漆的情况，23 年九月底想换手机摘壳仔细看发现手机摄像头位置掉漆，其他位置如充电口什么的都没有划痕。11 月份换了 15pro 发现磁吸壳还有很多壳都是全包带镜头，但是因为怀疑是全包带镜头的壳导致的，现在还没入手一个满意的带磁吸的壳，想问一下各位老哥有这种情况吗？能不能推荐一个好的磁吸壳和充电宝，京东京造的 30 多的那款壳可以吗？</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:35:35Z</pubDate>
 <pubDate>2024-01-03T05:44:16Z</pubDate>
 </item>
 <item>
@@ -354,12 +1108,10 @@
 <link>https://www.v2ex.com/t/1005455</link>
 <guid>https://www.v2ex.com/t/1005455</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://imgse.com/i/pijIWfP" rel="nofollow"><img alt="pijIWfP.png" class="embedded_image" rel="noreferrer" src="https://s11.ax1x.com/2024/01/03/pijIWfP.png" /></a></p>
 <p><a href="https://vite.itnavs.com/admin/#/" rel="nofollow">演示地址</a></p>
 <p><a href="https://github.com/hangjob/vue-bag-admin" rel="nofollow">源码地址</a></p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:32:36Z</pubDate>
 <pubDate>2024-01-03T02:32:36Z</pubDate>
 </item>
 <item>
@@ -367,10 +1119,8 @@
 <link>https://www.v2ex.com/t/1005454</link>
 <guid>https://www.v2ex.com/t/1005454</guid>
 <content:encoded><![CDATA[
-
 事情是这样的：  <br />1. 今天中午我想点个外卖，发现会员红包用完了，然后就又想再买个外卖会员，美团外卖显示外卖+会员总共 28 元，然后我点击了支付，银行却扣款 75 元  <br />2. 然后我就懵逼了，之前外卖+会员包都是二三十的，这怎么七十多，等我再打开美团 app ，发现订单里显示会员价格变成了 59<br />3. 然后开始找客服，问问是不是系统出 bug 了还是怎么回事，以下是对话截图<br />4. 客服表示无法退款，我该如何维权<br /><br /><a href="https://i.imgur.com/UtFKOCs.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/UtFKOCs.jpg" /></a><br /><a href="https://i.imgur.com/OMtVYMy.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OMtVYMy.jpg" /></a><br /><a href="https://i.imgur.com/PJ9G4LP.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PJ9G4LP.jpg" /></a><br /><a href="https://i.imgur.com/4XqWDQl.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4XqWDQl.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:30:51Z</pubDate>
 <pubDate>2024-01-03T06:02:23Z</pubDate>
 </item>
 <item>
@@ -378,10 +1128,8 @@
 <link>https://www.v2ex.com/t/1005452</link>
 <guid>https://www.v2ex.com/t/1005452</guid>
 <content:encoded><![CDATA[
-
 最好是 Java 写的，拜谢！！！！
 ]]></content:encoded>
-<pubDate>2024-01-03T05:22:33Z</pubDate>
 <pubDate>2024-01-03T05:59:36Z</pubDate>
 </item>
 <item>
@@ -389,7 +1137,6 @@
 <link>https://www.v2ex.com/t/1005449</link>
 <guid>https://www.v2ex.com/t/1005449</guid>
 <content:encoded><![CDATA[
-
 <h2>动机</h2>
 <p>我经常在不同台式电脑和笔记本电脑之间切换。为了保持代码文件的一致性，最简单的解决方案是使用一台 PC 作为开发服务器，并在我使用其他设备工作时连接到它。然而，这个方案存在以下缺点：</p>
 <ul>
@@ -467,7 +1214,6 @@ EOF
 <li><a href="https://jupblb.prose.sh/stignore" rel="nofollow">Syncthing and gitignore</a> 提供了解决方案的基本思路</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:19:22Z</pubDate>
 <pubDate>2024-01-03T06:15:29Z</pubDate>
 </item>
 <item>
@@ -475,10 +1221,8 @@ EOF
 <link>https://www.v2ex.com/t/1005448</link>
 <guid>https://www.v2ex.com/t/1005448</guid>
 <content:encoded><![CDATA[
-
 <p>需要每天开车到回龙地铁站坐 5 号线去上班, 之前一直把车停回龙地铁站路边。但最近也经常有交警贴罚单。想在 5 号线沿线找个停车的地方，麻烦 v 友帮忙推荐一下.</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:15:08Z</pubDate>
 <pubDate>2024-01-03T05:15:08Z</pubDate>
 </item>
 <item>
@@ -486,10 +1230,8 @@ EOF
 <link>https://www.v2ex.com/t/1005447</link>
 <guid>https://www.v2ex.com/t/1005447</guid>
 <content:encoded><![CDATA[
-
 <p>在家里搭建了不少服务，有的是 Docker 有的是虚拟机，还有不少 Wifi 智能家居小玩意，所有流量均通过 pfSense 路由器。设备越来越多，但是我的精力是有限的，不可能随时关注每个设备。请问有没有可以部署什么网络行为检测的服务？谢谢</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:10:30Z</pubDate>
 <pubDate>2024-01-03T05:47:31Z</pubDate>
 </item>
 <item>
@@ -497,10 +1239,8 @@ EOF
 <link>https://www.v2ex.com/t/1005446</link>
 <guid>https://www.v2ex.com/t/1005446</guid>
 <content:encoded><![CDATA[
-
 <p>当程序员多年，感觉没多少人脉，现在想认识多点不同的人，完全没啥思路，想认识一些能够交心的朋友（可能我想多了）</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T05:07:25Z</pubDate>
 <pubDate>2024-01-03T06:18:51Z</pubDate>
 </item>
 <item>
@@ -508,10 +1248,8 @@ EOF
 <link>https://www.v2ex.com/t/1005445</link>
 <guid>https://www.v2ex.com/t/1005445</guid>
 <content:encoded><![CDATA[
-
 大概雪太大了吧，再也看不到来时的路，也看不到去时的路，我也在这漫天风雪下与天地同色，享受万里无人踪的寂静，仔细聆听自己的呼吸心跳。原来自己一个人已经走了这么远，原来还有这么远的路在等着我，原来我不是任何人的必不可缺，也不是别人眼里的透明人，我是个有生命的人有温度也有眼泪的自己，我的生活就是踩碎地上的雪继续向前，哪怕我存在的痕迹终将磨灭……
 ]]></content:encoded>
-<pubDate>2024-01-03T05:00:48Z</pubDate>
 <pubDate>2024-01-03T00:59:48Z</pubDate>
 </item>
 <item>
@@ -519,10 +1257,8 @@ EOF
 <link>https://www.v2ex.com/t/1005444</link>
 <guid>https://www.v2ex.com/t/1005444</guid>
 <content:encoded><![CDATA[
-
 <p>比如个人没有注册公司，谈了软件服务项目 20 万，怎么为对方开发票比较合适？</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T04:57:54Z</pubDate>
 <pubDate>2024-01-03T05:00:27Z</pubDate>
 </item>
 <item>
@@ -531,9 +1267,7 @@ EOF
 <guid>https://www.v2ex.com/t/1005443</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-03T04:56:58Z</pubDate>
 <pubDate>2024-01-03T04:53:58Z</pubDate>
 </item>
 <item>
@@ -541,7 +1275,6 @@ EOF
 <link>https://www.v2ex.com/t/1005441</link>
 <guid>https://www.v2ex.com/t/1005441</guid>
 <content:encoded><![CDATA[
-
 <p>这段时间看了王争的《设计模式之美》的课程。
 个人觉得里面提到的谷歌 CodeReview 很有帮助。</p>
 <ul>
@@ -554,7 +1287,6 @@ EOF
 <p>大家会有 Code Review 吗？
 程度会到多少呢？范围会针对那些呢？</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T04:50:34Z</pubDate>
 <pubDate>2024-01-03T05:58:49Z</pubDate>
 </item>
 <item>
@@ -562,7 +1294,6 @@ EOF
 <link>https://www.v2ex.com/t/1005440</link>
 <guid>https://www.v2ex.com/t/1005440</guid>
 <content:encoded><![CDATA[
-
 <p>项目地址：<a href="https://github.com/Mystery00/go-jasypt" rel="nofollow">https://github.com/Mystery00/go-jasypt</a></p>
 <p>为了应对 hvv ，要求将服务的配置文件中敏感数据如各种密码做加密处理，运行时解密出原文然后使用。
 公司 Java 服务多，因此调研到 <code>Jasypt</code> 这个库，也成功应用起来了，但是我这里有两个 Go 服务也有配置文件，里面也有敏感密码，找了一圈没有比较合适的 go 实现，因此参考 Java 的代码自己写了一个实现。该工具已经在生产环境稳定运行了一年，已经在 GitHub 上面开源，希望能够为有类似需求的人提供帮助。</p>
@@ -570,17 +1301,14 @@ EOF
 如果大家有加密需要的可以用一下 😃</p>
 ]]></content:encoded>
 <pubDate>2024-01-03T04:48:54Z</pubDate>
-<pubDate>2024-01-03T04:48:54Z</pubDate>
 </item>
 <item>
 <title>[奇思妙想] 有没有什么好的办法去监控京东商品的价格？</title>
 <link>https://www.v2ex.com/t/1005438</link>
 <guid>https://www.v2ex.com/t/1005438</guid>
 <content:encoded><![CDATA[
-
 <p>京东同一款商品的价格老是变化，有时候特别贵，有时候特别便宜，有什么现成的软件能监控并且提醒吗？</p>
 ]]></content:encoded>
-<pubDate>2024-01-03T04:47:38Z</pubDate>
 <pubDate>2024-01-03T05:04:14Z</pubDate>
 </item>
 <item>
@@ -589,9 +1317,7 @@ EOF
 <guid>https://www.v2ex.com/t/1005436</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-03T04:34:16Z</pubDate>
 <pubDate>2024-01-03T06:14:42Z</pubDate>
 </item>
 <item>
@@ -599,10 +1325,8 @@ EOF
 <link>https://www.v2ex.com/t/1005434</link>
 <guid>https://www.v2ex.com/t/1005434</guid>
 <content:encoded><![CDATA[
-
 最近删除里也删了，不知道有类似电脑上的恢复软件
 ]]></content:encoded>
-<pubDate>2024-01-03T04:28:51Z</pubDate>
 <pubDate>2024-01-01T04:28:51Z</pubDate>
 </item>
 <item>
@@ -610,10 +1334,8 @@ EOF
 <link>https://www.v2ex.com/t/1005433</link>
 <guid>https://www.v2ex.com/t/1005433</guid>
 <content:encoded><![CDATA[
-
 一台 ros x86 配置了 x710 da2 网卡，与 crs305 采取 DAC 或 AOC 或 sfp+光头配光纤连接。在其他三口中任意一口插入 mikrotik s+rj10 万兆电口模块，都会有很大机率造成 ros x86 ethernet 状态中显示 link down ，而在 305 中状态信息则不会显示 link down 。<br />  匪夷所思的问题，咨询卖家，说不能热插拔，无语！论坛大神给支个招！
 ]]></content:encoded>
-<pubDate>2024-01-03T04:28:18Z</pubDate>
 <pubDate>2024-01-03T04:25:18Z</pubDate>
 </item>
 <item>
@@ -621,7 +1343,6 @@ EOF
 <link>https://www.v2ex.com/t/877739</link>
 <guid>https://www.v2ex.com/t/877739</guid>
 <content:encoded><![CDATA[
-
 <p>感觉每天都很忙，忙着写各种 bug… 同时又很焦虑，感觉忙碌会让人错过各种“信息”。</p>
 <p>现在其实不缺信息，只是缺乏对信息的有效筛选机制，于是我干起了人工筛选信息的事。</p>
 <p>互联网 Newsletter 这种形式，多年前就有了，信息送达不够及时，后来邮件也成了一种“营销”形式，让许多人提起 Email 就想到垃圾邮件。</p>
@@ -633,10 +1354,8 @@ EOF
 <p>发布周期为每周一，如果订阅当天是周一，则需要等到下个周期。</p>
 <p><em>永远不会发广告，可随时退订</em></p>
 ]]></content:encoded>
-<pubDate>2022-09-05T02:13:32Z</pubDate>
 <pubDate>2023-12-31T14:38:33Z</pubDate>
 </item>
-
 <item>
 <title>[VPS] 出租阿里云双十一活动服务器，买了吃灰</title>
 <link>https://www.v2ex.com/t/1005432</link>
@@ -17386,482 +18105,6 @@ throw new \Exception('RabbitMQ 创建连接失败');
 <p>希望本项目在给你丝滑 AI 体验的同时，能帮助更多人接触并开始创建和使用自己的 Telegram Bot</p>
 ]]></content:encoded>
 <pubDate>2023-12-28T16:15:00Z</pubDate>
-</item>
-<item>
-<title>[汽车] 观察最近汽车帖的讨论，发现部分 V 友依然对汽车品牌、汽车技术壁垒有迷信</title>
-<link>https://www.v2ex.com/t/1004244</link>
-<guid>https://www.v2ex.com/t/1004244</guid>
-<content:encoded><![CDATA[
-1 、目前的汽车工业的成熟度，技术水平与人员流动，以及供应商的完备程度，导致品牌之间对于汽车的设计与性能标定（包括 NVH 、底盘特性、性能取向等等），是单纯的商业取舍（出于品牌定位、产品定位、成本、最终目标售价、风险、耐用性等）。不存在“不能”，或者“不会”。<br /><br />2 、每个品牌都有拉低设计水平的车。而且恰恰这些车才是品牌的生命线（利润率高、受众广）。<br /><br />3 、同价格下，产品力不能跨维度比较，只是用户的需求不同而已。比如增程式动力总成，从工程学角度上讲就是很丑陋，但是其也确实解决了很多用户的需求痛点。甚至还可以实现像仰望 U8 这样的产品设计。反之，911 GT3RS 的机械设计确实很惊艳，但其在中国日常的价值是 0 （因为不能合法上路）。<br /><br /><br />btw：推荐两个 youtuber:ToTo WenHan-前蔚来产品经理,视频信息密度大<br />     顺晨杨——low energy 风格评车。<br /><div class="embedded_video_wrapper"></div>
-]]></content:encoded>
-<pubDate>2023-12-28T14:21:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 工作新人请教关于业余时间个人项目</title>
-<link>https://www.v2ex.com/t/1004243</link>
-<guid>https://www.v2ex.com/t/1004243</guid>
-<content:encoded><![CDATA[
-<p>背景：毕业不久的新人，开发，写 Java ，公司里参与一些简单的业务需求，目前相关的框架还不是很熟悉（ spring ，mybatis ，dubbo 等等），当然网上查查基本也够用。</p>
-<p>想问下，业余时间，应该如何提升自己？</p>
-<ul>
-<li>直接学习框架底层原理 —— 没有实践，感觉印象不深，很容易忘</li>
-<li>写个人项目 —— 也是普通的业务代码为主，项目比公司的小得多，但自己能够了解整体，但有点无聊，缺乏正反馈</li>
-<li>不管了，娱乐为主 —— 作为一个后端程序员，我平时更喜欢写的是前端。。。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2023-12-28T14:20:37Z</pubDate>
-</item>
-<item>
-<title>[汽车] 小米汽车发布会是否会改变大家对国产电车的固有印象？</title>
-<link>https://www.v2ex.com/t/1004242</link>
-<guid>https://www.v2ex.com/t/1004242</guid>
-<content:encoded><![CDATA[
-<p>v2 里经常看到很多人无脑跪舔特斯拉，说国产都是垃圾。这些人可以说完全不了解电车行业，张嘴就无脑喷国产电车，根本不了解这几年国产电车的迭代速度。</p>
-<p>他们以为全方面领先的特斯拉在现在基本上属于全方位落后，特斯拉现在最大的价值就是品牌，抛开品牌因素的话，特斯拉的价格毫无竞争力，最多只能卖到 15w-20w 这个区间。当然放到三年前，特斯拉确实是顶级的存在，可是现在还那么多人无脑吹，真的难以想象。智能座舱，自动驾驶这些电车时代的重要构成都已经落后于国产了。因为很多人的无脑吹，特斯拉也可以坚持好几年不改款。</p>
-<p>小米汽车热度很高，感觉让周边不少人重新认识了国产电车的厉害，这是其他新势力以及传统厂商没做到的。喜欢一个品牌完全没关系，但不能一股脑的说除了特斯拉，其他都是垃圾，完全无脑的尬吹。</p>
-<p>感觉小米汽车真的有希望改变更多人对于国产电车的认知。</p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:21:40Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 感觉自己运气挺好，算是碰上好公司了</title>
-<link>https://www.v2ex.com/t/1004241</link>
-<guid>https://www.v2ex.com/t/1004241</guid>
-<content:encoded><![CDATA[
-<p>上了也快六七年班，前两年无意间找了个远程工作，也算是尽心尽力工作吧，今年主动给我加了工资（还挺多，快百分之二十几了），看今年帖子都是裁员，年终奖没了，感叹自己运气还挺好，同时也祝大家越来越好，拥有美好的明天吧</p>
-]]></content:encoded>
-<pubDate>2023-12-28T16:01:21Z</pubDate>
-</item>
-<item>
-<title>[游戏] 地平线 4 无法连接线上模式</title>
-<link>https://www.v2ex.com/t/1004239</link>
-<guid>https://www.v2ex.com/t/1004239</guid>
-<content:encoded><![CDATA[
-<p>电脑翻墙是正常的，外网都正常访问，使用的 Clash 开的全局代理，但是地平线 4 无法连接线上模式，报错如下所示。请教下各位大佬应该怎么修改？
-<a href="https://imgur.com/a/UazZnqk" rel="nofollow">https://imgur.com/a/UazZnqk</a></p>
-]]></content:encoded>
-<pubDate>2023-12-28T14:01:41Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 关于入站 IPv6</title>
-<link>https://www.v2ex.com/t/1004238</link>
-<guid>https://www.v2ex.com/t/1004238</guid>
-<content:encoded><![CDATA[
-小白，黑龙江电信，光猫拨号，在内网里可以互相访问 IPv6 ，但是外网却不能访问内网的设备的 IPv6 ，该怎么做，求指点，谢谢！
-]]></content:encoded>
-<pubDate>2023-12-28T14:14:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 电报上那些类似于主机论坛推送帖是怎么实现的？</title>
-<link>https://www.v2ex.com/t/1004237</link>
-<guid>https://www.v2ex.com/t/1004237</guid>
-<content:encoded><![CDATA[
-请前辈们告知一二，自己有个 discourse 的论坛，也想将论坛的帖子同步到电报频道上，该怎么做呢？
-]]></content:encoded>
-<pubDate>2023-12-28T13:54:46Z</pubDate>
-</item>
-<item>
-<title>[生活] 独居之后 每天很无聊 v 友们都经常干什么有意思的事情？</title>
-<link>https://www.v2ex.com/t/1004236</link>
-<guid>https://www.v2ex.com/t/1004236</guid>
-<content:encoded><![CDATA[
-<p>我本人挺喜欢新奇的东西 虽然三分钟热度</p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:55:20Z</pubDate>
-</item>
-<item>
-<title>[iPhone] 关了微信后台更新，续航提升一大截</title>
-<link>https://www.v2ex.com/t/1004235</link>
-<guid>https://www.v2ex.com/t/1004235</guid>
-<content:encoded><![CDATA[
-<p>，，妈的，微信后台干了啥</p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:48:01Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 微软新部门！ Windows 工程团队招聘 C++ 北京/苏州</title>
-<link>https://www.v2ex.com/t/1004234</link>
-<guid>https://www.v2ex.com/t/1004234</guid>
-<content:encoded><![CDATA[
-<h1>团队介绍</h1>
-<p>最近，微软中国新成立了 <strong>Windows engineering 团队</strong>！致力于为全球 PC 消费者提供全面且吸引人的内容、服务和平台。随着人工智能时代的到来，我们依靠高质量、高效率及优质服务的操作系统和平台组件，持续提升系统可靠性、改进用户体验，并引入新功能。</p>
-<p>团队主要是两个方向：一个是 Windows 上的 feature ，但是这个不是 OS core ，而是 Windows experience 相关的。 另一个是发布流程等等。</p>
-<p>这个部门在<strong>北京和苏州</strong>都有 hc 。由于是<strong>新成立</strong>的部门，<strong>HC 有很多。</strong></p>
-<p>微软多数部门使用的是 C#，<strong>这是微软比较少有的使用 C++的部门了</strong>。</p>
-<p>C++的同学一定不要错过这个机会！机不可失，失不再来！！</p>
-<h2><strong>岗位要求：</strong></h2>
-<ul>
-<li>熟悉 C++（使用其他语言的，能力强且有意愿进组换语言的也可）</li>
-<li>2 年以上工作经验</li>
-<li>985/211 或有大厂工作经验者优先考虑</li>
-</ul>
-<h2><strong>内推方式</strong></h2>
-<p>发送 PDF 简历（建议最好是英文，中文也行）给我<strong>xiaofeihan@microsoft.com</strong>， <strong>记得备注</strong>Windows 工程团队+来自 v2ex</p>
-]]></content:encoded>
-<pubDate>2023-12-28T13:42:00Z</pubDate>
-</item>
-<item>
-<title>[反馈] 关闭 [是否允许搜索引擎索引我的主题] 帖子仍被收录</title>
-<link>https://www.v2ex.com/t/1004233</link>
-<guid>https://www.v2ex.com/t/1004233</guid>
-<content:encoded><![CDATA[
-<p>我以前在设置里关闭了 [是否允许搜索引擎索引我的主题] 功能，但是昨天发的帖子仍然被 google 收录，这应该是一个 bug 。这也让 [谁可以看到我的主题列表] 功能失效，google 搜索我的用户名就可以看到我发过的所有帖子。
-<img alt="a56d8c4a7464ad0a09775ea809bdbf59.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2023/12/28/a56d8c4a7464ad0a09775ea809bdbf59.png" /></p>
-<p><img alt="8e123e200099f3823fcd42b752d4fc02.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2023/12/28/8e123e200099f3823fcd42b752d4fc02.png" /></p>
-<p>@<a href="https://www.v2ex.com/member/Livid">Livid</a></p>
-]]></content:encoded>
-<pubDate>2023-12-28T13:34:24Z</pubDate>
-</item>
-<item>
-<title>[MacBook] 请问一下 MacBook 的 usb-c 接口对外输出的功率问题</title>
-<link>https://www.v2ex.com/t/1004232</link>
-<guid>https://www.v2ex.com/t/1004232</guid>
-<content:encoded><![CDATA[
-有外接一个近 20W 的 c 口设备的需求，想请问一下 macbook 是否带的动呢？（带不动就额外外接供电了）<br />另外 macbook 的 usb-c 输出电压是只有 5v 吗？还是也支持 pd 输出 9/12V 之类的？
-]]></content:encoded>
-<pubDate>2023-12-28T14:02:31Z</pubDate>
-</item>
-<item>
-<title>[Grafana] 才部署几天的 loki 产生的小文件既然有 234.5W</title>
-<link>https://www.v2ex.com/t/1004231</link>
-<guid>https://www.v2ex.com/t/1004231</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/mIu6VB2.png" /></p>
-<p>都是这样的吗</p>
-]]></content:encoded>
-<pubDate>2023-12-28T13:21:08Z</pubDate>
-</item>
-<item>
-<title>[问与答] FinalShell 一直提示输入密码怎么破</title>
-<link>https://www.v2ex.com/t/1004229</link>
-<guid>https://www.v2ex.com/t/1004229</guid>
-<content:encoded><![CDATA[
-buyvm 的 VPS ，FinalShell 连接时一直提示输入密码，开始以为密码错了，但同样密码在的网页版可以登录。<br />上网搜了类似情况：修改 root 登录；修改 sshd_config 文件里面的 PermitRootLogin yes;改端口；新建用户都试了没用，请教有没有类似经验的 V 友。
-]]></content:encoded>
-<pubDate>2023-12-28T13:08:31Z</pubDate>
-</item>
-<item>
-<title>[程序员] 采集上市公司的信息放到我的网站上有什么问题吗</title>
-<link>https://www.v2ex.com/t/1004228</link>
-<guid>https://www.v2ex.com/t/1004228</guid>
-<content:encoded><![CDATA[
-<p>比如采集东方财富，同花顺，雪球等这些炒股 app 上的上市公司信息，财报信息啥的，还有 K 线数据，交易数据等等这些，自己做一个网站放上去，挂百度广告联盟或者 google adsense ，有什么风险吗？</p>
-]]></content:encoded>
-<pubDate>2023-12-28T14:06:10Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 学习量化必备网站！让你事半功倍</title>
-<link>https://www.v2ex.com/t/1004226</link>
-<guid>https://www.v2ex.com/t/1004226</guid>
-<content:encoded><![CDATA[
-Hi ！大家好，我是 Lucy, @<a href="https://www.v2ex.com/member/FinTech" rel="nofollow noopener" target="_blank">FinTech</a> 社区创始人。FinTech 社区是一个 5 万+会员的量化、AI 、金融科技招聘赋能社区。欢迎大家加入我们，与同行共成长！<br /><br /><br /><br />量化领域招聘 10 年以来，我对这个行业有着极大的兴趣,闲暇之余也会自学量化知识。今天，我想分享一些对自学量化极其有用的网站资源。<br /><br /><br /><br /><br />01<br /><br />Quant opian （ <a href="http://quantopian.com" rel="nofollow noopener" target="_blank">quantopian.com</a> ）<br /><br /><br />Quantopian 是一个流行的量化交易平台，提供免费的数据、模拟环境和教程。你可以在这里学习编写自己的量化交易策略，并通过社区获得反馈。<br /><br /><br /><br />02<br /><br />Quant Connect （ <a href="http://quantconnect.com" rel="nofollow noopener" target="_blank">quantconnect.com</a> ）<br /><br />QuantConnect 提供一个强大的量化交易平台，支持多种编程语言。它的社区活跃，有大量的教程和文档，非常适合初学者和经验丰富的交易者。<br /><br /><br /><br />03<br /><br />World Quant Brain （ <a href="http://worldquantbrain.com" rel="nofollow noopener" target="_blank">worldquantbrain.com</a> ）<br /><br />是由全球量化资产管理公司 WorldQuant 开发的基于网络的模拟平台。该平台允许注册顾问构建并提交名为 alpha 的数学模型，这些模型旨在预测金融工具的未来价格变动，以获取潜在的报酬。平台提供了学习量化金融的资源，如现场网络研讨会、培训视频和社区论坛。它还包括诸如 Global Alphathon 之类的竞赛，参赛者可以通过构建 alpha 赢得现金奖励和实习机会。<br /><br /><br /><br />04<br /><br />Khan Academy （ <a href="http://khanacademy.org" rel="nofollow noopener" target="_blank">khanacademy.org</a> ）<br /><br />对于数学和统计学基础不够扎实的朋友，Khan Academy 提供了大量的免费资源。从基础的代数到更高级的统计学，这里都能找到帮助。<br /><br /><br /><br />05<br /><br />Investopedia （ <a href="http://investopedia.com" rel="nofollow noopener" target="_blank">investopedia.com</a> ）<br /><br />对于金融知识的学习，Investopedia 是一个不可或缺的资源。它提供了从基础到高级的金融和投资概念解释，非常适合初学者。<br /><br /><br /><br /><br /><br />如果有其他好的学习资源或者关于量化学习的问题，欢迎加入我们的社区!与同行一起探讨,一起进步~<br /><br /><br /><br /><br /><a href="https://www.v2ex.com/i/qpswwgHkl.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 qpswwgHkl.png"><img class="embedded_image" src="https://i.v2ex.co/qpswwgHkl.png" /></a><br /><br /><br /><br />🔹500+量化职位合集:<a href="https://lnkd.in/g3cFRwdX" rel="nofollow noopener" target="_blank">https://lnkd.in/g3cFRwdX</a><br />🔹微信：15798201830<br />🔹邮箱： career@fintechgl.com<br /><br /><br /><a href="https://www.v2ex.com/i/Ui386Pnxl.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 Ui386Pnxl.png"><img class="embedded_image" src="https://i.v2ex.co/Ui386Pnxl.png" /></a>
-]]></content:encoded>
-<pubDate>2023-12-20T12:41:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 电视能安装谷歌框架吗？</title>
-<link>https://www.v2ex.com/t/1004225</link>
-<guid>https://www.v2ex.com/t/1004225</guid>
-<content:encoded><![CDATA[
-安卓 11 的电视，想安装电视的谷歌框架，商店，得不得行？
-]]></content:encoded>
-<pubDate>2023-12-28T12:33:52Z</pubDate>
-</item>
-<item>
-<title>24 届应届生 OFFER 选择求建议 银行 or 互联网？</title>
-<link>https://www.v2ex.com/t/1003010</link>
-<guid>https://www.v2ex.com/t/1003010</guid>
-<content:encoded><![CDATA[
-<h2>1. 腾讯 pcg 电视剧推荐</h2>
-<ul>
-<li>
-<p>优势:
-鹅子是梦中情厂，对鹅有滤镜，工资相对多些年包 40 出头，推荐算法也是个人的兴趣方向。</p>
-</li>
-<li>
-<p>劣势:
-电视剧可能推荐占比很小，一般是别的地方知道热播剧，然后去搜，或者看榜单，看运营? 长视频应该是个没有大规模盈利的业务。担心裁员优化，或者没产出商业价值难以晋升。</p>
-</li>
-</ul>
-<h2>2.工商银行省分科技部</h2>
-<ul>
-<li>
-<p>优势: 稳定，年包 20 万 网上说几年后可以涨到 30 ，工行可能没啥业绩要求，躺的比较平?</p>
-</li>
-<li>
-<p>劣势:工作内容不是很确定，入职培训后分配具体工作方向。房地产不太行的话，银行效益变差，会有降薪风险吧。</p>
-</li>
-</ul>
-<h2>其他补充:</h2>
-<p>女朋友跟 2 同城，可以一起生活
-跟 1 离得不远但是要周未夫妻。</p>
-]]></content:encoded>
-<pubDate>2023-12-27T17:49:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么比较好用的 teams 开会用的耳机</title>
-<link>https://www.v2ex.com/t/1004223</link>
-<guid>https://www.v2ex.com/t/1004223</guid>
-<content:encoded><![CDATA[
-目前用的是微软家 Teams 认证的 699 那款， 用了半年耳机连接两边的塑料就已经断裂， 虽然功能还行， 但是还是挺不爽的。 有啥其他牌子的推荐， 要求就是蓝牙， 可以随时耳机上操作 mute unmute 和音量的就行。
-]]></content:encoded>
-<pubDate>2023-12-28T08:12:01Z</pubDate>
-</item>
-<item>
-<title>[程序员] 单字符域名做个短链接不错</title>
-<link>https://www.v2ex.com/t/1004220</link>
-<guid>https://www.v2ex.com/t/1004220</guid>
-<content:encoded><![CDATA[
-<p>大家好</p>
-<p>目前持有世界最短域名 <a href="http://s.ke" rel="nofollow">s.ke</a> <a href="http://q.ke" rel="nofollow">q.ke</a> 以及 <a href="http://z.ke" rel="nofollow">z.ke</a></p>
-<p>有兴趣做短链接程序的朋友可以通过网站 <a href="https://shuai.la" rel="nofollow">shuai.la</a>. 联系我</p>
-]]></content:encoded>
-<pubDate>2023-12-28T07:58:42Z</pubDate>
-</item>
-<item>
-<title>[天黑以后] 20231228-午夜俱乐部</title>
-<link>https://www.v2ex.com/t/1004219</link>
-<guid>https://www.v2ex.com/t/1004219</guid>
-<content:encoded><![CDATA[
-<p>没啥想说的，大家说一下自己的夜生活吧。</p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:57:15Z</pubDate>
-</item>
-<item>
-<title>[程序员] pdd，淘宝百亿补贴买苹果手机都被退单了，大哥们有啥招没</title>
-<link>https://www.v2ex.com/t/1004218</link>
-<guid>https://www.v2ex.com/t/1004218</guid>
-<content:encoded><![CDATA[
-<p>pdd ，淘宝百亿补贴买苹果手机都被退单了，大哥们有啥招没？
-我不是黄牛，只之前在拼多多百亿补贴买过一次苹果 13.</p>
-]]></content:encoded>
-<pubDate>2023-12-28T12:12:42Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 普通得 gpt 已经垃圾得不行了，又没有插件可以拯救</title>
-<link>https://www.v2ex.com/t/1004217</link>
-<guid>https://www.v2ex.com/t/1004217</guid>
-<content:encoded><![CDATA[
-gpt 得普通用户几乎只能是用 gpt 干一些，看日志，翻译。。这种工作了把<br />  	但是就是这么简单的东西他都不太行，<br />	我告诉他：<br />		从现在开始将我回复得中文翻译为英文<br />		其他语言翻译为中文<br />    然后你只要说帮我 xxxx<br />    他就不翻译了<br />    有没有什么插件可以补救<br />    就是用的时候相当于每次发信息之前都会给他一个提示词
-]]></content:encoded>
-<pubDate>2023-12-28T12:13:27Z</pubDate>
-</item>
-<item>
-<title>[生活] 找工作找的抑郁……</title>
-<link>https://www.v2ex.com/t/1004216</link>
-<guid>https://www.v2ex.com/t/1004216</guid>
-<content:encoded><![CDATA[
-面试不少，而且感觉都不错，但是，但是就是没有后续……<br />有些抑郁了，睡不着觉……
-]]></content:encoded>
-<pubDate>2023-12-27T19:49:08Z</pubDate>
-</item>
-<item>
-<title>[NGINX] 注释了部分 upstream 的 server 后 Nginx 明明 reload 了但是访问依然会连接到原来的 server</title>
-<link>https://www.v2ex.com/t/1004214</link>
-<guid>https://www.v2ex.com/t/1004214</guid>
-<content:encoded><![CDATA[
-<p>有个系统后端 upstream 有 40 个节点，有些节点我们有健康检查并脚本注释并重新 reload 。但是发现 reload 后再次访问发现会出现 502 。然后我们自己手动测试发现随机注释几个节点，reload 后还会有请求到已经被注释的节点上。reload 肯定是成功的我保证。</p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:34:08Z</pubDate>
-</item>
-<item>
-<title>[微信] 怎么投诉企业微信随意封号？</title>
-<link>https://www.v2ex.com/t/1004213</link>
-<guid>https://www.v2ex.com/t/1004213</guid>
-<content:encoded><![CDATA[
-<p>估计是手机 Root 的原因。</p>
-<p>今天打完卡，然后帐号就被封了。</p>
-<p><a href="https://ts.isc.org.cn/" rel="nofollow">https://ts.isc.org.cn/</a>  这上边也没有企业微信选项。</p>
-]]></content:encoded>
-<pubDate>2023-12-28T12:15:17Z</pubDate>
-</item>
-<item>
-<title>[iOS] 火星预警， iOS 数字人民币 App 会检测 TrollStore 然后拒绝启动？</title>
-<link>https://www.v2ex.com/t/1004212</link>
-<guid>https://www.v2ex.com/t/1004212</guid>
-<content:encoded><![CDATA[
-<p>iOS 14.6 on A14 。应该是我火星了，今天准备付款时跳转提示设备运行环境存在风险暂无法提供服务，想了想唯一操作就是最近倒腾上了巨魔商店，求解怎么破？
-别问为啥要用数字人民币 App ，点个外卖省十块的机会不多嘞。</p>
-]]></content:encoded>
-<pubDate>2023-12-28T12:20:30Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 使用 AI 制作 twitter 很火的 Funko Pop 图片网站</title>
-<link>https://www.v2ex.com/t/1004211</link>
-<guid>https://www.v2ex.com/t/1004211</guid>
-<content:encoded><![CDATA[
-<p>AI Funko Pop Generator 是一款基于人工智能的免费图像生成器。它可以根据用户指定的描述创建个性化的 Funko Pop 图像，在不到一秒的时间内制作您的定制图像。
-网址: <a href="https://aifunkopop.top/" rel="nofollow">https://aifunkopop.top/</a></p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:09:17Z</pubDate>
-</item>
-<item>
-<title>[Apple] 准备入手 M3 Pro，为啥百亿补贴没 36g 定制版</title>
-<link>https://www.v2ex.com/t/1004210</link>
-<guid>https://www.v2ex.com/t/1004210</guid>
-<content:encoded><![CDATA[
-<p>14 寸 M3 Pro </p>
-<ul>
-<li>丐版</li>
-</ul>
-<ol>
-<li>某刀刀 13450 带票</li>
-<li>某宝	13850 带票</li>
-<li>某东 16999 带票</li>
-</ol>
-<ul>
-<li>36G 定制丐版</li>
-</ul>
-<ol>
-<li>某刀刀 没搜到</li>
-<li>某宝	17400 带票</li>
-<li>某东 19999 带票</li>
-</ol>
-<p>某刀百亿补贴还是有几百价格优势的，发票很重要，公司每 3 年可以申请一次电脑补贴报销一部分（不到 1w ）。
-不知道是不是我没搜到</p>
-<p>很纠结是不是要上 36G ，目前用的 19 款 16 寸 MBP intel 芯片 16G 内存，平时工作内存压力在 50%左右</p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:44:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 拼多多的拼单机制有什么意义</title>
-<link>https://www.v2ex.com/t/1004209</link>
-<guid>https://www.v2ex.com/t/1004209</guid>
-<content:encoded><![CDATA[
-<p>美团那种必须自己找人来拼的还能起到一点推广作用</p>
-<p>拼多多这个可以直接在线自动拼的拼单和没有有啥区别吗</p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:44:22Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] Speedtest.net 客户端选择某节点测速提示网络连接问题？</title>
-<link>https://www.v2ex.com/t/1004208</link>
-<guid>https://www.v2ex.com/t/1004208</guid>
-<content:encoded><![CDATA[
-<a href="http://Speedtest.net" rel="nofollow noopener" target="_blank">Speedtest.net</a> 客户端选择某节点测速提示网络连接问题？是说明这个测速节点有问题？谢谢。<br /><br /><a href="https://www.v2ex.com/i/2015dWFg.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 2015dWFg.jpeg"><img class="embedded_image" src="https://i.v2ex.co/2015dWFg.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2023-12-28T11:23:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求个手机（限 iPhone ）控制软件</title>
-<link>https://www.v2ex.com/t/1004207</link>
-<guid>https://www.v2ex.com/t/1004207</guid>
-<content:encoded><![CDATA[
-需求如下：<br />1 、将手机屏幕镜像到 PC （ windows 或 linux ）上<br />2 、可以使用鼠标通过镜像屏幕控制手机<br />3 、有线/无线均可<br />4 、免费（穷），开源最好，闭源也行。<br /><br />airplay+蓝牙 看起来是最合理的方案，但是目前没有找到可用的软件。<br /><br />为什么需要这个？<br />因为每天都需要学一些东西（具体就不点名了），想在这个的基础上实现自动学习，提升效率。为了避免被检测，因此不想在手机上安装任何自动化的工具（ iOS 上可能也没有）。<br /><br />如果有成套的方案推荐就更好了。
-]]></content:encoded>
-<pubDate>2023-12-28T11:43:47Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 宽带师傅突然给根网线让我换上是几个意思？</title>
-<link>https://www.v2ex.com/t/1004205</link>
-<guid>https://www.v2ex.com/t/1004205</guid>
-<content:encoded><![CDATA[
-这也阴谋论不起来，网线就 8 根铜线不可能有什么猫腻，<br />但我也没投诉也没啥的为什么师傅突然会说我网线有问题让我换上？<br />还是说他们内部有什么考核会查到用户网速这里？<br /><a href="https://i.imgur.com/yaNDQNI.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/yaNDQNI.jpg" /></a>
-]]></content:encoded>
-<pubDate>2023-12-28T12:19:34Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 申请支付牌照，马斯克好像真的在推进向微信的进程</title>
-<link>https://www.v2ex.com/t/1004203</link>
-<guid>https://www.v2ex.com/t/1004203</guid>
-<content:encoded><![CDATA[
-国外的格局是不是又要打开又要变啦，<br />毕竟 APP 连通线下，支付，购物等各种场景，<br />像微信一样<br />会是一个新的蓝海，在海外<br />扎克伯格他们会不会跟进呢？
-]]></content:encoded>
-<pubDate>2023-12-26T10:40:17Z</pubDate>
-</item>
-<item>
-<title>[编程] [新功能上线] mooncakes.io：新一代 MoonBit 包管理平台来啦！</title>
-<link>https://www.v2ex.com/t/1004202</link>
-<guid>https://www.v2ex.com/t/1004202</guid>
-<content:encoded><![CDATA[
-<p>🎉今天，我们很高兴地宣布：<a href="http://mooncakes.io" rel="nofollow">mooncakes.io</a> （ MoonBit 的包管理与共享平台）正式上线！</p>
-<p>MoonBit 最大的价值在于生态，更多的人更早地参与进来可以帮助我们一起完善 MoonBit 平台，一起分享它的成长。虽然还处于非常早期的阶段，还有很多地方需要完善，但是我们想第一时间分享给大家！</p>
-<p>接下来，让我们一起深入了解 <a href="http://mooncakes.io" rel="nofollow">mooncakes.io</a> 的独特之处👇</p>
-<p>链接： <a href="https://mp.weixin.qq.com/s/dBA4dA2fKL4FHc6KOcisBg" rel="nofollow">https://mp.weixin.qq.com/s/dBA4dA2fKL4FHc6KOcisBg</a></p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:35:50Z</pubDate>
-</item>
-<item>
-<title>[程序员] 怎么感觉 v2 这里很少有 ai 或大模型开发相关得讨论啊</title>
-<link>https://www.v2ex.com/t/1004201</link>
-<guid>https://www.v2ex.com/t/1004201</guid>
-<content:encoded><![CDATA[
-<p>现在不是 ai 火吗</p>
-<p>我在思考各种 gpt, llama 这种 对于 ge 个人来说有没有什么好的方向能够
-做些产品</p>
-<p>怎么没有人想在开发一个国内得 huggingface 这种可以分享上传模型得网站</p>
-<p>这样比如有个人训练得模型, 可以发到这个网站上, 用户可以付费使用, 网站本身也可以提成一部分</p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:21:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] Poe 429/403 了，是服务挂了吗？</title>
-<link>https://www.v2ex.com/t/1004200</link>
-<guid>https://www.v2ex.com/t/1004200</guid>
-<content:encoded><![CDATA[
-<p>刚刚访问 <a href="http://poe.com" rel="nofollow">poe.com</a> 界面直接 429 了，这会儿又变成 403 了，是 poe 服务器炸了？还是我节点 or 账号的问题？</p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:28:16Z</pubDate>
-</item>
-<item>
-<title>[深圳] 1 号线，坪洲地铁口 两房子转租</title>
-<link>https://www.v2ex.com/t/1004199</link>
-<guid>https://www.v2ex.com/t/1004199</guid>
-<content:encoded><![CDATA[
-<p>坪洲地铁口，麻布新村，两房，54 平方米，有个小阳台，民水民电，好停车，适合在南山、福田、宝安上班的同学。
-房间比较大，通风好，双面采光，没小强，没小强，没小强，是城中村的顶配了。</p>
-<p>到高新园地铁 20 分钟。</p>
-<p>联系方式 VX：david520zhen 13128792935</p>
-]]></content:encoded>
-<pubDate>2023-12-28T10:25:55Z</pubDate>
-</item>
-<item>
-<title>V 站老哥太热情了， Airy 永久会员加送 9000，凑到 1 万</title>
-<link>https://www.v2ex.com/t/991748</link>
-<guid>https://www.v2ex.com/t/991748</guid>
-<content:encoded><![CDATA[
-<p>确实没想到昨天发的送 1000 永久会员的帖子能在 12 小时被领光，因为后面会开发用户自填 OpenAI api 的功能，和朋友预估了下永久会员的成本其实不会很高，写的代码有人爱有人用才是最令人开心的，所以狠了狠心，赠送翻个 10 倍。</p>
-<p>是的，评论本帖的前 9000 个老哥都送永久会员（基本就是见者有份了吧）</p>
-<p><strong>兑换方法</strong>：评论本帖留言即可，会员体系上线后，会有 V 站的专属兑换入口</p>
-<p><strong>赠送数量</strong>：9000 本帖+1000<a href="https://www.v2ex.com/t/991541?p=13#reply1320" rel="nofollow">上个帖子</a></p>
-<p><strong>下载地址</strong>： <a href="https://colink.in/" rel="nofollow">https://colink.in/</a></p>
-<p>昨天好多人加我微信，微信已经报错，不让我回复了😄</p>
-<p>我搞了个 qq 群（ 895132189 ）（群里有<strong>微信群</strong>的中转）： <a href="https://qm.qq.com/q/mi6KJSimE8" rel="nofollow">https://qm.qq.com/q/mi6KJSimE8</a></p>
-<p>昨天发的帖子没附带主要功能截图，今天补上</p>
-<p><strong>AI 翻译（我超爱这个功能，应该做到了世界第一方便！）</strong></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/tkl8Px5m.gif" /></p>
-<p><strong>AI 备忘录</strong></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/VxvNsN8s.gif" /></p>
-<p><strong>AI 搜索</strong></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/7p5EWenj.gif" /></p>
-<p>真的非常感谢大家的支持，我的个人微信是 630443747 随时找我，没及时回复大概就是回复多了微信暂时没法用了</p>
-<p><strong>写的代码有人爱有人用才是最令人开心的</strong></p>
-]]></content:encoded>
-<pubDate>2023-12-27T12:33:52Z</pubDate>
-</item>
-<item>
-<title>元旦后有一个项目，需求 3D 类的交互实现，征合作</title>
-<link>https://www.v2ex.com/t/1004204</link>
-<guid>https://www.v2ex.com/t/1004204</guid>
-<content:encoded><![CDATA[
-<p>一个销售场景的桌面端、或 Pad 端实现，考虑 three.js ，或 cocos 3d 实现，欢迎联络；</p>
-<ul>
-<li>希望是个人开发者</li>
-<li>深圳优先考虑</li>
-</ul>
-<p>tg: aHR0cHM6Ly90Lm1lL2RhbGlfY2hlbg==</p>
-<p>why not wechat, ::::: tg 不用加好友，随时可以开聊 :）</p>
-]]></content:encoded>
-<pubDate>2023-12-28T12:10:56Z</pubDate>
-</item>
-<item>
-<title>Rwa.tech 个人资产交易</title>
-<link>https://www.v2ex.com/t/1004215</link>
-<guid>https://www.v2ex.com/t/1004215</guid>
-<content:encoded><![CDATA[
-<p><a href="https://ludesala.blogspot.com/" rel="nofollow">https://ludesala.blogspot.com/</a></p>
-]]></content:encoded>
-<pubDate>2023-12-28T11:42:00Z</pubDate>
 </item>
 </channel>
 </rss>
