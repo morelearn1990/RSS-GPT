@@ -5,14 +5,210 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[视频技术] 关于 AMD 显卡与 Pr 硬件加速相关的问题</title>
+<link>https://www.v2ex.com/t/1008521</link>
+<guid>https://www.v2ex.com/t/1008521</guid>
+<content:encoded><![CDATA[
+
+<p>之前整了一台过渡使用的台式机
+I3-12100F+AMD 5600XT
+结果使用 Pr 时候发现虽然能选择硬件加速,但压制视频时候 CPU 基本跑满 GPU 纯粹在摸鱼
+现在不知道有没有什么解决方案</p>
+]]></content:encoded>
+<pubDate>2024-01-14T08:01:16Z</pubDate>
+<pubDate>2024-01-14T07:59:16Z</pubDate>
+</item>
+<item>
+<title>[程序员] 最近前端工作感悟一二</title>
+<link>https://www.v2ex.com/t/1008520</link>
+<guid>https://www.v2ex.com/t/1008520</guid>
+<content:encoded><![CDATA[
+
+<p>说起来毕业以来一直在写前端，随便聊点有的没的，想到哪就写哪了吧。</p>
+<ol>
+<li>
+<p>最近的工作还是前端也不是前端，基本是背锅。比如：chrome 出 bug 了、iphone15 发热离谱、native 老哥的代码实现影响前端性能了等等。当然还有大部分是性能优化相关，想出一些有意思的 idea ，做下架构改进，偶尔 PUA 自己带的小朋友（苦笑，好像不太擅长）。整体来说还是个臭写代码的，性格自闭，估计以后也不会有啥长进；</p>
+</li>
+<li>
+<p>一般来说，浏览器内的 bug ，前端研发要是敢说原因是浏览器或者 native ，别人一般会觉得：区区切图仔写 bug 就认，就知道乱甩锅。那就给证据嘛：
+a.用户说浏览器卡死，那前端写屎也只能弄挂 js ，后面抓浏览器 tracing ，V8 安安静静，那就是浏览器的锅啊。
+b. 有老哥说 CPU 高肯定是前端写屎，我复现发现他那种场景下 webkit 就 GC 个没完，自己简单学了下 ios 开发弄个最小测试 demo ，还是有问题，那就是 webkit 的问题，不能怪我呀。
+c. 前端渲染一直不出来，看不到 paint 事件，trace 一看，native 逻辑阻塞主进程，导致 webview 也无法绘制；还有一种情况，在某工业垃圾上无法看 tracing ，一个个原因猜，一个个测，最后跟 native 老哥分析前因后果，定位到问题。
+这么来几次，大家也就觉得你是一名研发工程师</p>
+</li>
+<li>
+<p>兜兜转转，换回几年前，我也不可能给证据给得那么流畅，最近我发现一个复杂问题丢给一些小朋友时，他们会表现得手足无措，但如果我有个教程让他们一步步做时，他们会学得飞快，而且做得比我还要好。其实很怪，这些小朋友其实都很优秀，比当年的我可聪明多了。可能是大家不怎么会分析一个“困难”的问题。</p>
+</li>
+</ol>
+<p>我的感受是这些需要将困难问题变成复杂问题（额，我们公司称这为思考啥的，有的公司叫方法论）。</p>
+<p>就像自己的台式机没法开机了，但电脑上一共就：电源-主板-CPU-内存-硬盘-显卡，这几个硬件按顺序执行各自的工作，其中每个硬件都会干点自己的工作。那假如无法开机，那肯定就是看到哪个环节断了，比如：</p>
+<p>开机没反应，那肯定是到电源，主板这一步就挂了，把这两个部件换一下试试；</p>
+<p>开机 CPU 风扇转，那大部分情况电源-主板是好的，后面步骤有问题，那就试试换 CPU 、内存看看能不能好；</p>
+<pre><code>（这里方便举例省略了大量细节，比如主板 bios 有问题也是风扇会转，希望大家别纠结）
+</code></pre>
+<p>这个按链路排查的思维帮了我很多，特别是最近一个需求需要跟一堆后端老哥吵架，而且吵的是后端的细节，实际上我根本不需要知道他们的数据库用了 mysql 还是啥，网关是 nginx ，还是开发语言是 go 还是 rust ，我只需要理解需求需要几个环节，以及这几个环节中间能不能串起来就 ok 了，如果不能串起来，我就要给出一个方案说服他们。</p>
+<p>这里困难的点是：我怎么知道链路是这样的？哈，这个跟智商都没啥关系。比如有些小朋友拿到一个新手机会开心得睡不着，将整个手机的设置页面都研究的清清楚楚，第二天连刷机怎么玩都弄明白了；比如有些小朋友将会花时间将我们项目的主流程摸得滚瓜烂熟，有些劝了半天也不为所动。至于这些行为原因是啥我真不好说，每个人都做出了自己选择而已。</p>
+<p>如果说你按着执行链路排查了半天都没法效果，或者说知道原因但无法修复怎么办？有时候就像爱迪生发明灯泡一样撞大运，比如 CPU 转，其实可能 CPU 没事，是主板有事 ---- 为什么能发现可能是那个老哥实在觉得灵异，然后找了块新主板试了一下 CPU ，发现 CPU 好好的，就是主板有事。</p>
+<p>那主板为什么挂了呢？为什么刷个 bios 就能好？那就回到了上面说的，主板的启动流程是什么。</p>
+<p>但是日常工作中，等学习清楚主板的启动流程，老板早不耐烦了，对此我只能说念念不忘必有回响。比如查 native 导致的前端不渲染问题，我发现浏览器没触发 paint 时，我第一反应是触发 paint 需要一个 vsync 。然而前端开发基本不会接触 vsync ，甚至是 paint 。我能接触到仅仅是有段时间刷 b 站学了一点点计算机图形学。这应该就是所谓的积累，从量变产生质变，真没有啥捷径。</p>
+<p>好了，就写这么多，写得也好乱。忽然感觉这就是写给我自己看的，给各位献丑了。</p>
+<p>以后要是有机会招人，我可能会问一嘴：android 的开发者页面要怎么开？</p>
+<p>冷知识：现在的 chrome 的内存管理做得远远比 safari 强，chrome 少 50%，甚至移动端 safari 内存占用也比 PC chrome 要高。</p>
+<p>（本来是想吐槽苹果创造的（消音），没想到变成总结文章了，就年级大了不想引战。。。。。）</p>
+]]></content:encoded>
+<pubDate>2024-01-14T07:45:27Z</pubDate>
+<pubDate>2024-01-14T08:20:31Z</pubDate>
+</item>
+<item>
+<title>[分享创造] AI 绘画提示词合集站</title>
+<link>https://www.v2ex.com/t/1008519</link>
+<guid>https://www.v2ex.com/t/1008519</guid>
+<content:encoded><![CDATA[
+
+<p>我们正在开发 AI 绘画提示词集合站（ Drawing Prompts Hub ） <a href="https://drawingprompts.cc/" rel="nofollow">https://drawingprompts.cc/</a>
+会比目前已有的绘画提示词工具站更加完善，功能更加丰富。</p>
+<p>我们尝试把一些 AI 模型运用到提示词领域，包括：</p>
+<ul>
+<li>提示词自动扩展（ AI text to text ） <a href="https://drawingprompts.cc/art-prompts-generator" rel="nofollow">https://drawingprompts.cc/art-prompts-generator</a></li>
+<li>根据图片生成描述（ AI Image to text ） <a href="https://drawingprompts.cc/image-to-text" rel="nofollow">https://drawingprompts.cc/image-to-text</a></li>
+</ul>
+<p>Midjourney Prompts 相关功能</p>
+<ul>
+<li>图片示例： <a href="https://drawingprompts.cc/best-midjourney-prompts" rel="nofollow">https://drawingprompts.cc/best-midjourney-prompts</a></li>
+<li>生成工具： <a href="https://drawingprompts.cc/midjourney-prompts-generator" rel="nofollow">https://drawingprompts.cc/midjourney-prompts-generator</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-01-14T07:39:23Z</pubDate>
+<pubDate>2024-01-14T07:39:23Z</pubDate>
+</item>
+<item>
+<title>[程序员] 线上数据库某些大表几亿以上的数据量，没法通过直接查取数据库数据排查线上问题，如何优化？</title>
+<link>https://www.v2ex.com/t/1008517</link>
+<guid>https://www.v2ex.com/t/1008517</guid>
+<content:encoded><![CDATA[
+
+<p>公司某些大表动辄几亿以上的数据量，主管这边已规定不能直接用 sql 查这种大表（不然即便有索引也会直接卡死……），想排查数据可以用 es 操作（因为是从数据库同步到 es ，然后再由代码读取），但是遇到需要排查数据正误的情况时，就需要查取数据库的原数据来分析代码是否存在插入数据不对的问题。</p>
+<p>一旦遇到这种情况我就懵逼了，我数据库都没法看我咋个快速找到 BUG 根源？</p>
+]]></content:encoded>
+<pubDate>2024-01-14T07:31:11Z</pubDate>
+<pubDate>2024-01-14T07:57:56Z</pubDate>
+</item>
+<item>
+<title>[Surge] Surge mac 还有两个位置， 140/人， 1 月 11 刚开</title>
+<link>https://www.v2ex.com/t/1008516</link>
+<guid>https://www.v2ex.com/t/1008516</guid>
+<content:encoded><![CDATA[
+
+Vx/tg:ZmFub2ZicG0xMzg=
+]]></content:encoded>
+<pubDate>2024-01-14T07:28:16Z</pubDate>
+<pubDate>2024-01-14T07:28:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] 姐姐家老大非常不喜欢老二，以致抑郁，有何良策？</title>
+<link>https://www.v2ex.com/t/1008515</link>
+<guid>https://www.v2ex.com/t/1008515</guid>
+<content:encoded><![CDATA[
+
+老大是姐姐，老二是弟弟，俩人相差 12 岁<br /><br />在没有老二之前，老大是非常活泼开朗，有说有笑的<br />然而有了老二之后，像是完全变了一个人，沉默寡言，整日待在房间不出门，与任何人都不想交流<br />跟老二完全不接触，甚至不能待在同一个房间<br /><br />之前学习成绩在班里前几名，现在考试已经到了中游以下<br />熬夜，经常凌晨四五点不睡觉<br />经常不去学校，一个月也就去几天<br />沉迷手机、平板、二次元、游戏<br /><br />家里人现在非常苦恼，不知道有没有遇到类似情况的，可有好的解决办法
+]]></content:encoded>
+<pubDate>2024-01-14T07:16:29Z</pubDate>
+<pubDate>2024-01-14T08:20:50Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 对 gitpod 的一点疑惑</title>
+<link>https://www.v2ex.com/t/1008514</link>
+<guid>https://www.v2ex.com/t/1008514</guid>
+<content:encoded><![CDATA[
+
+1 、这个 gitpod 在编辑完项目后，如何部署到我的服务器上呢？目前的方法：<br />（ 1 ） download 整个项目到本地再到服务器<br />（ 2 ） push 到 github 仓库，服务器上再 pull<br />就没有啥更方便的部署到服务器上的办法了吗。<br /><br /><br />2 、`.gitpod.yml`这个文件是干啥的，看了手册没看懂。整个 gitpod 的流程我好像都没太懂。<br /><br /><br />3 、我现在认为的 gitpod 的流程就是，自动开个容器，里面把你的代码爬下去，然后环境啥的给你配置好，就完事了。总感觉 gitpod 有更高级的用法，我没看懂。
+]]></content:encoded>
+<pubDate>2024-01-14T07:08:33Z</pubDate>
+<pubDate>2024-01-14T07:08:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] (深圳)老婆上周摇中油车牌了，预算 30 万左右，打算上宝马 3 系，前辈们帮掌掌眼</title>
+<link>https://www.v2ex.com/t/1008513</link>
+<guid>https://www.v2ex.com/t/1008513</guid>
+<content:encoded><![CDATA[
+
+<p>第一辆车，比较看重面子</p>
+<ol>
+<li>
+<p>30 万左右宝马选什么配置好一些呢？</p>
+</li>
+<li>
+<p>买车有什么坑要提前注意的吗？</p>
+</li>
+</ol>
+<p>---------&gt;</p>
+<p>先提前感谢各位前辈，会一一点赞感谢的。</p>
+]]></content:encoded>
+<pubDate>2024-01-14T07:02:31Z</pubDate>
+<pubDate>2024-01-14T07:54:19Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一个 ReplaceAnything AI 工具站点</title>
+<link>https://www.v2ex.com/t/1008512</link>
+<guid>https://www.v2ex.com/t/1008512</guid>
+<content:encoded><![CDATA[
+
+<p>阿里开源了强大的 ReplaceAnything 模型，可以在模型中将照片里面的内容做替换。结合阿里的开源工具，做了一个站点工具： <a href="https://replaceanything.cc/" rel="nofollow">https://replaceanything.cc/</a> ，欢迎大家体验，有问题留言，感谢！</p>
+]]></content:encoded>
+<pubDate>2024-01-14T06:43:36Z</pubDate>
+<pubDate>2024-01-14T02:43:36Z</pubDate>
+</item>
+<item>
+<title>[音乐] [安利] spotify flac 无损下载 tg bot（免费帮忙下载 spotify 歌曲）</title>
+<link>https://www.v2ex.com/t/1008510</link>
+<guid>https://www.v2ex.com/t/1008510</guid>
+<content:encoded><![CDATA[
+
+<p>书接上回：<a href="https://v2ex.com/t/1008472" rel="nofollow">https://v2ex.com/t/1008472</a><br />
+Google 一番后，终于找到了教程<a href="https://www.reddit.com/r/IndianHipHopHeads/comments/z03bgu/guide_ways_to_download_songs_in_flac_quality/" rel="nofollow">https://www.reddit.com/r/IndianHipHopHeads/comments/z03bgu/guide_ways_to_download_songs_in_flac_quality/</a><br />
+其中 method2 提到了一个 tg bot ，地址为<a href="https://t.me/deezload2bot" rel="nofollow">https://t.me/deezload2bot</a> ，抱着试一试的心态，我用了下，最后效果太令人惊艳了，我宣布，deezload2bot 是继<a href="https://t.me/deezload2bot" rel="nofollow">https://doublenegative.io/</a> 之后最好用的英文音乐无损下载器<br />
+特性：  </p>
+<ol>
+<li>支持 spotify playlist 下载（太方便了，直接丢一个 playlist 链接就行了，不用一首一首搜索）</li>
+<li>支持无损 flac ，mp3 320 ，mp3 128 三种码率（我肯定选 flac ）</li>
+<li>每一首歌都有封面</li>
+<li>支持 zip （要氪金，免费的话可以一首一首下载，比较麻烦）</li>
+</ol>
+<p>我歌单一共 378 首歌，最后成功下载了 361 首（因为有的歌在 bot 所在的区域听不了，所以不能下载），这个 bot 挺快的，9G 的歌曲文件，25 分钟就下好了。<br />
+<img alt="Screenshot 2024-01-14 at 14.05.21.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a379d76a18b.png" />
+<img alt="Screenshot 2024-01-14 at 14.05.06.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a379d76ad6a.png" />
+使用截图：
+<img alt="Screenshot 2024-01-14 at 13.55.29.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a3792f0fe68.png" />
+<img alt="Screenshot 2024-01-14 at 13.56.11.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a379333baff.png" />
+<img alt="Screenshot 2024-01-14 at 13.55.42.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a3792f101a6.png" />
+<img alt="Screenshot 2024-01-14 at 13.56.28.png" class="embedded_image" rel="noreferrer" src="https://img.aka.cy/i/2024/01/14/65a3792f14128.png" /></p>
+<p>为了下得快，我氪了 1 美元（美其名曰 donation ），paypal 付不了款，最后用 Ton 付的，有效期一个月<br />
+本着独乐乐不如众乐乐的精神，趁着还在赞助期（ VIP ）内，我帮大家免费下载 spotify 歌曲（免费服务，没有 SLA 保证，我会按回帖先后顺序来帮忙下载，直到我的 VIP 过期为止，即 14/02/2024 ），想要我帮忙下载 spotify 音乐的（仅限于 spotify ），请在回帖中写下你想要的格式，留下你的歌单，以及 tg 号，我会在下载好后转发给你的 tg 。量小的建议自己直接使用免费版，一首一首下载就行了。<br />
+叠个甲：仅供个人学习研究和交流使用，请于下载后二十四小时内删除<br />
+再叠个甲：不是我不支持正版，等我以后有米了再补票，正版用户你们都是好样的</p>
+]]></content:encoded>
+<pubDate>2024-01-14T06:29:04Z</pubDate>
+<pubDate>2024-01-14T07:37:44Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 24 届关于学习与实习的疑问</title>
+<link>https://www.v2ex.com/t/1008509</link>
+<guid>https://www.v2ex.com/t/1008509</guid>
+<content:encoded><![CDATA[
+
+双非,修炼前端的也会一些 c#,想找个实习,<br />然后天天投,一年只有三个小公司愿意接受,<br />现在陷入迷茫,基础知识有的,但是完不成产出<br />,现在陷入迷茫,不知道怎么搞,<br />是去搞 java,,还是多做前端练习,还是去其他方向,<br />求各位大佬指点
+]]></content:encoded>
+<pubDate>2024-01-14T06:24:45Z</pubDate>
+<pubDate>2024-01-14T07:33:17Z</pubDate>
+</item>
+
+<item>
 <title>[NAS] PT 老用户 tjupt 求个邀</title>
 <link>https://www.v2ex.com/t/1008507</link>
 <guid>https://www.v2ex.com/t/1008507</guid>
 <content:encoded><![CDATA[
-
 有十多个 PT 站，求个 tjupt 的邀，感谢大佬。<br /><br />邮箱: eW1pbmcwMjIxQHFxLmNvbQ==<br /><br /><br /><br /><a href="https://i.imgur.com/NIuhtn7.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/NIuhtn7.jpg" /></a>
 ]]></content:encoded>
-<pubDate>2024-01-14T06:15:44Z</pubDate>
 <pubDate>2024-01-14T06:15:44Z</pubDate>
 </item>
 <item>
@@ -21,9 +217,7 @@
 <guid>https://www.v2ex.com/t/1008505</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-14T06:00:17Z</pubDate>
 <pubDate>2024-01-14T06:15:46Z</pubDate>
 </item>
 <item>
@@ -31,10 +225,8 @@
 <link>https://www.v2ex.com/t/1008504</link>
 <guid>https://www.v2ex.com/t/1008504</guid>
 <content:encoded><![CDATA[
-
 差两位，年付 96 ，跳车不退，根据里拉汇率退钱补钱<br />WX base64:dGhpcyBpcyBhIGV4YW1wbGVSYWNoZWxfVHVv<br /><a href="https://imgur.com/xPk3OyH" rel="nofollow noopener" target="_blank">https://imgur.com/xPk3OyH</a>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:57:33Z</pubDate>
 <pubDate>2024-01-04T05:56:33Z</pubDate>
 </item>
 <item>
@@ -42,7 +234,6 @@
 <link>https://www.v2ex.com/t/1008503</link>
 <guid>https://www.v2ex.com/t/1008503</guid>
 <content:encoded><![CDATA[
-
 <p>需求：
 1.比较好的搜索功能，不仅仅能搜索到标题，还可以搜索到文章内容；
 2.可支持多用户发布文章，发布文章的时候最好不用转到后台发布，有一定的用户管理功能
@@ -57,7 +248,6 @@
 4.蚂蚁笔记，用起来挺不错的，支持多用户，搜索功能满意，还可以把特定的笔记公开发布为博客，不过没有更新了，而且搭建起来很麻烦，特别在 32 位 win7 上装 MongoDB 很多问题，备份也不容易，上次电脑出问题重装就不想再折腾这个了。
 5.mindoc\<a href="http://stackbook.cn" rel="nofollow">stackbook.cn</a> 需要额外运行一个程序，而且这个程序还是前台控制台的</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:56:42Z</pubDate>
 <pubDate>2024-01-14T06:18:18Z</pubDate>
 </item>
 <item>
@@ -65,10 +255,8 @@
 <link>https://www.v2ex.com/t/1008502</link>
 <guid>https://www.v2ex.com/t/1008502</guid>
 <content:encoded><![CDATA[
-
 <p>如题，最好是季付车</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:54:03Z</pubDate>
 <pubDate>2024-01-14T06:12:43Z</pubDate>
 </item>
 <item>
@@ -76,11 +264,9 @@
 <link>https://www.v2ex.com/t/1008500</link>
 <guid>https://www.v2ex.com/t/1008500</guid>
 <content:encoded><![CDATA[
-
 <p>我技术栈是 C , python, lua ，rust ，cuda ，嵌入式 等。</p>
 <p>做过的东西很杂，主要是内核，驱动，服务器, 单片机等。  从未涉足前端</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:36:59Z</pubDate>
 <pubDate>2024-01-14T05:36:59Z</pubDate>
 </item>
 <item>
@@ -88,11 +274,9 @@
 <link>https://www.v2ex.com/t/1008499</link>
 <guid>https://www.v2ex.com/t/1008499</guid>
 <content:encoded><![CDATA[
-
 <p>Tesla Cybertruck ，又称 Cybrtrk 或赛博皮卡，是特斯拉公司自 2019 年起号称即将上市的纯电动轻型商用车。特斯拉公司在发布会上共公布了三个型号，基础款为单电机后轮驱动，续航里程为 400km ，0 至 60 迈加速时间为 6.5 秒；性能款双电机全轮驱动版本续航里程为 480km ，加速时间为 4.5 秒；最高性能款为三电机全轮驱动续航里程为 800km ，加速时间为 2.9 秒。</p>
 <p>通过我的网站 <a href="http://cybertruckinterior.com" rel="nofollow">cybertruckinterior.com</a> ，你可以了解到关于 cybertruck 内饰的信息，cybertruck 的发展前景，欢迎使用和指正</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:31:39Z</pubDate>
 <pubDate>2024-01-13T05:31:39Z</pubDate>
 </item>
 <item>
@@ -100,10 +284,8 @@
 <link>https://www.v2ex.com/t/1008496</link>
 <guid>https://www.v2ex.com/t/1008496</guid>
 <content:encoded><![CDATA[
-
 想询问一下为啥和家亲（版本 8.0 ）网络安全-安全中心老是显示在同一时间内有多台设备访问风险网站而且网站名都是同一个关键是这几台设备是没有访问这种网站都是正常的打游戏刷视频<br />这几台设备都是我侄子侄女的设备都是正常的使用，我想问一下各位技术大佬这到底是那个环节出问题了
 ]]></content:encoded>
-<pubDate>2024-01-14T05:11:58Z</pubDate>
 <pubDate>2024-01-14T05:08:58Z</pubDate>
 </item>
 <item>
@@ -111,10 +293,8 @@
 <link>https://www.v2ex.com/t/1008495</link>
 <guid>https://www.v2ex.com/t/1008495</guid>
 <content:encoded><![CDATA[
-
 <p>上车联系 TG：Weston555</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T05:09:18Z</pubDate>
 <pubDate>2024-01-14T05:06:18Z</pubDate>
 </item>
 <item>
@@ -123,9 +303,7 @@
 <guid>https://www.v2ex.com/t/1008494</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-14T05:00:16Z</pubDate>
 <pubDate>2024-01-14T05:12:01Z</pubDate>
 </item>
 <item>
@@ -133,14 +311,12 @@
 <link>https://www.v2ex.com/t/1008493</link>
 <guid>https://www.v2ex.com/t/1008493</guid>
 <content:encoded><![CDATA[
-
 <blockquote>
 <p>iphone 储存扩容靠谱吗</p>
 <p>128G 扩容到 1TB 才 500 块钱</p>
 <p>目前是 IPHONE 13 P</p>
 </blockquote>
 ]]></content:encoded>
-<pubDate>2024-01-14T04:55:04Z</pubDate>
 <pubDate>2024-01-14T06:03:08Z</pubDate>
 </item>
 <item>
@@ -148,13 +324,11 @@
 <link>https://www.v2ex.com/t/1008492</link>
 <guid>https://www.v2ex.com/t/1008492</guid>
 <content:encoded><![CDATA[
-
 <p>各位，我的开源 K8s 教程仓库中刚刚新增了一篇关于 K8s 日志收集的文章，有兴趣的 xdm 欢迎点击查看~</p>
 <ul>
 <li><a href="https://github.com/chaseSpace/k8s-tutorial-cn/blob/main/doc_log_collection.md" rel="nofollow">K8s 日志收集</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-01-14T04:54:24Z</pubDate>
 <pubDate>2024-01-14T04:54:24Z</pubDate>
 </item>
 <item>
@@ -162,12 +336,10 @@
 <link>https://www.v2ex.com/t/1008491</link>
 <guid>https://www.v2ex.com/t/1008491</guid>
 <content:encoded><![CDATA[
-
 <p>刚过 40 岁生日，家庭负担并不大，家人没有给太多的压力。现在决然一身。可手头只有 5 万块左右的积蓄。。请问该怎么样理财，怎么样过呢？
 也只是有一份收入不到 5 千，也不是很稳定的工作。而且工作占据了很多时间。家人
 不是比惨，更不是炫耀。这个年纪这点积蓄实在不好意思讲。</p>
 ]]></content:encoded>
-<pubDate>2024-01-14T04:40:50Z</pubDate>
 <pubDate>2024-01-14T06:20:04Z</pubDate>
 </item>
 <item>
@@ -175,10 +347,8 @@
 <link>https://www.v2ex.com/t/1008490</link>
 <guid>https://www.v2ex.com/t/1008490</guid>
 <content:encoded><![CDATA[
-
 目前 ios17.2.1 自带输入法优点：卡顿、键盘空白屏、智能制造错误联想词<br /><br />欢迎友好交流
 ]]></content:encoded>
-<pubDate>2024-01-14T04:35:07Z</pubDate>
 <pubDate>2024-01-14T06:09:58Z</pubDate>
 </item>
 <item>
@@ -186,16 +356,13 @@
 <link>https://www.v2ex.com/t/1008498</link>
 <guid>https://www.v2ex.com/t/1008498</guid>
 <content:encoded><![CDATA[
-
 <p>目前有一个电商，仓储，物流的系统需要维护。</p>
 <p>中间需要做一些改动~</p>
 <p>最好前后端都可以改的~</p>
 <p>希望是熟手，如果技术底蕴可以，入手 php 快的也可以聊。  可以联系 绿信：  MjE2OTU2NDM2Ngo=  （备注 php ）</p>
 ]]></content:encoded>
 <pubDate>2024-01-14T05:29:02Z</pubDate>
-<pubDate>2024-01-14T05:29:02Z</pubDate>
 </item>
-
 <item>
 <title>[求职] 坐标成都，被裁了，求一个运维岗位的工作</title>
 <link>https://www.v2ex.com/t/1008489</link>
@@ -15571,311 +15738,6 @@ KVM 切换<ul>
 饮食： 在外面吃很难排除某些食物，如碘、酱油、食用油</p>
 ]]></content:encoded>
 <pubDate>2024-01-09T12:15:07Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 中国电信 vowifi 已经可以开启使用(wifi 通话)</title>
-<link>https://www.v2ex.com/t/1007279</link>
-<guid>https://www.v2ex.com/t/1007279</guid>
-<content:encoded><![CDATA[
-国内总算有个补齐主流产物了，坐标广东省珠三角，信号差的时候可以用 wifi 接打电话收发短信，使用机型为小米 hyper os ，用代码开启并且在在电信宽带 wifi 的情况下可以开启 vowifi(wifi 通话)，在试点城市均可开始。<br /><br /><br /><br />代码为:*#*#869434#*#*<br /><br />vowifi 强制打开指令(此处为小米指令，一加手机部分也可以开启需要打其他的代码，pixel 原生 vowifi 配置文件都可以开启)<br /><br /><br /><br />算是个半成品，和国际通用的 vowifi 还差了一些，测试使用时候飞行模式下无法开启 vowifi 通讯，可能是因为要求溯源缘故，输入代码出现 vowifi carrier check is disable 就是提示关闭运行商检测打开 vowifi 开关，打开设置进入行动数据网络-sim 卡咨询-wlan 通话打开就可以使用了。<br /><br />简单点说:<br /><br />volte 全程 voice over lte(4g 网络电话，国内翻译成高清通话 hd)<br /><br />vowifi 全程 voice over wifi (wifi 网络下语音，国际统一称呼)<br /><br />果子会翻译成 wifi_calling 和 wifi 通话 其实都是一个意思。<br /><br />并且 4g 与 lte 是一个意思，只是翻译不同，没有其他本质区别。
-]]></content:encoded>
-<pubDate>2024-01-09T11:58:15Z</pubDate>
-</item>
-<item>
-<title>[编辑器] 建一个英文站编辑器用哪一款较好？</title>
-<link>https://www.v2ex.com/t/1007278</link>
-<guid>https://www.v2ex.com/t/1007278</guid>
-<content:encoded><![CDATA[
-<p>建一个 asp 语言有泛域名有商铺平台类型的英文站，用户可以发布文章，选哪一款编辑器体验好？
-用过 ueditor ，cutesoft ，感觉一般，请教还有更好的推荐吗？</p>
-]]></content:encoded>
-<pubDate>2024-01-09T07:53:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Web 3/DEX 招聘 - App 开发 - Flutter, Android（远程办公)</title>
-<link>https://www.v2ex.com/t/1007277</link>
-<guid>https://www.v2ex.com/t/1007277</guid>
-<content:encoded><![CDATA[
-App 开发 - Flutter, Android <br /><br />工作模式：远程办公<br />公司背景：DEX<br />目前创业阶段，寻找不怕吃苦，能接受目前 6 天制的同学一起打拼，盈利之后大家一块分红！<br /><br />职责：<br />- 负责交易平台 App 各项日常开发维护，提升与确保 App 稳定性<br />- 参与 APP 需求讨论、技术调研、开发迭代和调优<br />- 负责移动端基础能力建设，维护通用组件库、性能监控库、 <br />- 负责跨部门合作的资源协调与沟通，提出改进意见和建议 ，跟进并推动项目顺利进行 <br /><br />要求：<br />- 精通 Android 平台下高性能 APP 开发<br />- 有跨端开发经验，熟悉 Flutter 、ReactNative 开发及与原生交互方式 <br />- 熟练使用 Flutter 技术开发应用，理解 Flutter 渲染原理，熟悉 Dart 语言，理解 Dart 线程模型<br />- 具备良好的服务意识、责任心、细心、热爱技术、优秀的团队沟通与协作能力<br />- 乐意投身区块链行业，对 Defi 有经验 / 兴趣。适应在敏捷环境中工作<br /><br />薪资根据个人经验面议<br /><br />感兴趣可以通过电邮至 goal@artemishr.xyz 附上简历，注明求职岗位，入围者快速面试!
-]]></content:encoded>
-<pubDate>2024-01-09T07:51:51Z</pubDate>
-</item>
-<item>
-<title>[Apple] iwatch 如何关闭骑行检测?</title>
-<link>https://www.v2ex.com/t/1007276</link>
-<guid>https://www.v2ex.com/t/1007276</guid>
-<content:encoded><![CDATA[
-每次骑电动自行车它都弹我要不要开始骑行运动,我现在没有自行车,所以想暂时关闭. 但是没找到关闭检测的选项.
-]]></content:encoded>
-<pubDate>2024-01-09T11:51:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位大佬，请教一下 offer 选择难题</title>
-<link>https://www.v2ex.com/t/1007274</link>
-<guid>https://www.v2ex.com/t/1007274</guid>
-<content:encoded><![CDATA[
-第一个是农行的数据中心（应该是运维岗，需要值班），拒 hr 说基本不加班，工作地点在呼和浩特的开发区，距离市区车程 40 分钟左右。<br /><br />第二个是招行山西分行的信息技术岗（软件开发或数据分析），平时会有加班，但一般在 7 点左右，工作地点在太原市区。<br /><br />两者的工资水平基本相当，距离老家的距离也相当，高速车程都是 3 小时左右。老家在山西。<br /><br />目前陷入深度纠结状态，想听听各位大佬从职业前景，个人发展等方面的建议。希望大佬们不吝赐教。
-]]></content:encoded>
-<pubDate>2024-01-09T11:50:28Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 国内如何给 openai 充值啊，大家有便捷一些的方法吗</title>
-<link>https://www.v2ex.com/t/1007273</link>
-<guid>https://www.v2ex.com/t/1007273</guid>
-<content:encoded><![CDATA[
-<p>国内充值 openai ，大家是怎么做的啊，我了解到必须使用信用卡（好像 paypal 也是通过绑定信用卡的吧），而且还是海外的卡，有没有比较便捷一些的方法。</p>
-]]></content:encoded>
-<pubDate>2024-01-09T11:28:41Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享如何拥有一份私人的『开源代码签名证书』</title>
-<link>https://www.v2ex.com/t/1007271</link>
-<guid>https://www.v2ex.com/t/1007271</guid>
-<content:encoded><![CDATA[
-<h1>如何购买私人的『开源代码签名证书』的分享！！</h1>
-<p><strong>简  述:</strong>  讲解如何购买一份私人的代码签名证书，且还是『开源代码签名证书』→</p>
-<h3>Open Source Code Signing Certificate 🎉🎉🎉</h3>
-<p>当自己写的软件开发完毕后，若想进行商店软件发布，则下一步需要搞定<strong>『代码签名证书』</strong>。给你的 EXE 标记一个戳，写上一个被 Microsoft 所认证的签名。</p>
-<p>尤其是现在签名证书疯涨的这两年，让大家的程式也都能签上名。将 €49 证书的方法分享一下，即使买 EV 证书，也远远比许多代理便宜的多。虽，但还是喜欢喜欢互联网的分享精神。</p>
-<br />
-<h2>代码签名证书的作用</h2>
-<p>代码签名证书（ Code Signing Certificates ）是什么？有什么用？</p>
-<ol>
-<li>运行程序时候，<strong>UAC 弹窗</strong>（ User Account Control ）上面会显示 <strong>“发布者（ Publisher ）”</strong> 的名字；</li>
-<li>用户下载 EXE/DLL 之后，通过查看属性签名，可以确保是该发布者发布的，未经过任何篡改</li>
-<li><strong>上架 Microsoft Store 时候，必须要有被 Microsoft 所认可的的签名证书</strong>；反之则会被拒。一些三方商城同理。</li>
-</ol>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202312282213353.jpg" />
-<h2>代码签名证书的分类</h2>
-<p>证书分为三类</p>
-<ul>
-<li><strong>EV 代码签名</strong>：企业级别，价格最昂贵，无需积累任何信誉，就可以直接通过 <a href="https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/" rel="nofollow">Microsoft Defender SmartScreen</a>，不会触发此弹窗或者误杀；申请门槛也随最高的，需要提交公司执照等有效信息。</li>
-<li><strong>Standard 代码签名</strong>：标准代码签名，价格相对 EV 便宜许多，也支持个人申请，理想的个人推荐；初次运行，会 Microsoft Defender SmartScreen 弹窗提示，当程序被足够多的用户使用后，在 Windows 中积累的信誉足够多，后面也不会弹出此弹窗。</li>
-<li><strong>Open Source 代码签名</strong>：开源作者代码签名，价格最低，目前还能提供的厂商，都是人类文明之光，申请条件为开源的个人开发者。相传，在很多年前，这种证书各大厂商都是免费提供的，但随着 Window 系统 xp -&gt; 7/8/10/11 的变迁，出于系统级的安全设计考虑，诞生出 “User Account Control” 弹窗；以及信任和不信任，还有证书的高昂，现如今基本没有厂商提供了此类证书。</li>
-</ul>
-<p>Code Signing Certificates 的价格 / 年；</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Signing in the Cloud</th>
-<th>Signing - code</th>
-<th>Signing - set</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>EV</td>
-<td>€ 379</td>
-<td>€ 329</td>
-<td>€ 359</td>
-</tr>
-<tr>
-<td>Standard</td>
-<td>€ 189</td>
-<td>€ 129</td>
-<td>€ 159</td>
-</tr>
-<tr>
-<td>Open Source</td>
-<td>€ 49</td>
-<td>€ 25</td>
-<td>€ 69</td>
-</tr>
-</tbody></table><p>注：购买实物的时候，还会有约 € 35 的运费 + 23% 的税费，默认是  DHL 快递。</p>
-<h2>代码签名证书的购买</h2>
-<p>现代 (2024 年) 的签名证书购买 ，分为两类；</p>
-<ul>
-<li>
-<p><strong>云上:</strong>  手机上使用 OTP + PC 联网条件</p>
-</li>
-<li>
-<p><strong>本地:</strong>  实体的 cryptographic card  + card reader ； </p>
-<ul>
-<li>
-<p>一种是大的密码卡片 + 大的读卡器</p>
-</li>
-<li>
-<p>另一种是类似于手机卡卡片 + USB 读卡器</p>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202312282203223.png" />
-</li>
-</ul>
-</li>
-</ul>
-<p>在线付款有较大概率性会被拒；手机提示信用卡支付成功，但是网站提示交易失败。通常等待三天左右，会自动原始账单返回，但是由于汇率和莫名的手续费，每次失败会损失约 ￥ 20 。可尝试切换支付方式或信用卡和切换节点。</p>
-<h2>如何签名</h2>
-<p>因我购买的是开源代码签名证书，其支持以下数字签名：</p>
-<ul>
-<li>UNIX/Linux 软件</li>
-<li>Firefox 和 Netscape 的扩展</li>
-<li>Java 小程序</li>
-<li>基于 JAVA 技术的互联网应用</li>
-<li>ActiveX 组件和控件</li>
-<li>二进制文件 (.exe .dll 等)</li>
-</ul>
-<p><strong>步骤如下：</strong></p>
-<ol>
-<li>
-<p>付款成功</p>
-</li>
-<li>
-<p>激活账号</p>
-</li>
-<li>
-<p>验证本人以及开源开发者的身份</p>
-</li>
-<li>
-<p>等待验证通过邮件，和按照邮件提示操作，里面的二维码都是是一次性的，一口气按照操作提示好</p>
-</li>
-<li>
-<p>下载 SimplySign Desktop ，，使用签名工具时必须联网验证身份 token ；</p>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202401091823052.png" />
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202401091826787.png" />
-</li>
-<li>
-<p>使用 signtool + CMD 进行签名</p>
-<ol>
-<li>
-<p>打开 SimplySign Desktop 输入验证后，通过调用 Windows 自带的 signtool.exe 工具，来实现对 EXE / DLL 的签名；参数如下</p>
-<pre><code class="language-cmd">&gt; signtool.exe
-  Valid commands:
-    sign       --  Sign files using an embedded signature.
-    timestamp  --  Timestamp previously-signed files.
-    verify     --  Verify embedded or catalog signatures.
-    catdb      --  Modify a catalog database.
-    remove     --  Remove embedded signature(s) or reduce the size of an
-                   embedded signed file.
-</code></pre>
-</li>
-<li>
-<p>输入如下命令签名，盖上自己的章</p>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202401091833615.png" />
-</li>
-</ol>
-</li>
-<li>
-<p>查看 EXE 属性，确认签名成功；最后对 EXE 签名成功，右键属性可查看到。</p>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202312282222979.jpg" />
-</li>
-</ol>
-<h2>上架 Microsoft Store</h2>
-<p>当签上名后，就可上架 Microsoft Store ；也可以上架三方 XX 软件管家/ 商城，但通常需要提供软著和额外的其它文件。</p>
-<p>这部分下次有空时，另单独写一篇，详细介绍上架流程全程；</p>
-<img class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/XMuli/xmuliPic@pic/2023/202312282206422.png" />
-<p>下载地址：<a href="https://github.com/XMuli/ThinkyMatePages/releases" rel="nofollow">GitHub</a> ，这是一个 ChatGPT 免费使用的跨平台客户端；更多介绍参见官网 <a href="https://thinkymate.com/" rel="nofollow">thinkymate.com</a> 。</p>
-<br />
-<hr />
-<h3>NOTE: 未经许可，禁止转载。</h3>
-<hr />
-]]></content:encoded>
-<pubDate>2024-01-09T11:38:18Z</pubDate>
-</item>
-<item>
-<title>[JavaScript] 如何科学删除前端项目里未引用的静态文件，例如 css,js,png,svg 这类的</title>
-<link>https://www.v2ex.com/t/1007270</link>
-<guid>https://www.v2ex.com/t/1007270</guid>
-<content:encoded><![CDATA[
-从网上搜了一圈，ESlint 这类的基本只能删除 js 文件，其他格式的不支持；<br />自己写了个脚本扫描 html 标签然后再删除发现会多删文件比如 icon
-]]></content:encoded>
-<pubDate>2024-01-09T11:26:02Z</pubDate>
-</item>
-<item>
-<title>[Ubuntu] ubuntu 升级大版本之后无法通过串口连接</title>
-<link>https://www.v2ex.com/t/1007268</link>
-<guid>https://www.v2ex.com/t/1007268</guid>
-<content:encoded><![CDATA[
-手上有一个小主机，没有 hdmi 接口，只有串口，之前可以通过串口连接，里面是 ubuntu1604 系统。我升级了 ubuntu 的大版本，先升级到了 1804 又升级到了 2004 ，现在只能通过 ssh 连接进入，通过串口无法进入。请问这是要在 ubuntu 上配制什么东西吗？<br />通过 console 口连接到 mac 上可以看到有设备<br /><a href="https://i.imgur.com/x2Kv9O9.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/x2Kv9O9.png" /></a> <br />minicom 的配制如下，和升级 ubuntu 之前能连接上时的配制一样。<br /><a href="https://i.imgur.com/JZzvqkM.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/JZzvqkM.png" /></a> <br />连接之后显示 offline<br /><a href="https://i.imgur.com/nIJybS8.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/nIJybS8.png" /></a>
-]]></content:encoded>
-<pubDate>2024-01-09T12:06:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] Wind 万得服务宕机，怎么都没人讲？</title>
-<link>https://www.v2ex.com/t/1007266</link>
-<guid>https://www.v2ex.com/t/1007266</guid>
-<content:encoded><![CDATA[
-证券从业人员崩溃的一天，Wind 作为金融数据提供商，早上就连官网也打不开，宕机在 1 月 8 日宕机一整天都没恢复过来，excel 插件不登录直接卡死的奇葩设计，我们券商机构都要最低两千多块一个月（看采购数量），是的没听错是一个月。<br /><br />看昨天都没人讲这件事，一天后才恢复的服务，故障原因说是“公司的主干网络线路故障，施工人员正在抢修”，究竟是什么原因能一整天不可用？难道数据库和服务器都没有备份？
-]]></content:encoded>
-<pubDate>2024-01-09T10:51:22Z</pubDate>
-</item>
-<item>
-<title>[Flutter] flutter 股票交易系统项目求接单~</title>
-<link>https://www.v2ex.com/t/1007265</link>
-<guid>https://www.v2ex.com/t/1007265</guid>
-<content:encoded><![CDATA[
-<p>我们有一个股票交易系统，需要有基本的报单、持仓、资金功能，不需要 fancy 的行情 K 线图这些。只需要支持 web + pc 端。
-目前我们已有一个 vue + go 的全功能股票交易系统，准备重构成 flutter + python 。后端 python 我们自己来重构，前端 flutter 需要支援。这是一个需要长期维护的生产系统，所以希望代码质量比较高，可以是外包+咨询结合的方式：帮我们构建好框架，具体业务逻辑我们一起来完成，难点问题支援一下，帮我们把把关，希望能遵循社区 best practice 少重复造丑陋的轮子。</p>
-]]></content:encoded>
-<pubDate>2024-01-09T10:29:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐短期使用的手机套餐</title>
-<link>https://www.v2ex.com/t/1007264</link>
-<guid>https://www.v2ex.com/t/1007264</guid>
-<content:encoded><![CDATA[
-<p>家里亲戚回国过春节，请我帮忙买一个手机卡，主要用来上微信，包括微信语音/视频，估计 10G 流量就够了。偶尔接听老人打来的电话。
-因为就 2 月份过年回来呆一个月，所以不想签长期合约，想问一下适合短期使用的套餐有没有价格比较好的？
-坐标广东。</p>
-]]></content:encoded>
-<pubDate>2024-01-09T12:32:41Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大佬们， scrapy 请求会自动跳转的 url，跳转后的新 url 请求，不会带上 cookies，请问怎么弄才能跳转后也带上 cookies</title>
-<link>https://www.v2ex.com/t/1007263</link>
-<guid>https://www.v2ex.com/t/1007263</guid>
-<content:encoded><![CDATA[
-<pre><code>yield scrapy.Request(
-    url=url,
-    cookies=self.cookies,
-    headers=self.headers,
-    meta={
-    'download_timeout': 60  # 请求超时
-    },
-    callback=self.read_table,
-)
-</code></pre>
-<p>请求这个 url ，会 302 自动生成一个新的 url 去请求，但是请求新 url 的时候，发现它的 cookies 变成空的了，导致请求失败，求教该怎么做才能解决这个问题。</p>
-]]></content:encoded>
-<pubDate>2024-01-09T10:27:05Z</pubDate>
-</item>
-<item>
-<title>[信息安全] 在线攻击面发现及管理工具</title>
-<link>https://www.v2ex.com/t/1007262</link>
-<guid>https://www.v2ex.com/t/1007262</guid>
-<content:encoded><![CDATA[
-<p>长亭云图极速版 - SAAS 攻击面发现及管理工具
-<img alt="" class="embedded_image" rel="noreferrer" src="https://ctstack-oss.oss-cn-beijing.aliyuncs.com/blog/29c0589acf1709f3fb7db656c94f7501.png" /></p>
-]]></content:encoded>
-<pubDate>2024-01-09T06:26:12Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 上海外资公司招聘 Go 后端高级开发</title>
-<link>https://www.v2ex.com/t/1007260</link>
-<guid>https://www.v2ex.com/t/1007260</guid>
-<content:encoded><![CDATA[
-<p>坐标上海张江，美资外企</p>
-<h2>后端工程师：</h2>
-<h3>职位要求：</h3>
-<p>3 年+ GO 语言开发经验, 有扎实的编程和 debug 能力。</p>
-<p>参与过成熟项目开发并取得杰出成效者优先，能够针对业务需求提出合理的解决方案并进行实现。</p>
-<p>了解前端能力者优先(ios/安卓/flutter/H5).</p>
-<p>熟悉 Git 工作流程，注重测试与文档，有良好的编程习惯。（开源项目贡献者可加分。）</p>
-<p>批判性思维, 良好思考能力及独特视角. 对技术有好奇心，对工作有责任心，注重团队协作。</p>
-<h3>岗位职责:</h3>
-<p>参与项目开发，负责业务方案对接及落地。</p>
-<p>交付高质量、可扩展、易维护的后端解决方案，同步维护清晰的文档及完成单元测试。</p>
-<p>与团队成员协同开发，对接产品完成需求评估并能及时给出反馈。对接移动及测试团队进行迭代开发，交付高质量解决方案。</p>
-<p>持续学习新方法、新技术。在团队中分享您的知识以及经验。</p>
-<h2>基本福利</h2>
-<p>薪资高于业界平均水平</p>
-<p>五险一金 全额交税交金</p>
-<p>16 寸 MacBook Pro 顶配</p>
-<p>福利好，每月餐补，团建等</p>
-<p>每周可以 remote  但不能完全远程。base 上海</p>
-<p>基本不加班</p>
-<h2>联系方式（内推，非猎头）</h2>
-<p>ipv#<a href="http://foxmail.com" rel="nofollow">foxmail.com</a></p>
-]]></content:encoded>
-<pubDate>2024-01-09T10:20:24Z</pubDate>
 </item>
 </channel>
 </rss>
