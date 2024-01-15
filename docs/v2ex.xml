@@ -5,14 +5,384 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] go 语言直接使用 map 和连接 Redis 后使用 Map 性能差别有多大</title>
+<link>https://www.v2ex.com/t/1008921</link>
+<guid>https://www.v2ex.com/t/1008921</guid>
+<content:encoded><![CDATA[
+
+<p>go 语言直接使用 map 很方便</p>
+<pre><code class="language-go">map1 := make(map[string]int)
+key1 := map1["str1"]
+</code></pre>
+<p>但是发现有些 go 项目源码偏向使用 Redis 等第三方的 map.</p>
+<pre><code class="language-go">import (
+    github.com/go-redis/redis"
+)
+ client := redis.NewClient(&amp;redis.Options{
+        Addr:     "localhost:6379", 
+        Password: "",               
+        DB:       0,                
+    })
+client.Ping()
+client.HSet("myhash", "key1", "value1")
+value1, err := client.HGet("myhash", "")
+</code></pre>
+<p>然后看到项目的 map 并不是并发使用的,数据量也不是特别大。（有些并没有持久需求的也在使用 redis ）</p>
+<p>go map 和 redis map 都是内存使用的，而且速度也很快。但是很多需要查找 hash 关系表的项目，偏向使用如 redis map 等第三方表。</p>
+<p>我粗略测试了一下，没看出什么区别（可能我测试数据较小）。如果排除 go map 不能并发读写外与 Redis Map 使用性能差别有多大</p>
+]]></content:encoded>
+<pubDate>2024-01-15T16:13:14Z</pubDate>
+<pubDate>2024-01-15T16:23:38Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 最近肝了 4 个思源笔记插件</title>
+<link>https://www.v2ex.com/t/1008920</link>
+<guid>https://www.v2ex.com/t/1008920</guid>
+<content:encoded><![CDATA[
+
+<h1>思源移除按钮</h1>
+<p>一个 SiYuan 插件，可以删除菜单/底栏/顶栏中你不使用的按钮。
+现阶段支持移除顶栏指定按钮，侧栏指定按钮，右键菜单项内容。<br />
+<a href="https://github.com/zxkmm/siyuan_rmv_btn" rel="nofollow">https://github.com/zxkmm/siyuan_rmv_btn</a></p>
+<h1>离开即锁</h1>
+<p>当你离开思源笔记时锁定思源。可设置多种监听模式和自定义延迟。<br />
+<a href="https://github.com/zxkmm/siyuan_leave_to_lock" rel="nofollow">https://github.com/zxkmm/siyuan_leave_to_lock</a></p>
+<h1>集市黑名单</h1>
+<p>把您不想看到的集市插件/主题/图标/模板/挂件添加到黑名单, 您就再也不会看到它<br />
+<a href="https://github.com/zxkmm/siyuan_marketplace_blacklist" rel="nofollow">https://github.com/zxkmm/siyuan_marketplace_blacklist</a></p>
+<h1>文档树压缩</h1>
+<p>完全自定义您的文档树<br />
+<a href="https://github.com/zxkmm/siyuan_doctree_compress" rel="nofollow">https://github.com/zxkmm/siyuan_doctree_compress</a></p>
+<h1>要饭</h1>
+<p>如果有帮助您的话请给我的 github 点一个免费的星星，我本科毕业，正在谋求生路，即将饿肚子，您给我点击的免费的 GitHub 的星星（ star ）对我将很有帮助，万分感谢！！！
+如果您刚好在招聘 嵌入式开发/ C++/ RTOS/ C 语言 岗位，希望您能联系我，我的邮箱在 GitHub,感谢！</p>
+]]></content:encoded>
+<pubDate>2024-01-15T16:09:23Z</pubDate>
+<pubDate>2024-01-15T16:21:02Z</pubDate>
+</item>
+<item>
+<title>[Linux] 如何将 NFSv4 callback 进程设置为 D 状态</title>
+<link>https://www.v2ex.com/t/1008919</link>
+<guid>https://www.v2ex.com/t/1008919</guid>
+<content:encoded><![CDATA[
+
+<p>背景：一个奇怪的问题，本地 NFS Server 系统里面，NFSv4 callback 状态为 <code>D</code>，并且存在 mount nfs 的进程 <code>D</code> 状态，重启 nfs server 进程之后，其他 client 能正常 mount nfs ，但 nfs server 一直无法在本地挂载，只能重启服务器才能恢复正常</p>
+<p>初步日志检查：重启前，nfs server 本地挂载会堵塞在 nfs4_try_mount 这一步；重启服务器之后，挂载日志能看到 nfs4_try_mount 之后就开始 get client cookie 以及之后的操作，并且挂载正常</p>
+<p>目的：打算模拟将 NFSv4 callback 进程设置为 D 状态，然后重启 nfs server 进程，看是否能复现上面情况</p>
+<p>已测试的无效操作，下面操作有单独操作，也有组合操作过：</p>
+<ol>
+<li>停止 nfs server 进程，本地执行大批量 df/mount -t nfs xxxx 的命令</li>
+<li>通过 stress-ng 将本地 cpu 、io 等负载打满，然后再批量 mount</li>
+<li>手动 strace 、gdb 等命令指向 NFSv4 callback 进程，打算手动 sleep ，但提示无法找到对应进程（测试机，root 权限）</li>
+</ol>
+<p>待解决：是否有其他方案能定位原因？</p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:51:23Z</pubDate>
+<pubDate>2024-01-15T15:51:23Z</pubDate>
+</item>
+<item>
+<title>[程序员] ThinkPad X1 Carbon 23 款 美行</title>
+<link>https://www.v2ex.com/t/1008918</link>
+<guid>https://www.v2ex.com/t/1008918</guid>
+<content:encoded><![CDATA[
+
+<h3>64G+1370P</h3>
+<p>Java 微服务。日常 IDEA ，需要启动 tomcat 和 SpringBoot 。
+有使用过的兄弟们吗，使用起来够丝滑吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:45:57Z</pubDate>
+<pubDate>2024-01-15T15:44:57Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 打工人待办事项 Notion 模版</title>
+<link>https://www.v2ex.com/t/1008916</link>
+<guid>https://www.v2ex.com/t/1008916</guid>
+<content:encoded><![CDATA[
+
+<p>作为打工人，我们会在不同的项目中奔波，我们经常会遇到漏掉工作任务、工时评估不准确和工作时间安排不合理等问题。</p>
+<p>为此我制作了<strong>打工人待办事项</strong>，目的主要是为了提高工作效率和优化时间管理</p>
+<p><a href="https://byodian.notion.site/3e828f8bd290489598fece4e3b01de0c?pvs=4" rel="nofollow">模版地址</a></p>
+<p><a href="https://byodian.notion.site/2b2deb4681794ad4b947b128871f99c1?pvs=4" rel="nofollow">详细功能介绍地址</a></p>
+<h2>功能介绍</h2>
+<ol>
+<li>
+<p>按照项目分类统计数据</p>
+</li>
+<li>
+<p>记录任务期待时间和实际完成时间，为优化工作评估方法提供数据支持</p>
+</li>
+<li>
+<p>根据 PERT （可替换成其他管理方法）项目管理方法评估工时。在这个模版中，我们需要设置 3 个时间<strong>乐观时间（ Optimistic Time ，O ）</strong>、<strong>悲观时间（ Pessimistic Time ，P ）</strong>和<strong>最有可能时间（ Most Likely Time ，M ）</strong>，通过 PERT 工时计算公式得到最中的<strong>期待时间（ Expected Time ，TE ）</strong>。</p>
+<p>TE=(O+4M+P)/6</p>
+</li>
+<li>
+<p>多种视图查看任务</p>
+<ul>
+<li>看板视图（ To do 、In Progress 和 Done ）</li>
+<li>今日待完成任务视图</li>
+<li>项目分类视图</li>
+<li>本周任务视图</li>
+<li>优先级任务视图</li>
+<li>已完成任务视图</li>
+</ul>
+</li>
+</ol>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/26178657/296797332-72525bc3-bc79-4d7e-88a7-6fc652ba81a0.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/26178657/296797369-54a8756a-df02-479b-bb01-f88a70ec62e8.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/26178657/296797382-aea240ea-3b62-43a1-a053-95b926f73bbe.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://user-images.githubusercontent.com/26178657/296797390-e1f70c88-bcb6-4e90-a0bd-a8a9cb58b618.png" /></p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:36:05Z</pubDate>
+<pubDate>2024-01-15T15:36:05Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有关于硬件开发管理方面的书籍推荐？</title>
+<link>https://www.v2ex.com/t/1008915</link>
+<guid>https://www.v2ex.com/t/1008915</guid>
+<content:encoded><![CDATA[
+
+<p>突然对大疆之类的硬件开发公司比较感兴趣，作为外行想大致了解下行业，有哪些书可以推荐</p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:35:17Z</pubDate>
+<pubDate>2024-01-15T15:48:24Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有什么书是专门讲述人与人之间和人与国家之间如何相互割韭菜的？</title>
+<link>https://www.v2ex.com/t/1008912</link>
+<guid>https://www.v2ex.com/t/1008912</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-01-15T15:10:39Z</pubDate>
+<pubDate>2024-01-15T11:10:39Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 组内有机会从切图仔转到 CRUD Boy（ Java ），求分析</title>
+<link>https://www.v2ex.com/t/1008911</link>
+<guid>https://www.v2ex.com/t/1008911</guid>
+<content:encoded><![CDATA[
+
+<p>感谢点开此帖，一句话概括就是帖子标题。  </p>
+<h2>大致情况</h2>
+<h3>组内/公司</h3>
+<p>（尽量讲述事实，有可能包含观点）  </p>
+<ol>
+<li>组内明显的后端人力不足，前端需求受制于后端人力  </li>
+<li>前端工作内容大多为 toC 的页面搭建 / Admin Panel 。（观点：）甚少机会接触到包含 prototype / constructor 的工作内容。  </li>
+<li>Leader 对转 Java 表示欢迎并会让成员提供必要协助，且不设固定 deadline 。  </li>
+<li>转 Java 后会少分配/不分配前端的工作内容。  </li>
+</ol>
+<h3>我自己</h3>
+<p>（可能很主观）  </p>
+<ol>
+<li>非科班，欠缺计算机原理、网络基础、数据结构与算法的知识。  </li>
+<li>完全 0 基础的嵌入式 C / C++ 也能参考例程和文档写了个 ESP32 、STM32 的小玩具。（有学习能力？）  </li>
+<li>半个全栈。技术栈：（ TS 好像默认了） Vue / React (+ Native) / NodeJS 。   </li>
+<li>技术水平：  </li>
+</ol>
+<ul>
+<li>前端方面：处理前端常用框架、常见或不太常见的需求没有困难。前端库没有机会写过，个人项目也以业务为主。  </li>
+<li>后端方面：NodeJS 止步用 Express 写几个 API ；给 SQL 系数据库 CRUD 一下。</li>
+<li>Docker 只略微接触（会跑，会写 DOCKERFILE ）； redis 没有接触过，更不论 SLB / 高并发之类的； CI/CD 止步于写个 Git Hooks / Github Action ；单元测试只看过没写过。  </li>
+<li>有台自己的 Linux VPS 且用 nginx / NodeJS 跑了几个服务在上面。  </li>
+</ul>
+<h2>我的想法</h2>
+<p>（只有观点。本帖主要希望得到关于以下想法的建议）  </p>
+<ol>
+<li>编程语言说到底只是工具。我的后端技术在个人项目上无法得到大型商业项目的经验，转 Java 能刚好补充我这方面的不足，且求职时选择面更广（真的吗）；转 NodeJS / Golang 主要也依靠的是对 OOP / 数据库 / 负载均衡 / Docker 之类的知识，语法不会有很高门槛。  </li>
+<li>公司还是以业务为主，组内前端技术发展空间几乎没有，除非转组。  </li>
+<li>虽然说欠缺科班知识，但至少懂个快排和冒泡，在常见后端业务中已经够用了。粘包之类的知识也较少遇到，有个大致了解应该够用。（叠甲：TCP 粘包 -&gt; TCP 流式传输在应用层的数据拆分）    </li>
+<li>转 Java ，Leader 开心，我带薪学习，赢两次。  </li>
+</ol>
+<h2>一个疑问</h2>
+<p>半路转方向感觉简历会很难写（没有见过对应简历）。<br />
+全栈投非全栈岗是见前端投前端简历，见后端投后端简历，加几行说明有全栈经验吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:03:54Z</pubDate>
+<pubDate>2024-01-15T16:10:31Z</pubDate>
+</item>
+<item>
+<title>[程序员] [免费一个月] 一款完全不同于市面上现有的，且 0 成本的上网工具</title>
+<link>https://www.v2ex.com/t/1008910</link>
+<guid>https://www.v2ex.com/t/1008910</guid>
+<content:encoded><![CDATA[
+
+<p>直连模式：连连里目前见过成功率比较高的</p>
+<p>中转模式：使用 cloudflare 的免费 worker 和域名</p>
+<p>github 下载和体验试玩：<a href="https://github.com/spartacus-soft/spartacus" rel="nofollow">spartacus</a></p>
+]]></content:encoded>
+<pubDate>2024-01-15T15:01:35Z</pubDate>
+<pubDate>2024-01-14T15:01:35Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [全职远程] / [Cocos 开发] [UI/UX 设计师] / [18~35K] / [英国游戏工作室]</title>
+<link>https://www.v2ex.com/t/1008909</link>
+<guid>https://www.v2ex.com/t/1008909</guid>
+<content:encoded><![CDATA[
+
+大家好，目前前端暂停招聘，现有新岗位释出<br /><br /> <br /><br />1.资深网页 APP UI/UX 设计师（ 1 位）<br /><br />工作职责：<br />1.制定用户界面设计方案，包括网页和移动应用。<br />2.设计高效、直观、美观的用户界面，确保用户体验达到最佳水平。<br />3.通过用户测试和反馈，不断优化和改进产品的用户体验。<br />工作技能：<br />1.熟练使用 Figma ，Photoshop ，Sketch ，Adobe XD 等软件，进行 UI 资源裁切及设计排版。<br />2.优秀的美术鉴赏能力，擅长在网络搜索和收集游戏美图。<br />3.有一定手绘能力。<br />4.有海外网站设计经验 。（加分）<br />5.熟悉 UI 设计流程和规范。<br />6.与产品经理、开发人员和其他相关团队合作，确保设计方案的顺利实施。<br /><br />需要 3 年以上工作经验。<br />附带作品集<br /><br /> <br /><br />2.Cocos 开发<br />工作职责：<br />1 、使用 H5 游戏引擎独立进行项目中各类小游戏逻辑设计与开发；<br />2 、熟悉各个不同版本 iOS 、Android 特点、机型适配、UI 布局优化等、与产品、美术等部门协作。完成开发需求及设计内容；<br />3 、持续优化游戏性能、兼容性及用户体验；<br />任职要求：<br />1 、熟悉游戏前端功能逻辑开发。具有相对完整的项目开发经历；<br />2 、熟练使用 cocos 游戏引擎开发游戏，有 H5 游戏独立开发经验；<br />3 、熟悉 JavaScript 、TypeScript 、HTML5 语音，熟悉常用的数据结构与算法；<br />4 、对游戏资源优化、性能优化有一定研究，有较好的优化、排错、解决问题的能力；<br />5 、有良好的代码书写、注释和单元测试习惯。良好的文档撰写习惯<br />6 、良好的沟通和学习能力、及团队合作精神<br /><br /><br />上班时间：10~20(北京时间)，固定休周末+中国法定节日<br />联繫方式： zygs.ba2004@gmail.com
+]]></content:encoded>
+<pubDate>2024-01-15T15:01:28Z</pubDate>
+<pubDate>2024-01-15T11:01:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] win 平台 flutter 程序逆向分析</title>
+<link>https://www.v2ex.com/t/1008908</link>
+<guid>https://www.v2ex.com/t/1008908</guid>
+<content:encoded><![CDATA[
+
+<p>想学习 windows 平台下 flutter 程序逆向分析方法，毫无头绪，全网搜遍发现这方面资料寥寥，偶有几页也全是 Android/ios 平台的 app 分析，竟未发现任何关于 windows 平台下逆向参考，特求助见多识广 V 友  </p>
+<p>已知 windows 平台下 flutter 打包后在 data 目录生成一个 <a href="http://app.so" rel="nofollow">app.so</a> 文件，但用 IDA 加载发现任何函数名都无法识别，任何字符串都没有交叉引用，分析毫无头绪  </p>
+<p>求这方面的博文/分析资料/书籍等学习</p>
+]]></content:encoded>
+<pubDate>2024-01-15T14:58:07Z</pubDate>
+<pubDate>2024-01-15T15:15:30Z</pubDate>
+</item>
+<item>
+<title>[macOS] macos 如何开启顶部窄边框状态栏？</title>
+<link>https://www.v2ex.com/t/1008907</link>
+<guid>https://www.v2ex.com/t/1008907</guid>
+<content:encoded><![CDATA[
+
+<p>像这样
+<img alt="スクリーンショット 2024-01-07 22.02.48.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/15/aTKk7plSMoZCn3N.png" />
+<img alt="スクリーンショット 2024-01-15 22.59.29.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/15/LysfTmqxcXJV1k4.png" /></p>
+]]></content:encoded>
+<pubDate>2024-01-15T14:57:17Z</pubDate>
+<pubDate>2024-01-15T15:38:06Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [北京/上海/杭州] 坐标 火山引擎！</title>
+<link>https://www.v2ex.com/t/1008906</link>
+<guid>https://www.v2ex.com/t/1008906</guid>
+<content:encoded><![CDATA[
+
+职位要求<br />1 、本科及以上学历，计算机相关专业，并有三年及以上相关领域工作经验；<br />2 、具备大型分布式系统或云计算领域的运维架构或开发经验，熟悉安全/网络架构设计，具备扎实的网络、计算机体系结构、中间件应用的知识；<br />3 、熟悉 Linux 环境开发，具备扎实的编程能力，熟练掌握 Go/Python/C++/Java 中至少一门程序开发语言；<br />4 、具备较强的问题分析与解决能力，能够解决复杂的系统问题；具备较好的产品和服务意识，愿意将产品效果作为工作最重要的驱动因素；<br />5 、具备较强的团队沟通和协作能力，有较强的主人翁意识。能够提出方案并推进跨团队协同落地；<br />6 、具备较强的学习能力和逻辑思维能力，关注前沿技术和行业技术发展，能够持续学习。<br /><br />具备以下条件之一者优先：<br />1 、有云计算领域规模化运维管理平台/PaaS 平台/研发流水线开发经验者优先；<br />2 、有大规模多站点场景下的研发效能与工程质量架构设计经验者优先；<br />3 、有云计算全局稳定性运维管理或架构一致性设计经验者优先。<br /><br /><br />岗位 JD: <a href="https://job.toutiao.com/s/iLBCujpp" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/iLBCujpp</a><br /><br /><br />有意向者可以直接通过链接投递。
+]]></content:encoded>
+<pubDate>2024-01-15T14:54:13Z</pubDate>
+<pubDate>2024-01-15T14:53:13Z</pubDate>
+</item>
+<item>
+<title>[macOS] mac 系统数据占了 100 多个 G，正常吗</title>
+<link>https://www.v2ex.com/t/1008905</link>
+<guid>https://www.v2ex.com/t/1008905</guid>
+<content:encoded><![CDATA[
+
+<p>m1 的 mac, 系统版本 13.6.3</p>
+<p>有什么办法清理呢</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/kE1K9BL.png" /></p>
+]]></content:encoded>
+<pubDate>2024-01-15T14:50:46Z</pubDate>
+<pubDate>2024-01-15T16:05:59Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一个有创意的网站</title>
+<link>https://www.v2ex.com/t/1008904</link>
+<guid>https://www.v2ex.com/t/1008904</guid>
+<content:encoded><![CDATA[
+
+核心是： 可以组成一个由 AI 组成的团队<br /><br />应用场景:<br />当有复杂的事情交给 AI 时，可能需要很多不同的角色来完成，这个时候可以使用 crewAI ，设置好角色以及任务，让这个 AI 团队来完成<br /><br />网址： <a href="https://crewai.net/" rel="nofollow noopener" target="_blank">https://crewai.net/</a>
+]]></content:encoded>
+<pubDate>2024-01-15T14:48:06Z</pubDate>
+<pubDate>2024-01-15T14:45:06Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 换新 iPhone 转移数据的时候，没办法保留老版本 app 了吗</title>
+<link>https://www.v2ex.com/t/1008901</link>
+<guid>https://www.v2ex.com/t/1008901</guid>
+<content:encoded><![CDATA[
+
+老 iPhone 换新 iPhone<br /><br />试了下直接扫码转移数据，进入桌面后 app 都是下载最新版本<br /><br />有办法让 iPhone 下载老版本 app 吗？<br /><br />app 实在太多不想一个个抓包太麻烦了<br /><br />itunes 全盘备份可行吗？<br /><br />因为数据太多太耗时间，我就在 v2 伸手问一下了<br /><br />感谢
+]]></content:encoded>
+<pubDate>2024-01-15T14:29:12Z</pubDate>
+<pubDate>2024-01-15T16:12:42Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 最近用 Rails 开发网站的一些心得分享</title>
+<link>https://www.v2ex.com/t/1008899</link>
+<guid>https://www.v2ex.com/t/1008899</guid>
+<content:encoded><![CDATA[
+
+<p>最近决定撸一个类似 HackerNews 的网站，为啥要撸这样一个网站呢？原因是 Hacker News 这个网站，简单，简单，还是简单，这很符合我那一点点不靠谱的审美观，但 Hacker News 是英文的。所以，决定也搞一个中文的。以后，大家有没有好的网站，好的产品，就可以在上面发布，不需要到 Hacker News 或者 Product hunt 。完全中文，完全符合国人习惯，打破美帝垄断，自主创新。</p>
+<p>网站最初构想，很简单，用户提交一个网站（或者产品），填上标题、链接、描述，再加上图片，就可以发布了。对，是可以添加图片和显示的，相比全文字版的 Hacker News ，遥遥领先。</p>
+<p>所以网站功能也简单，基本上就是一个关于链接的 CRUD 操作，再加上一个用户注册功能。基本就这几个功能，至少在初期，不想搞得太复杂。当然了，也模仿了 Hacker News ，可以对链接评分，评论，还在网上抄了一个 Hacker News 的文章推荐算法。这几个功能都不算太难，所以也把它们放在初期就实现。</p>
+<p>技术选型上，虽然现在 web 开发，nextjs nuxtjs 之类的很热门，奈何我只会 ruby ，所以就选了“相对”比较熟的栈：Rails （但也有不少坑）。</p>
+<p>CURD 这些操作，Rails 太擅长了，基本都能帮我完成，没什么可说的。</p>
+<p>但是，对于用户注册这个功能，现在想起来，感觉这个用户注册功能搞得有点复杂了。本来手工撸一个简单的用户注册，也不太难。但不知道哪根筋搞错了，直接就上了 devise ，
+然后坑就开始来了。这个 devise ，功能虽然强大，但可能也是过度的。我就被 devise 里的一个忘记密码功能给带进坑里了。</p>
+<p>这个忘记密码功能，是通过邮件找回密码的。为了使用邮件找回密码，就得有邮件发送服务。为了找一邮件发送服务，找了国内的腾讯、网易、阿里，都不靠谱。网友推荐的 ZOHO ，也不适合。还有网友推荐 Yandex 的，现在北极熊和西方国家那关系，也不敢用。找了亚马逊的，用户友好度超差，到现在还搞不懂怎么用，虽然已经发了 2 封测试邮件。</p>
+<p>后来，自己还搭建一 mailserver 的 docker ，当我的 QQ 邮箱收到自己的 mailserver 发来的邮件，着实让我高兴了一把。但我尝试往 gmail 发送邮件时，被拒收了。具体原因忘了，好像是要通过什么认证的邮件服务，发出的邮件 gmail 才接收。我的心马上又薄凉薄凉了。自己搭建邮件服务，没那么简单。</p>
+<p>后来，又了解到 sendgrid 可以发送邮件，马上注册一个，日，又提示我的账户没有授权。差不多想放弃，后来，发现 brevo ，有免费额度，每天 300 封邮件，对我来说够用了。brevo 界面简单，友好。到这，忘记密码这个功能的最后一环，终于补上了。</p>
+<p>但为了折腾这个发送邮件功能，花了差不多 1 周，而代码开发才两天：（</p>
+<p>除了发送邮件是个大坑，我一直信赖的 Rails 本身也有坑，Rails 7 之后，引入了个 turbo 方法，文档少也就算了，结果在 iphone 手机上的浏览器（我的是 safari ），竟然不兼容。现在还没解决，如果看到这篇文章的网友，在手机上，打开 <a href="http://webtagr.com" rel="nofollow">webtagr.com</a> 网站时，遇到一些错误，是因为 Rails 的 tubro 方法，想把一个链接设置为 POST 方法，但在手机上，turbo 不起作用，这个 post 方法，就会回退为 get 方法，但在 rails 的 route 中，又没有设置对应的路由。所以报错。（如果有网友知道怎么解决，还请告知）。</p>
+<p>做这个网站给我的一些教训是：</p>
+<ol>
+<li>以后开发网站，能不用 Rails 就不用 Rails 了</li>
+<li>以后开发网站，在初期，不搞邮件相关的功能</li>
+<li>以后开发网站，找个专业的 UI 来设计界面。</li>
+</ol>
+<p>不管怎么样，<a href="https://webtagr.com" rel="nofollow">https://webtagr.com</a> 还是上线了，众位网友大咖，有什么好的网站或产品，也可以到上面去分享。</p>
+]]></content:encoded>
+<pubDate>2024-01-15T14:20:30Z</pubDate>
+<pubDate>2024-01-15T14:28:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] WordPress/thinkphp 有没有 echart 类似的插件或者思路</title>
+<link>https://www.v2ex.com/t/1008898</link>
+<guid>https://www.v2ex.com/t/1008898</guid>
+<content:encoded><![CDATA[
+
+可以把数据转为类似下面连接中图标展示？ <br /><br /><a href="https://echarts.apache.org/examples/zh/index.html" rel="nofollow noopener" target="_blank">https://echarts.apache.org/examples/zh/index.html</a><br /><br /><a href="https://nicegui.io/#demos" rel="nofollow noopener" target="_blank">https://nicegui.io/#demos</a><br /><br /><a href="https://echartsjs.com/en/feature.html#gl" rel="nofollow noopener" target="_blank">https://echartsjs.com/en/feature.html#gl</a><br /><br /><br />------------------------------------------------------------------------------------------------------------------<br /><br />wordpres 可以看到编辑器自带，但好像样式不多。<br /><br /><a href="https://codecanyon.net/item/wpdatatables-tables-and-charts-manager-for-wordpress/3958969" rel="nofollow noopener" target="_blank">https://codecanyon.net/item/wpdatatables-tables-and-charts-manager-for-wordpress/3958969</a>
+]]></content:encoded>
+<pubDate>2024-01-15T14:19:21Z</pubDate>
+<pubDate>2024-01-15T14:16:21Z</pubDate>
+</item>
+<item>
+<title>每天都要在不同服务器上重复输入各种命令，有没有一个工具可以解决这个痛点？</title>
+<link>https://www.v2ex.com/t/1007643</link>
+<guid>https://www.v2ex.com/t/1007643</guid>
+<content:encoded><![CDATA[
+
+<p>公司有 n 个远程开发环境，每天都要在各个环境不停切换，输入各种命令，命令涉及的参数、文件路径等等又各不一样，一个个手敲非常耗时和枯燥，使用 history 功能也只能起到一点点帮助。</p>
+<p>现在我的做法是把各种常用的命令记在记事本，但是一旦命令多起来，从笔记里寻找需要的命令复制也很麻烦，而且添加新的命令，记录起来也要花费一定时间，其次是整理命令也要花费时间，总体上体验还是不好。</p>
+<p>我在想是否已有工具可以直接或者间接地解决此类需求？</p>
+<p>我自己针对这个需求做了一个设计，下面是原型图：</p>
+<p><img alt="draft-97.jpg" class="embedded_image" rel="noreferrer" src="https://img.xwyue.com/i/2024/01/10/659ea5cc12d7d.jpg" /></p>
+<p>如果有现成工具直接或者间接解决这个需求的话，请大家推荐推荐。不然考虑手撸一个？技术选型 electron + React (antdesign)。如果要开发的话，预算 800 元外包不知道够不够？</p>
+]]></content:encoded>
+<pubDate>2024-01-10T14:19:51Z</pubDate>
+<pubDate>2024-01-13T18:17:19Z</pubDate>
+</item>
+<item>
+<title>北京联通宽带价格打下来了， 888 一年 150G+500 分钟+200M 宽带，第二年续费 588 元</title>
+<link>https://www.v2ex.com/t/1007583</link>
+<guid>https://www.v2ex.com/t/1007583</guid>
+<content:encoded><![CDATA[
+
+<p>一直以来北京联通的宽带都比较贵，这波架不住移动的攻势也降价了</p>
+<p>888 一年 150G+500 分钟+200M 宽带，第二年续费 588 元</p>
+<p>顺便汇总一波北京地区移动联通宽带优惠信息</p>
+<p>1 、移动大福卡，500 一年包 100G 全国通用流量+1000 分钟+500M 宽带，第二年可续期</p>
+<p>2 、联通 888 套餐，888 一年包 150G+500 分钟+200M 宽带，第二年续费 588 元</p>
+<p>3 、移动校园卡，月均 25 ，每月 50G+200 分钟+100M 宽带</p>
+<p>4 、移动内部 33 38 套餐，每月 150G+1500 分钟+100M/300M 宽带</p>
+<p>5 、移动老号话费达 18  38 送 100M  300M 宽带</p>
+<p>6 、移动单宽带 400 两年 100M   600 两年 500M</p>
+<p>套餐均可分享给老号全家一起用，支持副卡，支持新办及携号转网  移动上行 120M 左右的上行可挂 pcdn</p>
+<p>更多优惠信息的欢迎加 smallming668 资源 备注 v 友</p>
+]]></content:encoded>
+<pubDate>2024-01-10T09:40:19Z</pubDate>
+<pubDate>2024-01-14T04:49:29Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 有没有那种可以在移动端实现对文件的非对称加解密和公钥交换的 APP</title>
 <link>https://www.v2ex.com/t/1008895</link>
 <guid>https://www.v2ex.com/t/1008895</guid>
 <content:encoded><![CDATA[
-
 <p>如题，因工作需要，平时需要在各种领导和同事之间发送和接收很多文件，其中可能包括客户信息，为安全起见考虑使用这种方式……<br /><br />其实单位当然也有内部的即时通信工具，但是真的很难用，还要先连接到内网 vpn 上……而我又是🪜的重度用户，一台移动设备显然不可能同时连两个 vpn……换来换去也太麻烦了……</p>
 ]]></content:encoded>
-<pubDate>2024-01-15T14:07:09Z</pubDate>
 <pubDate>2024-01-15T14:06:09Z</pubDate>
 </item>
 <item>
@@ -20,10 +390,8 @@
 <link>https://www.v2ex.com/t/1008894</link>
 <guid>https://www.v2ex.com/t/1008894</guid>
 <content:encoded><![CDATA[
-
 我的 e5 订阅只剩二十多天了 按理来讲应该在 30 天的时候就会续期的<br /><br />我的续订服务是通过 docker 部署在 VPS 上的 先前已正常使用一年 多次检查 没有出问题<br /><br />Q1:请问有人遇到一样的情况吗？<br /><br />Q2:如何解决？
 ]]></content:encoded>
-<pubDate>2024-01-15T13:59:19Z</pubDate>
 <pubDate>2024-01-15T14:10:58Z</pubDate>
 </item>
 <item>
@@ -31,14 +399,12 @@
 <link>https://www.v2ex.com/t/1008893</link>
 <guid>https://www.v2ex.com/t/1008893</guid>
 <content:encoded><![CDATA[
-
 <p>先报身份，我，21 年本科毕业后在深圳南山互联网上班，总包大概 40+。女朋友是广州人，211 硕明年毕业。</p>
 <p>论工作强度：南沙执信和宝安盲盒都是新学校，都挺卷的，估计强度都挺高。</p>
 <p>房子方面：南沙的话，买房没啥压力；宝安如果是 500w 的房子勉强能接受，再往上压力就比较大了。</p>
 <p>薪资方面：南沙总包 18~20 ，宝安 20~30</p>
 <p>刚毕业对很多东西都不太了解。想问问大家如果考虑以后定居、城市发展、社保医疗、生活幸福度，该怎么选？</p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:53:52Z</pubDate>
 <pubDate>2024-01-15T14:05:30Z</pubDate>
 </item>
 <item>
@@ -46,10 +412,8 @@
 <link>https://www.v2ex.com/t/1008892</link>
 <guid>https://www.v2ex.com/t/1008892</guid>
 <content:encoded><![CDATA[
-
 目前知道的就是 Vercel 、Netlify 和阿里云腾讯云的云函数。<br />此前一直在用 Vercel ，算是很好用，但是目前项目仓库在 bitbucket 上，Vercel 部署 bitbucket 仓库上的项目必须付费开通团队订阅。<br />Netlify 昨天注册了一下，感觉还不错，就是大陆地区速度有点慢，如果可行的话其实可以套个 CDN 来用。<br />还有就是阿里腾讯云的云函数，一直没去试，因为自从收费之后看了一下按量付费的文档感觉收费应该不低。<br /><br />还有一个小问题就是看到之前很多人的 GitHub 被封掉后账号数据是无法取回的，再加上我平时登录 GitHub 时用的 IP 比较烂（ Racknerd 的 VPS ），有点怕到时侯号被扬了数据找不回来。
 ]]></content:encoded>
-<pubDate>2024-01-15T13:40:14Z</pubDate>
 <pubDate>2024-01-15T13:37:14Z</pubDate>
 </item>
 <item>
@@ -57,10 +421,8 @@
 <link>https://www.v2ex.com/t/1008891</link>
 <guid>https://www.v2ex.com/t/1008891</guid>
 <content:encoded><![CDATA[
-
 <p>今天登录上去发现又可以免费三个月了，我记得去年用过了，然后付费几个月就不用 aws 了</p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:32:31Z</pubDate>
 <pubDate>2024-01-15T13:45:58Z</pubDate>
 </item>
 <item>
@@ -68,7 +430,6 @@
 <link>https://www.v2ex.com/t/1008890</link>
 <guid>https://www.v2ex.com/t/1008890</guid>
 <content:encoded><![CDATA[
-
 <p>以前教培行业红火的时候，每个商场都至少有一层到两层是孩子教育培训的，围绕这方面的餐饮，服装，游乐，影院也红红火火。</p>
 <p>送孩子上课，家长在外面要逛逛街吧，买点吃的喝的，或者看个电影。接到孩子后在商场里吃个饭在回家，是非常平常的事情。
 自从教培被打击后，不仅他们自己活不下去，他们的离开导致周围相关的所有商业都失去了一大批的人流。
@@ -76,7 +437,6 @@
 <p>有感而发，非教培行业参与者，只是一名普通家长。家周围的远洋未来广场已经宣布停业了，据说被卖给了居然之家，几乎所有商户都要离开（海底捞说不走，但不确定）。另外听说北京唯一剩下的一家华堂也卖给合生汇了。</p>
 <p>不知道其他城市的商场是不是也这样。</p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:26:31Z</pubDate>
 <pubDate>2024-01-15T14:18:02Z</pubDate>
 </item>
 <item>
@@ -84,7 +444,6 @@
 <link>https://www.v2ex.com/t/1008889</link>
 <guid>https://www.v2ex.com/t/1008889</guid>
 <content:encoded><![CDATA[
-
 <h2>阅读模式下每行显示的长度要比注释模式下短。导致换行，在阅读模式不好阅读，求助各位大佬。</h2>
 <h3>注释情况下</h3>
 <p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/JO1cpev.png" /></p>
@@ -93,7 +452,6 @@
 <h3>阅读模式+代码</h3>
 <p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OrXxvay.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:25:27Z</pubDate>
 <pubDate>2024-01-15T14:17:58Z</pubDate>
 </item>
 <item>
@@ -101,10 +459,8 @@
 <link>https://www.v2ex.com/t/1008888</link>
 <guid>https://www.v2ex.com/t/1008888</guid>
 <content:encoded><![CDATA[
-
 <p>熟悉 Android Java 和 Linux  C/C++相关开发，帮忙推荐的同学，可以 TG 联系我  <a href="https://t.me/wuruxu" rel="nofollow">https://t.me/wuruxu</a></p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:21:33Z</pubDate>
 <pubDate>2024-01-13T13:21:33Z</pubDate>
 </item>
 <item>
@@ -112,13 +468,11 @@
 <link>https://www.v2ex.com/t/1008887</link>
 <guid>https://www.v2ex.com/t/1008887</guid>
 <content:encoded><![CDATA[
-
 <p>分享一下本人 24 年 国考经历：</p>
 <p>招 5 人，审核通过 1500+人，进面分数 132 。</p>
 <p>我自己断断续续学了两个月吧，最终分数过线但不到 100😂</p>
 <p>还有机会，继续加油</p>
 ]]></content:encoded>
-<pubDate>2024-01-15T13:15:10Z</pubDate>
 <pubDate>2024-01-15T14:05:34Z</pubDate>
 </item>
 <item>
@@ -126,7 +480,6 @@
 <link>https://www.v2ex.com/t/1008886</link>
 <guid>https://www.v2ex.com/t/1008886</guid>
 <content:encoded><![CDATA[
-
 <p>上周五被裁了。工作十年第一次被裁，合同是年薪制的，年终拿完了，也拿了裁员补偿，算好事还是坏事事后回过头再看。</p>
 <p>最近 2 年的工作是建筑行业在线 BIM 相关的。</p>
 <p>在线简历：<a href="https://www.orzzone.com/cv" rel="nofollow">https://www.orzzone.com/cv</a></p>
@@ -134,17 +487,14 @@
 <p>说明：电脑端查看时右上角有个 [ A4 纸打印] 按钮，可以直接按 A4 纸大小打印或者输出为 PDF ，样式已适配过。</p>
 ]]></content:encoded>
 <pubDate>2024-01-15T13:14:22Z</pubDate>
-<pubDate>2024-01-15T13:14:22Z</pubDate>
 </item>
 <item>
 <title>[Android] bitwarden 在小米上大部分不能自动填充</title>
 <link>https://www.v2ex.com/t/1008885</link>
 <guid>https://www.v2ex.com/t/1008885</guid>
 <content:encoded><![CDATA[
-
 小米 14 ，自动填充服务已经切换成 bitwarden ，以为是三方软件问题，换了自带浏览器也是一样，在 play 商店看了下评论，貌似是安卓通病？
 ]]></content:encoded>
-<pubDate>2024-01-15T12:46:00Z</pubDate>
 <pubDate>2024-01-15T08:46:00Z</pubDate>
 </item>
 <item>
@@ -152,7 +502,6 @@
 <link>https://www.v2ex.com/t/1008884</link>
 <guid>https://www.v2ex.com/t/1008884</guid>
 <content:encoded><![CDATA[
-
 <p>用改造的彰星夹器改装 Jifo 的前刹，性价比很高，但是右侧拉线对折叠的流畅度有较大影响。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6mLzy4L.jpeg" /> </p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/dh5Wh4L.jpeg" /> </p>
@@ -163,9 +512,7 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/cLN0R3u.jpeg" /></p>
 ]]></content:encoded>
 <pubDate>2024-01-15T12:44:18Z</pubDate>
-<pubDate>2024-01-15T12:44:18Z</pubDate>
 </item>
-
 <item>
 <title>[酷工作] 资深 UI（远程）</title>
 <link>https://www.v2ex.com/t/1008883</link>
@@ -15645,130 +15992,6 @@ plus 是每 3 小时 40 条对话，team plan 会不会是无上限？</p>
 <p>我猜测可能是产品功能或者体验的问题，但没有给任何一点建议。又去看了下他们的开发者网站，也没有入驻的标准说明，没有改进的方向也挺难办的🤔。不知道为啥，个人感觉 Setapp 这个回复挺傲慢的。</p>
 ]]></content:encoded>
 <pubDate>2024-01-10T16:07:42Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有没有大佬接了解过这个项目？</title>
-<link>https://www.v2ex.com/t/1007656</link>
-<guid>https://www.v2ex.com/t/1007656</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.mall4j.com/" rel="nofollow">https://www.mall4j.com/</a></p>
-<p>看了下开源版，略显粗糙而且东西不全，但是功能和业务感觉还算比较可以，想买 S2B2C 版本的学习下，大佬们推荐吗？</p>
-]]></content:encoded>
-<pubDate>2024-01-10T15:23:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有一个 idea，不知有没有市场，大家讨论一下</title>
-<link>https://www.v2ex.com/t/1007655</link>
-<guid>https://www.v2ex.com/t/1007655</guid>
-<content:encoded><![CDATA[
-想做一个安卓磁力聚合 app ，完全靠广告盈利，不上架应用商店，靠自媒体获取种子用户，数据完全自己手动整理添加，不定期不定量新增数据，新上映的电影，热门歌曲，各种类型动画片等，但是，市面上有电影天堂这种牛站和一些磁力搜索站，不知这种 app 有没有市场，请大家各抒已见
-]]></content:encoded>
-<pubDate>2024-01-10T16:18:10Z</pubDate>
-</item>
-<item>
-<title>[程序员] win11 开机后用 mac 远程 rdp，直接报错 0x204，怎么回事？</title>
-<link>https://www.v2ex.com/t/1007654</link>
-<guid>https://www.v2ex.com/t/1007654</guid>
-<content:encoded><![CDATA[
-<p>本人日常在单位用 mac 远程家里的 win11 笔记本，方案 tailscale 穿透+rdp （ tailscale 已设置作为系统服务自启）</p>
-<p>但是经常会遇到这种情况：打开 windows 之后出发，到单位后再用 mac 连就报错 0x204 。但如果一打开 windows 就用手机先连着 rdp ，到单位后再切换到 mac ，就没问题。</p>
-<p>今天这个问题又出现了。我 ping 了一下 tailscale 分配给 windows 的 ip ，显示失败。但 tailscale 显示我的 windows 电脑处于连接状态。</p>
-<p>家里的笔记本也没有来电自启或 wol 功能，直接后果就是一天都连不上远程桌面。等回到家后看笔记本，也没有睡眠，处于锁屏状态。我设置了充电状态下 2 小时内不锁屏，而我从家到单位最多需要 30 分钟，应该不是 windows 锁屏导致我无法连接。</p>
-<p>有没有大佬知道怎么回事？</p>
-]]></content:encoded>
-<pubDate>2024-01-10T15:44:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助 mac 上是买 surge 还是 stash</title>
-<link>https://www.v2ex.com/t/1007653</link>
-<guid>https://www.v2ex.com/t/1007653</guid>
-<content:encoded><![CDATA[
-<p>目前的两种选择是 mac 和手机同时买 surge 或者同时用 stash 。
-stash 相比于 surge 的优点是自己比较熟悉和习惯 clash ，同时是买断制，价格也更低。</p>
-]]></content:encoded>
-<pubDate>2024-01-10T12:21:56Z</pubDate>
-</item>
-<item>
-<title>[程序员] 分享下自己的简单 dotfiles，并想从大佬们的意见中学习</title>
-<link>https://www.v2ex.com/t/1007652</link>
-<guid>https://www.v2ex.com/t/1007652</guid>
-<content:encoded><![CDATA[
-<p><a href="https://github.com/Ethkuil/dotfiles" rel="nofollow">https://github.com/Ethkuil/dotfiles</a></p>
-<p>其实也没做太复杂的配置，我是倾向于尽量少做修改的。</p>
-<p><code>.vimrc</code> 是直接照搬 MIT 的 Missing Semester 的。</p>
-]]></content:encoded>
-<pubDate>2024-01-10T16:09:25Z</pubDate>
-</item>
-<item>
-<title>[GitHub] 求助万能的 v 友</title>
-<link>https://www.v2ex.com/t/1007651</link>
-<guid>https://www.v2ex.com/t/1007651</guid>
-<content:encoded><![CDATA[
-<p>想在 GitHub 每次仓库有 Star 的时候都收到通知，有什么比较简单的方案吗？</p>
-]]></content:encoded>
-<pubDate>2024-01-10T15:53:52Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 大家的认知是什么时候从“理工男改变世界”到“我就是一臭写代码的”</title>
-<link>https://www.v2ex.com/t/1007650</link>
-<guid>https://www.v2ex.com/t/1007650</guid>
-<content:encoded><![CDATA[
-<p>焦虑情绪真的好难克制，大家有什么缓解焦虑的好方法嘛？另外，是现在行情真的不好还是说现在这个时间节点是招聘淡季？</p>
-]]></content:encoded>
-<pubDate>2024-01-10T15:22:44Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [全职远程] / [前端] [Cocos 开发] [游戏策划] / [12~35K] / [英国游戏工作室]</title>
-<link>https://www.v2ex.com/t/1007649</link>
-<guid>https://www.v2ex.com/t/1007649</guid>
-<content:encoded><![CDATA[
-公司介绍：大家好，我们是英国的游戏工作室，目前有以下三个全职远端的职缺<br /><br /> [前端] 、 [ Cocos 开发] 、 [游戏策划] <br /><br /><br /> [前端职责] (20~35K 人民币，优秀者可谈)<br />1.负责公司产品的前端开发和维护<br />2.负责相关产品的需求以及前端程序的实现，提供合理的前端架构，实现前端组件化开发<br />3.使用 web 端进行 AVG 游戏开发，及 AVG 游戏编辑器开发。<br />4.与设计师和后端工程师紧密合作，确保最终产品的品质<br />技能要求<br />3 年以上前端大型/中型 C 端网站开发经验<br />熟悉 JavaScript 、CSS 、React ，vue ，electron js ，ADV js 等前端基础技能<br />掌握 web 前端性能优化方法，精通 JS 、网络通信、浏览器等底层原理<br />熟悉 NodeJS 服务开发，具备一定全栈开发能力<br />具备低代码平台或策略性游戏开发经验优先<br />有良好的团队合作精神和沟通能力<br /><br /><br /> [ Cocos 职责] (25~35K 人民币，优秀者可谈)<br />1 、使用 H5 游戏引擎独立进行项目中各类小游戏逻辑设计与开发；<br />2 、熟悉各个不同版本 iOS 、Android 特点、机型适配、UI 布局优化等、与产品、美术等部门协作。完成开发需求及设计内容；<br />3 、持续优化游戏性能、兼容性及用户体验；<br />任职要求：<br />1 、熟悉游戏前端功能逻辑开发。具有相对完整的项目开发经历；<br />2 、熟练使用 cocos 游戏引擎开发游戏，有 H5 游戏独立开发经验；<br />3 、熟悉 JavaScript 、TypeScript 、HTML5 语音，熟悉常用的数据结构与算法；<br />4 、对游戏资源优化、性能优化有一定研究，有较好的优化、排错、解决问题的能力；<br />5 、有良好的代码书写、注释和单元测试习惯。良好的文档撰写习惯<br />6 、良好的沟通和学习能力、及团队合作精神<br /><br /><br /> [游戏策划职责] (13~18K 人民币，优秀者可谈)<br />1.能够根据产品和对应的系统定位，产出完善的策划案，并制定核心规则、跟进美<br />术表现。<br />2.与文案、美术及程序配合，能够独立跟进系统开发并保证落地。<br />3.管理游戏系统及各模块功能进度，对功能进行验收与测试，保证系统质量。<br />任职要求<br />1.熟悉游戏开发流程，拥有 2 年以上游戏系统策划经验，有完整项目经验者为佳；<br />2.热爱视觉小说和文字类游戏，熟悉 RPG maker 、橙光编辑器、renpy 或其他剧情<br />类游戏开发软件者优先；<br />3.有良好的沟通习惯，较强的团队合作能力。<br /><br /><br />上班时间：10~20(北京时间)，固定休周末+中国法定节日<br />联繫方式： zygs.ba2004@gmail.com
-]]></content:encoded>
-<pubDate>2024-01-10T15:09:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 询问各位 v 友在二手交易里都是啥方式</title>
-<link>https://www.v2ex.com/t/1007648</link>
-<guid>https://www.v2ex.com/t/1007648</guid>
-<content:encoded><![CDATA[
-<p>如题，想知道在 V2 买东西是走某鱼这种平台还是其他方式稳当</p>
-]]></content:encoded>
-<pubDate>2024-01-10T16:11:03Z</pubDate>
-</item>
-<item>
-<title>[淘宝] 淘宝越来越离谱了嗷</title>
-<link>https://www.v2ex.com/t/1007647</link>
-<guid>https://www.v2ex.com/t/1007647</guid>
-<content:encoded><![CDATA[
-<p>光搜索都必须登录了
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/H3FMw2v.png" /></p>
-]]></content:encoded>
-<pubDate>2024-01-03T03:13:45Z</pubDate>
-</item>
-<item>
-<title>[程序员] 为什么 Python 会有.venv 虚拟环境的概念？</title>
-<link>https://www.v2ex.com/t/1007645</link>
-<guid>https://www.v2ex.com/t/1007645</guid>
-<content:encoded><![CDATA[
-<p><br />本人刚从 java 、c#转过来，因为工作需要，这两天开始研究 python 工程。<br />
-（其实以前也接触过，但只限于会写些代码层次的基础语法）
-<br />现在新人有个疑惑，为什么 python 会有.venv 这种概念，资料说是项目编译环境隔离，每个项目有自己的解释器环境什么的。其实这种给每个项目搞内环境部署，很像是 java 开发里给每种服务的 docker 容器都单独打包一个独立的 jdk ？<br /></p>
-]]></content:encoded>
-<pubDate>2024-01-10T12:20:41Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 每天都要在不同服务器上重复输入各种命令，有没有一个工具可以解决这个痛点？</title>
-<link>https://www.v2ex.com/t/1007643</link>
-<guid>https://www.v2ex.com/t/1007643</guid>
-<content:encoded><![CDATA[
-<p>公司有 n 个远程开发环境，每天都要在各个环境不停切换，输入各种命令，命令涉及的参数、文件路径等等又各不一样，一个个手敲非常耗时和枯燥，使用 history 功能也只能起到一点点帮助。</p>
-<p>现在我的做法是把各种常用的命令记在记事本，但是一旦命令多起来，从笔记里寻找需要的命令复制也很麻烦，而且添加新的命令，记录起来也要花费一定时间，其次是整理命令也要花费时间，总体上体验还是不好。</p>
-<p>我在想是否已有工具可以直接或者间接地解决此类需求？</p>
-<p>我自己针对这个需求做了一个设计，下面是原型图：</p>
-<p><img alt="draft-97.jpg" class="embedded_image" rel="noreferrer" src="https://img.xwyue.com/i/2024/01/10/659ea5cc12d7d.jpg" /></p>
-<p>如果有现成工具直接或者间接解决这个需求的话，请大家推荐推荐。不然考虑手撸一个？技术选型 electron + React (antdesign)。如果要开发的话，预算 800 元外包不知道够不够？</p>
-]]></content:encoded>
-<pubDate>2024-01-10T15:40:14Z</pubDate>
 </item>
 </channel>
 </rss>
