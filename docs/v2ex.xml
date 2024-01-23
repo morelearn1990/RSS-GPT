@@ -5,14 +5,595 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] 有没有人能推荐几个 X86 的路由系统，或者是能替代的。</title>
+<link>https://www.v2ex.com/t/1010848</link>
+<guid>https://www.v2ex.com/t/1010848</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，最近安装的 ikuai x86 莫名抽风，夜里 2 点半直接没网，连路由都连不上。还好 5 点自动重启的时候恢复了。</p>
+<p>然后我不想再装了 OPENWRT 了，有没有别的推荐的，实在是 openwrt 的防火墙莫名其妙的，经常到最后需要手动写 iptables 。</p>
+<p>我是有公网 IP 地址的，经常需要做端口映射来对外提供一些服务方面自己在公司或者外面使用。
+所以有没有什么大佬可以推荐几个。
+PS：我是装在 PVE 上面的。</p>
+]]></content:encoded>
+<pubDate>2024-01-23T04:15:23Z</pubDate>
+<pubDate>2024-01-23T04:14:23Z</pubDate>
+</item>
+<item>
+<title>[C] C 语言用户态函数可观测性</title>
+<link>https://www.v2ex.com/t/1010847</link>
+<guid>https://www.v2ex.com/t/1010847</guid>
+<content:encoded><![CDATA[
+
+<p>本文不是介绍 eBPF 相关的用户态 Probe 的内容，而是如何利用开源 C 语言库<a href="https://github.com/Water-Melon/Melon" rel="nofollow">Melon</a>的函数模板来轻松实现函数的可观测性需求，例如：测量耗时等。</p>
+<p>本文主要介绍的是 Melon 库中的<code>func</code>模块，之所以没有给这个模块起名叫可观测性或者<code>span</code>，原因是这是一个更为通用的模块，不仅限于可观测性的需求。</p>
+<p><strong><code>func</code>模块实现的功能与 GCC 的 constructor 和 destructor 特性十分相似，就是在 C 语言函数的入口和出口增加用户自定义回调函数，在调用函数时自行调用这些函数。</strong></p>
+<p>我们先看一个简单的例子：</p>
+<pre><code class="language-c">// a.c
+
+#include "mln_func.h"
+
+MLN_FUNC(int, abc, (int a, int b), (a, b), {
+    printf("in %s\n", __FUNCTION__);
+    return a + b;
+})
+
+MLN_FUNC(static int, bcd, (int a, int b), (a, b), {
+    printf("in %s\n", __FUNCTION__);
+    return abc(a, b) + abc(a, b);
+})
+
+static void my_entry(const char *file, const char *func, int line)
+{
+    printf("entry %s %s %d\n", file, func, line);
+}
+
+static void my_exit(const char *file, const char *func, int line)
+{
+    printf("exit %s %s %d\n", file, func, line);
+}
+
+
+int main(void)
+{
+    mln_func_entry_callback_set(my_entry);
+    mln_func_exit_callback_set(my_exit);
+    printf("%d\n", bcd(1, 2));
+    return 0;
+}
+</code></pre>
+<p>这段代码中，使用<code>MLN_FUNC</code>定义了两个函数，分别为<code>abc</code>和<code>bcd</code>，且在<code>bcd</code>中会调用<code>abc</code>。其实这个模板宏相对比较容易理解，其宏函数参数顺序如下：</p>
+<ul>
+<li>返回值类型（涵盖函数作用域，如<code>static</code>）</li>
+<li>函数名</li>
+<li>函数形参列表（需要用<code>()</code>扩住）</li>
+<li>函数实参列表（需要用<code>()</code>扩住）</li>
+<li>函数体</li>
+</ul>
+<p>这里唯一有些困惑的是实参列表，这与宏的实现有关。我们以<code>abc</code>为例，简述一下实现原理。</p>
+<p><strong>原理：</strong>这个宏会定义两个函数，一个名为<code>abc</code>，一个名为<code>__abc</code>。函数体其实对应的是<code>__abc</code>，也就是说<code>__abc</code>才是真正我们期望调用的那个函数，而<code>abc</code>是对<code>__abc</code>的一个封装，会在<code>__abc</code>的调用前后调用自定义回调函数。</p>
+<p>而实参列表就是在函数<code>abc</code>中调用<code>__abc</code>时需要给<code>__abc</code>传递的参数，所以这个参数列表其实就是形参列表去掉类型之后的名字和顺序。</p>
+<blockquote>
+<p>这个实参列表无法忽略，是因为<code>__abc</code>不能省略，而<code>__abc</code>不能省略是因为函数体中可能包含 return 语句，因此我们无法完全隐式地在 return 前，甚至是在 return 的表达式计算后真正的返回前调用回调函数。所以必须单独定义成一个函数也就是<code>__abc</code>。</p>
+</blockquote>
+<p>下面我们来编译这个程序：</p>
+<pre><code class="language-bash">cc -o a a.c -I /path/to/melon/include -L /path/to/melon/lib -lmelon
+</code></pre>
+<p>其中<code>/path/to/melon</code>的部分是 Melon 的安装路径，默认一般是<code>/usr/local/melon</code>。</p>
+<p>然后运行一下</p>
+<pre><code class="language-c">./a
+
+in bcd
+in abc
+in abc
+6
+</code></pre>
+<p>你会发现回调函数完全没被调用。这不是我们的代码有问题，而是我们并未启用模板功能。模板启用需要编译时存在<code>MLN_FUNC_FLAG</code>的宏定义，我们既可以将它定义在源文件中，也可以在编译时作为命令行参数给出。下面我以后者为例展示：</p>
+<pre><code>cc -o a a.c -I /path/to/melon/include -L /path/to/melon/lib -lmelon -DMLN_FUNC_FLAG
+</code></pre>
+<p>再次运行</p>
+<pre><code>./a
+
+entry a.c bcd 10
+in __bcd
+entry a.c abc 5
+in __abc
+exit a.c abc 5
+entry a.c abc 5
+in __abc
+exit a.c abc 5
+exit a.c bcd 10
+6
+</code></pre>
+<p>可以看到，回调函数都被正常调用了。</p>
+<p><strong>利用这个开关宏，我们可以在不修改任何代码的情况下，轻松切换是否需要开启这项功能。</strong></p>
+<h2>综合示例</h2>
+<p>前面给出的例子比较简单，那么下面就来看一个实现测量函数调用耗时的例子吧。</p>
+<p>这里我将给出三个文件：</p>
+<ul>
+<li><code>span.h</code>：这是为测量耗时所定义的数据结构和函数声明等内容。</li>
+<li><code>span.c</code>：这是为测量耗时定义的相关函数。</li>
+<li><code>a.c</code>：这是我们自定义的一些函数以及在<code>main</code>函数中调用这些函数。</li>
+</ul>
+<p>其中，<code>span.h</code>和<code>span.c</code>可以随意复制粘贴使用，这是一个独立的模块，当然，你还需要先安装好 Melon 库。</p>
+<h4>span.h</h4>
+<pre><code class="language-c">#include &lt;sys/time.h&gt;
+#include "mln_array.h"
+
+typedef struct mln_span_s {
+    struct timeval     begin;
+    struct timeval     end;
+    const char        *file;
+    const char        *func;
+    int                line;
+    mln_array_t        subspans;
+    struct mln_span_s *parent;
+} mln_span_t;
+
+extern int mln_span_start(void);
+extern void mln_span_stop(void);
+extern void mln_span_dump(void);
+extern void mln_span_release(void);
+</code></pre>
+<p>这里定义了一个数据结构<code>mln_span_t</code>，用来存放函数调用的起始和结束时的时间戳，以及函数所在源文件的信息。还包含了这个函数中调用的其他函数的调用时长信息，以及一个指向上一级调用（也就是调用当前函数的函数）信息的指针。</p>
+<p>也就是说，当我们的函数执行完毕后，我们遍历这个结构就能拿到完整的调用关系及其调用细节。</p>
+<h4>span.c</h4>
+<pre><code class="language-c">#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include "span.h"
+#include "mln_stack.h"
+#include "mln_func.h"
+
+static mln_stack_t *callstack = NULL;
+static mln_span_t *root = NULL;
+
+static void mln_span_entry(const char *file, const char *func, int line);
+static void mln_span_exit(const char *file, const char *func, int line);
+static mln_span_t *mln_span_new(mln_span_t *parent, const char *file, const char *func, int line);
+static void mln_span_free(mln_span_t *s);
+
+static mln_span_t *mln_span_new(mln_span_t *parent, const char *file, const char *func, int line)
+{
+    mln_span_t *s;
+    struct mln_array_attr attr;
+
+    if (parent != NULL) {
+        s = (mln_span_t *)mln_array_push(&amp;parent-&gt;subspans);
+    } else {
+        s = (mln_span_t *)malloc(sizeof(mln_span_t));
+    }
+    if (s == NULL) return NULL;
+
+    memset(&amp;s-&gt;begin, 0, sizeof(struct timeval));
+    memset(&amp;s-&gt;end, 0, sizeof(struct timeval));
+    s-&gt;file = file;
+    s-&gt;func = func;
+    s-&gt;line = line;
+    attr.pool = NULL;
+    attr.pool_alloc = NULL;
+    attr.pool_free = NULL;
+    attr.free = (array_free)mln_span_free;
+    attr.size = sizeof(mln_span_t);
+    attr.nalloc = 7;
+    if (mln_array_init(&amp;s-&gt;subspans, &amp;attr) &lt; 0) {
+        if (parent == NULL) free(s);
+        return NULL;
+    }
+    s-&gt;parent = parent;
+    return s;
+}
+
+static void mln_span_free(mln_span_t *s)
+{
+    if (s == NULL) return;
+    mln_array_destroy(&amp;s-&gt;subspans);
+    if (s-&gt;parent == NULL) free(s);
+}
+
+int mln_span_start(void)
+{
+    struct mln_stack_attr sattr;
+
+    mln_func_entry_callback_set(mln_span_entry);
+    mln_func_exit_callback_set(mln_span_exit);
+
+    sattr.free_handler = NULL;
+    sattr.copy_handler = NULL;
+    if ((callstack = mln_stack_init(&amp;sattr)) == NULL)
+        return -1;
+
+    return 0;
+}
+
+void mln_span_stop(void)
+{
+    mln_func_entry_callback_set(NULL);
+    mln_func_exit_callback_set(NULL);
+    mln_stack_destroy(callstack);
+}
+
+void mln_span_release(void)
+{
+    mln_span_free(root);
+}
+
+static void mln_span_format_dump(mln_span_t *span, int blanks)
+{
+    int i;
+    mln_span_t *sub;
+
+    for (i = 0; i &lt; blanks; ++i)
+        printf(" ");
+    printf("| %s at %s:%d takes %lu (us)\n", \
+           span-&gt;func, span-&gt;file, span-&gt;line, \
+           (span-&gt;end.tv_sec * 1000000 + span-&gt;end.tv_usec) - (span-&gt;begin.tv_sec * 1000000 + span-&gt;begin.tv_usec));
+
+    for (i = 0; i &lt; mln_array_nelts(&amp;(span-&gt;subspans)); ++i) {
+        sub = ((mln_span_t *)mln_array_elts(&amp;(span-&gt;subspans))) + i;
+        mln_span_format_dump(sub, blanks + 2);
+    }
+}
+
+void mln_span_dump(void)
+{
+    if (root != NULL)
+        mln_span_format_dump(root, 0);
+}
+
+static void mln_span_entry(const char *file, const char *func, int line)
+{
+    mln_span_t *span;
+
+    if ((span = mln_span_new(mln_stack_top(callstack), file, func, line)) == NULL) {
+        fprintf(stderr, "new span failed\n");
+        exit(1);
+    }
+    if (mln_stack_push(callstack, span) &lt; 0) {
+        fprintf(stderr, "push span failed\n");
+        exit(1);
+    }
+    if (root == NULL) root = span;
+    gettimeofday(&amp;span-&gt;begin, NULL);
+}
+
+static void mln_span_exit(const char *file, const char *func, int line)
+{
+    mln_span_t *span = mln_stack_pop(callstack);
+    if (span == NULL) {
+        fprintf(stderr, "call stack crashed\n");
+        exit(1);
+    }
+    gettimeofday(&amp;span-&gt;end, NULL);
+}
+</code></pre>
+<p>这里就是耗时统计所需要的所有函数定义。利用一个栈数据结构来保证函数的调用关系，然后在函数的入口回调处创建<code>mln_span_t</code>结点记录起始时间和函数信息并入栈，在出口回调处记录结束时间并出栈。</p>
+<h4>a.c</h4>
+<pre><code class="language-c">#include "span.h"
+#include "mln_func.h"
+
+MLN_FUNC(int, abc, (int a, int b), (a, b), {
+    return a + b;
+})
+
+MLN_FUNC(static int, bcd, (int a, int b), (a, b), {
+    return abc(a, b) + abc(a, b);
+})
+
+int main(void)
+{
+    mln_span_start();
+    bcd(1, 2);
+    mln_span_stop();
+    mln_span_dump();
+    mln_span_release();
+    return 0;
+}
+</code></pre>
+<p>这里还是那个配方，就是调用<code>bcd</code>，然后<code>bcd</code>调用<code>abc</code>。我们这次在<code>main</code>函数中使用<code>span.h</code>中声明的函数。</p>
+<p>一起来简单编译一下：</p>
+<pre><code class="language-bash">cc -o a span.c a.c -I /usr/local/melon/include -L /usr/local/melon/lib -lmelon -DMLN_FUNC_FLAG
+</code></pre>
+<p>然后运行一下：</p>
+<pre><code>./a
+
+| bcd at a.c:8 takes 2 (us)
+  | abc at a.c:4 takes 0 (us)
+  | abc at a.c:4 takes 0 (us)
+</code></pre>
+<h2>小结</h2>
+<p><a href="https://github.com/Water-Melon/Melon" rel="nofollow">Melon</a>的函数模板其实设计之初也是为了可观测性，因为 GCC 仅支持了 constructor 和 destructor 。如果显式地在代码中加入各种跟踪函数调用，就会让整个函数定义看着非常不连贯和杂乱。因此选择了当前的这个使用方式，但也不可避免的引入了看似没什么用途的实参部分。</p>
+<p>另外，Melon 库支持模块选择性编译，因此函数模版模块可以单独编译成库，换言之，这个模块是完全无操作系统依赖的，单片机的小伙伴们可以随意取用。</p>
+<p>感谢阅读！</p>
+]]></content:encoded>
+<pubDate>2024-01-23T04:08:57Z</pubDate>
+<pubDate>2024-01-23T00:07:57Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 我是 V2Next 的作者，关于使用 V2Next 脚本导致 IP 被封的问题</title>
+<link>https://www.v2ex.com/t/1010846</link>
+<guid>https://www.v2ex.com/t/1010846</guid>
+<content:encoded><![CDATA[
+
+<p>@<a href="https://www.v2ex.com/member/Livid">Livid</a> 站长您好，各位 V 友你们好，在此很抱歉给各位 V 友带来困扰了</p>
+<p>我是 V2Next 的脚本作者，脚本的确会请求很多次 show.json 这个接口，并不是在刻意攻击 V 站</p>
+<p>脚本逻辑是：</p>
+<p>1 、每次打开首页或者节点这种列表页面，脚本会解析列表中的所有主题拿到 id ，然后并发请求 show.json ，以获取接口返回的 content_rendered 这个字段。</p>
+<p>2 、这个字段我主要用于列表页的卡片模式，和弹框显示主题时提前显示正文</p>
+<p>这个脚本是我今年 1 月份上传，这个 show.json 的逻辑也是一开始就存在的，并不是最近才加的功能，并不是在刻意攻击 V 站</p>
+<p>可能是最近使用我这个脚本的 V 站用户比较多，我看这个统计数据 <a href="https://greasyfork.org/zh-CN/scripts/458024-v2next/stats" rel="nofollow">https://greasyfork.org/zh-CN/scripts/458024-v2next/stats</a> ，最近一次脚本更新的人数有 1700 人，说明可能有 1000 以上的人在使用这个脚本，由于突然用户过多，导致请求数量也变的更多，所以被站长判定为攻击行为了</p>
+<p>我已经把这个逻辑修改掉，现在不会并发请求 show.json 导致被封 ip 了，麻烦大家手动点击一下更新到 7.9.4 版本：这里是脚本地址： <a href="https://greasyfork.org/zh-CN/scripts/458024" rel="nofollow">https://greasyfork.org/zh-CN/scripts/458024</a></p>
+]]></content:encoded>
+<pubDate>2024-01-23T04:08:14Z</pubDate>
+<pubDate>2024-01-23T04:06:14Z</pubDate>
+</item>
+<item>
+<title>[程序员] 最近 V2EX 访问有点问题，大家有没有同样的情况？</title>
+<link>https://www.v2ex.com/t/1010845</link>
+<guid>https://www.v2ex.com/t/1010845</guid>
+<content:encoded><![CDATA[
+
+<p>网站经常打不开，v2er 客户端基本用不来。可以排除梯子的问题。</p>
+]]></content:encoded>
+<pubDate>2024-01-23T04:05:36Z</pubDate>
+<pubDate>2024-01-23T04:15:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 我想起诉中国农业大学动物医院，求意见</title>
+<link>https://www.v2ex.com/t/1010844</link>
+<guid>https://www.v2ex.com/t/1010844</guid>
+<content:encoded><![CDATA[
+
+我的一只母猫，因为难产来到北京中国农业大学动物医院治疗，当天下午经过手术，两天后凌晨死亡，其中了解到的一些信息让我对于中国农业大学动物医院的工作内容问题表示质疑，理由如下<br />第一，医院安排的手术医生为牙专科医生（我不清楚这种是否合规），没有安排对应疾病科室的医生手术，没有术前告知主刀医生的情况。我对医院的做法表示怀疑。<br />第二，在我表示对院方工作内容质疑的情况下要求院方提供的视频证据证明院方工作中有没有过失，院方拒绝提供相对应数据<br />第三，院方再没有告知的情况下，切开猫的颈部，理由为帮助猫进食，在猫病危的时候我观察到院方所提供的供氧设备并没有感觉到有氧气出来，是太微弱还是什么，我需要一个证明也无法提供，还有心率设备所提供的参数竟然都是不准确的，那这些设备有何意义。治好治不好完全就是看命？<br />综上我有理由怀疑院方有失责的可能，可是我拿不到视频的情况下，我也无法证明医院的失责是否属实，有了解这方面的专业人事吗？目前想通过诉讼争取得到一个合理的答复。
+]]></content:encoded>
+<pubDate>2024-01-23T03:04:32Z</pubDate>
+<pubDate>2024-01-22T23:04:32Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 阿里云盘搜索引擎的新版 UI，我捣鼓捣鼓了应该比以前好多了</title>
+<link>https://www.v2ex.com/t/1010843</link>
+<guid>https://www.v2ex.com/t/1010843</guid>
+<content:encoded><![CDATA[
+
+<p>新版网址：<a href="https://ssgo.app" rel="nofollow">ssgo.app</a></p>
+<p>前面分享了做的阿里云盘搜索引擎，只是想实践一下技术，没想到以外获得了很多流量，感觉网站质量实在是愧对这么多流量，所以这段时间重新优化了一下 UI ，买了一个好看的域名，好好给网站做了一下 SEO 之类的。</p>
+<p>技术上使用了：Nuxt 的 SSR ，以及 UI 库是 vuetify</p>
+<p>演示截图：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://oss.justin3go.com/blogs/PixPin_2024-01-23_10-57-34.png" /></p>
+<p>旧版网址：<a href="https://pan.justin3go.com" rel="nofollow">pan.justin3go.com</a>，功能是一样的，数据来源也是一样的，只是 UI 不一样而已</p>
+]]></content:encoded>
+<pubDate>2024-01-23T03:03:53Z</pubDate>
+<pubDate>2024-01-23T04:10:04Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 量化基金前端实习招聘中！日薪 400-600</title>
+<link>https://www.v2ex.com/t/1010842</link>
+<guid>https://www.v2ex.com/t/1010842</guid>
+<content:encoded><![CDATA[
+
+<p>TT (Trade Terminal), a digital currency market maker based in Silicon Valley, offers a range of services for digital currency including market making, secondary market investment, early investment, token online, and consulting. TT is among the largest cryptocurrency traders in the world and trades spot and derivatives on several top exchanges. Its Asia regional headquarters is located in Japan and the company also has technical services in Shanghai China.</p>
+<p>工作职责:
+• 主导、参与新技术、新课题的研究与开发，持续提升优化系统性能，保证系统运行的安全、稳定 与效率;
+• 对现存或未来系统进行思考与规划，提供统一的框架、平台或组件方案。</p>
+<p>职位要求:
+• 熟悉前端工具链 (Webpack, Babel, Less, PostCSS, etc 、)，熟悉混合开发模式，基于 Vue 、React 和 Node.JS 生态的技术栈;
+• 熟练使用 VUE/REACT 全家桶，熟悉 NoSQL 数据库设计、使用及优化;
+• 熟悉 HTTP 协议以及浏览器原理，有前端性能优化经验优先;
+• 了解各种编程范式，应用框架和接口设计模式，遇到问题可以一查到底，善用工具，对工程效率 有自己的见解;
+• 统招 985/211 本科或研究生，计算机、通信、电子、软件工程等相关专业;
+• 英语 4 级或以上，口语流利者优先，拥有虚心好学，仔细认真的工作态度;</p>
+<p>满足以下条件者优先:</p>
+<ol>
+<li>有相关实习经历</li>
+<li>独立搭建过和维护过网站的优先</li>
+<li>能独立设计和实现能满足需求的接口、组件、库、命令行工具、服务者优先。</li>
+</ol>
+<p>*投递请发邮件至： <a href="mailto:xyuan@tradeterminal.io">xyuan@tradeterminal.io</a> 或添加 WeChat：yuanxieAriel</p>
+]]></content:encoded>
+<pubDate>2024-01-23T02:58:19Z</pubDate>
+<pubDate>2024-01-22T22:58:19Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 虚拟定位</title>
+<link>https://www.v2ex.com/t/1010841</link>
+<guid>https://www.v2ex.com/t/1010841</guid>
+<content:encoded><![CDATA[
+
+可以各类打卡，不会检测，软件不收费，但需要积分，签到看广告都可获取积分，无套路<br />要是需要可以回帖留软件 ID,赠送 10 积分<br />网盘： https://pan.tgo.ngo<br /><br />有发现送漏的可以隔天再回复 ID
+]]></content:encoded>
+<pubDate>2024-01-23T02:48:57Z</pubDate>
+<pubDate>2024-01-23T03:52:46Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] go-carbon v2.3.6 发布，轻量级、语义化、对开发者友好的 golang 时间处理库</title>
+<link>https://www.v2ex.com/t/1010840</link>
+<guid>https://www.v2ex.com/t/1010840</guid>
+<content:encoded><![CDATA[
+
+<p>carbon 是一个轻量级、语义化、对开发者友好的 golang 时间处理库，支持链式调用。</p>
+<p>目前已被 <a href="https://github.com/avelino/awesome-go#date-and-time" rel="nofollow" title="awesome-go">awesome-go</a> 收录，如果您觉得不错，请给个 star 吧</p>
+<p><a href="https://github.com/golang-module/carbon" rel="nofollow" title="github.com/golang-module/carbon">github.com/golang-module/carbon</a></p>
+<p><a href="https://gitee.com/golang-module/carbon" rel="nofollow" title="gitee.com/golang-module/carbon">gitee.com/golang-module/carbon</a></p>
+<h4>安装使用</h4>
+<h5>Golang 版本大于等于 1.16</h5>
+<pre><code class="language-go">// 使用 github 库
+go get -u github.com/golang-module/carbon/v2
+
+import "github.com/golang-module/carbon/v2"
+
+// 使用 gitee 库
+go get -u gitee.com/golang-module/carbon/v2
+
+import "gitee.com/golang-module/carbon/v2"
+</code></pre>
+<h5>Golang 版本小于 1.16</h5>
+<pre><code class="language-go">// 使用 github 库
+go get -u github.com/golang-module/carbon
+
+import "github.com/golang-module/carbon"
+
+// 使用 gitee 库
+go get -u gitee.com/golang-module/carbon
+
+import  "gitee.com/golang-module/carbon"
+</code></pre>
+<h4>更新日志</h4>
+<ul>
+<li>将日历提取出来作为独立子包</li>
+<li>新增 <code>CreateFromLunar</code> 方法，从 <code>农历日期</code> 创建 <code>Carbon</code> 实例</li>
+<li>修复 <code>ToMonthString</code>, <code>ToShortMonthString</code>, <code>ToWeekString</code>, <code>ToShortWeekString</code>, <code>Season</code> , <code>Constellation</code> 方法并发读写错误</li>
+<li>提供单元测试和性能测试覆盖率</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-01-23T02:46:43Z</pubDate>
+<pubDate>2024-01-23T02:46:43Z</pubDate>
+</item>
+<item>
+<title>[程序员] chatgpt 写代码， 分分钟实现完成一个接口 Dto，简直太爽了</title>
+<link>https://www.v2ex.com/t/1010839</link>
+<guid>https://www.v2ex.com/t/1010839</guid>
+<content:encoded><![CDATA[
+
+<p>1 ，打开接口文档，例如</p>
+<p><a href="https://data.qixin.com/api-detail?categoryId=438048f4d30442d5b18faf65494f5870&amp;apiId=34.1&amp;come=search&amp;from=qxb-c-api" rel="nofollow">https://data.qixin.com/api-detail?categoryId=438048f4d30442d5b18faf65494f5870&amp;apiId=34.1&amp;come=search&amp;from=qxb-c-api</a></p>
+<p>网页上的 html 使用表格，需要写代码解析。发现底下有 pdf 格式的接口文档</p>
+<img alt="image-20240123102205718" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/23/Nw3CT6fiEYsOPyr.png" />
+<p>2 ，从 pdf 文件里复制字段内容，整理格式（主要处理换行啥的）</p>
+<img alt="image-20240123102420438" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/23/J9QEoievH3K7rbN.png" />
+<p>3 ，设置提示词</p>
+<p>根据上述内容，生成 java Dto 实体类，1 ，字段使用驼峰格式 2 ，增加 JsonProperty 注解来展示下划线字段 3 ，描述信息使用/***/格式注释在字段上面 4 ，使用 lombok 的 @<a href="https://www.v2ex.com/member/Data">Data</a> 注解，不要生成 get/set 方法 5 ，Dto 要按照这种格式写</p>
+<p>4 ，生成效果</p>
+<img alt="image-20240123102802578" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/23/duLKRWigk5wTyXB.png" />
+]]></content:encoded>
+<pubDate>2024-01-23T02:46:12Z</pubDate>
+<pubDate>2024-01-23T02:46:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] IP 被莫名其妙限流了，啥也没干，求解决 @Livid</title>
+<link>https://www.v2ex.com/t/1010838</link>
+<guid>https://www.v2ex.com/t/1010838</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-01-23T02:45:57Z</pubDate>
+<pubDate>2024-01-23T03:18:13Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [广州/北京/成都] 字节飞书人事 2024Q1 继续扩大团队，急缺前端加入， HC 多多，可以年前面试年后入职</title>
+<link>https://www.v2ex.com/t/1010837</link>
+<guid>https://www.v2ex.com/t/1010837</guid>
+<content:encoded><![CDATA[
+
+<p>继上次发帖招满后（<a href="https://www.v2ex.com/t/994456#reply36" rel="nofollow">[广州/北京] 字节飞书人事大量 HC ，这次是真的缺人～</a>），由于前线同学年底发力拿下了较多的头部企业，研发侧依然存在人力去口，因此 2024 年 Q1 又放出了大量前端 HC ，欢迎大家来撩！</p>
+<p>福利和氛围就不重复介绍了，可以看之前的帖，但这次只有前端的 HC 哈</p>
+]]></content:encoded>
+<pubDate>2024-01-23T02:43:37Z</pubDate>
+<pubDate>2024-01-23T02:58:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想要找一个 2003-2010 年的系列国产少儿科普游戏</title>
+<link>https://www.v2ex.com/t/1010836</link>
+<guid>https://www.v2ex.com/t/1010836</guid>
+<content:encoded><![CDATA[
+
+<p>小时候玩的，是一个系列出了很多部，主角好像有两个，主要玩法就是鼠标点击解谜探险，2d 动画风格，类似于当年的 flash 游戏那种，但并不是 flash ，如果点击正确会有很多拟人的小物件科普。</p>
+<p>出了这么多部的游戏找了半天没找到，大家有没有玩过的可以告知一下谢谢。</p>
+]]></content:encoded>
+<pubDate>2024-01-23T02:42:48Z</pubDate>
+<pubDate>2024-01-23T02:42:48Z</pubDate>
+</item>
+<item>
+<title>[V2EX] 关于从 2024 年 1 月 21 日开始的访问问题</title>
+<link>https://www.v2ex.com/t/1010835</link>
+<guid>https://www.v2ex.com/t/1010835</guid>
+<content:encoded><![CDATA[
+
+我不确定这是攻击还是某个插件的行为，很多的 IP 持续在以非常高的并发请求 /api/topics/show.json 这个接口。因为我一直没有安装过任何插件，所以我无法去确认这是否是任何插件造成的问题。只能针对这个访问特征当作攻击来应对了。<br /><br /><a href="https://www.v2ex.com/i/994NxGKJ.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 994NxGKJ.png"><img class="embedded_image" src="https://i.v2ex.co/994NxGKJ.png" /></a>
+]]></content:encoded>
+<pubDate>2024-01-23T02:04:29Z</pubDate>
+<pubDate>2024-01-23T11:10:54Z</pubDate>
+</item>
+<item>
+<title>最近 mac 本买哪个型号比较划算？</title>
+<link>https://www.v2ex.com/t/1009367</link>
+<guid>https://www.v2ex.com/t/1009367</guid>
+<content:encoded><![CDATA[
+
+<p>想买个 mac 本过年，主要是娱乐办公，最近 mac 本买哪个型号比较划算？</p>
+]]></content:encoded>
+<pubDate>2024-01-17T07:11:43Z</pubDate>
+<pubDate>2024-01-20T09:32:58Z</pubDate>
+</item>
+<item>
+<title>南京程序员招聘 | 股权激励 | 外企 WLB | 慧咨环球 | 混合办公 | 行业领袖 扁平管理 可移民澳洲</title>
+<link>https://www.v2ex.com/t/870711</link>
+<guid>https://www.v2ex.com/t/870711</guid>
+<content:encoded><![CDATA[
+
+<p><strong>主要的亮点</strong> </p>
+<ul>
+<li>快速增长的、产品导向型的全球性科技公司</li>
+<li>设计和开发市场领先的软件解决方案</li>
+<li>WLB — 工作生活相平衡</li>
+<li>澳洲排名前五的软件公司</li>
+<li>混合办公 — 3 天在家办公，2 天在办公室办公</li>
+<li>在 C#和 .NET 开发，企业级系统研发，软件工程方面有长期的优秀实践和技术储备     </li>
+</ul>
+<p><strong>慧咨是做什么的？</strong><br />
+慧咨环球（<a href="https://www.wisetechglobal.com/" rel="nofollow">WiseTech Global</a>）是一家快速增长的、产品导向型的全球性科技公司，目前澳交所 50 强，市值 150 多亿澳元。慧咨的使命是通过创造突破性的产品来改变世界，并为全球供应链行业赋能。<br />
+慧咨设计和开发市场领先的软件解决方案，这些解决方案被 165 个国家的超过 1 万 8 千个物流组织所使用。全球物流排名前 50 的公司最少有 45 家在用慧咨的产品，比如 DHL, DSV, GEODIS, UPS 等。</p>
+<p><strong>慧咨的技术栈是什么？</strong><br />
+以 .NET 为主，但是我们不会仅仅只拘泥于 .NET ，比如我们用 Kibana 搭建了一个庞大的可视化数据平台，以供我们可以采集和分析我们发布的服务，以及服务所在的机器的所有数据。 我们的架构组也在尝试用 K8s 重新构建我们的云服务。我们主攻 Web 的一个组在大量的使用 Vue 。我们也在用开源的 Ceph 来存储我们的所有文档内容。我们也有主要用 Python 的组在写 Content Service 。总结下来就是，虽然我们的旗舰产品 CargoWise 是用 C#写成，但是针对产品的周边以及其他的产品的开发，我们并不拘泥于 C#。语言只是一种工具，更重要的是每一个开发人员在编程经验中积累的高度抽象能力，快速学习能力和解决问题能力。所以<strong>我们欢迎有任何语言背景的人给我们投简历</strong>。<br />
+另外我们在用 Blazor 重新构建我们现有产品的架构，把一个现有的庞大的 Winform 为主架构的系统转换成 Blazor 架构是一个非常有挑战性的工作，感兴趣的”Blazorers”欢迎来聊聊。</p>
+<p><strong>慧咨在工程中最关注什么？</strong><br />
+<strong>质量</strong>。我们对代码质量的关注远远高于交付速度。”Slower today, faster forever”是我们做事所遵循的原则之一，我们不会因为追求交付速度而牺牲代码的质量。<br />
+慧咨是一家典型的深耕供应链行业并为行业提供几乎物流全链路功能的操作系统的公司，我们的工作不像国内主流的互联网公司，没有那么高的并发，也没有那么大的流量，但是<strong>用优美的代码和精巧的设计去解决非常复杂的业务问题也是一个优秀的软件工程师的价值体现。</strong></p>
+<p><strong>慧咨需要什么样的候选人？</strong><br />
+解决复杂问题的能力，保持好奇心和热情是我们在工程师中需要的关键技能。
+知识储备，技术能力，沟通和表达能力是我们对候选人最关注的三个点。<br />
+如果你有过长期迭代一个大型项目的经历，并且擅长从非技术角度去分析和理解业务需求，有过带人或者带团队的经验，那么你将是我们非常渴望一起共事的资深工程师。<br />
+如果你深入的从零构建过一个大型的系统，从这个系统的第一行代码到最终交付到客户手中的产品，在这个链条上的每一个环节你都实际解决过安全性 /高扩展性 /高可用性的问题，并且有着非常优秀的技术视野和丰富的架构经验，那么你将是我们非常需要的架构师。<br />
+英语方面，希望能做到基本的读写，在不借助翻译软件的情况下可以阅读大多数技术文档。平时在办公室沟通用中文，但是跟悉尼或者其他国家的同事打电话时，用英文交流，因为微软 Teams 有实时字幕功能，所以我们对候选人的最低听说要求是跟国外同事打电话时可以通过字幕明白对方在说什么，然后你的口语不需要很流畅也不需要很地道，但是至少要让对方听明白你要表达什么。      </p>
+<p><strong>你在慧咨环球将做什么？</strong><br />
+在 CI/CD 的加持下，我们每周会发布大概 3500 次更新。我们践行 TDD ，把质量放在工程实践的核心位置。       </p>
+<ul>
+<li>对所负责产品进行维护和新功能开发，并对复杂问题进行深入分析</li>
+<li>你将迭代、测试、设计和交付高质量的代码，以助力全球供应链</li>
+<li>如果你是一名资深软件工程师，你不但要自己交付高质量的代码，你还要为团队的交付代码质量保驾护航</li>
+<li>你喜欢解决复杂的技术问题，并可以利用不同的技术，与全球开发者团队合作</li>
+</ul>
+<p><strong>慧咨能提供什么样的工作环境以及福利待遇？</strong> </p>
+<ul>
+<li>办公室位置在南京市建邺区的 CBD — 华新城 T6 办公楼（地库可直通华采天地和元通地铁站），旁边就是奥体</li>
+<li>混合办公模式，3 天在家办公，2 天在办公室办公</li>
+<li>每人标配 Dell Precision 5570 工作站笔记本（ 64G 内存，2T SSD ，i9-12 处理器）+ 43 寸  - 4K 显示器 x 2 + 升降办公桌 + 人体工学座椅。PS. 所有的办公桌都是开放式办公桌，没有隔断，也没有单独的办公室。</li>
+<li>为了提高效率，我们购买了 ReSharper 和 Entrian Source Search 的企业授权</li>
+<li>没有加班和打卡，有爱好篮球的小伙伴们会偶尔下了班一起去奥体打打篮球（据说羽毛球和游泳也组织起来了）</li>
+<li>真弹性工作制，有的小伙伴 4 点多就下班，有的 3 点多就下班了。前提是确保自己的<strong>有效工作时间</strong>是 8 小时。</li>
+<li>创始人程序员出身，公司工程师文化，没有政治也没有工作 PUA 。</li>
+<li>有竞争力的薪酬待遇</li>
+<li>每周 Fruit Day ，每月 Cake Day ，免费零食</li>
+<li>股权激励</li>
+<li>入职有 10 天年假，满 3 年有 15 天年假，满 10 年有 20 天年假</li>
+<li>工作满三年可申请移民澳洲（已经有小伙伴过去了）</li>
+</ul>
+<p><strong>其他？</strong><br />
+<a href="https://www.joelonsoftware.com/2000/08/09/the-joel-test-12-steps-to-better-code/" rel="nofollow">Joel Test</a> 可以看此贴： <a href="https://www.zhihu.com/question/493751767/answer/2282085657" rel="nofollow">https://www.zhihu.com/question/493751767/answer/2282085657</a>
+非常赞同<a href="http://mindhacks.cn/2011/11/04/how-to-interview-a-person-for-two-years/" rel="nofollow">刘未鹏说的</a>，也许没有哪个行业像 IT 行业这样，无形资产占据公司的绝大多数资产。而无形资产就是程序员的智力资产，慧咨从成立的第一天起就致力于投资公司的员工，并将开发人员作为业务的核心。非常期待可以在此招到能一起共事的同事们。<br />
+联系 VX： 同 V2 用户名
+<img alt="enter image description here" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yGVwXjO2.png" /></p>
+]]></content:encoded>
+<pubDate>2022-08-04T10:33:50Z</pubDate>
+<pubDate>2024-01-23T03:09:30Z</pubDate>
+</item>
+
+<item>
 <title>[反馈] IP 被封,求解封</title>
 <link>https://www.v2ex.com/t/1010834</link>
 <guid>https://www.v2ex.com/t/1010834</guid>
 <content:encoded><![CDATA[
-
 <p>好像是因为昨天我发了一个替代潘多拉 Next 的 github 项目的链接,今天再来看 IP 就被费率限制了,求解封</p>
 ]]></content:encoded>
-<pubDate>2024-01-23T01:05:15Z</pubDate>
 <pubDate>2024-01-23T01:04:15Z</pubDate>
 </item>
 <item>
@@ -20,10 +601,8 @@
 <link>https://www.v2ex.com/t/1010833</link>
 <guid>https://www.v2ex.com/t/1010833</guid>
 <content:encoded><![CDATA[
-
 虽然是旧闻但搜索 LPC 嗅探好像 V 站都没提到。<br /><br /><a href="https://www.4hou.com/posts/xlMn" rel="nofollow noopener" target="_blank">https://www.4hou.com/posts/xlMn</a><br /><br />不知道 Win11 有没有启用 TPM2.0 的传输加密，不然感觉，低成本设备就能直接嗅探读到 VMK ，至少不设 TPM 的 PIN 就形同虚设啊。<br /><br />（另外有点想起当年 true crypt 有意不使用 TPM ，理由是说如果攻击者真的能物理接触机器那就很难保证安全了，比如还可以魔改键盘）
 ]]></content:encoded>
-<pubDate>2024-01-23T00:52:29Z</pubDate>
 <pubDate>2024-01-23T01:04:05Z</pubDate>
 </item>
 <item>
@@ -31,10 +610,8 @@
 <link>https://www.v2ex.com/t/1010832</link>
 <guid>https://www.v2ex.com/t/1010832</guid>
 <content:encoded><![CDATA[
-
 ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: aHR0cHM6Ly90Lm1lL3lvbmdtYW4=
 ]]></content:encoded>
-<pubDate>2024-01-23T00:51:42Z</pubDate>
 <pubDate>2024-01-22T20:51:42Z</pubDate>
 </item>
 <item>
@@ -42,13 +619,11 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010831</link>
 <guid>https://www.v2ex.com/t/1010831</guid>
 <content:encoded><![CDATA[
-
 <p>国家有个规定，退休领取社保时，领取地是退休前最近一个缴费满 10 年的城市。</p>
 <p>假如我在杭州工作，交了 8 年的社保，现在又换到上海工作交社保，又交了 2 年。</p>
 <p>如果把杭州的社保转移到上海，上海这边算是缴费满 10 年吗？还是说上海只算作 2 年？</p>
 <p>有了解的朋友帮忙解答下？多谢！</p>
 ]]></content:encoded>
-<pubDate>2024-01-23T00:42:23Z</pubDate>
 <pubDate>2024-01-23T00:54:50Z</pubDate>
 </item>
 <item>
@@ -56,10 +631,8 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010830</link>
 <guid>https://www.v2ex.com/t/1010830</guid>
 <content:encoded><![CDATA[
-
 在 tb 上买了个 A 应用的会员， 原价几百只卖几十， 对方说需要验证一下 A 应用账户的手机号， 然后我手机收到了 B 应用的验证码短信。<br /><br />我没有注册过 B 应用，我琢磨了半天也没琢磨出其中玄机，就告诉了对方 B 应用的验证码， 然后我的 A 应用会员到账。<br /><br />然后我就用手机号注册了 B 应用，发现是新注册没有过注册信息，并且注册好进去之后，也没发现任何使用过的痕迹。<br /><br />他们这是干啥呢？？
 ]]></content:encoded>
-<pubDate>2024-01-23T00:33:12Z</pubDate>
 <pubDate>2024-01-23T01:07:56Z</pubDate>
 </item>
 <item>
@@ -67,10 +640,8 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010829</link>
 <guid>https://www.v2ex.com/t/1010829</guid>
 <content:encoded><![CDATA[
-
 <p>帮朋友问问作为某大学里校园小商铺的商家，坐拥 2 万在校学生资源，想要搞点什么小程序之类的，有什么好主意能够有效利用好校内流量吗？表白墙什么烂大街的已经过时了，根本没人看😂</p>
 ]]></content:encoded>
-<pubDate>2024-01-23T00:24:39Z</pubDate>
 <pubDate>2024-01-23T01:02:23Z</pubDate>
 </item>
 <item>
@@ -78,10 +649,8 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010828</link>
 <guid>https://www.v2ex.com/t/1010828</guid>
 <content:encoded><![CDATA[
-
 <p>感觉 Mac Mouse Fix 的按键动作还挺好用的，平滑滚动也比罗技自带舒服，但不能识别 Master 3 的手势按钮，这个钮其实用来切换桌面空间或者打开调试中心啥的都比配合其它键用的舒服，很可惜。</p>
 ]]></content:encoded>
-<pubDate>2024-01-23T00:18:55Z</pubDate>
 <pubDate>2024-01-23T00:45:51Z</pubDate>
 </item>
 <item>
@@ -89,10 +658,8 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010827</link>
 <guid>https://www.v2ex.com/t/1010827</guid>
 <content:encoded><![CDATA[
-
 本来感觉 MacOS 的最小化和恢复很优雅，用着舒服，自从这个最小化后恢复要闪一下开始就很难受，甚至开始用台前调度了，鼠标靠左显示窗口以及停留在左侧的动画都很流畅，但是总要占一部分空间很难受，每次出来最新版就更新，指望修复，结果每次都修不了
 ]]></content:encoded>
-<pubDate>2024-01-23T00:08:39Z</pubDate>
 <pubDate>2024-01-23T00:58:31Z</pubDate>
 </item>
 <item>
@@ -100,11 +667,9 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010826</link>
 <guid>https://www.v2ex.com/t/1010826</guid>
 <content:encoded><![CDATA[
-
 <p>手里有活就干，但也没太大的积极性，
 只想过年，甚至还想请年假。。。。</p>
 ]]></content:encoded>
-<pubDate>2024-01-22T23:57:19Z</pubDate>
 <pubDate>2024-01-23T01:09:13Z</pubDate>
 </item>
 <item>
@@ -112,7 +677,6 @@ ChatGPT Team 2 人车，空 1 位，发车，想要上车的联系我。base64: 
 <link>https://www.v2ex.com/t/1010825</link>
 <guid>https://www.v2ex.com/t/1010825</guid>
 <content:encoded><![CDATA[
-
 <p>美国洛杉矶 VPS 部分机型年终促销！首月半价 / 买半年送半年！
 月付 5 折优惠码：WKWQECC959
 年付 5 折优惠码：7NW1EB3RL8</p>
@@ -141,7 +705,6 @@ LookingGlass： <a href="http://103.141.1.156:8800/" rel="nofollow">http://103.1
 <p>关注 Telegram 官方频道，获取最新优惠信息： <a href="https://t.me/dotdotidc" rel="nofollow">https://t.me/dotdotidc</a>
 Telegram: server901</p>
 ]]></content:encoded>
-<pubDate>2024-01-22T23:56:12Z</pubDate>
 <pubDate>2024-01-22T23:53:12Z</pubDate>
 </item>
 <item>
@@ -149,16 +712,13 @@ Telegram: server901</p>
 <link>https://www.v2ex.com/t/1010823</link>
 <guid>https://www.v2ex.com/t/1010823</guid>
 <content:encoded><![CDATA[
-
 <p>如题。工作有需要结合多模型效果来提点，但是不会搞。</p>
 <p>以前有印象听说过 Kaggle 榜单前几名一般都是做好几个模型然后共通决策来刷分的，具体是如何操作的呢？</p>
 <p>我刚才搜了搜特征融合这个关键字，不过感觉内容不太对得上，感觉特征融合这个领域考虑得比较多的是如何将一个单独模型内部不同层级的特征融合起来（而且找了几个项目代码看，好像最后说到底融合也就是直接加）</p>
 <p>目前一个想法是，ABC 模型，提取特征后各自得到 A1B1C1 三个矩阵，然后直接把矩阵 concat ，再加位置编码，然后加注意力，然后 FC 这样？是不是太简单了</p>
 ]]></content:encoded>
-<pubDate>2024-01-22T22:49:33Z</pubDate>
 <pubDate>2024-01-23T00:59:02Z</pubDate>
 </item>
-
 <item>
 <title>[投资] A 股是赵家的地盘，而币圈是程序员的地盘。建个电报群： v2exers 迎接 2025 年加密货币牛市</title>
 <link>https://www.v2ex.com/t/1010822</link>
@@ -15936,135 +16496,6 @@ PS：简历通过有笔试（很简单，纯逻辑编程题，不考算法），
 <p>纯纯小白第一次发言</p>
 ]]></content:encoded>
 <pubDate>2024-01-18T03:16:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 24 年，想看看大家的订阅付费，软件或服务都可以</title>
-<link>https://www.v2ex.com/t/1009615</link>
-<guid>https://www.v2ex.com/t/1009615</guid>
-<content:encoded><![CDATA[
-<h3>我先来我的</h3>
-<ul>
-<li>iCloud 200GB 400 円/月</li>
-<li>Notion Plus 8 刀/月</li>
-<li>YouTube Premium (Family membership) 58 元/年</li>
-<li>Amazon Prime 5900 円/年</li>
-<li>Telegram Premium 28.99 刀/年 🤔考虑不继续订阅了</li>
-<li>哔哩哔哩 大会员 168 元/年</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-01-18T04:14:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] A 股要到哪里去？</title>
-<link>https://www.v2ex.com/t/1009614</link>
-<guid>https://www.v2ex.com/t/1009614</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-01-16T03:13:08Z</pubDate>
-</item>
-<item>
-<title>[科技] 请问如何给路由设置代理?</title>
-<link>https://www.v2ex.com/t/1009613</link>
-<guid>https://www.v2ex.com/t/1009613</guid>
-<content:encoded><![CDATA[
-<p>是这样的，我们一般不都是买了梯子嘛，然后我每个手机都要配很麻烦。</p>
-<p>而且有时候我老婆需要访问外网，我就很难帮她设置，特别麻烦。
-有没有什么办法能把我买的提子设置到路由器那里，这样我家里的所有设备上网都不需要挂梯子了。</p>
-<p>另外：我家里的路由器是小米路由器，具体哪里型号忘了，但是是中高级型号</p>
-]]></content:encoded>
-<pubDate>2024-01-18T04:16:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 招聘远程！远程！远程！前端</title>
-<link>https://www.v2ex.com/t/1009612</link>
-<guid>https://www.v2ex.com/t/1009612</guid>
-<content:encoded><![CDATA[
-要求：5 年以上开发经验，需要有彩票经验，了解长龙 冷热遗漏 路子图  走势图<br />薪资区间：3000-4000$<br />联系：<br />telegram：@hanmeimei2022<br />招聘频道： <a href="https://t.me/Baishajituan_ABC" rel="nofollow noopener" target="_blank">https://t.me/Baishajituan_ABC</a><br />远程交流群： <a href="https://t.me/Hanmeimei1998_remote" rel="nofollow noopener" target="_blank">https://t.me/Hanmeimei1998_remote</a>
-]]></content:encoded>
-<pubDate>2024-01-16T03:05:59Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享开源 Gemini Pro Chat，支持文字和图片识别</title>
-<link>https://www.v2ex.com/t/1009611</link>
-<guid>https://www.v2ex.com/t/1009611</guid>
-<content:encoded><![CDATA[
-上一版本用 PHP 写的，体验不好，这一版基于 ChatGPT NEXT Web 进行了改造<br />在它的基础上增加了图片上传识别功能，同时去掉 open ai key 的必填项<br /><br />免费使用地址：<br /><a href="https://chat.googlegemini.co/" rel="nofollow noopener" target="_blank">https://chat.googlegemini.co/</a><br /><br />国内可以直接访问，支持一键部署，只需要获取谷歌 GOOGLE API KEY 就行了。<br />不需要 open ai key.
-]]></content:encoded>
-<pubDate>2024-01-18T03:02:34Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 运营商新操作:强制光猫 RMS 纳管</title>
-<link>https://www.v2ex.com/t/1009610</link>
-<guid>https://www.v2ex.com/t/1009610</guid>
-<content:encoded><![CDATA[
-[重要通知] <br />各市分公司：<br />12 月 7 日晚智慧营维 APP 升级有两个重点功能，请各地市通知到每一位智家工程师，做好宣贯，12 月 8 日白天收到问题反馈，可在江苏联通智慧营维 APP 支撑群中咨询处理：<br />1 、宽带 FTTH 用户装移机工单场景，号线清查规范要求必须满足分光器、PON 口、端口清查全部通过，才允许回单。请智家工程师关注，规范安装施工，满足要求后回单，尽量不要工单岗后台回单。<br />2 、因工信部网络安全要求光猫密码不允许使用缺省密码。医此在光猫加电上线时，RMS 系统会检测光猫的密码，如果在 RMS 没有保存的随机密码下发记录（或超过一定时限 RMS 系统将自动远程下发随机密码到光猫，修改光猫的超级管理员密码。为网络维护需要智慧营维 APP 在工单和工具箱提供光猫超级管理员密码查询功能。<br />3 、对于新增光猫要求 100%在 RMS 纳管，超级管理员密码 100%修改为随机密码；<br />   对于存量光猫，RMS 已纳管在线的，由省公司远程批量修改密码。非纳管的，由地市制定整改方案计划，安排接入网维护及智家工程师人员手工整改，优先整治具有 WiFi 能力的光猫。修改方式：整改未纳管的光猫为 RMS 纳管，重启后，RMS 远程自动下发随机密码。对于不支持 RMS 纳管的光猫，更换光猫。<br />来源:<a href="https://www.bilibili.com/video/BV1Nk4y197Dk/" rel="nofollow noopener" target="_blank">https://www.bilibili.com/video/BV1Nk4y197Dk/</a>
-]]></content:encoded>
-<pubDate>2024-01-18T04:12:29Z</pubDate>
-</item>
-<item>
-<title>[程序员] 梦回 2015</title>
-<link>https://www.v2ex.com/t/1009609</link>
-<guid>https://www.v2ex.com/t/1009609</guid>
-<content:encoded><![CDATA[
-<p>还有两百只飘红，为什么你的是绿的
-要思考一下这些年来是不是自己的功课没做好
-预定一下水深火热</p>
-]]></content:encoded>
-<pubDate>2024-01-18T04:19:45Z</pubDate>
-</item>
-<item>
-<title>[PHP] 求指点 PHP 内存泄露排查</title>
-<link>https://www.v2ex.com/t/1009607</link>
-<guid>https://www.v2ex.com/t/1009607</guid>
-<content:encoded><![CDATA[
-线上 php-fpm 内存占用越来越高，运行 1 个月都占用 1 个多 G 的内存了，使用的是 php8.1+yii2 框架，看起来应该是有内存泄漏存在，想请教一下这种怎么排查？
-]]></content:encoded>
-<pubDate>2024-01-18T03:20:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教 url encode 问题</title>
-<link>https://www.v2ex.com/t/1009606</link>
-<guid>https://www.v2ex.com/t/1009606</guid>
-<content:encoded><![CDATA[
-<pre><code class="language-txt">https://192.168.1.1:25505/api/v1/query?query=sum(a:b:c:d:e{a="", b="c"}) by (namespace)
-</code></pre>
-<p>用 postman 转成 curl 是这样子的</p>
-<pre><code class="language-txt">curl --location --globoff 'https://192.168.1.1:25505/api/v1/query?query=sum(a%3Ab%3Ac%3Ad%3Ae{a%3D%22%22%2C%20b%3D%22c%22})%20by%20(namespace)'
-</code></pre>
-<p>可以看到对参数部分编码了:</p>
-<ol>
-<li>冒号 :</li>
-<li>等于号 = </li>
-<li>引号 "</li>
-<li>逗号 ,</li>
-</ol>
-<p>就是没有 encode 括号()和大括号{} </p>
-<p>我的问题是: 为啥没有 encode 大小括号?</p>
-]]></content:encoded>
-<pubDate>2024-01-18T03:54:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 日本原装的虎牌电饭锅是不是智商税？</title>
-<link>https://www.v2ex.com/t/1009604</link>
-<guid>https://www.v2ex.com/t/1009604</guid>
-<content:encoded><![CDATA[
-<p>如题，在商场看到一款虎牌电饭锅（ JPF-AC55 ），1.5 升小容量正好符合我的需求，外观功能也比较合适。结果一问价格 4000 多，随即上网查询，果然京东自营 2800 多，特价时候 2500 多。</p>
-<p>本来昨晚就打算下单，突然又觉得这不就是一个电饭锅嘛，国产类似特点的（这款卖点就是 IH 加热土锅涂层） 400-500 也能买到，虽然品质上肯定是有差距的。</p>
-<p>那么这个锅之所以这么贵，会不会是因为日本人工成本高？以及运输和关税成本高的原因？实际体验和国产并没有那么大差距，我这是不是属于交智商税了？</p>
-]]></content:encoded>
-<pubDate>2024-01-18T04:06:56Z</pubDate>
-</item>
-<item>
-<title>[Apple] 家庭共享中多个地区的 Apple ID 咋不能共享已购买 app？</title>
-<link>https://www.v2ex.com/t/1009601</link>
-<guid>https://www.v2ex.com/t/1009601</guid>
-<content:encoded><![CDATA[
-<p>我和家人各有一个国区 id 和 美区 id ，家庭组织者是中 A ，家长是中 B 。A 和 B 之间可以共享已购买项目。</p>
-<p>然后我昨天把美 C 、美 D 两个账号邀请到家庭中，但是 CD 就不能互相共享已购买项目…… （每个账号设置里都勾选了“共享我购买的 app”） 这是为啥？我理解 A 和 C 因区域不同而不能共享，但是 C 和 D 都是美国呀？ </p>
-<p>甚至 C 、D 都可以选择使用 A 共享的 iCloud+ 2T……</p>
-]]></content:encoded>
-<pubDate>2024-01-18T04:09:55Z</pubDate>
 </item>
 </channel>
 </rss>
