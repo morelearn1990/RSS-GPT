@@ -5,14 +5,350 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] Mac 系统(M 系处理器)搭建幻兽帕鲁(palworld)服务器</title>
+<link>https://www.v2ex.com/t/1011320</link>
+<guid>https://www.v2ex.com/t/1011320</guid>
+<content:encoded><![CDATA[
+
+<h2>环境准备</h2>
+<ol>
+<li>下载安装 docker ，<a href="https://www.docker.com/" rel="nofollow">https://www.docker.com/</a> 。</li>
+<li>修改 docker desktop 中的 Settings - Resources ，把 CPU Limit 拉满，Memory Limit 拉到给剩 2-3G 接近满值，Swap 拉满，保存。</li>
+<li>创建一个文件夹，例如：<code>palworld-arm-docker</code>，在里面创建一个空的子文件夹 <code>palworld</code>。</li>
+</ol>
+<h2>docker-compose</h2>
+<p>在 <code>palworld-arm-docker</code> 文件夹下面创建 <code>docker-compose.yml</code> 文件。
+<code>mem_limit</code>视自己的刚才的<code>Memory Limit</code>调整，比如<code>Memory Limit</code>是 14G ，那么<code>mem_limit</code>就设定为 13G ，这样可以在内存泄露严重时自动重启容器。</p>
+<pre><code>version: '3'
+services:
+  pal:
+    image: czy0612/palworld-server
+    restart: always
+    mem_limit: 13g
+    container_name: pal
+    ports:
+      - 8211:8211/udp
+      - 25575:25575/tcp
+    volumes:
+      - ./PalWorldSettings.ini:/home/steam/Steam/steamapps/common/PalServer/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+      - ./palworld:/home/steam/Steam/steamapps/common/PalServer/
+</code></pre>
+<h2>PalGameWorldSettings(游戏配置)</h2>
+<p>在 <code>palworld-arm-docker</code> 文件夹下面创建 <code>PalWorldSettings.ini</code> 文件。</p>
+<p>官方文档： <a href="https://tech.palworldgame.com/optimize-game-balance" rel="nofollow">https://tech.palworldgame.com/optimize-game-balance</a>
+配置生成器： <a href="https://dysoncheng.github.io/PalWorldSettingGenerator/setting.html" rel="nofollow">https://dysoncheng.github.io/PalWorldSettingGenerator/setting.html</a></p>
+<p>默认配置如下，如何修改可以参考上面两个网页：</p>
+<pre><code>[/Script/Pal.PalGameWorldSettings]
+OptionSettings=(Difficulty=None,DayTimeSpeedRate=1.000000,NightTimeSpeedRate=1.000000,ExpRate=1.000000,PalCaptureRate=1.000000,PalSpawnNumRate=1.000000,PalDamageRateAttack=1.000000,PalDamageRateDefense=1.000000,PlayerDamageRateAttack=1.000000,PlayerDamageRateDefense=1.000000,PlayerStomachDecreaceRate=1.000000,PlayerStaminaDecreaceRate=1.000000,PlayerAutoHPRegeneRate=1.000000,PlayerAutoHpRegeneRateInSleep=1.000000,PalStomachDecreaceRate=1.000000,PalStaminaDecreaceRate=1.000000,PalAutoHPRegeneRate=1.000000,PalAutoHpRegeneRateInSleep=1.000000,BuildObjectDamageRate=1.000000,BuildObjectDeteriorationDamageRate=1.000000,CollectionDropRate=1.000000,CollectionObjectHpRate=1.000000,CollectionObjectRespawnSpeedRate=1.000000,EnemyDropItemRate=1.000000,DeathPenalty=All,bEnablePlayerToPlayerDamage=False,bEnableFriendlyFire=False,bEnableInvaderEnemy=True,bActiveUNKO=False,bEnableAimAssistPad=True,bEnableAimAssistKeyboard=False,DropItemMaxNum=3000,DropItemMaxNum_UNKO=100,BaseCampMaxNum=128,BaseCampWorkerMaxNum=15,DropItemAliveMaxHours=1.000000,bAutoResetGuildNoOnlinePlayers=False,AutoResetGuildTimeNoOnlinePlayers=72.000000,GuildPlayerMaxNum=20,PalEggDefaultHatchingTime=72.000000,WorkSpeedRate=1.000000,bIsMultiplay=False,bIsPvP=False,bCanPickupOtherGuildDeathPenaltyDrop=False,bEnableNonLoginPenalty=True,bEnableFastTravel=True,bIsStartLocationSelectByMap=True,bExistPlayerAfterLogout=False,bEnableDefenseOtherGuildPlayer=False,CoopPlayerMaxNum=4,ServerPlayerMaxNum=32,ServerName="Default Palworld Server",ServerDescription="",AdminPassword="123456",ServerPassword="",PublicPort=8211,PublicIP="",RCONEnabled=True,RCONPort=25575,Region="",bUseAuth=True,BanListURL="https://api.palworldgame.com/api/banlist.txt")
+</code></pre>
+<h2>运行</h2>
+<ol>
+<li>终端中 cd 到 <code>palworld-arm-docker</code> 文件夹目录下</li>
+<li>拉取 docker 镜像<code>docker-compose pull</code></li>
+<li>运行 <code>docker-compose up -d</code></li>
+<li>等待 30 秒后 <code>sudo docker logs pal</code>
+看到如下信息说明服务器配置好了，马上可以冲了！</li>
+</ol>
+<pre><code>dlopen failed trying to load:
+steamclient.so
+with error:
+steamclient.so: cannot open shared object file: No such file or directory
+[S_API] SteamAPI_Init(): Loaded '/home/steam/.steam/sdk64/steamclient.so' OK.  (First tried local 'steamclient.so')
+CAppInfoCacheReadFromDiskThread took 29 milliseconds to initialize
+Setting breakpad minidump AppID = 2394010
+[S_API FAIL] Tried to access Steam interface SteamUser021 before SteamAPI_Init succeeded.
+[S_API FAIL] Tried to access Steam interface SteamFriends017 before SteamAPI_Init succeeded.
+[S_API FAIL] Tried to access Steam interface STEAMAPPS_INTERFACE_VERSION008 before SteamAPI_Init succeeded.
+[S_API FAIL] Tried to access Steam interface SteamNetworkingUtils004 before SteamAPI_Init succeeded.
+</code></pre>
+<h2>网络配置</h2>
+<p>如果你能拿到公网 ip ，看端口映射章节，拿不到公网 ip 看内网穿透章节。</p>
+<h3>端口映射</h3>
+<ol>
+<li>路由上给 Mac 终端指定一个 ip</li>
+<li>虚拟服务器/端口映射上，配置 Mac 终端映射端口 8211(协议 UDP)/25575(协议 TCP)</li>
+</ol>
+<h3>FRP 内网穿透</h3>
+<p>FRP 教程我这里就不在赘述了，这里使用的是 0.52.3 版本。下面有一份配置可供参考。</p>
+<p>frps 配置参考：</p>
+<pre><code>bindPort = 7001 #{必选} 客户端与该端口建立连接
+transport.tls.enable = true
+
+#身份验证
+auth.method = "token"  #{可选}身份验证方式
+auth.token = "123456" #token 设置密码，用于通过身份验证创建连接
+
+#frp 服务仪表板配置
+webServer.port = 17300  #{也可自行修改端口}
+webServer.addr = "0.0.0.0" #公网 ip 或者域名
+webServer.user = "shellhk" #登录用户名{可自行修改}
+webServer.password = "gongting521" #登录密码{可自行修改}
+</code></pre>
+<p>frpc 配置参考：</p>
+<pre><code>serverAddr = "114.114.115.115" #填写你的 frps 服务器
+serverPort = 7001 #填写你的 frps 服务的端口
+auth.token = "123456"
+transport.tls.enable = true
+
+[[proxies]]
+name = "palworld-ucp"
+type = "udp"
+localIP = "127.0.0.1"
+localPort = 8211
+remotePort = 8211
+
+[[proxies]]
+name = "palworld-rcon"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 25575
+remotePort = 25575
+</code></pre>
+<h2>RCON 服务器指令</h2>
+<p>工具：
+<a href="https://github.com/gorcon/rcon-cli" rel="nofollow">https://github.com/gorcon/rcon-cli</a></p>
+<p>用法示例，12345 为之前设置的游戏参数<code>AdminPassword</code>，根据实际情况修改：</p>
+<pre><code>./rcon -a 114.114.115.115:25575 -p 123456
+</code></pre>
+<p>服务器命令表：
+<a href="https://tech.palworldgame.com/server-commands" rel="nofollow">https://tech.palworldgame.com/server-commands</a></p>
+<h2>PS：</h2>
+<ol>
+<li>设置 ServerPassword 的话，无法直接输入 ip+端口加入房间，必须要曲线救国，最好别设置。</li>
+<li>帕鲁服务端目前非常吃配置，机器内存不建议低于 16G 。</li>
+<li>帕鲁服务端目前非常吃配置，frps 服务器的带宽也很重要，想流畅不卡最少一个在线用户要分到 1M 的带宽。</li>
+</ol>
+<p>看到最后麻烦给我点个赞！</p>
+]]></content:encoded>
+<pubDate>2024-01-24T14:14:32Z</pubDate>
+<pubDate>2024-01-24T14:14:32Z</pubDate>
+</item>
+<item>
+<title>[游戏] 幻兽帕鲁服务器出租</title>
+<link>https://www.v2ex.com/t/1011318</link>
+<guid>https://www.v2ex.com/t/1011318</guid>
+<content:encoded><![CDATA[
+
+<p>如题，有托管到 idc 的服务器性能过剩了，赚点外快。</p>
+<p>带宽上行 50M 的不刻意限制，搭建好了直接就能用。价格：</p>
+<p>120r/月, 4c8g
+200r/月, 4c16g
+300r/月, 4c32g</p>
+<p>epyc 7003 系列处理器，nvme 固态，3200 高频 d4 内存。</p>
+<p>idc 机房，sla 要比家宽高很多，固定 ip 永不变动 - -</p>
+<p>买的人多考虑写个 web 管理面板</p>
+<p>有意联系：Y3MzY3g0Zw==</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:54:59Z</pubDate>
+<pubDate>2024-01-24T13:56:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在 AI 编程助手哪家强？</title>
+<link>https://www.v2ex.com/t/1011317</link>
+<guid>https://www.v2ex.com/t/1011317</guid>
+<content:encoded><![CDATA[
+
+<p>提名 5 强：</p>
+<ol>
+<li>github copilot</li>
+<li>jetbrains ai assistant</li>
+<li>codium</li>
+<li>sourcegraph cody</li>
+<li>fitten code <a href="https://www.v2ex.com/t/1007228" rel="nofollow">https://www.v2ex.com/t/1007228</a></li>
+</ol>
+<p>按付费版本算</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:54:48Z</pubDate>
+<pubDate>2024-01-24T13:54:48Z</pubDate>
+</item>
+<item>
+<title>[分享创造] MarkBox-网页收藏工具 最近更新</title>
+<link>https://www.v2ex.com/t/1011315</link>
+<guid>https://www.v2ex.com/t/1011315</guid>
+<content:encoded><![CDATA[
+
+<h2>最新更新</h2>
+<h3>1 、预览模式</h3>
+<p>点击预览按钮后，在右侧打开网页
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/xumjs8623/mdImage@main/20240124214054.png" /></p>
+<h3>2 、标签排序</h3>
+<p>排序可以拖动排序，并可以在标签管理页面中选择是否显示在侧边栏
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/xumjs8623/mdImage@main/20240124214105.png" /></p>
+<h3>3 、Rss 自动收集</h3>
+<p>通过订阅 Rss 链接，自动收集最新的网页，并且绑定设置的标签
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/xumjs8623/mdImage@main/20240124214120.png" /></p>
+<h2>官网</h2>
+<p><a href="https://imarkbox.com" rel="nofollow">MarkBox： https://imarkbox.com</a></p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:44:31Z</pubDate>
+<pubDate>2024-01-24T13:44:31Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 广州有什么便宜宽带吗</title>
+<link>https://www.v2ex.com/t/1011314</link>
+<guid>https://www.v2ex.com/t/1011314</guid>
+<content:encoded><![CDATA[
+
+<p>被广电折磨的快疯了</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:41:44Z</pubDate>
+<pubDate>2024-01-24T13:38:44Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 40+的 V 友来策，交换人生，求解...</title>
+<link>https://www.v2ex.com/t/1011313</link>
+<guid>https://www.v2ex.com/t/1011313</guid>
+<content:encoded><![CDATA[
+
+先说说自己的状态，40+，做着不喜欢的工作，过着不屑的人生，活成了自己年轻时讨厌的样子，朋友越来越少，焦虑然而又找不到出口
+]]></content:encoded>
+<pubDate>2024-01-24T13:40:44Z</pubDate>
+<pubDate>2024-01-24T09:40:44Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如果只用 WebAuthn(Passkey)做网站唯一登录凭证是否靠谱？会有哪些安全风险和弊端？</title>
+<link>https://www.v2ex.com/t/1011312</link>
+<guid>https://www.v2ex.com/t/1011312</guid>
+<content:encoded><![CDATA[
+
+<p>rt
+不考虑老用户密码舍弃问题，不考虑用户注册设备丢失问题，不考虑无密码找回重置问题</p>
+<p>生物识别会不会没那么靠谱？</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:40:33Z</pubDate>
+<pubDate>2024-01-24T13:49:54Z</pubDate>
+</item>
+<item>
+<title>[Apple] Mac 端 outlook 使用 gmail</title>
+<link>https://www.v2ex.com/t/1011311</link>
+<guid>https://www.v2ex.com/t/1011311</guid>
+<content:encoded><![CDATA[
+
+把几个主要的 gmail 账号连接到了 mac 的 outlook 客户端，发现过一段时间之后所有的 gmail 账号都需要重新验证，请问各位有什么解决办法吗？
+]]></content:encoded>
+<pubDate>2024-01-24T13:35:09Z</pubDate>
+<pubDate>2024-01-24T14:17:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 Resend 邮件发送服务</title>
+<link>https://www.v2ex.com/t/1011310</link>
+<guid>https://www.v2ex.com/t/1011310</guid>
+<content:encoded><![CDATA[
+
+<p>背景：</p>
+<p>主要是需要实现一个自用的域名邮箱的邮件收发，主要是感觉比较 COOL ，按目前网上的教程的方案是，通过第三方服务转给 gmail ，然后再从 gmail 调用第三方服务发出去：</p>
+<p>收：Cloudflare Email Routing
+发：Resend</p>
+<p>功能挺满意，有一个问题问问：类似 Resend 这种独立的邮件发送服务是不是都会保留寄件邮件的副本啊（我也没找到删除的地方）？我没有用过其他家的比如 AWS SES,或者 mailgun 什么的，好像还有很多。</p>
+<p>是不是都会保留呢？</p>
+<p>我主要是考虑，只在自己的 gmail 里保留和管理邮件（搜索也方便），现在发件走第三方服务，那边就多一份副本，是否存在隐私或安全相关的什么问题呢？</p>
+<p>技术小白，完全不懂，请指教</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:32:20Z</pubDate>
+<pubDate>2024-01-24T13:29:20Z</pubDate>
+</item>
+<item>
+<title>[Apple] Macbook pro 无法使用 airdrop， wifi 自动断开</title>
+<link>https://www.v2ex.com/t/1011309</link>
+<guid>https://www.v2ex.com/t/1011309</guid>
+<content:encoded><![CDATA[
+
+<p>周一时候开始的，电脑也没有重摔，现在连 wifi 过一会就会自动断开，iphone airdrop 给 mbp,wifi 立马断开
+m2 max 的，系统已经更新最新 14.3 版本，会不会是抽烟抽太多，吸了太多烟屎导致的</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:31:00Z</pubDate>
+<pubDate>2024-01-24T13:31:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] 很难想象这是淘宝。。这界面真的是丑到爆</title>
+<link>https://www.v2ex.com/t/1011308</link>
+<guid>https://www.v2ex.com/t/1011308</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/aDSau6M.png" /></p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:30:50Z</pubDate>
+<pubDate>2024-01-23T21:29:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在还有 Google One 拼车吗？我想拼欧洲车</title>
+<link>https://www.v2ex.com/t/1011307</link>
+<guid>https://www.v2ex.com/t/1011307</guid>
+<content:encoded><![CDATA[
+
+<p>优先德国 Google One 车，不行的话别的车也行</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:25:56Z</pubDate>
+<pubDate>2024-01-24T14:10:44Z</pubDate>
+</item>
+<item>
+<title>[iPhone] AX9000 路由器 SMB 文件共享 iPhone 自带文件 APP 无法访问</title>
+<link>https://www.v2ex.com/t/1011306</link>
+<guid>https://www.v2ex.com/t/1011306</guid>
+<content:encoded><![CDATA[
+
+<p>如题，小米 AX9000 路由器 SMB 文件共享 iPhone 自带文件 APP 无法访问，报无效的自变量
+社区也有帖子没找到答案，<a href="https://discussionschinese.apple.com/thread/252079018" rel="nofollow">https://discussionschinese.apple.com/thread/252079018</a>
+求教 V 站大神，只针对 iPhone 自带的文件 APP ，暂未考虑其他文件管理 App 替代方案，当日有好的文件管理 APP 推荐也可以一试，最好还是要自带的文件 APP</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:11:15Z</pubDate>
+<pubDate>2024-01-24T13:52:19Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教多设备数据同步的无服务器开源解决方案</title>
+<link>https://www.v2ex.com/t/1011305</link>
+<guid>https://www.v2ex.com/t/1011305</guid>
+<content:encoded><![CDATA[
+
+<p>请问大家，有类似的解决方案吗？比如电脑和手机端，只要都能联网，就可以无缝同步内容，比如手机访问电脑提供的接口，或者下载电脑上的文件。
+之前看到过一个开源软件，只需要刚进入的时候填入一串类似 uuid 的就可以了，有大佬知道类似的仓库吗？</p>
+]]></content:encoded>
+<pubDate>2024-01-24T13:10:43Z</pubDate>
+<pubDate>2024-01-24T13:21:21Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 有用过 Lightning 转 VGA/HDMI 转接头的吗？请教个问题</title>
+<link>https://www.v2ex.com/t/1011304</link>
+<guid>https://www.v2ex.com/t/1011304</guid>
+<content:encoded><![CDATA[
+
+<p>投屏的时候需要额外连接电源线充电吗？</p>
+<p>个人感觉如果非要连个电源线才能投屏的就很不方便</p>
+]]></content:encoded>
+<pubDate>2024-01-24T12:58:37Z</pubDate>
+<pubDate>2024-01-24T14:16:44Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了个 V2EX 美化评论区的浏览器扩展，可以直达引用楼层了</title>
+<link>https://www.v2ex.com/t/1011303</link>
+<guid>https://www.v2ex.com/t/1011303</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="72df57487d11b03b50b3a042671edbe2.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2024/01/24/72df57487d11b03b50b3a042671edbe2.png" />
+<a href="https://github.com/senlinmuvs/xcomment" rel="nofollow">https://github.com/senlinmuvs/xcomment</a></p>
+]]></content:encoded>
+<pubDate>2024-01-24T12:46:55Z</pubDate>
+<pubDate>2024-01-24T14:17:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有什么办法可以管理所有的邮箱</title>
+<link>https://www.v2ex.com/t/1011302</link>
+<guid>https://www.v2ex.com/t/1011302</guid>
+<content:encoded><![CDATA[
+
+被这个邮箱搞得头都大了，各家的邮箱客户端除了他们自家的邮箱可以登录 ，其他家的莫名奇妙登不上，以前我记得 qq 可以通过授权码登录，现在也登不上了<br /><br />现在主要有 gmail 、qq 、163 、outlook 、icloud 这几种，有没有办法一个软件管理这些邮箱呢
+]]></content:encoded>
+<pubDate>2024-01-24T12:41:49Z</pubDate>
+<pubDate>2024-01-24T13:55:55Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] Wi-Fi 下打开 app 加载半天是为什么？</title>
 <link>https://www.v2ex.com/t/1011301</link>
 <guid>https://www.v2ex.com/t/1011301</guid>
 <content:encoded><![CDATA[
-
 <p>在 Wi-Fi 联网环境下，打开哔哩哔哩、淘宝等 app ，都会加载半天，但是关闭 Wi-Fi 连接，使用移动数据联网，就会很快的加载出来，而移动数据联网的网速绝不会比 Wi-Fi 更快，很好奇原因是什么，是否和各大互联网产商使用 PCDN 有关？</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T12:35:00Z</pubDate>
 <pubDate>2024-01-24T12:33:00Z</pubDate>
 </item>
 <item>
@@ -20,12 +356,10 @@
 <link>https://www.v2ex.com/t/1011300</link>
 <guid>https://www.v2ex.com/t/1011300</guid>
 <content:encoded><![CDATA[
-
 <p>是这样的，之前刚进前公司，有一次和一位女同事一起下班，闲聊之中说到她儿子，我问她儿子多大了，她说不到 10 岁，我说才 10 岁呀，这么小！</p>
 <p>然后有一次中午吃饭，她说要不要说一下你的名场面呀，我还纳闷，我之前有做什么糗事吗。她就说了上面那段我们聊天的内容，“10 岁，这么小，言外之意是什么呀！”她就觉得我说她老，我已经忘了那天是怎么想的了，肯定没想这么多，但是我却还是不知道怎么回应。</p>
 <p>我该怎么说比较好</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T12:33:55Z</pubDate>
 <pubDate>2024-01-24T12:33:55Z</pubDate>
 </item>
 <item>
@@ -33,11 +367,9 @@
 <link>https://www.v2ex.com/t/1011298</link>
 <guid>https://www.v2ex.com/t/1011298</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://diff.nihaojob.com/" rel="nofollow">http://diff.nihaojob.com/</a></p>
 <p><img alt="这是图片" class="embedded_image" rel="noreferrer" src="https://github.com/nihaojob/vue-fabric-editor/assets/13534626/0f9d1d18-10dc-41c8-a6b3-a7e8ffa2b1d6" /></p>
 ]]></content:encoded>
-<pubDate>2024-01-24T12:14:24Z</pubDate>
 <pubDate>2024-01-24T12:12:24Z</pubDate>
 </item>
 <item>
@@ -45,10 +377,8 @@
 <link>https://www.v2ex.com/t/1011297</link>
 <guid>https://www.v2ex.com/t/1011297</guid>
 <content:encoded><![CDATA[
-
 搭建了一个 xui web 服务，必须带后面的路径才能访问，如果用 caddy 反带，配置文件应该写？网上搜了很多没有搜到想要的答案。
 ]]></content:encoded>
-<pubDate>2024-01-24T12:05:30Z</pubDate>
 <pubDate>2024-01-24T12:03:30Z</pubDate>
 </item>
 <item>
@@ -56,10 +386,8 @@
 <link>https://www.v2ex.com/t/1011296</link>
 <guid>https://www.v2ex.com/t/1011296</guid>
 <content:encoded><![CDATA[
-
 也算是以前帖子的总结 <a href="https://www.v2ex.com/t/990818" rel="nofollow noopener" target="_blank">/t/990818</a> <a href="https://www.v2ex.com/t/990035" rel="nofollow noopener" target="_blank">/t/990035</a>, 北京零下五度左右的天气里骑电动车, 光有车把套确实不够,手指会非常冷,因为算是顶风处,热量一直流失. <br /><br />花 300 多买的电加热手套,真的是纯纯的智商税, 2 条电热丝仅仅是在手套夹层里走了一圈, 买的薄款,捏刹车比较轻松,但是竟然是透气的,冷风可以呼呼往里钻. 作用真的小.<br /><br />花 35 买的那个 USB 加热手把真是挺值的, 手一直攥着就暖暖的, 配合车把套和手套都有点出手汗了, 就是每天出门得拿着充电宝.<br /><br />未来这种电加热的服装估计会越来越流行,很薄就可以生热,重量大头全在充电宝上.
 ]]></content:encoded>
-<pubDate>2024-01-24T12:02:15Z</pubDate>
 <pubDate>2024-01-23T20:02:15Z</pubDate>
 </item>
 <item>
@@ -67,10 +395,8 @@
 <link>https://www.v2ex.com/t/1011295</link>
 <guid>https://www.v2ex.com/t/1011295</guid>
 <content:encoded><![CDATA[
-
 刚才访问恩山无线论坛，windows 安全中心跳出来提示有木马。
 ]]></content:encoded>
-<pubDate>2024-01-24T11:59:32Z</pubDate>
 <pubDate>2024-01-24T11:57:32Z</pubDate>
 </item>
 <item>
@@ -78,10 +404,8 @@
 <link>https://www.v2ex.com/t/1011294</link>
 <guid>https://www.v2ex.com/t/1011294</guid>
 <content:encoded><![CDATA[
-
 背景：PVE 虚拟机 8.1,XFS 文件系统<br /><br />先看物理磁盘：<br /><br />(parted) print sda<br />Model: ATA KimMiDi T900 SSD (scsi)<br />Disk /dev/sda: 256GB<br />Sector size (logical/physical): 512B/512B<br />Partition Table: gpt<br />Disk Flags:<br /><br />Number  Start   End     Size    File system  Name  Flags<br /> 1      17.4kB  1049kB  1031kB                     bios_grub<br /> 2      1049kB  1075MB  1074MB  fat32              boot, esp<br /> 3      1075MB  256GB   255GB                      lvm<br /><br />------<br /><br />然后看分区：<br /><br />root@pve:~# pvs<br />  PV         VG  Fmt  Attr PSize    PFree<br />  /dev/sda3  pve lvm2 a--  &lt;237.47g    0<br />root@pve:~# vgs<br />  VG  #PV #LV #SN Attr   VSize    VFree<br />  pve   1  23   0 wz--n- &lt;237.47g    0<br />root@pve:~# lvs<br />  LV                           VG  Attr       LSize   Pool Origin        Data%  Meta%  Move Log Cpy%Sync Convert<br />  data                         pve twi-aotz-- 175.71g                    47.92  0.30<br />  root                         pve -wi-ao----  26.00g<br />  snap_vm-100-disk-0_well      pve Vri---tz-k   4.00m data vm-100-disk-0<br />  snap_vm-100-disk-0_well2     pve Vri---tz-k   4.00m data vm-100-disk-0<br />  snap_vm-100-disk-1_well      pve Vri---tz-k  16.00g data vm-100-disk-1<br />  snap_vm-100-disk-1_well2     pve Vri---tz-k  16.00g data vm-100-disk-1<br />  snap_vm-101-disk-0_cli_ready pve Vri---tz-k   4.00m data vm-101-disk-0<br />  snap_vm-101-disk-0_intitial  pve Vri---tz-k   4.00m data vm-101-disk-0<br />  snap_vm-101-disk-0_well      pve Vri---tz-k   4.00m data vm-101-disk-0<br />  snap_vm-101-disk-1_cli_ready pve Vri---tz-k  32.00g data vm-101-disk-1<br />  snap_vm-101-disk-1_intitial  pve Vri---tz-k  32.00g data vm-101-disk-1<br />  snap_vm-101-disk-1_well      pve Vri---tz-k  32.00g data vm-101-disk-1<br />  swap                         pve -wi-ao----   4.00g<br />  vm-100-disk-0                pve Vwi-aotz--   4.00m data               14.06<br />  vm-100-disk-1                pve Vwi-aotz--  16.00g data               82.23<br />  vm-101-disk-0                pve Vwi-a-tz--   4.00m data               14.06<br />  vm-101-disk-1                pve Vwi-a-tz--  32.00g data               27.40<br />  vm-102-disk-0                pve Vwi-aotz--   4.00m data               14.06<br />  vm-102-disk-1                pve Vwi-aotz--  65.00g data               45.72<br />  vm-102-disk-2                pve Vwi-aotz--   4.00m data               1.56<br />  vm-103-disk-0                pve Vwi-a-tz--   4.00m data               14.06<br />  vm-103-disk-1                pve Vwi-a-tz-- 520.00m data               79.81<br />  vm-104-disk-0                pve Vwi-aotz--  32.00g data               77.95<br />  <br />  <br />root@pve:~# lvextend -l +100%FREE pve/root<br />  New size (6656 extents) matches existing size (6656 extents).<br />（试图扩展一下无效）  <br />  <br />  <br />root@pve:~# lvm pvscan<br />  PV /dev/sda3   VG pve             lvm2 [&lt;237.47 GiB / 0    free]<br />  Total: 1 [&lt;237.47 GiB] / in use: 1 [&lt;237.47 GiB] / in no VG: 0 [0   ]<br />  （再次检查一下）<br />  <br />  ----<br />  <br />问题在：root 分区加 data 分区，只有 202g ，磁盘有 256g ，就算有换算差异，那也差了很多<br />root 分区登录进 PVE 图形界面只有 16g ，命令行下显示 24g 。<br />丢失的空间如何恢复？
 ]]></content:encoded>
-<pubDate>2024-01-24T11:55:47Z</pubDate>
 <pubDate>2024-01-24T11:54:47Z</pubDate>
 </item>
 <item>
@@ -89,11 +413,9 @@
 <link>https://www.v2ex.com/t/1011293</link>
 <guid>https://www.v2ex.com/t/1011293</guid>
 <content:encoded><![CDATA[
-
 <p>目前用 snipaste 实现，需要先复制图片（一个黑色的小长条图片），然后按 F3 ，之后再选中，用上下移到屏幕上边缘（按完 F3 它只能钉在靠近上边缘的地方，鼠标拖也不能移动到上边的显示边缘）</p>
 <p>有没有能指定在固定位置一键遮挡的办法求赐教</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:49:36Z</pubDate>
 <pubDate>2024-01-24T11:49:36Z</pubDate>
 </item>
 <item>
@@ -101,7 +423,6 @@
 <link>https://www.v2ex.com/t/1011292</link>
 <guid>https://www.v2ex.com/t/1011292</guid>
 <content:encoded><![CDATA[
-
 <p>作为一个萌新小白也想搭个内网照片站，转了一圈，也挑花了眼，最终还是选则了 Immich ，各种踩坑之后，算是基本跑起来了，贴一下我的部署方案吧，也算是做个笔记，<strong>刚入坑，非科班专家，求大佬们多多指点，轻喷</strong> [Grin]</p>
 <p>设备：</p>
 <ol>
@@ -333,7 +654,6 @@ requirepass redis
 </code></pre>
 <p>嗯，基本上就这些了。</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:47:24Z</pubDate>
 <pubDate>2024-01-23T11:47:24Z</pubDate>
 </item>
 <item>
@@ -341,7 +661,6 @@ requirepass redis
 <link>https://www.v2ex.com/t/1011291</link>
 <guid>https://www.v2ex.com/t/1011291</guid>
 <content:encoded><![CDATA[
-
 <p>对于独立开发者而言，持续创作优质内容是很有必要的。因为内容是最低成本的引流方式，而且通过内容构建的影响力可以逐渐帮你打造个人 IP ；并且内容的生命周期很长，可以长期为你低成本引流。</p>
 <h1>那么独立开发者应该如何创作内容呢？</h1>
 <p>首先是内容方向，根据我的经验，太过专业的内容只会吸引来同行。所以要让你的用户增长，你的内容方向不能从开发者角度出发，而是要从用户角度出发。</p>
@@ -363,7 +682,6 @@ requirepass redis
 <img class="embedded_image" rel="noreferrer" src="https://imgs.zhubai.love/9a680b0a452c4465b2f4edfd5b977ea8_2105329724385140736.jpg" />
 <img class="embedded_image" rel="noreferrer" src="https://imgs.zhubai.love/10bca74725ac48bf8911a6a8cad47d67_2105329724385140736.jpg" />
 ]]></content:encoded>
-<pubDate>2024-01-24T11:44:39Z</pubDate>
 <pubDate>2024-01-24T07:43:39Z</pubDate>
 </item>
 <item>
@@ -371,7 +689,6 @@ requirepass redis
 <link>https://www.v2ex.com/t/1011289</link>
 <guid>https://www.v2ex.com/t/1011289</guid>
 <content:encoded><![CDATA[
-
 <p>做了一个完整幻兽帕鲁服务端的 docker 镜像，push 到了阿里的 docker registry ，供大家开服使用~</p>
 <h2>使用例子</h2>
 <pre><code class="language-bash">cd ~
@@ -398,7 +715,6 @@ docker run --pull=always -d --name=pal \
 <h2>其他</h2>
 <p><a href="https://github.com/Deliay/palworld-server-docker" rel="nofollow">Github 仓库</a></p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:42:53Z</pubDate>
 <pubDate>2024-01-24T07:42:53Z</pubDate>
 </item>
 <item>
@@ -406,7 +722,6 @@ docker run --pull=always -d --name=pal \
 <link>https://www.v2ex.com/t/1011288</link>
 <guid>https://www.v2ex.com/t/1011288</guid>
 <content:encoded><![CDATA[
-
 <pre><code>you-get --playlist --format=dash-flv720 -o D:\SX --debug https://www.bilibili.com/video/BV13t411G7oh
 </code></pre>
 <pre><code>
@@ -465,7 +780,6 @@ urllib.error.HTTPError: HTTP Error 502: Bad Gateway
 </code></pre>
 <p>我用的有问题吗?这个还是我抄的.</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:31:48Z</pubDate>
 <pubDate>2024-01-24T11:39:40Z</pubDate>
 </item>
 <item>
@@ -473,7 +787,6 @@ urllib.error.HTTPError: HTTP Error 502: Bad Gateway
 <link>https://www.v2ex.com/t/1011287</link>
 <guid>https://www.v2ex.com/t/1011287</guid>
 <content:encoded><![CDATA[
-
 <pre><code class="language-go">package cache
 
 import (
@@ -775,7 +1088,6 @@ end
 </code></pre>
 <p>更加不能理解的是，go 版本的 cache 测试过程中会有明显的阻塞感。有时候可能达到几十上百。有没有同学清楚 go 版本的 cache 哪里写的有问题</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:17:53Z</pubDate>
 <pubDate>2024-01-24T11:50:37Z</pubDate>
 </item>
 <item>
@@ -783,11 +1095,9 @@ end
 <link>https://www.v2ex.com/t/1011286</link>
 <guid>https://www.v2ex.com/t/1011286</guid>
 <content:encoded><![CDATA[
-
 <p>类似下面这样的，可以自己选择元素，然后是一个 svg</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.liuzaoqi.com/picgo/202401241909037.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-01-24T11:10:17Z</pubDate>
 <pubDate>2024-01-24T11:10:17Z</pubDate>
 </item>
 <item>
@@ -796,9 +1106,7 @@ end
 <guid>https://www.v2ex.com/t/1011285</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-24T11:03:22Z</pubDate>
 <pubDate>2024-01-24T11:49:20Z</pubDate>
 </item>
 <item>
@@ -807,9 +1115,7 @@ end
 <guid>https://www.v2ex.com/t/1011284</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-01-24T10:56:56Z</pubDate>
 <pubDate>2024-01-24T11:45:50Z</pubDate>
 </item>
 <item>
@@ -817,10 +1123,8 @@ end
 <link>https://www.v2ex.com/t/1011283</link>
 <guid>https://www.v2ex.com/t/1011283</guid>
 <content:encoded><![CDATA[
-
 <p>如题，需要德国车一台。实在不行别的车也可以。</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T10:51:04Z</pubDate>
 <pubDate>2024-01-24T02:49:04Z</pubDate>
 </item>
 <item>
@@ -828,7 +1132,6 @@ end
 <link>https://www.v2ex.com/t/1011282</link>
 <guid>https://www.v2ex.com/t/1011282</guid>
 <content:encoded><![CDATA[
-
 <p>最近家里小孩儿喜欢问很多问题, 想着家里有一个小爱音箱 mini, 是不是能让音箱帮忙使用 ChatGPT 回答(音箱现有的回答不是很满意)</p>
 <p>搜了下果然有一个成熟的方案 xiaogpt, 看了下思路很棒, 不过因为需要轮训服务器这个点, 我有点儿担心把自己的账号搞挂了, 就萌生了做一个更直接方案的想法</p>
 <p>一开始什么思路都没有, 找 weibo 上关注很久的一个软硬件都厉害的大佬, 发私信想求助一些关键词和思路, 不过可能对方没有看私信的习惯, 一直没有回复.</p>
@@ -837,7 +1140,6 @@ end
 <p>项目刚开始, 只做到了在音箱上跑自己程序的程度, 我认为未来应该是可以做成一个完全自主控制的音箱</p>
 <p>项目中可能会有不少错误的地方, 各位如果发现希望能指导一二, 也防止错误的文章误导别人, 感谢!</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T10:47:37Z</pubDate>
 <pubDate>2024-01-24T12:30:03Z</pubDate>
 </item>
 <item>
@@ -845,10 +1147,8 @@ end
 <link>https://www.v2ex.com/t/1011281</link>
 <guid>https://www.v2ex.com/t/1011281</guid>
 <content:encoded><![CDATA[
-
 <p>我把 <a href="https://www.gglmb.com" rel="nofollow">https://www.gglmb.com</a> 这个网站列的广告联盟都看了个遍，有的只能提交申请等联系，有的要等审核，有的啥也没看明白就要求填银行卡身份证信息，就没有深入去尝试，现在只找到一个逗号联盟感觉比较适合我，其他的不知道各位站长有没有全流程接入过，有没有值得推荐的？谢谢！</p>
 ]]></content:encoded>
-<pubDate>2024-01-24T10:39:52Z</pubDate>
 <pubDate>2024-01-24T10:39:52Z</pubDate>
 </item>
 <item>
@@ -856,7 +1156,6 @@ end
 <link>https://www.v2ex.com/t/1011290</link>
 <guid>https://www.v2ex.com/t/1011290</guid>
 <content:encoded><![CDATA[
-
 <p>需要时间比较充裕，非常熟悉 Shopify 和 liquid 模板开发</p>
 <p>改版网站现有的一些页面</p>
 <p>按时薪，150/h ，</p>
@@ -867,9 +1166,7 @@ end
 ZGFtaTg1MDc=</p>
 ]]></content:encoded>
 <pubDate>2024-01-24T11:43:15Z</pubDate>
-<pubDate>2024-01-24T11:43:15Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 请教个 ChatGpt 版本的问题</title>
 <link>https://www.v2ex.com/t/1011280</link>
@@ -16233,483 +16530,6 @@ PING google.com (10.xx.xx.xxx): 56 data bytes
 <p>擦 昨天抽完雪茄又去同事家吃饭去了 喝多了直接睡他旁边 妈的这 BYD 自己盖的挺严实我自己冻成狗了 今儿早上醒了心脏有点难受</p>
 ]]></content:encoded>
 <pubDate>2024-01-19T09:18:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 因为一台显示器而引发的思考</title>
-<link>https://www.v2ex.com/t/1010075</link>
-<guid>https://www.v2ex.com/t/1010075</guid>
-<content:encoded><![CDATA[
-<p>今天新填入了一台显示器，让我开心了很久。
-回想我已经很久很久没有这么开心过了。</p>
-<p>细细究其原因，我觉得是因为我很久都没有对未来有好的期盼了，觉得生活一直是走下坡路。
-而新加了一个显示器，虽然不一定真的有什么帮助，但是可能会略微提高一些我的工作效率，算是少有的让未来更好的改变了。</p>
-<p>在这里也问问大家，有没有类似增加显示器这种，让未来更好的事情？</p>
-<p>不一定真的有用，但至少更有盼头。</p>
-]]></content:encoded>
-<pubDate>2024-01-19T09:34:43Z</pubDate>
-</item>
-<item>
-<title>[旅行] 过年前自驾带父母从保定到西安这个行程安排，不知道能不能扛得住，我是司机（只有一个司机）</title>
-<link>https://www.v2ex.com/t/1010074</link>
-<guid>https://www.v2ex.com/t/1010074</guid>
-<content:encoded><![CDATA[
-<h1>2024 年春节前西安旅途安排</h1>
-<h2>出行路线安排</h2>
-<h3>城市</h3>
-<ul>
-<li>保定市</li>
-<li>晋中市</li>
-<li>临汾市</li>
-<li>西安市</li>
-</ul>
-<h3>景点</h3>
-<ul>
-<li>家</li>
-<li>平遥古城</li>
-<li>壶口瀑布</li>
-<li>大唐不夜城</li>
-</ul>
-<h2>出行时间安排</h2>
-<h3>2024 年 1 月 31 日</h3>
-<ul>
-<li>9 点半左右出发，预计 5 小时后到达平遥古城，拍照打卡并欣赏夜景。</li>
-</ul>
-<h3>2024 年 2 月 1 日</h3>
-<ul>
-<li>从平遥古城出发，预计 5 小时后到达壶口瀑布，欣赏自然景观。</li>
-<li>从壶口瀑布出发，预计 4 小时后到达大唐不夜城。</li>
-</ul>
-<h3>2024 年 2 月 2 日至 2024 年 2 月 6 日</h3>
-<ul>
-<li>在西安市区内游玩，乘坐地铁前往各个景点。</li>
-</ul>
-<h3>2024 年 2 月 7 日</h3>
-<ul>
-<li>回家</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-01-19T10:13:12Z</pubDate>
-</item>
-<item>
-<title>[GitHub Copilot] 在和 Copilot 一起写完一个项目之后的经验谈</title>
-<link>https://www.v2ex.com/t/1010073</link>
-<guid>https://www.v2ex.com/t/1010073</guid>
-<content:encoded><![CDATA[
-<p>在和 Copilot 一起陆续写完一个约三千行代码的项目之后，我对它的脾气秉性终于有了大致的了解。这里是关于使用它的技巧，以及穿插的聊聊哪些是它能做的，善于做的，还有做不到的。</p>
-<p>如果你问我 copilot 可以多大程度上取代程序员，我的答案是至多可以为程序员完成一半的工作。这并不是意味这公司有一半的程序员可以被开除，而是说程序员的工作可以事半功倍的完成。如果说我们都同意编程本质上和写作无异，都是一类将想法输出的过程，那 copilot 能为你做的有且只有后半部分，想法的塑造依然要依靠你自己。</p>
-<p>阅读完以下的 copilot 的使用（结对）技巧你就会对我的上述结论有更深刻的理解。文中我会保留所有 copilot 生成的内容，以便各位对它做进一步独立评估</p>
-<h3>给予明确的指示</h3>
-<p>你可以把 copilot 当作非常靠谱的入门程序员，它也许没法给你一些设计、架构上的建议，但它可以很好的完成你拆分给它的子任务。最常见 copilot 的使用方式就是给予它明确且详细的任务指令，比如在注释中给出以下任务：</p>
-<pre><code class="language-javascript">// Write a block of code using JS fetch API to get data from the server with these conditions:
-// 1. Request method: GET
-// 2. Request URL: http://localhost:3000/api/v1/contacts
-// 3. Request header: Content-Type: application/json:
-// 4. Convert the response to JSON format
-// The code is:
-</code></pre>
-<p>随后 VSCode 便会生成代码</p>
-<pre><code class="language-javascript">fetch('http://localhost:3000/api/v1/contacts', {
-    method: 'GET',
-    headers: {
-        'Content-Type': 'application/json'
-    }
-})
-    .then(res =&gt; res.json())
-    .then(data =&gt; console.log(data))
-    .catch(err =&gt; console.log(err));
-</code></pre>
-<p>这对于写一些你常用、并且大致有印象、但是又不常记于心的代码非常好用。比如虽然我常写 SQL 查询语句，但是对创建或者删除数据库操作并不熟悉，于是我可以直接让它告诉我：</p>
-<pre><code class="language-javascript">-- Write a SQL script to drop the database "example" and all tables in it:
-DROP DATABASE IF EXISTS example;
-</code></pre>
-<p>指令编写的越详细越好，比如下述指令 <code>Write a function to replace the new line and space characters with a &lt;br /&gt; tag.</code> 就会比该指令 <code>Write a function to replace the ending characters with a &lt;br /&gt; tag.</code> 要好，因为你明确指出了 ending characters 究竟是什么</p>
-<h3>把 Copilot 当作谷歌或者维基百科来用</h3>
-<p>这是一种很重要的思维模式的改变：copilot 可以带来沉浸式的编程体验，即所有的工作都可以在当前 IDE 中去完成，而不用被浏览器剥夺注意力。除了 copilot 自带的代码解释功能之外，当你遇到编程方面的问题时，可以尝试用注释的方式去询问它而不是去谷歌，比如以下是我和它的两次对话（你只要写出注释 Q 后面的问题，那么它会新起一行以 A 开头给予回答）：</p>
-<pre><code class="language-javascript">-- Q: MySQL database name should connect with "-" or "_"?
--- A: MySQL database name should connect with "_", because "-" is a special character in MySQL.
-</code></pre>
-<pre><code class="language-javascript">-- Q: In Nodejs project, the folder name should connect with "-" or "_"?
--- A: In Nodejs project, the folder name should connect with "-", because "_" is a special character in Nodejs.
-</code></pre>
-<p>我是否应该相信它的回答？答案应该是肯定的，因为反过来想，如果凡是它给出的答案你都选择进行二次确认，这对你是巨大的负担。你需要的是一次信仰之跃（ Leap of faith ），相信它就好</p>
-<p>对于具体的代码回答，它会给出链接而非搬运代码，比如当我询问 <code>Generate NodeJS code for sending message to AzureServiceBus</code> 时，它会直接给出链接 <a href="https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-nodejs-how-to-use-queues" rel="nofollow">https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-nodejs-how-to-use-queues</a></p>
-<h3>上下文很重要</h3>
-<p>同一条指令在不同的文件位置可能会得出不一样的代码结果，例如这是我在一个全新的 JS 文件里给出上一小节相同指令所得到的结果：</p>
-<pre><code class="language-javascript">// Generate NodeJS code for sending message to AzureServiceBus:
-//
-// 1. Create a new NodeJS project
-// 2. Add the following to the package.json file:
-//    "dependencies": {
-//      "azure-sb": "^0.10.3"
-//    }
-// 3. Run "npm install"
-// 4. Copy this file to the project folder
-// 5. Run "node send.js"
-//
-// Note: This sample uses the callback style of calling the send method.
-//       There is also a promise style available.
-//
-// Documentation References:
-// - ServiceBus NodeJS SDK API Reference
-//   https://docs.microsoft.com/en-us/javascript/api/azure-sb/?view=azure-node-latest
-// - ServiceBus NodeJS SDK Samples
-//
-// **************************************************************************************************
-</code></pre>
-<p>但是如果你把这段指令放在一个名为 sendMessageToAzureServiceBus 的函数中，它会直接优先给出代码或者上面提到的链接：</p>
-<pre><code class="language-javascript">async function sendMessageToAzureServiceBus() {
-    // Generate NodeJS code for sending message to AzureServiceBus:
-    var azureServiceBus = require("@azure/service-bus");
-    var sbClient = new azureServiceBus.ServiceBusClient("&lt;connection-string&gt;");
-    var sender = sbClient.createSender("&lt;queue-name&gt;");
-    var message = {
-        body: "Hello world"
-    };
-}
-</code></pre>
-<p>因为在后者的上下文中，很明显此时此刻你更想要的是实现</p>
-<h3>命名</h3>
-<p>上下文的重要性不仅仅体现在指令所在的位置这一层面，事实上文件里的所有蛛丝马迹都可以被 copilot 感知到，恰当的函数和变量命名尤其重要。</p>
-<p>例如你现在想设计一个表结构用于存储播客节目的单集信息，如果你将表名命名为 item 的话，那么当你输入完 CREATE TABLE IF NOT EXISTS Item 之后，copilot 补全的结果如下：</p>
-<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS Item (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    price REAL NOT NULL,
-    image TEXT,
-    category_id INTEGER NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES Category(id)
-);
-</code></pre>
-<p>看起来和播客关系不大是不是，但如果你一开始就把表名设计为 PodcastEpisodeItem ，那么 copilot 补全结果又是另一番景象</p>
-<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS PodcastEpisodeItem (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    podcastId INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    pubDate TEXT NOT NULL,
-    url TEXT NOT NULL,
-    downloaded INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(podcastId) REFERENCES Podcast(id)
-)
-</code></pre>
-<p>表的字段设计看上去更符合播客节目的信息了。</p>
-<p>这个技巧在编写函数时同样管用，如果你的函数名只是称为 makeSometingDouble ，它生成的函数指只会是</p>
-<pre><code class="language-javascript">function makeSomethingDouble(value) {
-    return value * 2;
-}
-</code></pre>
-<p>但如果你的目的是让数组里的每一个元素值翻倍，那么函数名最好叫 doubleArray ，那么它生成的函数也会更符合你的期望</p>
-<pre><code class="language-javascript">function doubleArray(array) {
-  return array.map(item =&gt; item * 2);
-}
-</code></pre>
-<h3>文件</h3>
-<p>文件的命名也很重要，它可以给 copilot 提供足够多的提示来告诉它你想干什么或者说它应该干什么，例如当你创建一个名为 azure-service-bus-service.js 的文件之后，只需要在空白文件中输入 async function s——是的你没看错，你甚至都不需要输入完整 send 这个单词，它就会为生成一个 sendMessage 的函数：</p>
-<pre><code class="language-javascript">async function sendMessages() {
-  const sbClient = new ServiceBusClient(connectionString);
-  const sender = sbClient.createSender(queueName);
-  const messages = [
-    { body: "Albert Einstein" },
-    { body: "Werner Heisenberg" },
-    { body: "Marie Curie" },
-  ];
-  try {
-    for (let i = 0; i &lt; messages.length; i++) {
-      const message = messages[i];
-      console.log(`Sending message: ${message.body}`);
-      await sender.sendMessages(message);
-    }
-    await sender.close();
-    await sbClient.close();
-  } catch (err) {
-    console.log("Error occurred: ", err);
-  }
-}
-</code></pre>
-<p>如果你接受了这段它提供的代码，那么接下来新起一行，你无需任何输入，它即会自动提出 receiveMessages 函数：</p>
-<pre><code class="language-javascript">async function receiveMessages() {
-    const sbClient = new ServiceBusClient(connectionString);
-    const receiver = sbClient.createReceiver(queueName);
-    try {
-        const messages = await receiver.receiveMessages(1);
-        if (messages.length &gt; 0) {
-        console.log(`Received message: ${messages[0].body}`);
-        await receiver.completeMessage(messages[0]);
-        } else {
-        console.log("No messages to receive");
-        }
-        await receiver.close();
-        await sbClient.close();
-    } catch (err) {
-        console.log("Error occurred: ", err);
-    }
-    }
-</code></pre>
-<p>因为 azure-service-bus-service 这个名称已经提供足够窄的限制和丰富的上下文，来规范文件内代码的功能。如果你的文件只是宽泛的叫做 queue-service.js ，那么当你告诉它生成一个名为 sendMessages 的函数的时候，它给出的实现也非常宽泛：</p>
-<pre><code class="language-javascript">async function sendMessages() {
-    const messages = await getMessages();
-    const queue = await getQueue();
-    await queue.sendMessages(messages);
-    await deleteMessages(messages);
-}
-</code></pre>
-<p>这里的 queue 可以代指不同云服务商提供的 queue 工具</p>
-<h3>打开关联文件</h3>
-<p>在编程过程中，把所有相关的文件在 IDE 中都打开对 copilot 编程理解上下文同样有帮助。比如你在编写 A 文件代码的过程中需要引用 B 文件里的函数，那么最好在 IDE 中也打开 B 文件。</p>
-<p>抱歉我无法稳定的复现和证明这一点，在写该文章的当下我使用的是一个文件数量不多的 demo 项目，但是在编写大型项目的过程中我的确能够体会到这一点，在之后生成的代码中，它甚至可以准确生成参数</p>
-<h3>让它有的抄</h3>
-<p>copilot 非常善于参考现有项目里已有的代码。这是一件好事，一方面它可以保证代码的一致性，另一方面如果它所抄袭的代码是你经过深思熟虑手写出来的，那么出错的概率也会小一些</p>
-<p>举个例子，如果你项目中的写出了一个函数用于向 example 域名请求数据，其中借用的是 JS 原生 fetch 函数:</p>
-<pre><code class="language-javascript">async function sendRequestToExampleAPI() {
-  fetch('https://example.com/api', {
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    method: 'POST',
-  }).then((response) =&gt; {
-    return response.json();
-  }).then((data) =&gt; {
-    console.log(data);
-  })
-}
-</code></pre>
-<p>那么下一个向 NewsAPI 请求数据的函数，copilot 会完全参照上述函数的实现内容生成。下面代码除了函数名词以外皆由 copilot 生成：</p>
-<pre><code class="language-javascript">async function sendRequestToNewsAPI {
-  fetch('https://newsapi.org/v2/everything?q=bitcoin&amp;from=2020-08-29&amp;sortBy=publishedAt&amp;apiKey=API_KEY', {
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    method: 'GET',
-  }).then((response) =&gt; {
-    return response.json();
-  }).then((data) =&gt; {
-    console.log(data);
-  })
-}
-</code></pre>
-<p>函数结构，“外观”一模一样。</p>
-<p>你还可以这么测试它的“抄袭”功能，不妨把第一个函数的 fetch 替换成使用 axios ，那么第二个函数生成时也会改用 axios 实现</p>
-<pre><code class="language-javascript">async function sendRequestToNewsAPI () {
-    axios.get('https://newsapi.org/v2/top-headlines?country=us&amp;apiKey=API_KEY')
-        .then((response) =&gt; {
-            console.log(response);
-        }, (error) =&gt; {
-            console.log(error);
-        });
-}
-</code></pre>
-<p>注意甚至你无法阻止它抄袭其他文件内容的，我尝试在注释里告诉它 don't refer any other code in the same space 但并不管用</p>
-<h3>给予提示</h3>
-<p>copilot 并不是完美的，有时候它提供的所有建议都不会绝对符合你的要求，这个时候就就需要你对它给予引导并且给予提示。</p>
-<p>例如你给出了以下指令：Write a function to connect the MySQL database and run some SQL statements`，随后它生成的第一条语句是</p>
-<pre><code class="language-javascript">const mysql = require('mysql');
-</code></pre>
-<p>这里可能会出现和你预期不符的情况，例如你想使用另一个类库完成数据库操作，在这种情况下你需要对它生成的代码做一步一步的修正。</p>
-<p>更恰当的方式其实是在文件的开头就引入特定你想使用的类库，又或者在编写完部分代码之后再对它给出指令。例如以下是我提前写出的代码：</p>
-<pre><code class="language-javascript">const mysql = require('mysql2/promise')
-const cfg = require('./config');
-
-const db = mysql.createPool(cfg.mysql);
-</code></pre>
-<p>这样一来它便知道所有 SQL 都应该交由 mysql2 来完成，并且连接池已经为它准备完毕，在我给出指令 Write a async function to run SQL query 之后它生成的代码如下：</p>
-<pre><code class="language-javascript">// Write a async function to run SQL query
-async function query(sql, params) {
-    const [rows, fields] = await db.query(sql, params);
-    return rows;
-    }
-</code></pre>
-<p>有时候你甚至需要从官方文档中黏贴一些代码片段到文件中用于给予它提示，或者在文件开头使用注释描述一下该文件的用途也同样有效</p>
-<hr />
-<p>在 JetBrain 的 Marketplace 里我看到关于 Copilot 插件有这么一段简介：</p>
-<ul>
-<li>74% of developers are able to focus on more satisfying work</li>
-<li>88% feel more productive</li>
-<li>96% of developers are faster with repetitive tasks</li>
-</ul>
-<p>我对其中的 repetitive tasks 深有感触，不妨回顾一下你每天的编码工作，其中有多少是重复无数次的机械劳动，有多少是听着播客或者音乐就可以完成的任务，它们都理应被 copilot 干掉。但也正如本文所示，“你”还没法被干掉，程序还需要你来主导，copilot 写出来的代码需要你来 review 。</p>
-<p>在 《 Competing in the Age of AI 》一书中，公司价值被认为由两部分组成：业务模型（ business model ）和运营模型（ operation model ），业务模型决定公司的核心竞争力是什么，为用户创造了何种价值；而运营模型则决定了价值将如何被交付到用户手中。copilot 是个体运营自我的手段，而非业务模型的体现</p>
-<hr />
-<p>本文也同时发布在<a href="https://www.v2think.com/copilot-cheat-sheet" rel="nofollow">我的网站</a>上，欢迎访问</p>
-]]></content:encoded>
-<pubDate>2024-01-19T10:03:31Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 临近春节，被优化了。</title>
-<link>https://www.v2ex.com/t/1010072</link>
-<guid>https://www.v2ex.com/t/1010072</guid>
-<content:encoded><![CDATA[
-<p>属于半路出家的前端，干了 8 年多吧，最近因为公司资金链断裂，部门被解散了。
-之前除了公司本身的工作，也接了一些外包在做，App 活动页、小程序、大屏数据统计，杂七杂八的做了不少； 23 年中开始不知道咋回事，慢慢收不回来钱，都是记账，也做不下去。
-现在人很迷茫，不知道该干什么，找工作的话，投简历，回复很少，有一两个也是驻场的外包。
-现实中人比较宅，没几个讲话的人，来这里发帖也算是跟 V2 上的老哥们吐一吐苦水吧。</p>
-]]></content:encoded>
-<pubDate>2024-01-19T10:00:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有好用的旁设备拓展存储方案</title>
-<link>https://www.v2ex.com/t/1010071</link>
-<guid>https://www.v2ex.com/t/1010071</guid>
-<content:encoded><![CDATA[
-<p>最近想存储一些视频素材，然后看看了自己目前手上的移动硬盘（固态+硬盘盒）运转的时候温度很高，感觉数据放进去非常的不安全，因此在此看看 v 友有没有好的方案，我的需求如下：</p>
-<ol>
-<li>方便出行携带，有线的、无限的（ NAS ）都性；</li>
-<li>可靠性高，最好有类似 RAID 的那种容灾；</li>
-<li>可操作地方多，不要抽象太高的、傻瓜式的操作的设备。</li>
-</ol>
-<p>提前感谢 v 友们了</p>
-]]></content:encoded>
-<pubDate>2024-01-19T09:05:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有招行经典白哥们么</title>
-<link>https://www.v2ex.com/t/1010070</link>
-<guid>https://www.v2ex.com/t/1010070</guid>
-<content:encoded><![CDATA[
-大家如何解决一年 20 万刷卡额度的问题呢？有没有信息客户同步同步的呢<br /><br /><br />人在中国，看了下一年个人开销没有那么大，卡刚刚批下来，要不要激活还在犹豫
-]]></content:encoded>
-<pubDate>2024-01-19T10:03:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有人用过 tango 吗？有没有相同产品可以导出为视频的</title>
-<link>https://www.v2ex.com/t/1010069</link>
-<guid>https://www.v2ex.com/t/1010069</guid>
-<content:encoded><![CDATA[
-<p>因为要录制个 web 系统的分布操作流程，发现 tango 不错哦
-但是它不能导出为视频文件
-而且分享出去别人要观看，还是会回到 tango ，有没有相同产品可以导出为视频的</p>
-]]></content:encoded>
-<pubDate>2024-01-19T08:57:18Z</pubDate>
-</item>
-<item>
-<title>[程序员] 假如手里面有 300w， 35 岁之后回老家能干什么，怎么才能避免焦虑。</title>
-<link>https://www.v2ex.com/t/1010068</link>
-<guid>https://www.v2ex.com/t/1010068</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-01-19T10:01:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 今天更新了 vscode，发现 Python 运行不了</title>
-<link>https://www.v2ex.com/t/1010066</link>
-<guid>https://www.v2ex.com/t/1010066</guid>
-<content:encoded><![CDATA[
-<p>今天更新了 vscode ，发现 python 运行不了，但是 cmd 进去是正常的，网上查了切换 vscode 旧的 python 插件也是无效，问问朋友该怎么弄？
-版本: 1.85.2 (user setup)
-提交: 8b3775030ed1a69b13e4f4c628c612102e30a681
-日期: 2024-01-18T06:40:10.514Z
-Electron: 25.9.7
-ElectronBuildId: 26354273
-Chromium: 114.0.5735.289
-Node.js: 18.15.0
-V8: 11.4.183.29-electron.0
-OS: Windows_NT x64 10.0.22000</p>
-]]></content:encoded>
-<pubDate>2024-01-19T09:59:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] JDK21 是否有必要维护虚拟线程池？</title>
-<link>https://www.v2ex.com/t/1010065</link>
-<guid>https://www.v2ex.com/t/1010065</guid>
-<content:encoded><![CDATA[
-<p>最近将一个 io 密集型操作改为用 jdk21 的虚拟线程实现，我理解虚拟线程创建和销毁的开销都很低，是否还有必要像之前使用平台线程一样维护线程池呢？</p>
-]]></content:encoded>
-<pubDate>2024-01-19T04:41:18Z</pubDate>
-</item>
-<item>
-<title>[生活] 现在的学校教育和你当年有什么不同？</title>
-<link>https://www.v2ex.com/t/1010063</link>
-<guid>https://www.v2ex.com/t/1010063</guid>
-<content:encoded><![CDATA[
-<p>好奇现在的学校教育是什么样的，有孩子已经上学的朋友可以讲讲和你当年有什么不同吗？</p>
-]]></content:encoded>
-<pubDate>2024-01-19T09:35:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 加了公司域的 Mac 有多大的隐私问题？</title>
-<link>https://www.v2ex.com/t/1010061</link>
-<guid>https://www.v2ex.com/t/1010061</guid>
-<content:encoded><![CDATA[
-过去几年一直用自己的 Mac 办公<br />不用加公司域或安装什么监控程序<br />用的比较随心所欲<br /><br />最近换了工作<br />新东家给配了一台 Mac<br />当然也是加域了的<br /><br />所以好奇问问<br />有明白人能大致说一下<br />公司安全部门对这台 Mac 能渗透到什么程度吗<br />或者<br />有具体 case 可以介绍一下？<br /><br />PS:<br />我知道用公司 Mac 就应该只用来办公哈<br />就是比较好奇这个大概的边界在哪里<br />比如<br />我登录个微信<br />会被自动截屏或偷聊天记录啥的吗<br />毕竟这些在加域的 win 下都是家常便饭
-]]></content:encoded>
-<pubDate>2024-01-19T09:37:59Z</pubDate>
-</item>
-<item>
-<title>[硬件] 鼠标光标移动卡顿，是不是 gg 了</title>
-<link>https://www.v2ex.com/t/1010060</link>
-<guid>https://www.v2ex.com/t/1010060</guid>
-<content:encoded><![CDATA[
-<p>拖动光标会间歇性停住，换过鼠标垫了，罗技 m905
-小手鼠标有什么推荐吗？不打游戏，&lt;200 吧</p>
-]]></content:encoded>
-<pubDate>2024-01-19T04:30:33Z</pubDate>
-</item>
-<item>
-<title>[程序员] openai 的网页版本 chatgpt3.5 免费吗？</title>
-<link>https://www.v2ex.com/t/1010059</link>
-<guid>https://www.v2ex.com/t/1010059</guid>
-<content:encoded><![CDATA[
-<p>自从 chatgpt 问世注册了，现在都还能用呢</p>
-]]></content:encoded>
-<pubDate>2024-01-19T08:35:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 收到不境外短信？到底是不是移动的锅？</title>
-<link>https://www.v2ex.com/t/1010058</link>
-<guid>https://www.v2ex.com/t/1010058</guid>
-<content:encoded><![CDATA[
-<p>接受了 v 友馈赠的一张 giffgaff 卡，激活,充钱一系列操作之后，就试着给国内的手机号发一条短信，没想到发不出去。</p>
-<p>于是网上搜索了一番，据网友说要开通国际短信接收，可以在移动 app 直接操作，找了一会没找到，于是就打客服电话问为啥收不到 其他国家号码的短信，客服说帮忙查一下，等了一小会，说没有限制，让我自己看看是不是手机有什么设置啥的，我说国内的号码，收发都没问题。 国外的不行。反正客服死活说没有限制。好吧，无语，没办法。</p>
-<p>但是，但是，过了 5 分钟左右吧，我心想要不在试一下，没想到可以发了！ 这是巧合 or 其他？</p>
-]]></content:encoded>
-<pubDate>2024-01-19T08:21:42Z</pubDate>
-</item>
-<item>
-<title>请问下大家 mac 下用什么 ssh 客户端？</title>
-<link>https://www.v2ex.com/t/1008797</link>
-<guid>https://www.v2ex.com/t/1008797</guid>
-<content:encoded><![CDATA[
-想要一个命令自动补全，还有标签管理的 ssh ，<br /><br />我现在用的那个，偶尔崩溃，连以前的命令历史都没有保存
-]]></content:encoded>
-<pubDate>2024-01-18T00:04:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 很好奇，国内用户给企业的业务系统发邮件的附件，从来都不是通过标准的邮件附件方式发来？</title>
-<link>https://www.v2ex.com/t/1010057</link>
-<guid>https://www.v2ex.com/t/1010057</guid>
-<content:encoded><![CDATA[
-很好奇，国内用户给企业的业务系统发邮件的附件，从来都不是通过标准的邮件附件方式发来？要么是非标准的附件文件，要么是直文件、图片放到各种网盘内，那么图片的话就直接粘贴到文本框内，这对查看着及其不变。比如图片直接粘贴到文本框内，那么我们阅读的时候就变为了 HTML 方式，或者无法直接通过我们的企业业务系统规定的标准直接浏览图片，必须要下载到电脑本地，在电脑本地通过图片查看软件来查看。<br /><br />国内用户难道不懂得什么是插入标准的“附件”？
-]]></content:encoded>
-<pubDate>2024-01-19T08:23:20Z</pubDate>
-</item>
-<item>
-<title>[程序员] 各位大佬，请问下，出海产品，国外有什么可以选用的免费 在线表单服务可以使用的吗？</title>
-<link>https://www.v2ex.com/t/1010056</link>
-<guid>https://www.v2ex.com/t/1010056</guid>
-<content:encoded><![CDATA[
-google forms 模板太少了。不支持自定义模板
-]]></content:encoded>
-<pubDate>2024-01-19T08:09:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] Cloudflare 境内优选 CDN 的 IP 有没定时检测好的域名直接 CNAME 可以用？</title>
-<link>https://www.v2ex.com/t/1010054</link>
-<guid>https://www.v2ex.com/t/1010054</guid>
-<content:encoded><![CDATA[
-直接套 CF ，发现很多时候境内访问域名会执向一给大多地区 ping 不通的 IP ；所以我看到有优选 IP 这个东西，我就把 N 多域名指向了一个自己做 A 解析的 <a href="http://cn-cf.XXXX.com" rel="nofollow noopener" target="_blank">cn-cf.XXXX.com</a> 的域名；<br /><br />结果还是会出现我优选的那个 IP 时不时大多地区会超时，我还得时不时去测一下再换一个 IP 。我在想有没大佬做好的一个啥程序，不能直接定时把优选的 ip 绑定在他的域名上？我再把 <a href="http://cn-cf.XXXX.com" rel="nofollow noopener" target="_blank">cn-cf.XXXX.com</a> 直接 cname 到他域名，这样岂不是就不用管了？
-]]></content:encoded>
-<pubDate>2024-01-17T07:59:05Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有没有类似[开发者头条]的网站？</title>
-<link>https://www.v2ex.com/t/1010053</link>
-<guid>https://www.v2ex.com/t/1010053</guid>
-<content:encoded><![CDATA[
-<p>自从开发者头条打不开了以后，苦于没有好的技术文章聚合网站，每次想看点什么文章都得各个地方开 N 个页面。
-求推荐一点服务端相关的技术文章聚合网站</p>
-]]></content:encoded>
-<pubDate>2024-01-19T08:00:04Z</pubDate>
 </item>
 </channel>
 </rss>
