@@ -5,17 +5,112 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Netflix] Netflix 埃及自用车出 3️⃣个位置</title>
+<link>https://www.v2ex.com/t/1012129</link>
+<guid>https://www.v2ex.com/t/1012129</guid>
+<content:encoded><![CDATA[
+
+<p>TG：@NigelPotter</p>
+<p>绑卡付发车已一年, 长租稳定来, 45/季起.</p>
+]]></content:encoded>
+<pubDate>2024-01-27T19:49:05Z</pubDate>
+<pubDate>2024-01-27T19:49:05Z</pubDate>
+</item>
+<item>
+<title>[深圳] 深圳小区宽带，移动还是联通？</title>
+<link>https://www.v2ex.com/t/1012127</link>
+<guid>https://www.v2ex.com/t/1012127</guid>
+<content:encoded><![CDATA[
+
+<p>主要是受不了电信 269/月的价格了，续费也没有优惠，已经问了联通是 119/月 1000/500M
+请问有人办过移动的吗？价格和体验如何？</p>
+]]></content:encoded>
+<pubDate>2024-01-27T18:36:02Z</pubDate>
+<pubDate>2024-01-27T20:03:11Z</pubDate>
+</item>
+<item>
+<title>[C++] inetutils-ping 实现的 bitmap</title>
+<link>https://www.v2ex.com/t/1012126</link>
+<guid>https://www.v2ex.com/t/1012126</guid>
+<content:encoded><![CDATA[
+
+<h1>简介</h1>
+<p>GNU inetutils 软件包包含了一些常见的实用网络工具，例如 ping ，本文的目的是介绍和讲解 inetutils-2.5 源码包中实现的 bitmap.</p>
+<p>bitmap 是一种数据结构，它至少应当支持以下三个操作：</p>
+<ul>
+<li><code>bitmap.is_set(bit_index): bool</code>: 判断序号为 <code>bit_index</code> 的比特是否已经 set;</li>
+<li><code>bitmap.set(bit_index): void</code>: set 序号为 <code>bit_index</code> 的比特;</li>
+<li><code>bitmap.clear(bit_index): void</code>: unset 序号为 <code>bit_index</code> 的比特；</li>
+</ul>
+<p>以及初始化、销毁等操作（不在本文范围内）。对于具体的实现，方法（或者函数）的名称可能不一样，但行为基本是如上所述的。</p>
+<p>inetutils-ping 在一次连续发送 ICMP ECHOREQUEST 封包以及接收 ICMP ECHOREPLY 封包的过程中，它用一个 bitmap 实例记录并判断 ICMP ECHOREPLY 封包的序号，并通过调用这个 bitmap 的方法来判断是否收到了重复的 ICMP ECHOREPLY 封包并且记录已经收到过的 ICMP ECHOREPLY 封包的序号。</p>
+<p>inetutils-ping 的 bitmap 实现大量应用了宏和位运算，读起来第一印象或许是比较晦涩难懂，我们接下来将提供源码展示，以及浅显的讲解。</p>
+<h1>源码</h1>
+<p>位于 <code>ping/ping_common.h</code> L132</p>
+<pre><code class="language-c">#define _C_BIT(p,bit)   (p)-&gt;ping_cktab[(bit)&gt;&gt;3]	/* byte in ck array */
+#define _C_MASK(bit)    (1 &lt;&lt; ((bit) &amp; 0x07))
+#define _C_IND(p,bit)   ((bit) % (8 * (p)-&gt;ping_cktab_size))
+
+#define _PING_SET(p,bit)						\
+  do									\
+    {									\
+      int n = _C_IND (p,bit);						\
+      _C_BIT (p,n) |= _C_MASK (n);					\
+    }									\
+  while (0)
+
+#define _PING_CLR(p,bit)						\
+  do									\
+    {									\
+      int n = _C_IND (p,bit);						\
+      _C_BIT (p,n) &amp;= ~_C_MASK (n);					\
+    }									\
+  while (0)
+
+#define _PING_TST(p,bit)					\
+  (_C_BIT (p, _C_IND (p,bit)) &amp; _C_MASK  (_C_IND (p,bit)))
+</code></pre>
+<p>其中，<code>_PING_CLR</code> 相当于 bitmap 的 <code>unset</code>, <code>_PING_TST</code> 相当于 bitmap 的 <code>test</code>（或者 <code>is_set</code>），<code>_PINT_SET</code> 顾名思义。</p>
+<p>进一步阅读其它源码我们可以发现，bitmap 的存储空间（一段连续的内存）应该是位于以 <code>(p)-&gt;ping_cktab</code> 为起始地址的一块连续的内存，它是一个 <code>char*</code>，这块区域的大小是 N = <code>(p)-&gt;ping_cktab_size</code> (bytes).</p>
+<p>一个 char 变量可以存储 8 个 bit 的信息，那么，这整个 bitmap 实际上就可以存储 M = N * 8 = <code>(p)-&gt;ping_cktab_size</code> * 8 这么多个 bits 的信息，于是，<code>_C_IND</code> 所做的实际上就是把它的“输入”映射到 0 到 M-1 的这个范围。它通过取模运算（ <code>%</code> 是取余数运算符）来做到这一点。</p>
+<p>然后你再把 bitmap 的整个存储区域看作是一个 <code>char[N]</code> 对象，每个 <code>char</code> 有 8 个 bits, 那么，<code>_C_BIT</code> 相当于对输入除以 8 ，然后根据得到的商来选择用 <code>char[N]</code> 中的哪个 <code>char</code>，相当于在一个大的 bitmap 中选出一个“子 bitmap“，也可以理解为是把输入的除去了最右边 3 个 LSB (least significant bits) 之后剩下的信息映射到用来访问 <code>char[N]</code> 的 index.</p>
+<p>例如，假设，<code>_C_BIT</code> 的输入是 0b11010011 ，那么，它去除了 3 个 LSB （也就是 011 ）后就剩下了 11010 ，<code>_C_BIT</code> 选择 <code>(p)-&gt;cktab[0b11010]</code> 这个子 bitmap 用来进行接下来的进一步判断和操作（无论这个操作是 set 还是 test ）。</p>
+<p>现在，我们已经知道了 <code>_C_BIT</code> 把输入的除去了 3 个 LSB 之后剩下的 bits 用来映射为子 bitmap 选择子，那么，<code>_C_MASK</code> 利用的正是 <code>_C_BIT</code> 不要的那 3 个 LSB ，并且把这 3 个 LSB 映射到一个 char 内的 bit index 。因为，0x07 的二进制表示就是 0b111 ，让 <code>_C_MASK</code> 的输入对 0b111 进行按位 AND 操作就相当于取它的 3 个 LSB ，显然这个按位 AND 运算结果的范围是 0 到 7 ，也就是说 <code>_C_MASK</code> 相当于根据输入的 3 个 LSB 来决定用在一个 char 内的 mask 是多少。</p>
+<p>以 0b11010011 这个输入为例，它的 3 个 LSB 是 011 ，<code>1 &lt;&lt; 0b11</code> 就是 0b1000 ，相当于一个 char 内的第 4 个 LSB 的 mask 。</p>
+<h1>总结</h1>
+<p>现在我们可以总结如下，对于一个大小为 M = 2^p = N * 8 (bits) 的 bitmap ，输入的 bit 2, bit 1, bit 0 被映射为单个 char 内的 mask ，bit p-1, bit p-2, ..., bit 3 组成的二进制数被映射为 char[N] 的选择子，用来从 char[N] 中选出一个 char 。</p>
+<p>理解了 <code>_C_BIT</code>, <code>_C_IND</code> 和 <code>_C_MASK</code> 之后，<code>_PING_SET</code>，<code>_PING_CLR</code> 和 <code>_PING_TST</code> 都变得相对容易理解了。</p>
+]]></content:encoded>
+<pubDate>2024-01-27T18:29:26Z</pubDate>
+<pubDate>2024-01-27T18:28:26Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一款自己写的对战平台，历时 7 个月，今天发布 1.0 版本，小伙伴们可以各自在家一起联机打 CS 星际和魔兽了</title>
+<link>https://www.v2ex.com/t/1012125</link>
+<guid>https://www.v2ex.com/t/1012125</guid>
+<content:encoded><![CDATA[
+
+<img alt="前线竞技场" class="embedded_image" rel="noreferrer" src="https://flgame.cycx.top:70/flgame.png" />
+用 vs 2022 C++写了个对战平台，起名叫前线竞技场，基于虚拟局域网技术的王牌开源软件 zerotier ，配合苹果的端口映射技术 bonjour ，同时也采用了传统的 UPNP 和 OpenP2P 技术，多种方案综合实现多人联机同时做到了跨网也非常流畅，经我和几个小伙伴测试，红色警戒系列 1-3 ，星际争霸 1 和重制版，魔兽争霸 3 ，暗黑破坏神 2 ，以及各种模拟器游戏均可正常联机游戏，CS 目前最多 21 人玩 dust2 地图不卡，每个房间最多 254 人，其他局域网游戏没来得及测试，不敢独享，发出来与大家分享。
+欢迎一起来玩！，每个游戏设有微信群，可以进群约战。
+界面非常干净。
+安装地址： https://flgame.cycx.top:70
+<p>上线日期：2024 年 1 月 28 日</p>
+]]></content:encoded>
+<pubDate>2024-01-27T18:27:43Z</pubDate>
+<pubDate>2024-01-27T18:27:43Z</pubDate>
+</item>
+
+<item>
 <title>[Android] 没有 root 的安卓手机如何关闭扬声器</title>
 <link>https://www.v2ex.com/t/1012124</link>
 <guid>https://www.v2ex.com/t/1012124</guid>
 <content:encoded><![CDATA[
-
 <p>我有个备用机，因为进水后播放视频卡顿，类似于 0.5 倍速播放任何动画，闲置有一段时间了，太旧了也没有维修价值。</p>
 <p>前段时间用到安卓，拿出来摆弄发现是外放喇叭的问题，只要插入耳机，一切都还正常</p>
 <p>用淘汰的 3.5mm 耳机插上去管用，剪掉耳机线只留接头，不行。</p>
 <p>存不存在便捷便宜的方案禁用掉扬声器？</p>
 ]]></content:encoded>
-<pubDate>2024-01-27T17:47:48Z</pubDate>
 <pubDate>2024-01-27T17:48:39Z</pubDate>
 </item>
 <item>
@@ -23,10 +118,8 @@
 <link>https://www.v2ex.com/t/1012123</link>
 <guid>https://www.v2ex.com/t/1012123</guid>
 <content:encoded><![CDATA[
-
 <p>太恶心了，淘宝百亿补贴 5879 元抢到一台 iphone15 plus 512G ，商家说系统信息错误，拒绝发货，淘宝维护商家让我取消订单，不妥协，交易快照和我订单一模一样，起诉了</p>
 ]]></content:encoded>
-<pubDate>2024-01-27T17:19:30Z</pubDate>
 <pubDate>2024-01-27T17:16:30Z</pubDate>
 </item>
 <item>
@@ -34,10 +127,8 @@
 <link>https://www.v2ex.com/t/1012122</link>
 <guid>https://www.v2ex.com/t/1012122</guid>
 <content:encoded><![CDATA[
-
 我做了一个记单词神器，还带 AI 功能，没有人需要吗？<br />微信小程序: 滑滑 AI 记单词
 ]]></content:encoded>
-<pubDate>2024-01-27T17:15:53Z</pubDate>
 <pubDate>2024-01-27T17:13:53Z</pubDate>
 </item>
 <item>
@@ -45,10 +136,8 @@
 <link>https://www.v2ex.com/t/1012121</link>
 <guid>https://www.v2ex.com/t/1012121</guid>
 <content:encoded><![CDATA[
-
 88888 分之一。
 ]]></content:encoded>
-<pubDate>2024-01-27T17:00:20Z</pubDate>
 <pubDate>2024-01-27T16:59:20Z</pubDate>
 </item>
 <item>
@@ -56,7 +145,6 @@
 <link>https://www.v2ex.com/t/1012120</link>
 <guid>https://www.v2ex.com/t/1012120</guid>
 <content:encoded><![CDATA[
-
 <p>在多个国内城市、不同运营商的网络下，直接连接运营商光猫，安装 openwrt 的路由器都有下列症状。尝试过斐讯 k2t 与红米 ax6000 ，均安装了未修改过的 <a href="http://openwrt.org" rel="nofollow">openwrt.org</a> 上提供下载的系统（ 23.05 ）：</p>
 <ul>
 <li>访问短时间内未访问过的 IP / 域名时，建立连接速度非常慢，通常需要至少十秒或数次重试。ping 一短时间内未访问过的地址时，前几包会丢失，通常在第 8~9 包时可以正常收到 echo</li>
@@ -68,10 +156,8 @@
 </ul>
 <p>根据上述问题，可能是官方 openwrt 对 routing 协议设置的问题？有什么思路可以尝试定位问题并解决？</p>
 ]]></content:encoded>
-<pubDate>2024-01-27T16:44:10Z</pubDate>
 <pubDate>2024-01-27T12:44:10Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] 自建了个博客，欢迎大家来踩</title>
 <link>https://www.v2ex.com/t/1012117</link>
@@ -15010,62 +15096,6 @@ PDF 导出：将综合图表导出为 HTMLL 文件。
 <p>如可以，大家可以关注，一起交流哦；</p>
 ]]></content:encoded>
 <pubDate>2024-01-23T08:13:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 被电商平台的“千人千价”恶心到了</title>
-<link>https://www.v2ex.com/t/1010911</link>
-<guid>https://www.v2ex.com/t/1010911</guid>
-<content:encoded><![CDATA[
-老婆快生了<br /><br />最近一直在关注母婴用品，也在小红书之类的平台关注别人怎么买的，什么价<br /><br />同一家店，我总搞不到他们的低价...<br /><br />你要说新人红包，购买 vip/plus 打折之类的也就算了，还有各种立减,就是没自己的份...<br /><br />能不能少点套路呀...<br /><br />还有看到晒低价单的，真的更焦虑了，感觉现在下手就是好亏.<br /><br />用小红书上姐妹说的就是“过期羊毛如砒霜...”
-]]></content:encoded>
-<pubDate>2024-01-23T08:09:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 第一次出国游且自由行，选择了济州岛，有什么建议吗？</title>
-<link>https://www.v2ex.com/t/1010910</link>
-<guid>https://www.v2ex.com/t/1010910</guid>
-<content:encoded><![CDATA[
-长这么大，第一次出国，觉得办签证太麻烦，恰好刷到济州岛的往返票比较便宜（ 1000¥左右），所以选择春节假期前往；<br />目前酒店已经通过爱彼迎订好了，本地货币预约的明天取，按照人均 2500 的标准<br />出行时间共 4 白天，5 晚上<br />有什么需要特别注意的地方吗？
-]]></content:encoded>
-<pubDate>2024-01-23T08:12:17Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请问一下大佬“工银智涌”用的是啥 API 呀？</title>
-<link>https://www.v2ex.com/t/1010909</link>
-<guid>https://www.v2ex.com/t/1010909</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-01-23T08:00:43Z</pubDate>
-</item>
-<item>
-<title>[程序员] iPhone 可以通过 app 改 host 吗？</title>
-<link>https://www.v2ex.com/t/1010908</link>
-<guid>https://www.v2ex.com/t/1010908</guid>
-<content:encoded><![CDATA[
-<p>网上搜了一圈解决方案，很多都是推荐代理方法来改 hosts 。麻烦的很。<br />
-有没有单个 app 可以改 host 文件的？</p>
-]]></content:encoded>
-<pubDate>2024-01-23T08:14:07Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 一次苏州移动被误判 PCDN 后申诉恢复经历</title>
-<link>https://www.v2ex.com/t/1010906</link>
-<guid>https://www.v2ex.com/t/1010906</guid>
-<content:encoded><![CDATA[
-<p>坐标苏州移动，办的 300M 宽带，实测下行 350Mbps ，上行 120Mbps ，刚办好直接改桥接，默认就是 NAT A 。</p>
-<p>前段时间（ 2023 年 11 月）某天挂着梯子上传了大约 200GB 的文件，当天就发现 NAT 类型从 NAT A 变成了 NAT C ，导致我一直在用的 natmap 失联了。众所周知，移动是打死也不肯给家宽公网 IP 的一家运营商，全靠 NAT A 打洞续命。</p>
-<p>但除了 NAT 类型被限制成了 C ，上下行带宽都完全正常(350/120Mbps)。</p>
-<p>最近（ 2024 年 1 月）抽空打 10086 投诉，接电话的宽带专员听不懂什么是 NAT ，转给了当地宽带装维师傅，和师傅加了微信反馈了问题，师傅也不太懂，又和上级反馈。</p>
-<p>上级客服先派师傅上门检查"是否有京东云路由器"，师傅上门拍照光猫和路由器后填了张单子回去了，过了半天客服表示“光猫改桥接后就没有限制了，是用户终端识别问题”</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2CFhozg.png" /></p>
-<p>后来我说我另外一条移动宽带同样的配置是能够检测到 NAT A 的，把 NatTypeTester 的截图发给了客服，并且这里之前也是正常的，是大量上传后才变成了 NAT C 。</p>
-<p>再次反馈后，上级客服似乎终于搞明白了事情状况（不知道是之前在装傻还是真不知道），又要求签了一张承诺书。</p>
-<p>"本人郑重承诺号码 137xxxxxxxx 所开移动家庭宽带不用于 PCDN 业务、刷单、点赞等违反中国移动宽带协议或违反国家相关部门规定的用途。由此引发的相关违法违规责任将由我个人自行承担，并愿意接受中国移动根据合同约定做出相应处理。"</p>
-<p>手写签名拍照后发给师傅，过了两小时光猫突然下线了，重新拨号后发现已经是 NAT A 。</p>
-<p>从第一次拨打 10086 到最终解决问题总计三天，期间大部分都是在等客服反馈，上门拍照+签承诺书后拿回了 NAT A ，<del>对比之下甚至觉得移动解决问题还不算低效。</del></p>
-]]></content:encoded>
-<pubDate>2024-01-23T08:00:59Z</pubDate>
 </item>
 </channel>
 </rss>
