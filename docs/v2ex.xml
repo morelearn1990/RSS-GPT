@@ -5,14 +5,103 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 请问下建行的手机卡验证怎么通过？</title>
+<link>https://www.v2ex.com/t/1013793</link>
+<guid>https://www.v2ex.com/t/1013793</guid>
+<content:encoded><![CDATA[
+
+建行手机 app 奇葩的必须验证手机卡才能强绑定解除限制<br />然后我本人在墙外，可以上网打电话接发短信，但是验证总是失败（运营商是电信）
+]]></content:encoded>
+<pubDate>2024-02-02T18:16:10Z</pubDate>
+<pubDate>2024-02-02T18:16:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] tauri 真的太难用了，浪费了我整整一天</title>
+<link>https://www.v2ex.com/t/1013792</link>
+<guid>https://www.v2ex.com/t/1013792</guid>
+<content:encoded><![CDATA[
+
+<p>天天看 V2 有人吹 tarui ，刚好有客户反应我们客户端太大了，于是给公司打包新网站（启动动画播完 location.href 跳转到线上地址，没别的功能）成 exe 的时候想试一下</p>
+<p>我们网站检测是否客户端访问是检测请求头的 app-name 字段是否有值（有个中间件，全部请求都检测）</p>
+<p>Electron 非常简单，三行代码搞定</p>
+<pre><code> session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) =&gt; {
+    details.requestHeaders['app-name'] ='myapp'
+    details.requestHeaders['app-ver'] = '1.0-win'
+    details.requestHeaders['app-iver'] = '20240202-01M'
+    
+    callback({ requestHeaders: details.requestHeaders })
+  })
+</code></pre>
+<p>tauri 这个问题 Google 能搜到 4 篇讨论贴，实际给出方案的只有这一篇 <a href="https://github.com/tauri-apps/tauri/discussions/4912" rel="nofollow">https://github.com/tauri-apps/tauri/discussions/4912</a></p>
+<p>有人在下面提问说编译不了，快半年了没人回复</p>
+<p>我看 Rust 和 tauri 文档折腾了一天还没搞定，放弃了，用 Electron 3 分钟打好包提交 <strong>（最后还被领导骂了这么简单一个需求弄了一天是不是又在上班时间打游戏）</strong></p>
+<p>附上我改的最后一版，还是不行，有能力的 V 友看看要写多少行才能实现这个简单的功能</p>
+<pre><code>fn main() {
+    tauri::Builder::default()
+        .setup(|app| {
+            let main_window = app.get_window("main").unwrap();
+            main_window.with_webview(|webview| unsafe {
+                let core = webview.controller().CoreWebView2().unwrap();
+                let mut token: EventRegistrationToken = EventRegistrationToken::default();
+                core.AddWebResourceRequestedFilter("*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+                core.add_WebResourceRequested(
+                    CoreWebView2WebResourceRequestedEventHandler::create(Box::new(move |sender, args| {
+                        if let Some(args) = args {
+                            let request: ICoreWebView2WebResourceRequest = args.Request().unwrap();
+                            request
+                                .Headers()
+                                .unwrap()
+                                .SetHeader("app-name", "myapp")
+                                .SetHeader("app-ver", "1.0-win")
+                                .SetHeader("app-iver", "20240202-01W")
+                                .unwrap();
+                        }
+                        Ok(())
+                    })),
+                    &amp;mut token,
+                );
+            });
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![greet])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-02-02T17:20:49Z</pubDate>
+<pubDate>2024-02-02T17:40:19Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 下一个操作系统，何必自己搞 app 生态。</title>
+<link>https://www.v2ex.com/t/1013791</link>
+<guid>https://www.v2ex.com/t/1013791</guid>
+<content:encoded><![CDATA[
+
+如题，有一点标题党。就是想感慨下。<br /><br />想说的是，flutter 技术基本已经成熟。kotlin compose 蓄势待发。<br /><br />下一款操作系统如果原生选择其一支持，并针对其提供优化，使其开发成为一等公民，那么相应开发就可以很简单地支持安卓和 iOS 。是不是生态就成了？
+]]></content:encoded>
+<pubDate>2024-02-02T17:19:29Z</pubDate>
+<pubDate>2024-02-02T17:54:00Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS 上有没有支持 webdav 的音乐播放器</title>
+<link>https://www.v2ex.com/t/1013790</link>
+<guid>https://www.v2ex.com/t/1013790</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-02-02T17:04:22Z</pubDate>
+<pubDate>2024-02-02T17:04:22Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] ai 制作 ppt 一般用啥</title>
 <link>https://www.v2ex.com/t/1013787</link>
 <guid>https://www.v2ex.com/t/1013787</guid>
 <content:encoded><![CDATA[
-
 <p>经常有妹纸问这个</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:50:17Z</pubDate>
 <pubDate>2024-02-02T15:51:52Z</pubDate>
 </item>
 <item>
@@ -20,10 +109,8 @@
 <link>https://www.v2ex.com/t/1013786</link>
 <guid>https://www.v2ex.com/t/1013786</guid>
 <content:encoded><![CDATA[
-
 对于直接卖虚拟机：<br /><br />3.5 USD/月：2 个 vCPU （ 5%） 512MB 内存<br /><br />5 USD/月：2 个 vCPU （ 10%） 1024MB 内存<br /><br />对于容器服务：<br /><br />7 USD/月：0.25 个 vCPU 512MB 内存<br /><br />请问容器服务的 0.25 个 vCPU 这里，是一直可用的 CPU 吗？还是也是突发性能类型的
 ]]></content:encoded>
-<pubDate>2024-02-02T15:48:34Z</pubDate>
 <pubDate>2024-02-02T15:45:34Z</pubDate>
 </item>
 <item>
@@ -31,7 +118,6 @@
 <link>https://www.v2ex.com/t/1013785</link>
 <guid>https://www.v2ex.com/t/1013785</guid>
 <content:encoded><![CDATA[
-
 <p>我自己用 vultr 洛杉矶的服务器搭的梯子，用了一年多了都没事。
 但是最近发现推特只能点赞或私信，也可以关注别人。但是无法转推，发推也提示未能发送帖子。
 推上私信一些朋友他说他也遇到这个情况，然后换了梯子就好了
@@ -39,7 +125,6 @@
 然而我 vultr 上换了几个 ip 和地区后短时间内账号恢复正常了，但是一段时间后还是一样的结果。
 网上也搜不到答案，不知道有没有人也遇到过这个问题</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:44:11Z</pubDate>
 <pubDate>2024-02-02T15:41:11Z</pubDate>
 </item>
 <item>
@@ -47,11 +132,9 @@
 <link>https://www.v2ex.com/t/1013783</link>
 <guid>https://www.v2ex.com/t/1013783</guid>
 <content:encoded><![CDATA[
-
 <p>复现: 在 VSCode 中打开任意一个 ipynb, 然后 (1) 选中一个 cell 然后敲回车, 或者 (2) 直接双击一个 cell, 两种办法都会进入该 cell 的编辑模式. 区别在于, 回车键会将该 cell 置顶, 但是双击不会影响 cell 的位置.</p>
 <p>大家有遇到过这个问题吗? 这是 bug 还是 feature?</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:42:05Z</pubDate>
 <pubDate>2024-02-02T15:41:05Z</pubDate>
 </item>
 <item>
@@ -60,9 +143,7 @@
 <guid>https://www.v2ex.com/t/1013782</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-02-02T15:19:59Z</pubDate>
 <pubDate>2024-02-02T15:16:59Z</pubDate>
 </item>
 <item>
@@ -70,10 +151,8 @@
 <link>https://www.v2ex.com/t/1013781</link>
 <guid>https://www.v2ex.com/t/1013781</guid>
 <content:encoded><![CDATA[
-
 <p>有经验的大佬指导下，该怎么 battle ，预期结果，拿 n+1 ，不知道能不能拿到</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:11:37Z</pubDate>
 <pubDate>2024-02-02T15:08:37Z</pubDate>
 </item>
 <item>
@@ -81,7 +160,6 @@
 <link>https://www.v2ex.com/t/1013780</link>
 <guid>https://www.v2ex.com/t/1013780</guid>
 <content:encoded><![CDATA[
-
 <p>美东 8:00 的 pickup ，用了一个小时。已经发现几个媒体没提过的硬伤了：</p>
 <ol>
 <li>不支持 YubiKey ，因为没有 USB 口，也没有 NFC 。如果你想登录一个网站但你只配置了 YubiKey ，那抱歉，登录不了。当然 Passkey 是支持的。如果主要 Apple ID 配置了 Yubikey 是不影响的，类似 Apple Watch ，可以通过 iPhone 配对的方式登录进去。同理各种企业级的 USB 私有验证更是没戏了。BTW：iPhone 、iPad 均支持 Yubikey ，其中 iPhone 是支持 NFC 的无线 YubiKey 的。我不确定 YubiKey 的具体技术原理，不知道未来能否通过软件实现在 iPhone 上验证 Key 在 Vision Pro 上登录。</li>
@@ -96,7 +174,6 @@
 <p>看电影体验感觉也未必比 5K 显示器强（待长期测试，但舒适度和清晰度已经输了），操作还是很不习惯，键盘输入体验远差于 iPhone 这种屏幕键盘，比 Apple TV 的输入倒是稍微好一点，跟实体键盘更是没法比。打算配对个 PlayStation 手柄专门给 Vision Pro 用了。没用过其他的 VR 设备，所以我也不清楚 Vision Pro 是否比别的 VR 更好。有什么新的体验我会在这里继续 Append ，有啥需要我试的可以留言，我也许会试。</p>
 <p><img alt="iMessage 报错截图" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/m6D8l7i1.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:09:45Z</pubDate>
 <pubDate>2024-02-02T16:13:31Z</pubDate>
 </item>
 <item>
@@ -104,12 +181,10 @@
 <link>https://www.v2ex.com/t/1013779</link>
 <guid>https://www.v2ex.com/t/1013779</guid>
 <content:encoded><![CDATA[
-
 <p>欢迎有好货要出手和想捡便宜的朋友们加入本群，可以发图片及商品详情信息和价格。 （禁止发布广告、与交易无关的内容、讲奇怪的故事敏感话题、发布奇怪的链接、带风向、违法信息，发现后立马 T 出不做解释） 在交易前请自行核实交易商品真实性和卖家沟通好后再进行交易，交易方式自行商榷 （推荐线下当面验货后交易） 如遇交易产生纠纷本群概不负责哦！感谢！</p>
 <p>加我 wx 拉你进群，微信号：Yonghao0830 [请备注二手交易]！！！！~</p>
 <p><img alt="图标" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Rx5LmSk_d.jpg?maxwidth=520&amp;shape=thumb&amp;fidelity=high" /></p>
 ]]></content:encoded>
-<pubDate>2024-02-02T15:03:07Z</pubDate>
 <pubDate>2024-02-02T15:00:07Z</pubDate>
 </item>
 <item>
@@ -117,11 +192,9 @@
 <link>https://www.v2ex.com/t/1013778</link>
 <guid>https://www.v2ex.com/t/1013778</guid>
 <content:encoded><![CDATA[
-
 <p>我的问题？
 v2 的问题？</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T14:53:40Z</pubDate>
 <pubDate>2024-02-02T14:51:40Z</pubDate>
 </item>
 <item>
@@ -129,10 +202,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013777</link>
 <guid>https://www.v2ex.com/t/1013777</guid>
 <content:encoded><![CDATA[
-
 219.141.136.10<br />219.141.140.10<br /><br />好坑
 ]]></content:encoded>
-<pubDate>2024-02-02T14:52:47Z</pubDate>
 <pubDate>2024-02-02T11:52:47Z</pubDate>
 </item>
 <item>
@@ -140,10 +211,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013775</link>
 <guid>https://www.v2ex.com/t/1013775</guid>
 <content:encoded><![CDATA[
-
 <p>如题，联系我办理提速(3 个月起步，可以设置到期停)就送价值 20 元纸巾 1 提，等于是把提成返给您。其他各种业务也都可以，提成都给您，仅限年前这几天。年后不缺指标的量。</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T14:23:08Z</pubDate>
 <pubDate>2024-02-02T15:39:05Z</pubDate>
 </item>
 <item>
@@ -151,10 +220,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013774</link>
 <guid>https://www.v2ex.com/t/1013774</guid>
 <content:encoded><![CDATA[
-
 用这东西远程串流游戏感觉不错，想付费使用 4:4:4 色彩，结果卡在付费那里了，连换了几张卡都说不支持。这东西是不是只支持国外的卡？有什么办法能支付？
 ]]></content:encoded>
-<pubDate>2024-02-02T14:23:01Z</pubDate>
 <pubDate>2024-02-02T15:14:34Z</pubDate>
 </item>
 <item>
@@ -162,10 +229,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013773</link>
 <guid>https://www.v2ex.com/t/1013773</guid>
 <content:encoded><![CDATA[
-
 之前有 2 个企业网站用的网易云服务器，备案比较早。<br /><br />最近收到网易云服务器停止服务器的通知，准备不用了，转移到腾讯已有的服务器上面<br /><br />有朋友知道怎么操作吗？还是全新备案？
 ]]></content:encoded>
-<pubDate>2024-02-02T14:21:01Z</pubDate>
 <pubDate>2024-02-02T14:43:49Z</pubDate>
 </item>
 <item>
@@ -173,10 +238,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013772</link>
 <guid>https://www.v2ex.com/t/1013772</guid>
 <content:encoded><![CDATA[
-
 希望社区活跃一点，文档好一点的。
 ]]></content:encoded>
-<pubDate>2024-02-02T14:20:24Z</pubDate>
 <pubDate>2024-02-02T14:52:51Z</pubDate>
 </item>
 <item>
@@ -184,10 +247,8 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013771</link>
 <guid>https://www.v2ex.com/t/1013771</guid>
 <content:encoded><![CDATA[
-
 想要在一个电商平台小程序弄一个自动修改地址，自动下单，抢单提交的功能，通过小程序抓包的那种方式我看了，太麻烦了，各种签名还有大批量的参数，看着头疼，就想着有没有像 selenium 这种识别元素可模拟人工操作的方式。有什么方案可借鉴下么
 ]]></content:encoded>
-<pubDate>2024-02-02T14:19:38Z</pubDate>
 <pubDate>2024-01-31T14:19:38Z</pubDate>
 </item>
 <item>
@@ -195,11 +256,9 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1013770</link>
 <guid>https://www.v2ex.com/t/1013770</guid>
 <content:encoded><![CDATA[
-
 <p>最近几天用 ipad 玩 LOL ，ping 动不动就跳到 200ms ，切换到手机，立马全局正常，顺利团战。</p>
 <p>哪里的问题？</p>
 ]]></content:encoded>
-<pubDate>2024-02-02T14:16:13Z</pubDate>
 <pubDate>2024-02-02T14:14:13Z</pubDate>
 </item>
 <item>
@@ -207,13 +266,10 @@ v2 的问题？</p>
 <link>https://www.v2ex.com/t/1012554</link>
 <guid>https://www.v2ex.com/t/1012554</guid>
 <content:encoded><![CDATA[
-
 家里是索尼电视 75X90L ，已经安装了奈飞和 SmartTube ，平时看看感觉挺好，但是经常在 V 站和抖音上狂吹 apple tv ，我现在也比较心动，想试试。<br />我们家平时的喜欢看：<br />1. 看 tvbox 影视仓（我自己）<br />2. 看哔哩哔哩（小朋友看）<br />3. YouTube （ SmartTube ）（我自己和小朋友看）<br />4. 奈飞（我自己和小朋友看）<br /><br />我现在的担心如下：<br />1. 国产剧，如何看？ tvbox 似乎不支持,有没有类似 tvbox 的办法？<br />2. 是不是需要一直翻墙？我流量完全不够用，一个月就 60G+80G=140G 。不知道各位是怎么解决的<br />3. 最后，如果要买 apple tv ，最好是买哪个版本的？
 ]]></content:encoded>
-<pubDate>2024-01-29T11:13:38Z</pubDate>
 <pubDate>2024-02-01T15:12:37Z</pubDate>
 </item>
-
 <item>
 <title>[职场话题] 上周年终开奖了，相比去年几乎腰斩，这一周脑子里都是跑路的想法，求打醒</title>
 <link>https://www.v2ex.com/t/1013769</link>
@@ -15402,172 +15458,6 @@ android.intent.action.PACKAGE_ADDED 事件,一装别的 app 就直接给卸了,�
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/1cb0bf2e-716c-4b89-95fa-9dba2e2fb70d.jpg?imageView2/2/w/1920/q/100" /></p>
 ]]></content:encoded>
 <pubDate>2024-01-29T13:41:47Z</pubDate>
-</item>
-<item>
-<title>[深圳] 落户体检降转氨酶思路&amp;深圳落户用途</title>
-<link>https://www.v2ex.com/t/1012588</link>
-<guid>https://www.v2ex.com/t/1012588</guid>
-<content:encoded><![CDATA[
-如题，1 月初体检，被医生告知转氨酶超了 2 倍，说我肝损伤了，吓得我吃饭都没胃口了；<br />后来和同事沟通，找到根因：没睡好&amp;激烈运动；<br />降转氨酶方法：1 、体检前一周都最好别剧烈运动<br />			2 、短期戒掉咖啡茶<br />            3 、多吃蔬菜<br />            4 、11 点开始关手机睡觉<br />以上，两周就把转氨酶降到了正常水平，成功过体检。<br /><br />PS：<br />1 、想问问各位深圳户口有啥用，例如领补贴啥的‘<br />2 、一直没搞明白深圳医保一档二档，求解释，听说可以定期免费推拿?<br /><br />感谢！
-]]></content:encoded>
-<pubDate>2024-01-29T13:29:56Z</pubDate>
-</item>
-<item>
-<title>[Nintendo Switch] 大伙儿帮忙看看这是什么游戏，谢谢！</title>
-<link>https://www.v2ex.com/t/1012587</link>
-<guid>https://www.v2ex.com/t/1012587</guid>
-<content:encoded><![CDATA[
-<p><img alt="QQ 截图 20240129212316.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/01/29/3Jz6NF7QVPCKvow.png" /></p>
-]]></content:encoded>
-<pubDate>2024-01-29T09:30:02Z</pubDate>
-</item>
-<item>
-<title>[Docker] 我 pull 了一个 WebAssembly 镜像，想用它编译本地的代码。可是容器一运行就停止了，请问怎么才能让他一直运行，好让我方便编译本地代码？</title>
-<link>https://www.v2ex.com/t/1012586</link>
-<guid>https://www.v2ex.com/t/1012586</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-01-29T13:25:23Z</pubDate>
-</item>
-<item>
-<title>[Apple] 1 月 31 日 死亡搁浅上架 mac</title>
-<link>https://www.v2ex.com/t/1012584</link>
-<guid>https://www.v2ex.com/t/1012584</guid>
-<content:encoded><![CDATA[
-<p>还是挺期待死亡搁浅在 m1pro 上的表现的，mac 开盖就能玩不用像 win 一样等开机就很爽，大家有在 mac 上玩哪些游戏</p>
-]]></content:encoded>
-<pubDate>2024-01-29T13:35:55Z</pubDate>
-</item>
-<item>
-<title>[问与答] 朋友捡到一个普通版 AirPods，有办法能找到原主人的信息吗？</title>
-<link>https://www.v2ex.com/t/1012582</link>
-<guid>https://www.v2ex.com/t/1012582</guid>
-<content:encoded><![CDATA[
-<p>朋友的长辈遛娃的时候在一个学校人来人往的草地上捡到一个圆滚滚的东西，还以为是个小玩具准备拿回家洗洗给幼崽玩，结果是个 AirPods 。</p>
-<p>我知道像 iPhone 这种有屏幕的东西，Find My 设置丢失模式可以留信息，点亮屏幕会显示。不知道 AirPods 可以不？</p>
-<p>大概搜了下，连上 iPhone 可以向 Find My 上报定位，如果原主人会用的话可能会看到位置。他自己担心好人没好报，打算不在家，去小区门口连一下试试。</p>
-<p>我还能想到是让学校保安发失物招领？</p>
-<p>大家还有什么建议么？</p>
-]]></content:encoded>
-<pubDate>2024-01-29T13:26:17Z</pubDate>
-</item>
-<item>
-<title>[程序员] 过年需要酒水的兄弟可以联系我 茅台 五粮液都有 坐标贵州 报 v 友给最低价</title>
-<link>https://www.v2ex.com/t/1012581</link>
-<guid>https://www.v2ex.com/t/1012581</guid>
-<content:encoded><![CDATA[
-<p>办宴席 送礼 自己喝都可以满足</p>
-<p>tg：maotai199</p>
-<p>先 tg 聊一下，确定有需要我在加您微信，不然人太多了容易搞混了</p>
-]]></content:encoded>
-<pubDate>2024-01-29T13:49:14Z</pubDate>
-</item>
-<item>
-<title>[macOS] M2 Max macOS 小火箭 代理模式选 HTTP 部分软件例如系统自带翻译功能就会无法联网，选 None Google 系网站就会特别慢， YouTube 240p 都卡 怎么解决？</title>
-<link>https://www.v2ex.com/t/1012580</link>
-<guid>https://www.v2ex.com/t/1012580</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-01-29T13:05:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 5120*1440 分辨率， 120HZ 的显示器最差需要什么显卡</title>
-<link>https://www.v2ex.com/t/1012579</link>
-<guid>https://www.v2ex.com/t/1012579</guid>
-<content:encoded><![CDATA[
-1. 日常使用最低显卡是？<br />2. 玩游戏话（只玩 Dota2 ）最低显卡是？<br />2.1 话说能全屏玩 Dota2 吗？
-]]></content:encoded>
-<pubDate>2024-01-29T13:10:17Z</pubDate>
-</item>
-<item>
-<title>[算法] nvida jetson 替代品</title>
-<link>https://www.v2ex.com/t/1012578</link>
-<guid>https://www.v2ex.com/t/1012578</guid>
-<content:encoded><![CDATA[
-组里用 jetson orin nx 做了一套人脸识别，盒子要 7000 ，老板表示成本太高，要降到 2000 左右。<br />请问有没有兄弟玩过国产的方案，能够适配大部分算法的，目前的人脸识别用的 yoloV8 + resnet
-]]></content:encoded>
-<pubDate>2024-01-29T13:02:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2024 了，百度引擎对 Next.js 的支持怎么样？容易 SEO 和收录吗？</title>
-<link>https://www.v2ex.com/t/1012577</link>
-<guid>https://www.v2ex.com/t/1012577</guid>
-<content:encoded><![CDATA[
-<p>想开发一个应用，不知道好不好用，有没有同技术的知名网站啊？想参考一下。
-之前用 Gatsby.js 的 SSG 开发过技术博客，百度压根不收录。</p>
-]]></content:encoded>
-<pubDate>2024-01-29T12:54:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] iOS 网易云音乐现在是我手机上启动最慢的应用了</title>
-<link>https://www.v2ex.com/t/1012576</link>
-<guid>https://www.v2ex.com/t/1012576</guid>
-<content:encoded><![CDATA[
-我搞不动网易云的架构到底有多复杂 启动能如此之慢 现在已经超过淘宝与一些"OS 级别"的应用了<br />点开软件 这个红色界面卡 6.7 秒 甚至就算我截完图 保存了 他还在加载<br /><a href="https://i.imgur.com/Myz2p7o.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Myz2p7o.jpeg" /></a><br /><br /><br /><br /><br />然后点击我的 加载我喜欢的歌这个界面也能加载 5 秒 我也是醉了 有时候直接加载失败...<br /><br /><a href="https://i.imgur.com/pgSzALe.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/pgSzALe.jpeg" /></a><br /><br /><br /><br />我的手机型号是:13mini 虽然不如最新款但也不至于带不动吧
-]]></content:encoded>
-<pubDate>2024-01-29T12:58:56Z</pubDate>
-</item>
-<item>
-<title>[macOS] YouTube 翻译效果哪家好？</title>
-<link>https://www.v2ex.com/t/1012575</link>
-<guid>https://www.v2ex.com/t/1012575</guid>
-<content:encoded><![CDATA[
-<p>设备：M1pro
-浏览器：Arc
-问题：试用过沉浸式翻译、一些油猴插件、一些 chorme 插件，翻译引擎通常是谷歌、微软，字幕翻译效果往往不如人意，有些单词翻译成中文，驴头不对马嘴。
-需求：尽可能免费或低费用的提高翻译效果，插件、软件或者更折腾些的都不怕。
-谢谢大家</p>
-]]></content:encoded>
-<pubDate>2024-01-29T14:04:12Z</pubDate>
-</item>
-<item>
-<title>[Apple] ios 欧洲区允许第三方商店 从技术角度和软硬件看下苹果如何实现区域识别 国行低人一等</title>
-<link>https://www.v2ex.com/t/1012574</link>
-<guid>https://www.v2ex.com/t/1012574</guid>
-<content:encoded><![CDATA[
-<p>RT  怎么实现
-避免用户跨区注册账号
-感觉国行又低人一等 遥遥领先了</p>
-]]></content:encoded>
-<pubDate>2024-01-29T12:22:24Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海] 米哈游 miHoYo 2024.1.29 最新招聘信息</title>
-<link>https://www.v2ex.com/t/1012573</link>
-<guid>https://www.v2ex.com/t/1012573</guid>
-<content:encoded><![CDATA[
-米哈游 2024 年 1 月最新招聘信息来啦！更新于 2024 年 1 月 29 日 ，持续更新中~~~<br />社招持续进行中～通过内推链接可查看各个岗位具体要求，各位优秀的小伙伴们，简历赶紧投起来吧。<br /><br />社招内推链接：<br /><a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position</a><br /><br />薪资福利参考我司 boss 直聘主页： <a href="https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1" rel="nofollow noopener" target="_blank">https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1</a><br /><br />2 、加入米哈游你将享受以下福利：<br /><br />- - 每年 10 天年假，3 天带薪病假<br /><br />16+薪 六险二金 （全额五险一金+补充住房公积金+商业医疗保险）<br /><br />每年两次薪资回顾机会（根据绩效评估是否调薪），分别在 4 月、10 月<br /><br />免费定期体检（本人+一位家属），免费午餐晚餐，内部专属咖啡吧<br /><br />早十晚七，内部各种福利群，猫群，鱼群，ps 群。。。。<br /><br />不限量零食饮料，丰富多彩的节日礼品，年会百分百中奖，丰厚年终奖。<br /><br />福利多多停不下来，我在 miHoYo ，等你一起拯救世界，米哈游期待你的到来。<br /><br />3 、关于米哈游<br /><br />米哈游成立于 2011 年，致力于为用户提供美好的、超出预期的产品与内容。米哈游陆续推出了多款高品质人气产品，包括《崩坏学园 2 》、《崩坏 3 》、《未定事件簿》、《原神》、《崩坏:星穹铁道》，动态桌面软件《人工桌面》以及社区产品《米游社》，并围绕原创 IP 打造了动画、音乐及周边等多元产品。即将上线的《绝区零》等同样受到全球玩家广泛关注。<br /><br />秉承着“技术宅拯救世界”的使命，米哈游始终致力于技术研发、探索前沿科技，在卡通渲染、人工智能、云游戏技术等领域积累了先进的技术能力。<br /><br />米哈游总部位于中国上海，并在新加坡、美国、加拿大、日本、韩国等国家和地区进行全球化布局。目前，公司员工 5,000 人，来自世界知名游戏/互联网/科技公司。<br /><a href="https://www.v2ex.com/i/AzT6V50F.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 AzT6V50F.jpeg"><img class="embedded_image" src="https://i.v2ex.co/AzT6V50F.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-01-29T12:24:04Z</pubDate>
-</item>
-<item>
-<title>[iOS] iOS 如何根据当前的 APP 自动切换输入法？</title>
-<link>https://www.v2ex.com/t/1012572</link>
-<guid>https://www.v2ex.com/t/1012572</guid>
-<content:encoded><![CDATA[
-<p>iOS 上是否有内置设置，或者第三方 app 可以根据不同应用自动切换输入法，类似 macOS 上 Input Source Pro 的功能</p>
-]]></content:encoded>
-<pubDate>2024-01-29T12:19:34Z</pubDate>
-</item>
-<item>
-<title>[广州] 各位今年是回家过年还是留在广州过年？</title>
-<link>https://www.v2ex.com/t/1012570</link>
-<guid>https://www.v2ex.com/t/1012570</guid>
-<content:encoded><![CDATA[
-不知道各位今年都混得怎么样？我今年是没赚到钱，还浑身债，不想回去了，就留在广州。<br />广州过年有什么值得去的地方吗？<br />有哪个大佬的过年缺人需要帮忙？
-]]></content:encoded>
-<pubDate>2024-01-29T12:05:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 怎么说好标准普通话，且语气让人听的很舒服？</title>
-<link>https://www.v2ex.com/t/1012569</link>
-<guid>https://www.v2ex.com/t/1012569</guid>
-<content:encoded><![CDATA[
-<p>一方面是我的心态问题不敢讲，一方面是我能讲标准的普通话，但是很费劲，同时我讲话的时候缺少正面的情感。我在花了几百块钱报了一个线上语音训练班，结果很多视频是录播的，评价的时候说我声音较细软，后面发现不是很喜欢线上这种模式，就没有去上。现在想有没有线下的，价格是怎么样的，同时比如报名普通话考试有作用吗？以前遇到过一个普通话考试过的，普通话很标准，是第二高的级别</p>
-]]></content:encoded>
-<pubDate>2024-01-29T08:06:12Z</pubDate>
 </item>
 </channel>
 </rss>
