@@ -5,11 +5,296 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] just my socks 的 LA500，在老家乡村的宽带使用会不定时断流</title>
+<link>https://www.v2ex.com/t/1015038</link>
+<guid>https://www.v2ex.com/t/1015038</guid>
+<content:encoded><![CDATA[
+
+过年回家使用软路由旁路网关模式的时候发现会过一段时间就发生断流，有时候节点全挂有时候换一个就能用，但是都可以 ping 通。这时候切换成流量没有任何问题，运营商都是移动。后来手机直接连接主路由 wifi 用小火箭仍然会发生这种不定时断流的状况。宽带本身只有 50mbps,请问这种情况是单纯的网路状态不好还是被屏蔽了？
+]]></content:encoded>
+<pubDate>2024-02-08T06:17:53Z</pubDate>
+<pubDate>2024-02-08T06:14:53Z</pubDate>
+</item>
+<item>
+<title>[VPS] 请问甲骨文的免费 VPS 能从 CentOS 转到 debian 吗？</title>
+<link>https://www.v2ex.com/t/1015037</link>
+<guid>https://www.v2ex.com/t/1015037</guid>
+<content:encoded><![CDATA[
+
+<p>如题</p>
+<p>1 、后台貌似没看到重装系统地方，
+2 、问了下 ChatGPT ，推荐使用 DD 脚本，但搜了下，说可能有两个问题
+一是：流行的 DD 脚本要求原系统是 Ubuntu 或者 debian
+二是：好像有人说使用 dd 脚本会被甲骨文惩罚，但忘了怎么惩罚的，删除账户？</p>
+<p>所以想请教下，能不能，以及有什么好方法？</p>
+]]></content:encoded>
+<pubDate>2024-02-08T06:13:46Z</pubDate>
+<pubDate>2024-02-08T06:12:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] 分享下我怎么用 Cloudflare Worker 一个文件为我的出海产品支持购买力平价能力的</title>
+<link>https://www.v2ex.com/t/1015035</link>
+<guid>https://www.v2ex.com/t/1015035</guid>
+<content:encoded><![CDATA[
+
+<img class="embedded_image" rel="noreferrer" src="https://cleanclip.cc/images/headers/ppp.png" />
+<blockquote>
+<p><strong>由于各个国家、地区购买力不一，出海产品需要为不同购买力的地区设定不同的价格。</strong></p>
+</blockquote>
+<p>实现购买力平价<strong>需要两个数据：</strong></p>
+<ol>
+<li>用户的位置数据</li>
+<li>一份各国家的购买力水平清单</li>
+</ol>
+<p><strong>逻辑就很简单了：</strong>
+位置数据 -&gt; 购买力水平 -&gt; 匹配相应价格信息并应用</p>
+<p><strong>那么这两个数据怎么获取呢？</strong></p>
+<h2>位置数据</h2>
+<p>Cloudflare Worker 的 <strong>request 参数</strong>带了非常详细的<strong>位置数据</strong>，这让我们不需要再使用第三方服务就能方便地获取位置：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p.ipic.vip/4m3ptz.png" /></p>
+<p>它包括了经纬度、地区代码等，我们的颗粒度精确到国家，这里用<strong>国家代码 country 字段</strong>。</p>
+<h2>购买力水平数据</h2>
+<p>购买力水平等级可以在这个 gist 下载：<a href="https://gist.github.com/auv1107/999c97a62338833f93b6c3cc5ae08ce8" rel="nofollow">各国家购买力水平清单</a></p>
+<h2>逻辑和实现代码</h2>
+<p>大致逻辑是：</p>
+<ol>
+<li>从 Worker 的 request 参数<strong>获取国家代码</strong></li>
+<li>使用国家代码从购买能力列表<strong>获取购买力水平</strong></li>
+<li>根据水平匹配相应的<strong>折扣信息并应用</strong></li>
+</ol>
+<blockquote>
+<p>我在 <a href="https://cleanclip.cc" rel="nofollow">CleanClip</a>(Mac 上的剪贴板工具) 中简单起见，直接为不同国家应用不同的折扣。
+LemonSqueezy 可以这样直接应用折扣码：PRODUCT_URL + "?checkout%5Bdiscount_code%5D=" + discountCode</p>
+</blockquote>
+<p><strong>一些细节：</strong></p>
+<ul>
+<li>折扣信息保存在环境变量里，方便随时修改</li>
+<li>Access-Control-Max-Age 缓存设为 0 ，可方便随时改动，即时生效。（不设置会导致上次结果保留过久，实践大概是 3 、4 天左右才生效，设为 0 即时生效）</li>
+<li>可以将这个 worker 连接到其它 worker 下，价格信息在这里统一维护，方便多页面、业务使用</li>
+</ul>
+<pre><code class="language-js">import ppp from "./pppdata.js";
+
+// map 一下购买力数据的列表，方便搜索
+const flatppp = ppp.flatMap(category =&gt; category.countries.map( countryInfo =&gt; {
+  return {
+    range: category.range,
+    countryCode: countryInfo.country,
+    countryName: countryInfo.countryName
+  }
+}))
+
+// 在购买力水平列表中找到对应国家
+function findCountry(countryCode) {
+  return flatppp.find(deal =&gt; deal.countryCode == countryCode)
+}
+
+// 根据购买力水平，在环境变量里找到配置的折扣信息
+function getDiscount(env, range) {
+  switch(range) {
+    case "0.0-0.1": return { code: env.level0_1 ?? "", discount: parseInt(env.level0_1_discount ?? "0") ?? 0 }
+    case "0.1-0.2": return { code: env.level1_2 ?? "", discount: parseInt(env.level1_2_discount ?? "0") ?? 0 }
+    case "0.2-0.3": return { code: env.level2_3 ?? "", discount: parseInt(env.level2_3_discount ?? "0") ?? 0 }
+    case "0.3-0.4": return { code: env.level3_4 ?? "", discount: parseInt(env.level3_4_discount ?? "0") ?? 0 }
+    case "0.4-0.5": return { code: env.level4_5 ?? "", discount: parseInt(env.level4_5_discount ?? "0") ?? 0 }
+    case "0.5-0.6": return { code: env.level5_6 ?? "", discount: parseInt(env.level5_6_discount ?? "0") ?? 0 }
+    case "0.6-0.7": return { code: env.level6_7 ?? "", discount: parseInt(env.level6_7_discount ?? "0") ?? 0 }
+    case "0.7-0.8": return { code: env.level7_8 ?? "", discount: parseInt(env.level7_8_discount ?? "0") ?? 0 }
+    case "0.8-0.9": return { code: env.level8_9 ?? "", discount: parseInt(env.level8_9_discount ?? "0") ?? 0 }
+    case "0.9-1.0": return { code: env.level9_10 ?? "", discount: parseInt(env.level9_10_discount ?? "0") ?? 0 }
+    case "1.0-1.1": return { code: env.level10_11 ?? "", discount: parseInt(env.level10_11_discount ?? "0") ?? 0 }
+    case "1.1-1.2": return { code: env.level11_12 ?? "", discount: parseInt(env.level11_12_discount ?? "0") ?? 0 }
+    case "1.2-1.3": return { code: env.level12_13 ?? "", discount: parseInt(env.level12_13_discount ?? "0") ?? 0 }
+    case "1.3-1.4": return { code: env.level13_14 ?? "", discount: parseInt(env.level13_14_discount ?? "0") ?? 0 }
+    default: return {code: "", discount: 0}
+  }
+}
+
+// 合并国家购买力信息+折扣信息
+function mergeDiscountResult(countryPPP, discount) {
+  return JSON.stringify({
+    range: countryPPP.range,
+    countryCode: countryPPP.countryCode,
+    countryName: countryPPP.countryName,
+    discountCode: discount.code,
+    discount: discount.discount
+  });
+}
+
+// 构造 response
+function responseFor(result, code) {
+  return new Response(result, {
+    status: code,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS, POST, PUT, DELETE",
+      "Access-Control-Max-Age": "0"
+    }
+  });
+}
+
+// ✨ 核心代码
+export default {
+  async fetch(request, env, ctx) {
+    // 1. 获取国家编码
+    const countryCode = request.cf.country
+
+    // 2. 在购买力列表中找到该国家
+    let countryPPP = findCountry(countryCode)
+
+    // 3. 通过该国家购买力获取对应优惠信息
+    let discount = getDiscount(env, countryPPP.range)
+
+    if (countryPPP &amp;&amp; discount) {
+      // 构造结果
+      let result = mergeDiscountResult(countryPPP, discount)
+      // 4. 可以直接返回结果供其它服务调用
+      return responseFor(result, 200)
+    } else {
+      return responseFor("Error", 500)
+    }
+
+    // 5. 或者直接 301 重定向到指定优惠链接
+    // let url = env.TARGET_DOMAIN
+    // if (discountCode !== undefined &amp;&amp; discountCode.length &gt; 0) {
+    //   url = env.TARGET_DOMAIN + "?checkout%5Bdiscount_code%5D=" + discountCode
+    // }
+    // var response = Response.redirect(url, 301);
+  },
+};
+</code></pre>
+<hr />
+<p>原文地址： <a href="https://cleanclip.cc/zh/developer/cloudflare-worker-implements-purchasing-power-parity/" rel="nofollow">https://cleanclip.cc/zh/developer/cloudflare-worker-implements-purchasing-power-parity/</a></p>
+]]></content:encoded>
+<pubDate>2024-02-08T06:10:19Z</pubDate>
+<pubDate>2024-02-08T06:10:19Z</pubDate>
+</item>
+<item>
+<title>[Google] 在美帝如何买 pixel 手机划算？</title>
+<link>https://www.v2ex.com/t/1015032</link>
+<guid>https://www.v2ex.com/t/1015032</guid>
+<content:encoded><![CDATA[
+
+<p>春节期间去美帝玩一次，想带个 pixel 回来。</p>
+<p>除了买不到的 vision pro 外，还有其他值得下手的电子设备不？</p>
+]]></content:encoded>
+<pubDate>2024-02-08T05:53:00Z</pubDate>
+<pubDate>2024-02-08T05:53:00Z</pubDate>
+</item>
+<item>
+<title>[.NET] Avalonia 现在还是灵车吗？连官网文档都能出这么多 bug</title>
+<link>https://www.v2ex.com/t/1015029</link>
+<guid>https://www.v2ex.com/t/1015029</guid>
+<content:encoded><![CDATA[
+
+<p>一年前刚学习这个框架的时候官网文档 Music Store App 这章节一半的图片 404 错误，昨天去看倒是已经解决了，又弄出了新的 bug ，文档的侧边栏折叠后无法展开
+连官网文档都能出这么多 bug ，框架的稳定性不敢想</p>
+]]></content:encoded>
+<pubDate>2024-02-08T05:37:15Z</pubDate>
+<pubDate>2024-02-08T05:59:55Z</pubDate>
+</item>
+<item>
+<title>[YouTube] Youtube Premium + Google One 美区家庭组空一个位置</title>
+<link>https://www.v2ex.com/t/1015028</link>
+<guid>https://www.v2ex.com/t/1015028</guid>
+<content:encoded><![CDATA[
+
+<p>Youtube Premium + Google One 2T 带 Google 扶墙</p>
+<p>6 人车每人储存空间 333G ，🇹🇷付款方式的🇺🇸家庭组。要求锁定美区或未锁区的账号，可以到 Google Play 查看当前锁定的区域。由于土区涨价下车一位，年付 100 。
+绿色软件联系方式 Z2x1ZXN0ZXI=</p>
+]]></content:encoded>
+<pubDate>2024-02-08T05:28:33Z</pubDate>
+<pubDate>2024-02-08T05:28:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐作为送好友的礼物的类似于年度总结 html 源码</title>
+<link>https://www.v2ex.com/t/1015025</link>
+<guid>https://www.v2ex.com/t/1015025</guid>
+<content:encoded><![CDATA[
+
+想给好朋友准备新年礼物，于是想找个类似于年度总结的源码，然后写一些话，就当是新年礼物了<br />现在的想法是改改 Caddy Web Server 的默认 html 当做展示页，但是觉得有点太简洁了
+]]></content:encoded>
+<pubDate>2024-02-08T05:07:07Z</pubDate>
+<pubDate>2024-02-08T05:52:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有人还记得 BT kitty 吗</title>
+<link>https://www.v2ex.com/t/1015024</link>
+<guid>https://www.v2ex.com/t/1015024</guid>
+<content:encoded><![CDATA[
+
+<p>想当年不管啥种子都能搜到。自从挂了再也找不到平替。特别好奇站长的爬取技术</p>
+]]></content:encoded>
+<pubDate>2024-02-08T05:04:48Z</pubDate>
+<pubDate>2024-02-08T03:02:48Z</pubDate>
+</item>
+<item>
+<title>[随想] 不太喜欢过年，精神刑场</title>
+<link>https://www.v2ex.com/t/1015023</link>
+<guid>https://www.v2ex.com/t/1015023</guid>
+<content:encoded><![CDATA[
+
+奶奶虽然在深圳生活几十年，但是啥也不会，炉头不会用，门反锁都不会开，洗衣机门不会开、不会按，人不老，不到 70 岁。<br /><br />每年会把奶奶接回家里，我知道这一刻，精神内耗开始了，有着永无止境的打扰，“这个水龙头，能不能打开放点水囤着” 哪怕我在上厕所，也要敲四五遍门提醒我，阳台门帮忙开一下，然后我的脑袋开始爆炸了<br /><br />爸爸是一个很固执、传统的人，喜欢反锁阳台门，而我的奶奶不会开锁，对的，基本的扭一下，都不愿意学，生怕阿尔兹海默症不来，于是经常造成死锁，我得帮忙，已经厌恶到不行<br /><br />跟爸爸说过很多遍，过年别再去囤菜，家里没几个人吃，没必要从早忙到晚，然后过年永远都是在吃剩饭剩菜，因此我还买了很多预制菜，也打算定餐馆，问题就是凹不过老人家，还是装忘记一样，到点又买菜，说实话他做饭，很重油，也不好吃<br /><br />你说百善孝为先，问题我好像病了，看不懂中文了。
+]]></content:encoded>
+<pubDate>2024-02-08T05:01:28Z</pubDate>
+<pubDate>2024-02-08T05:39:13Z</pubDate>
+</item>
+<item>
+<title>[Docker] docker 使用 host 模式为什么端口只能映射 IPv6 上？</title>
+<link>https://www.v2ex.com/t/1015022</link>
+<guid>https://www.v2ex.com/t/1015022</guid>
+<content:encoded><![CDATA[
+
+<p>docker-compose 配置</p>
+<p><img alt="2" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/zhen-ke/img@main/image.5tcxzfv9dg00.jpg" /></p>
+<p>用 lsof -i -P -n 查看状态，端口只绑到了 IPv6 上</p>
+<p><img alt="1" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/zhen-ke/img@main/image.53okav9728g0.jpg" /></p>
+<p><a href="https://github.com/lanlin/notes/issues/80" rel="nofollow">如何阻止 Docker 错误的将端口映射到 IPv6 上</a> 尝试过方法一和方法三，均无法关闭 IPv6 ，机器是 oracle 的，请问问题出在哪里？</p>
+]]></content:encoded>
+<pubDate>2024-02-08T04:57:54Z</pubDate>
+<pubDate>2024-02-08T05:34:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有大佬有 openai 的解封经验</title>
+<link>https://www.v2ex.com/t/1015021</link>
+<guid>https://www.v2ex.com/t/1015021</guid>
+<content:encoded><![CDATA[
+
+今天上去忽然就发现被封了，平时搭的日本节点转发自用的。服了<br /><br />求求有没有解封方法，这个是那时第一批的老号了，不舍得放弃掉
+]]></content:encoded>
+<pubDate>2024-02-08T04:45:56Z</pubDate>
+<pubDate>2024-02-08T06:06:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] 上线论坛项目需要哪些资质？</title>
+<link>https://www.v2ex.com/t/1015019</link>
+<guid>https://www.v2ex.com/t/1015019</guid>
+<content:encoded><![CDATA[
+
+坐标五线小县城，想上线一个本地论坛 web/app 是否可行，有公司资质然后 申请 ICP 备案就可以了吗？
+]]></content:encoded>
+<pubDate>2024-02-08T04:35:37Z</pubDate>
+<pubDate>2024-02-08T05:24:24Z</pubDate>
+</item>
+<item>
+<title>不上班研究所 www.toocool.cc 自由职业者交流平台</title>
+<link>https://www.v2ex.com/t/1013815</link>
+<guid>https://www.v2ex.com/t/1013815</guid>
+<content:encoded><![CDATA[
+
+<p>专注分享需求、流量、项目等内容，希望帮助更多人通过互联网获利</p>
+<p><a href="https://www.toocool.cc/" rel="nofollow">不上班研究所</a></p>
+]]></content:encoded>
+<pubDate>2024-02-03T01:19:16Z</pubDate>
+<pubDate>2024-02-05T12:50:26Z</pubDate>
+</item>
+
+<item>
 <title>[Java] 求助： ES Java Client API 中查询参数可能为空值怎么解决？</title>
 <link>https://www.v2ex.com/t/1015018</link>
 <guid>https://www.v2ex.com/t/1015018</guid>
 <content:encoded><![CDATA[
-
 <pre><code>String key = null;
 esClient.search(search -&gt; search
                 .index("index")
@@ -24,7 +309,6 @@ esClient.search(search -&gt; search
 <p>查询的时候传入空值就会报错，没有找到好的解决办法，只能先一个个进行 if 判断不为空后在调 api 查询，感觉很不优雅。希望可以优雅一点的方式判断空值，或者传空值的时候能想办法全匹配。
 想用 lambda 形式来写查询，有没有类似 mybatisplus 中 lambdaquerywrapper.eq 的第一个参数为 bool 可以来判断参数不为空的实现方法？</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T04:16:32Z</pubDate>
 <pubDate>2024-02-08T00:16:32Z</pubDate>
 </item>
 <item>
@@ -32,10 +316,8 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015017</link>
 <guid>https://www.v2ex.com/t/1015017</guid>
 <content:encoded><![CDATA[
-
 <p>现在不是删库了吗，突然想到之前在这个仓库的有个 issue 里面有个很有用的命令，当时没有做笔记😭</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T04:14:15Z</pubDate>
 <pubDate>2024-02-08T04:15:45Z</pubDate>
 </item>
 <item>
@@ -43,7 +325,6 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015016</link>
 <guid>https://www.v2ex.com/t/1015016</guid>
 <content:encoded><![CDATA[
-
 <p>以前看人发过类似一套拳法的字符集，有几十个，但是查了 unicode 字符表怎么也找不到了，不知道有没有 V 有知道的。
 类似下面这样的：
 𓀐𓀑𓀒𓀓𓀔𓀕𓀖
@@ -52,17 +333,14 @@ esClient.search(search -&gt; search
 𓀧𓀨𓀩𓀪𓀫𓀬𓀭</p>
 ]]></content:encoded>
 <pubDate>2024-02-08T04:06:21Z</pubDate>
-<pubDate>2024-02-08T04:06:21Z</pubDate>
 </item>
 <item>
 <title>[问与答] 安卓上有支持 SMB 协议的文件管理器推荐吗</title>
 <link>https://www.v2ex.com/t/1015015</link>
 <guid>https://www.v2ex.com/t/1015015</guid>
 <content:encoded><![CDATA[
-
 用过小米文件管理器、ES 文件管理器、感觉体验一般，目前在用 CX 文件管理器。<br />安卓上就没有一个好用漂亮的文件管理器吗。。。<br />我记得之前三星的文件管理器某个版本好像支持 smb ，新版本现在也不支持了。
 ]]></content:encoded>
-<pubDate>2024-02-08T04:00:27Z</pubDate>
 <pubDate>2024-02-08T04:18:11Z</pubDate>
 </item>
 <item>
@@ -70,10 +348,8 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015014</link>
 <guid>https://www.v2ex.com/t/1015014</guid>
 <content:encoded><![CDATA[
-
 我先是通过微信传文件过去，发现打开方式里面居然没有 safari ，我都震惊了，然后我存到文件，直接点击 html 首先是乱码，然后 html 按钮也根本不能用，完全没反应。我都醉了。。。。<br /><br />safari 就没有一个打开 html 的入口吗。。。
 ]]></content:encoded>
-<pubDate>2024-02-08T03:56:08Z</pubDate>
 <pubDate>2024-02-08T03:56:08Z</pubDate>
 </item>
 <item>
@@ -81,11 +357,9 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015013</link>
 <guid>https://www.v2ex.com/t/1015013</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://gptcs.chaos.mba/" rel="nofollow">https://gptcs.chaos.mba/</a>
 大家可以试试</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T03:46:15Z</pubDate>
 <pubDate>2024-02-07T19:46:15Z</pubDate>
 </item>
 <item>
@@ -93,10 +367,8 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015010</link>
 <guid>https://www.v2ex.com/t/1015010</guid>
 <content:encoded><![CDATA[
-
 这些用户免费为商家做宣传也就算了，还出现了抢红包封面的情节。<br /><br />真是不理解。
 ]]></content:encoded>
-<pubDate>2024-02-08T03:26:54Z</pubDate>
 <pubDate>2024-02-08T04:01:31Z</pubDate>
 </item>
 <item>
@@ -104,11 +376,9 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015009</link>
 <guid>https://www.v2ex.com/t/1015009</guid>
 <content:encoded><![CDATA[
-
 <p>沉醉在跟搞钱大佬交流的气氛中，浮躁的心变得客观理性。</p>
 <p>刘诚，投资要义，分享给各位</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T03:25:07Z</pubDate>
 <pubDate>2024-02-08T03:28:48Z</pubDate>
 </item>
 <item>
@@ -116,10 +386,8 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015008</link>
 <guid>https://www.v2ex.com/t/1015008</guid>
 <content:encoded><![CDATA[
-
 因为一些琐事空档了将近一年，今年一月份开始投简历面试，发现成都现在的行情跟之前好像相差甚远啊。<br /><br /><br />我报期望薪资 20k 很多公司都直说给不到，2023 年初我离职的时候还是 25k...<br /><br /><br />所以想问问工作年限相近的老哥目前是什么情况，有热心老哥愿意分享分享吗？<br /><br /><br />PS：忽略空档期造成的影响 &amp; 忽略大厂
 ]]></content:encoded>
-<pubDate>2024-02-08T03:15:36Z</pubDate>
 <pubDate>2024-02-08T03:31:57Z</pubDate>
 </item>
 <item>
@@ -127,7 +395,6 @@ esClient.search(search -&gt; search
 <link>https://www.v2ex.com/t/1015007</link>
 <guid>https://www.v2ex.com/t/1015007</guid>
 <content:encoded><![CDATA[
-
 <h1>web-redis-manager</h1>
 <p>redis 的管理工具，支持同时管理多个 redis 实例, 慢日志, 服务器信息, 配置信息, CLI 模式，同时支持 web 端和 webview 。</p>
 <blockquote>
@@ -212,20 +479,17 @@ go  build  -o  rdm  # *nix
 <p><img alt="./images/8-min.png" class="embedded_image" rel="noreferrer" src="https://github.com/xiusin/web-redis-manager/blob/develop/images/8-min.png?raw=true" /></p>
 ]]></content:encoded>
 <pubDate>2024-02-08T03:08:36Z</pubDate>
-<pubDate>2024-02-08T03:08:36Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 上次的红包封面抢的比较快，再充了 300 个送大家，送完就过年啦</title>
 <link>https://www.v2ex.com/t/1015006</link>
 <guid>https://www.v2ex.com/t/1015006</guid>
 <content:encoded><![CDATA[
-
 <p>上次的帖子 <a href="https://www.v2ex.com/t/1012909" rel="nofollow">https://www.v2ex.com/t/1012909</a></p>
 <p>上次发放的红包封面抢的比较快，一下就抢光啦，感谢大家的关注。</p>
 <p>临近春节，于是计划充 300 个送给大家，因为龙年相关的封面不可用，这次就只发另外两款封面啦，各 150 个，发完就没啦，等待过年，预祝大家新春快乐～</p>
 <p><a href="https://mp.weixin.qq.com/s/tJXusIwbVsg5IoeHcze7kw" rel="nofollow">https://mp.weixin.qq.com/s/tJXusIwbVsg5IoeHcze7kw</a></p>
 ]]></content:encoded>
-<pubDate>2024-02-08T03:04:41Z</pubDate>
 <pubDate>2024-02-08T03:10:42Z</pubDate>
 </item>
 <item>
@@ -233,10 +497,8 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/1015005</link>
 <guid>https://www.v2ex.com/t/1015005</guid>
 <content:encoded><![CDATA[
-
 专业大前端团队，团队主要负责工具领域前端设计体系规范、企业级前端框架、UI 组件库、前端工程化工具/平台，低代码引擎与框架,智能化工具平台等建设，深入探索体验/效率/质量在 web 领域的最佳实践，同时也是早期加入 TC39 ，参与 JS 语言标准制定并深耕开源领域的组织。内外部多款 IDE 服务，如内部 VSCode ，Codearts IDE ，CloudIDE ，支持 Web ，Nodejs ，Python ，Java ，C++，Rust ，Go 等，研究领域包含代码编辑器，编译器，调试器，测试工具，数据库工具，图形设计器，代码分析与检查工具，深度研究语言内核，工程生态，打造自主可控的 IDE 技术。<br />有意向联系微信：myzhibie
 ]]></content:encoded>
-<pubDate>2024-02-08T02:54:32Z</pubDate>
 <pubDate>2024-02-08T03:28:15Z</pubDate>
 </item>
 <item>
@@ -244,10 +506,8 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/1015004</link>
 <guid>https://www.v2ex.com/t/1015004</guid>
 <content:encoded><![CDATA[
-
 <p>之前一直只关注 chatgpt 没想到国内的大模型已经这么强了，缺点就是政治擦边的都回答不了，但是一定程度上已经可以替代 gpt4 了，联网搜索上传图片这些都免费</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T02:50:13Z</pubDate>
 <pubDate>2024-02-08T03:28:39Z</pubDate>
 </item>
 <item>
@@ -255,10 +515,8 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/1015003</link>
 <guid>https://www.v2ex.com/t/1015003</guid>
 <content:encoded><![CDATA[
-
 <p>家里是锐捷的睿翼 AC 路由一体机，已经有了公网 ip ，我发现 ios app 上直接可以看到 wan 口的 ip 地址，那这样是不是就不需要 ddns 了？我看之前有些帖子说会被查水表的，想着就别给自己添麻烦了，不知道大伙怎么看。</p>
 ]]></content:encoded>
-<pubDate>2024-02-08T02:40:52Z</pubDate>
 <pubDate>2024-02-08T04:19:47Z</pubDate>
 </item>
 <item>
@@ -266,13 +524,11 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/1015002</link>
 <guid>https://www.v2ex.com/t/1015002</guid>
 <content:encoded><![CDATA[
-
 <p>准备了下把 gpt3.5 和 gpt4.0 都接入小程序了，3.5 暂时先免费着，有需要的大佬可以来体验下，也可以分享给不方便魔法网络的朋友，日常使用 3.5 还是可以的</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/p5eW5O3y.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/2H3343XS.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/vsp6NDVf.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-02-08T02:39:55Z</pubDate>
 <pubDate>2024-02-08T03:32:54Z</pubDate>
 </item>
 <item>
@@ -280,10 +536,8 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/1014999</link>
 <guid>https://www.v2ex.com/t/1014999</guid>
 <content:encoded><![CDATA[
-
 微信红包封面，用公众号兑换券兑换的，只能在微信中领取，有需要的可以去领<br /><br /><a href="https://mp.weixin.qq.com/s/ytsrIm0MkNoEO4bkfjcZCA" rel="nofollow noopener" target="_blank">https://mp.weixin.qq.com/s/ytsrIm0MkNoEO4bkfjcZCA</a>
 ]]></content:encoded>
-<pubDate>2024-02-08T02:29:52Z</pubDate>
 <pubDate>2024-02-08T03:43:39Z</pubDate>
 </item>
 <item>
@@ -291,7 +545,6 @@ go  build  -o  rdm  # *nix
 <link>https://www.v2ex.com/t/803669</link>
 <guid>https://www.v2ex.com/t/803669</guid>
 <content:encoded><![CDATA[
-
 <div><h1>UI 优先的统一身份认证系统 Casdoor</h1>
 <h2>Casdoor 是什么？</h2>
 <p>Casdoor 是一个基于 OAuth 2.0 / OIDC 的 UI 优先集中认证 / 单点登录 (SSO) 平台，简单点说，就是 Casdoor 可以帮你解决 <strong>用户管理</strong> 的难题，你无需开发用户登录注册等与用户鉴权相关的一系列功能，只需几个步骤，简单配置，与你的主应用配合，便可完全托管你的用户模块，简单省心，功能强大。</p>
@@ -328,10 +581,8 @@ go  build  -o  rdm  # *nix
 </ul>
 </div>
 ]]></content:encoded>
-<pubDate>2021-09-23T07:24:06Z</pubDate>
 <pubDate>2024-02-07T13:52:08Z</pubDate>
 </item>
-
 <item>
 <title>[职场话题] 今天还在上班的天选打工人举手看看🙋‍♂️</title>
 <link>https://www.v2ex.com/t/1014998</link>
@@ -14531,183 +14782,6 @@ LYTEWRLRR4EJ</p>
 但是 js 的问题时被布局元素尺寸变化时要重算,不能自动重新调整,布局调整完成前就会有段站时间内容伸出容器</p>
 ]]></content:encoded>
 <pubDate>2024-02-03T02:42:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2024 年，国行三星手机/平板还可以刷成港版系统吗？</title>
-<link>https://www.v2ex.com/t/1013829</link>
-<guid>https://www.v2ex.com/t/1013829</guid>
-<content:encoded><![CDATA[
-<p>如题！</p>
-]]></content:encoded>
-<pubDate>2024-02-03T03:20:17Z</pubDate>
-</item>
-<item>
-<title>有 8 年开发经验的 Java + VUE 全栈开发经验在线接单啦，过年想干活！</title>
-<link>https://www.v2ex.com/t/1013839</link>
-<guid>https://www.v2ex.com/t/1013839</guid>
-<content:encoded><![CDATA[
-<p>感谢 V2EX ，多年开发经验，在线接单</p>
-<p>主要熟悉财务报销、电商方向的模块。</p>
-<p>但是其他的也都能做。主打一个客户满意度</p>
-<p>在 V2 和多位 V 友接触，并且完成任务，目前没有差评</p>
-<p>我们是团队作案，支持对公开票。</p>
-<p>VX：muchenlou</p>
-]]></content:encoded>
-<pubDate>2024-02-03T03:20:09Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 高价收 OpenAI API 预付费账号</title>
-<link>https://www.v2ex.com/t/1013827</link>
-<guid>https://www.v2ex.com/t/1013827</guid>
-<content:encoded><![CDATA[
-<p>改信用卡转组织不影响你的账号使用
-欠费不欠费的都可以
-联系 TG：@lzsfh</p>
-]]></content:encoded>
-<pubDate>2024-02-03T02:10:57Z</pubDate>
-</item>
-<item>
-<title>[酷工作] react 失业前端仔在线求捞</title>
-<link>https://www.v2ex.com/t/1013826</link>
-<guid>https://www.v2ex.com/t/1013826</guid>
-<content:encoded><![CDATA[
-同志们 我从宁德时代外包离职了  坑的我一 P  一天到晚到处卷 天天 11 点下班 没见过年纪大于 40 岁的<br /><br />入职期间 宁德时代 10 月左右有一个压力太大跳楼 11 月有一个猝死<br /><br />就我呆的项目组 前端来来去去陆续离职 7-8 个 后端 java4 个 最后走的时候说再也不回宁德时代干外包了<br /><br />现在就想找个 18k 左右的工作 加点班倒是可以 别瞎几把加
-]]></content:encoded>
-<pubDate>2024-02-03T02:09:22Z</pubDate>
-</item>
-<item>
-<title>[成都] 交朋友-有没有职业生涯进入末期的前端</title>
-<link>https://www.v2ex.com/t/1013825</link>
-<guid>https://www.v2ex.com/t/1013825</guid>
-<content:encoded><![CDATA[
-<p>本人 java 后端老油条(10 年+), 快职业生涯末期了, 有没有同样的前端同学呢, 交个朋友</p>
-]]></content:encoded>
-<pubDate>2024-02-03T02:19:31Z</pubDate>
-</item>
-<item>
-<title>[Telegram] 我换了三个号码，总是被 telegram banned</title>
-<link>https://www.v2ex.com/t/1013824</link>
-<guid>https://www.v2ex.com/t/1013824</guid>
-<content:encoded><![CDATA[
-<p>我之前使用了 GV 注册 telegram 没用几分钟就被 banned
-后面我买了 gifgaf 卡也是被 banned
-发了好几次邮件都没有解决</p>
-]]></content:encoded>
-<pubDate>2024-02-03T02:08:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] LCD 屏幕四周出现图像残留的情况，是硬件损坏了吗？</title>
-<link>https://www.v2ex.com/t/1013823</link>
-<guid>https://www.v2ex.com/t/1013823</guid>
-<content:encoded><![CDATA[
-<p>小新 pro16 2021 ，最近注意到关机的时候下面还残留着状态栏，后来用灰色的图一看，屏幕四周都是有图像残留。工作用的机器，每天会在最高亮度用八九个小时，出现这个是硬件本身质量问题还是我用太狠了？电脑还在保修期内，这种情况可以找售后换屏吗？</p>
-<p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/clSYlou.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-02-03T02:18:21Z</pubDate>
-</item>
-<item>
-<title>[AirPods] airPods 右耳电池坏了</title>
-<link>https://www.v2ex.com/t/1013822</link>
-<guid>https://www.v2ex.com/t/1013822</guid>
-<content:encoded><![CDATA[
-<p>请问大家都在哪儿换的电池啊，直营店是换新的耳机还是只换电池啊</p>
-]]></content:encoded>
-<pubDate>2024-02-03T01:58:50Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] openai 账号被封了，说说情况</title>
-<link>https://www.v2ex.com/t/1013821</link>
-<guid>https://www.v2ex.com/t/1013821</guid>
-<content:encoded><![CDATA[
-<p>今天一早起来发现账号被封了，我说说我的使用情况，看对各位避免被封有没有帮助。</p>
-<h1>关于账号</h1>
-<p>我这个账号是在 chatGPT3.5 版本出来时候就注册的账号，绑定的是 UltraMobile 的电话卡；
-一开始的 api 付费用的 nobepay 的卡，后续也开了 plus ，中间因为卡失效更换过几种卡段；</p>
-<p>后续更换到 onekey 的卡，API 付费到现在也是使用的 onekey 的卡，plus 会员也是一直使用的 onekey 的卡直到 App Store 可以订阅 plus ，直到被封 plus 付费也一直走的 App Store 。</p>
-<h1>关于使用节点</h1>
-<p>一直使用的日本节点，印象中有几次因为机场问题更换了备用机场的美国节点以及日本节点，随后主机场一恢复就切换回来了；被封的前一天从奶昔的普通日本节点更换为 premium 的日本节点（只有这个变化，所以我严重怀疑）。</p>
-]]></content:encoded>
-<pubDate>2024-02-02T17:57:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 被 ban 号，不知道触犯了什么天条，老 v2 玩家出来说说</title>
-<link>https://www.v2ex.com/t/1013820</link>
-<guid>https://www.v2ex.com/t/1013820</guid>
-<content:encoded><![CDATA[
-<a href="https://www.v2ex.com/t/1013659" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1013659</a><br /><br />我不明白为什么判官一圈就给我封号了，我对这种打趣的帖子放程序员节点我感觉没有任何的问题。<br />如果论坛清晰的定义了程序员节点只能发代码我闭嘴！<br /><br />并且我确实在收无忧云，然后带了一嘴（难道要开 2 个帖子？）<br /><br /> 相反我感觉这种类似举报的行为让我很感有种被告知的感觉，今天一看惊了，号没了。我也颠覆了认知，原来  `一个友好的社区` 是这样的不包容<br /><br />这个帖子我发在了问与答，也不知道符合游戏规则不
-]]></content:encoded>
-<pubDate>2024-01-26T01:57:30Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 现在做外包的公司或自己接单的大佬，有什么牛逼的提效工具吗？比如代码生成、一键部署方面的</title>
-<link>https://www.v2ex.com/t/1013819</link>
-<guid>https://www.v2ex.com/t/1013819</guid>
-<content:encoded><![CDATA[
-RT ，想知道现在的外包公司或自己接私活的大佬有没有很牛逼的提效工具？<br /><br />如代码生成器：可以根据数据库表拖拽业务逻辑，包括页面也可以像 dreamwaver 那样拖拽，然后通过一些逻辑点位建立前后端的联系，最终生成一个完整的项目（可以按需拖拽生成传统 PC 、H5 ，小程序以及安卓 ios app ）<br /><br />再比如一键部署：将生成的程序通过一键部署工具，直接部署到对方服务器（或者自己提供云服务？），当然小程序和 app 麻烦许多，这个是否也有提效工具可以帮助客户一键发布？<br /><br />比较好奇这个圈子是如何运作的，如果只是接单，然后自己从头到尾开发效率也太低了，想看看业内有没有比较成熟的解决方案
-]]></content:encoded>
-<pubDate>2024-02-03T02:05:06Z</pubDate>
-</item>
-<item>
-<title>[Apple] 过年了，想买个新 macbook, 有啥渠道比官网便宜的？</title>
-<link>https://www.v2ex.com/t/1013818</link>
-<guid>https://www.v2ex.com/t/1013818</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-02-03T01:48:45Z</pubDate>
-</item>
-<item>
-<title>[VPS] 各位 v2er 们,有交换 VPS 推荐 blog 友链的吗</title>
-<link>https://www.v2ex.com/t/1013817</link>
-<guid>https://www.v2ex.com/t/1013817</guid>
-<content:encoded><![CDATA[
-<p><a href="https://yz9.net" rel="nofollow">https://yz9.net</a>
-<a href="https://vpsping.com" rel="nofollow">https://vpsping.com</a></p>
-<p>都是十年以上老站 ，日更，你们任意选啊，同类型的就可换</p>
-]]></content:encoded>
-<pubDate>2024-02-02T21:43:53Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 路由器改成桥接隔几天就掉线是什么原因？</title>
-<link>https://www.v2ex.com/t/1013816</link>
-<guid>https://www.v2ex.com/t/1013816</guid>
-<content:encoded><![CDATA[
-<p>路由器还是很多年前的 AC86U ，没刷固件。
-设置桥接用路由器来拨号，就隔几天（大概 2-3 ）就会掉线，表现为路由器亮红灯断网，这时候就要重启。</p>
-<p>于是我设置了每天凌晨重启一下，但还是会有这种情况，请问是我哪里没设置对，还是说路由器的配置不够了或其他问题。网上也看有说 AC86U 断联什么的 不知道跟我的情况一样不。</p>
-<p>设置动态 IP 就很久很久都不会掉线，现在暂时改回动态 IP 了，但时不时也会出现另外一个问题就是，路由器管理界面打不开，但有线跟 WIFI 又正常。</p>
-]]></content:encoded>
-<pubDate>2024-02-03T02:12:34Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 不上班研究所 www.toocool.cc 自由职业者交流平台</title>
-<link>https://www.v2ex.com/t/1013815</link>
-<guid>https://www.v2ex.com/t/1013815</guid>
-<content:encoded><![CDATA[
-<p>专注分享需求、流量、项目等内容，希望帮助更多人通过互联网获利</p>
-<p><a href="https://www.toocool.cc/" rel="nofollow">不上班研究所</a></p>
-]]></content:encoded>
-<pubDate>2024-02-03T01:33:32Z</pubDate>
-</item>
-<item>
-<title>[互联网] 2024.2.1 Midjourney discord 问题</title>
-<link>https://www.v2ex.com/t/1013814</link>
-<guid>https://www.v2ex.com/t/1013814</guid>
-<content:encoded><![CDATA[
-<p>有两个问题
-1.Midjourney discord 需要会员才能登录么？，一直显示无法邀请
-2.Midjourney 如何开通会员？</p>
-]]></content:encoded>
-<pubDate>2024-02-03T01:11:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 23 年公司效益下滑的情况下，怎么理解一方面冻结员工调薪和压低绩效，一方面给高管发更多的奖金？</title>
-<link>https://www.v2ex.com/t/1013812</link>
-<guid>https://www.v2ex.com/t/1013812</guid>
-<content:encoded><![CDATA[
-RT<br />全体员工除极个别都是没有调薪，绩效全都是 1 个月工资；<br />这么做的用意是啥？通过高管的高额奖金去激励全体员工的奋斗意识么？
-]]></content:encoded>
-<pubDate>2024-02-03T01:09:42Z</pubDate>
 </item>
 </channel>
 </rss>
