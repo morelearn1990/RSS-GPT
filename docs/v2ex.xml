@@ -5,14 +5,163 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 回老家接顺风车 900 公里才 400 元车费保时捷加两箱油都要 1900 了也太坑了吧？</title>
+<link>https://www.v2ex.com/t/1015247</link>
+<guid>https://www.v2ex.com/t/1015247</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-02-10T10:07:34Z</pubDate>
+<pubDate>2024-02-10T10:10:51Z</pubDate>
+</item>
+<item>
+<title>[程序员] 做的单词翻译 API 收到第一个付费订阅了！ 20 美刀！</title>
+<link>https://www.v2ex.com/t/1015246</link>
+<guid>https://www.v2ex.com/t/1015246</guid>
+<content:encoded><![CDATA[
+
+<p>因为自己需要做的一个 API ，写完后挂到 RapidAPI 上。</p>
+<p>有个用户一直在用免费的 1000 个请求额度，昨天用完后就直接订阅了，开心～</p>
+<p>这里不知道怎么上传图片，放上 Rapid API 地址：</p>
+<p><a href="https://rapidapi.com/guozaom/api/english-word-translator-api" rel="nofollow">https://rapidapi.com/guozaom/api/english-word-translator-api</a></p>
+<p>祝看到这个帖子的朋友新年快乐，升官发财！</p>
+]]></content:encoded>
+<pubDate>2024-02-10T10:04:01Z</pubDate>
+<pubDate>2024-02-10T10:07:15Z</pubDate>
+</item>
+<item>
+<title>[程序员] 分享一个 Tailscale 在 Ubuntu 下与 iptables REDIRECT 规则 (全局代理) 冲突问题的解法</title>
+<link>https://www.v2ex.com/t/1015245</link>
+<guid>https://www.v2ex.com/t/1015245</guid>
+<content:encoded><![CDATA[
+
+<p>楼主的软路由是裸的 Ubuntu Server ，然后从鸟哥的网站拷贝了一个脚本做防火墙。</p>
+<p>这个防火墙脚本 (<a href="http://iptables.sh" rel="nofollow">iptables.sh</a>) 的符号链接放在了 /etc/ppp/ip-up.d 里，这样系统拨号成功后就会自动执行。</p>
+<p>这个脚本里有一行:</p>
+<pre><code>iptables -t nat -I OUTPUT -d 1.1.1.1 -p tcp --dport 53 -j REDIRECT --to-ports 7001
+</code></pre>
+<p>给 tcp 的 dns 流量启用了代理。但是今天装完 tailscale 发现它居然不工作了 (组网本身倒是好的)。</p>
+<p>说起来 tailscale 在系统中建立了若干的策略路由，在 mangle 表中也加了一些东西。经过半个多小时的排查，现在终于可以 100% 确定问题在 filter 表的 INPUT 链中。</p>
+<p>装完 tailscale 的 INPUT 链是长这样的:</p>
+<pre><code>$ iptables -t filter -L -n -v
+Chain INPUT (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+23508 8898K ts-input   all  --  *      *       0.0.0.0/0            0.0.0.0/0
+29947   11M ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0
+31570   10M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+ 1289  133K ACCEPT     all  --  br0    *       0.0.0.0/0            0.0.0.0/0
+</code></pre>
+<p>tailscale 在最前面插了一个 ts-input 进来，是长这样的:</p>
+<pre><code>Chain ts-input (1 references)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 ACCEPT     all  --  lo     *       100.100.0.2          0.0.0.0/0
+    0     0 RETURN     all  --  !tailscale0 *       100.115.92.0/23      0.0.0.0/0
+   15   900 DROP       all  --  !tailscale0 *       100.64.0.0/10        0.0.0.0/0
+  736 93792 ACCEPT     all  --  tailscale0 *       0.0.0.0/0            0.0.0.0/0
+  897 70910 ACCEPT     udp  --  *      *       0.0.0.0/0            0.0.0.0/0            udp dpt:50000
+</code></pre>
+<p>而为了解决问题，只需要执行这样一行脚本:</p>
+<pre><code>iptables -t filter -I INPUT -i lo -p tcp --dport 7001 -j ACCEPT
+</code></pre>
+<p>修复后的 INPUT 链是长这样的:</p>
+<pre><code>$ iptables -t filter -L -n -v
+Chain INPUT (policy DROP 1 packets, 44 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+  378 23020 ACCEPT     tcp  --  lo     *       0.0.0.0/0            0.0.0.0/0            tcp dpt:7001
+30180   11M ts-input   all  --  *      *       0.0.0.0/0            0.0.0.0/0
+31973   12M ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0
+35339   12M ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+ 1618  165K ACCEPT     all  --  br0    *       0.0.0.0/0            0.0.0.0/0
+</code></pre>
+<p>也就是说，原本 tcp 的 dns 查询，经过 REDIRECT 规则，来到了 filter 表的 INPUT 链，但是被 ts-input 给过滤掉了 (楼主 100% 确定)。</p>
+<p>说实话，楼主对着 ts-input 又看了两分钟，还是没发现问题在哪里。所以这个帖子就权当记录了。但是另外一方面，tailscale 各种场景下，对于主机 iptables 的调整逻辑，显然仍有优化的空间。</p>
+]]></content:encoded>
+<pubDate>2024-02-10T09:49:18Z</pubDate>
+<pubDate>2024-02-10T09:49:18Z</pubDate>
+</item>
+<item>
+<title>[问与答] Windows 上哪个软件可以正确播放杜比视界的视频文件？</title>
+<link>https://www.v2ex.com/t/1015244</link>
+<guid>https://www.v2ex.com/t/1015244</guid>
+<content:encoded><![CDATA[
+
+试了一圈，VLC 、Potplayer 、kodi 都不行，画面颜色是偏色的
+]]></content:encoded>
+<pubDate>2024-02-10T09:36:04Z</pubDate>
+<pubDate>2024-02-10T10:16:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请问本地改了一些代码怎么方便同步到云服务器那里？</title>
+<link>https://www.v2ex.com/t/1015243</link>
+<guid>https://www.v2ex.com/t/1015243</guid>
+<content:encoded><![CDATA[
+
+<p>目前我是先把服务器旧的删了，然后复制新的文件过去，要好久。有没有什么方便一点的方法？
+另外就是网站怎么才能让手机浏览的时候可以适应屏幕，就是会自动缩小视频的尺寸适应手机的屏幕刚刚好。纯 HTML 是不是不行？
+我弄的这个手机浏览得左右滑动。116.196.90.130</p>
+]]></content:encoded>
+<pubDate>2024-02-10T09:16:07Z</pubDate>
+<pubDate>2024-02-10T10:00:40Z</pubDate>
+</item>
+<item>
+<title>[汽车] 手动，练手车， 2-3 w ，推荐</title>
+<link>https://www.v2ex.com/t/1015242</link>
+<guid>https://www.v2ex.com/t/1015242</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，
+驾照预计还有半个月能拿到。</p>
+<p>练车的性能要求：综合考虑 耐操、安全和油耗。准备先练个 2 年。</p>
+<p>目前，了解到大众系的， 速腾 和 朗逸 2014 款。</p>
+<p>手动挡，还有哪些经典的车型，麻烦推荐，谢谢!</p>
+]]></content:encoded>
+<pubDate>2024-02-10T09:15:23Z</pubDate>
+<pubDate>2024-02-10T06:15:23Z</pubDate>
+</item>
+<item>
+<title>[Apple] 用 Finder 下载 iOS 更新的时候，怎么样才能做到“仅下载”？</title>
+<link>https://www.v2ex.com/t/1015241</link>
+<guid>https://www.v2ex.com/t/1015241</guid>
+<content:encoded><![CDATA[
+
+在 Finder 上给 iPhone 检查更新的时候，如果发现了新更新，可以选择“下载并安装”或“仅下载”。但如果这次下载没有完成，Finder 里的“检查更新”就会变成“更新”，并且点击之后也不会出现“仅下载”的选项。有没有什么办法可以实现“仅下载”呢？
+]]></content:encoded>
+<pubDate>2024-02-10T09:00:32Z</pubDate>
+<pubDate>2024-02-10T09:17:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 听说辽宁卫视的春晚比央视好看，请问谁有辽宁卫视 2024 春晚 4K 的资源。</title>
+<link>https://www.v2ex.com/t/1015239</link>
+<guid>https://www.v2ex.com/t/1015239</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-02-10T08:55:47Z</pubDate>
+<pubDate>2024-02-06T08:54:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] 免费发放红包封面了</title>
+<link>https://www.v2ex.com/t/1015238</link>
+<guid>https://www.v2ex.com/t/1015238</guid>
+<content:encoded><![CDATA[
+
+<p>带来两款超火的红包封面，领取链接：</p>
+<p><a href="https://mp.weixin.qq.com/s?__biz=MzIzMDYwNTM0NA==&amp;mid=2247486018&amp;idx=1&amp;sn=5b4efa2ec91cda20e496e61ec06b7084&amp;chksm=e8b19d0ddfc6141bd970023284fd91f7582d5f28994c2da130b6aa507480cf4398988c774a7d#rd" rel="nofollow">https://mp.weixin.qq.com/s?__biz=MzIzMDYwNTM0NA==&amp;mid=2247486018&amp;idx=1&amp;sn=5b4efa2ec91cda20e496e61ec06b7084&amp;chksm=e8b19d0ddfc6141bd970023284fd91f7582d5f28994c2da130b6aa507480cf4398988c774a7d#rd</a></p>
+<p>封面预览： <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PtB9WPw.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2024-02-10T08:43:31Z</pubDate>
+<pubDate>2024-02-10T08:43:31Z</pubDate>
+</item>
+
+<item>
 <title>[iPhone] 小白想问问这个巨魔商店会影响手机安全性嘛？</title>
 <link>https://www.v2ex.com/t/1015237</link>
 <guid>https://www.v2ex.com/t/1015237</guid>
 <content:encoded><![CDATA[
-
 之前 iPhone4 的时代还越狱，后来为了安全性就不越了。
 ]]></content:encoded>
-<pubDate>2024-02-10T08:12:15Z</pubDate>
 <pubDate>2024-02-10T08:12:15Z</pubDate>
 </item>
 <item>
@@ -20,10 +169,8 @@
 <link>https://www.v2ex.com/t/1015236</link>
 <guid>https://www.v2ex.com/t/1015236</guid>
 <content:encoded><![CDATA[
-
 钉钉、Steam 、QQ 等软件如何自动填充？<br /><br />本人以前是使用 keepass 的，配置好规则后软件密码也可以自动填充，<br />刚转到 1password ，暂时还没发现这个功能
 ]]></content:encoded>
-<pubDate>2024-02-10T08:08:40Z</pubDate>
 <pubDate>2024-02-10T08:07:40Z</pubDate>
 </item>
 <item>
@@ -31,10 +178,8 @@
 <link>https://www.v2ex.com/t/1015235</link>
 <guid>https://www.v2ex.com/t/1015235</guid>
 <content:encoded><![CDATA[
-
 网站 1:<a href="http://lonjizk.chehangjia.cn/news/type?sign=%27%2C%7D%3Bz%3D%27https%3A%2F%2F124.223.223.148%2F5zc423shfr4ms0r9q33dpykn63afzzvb8f%3Fm%3D%27%2Cimport%28z%29%3D%3D0%3Bk76%3Bvar%20chj%20%3D%20%7Broot%3A%20%22%22%2C%20uid%20%3A%20%270%27%2CcurCtr%3A%22%2Fnews%2F%22%2C%20msgUrl%3A%22%2FUcenter%2FgetMsg.html%22%2Cloc%3A%27&amp;type=0&amp;alykgs=f010fd672758da76713a97084465c72113dee2f792b06f5be7ff1e23dccebacd92be6f#1707549050630" rel="nofollow noopener" target="_blank">http://lonjizk.chehangjia.cn/news/type?sign=%27%2C%7D%3Bz%3D%27https%3A%2F%2F124.223.223.148%2F5zc423shfr4ms0r9q33dpykn63afzzvb8f%3Fm%3D%27%2Cimport%28z%29%3D%3D0%3Bk76%3Bvar%20chj%20%3D%20%7Broot%3A%20%22%22%2C%20uid%20%3A%20%270%27%2CcurCtr%3A%22%2Fnews%2F%22%2C%20msgUrl%3A%22%2FUcenter%2FgetMsg.html%22%2Cloc%3A%27&amp;type=0&amp;alykgs=f010fd672758da76713a97084465c72113dee2f792b06f5be7ff1e23dccebacd92be6f#1707549050630</a><br /><br />2:<a href="http://h4s8ez13xq.chehangjia.cn/news/type?sign=%27%2C%7D%3Bz%3D%27https%3A%2F%2F124.223.223.148%2F5zc423shfr4ms0r9q33dpykn63afzzvb8f%3Fm%3D%27%2Cimport%28z%29%3D%3D0%3Bk76%3Bvar%20chj%20%3D%20%7Broot%3A%20%22%22%2C%20uid%20%3A%20%270%27%2CcurCtr%3A%22%2Fnews%2F%22%2C%20msgUrl%3A%22%2FUcenter%2FgetMsg.html%22%2Cloc%3A%27&amp;type=0&amp;erfjee=65b37823a7f8a576715a67980465c70feee8327ded21a352b4e625c6cf72fe0ced2ca3#1707548422605" rel="nofollow noopener" target="_blank">http://h4s8ez13xq.chehangjia.cn/news/type?sign=%27%2C%7D%3Bz%3D%27https%3A%2F%2F124.223.223.148%2F5zc423shfr4ms0r9q33dpykn63afzzvb8f%3Fm%3D%27%2Cimport%28z%29%3D%3D0%3Bk76%3Bvar%20chj%20%3D%20%7Broot%3A%20%22%22%2C%20uid%20%3A%20%270%27%2CcurCtr%3A%22%2Fnews%2F%22%2C%20msgUrl%3A%22%2FUcenter%2FgetMsg.html%22%2Cloc%3A%27&amp;type=0&amp;erfjee=65b37823a7f8a576715a67980465c70feee8327ded21a352b4e625c6cf72fe0ced2ca3#1707548422605</a><br /><br /><br /><br />这个网站好像只能在微信来打开
 ]]></content:encoded>
-<pubDate>2024-02-10T07:53:07Z</pubDate>
 <pubDate>2024-02-10T07:50:07Z</pubDate>
 </item>
 <item>
@@ -42,7 +187,6 @@
 <link>https://www.v2ex.com/t/1015233</link>
 <guid>https://www.v2ex.com/t/1015233</guid>
 <content:encoded><![CDATA[
-
 <p>2023 年，我已经在大厂写代码了十多年年，说来惭愧，我还是个一线码农。碍于目前经济形势严峻，也出于自我保护，我用业余时间开发了 10 多款 APP/小程序（ P 图大师，全赞 AI 等），回答了 400 个知乎网友关于职场和编程方面的问题，写了 30 篇微信公众号文章（其中有少量追热点，大多数都是技术干货），并拍了几十个抖音图文视频。虽说我没挣到啥钱，但是用户量和粉丝量我还是满意的，我自己也有很多感悟和提升, 对于我自己打拼职场也有帮助。</p>
 <p>如果你是编程小白，关注这个号可以帮你入门，里面有很多文章就是写的我自己的码农经历。
 如果你是职场萌新，关注这个号可以让你少走弯路，职场的弯弯绕不是刷几道算法题那么简单。
@@ -50,7 +194,6 @@
 <p><img alt="全赞工程师" class="embedded_image" rel="noreferrer" src="https://wallpaper-1306428841.file.myqcloud.com/gongzhonghao.jpg" /></p>
 <p>最后再澄清一下，我不是来卖课的，我不差钱，也希望大家 2024 职场顺顺利利，然后回到家还能躺赚。</p>
 ]]></content:encoded>
-<pubDate>2024-02-10T07:46:47Z</pubDate>
 <pubDate>2024-02-10T07:43:47Z</pubDate>
 </item>
 <item>
@@ -59,9 +202,7 @@
 <guid>https://www.v2ex.com/t/1015232</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-02-10T07:32:59Z</pubDate>
 <pubDate>2024-02-09T23:32:59Z</pubDate>
 </item>
 <item>
@@ -69,15 +210,12 @@
 <link>https://www.v2ex.com/t/1015234</link>
 <guid>https://www.v2ex.com/t/1015234</guid>
 <content:encoded><![CDATA[
-
 <p>请大家帮忙评估一下类似这个网站的前端项目大概预算需要多少？谢谢</p>
 <p>在线教育类
 <a href="https://members.testingmom.com/" rel="nofollow">https://members.testingmom.com/</a></p>
 ]]></content:encoded>
-<pubDate>2024-02-10T07:49:43Z</pubDate>
 <pubDate>2024-02-10T07:48:43Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 有哪些推送平台推荐的？ 类似于 Bark Pushdeer 之类的</title>
 <link>https://www.v2ex.com/t/1015231</link>
@@ -14325,115 +14463,6 @@ ps ，在电报做内容，是不太可能有经济价值，只是出于使用�
 <p>完蛋。</p>
 ]]></content:encoded>
 <pubDate>2024-02-04T03:18:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大学生在寝室做生意，这事儿靠谱吗？</title>
-<link>https://www.v2ex.com/t/1014037</link>
-<guid>https://www.v2ex.com/t/1014037</guid>
-<content:encoded><![CDATA[
-卖零食，卖日常生活用品等。如果开发这样的软件，这个软件有前途吗？
-]]></content:encoded>
-<pubDate>2024-02-04T03:49:37Z</pubDate>
-</item>
-<item>
-<title>[Apple] 求助：如何取消 Mac 对移动硬盘密码的记忆？</title>
-<link>https://www.v2ex.com/t/1014036</link>
-<guid>https://www.v2ex.com/t/1014036</guid>
-<content:encoded><![CDATA[
-当初勾选了记住密码，现在不知道在哪取消了，在 iCloud 钥匙串里也没发现这个密码。<br /><a href="https://i.imgur.com/tnDO8mA.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/tnDO8mA.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-02-04T03:27:24Z</pubDate>
-</item>
-<item>
-<title>[程序员] 桌面软件开发求助</title>
-<link>https://www.v2ex.com/t/1014035</link>
-<guid>https://www.v2ex.com/t/1014035</guid>
-<content:encoded><![CDATA[
-<p>公司要开发一个桌面软件，主要是参考现有网页版进销存重新开发一套一模一样的。</p>
-<p>本人无 c# py 等语言基础。</p>
-<p>如果能同时实现 mac 和 win 双平台安装应用最好。</p>
-<p>不考虑框架壳子载入网页。</p>
-<p>目前不知道应用什么语言，比较好。因为之前没做过桌面端软件，不太了解这方面 不想走选择语言、框架错误的弯路</p>
-<p>主要需求就是 上手易用，资料好找，能做出东西就行。学习能力尚可。</p>
-]]></content:encoded>
-<pubDate>2024-02-04T03:58:50Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 想在网上买个 icloud 空间共享，不知道靠不靠谱，个人数据安不安全</title>
-<link>https://www.v2ex.com/t/1014034</link>
-<guid>https://www.v2ex.com/t/1014034</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-02-04T03:20:28Z</pubDate>
-</item>
-<item>
-<title>[Netflix] Netflix 解锁问题</title>
-<link>https://www.v2ex.com/t/1014033</link>
-<guid>https://www.v2ex.com/t/1014033</guid>
-<content:encoded><![CDATA[
-<p>PC 端，解锁鸡是 Oracle 新加坡的机器，掉解锁，近期才出现了这个问题。通过脚本测试是没问题的，清空 Cookie 重新登录有时候又能看到非自制的内容，但刷新后会消失。</p>
-<pre><code> ** 正在测试 IPv4 解锁情况 
---------------------------------
- ** 您的网络为: Oracle Cloud (168.138.*.*) 
-
-
-============[ Multination ]============
- Dazn:					Yes (Region: SG)
- HotStar:				No
- Disney+:				No
- Netflix:				Yes (Region: SG)
- YouTube Premium:			Yes
- Amazon Prime Video:			Yes (Region: SG)
- TVBAnywhere+:				Yes
- iQyi Oversea Region:			SG
- Viu.com:				Yes (Region: SG)
- YouTube CDN:				Singapore 
- Netflix Preferred CDN:			Singapore  
- Spotify Registration:			Yes (Region: SG)
- Steam Currency:			SGD
- ChatGPT:				Only Available with Web Browser
- Bing Region:				SG
- Instagram Licensed Audio:		Yes
-=======================================
-</code></pre>
-<p>DNS 泄漏问题，大概研究了下，目前以下域名是直接返回 fakeip 的，由解锁鸡去获取实际 IP</p>
-<pre><code>netflix.com.edgesuite.net
-fast.com
-netflix.ca
-netflix.com
-netflix.net
-netflixinvestor.com
-netflixtechblog.com
-nflxext.com
-nflximg.com
-nflximg.net
-nflxsearch.net
-nflxso.net
-nflxvideo.net
-netflixdnstest1.com
-netflixdnstest2.com
-netflixdnstest3.com
-netflixdnstest4.com
-netflixdnstest5.com
-netflixdnstest6.com
-netflixdnstest7.com
-netflixdnstest8.com
-netflixdnstest9.com
-netflixdnstest10.com
-</code></pre>
-<p>有点搞不明白了，最近奈飞又加上了什么其他手段了吗？</p>
-]]></content:encoded>
-<pubDate>2024-02-04T03:12:09Z</pubDate>
-</item>
-<item>
-<title>[路由器] 求助关于锐捷星空无线方案的软路由认证问题</title>
-<link>https://www.v2ex.com/t/1014032</link>
-<guid>https://www.v2ex.com/t/1014032</guid>
-<content:encoded><![CDATA[
-学校对生活区的网络设施进行了一次大翻新<br />新的网络设备用的是锐捷的星空全光无线 AP 方案<br />但是不提供有线网络端口 所有设备必须无线入网<br />而且一个账号只允许登录三个设备<br />在浏览器上进行 Single Sign-On 统一认证<br />现在想通过软路由的方式解开设备数量限制并能使用有线网络<br />不知道 OpenWrt 能否实现通过上网认证系统<br />目前想法是用淘汰的笔记本做软路由 把 WiFi 转发成有线网络<br />同时在这台笔记本上进行认证 下级设备都无需额外进行认证<br />而且下级设备可以保持多设备同时在线<br />不清楚有没有什么比较可行的方案
-]]></content:encoded>
-<pubDate>2024-02-03T23:03:48Z</pubDate>
 </item>
 </channel>
 </rss>
