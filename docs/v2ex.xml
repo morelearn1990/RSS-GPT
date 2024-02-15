@@ -5,11 +5,370 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Spotify] Spotify 美区长期车🚗</title>
+<link>https://www.v2ex.com/t/1015750</link>
+<guid>https://www.v2ex.com/t/1015750</guid>
+<content:encoded><![CDATA[
+
+<p>美区 Spotify 合租 美区 Spotify 家庭组 美区 Spotify 拼车 Spotify 美区会员 需要上车的小伙伴可以加我微信 dudu03jia1</p>
+]]></content:encoded>
+<pubDate>2024-02-15T10:18:46Z</pubDate>
+<pubDate>2024-02-15T10:15:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如果突然挂了。像手机密码、银行卡、网站、网盘、存款这些你怎么传递下去？</title>
+<link>https://www.v2ex.com/t/1015749</link>
+<guid>https://www.v2ex.com/t/1015749</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-02-15T10:05:57Z</pubDate>
+<pubDate>2024-02-13T10:05:57Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 现在宽带的 ip 地址已经不改变了吗？</title>
+<link>https://www.v2ex.com/t/1015748</link>
+<guid>https://www.v2ex.com/t/1015748</guid>
+<content:encoded><![CDATA[
+
+之前我家的移动宽带，运营商送了一个华为的光猫，然后插入路由器是 ppooe 拨号的，每次重启一下就改变了 ip ，但几年前运营商说是升级的名义，送了一个包括拨号功能的光猫，路由器的状态是动态 ip 。我最近发现家里的宽带 ip 地址已经不变了，就算重启了光猫 ip 地址也一样，我不知道是不是与运营商更改的设备有关，但我通过查询 ip 地址网站得知 ip 地址的属性现在是城域网 ip 。我并不太懂城域网 ip 是啥意思，但是手机流量的 ip 属性并不是城域网 ip 。
+]]></content:encoded>
+<pubDate>2024-02-15T09:56:23Z</pubDate>
+<pubDate>2024-02-15T09:56:23Z</pubDate>
+</item>
+<item>
+<title>[C++] boost asio 疑问</title>
+<link>https://www.v2ex.com/t/1015746</link>
+<guid>https://www.v2ex.com/t/1015746</guid>
+<content:encoded><![CDATA[
+
+<p>最近在看 asio 的帮助文档，看到了官方的 demo ，请问大家 conn 的引用计数增加为什么是 1 ，2 ，3 ，4 呢？</p>
+<pre><code class="language-c++">std::cout &lt;&lt; "3: " &lt;&lt; new_connection.use_count() &lt;&lt; std::endl;
+</code></pre>
+<p>bind 可以增加引用计数的话，这个位置 conn 的引用计数应该是 2 吧，因为 start_accept 运行完毕后，引用计数要减 1</p>
+<pre><code class="language-c++">
+//
+// server.cpp
+// ~~~~~~~~~~
+//
+// Copyright (c) 2003-2023 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+#include &lt;ctime&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;boost/bind/bind.hpp&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;boost/enable_shared_from_this.hpp&gt;
+#include &lt;boost/asio.hpp&gt;
+
+using boost::asio::ip::tcp;
+
+std::string make_daytime_string()
+{
+  using namespace std; // For time_t, time and ctime;
+  time_t now = time(0);
+  return ctime(&amp;now);
+}
+
+class tcp_connection
+  : public boost::enable_shared_from_this&lt;tcp_connection&gt;
+{
+public:
+  typedef boost::shared_ptr&lt;tcp_connection&gt; pointer;
+
+  static pointer create(boost::asio::io_context&amp; io_context)
+  {
+    return pointer(new tcp_connection(io_context));
+  }
+
+  tcp::socket&amp; socket()
+  {
+    return socket_;
+  }
+
+  void start()
+  {
+    message_ = make_daytime_string();
+    
+    boost::asio::async_write(socket_, boost::asio::buffer(message_),
+        boost::bind(&amp;tcp_connection::handle_write, shared_from_this(),
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred));
+  }
+  
+  ~tcp_connection() { std::cout &lt;&lt; "conn descontruct" &lt;&lt; std::endl;}
+
+private:
+  tcp_connection(boost::asio::io_context&amp; io_context)
+    : socket_(io_context)
+  {
+  }
+
+  void handle_write(const boost::system::error_code&amp; /*error*/,
+      size_t /*bytes_transferred*/)
+  {
+  }
+
+  tcp::socket socket_;
+  std::string message_;
+};
+
+class tcp_server
+{
+public:
+  tcp_server(boost::asio::io_context&amp; io_context)
+    : io_context_(io_context),
+      acceptor_(io_context, tcp::endpoint(tcp::v4(), 13))
+  {
+    start_accept();
+  }
+
+private:
+  void start_accept()
+  {
+    tcp_connection::pointer new_connection =
+      tcp_connection::create(io_context_);
+    
+    std::cout &lt;&lt; "1: " &lt;&lt; new_connection.use_count() &lt;&lt; std::endl;
+    acceptor_.async_accept(new_connection-&gt;socket(),
+        boost::bind(&amp;tcp_server::handle_accept, this, new_connection,
+          boost::asio::placeholders::error));
+    std::cout &lt;&lt; "2: " &lt;&lt; new_connection.use_count() &lt;&lt; std::endl;
+  }
+
+  void handle_accept(tcp_connection::pointer new_connection,
+      const boost::system::error_code&amp; error)
+  {
+    std::cout &lt;&lt; "3: " &lt;&lt; new_connection.use_count() &lt;&lt; std::endl;
+    if (!error)
+    {
+      new_connection-&gt;start();
+    }
+
+    start_accept();
+    std::cout &lt;&lt; "4: " &lt;&lt; new_connection.use_count() &lt;&lt; std::endl;
+  }
+
+  boost::asio::io_context&amp; io_context_;
+  tcp::acceptor acceptor_;
+};
+
+int main()
+{
+  try
+  {
+    boost::asio::io_context io_context;
+    tcp_server server(io_context);
+    io_context.run();
+  }
+  catch (std::exception&amp; e)
+  {
+    std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;
+  }
+
+  return 0;
+}
+
+</code></pre>
+<ol>
+<li>编译完成，运行程序</li>
+<li>新开一个终端，运行 <code>nc 127.0.0.1 13</code></li>
+</ol>
+<p>输出为：</p>
+<pre><code class="language-html">1: 1
+2: 2
+3: 3
+1: 1
+2: 2
+4: 4
+conn descontruct
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-02-15T09:40:24Z</pubDate>
+<pubDate>2024-02-15T09:40:24Z</pubDate>
+</item>
+<item>
+<title>[生活] 如何戒掉强迫症？</title>
+<link>https://www.v2ex.com/t/1015745</link>
+<guid>https://www.v2ex.com/t/1015745</guid>
+<content:encoded><![CDATA[
+
+<p>楼主是研究生，感觉有一定程度的强迫症，不至于影响正常生活，但会特别耗费精力。具体的例子有：</p>
+<ul>
+<li>PPT 的排版、格式、字体会不自主地追求所谓完美，甚至逐个像素更改；</li>
+<li>作图时也在类似的方面要求很高；</li>
+<li>论文撰写会反复重读、修改，但其实也就能改一些语法、格式之类的东西；</li>
+</ul>
+<p>……等等，似乎是不自觉的，内心也知道还有更多重要的事需要做，但就是不知道如何让自己不要在意这些无用的细节，苦恼不堪。</p>
+]]></content:encoded>
+<pubDate>2024-02-15T09:35:47Z</pubDate>
+<pubDate>2024-02-15T09:56:35Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 联通宽带数据使用 AppStore 异常</title>
+<link>https://www.v2ex.com/t/1015744</link>
+<guid>https://www.v2ex.com/t/1015744</guid>
+<content:encoded><![CDATA[
+
+疑似 dns 解析的锅，使用默认 221.5.88.88 正常下载可以满速，偶尔可能遇到点击下载转圈圈。使用 114.114.114.114 或 223.5.5.5/119.29.29.29 则不会，但是无法满速下载。只能 2-3m/s 有啥办法解决吗，广东联通 0754 4/5g 和宽带
+]]></content:encoded>
+<pubDate>2024-02-15T09:27:38Z</pubDate>
+<pubDate>2024-02-14T17:26:38Z</pubDate>
+</item>
+<item>
+<title>[Apple] MBP M2 max 半年电池循环 21，但是健康度已经掉到了 95%</title>
+<link>https://www.v2ex.com/t/1015743</link>
+<guid>https://www.v2ex.com/t/1015743</guid>
+<content:encoded><![CDATA[
+
+如题，有点无语<br /><br /><br />然后还发现合盖续航掉的很快，完全不如之前的 intel 的芯片<br />之前半个月掉电不到一半，一夜能掉 8%-10%<br /><br /><br />是哪里有问题吗
+]]></content:encoded>
+<pubDate>2024-02-15T09:27:13Z</pubDate>
+<pubDate>2024-02-15T10:18:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 还真有邮件丢失的情况吗</title>
+<link>https://www.v2ex.com/t/1015742</link>
+<guid>https://www.v2ex.com/t/1015742</guid>
+<content:encoded><![CDATA[
+
+我一开始认为现在的电子邮箱基本上不会出现邮件丢失的情况。<br />我是用我的 tom 邮箱给我朋友发了一封贺年邮件，但过了会我通过和他微信聊天得知，他已经回复了我的邮件，我却并没有收到。他用的是 QQ 邮箱。我当时呆住了，于是我又发了封邮件，让他回复，我还是没收到，等到第二天依旧是没有。我的 Tom 邮箱能发送邮件到他的 QQ 邮箱，而他的 QQ 邮箱回信像中了魔，我收不到。<br />我叫他截图我看看，但他的邮件地址确实是我的邮箱，排除了地址错误，并且发信状态是投递成功。<br />邮件的丢失搞得我莫名其妙。这种邮件的丢失各位大佬知不知道是啥原因造成的啊？要是我没跟他微信联系，我压根不知道对方的回信。这样看来，邮件的丢失很容易造成当事人的损失啊，我得使用常用的邮箱，比如 Gmail ，这样能否减少邮件丢失概率呢？
+]]></content:encoded>
+<pubDate>2024-02-15T09:26:22Z</pubDate>
+<pubDate>2024-02-15T10:17:57Z</pubDate>
+</item>
+<item>
+<title>[程序员] 为什么 mpv 等很多软件使用 Lua 作为脚本语言，而不是更普及、门槛更低、性能更高（正文附来源）的 JavaScript？如果要给软件加入用户自己编写扩展的功能， Lua 还是 JS 是更好的选择？</title>
+<link>https://www.v2ex.com/t/1015740</link>
+<guid>https://www.v2ex.com/t/1015740</guid>
+<content:encoded><![CDATA[
+
+更普及、门槛更低 这个明显不用举例了<br />性能更高 来源： <a href="https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/lua.html" rel="nofollow noopener" target="_blank">https://benchmarksgame-team.pages.debian.net/benchmarksgame/fastest/lua.html</a>
+]]></content:encoded>
+<pubDate>2024-02-15T09:06:01Z</pubDate>
+<pubDate>2024-02-15T09:45:18Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] POE 改成计算积分制了?</title>
+<link>https://www.v2ex.com/t/1015739</link>
+<guid>https://www.v2ex.com/t/1015739</guid>
+<content:encoded><![CDATA[
+
+<p>订阅用户是每个月 1,000,000 计算点, 非订阅用户是每天刷新。</p>
+<p><code>GPT-4</code>,<code>GPT-4-32K</code>,<code>ChatGPT-16K</code>,<code>DALL-E-3</code>,<code>Claude-2-100k</code>还是只有订阅用户可以访问。</p>
+<p><code>GPT-4</code>是 1500 点一条、<code>GPT-4-32K</code>是 2500 点、<code>ChatGPT-16k</code>是 120 点、<code>DALL-E-3</code>是 1500 点、<code>Claude-2-100k</code>是 750 点。</p>
+<pre><code>https://help.poe.com/hc/en-us/articles/19944206309524-Poe-FAQs
+
+What are compute points?什么是计算点？
+Compute points are a way to give users more flexibility and control over how you communicate with bots on Poe. Each user has a maximum number of compute points they can use over a set period of time. Each bot displays the number of points required to send a message. This means you have the freedom to choose how you allocate your points: you can send many messages to higher compute point bots, more messages to less demanding bots, or balance your usage across a range of bots. For example: if you had only 10 messages left under our previous message cap, your options were limited. Now, with compute points, that same allowance could let you send up to 15 messages to ChatGPT or Assistant, offering you more flexibility and opportunities to interact with bots on Poe.
+计算点是一种让用户更灵活地控制您与 Poe 上的机器人通信方式的方法。每个用户在设定的时间段内可以使用的最大计算点数。每个机器人显示发送消息所需的点数。这意味着您可以自由选择如何分配积分：您可以向计算点较高的机器人发送许多消息，向要求较低的机器人发送更多消息，或者在一系列机器人之间平衡您的使用。例如：如果您在我们之前的消息上限下只剩下 10 条消息，那么您的选择就会受到限制。现在，有了计算点，同样的限额可以让你向 ChatGPT 或 Assistant 发送多达 15 条消息，为你提供更大的灵活性和机会与 Poe 上的机器人互动。
+
+Subscribers receive a higher number of compute points, which are allocated and renewed on a monthly basis, as opposed to daily. See all the benefits of subscribing in the Subscription FAQ.
+订阅者收到的计算点数量更多，这些计算点按月分配和续订，而不是每天。在订阅常见问题解答中查看订阅的所有好处。
+
+Non-paying users receive compute points daily, which reset at the end of each 24-hour period. Points do not roll over. If you need more compute points, you can wait for them to renew tomorrow, or subscribe to receive a higher number of compute points.
+非付费用户每天收到计算点，这些点在每 24 小时结束时重置。积分不会滚动。如果需要更多计算点，可以等待它们明天续订，或者订阅以接收更多数量的计算点。
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-02-15T09:03:45Z</pubDate>
+<pubDate>2024-02-15T10:14:58Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 远程全职岗位推荐</title>
+<link>https://www.v2ex.com/t/1015738</link>
+<guid>https://www.v2ex.com/t/1015738</guid>
+<content:encoded><![CDATA[
+
+远程:go/web 前端/DBA/安卓/ios/数值/UE/UX/渗透/2D3D 特效/谷歌 seo<br /><br /><br /><br />简历投递 nulsenhr@gmail.com
+]]></content:encoded>
+<pubDate>2024-02-15T08:59:00Z</pubDate>
+<pubDate>2024-02-15T08:56:00Z</pubDate>
+</item>
+<item>
+<title>[上海] 大家有认识的可以代办 JuZhu 证+租房合同网签吗，想提公积金+上绿牌</title>
+<link>https://www.v2ex.com/t/1015737</link>
+<guid>https://www.v2ex.com/t/1015737</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-02-15T08:56:13Z</pubDate>
+<pubDate>2024-02-15T08:56:13Z</pubDate>
+</item>
+<item>
+<title>[北京] 朝阳区四惠这边有没有推荐的手机城？想换个电池</title>
+<link>https://www.v2ex.com/t/1015736</link>
+<guid>https://www.v2ex.com/t/1015736</guid>
+<content:encoded><![CDATA[
+
+<p>高估了自己的能力，买了个 iPhone12 的电池但是怎么也打不开屏幕，看来新的胶确实比以前强力多了。</p>
+<p>请问四惠这边有没有修手机的集散地？改天拿去看看，付个手工费找人换了</p>
+]]></content:encoded>
+<pubDate>2024-02-15T08:54:41Z</pubDate>
+<pubDate>2024-02-15T08:54:41Z</pubDate>
+</item>
+<item>
+<title>[程序员] 写了一个自动切换哔哩哔哩视频清晰度的脚本。</title>
+<link>https://www.v2ex.com/t/1015735</link>
+<guid>https://www.v2ex.com/t/1015735</guid>
+<content:encoded><![CDATA[
+
+<p>最近想写一个新的油猴脚本，登录账号看到之前写的另一个脚本。
+当时是因为哔哩哔哩网页默认自动 720P ，我切换了也没用，就写了一个，每次打开网页，自动切换到 1080P 。</p>
+<p><a href="https://greasyfork.org/zh-CN/scripts/476321-%E6%83%9C%E5%91%BD" rel="nofollow">https://greasyfork.org/zh-CN/scripts/476321-%E6%83%9C%E5%91%BD</a></p>
+]]></content:encoded>
+<pubDate>2024-02-15T08:54:23Z</pubDate>
+<pubDate>2024-02-15T08:52:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 超大型文件比较，内存不足，只能分页读区再匹配，但头都秃了，也没想到优化的方式，朋友们帮帮忙啊。</title>
+<link>https://www.v2ex.com/t/1015733</link>
+<guid>https://www.v2ex.com/t/1015733</guid>
+<content:encoded><![CDATA[
+
+有两个本地文件，PersonListA.csv 和 PersonListB.csv ，文件过于巨大，我需要分批读取到内存里，变成 List&lt;Person&gt; A 和 List&lt;Person&gt; B ，我现在要把 A 和 B 进行对比，获得下面结果：<br /><br />Person 有两个属性，一个 Name ，一个 Age ，Name 是唯一的，但两个列表中相同 Name 的人 Age 不一样<br /><br />1 ，找出存在于 A 但不存在于 B 的元素。<br /><br />2 ，找出存在于 B 但不存在于 A 的元素。<br /><br />3 ，找出两个列表中不同的元素。<br /><br />有以下限定条件：<br /><br />1 ，本地文件过大，无法一次性读取到内存中，需要分页进行比较。<br /><br />2 ，无法对两个列表进行排序，数据在列表中都是乱序的，需要用 Name 进行匹配。<br /><br />如果要实现以上 function ，需要用到什么算法，请分析后给出算法的名称。<br /><br />现在的策略是，把 A 中的数据分为 10 组 10 条，然后把 B 中的数据分为 10 组 10 条的数据，分别拿 A 中的每一组数据和 B 中的每一组数据进行比较，这个方法叫做 GetUniqueResult<br /><br />1 ，在找到只存在 A 不存在 B 的元素调用一次 GetUniqueResult 。<br /><br />2 ，在找到只存在 B 不存在 A 的元素调用一次 GetUniqueResult 。<br /><br />3 ，在通过 FindDiffer 找到 A 和 B 中不同的元素。<br /><br />相当于我需要循环 3*(10^10)次才能结束，其中也有使用 HashMap 来进行优化，使得实际执行次数小于 3*(10^10)次。（比如 A 中的第一组数据在和 B 的所有数据比较时，如果第一组的所有数据都找到了，就提前结束。）<br /><br />我现在想问的是，有没有什么更好的算法能从 3*(10^10) 优化到 (10^10)，如果能跟优化到 N （ 1 ）<br /><br />有没有什么方法能只对调用一次 GetUniqueResult ，获得全部结果。<br /><br />-----------------------------------------------<br /><br />浓缩版：<br /><br />我有两个本地 FileA.csv 和 FileB.csv ，分别存储了从 Oracle 中和 PostgreSQL 导出的同一个表。<br /><br />1 ，单个文件超过 10GB ，无法一次性读取到内存中。<br /><br />2 ，两个导出的文件是乱序的，需要用主键在程序里进行数据匹配（文件无法修改）。<br /><br />需要获取结果：<br /><br />1 ，在 A 中存在，但 B 中不存在的数据。<br /><br />2 ，在 B 中存在，但 A 中不存在的数据。<br /><br />3 ，在 A 和 B 中都存在，但有差异的数据。<br /><br /><br />可以有什么办法吗？或者给我一些算法关键字，比如我现在使用的是类哈希分页对比。
+]]></content:encoded>
+<pubDate>2024-02-15T08:36:41Z</pubDate>
+<pubDate>2024-02-15T10:14:13Z</pubDate>
+</item>
+<item>
+<title>[Chrome] Chrome 快速刷新网页内存占用暴涨</title>
+<link>https://www.v2ex.com/t/1015732</link>
+<guid>https://www.v2ex.com/t/1015732</guid>
+<content:encoded><![CDATA[
+
+<p>Chrome 版本：121.0.6167.161</p>
+<p>这是在 V2EX 首页刷新 10 次的内存数据。请问为什么刷新没有回收内存？</p>
+<p><img alt="ff4c342bba0f49816fb5120e654c9ea6.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2024/02/15/ff4c342bba0f49816fb5120e654c9ea6.png" /></p>
+]]></content:encoded>
+<pubDate>2024-02-15T08:27:01Z</pubDate>
+<pubDate>2024-02-15T08:51:52Z</pubDate>
+</item>
+<item>
+<title>[程序员] 安卓降级一个系统应用</title>
+<link>https://www.v2ex.com/t/1015731</link>
+<guid>https://www.v2ex.com/t/1015731</guid>
+<content:encoded><![CDATA[
+
+<p>我遇到一个定制的安卓机器,上边有个定制的系统 app,同时我有这个 app 的老版本,现在我想用这个老版本去替换新版本,在安装到最后的时候会出现应用未安装,请问各位大佬有办法解决吗? <br />
+还有两个条件限制 <br />
+1.没有 root <br />
+2.连不上 adb,机器是安卓 9 的版本,还没有无线调试的选项,usb 接口插上去没反应,可能是因为系统是定制过的原因</p>
+]]></content:encoded>
+<pubDate>2024-02-15T08:21:55Z</pubDate>
+<pubDate>2024-02-15T08:35:59Z</pubDate>
+</item>
+
+<item>
 <title>[Visual Studio Code] Python in Visual Studio Code – 十一月更新 默认安装的 Python 调试器扩展、使用 Pylance 的新诊断规则、Jupyter 的内置变量查看器</title>
 <link>https://www.v2ex.com/t/1015730</link>
 <guid>https://www.v2ex.com/t/1015730</guid>
 <content:encoded><![CDATA[
-
 <p>我们很高兴地宣布 2024 年 2 月版 Visual Studio Code 的 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python</a> 和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter</a> 扩展已经推出！ </p>
 <p>此版本包括以下公告： </p>
 <ul>
@@ -131,7 +490,6 @@
 </ul>
 <p>通过从市场下载 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python</a> 扩展和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter</a> 扩展来试用这些新的改进，或直接从 Visual Studio Code 中的扩展视图（ Ctrl + Shift + X 或 ⌘ + ⇧ + X ）安装它们。可以在文档中详细了解 <a href="https://code.visualstudio.com/docs/python/python-tutorial" rel="nofollow">Visual Studio Code 中的 Python 支持</a>。如果遇到任何问题或有建议，请在 <a href="https://github.com/Microsoft/vscode-python" rel="nofollow">Python VS Code GitHub 页面</a>上<a href="https://github.com/microsoft/vscode-python/issues/new/choose" rel="nofollow">提交问题</a>。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T08:15:50Z</pubDate>
 <pubDate>2024-02-15T08:14:50Z</pubDate>
 </item>
 <item>
@@ -139,7 +497,6 @@
 <link>https://www.v2ex.com/t/1015728</link>
 <guid>https://www.v2ex.com/t/1015728</guid>
 <content:encoded><![CDATA[
-
 <p>GLM-4
 首先，它不知道“智谱清言”是什么，哈哈</p>
 <p>“有一个 dataframe ，index 为整数，已经排序，所有值均为浮点类型，求其中两列，假设名为 a,b ，它们是否相交，a 上穿 b 为 1 ，a 下穿 b 为-1 ，无相交为 0 ，返回一个 series ，使用 Numba 加速”
@@ -159,7 +516,6 @@
     return np.sign(np.ediff1d(np.sign(arr-arr_ref), to_begin=0))
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-02-15T08:06:58Z</pubDate>
 <pubDate>2024-02-15T08:05:58Z</pubDate>
 </item>
 <item>
@@ -167,13 +523,11 @@
 <link>https://www.v2ex.com/t/1015727</link>
 <guid>https://www.v2ex.com/t/1015727</guid>
 <content:encoded><![CDATA[
-
 <p>新装的系统，提示有一些未知设备，自动搜索安装驱动总是提示找不到对应的驱动。
 按照硬件的描述找到驱动，去厂商官网下载驱动，这些驱动发布日期很老，基本是电脑的出生日期。
 但是一旦安装了厂商的驱动，后面它就知道帮我自动升级成为较新的版本了。
 这里面让用户手工安装究竟算个啥操作呢？</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T08:03:38Z</pubDate>
 <pubDate>2024-02-15T08:13:55Z</pubDate>
 </item>
 <item>
@@ -181,7 +535,6 @@
 <link>https://www.v2ex.com/t/1015726</link>
 <guid>https://www.v2ex.com/t/1015726</guid>
 <content:encoded><![CDATA[
-
 <p>请问现在使用 Google Play 内购支付还能成功吗？我将 Spotify 区域已经设置为菲律宾，Google Play 的区域也已经是菲律宾了，但是内购尝试多次还是提示有问题，提示：</p>
 <blockquote>
 <p>无法完成您的购买交易。请检查您是否在 Play 账号中选择了正确的国家/地区。</p>
@@ -197,7 +550,6 @@
 <p>（大意是支付方式位置和实际所处位置不符，如果位置确定没问题的话填表）</p>
 <p>但是实际上之前我订阅成功的时候似乎也没有涉及到这个问题。有没有成功的朋友知道是怎么回事的，还是 Play 商店现在改了规则啊？抑或这是风控的一种？我是不是应该填一下表单？</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T07:56:01Z</pubDate>
 <pubDate>2024-02-15T08:00:04Z</pubDate>
 </item>
 <item>
@@ -205,7 +557,6 @@
 <link>https://www.v2ex.com/t/1015725</link>
 <guid>https://www.v2ex.com/t/1015725</guid>
 <content:encoded><![CDATA[
-
 <p>背景：
 家中老人做小本买卖，在各个平台留了手机号，但是节假日等不营业期间，也频繁能收到电话，造成困扰。</p>
 <p>寻找目标：</p>
@@ -218,7 +569,6 @@
 <hr />
 <p>op 初步印象中没有什么相关产品，据说小米手机有 ai 接电话，但是还是有些差异。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T07:47:19Z</pubDate>
 <pubDate>2024-02-15T07:44:19Z</pubDate>
 </item>
 <item>
@@ -226,10 +576,8 @@
 <link>https://www.v2ex.com/t/1015724</link>
 <guid>https://www.v2ex.com/t/1015724</guid>
 <content:encoded><![CDATA[
-
 最近看到这种能把 eSIM 转实体卡的技术，但是写入实体卡片要经过 APP 来操作，担心 APP 能在中间拦截信息转发出去，由于对 eSIM 不熟悉，不明白其中的认证原理，有用过 V 友来说说使用感受
 ]]></content:encoded>
-<pubDate>2024-02-15T07:46:14Z</pubDate>
 <pubDate>2024-02-13T07:45:14Z</pubDate>
 </item>
 <item>
@@ -237,10 +585,8 @@
 <link>https://www.v2ex.com/t/1015722</link>
 <guid>https://www.v2ex.com/t/1015722</guid>
 <content:encoded><![CDATA[
-
 <p>都是一线国际大厂，常年进口旧的固态硬盘</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T07:13:23Z</pubDate>
 <pubDate>2024-02-15T07:17:22Z</pubDate>
 </item>
 <item>
@@ -248,10 +594,8 @@
 <link>https://www.v2ex.com/t/1015721</link>
 <guid>https://www.v2ex.com/t/1015721</guid>
 <content:encoded><![CDATA[
-
 朋友们，最近家里人上了虚拟货币的当，每天沉迷在所谓的“挖矿”上，搞得家里鸡犬不宁。<br /><br />虚拟货币的官网是 <a href="https://minepi.com/" rel="nofollow noopener" target="_blank">https://minepi.com/</a> <br /><br />看上去是去中心化那一套没什么用的话术，实际上他的套路是看谷歌广告给虚拟币。这个公司还买了水军，在国内抖音和快手投放“他们的空气币马上价值千万”的广告。最近我耳边每天萦绕着各路谷歌广告 bgm ，感觉快要神经衰弱了。<br /><br />我看这公司的服务器在美国，从 xray 后台看应该是中心化的服务器，希望能求个靠谱的 ddos 服务，给这群鸟人上上强度。
 ]]></content:encoded>
-<pubDate>2024-02-15T07:13:07Z</pubDate>
 <pubDate>2024-02-15T08:16:44Z</pubDate>
 </item>
 <item>
@@ -259,10 +603,8 @@
 <link>https://www.v2ex.com/t/1015720</link>
 <guid>https://www.v2ex.com/t/1015720</guid>
 <content:encoded><![CDATA[
-
 很久没找过工作了，发现这些招聘 APP 有了 vip 功能，说是可以看一些竞争数据，以及提高简历曝光量。<br /><br />今天上午将自己的简历修了修，改成离职状态，之前很短时间就能收到几十条猎头和 HR 的私信，但这次到现在也只收到六七个私信，而且大都发过去简历没声音了。。<br /><br />是不是不开 vip 会故意降低简历的曝光率？
 ]]></content:encoded>
-<pubDate>2024-02-15T07:06:22Z</pubDate>
 <pubDate>2024-02-15T07:59:55Z</pubDate>
 </item>
 <item>
@@ -270,10 +612,8 @@
 <link>https://www.v2ex.com/t/1015718</link>
 <guid>https://www.v2ex.com/t/1015718</guid>
 <content:encoded><![CDATA[
-
 docker stop <br />docker rm -f <br />docker kill xxxx <br />都试了，重启其他容器正常，只有指定的容器会卡住<br />另外重启 docker 服务，除了这个卡住的容器，其他的都正常跟着重启
 ]]></content:encoded>
-<pubDate>2024-02-15T06:35:01Z</pubDate>
 <pubDate>2024-02-15T07:59:05Z</pubDate>
 </item>
 <item>
@@ -281,7 +621,6 @@ docker stop <br />docker rm -f <br />docker kill xxxx <br />都试了，重启�
 <link>https://www.v2ex.com/t/1015723</link>
 <guid>https://www.v2ex.com/t/1015723</guid>
 <content:encoded><![CDATA[
-
 <h2>可做</h2>
 <p>可做小程序，管理系统，网页端，桌面端，seo.
 7 年前端开发经验，可以合作，</p>
@@ -292,10 +631,8 @@ docker stop <br />docker rm -f <br />docker kill xxxx <br />都试了，重启�
 <h2>联系</h2>
 <p>wx: MTg1NTEyMzUyODA= (base64), 可发 github ，个人主页地址。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T07:45:38Z</pubDate>
 <pubDate>2024-02-15T07:43:38Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] Vision Pro 美国寄香港，顺丰或者 UPS 代下单一类的靠谱吗？</title>
 <link>https://www.v2ex.com/t/1015716</link>
@@ -14755,110 +15092,6 @@ Azure 免费额度用光,将上面的 Ubuntu 虚拟机磁盘下载下来了,并�
 (base) [@localhost ~]$ Last login: Tue Feb  6 09:12:56 2024 from'</p>
 ]]></content:encoded>
 <pubDate>2024-02-06T01:56:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐 ocr 软件，图片表格转换为 Excel</title>
-<link>https://www.v2ex.com/t/1014560</link>
-<guid>https://www.v2ex.com/t/1014560</guid>
-<content:encoded><![CDATA[
-<p>求推荐 ocr 软件，图片表格转换为 Excel ，市面上 ocr 软件特别多，白描、umi-ocr,但好像不太顺手，求推荐更多</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:05:04Z</pubDate>
-</item>
-<item>
-<title>[深圳] 是谁还在上班</title>
-<link>https://www.v2ex.com/t/1014557</link>
-<guid>https://www.v2ex.com/t/1014557</guid>
-<content:encoded><![CDATA[
-<p>又是我</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:21:27Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 中国广电的移动数据 IPV6 不允许入站吗？坐标 0668</title>
-<link>https://www.v2ex.com/t/1014555</link>
-<guid>https://www.v2ex.com/t/1014555</guid>
-<content:encoded><![CDATA[
-如题，正好有张广电的卡，里边很多流量，想着开 ipv6 搭建个 mc 服务器发现 ping 不通<br />而且貌似劫持了 ping 值，ping 值很低很低，不存在的 ip 也能 ping
-]]></content:encoded>
-<pubDate>2024-02-06T01:54:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何复刻一个未学过语言的开源项目</title>
-<link>https://www.v2ex.com/t/1014554</link>
-<guid>https://www.v2ex.com/t/1014554</guid>
-<content:encoded><![CDATA[
-复刻这个项目用来赶毕业设计<br />在 github 上搜了一下，高星的两个主要是 go 的，一个是 Rust 的，都没学过，看不太懂<br />不想单纯地 copy 代码、买源码
-]]></content:encoded>
-<pubDate>2024-02-05T07:32:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] QQ 音乐，重新定义概率学</title>
-<link>https://www.v2ex.com/t/1014553</link>
-<guid>https://www.v2ex.com/t/1014553</guid>
-<content:encoded><![CDATA[
-起因：看到 QQ 音乐有个豪华绿钻 1.8 元升级超级会员还能抽奖的活动<br /><a href="https://i.imgur.com/3wEz96T.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3wEz96T.jpeg" /></a><br /><br />看了一下，还有 50%概率能抽到 2QB ，那也不算太亏，保底也能有 1QB 是吧？<br /><a href="https://i.imgur.com/UHeOTxb.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/UHeOTxb.jpeg" /></a><br /><br />结果：<br /><a href="https://i.imgur.com/kMBeao7.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/kMBeao7.jpeg" /></a><br /><br />不得不说，腾讯你特娘的真会玩！
-]]></content:encoded>
-<pubDate>2024-02-06T02:18:34Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了个龙年微信红包封面，免费发给有需要的人，直接点击领取</title>
-<link>https://www.v2ex.com/t/1014552</link>
-<guid>https://www.v2ex.com/t/1014552</guid>
-<content:encoded><![CDATA[
-<p>手机端点击领取即可，领取后发红包时可以使用：</p>
-<p><a href="https://mp.weixin.qq.com/s/gMjL9EWD-XD06_gT8GRgrg" rel="nofollow">https://mp.weixin.qq.com/s/gMjL9EWD-XD06_gT8GRgrg</a></p>
-<p>或者在公众号最新一条消息里点击领取，随便欢迎关注我的公众号[书法迷]，不写代码写书法了。。。</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:19:09Z</pubDate>
-</item>
-<item>
-<title>[互联网] 快过年了，有没有推荐火车上休闲娱乐的手机游戏</title>
-<link>https://www.v2ex.com/t/1014551</link>
-<guid>https://www.v2ex.com/t/1014551</guid>
-<content:encoded><![CDATA[
-<p>如题，最好是单机</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:19:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 车子这样是要钣金还是能无痕修复吗</title>
-<link>https://www.v2ex.com/t/1014550</link>
-<guid>https://www.v2ex.com/t/1014550</guid>
-<content:encoded><![CDATA[
-<p><a href="https://imgur.com/a/Wu6lYJY" rel="nofollow">https://imgur.com/a/Wu6lYJY</a>
-底部撞了个坑，可以无痕吗？怎么处理比较完美</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:08:56Z</pubDate>
-</item>
-<item>
-<title>自建了个博客，欢迎大家来踩</title>
-<link>https://www.v2ex.com/t/1012117</link>
-<guid>https://www.v2ex.com/t/1012117</guid>
-<content:encoded><![CDATA[
-一般会分享一些编程技术方面的知识，以及一些生活中的思考。<br />欢迎大家来踩哈，有共同爱好的也可以多交流交流~<br /><br />地址： <a href="https://simplecoding.fun" rel="nofollow noopener" target="_blank">https://simplecoding.fun</a>
-]]></content:encoded>
-<pubDate>2024-02-05T07:00:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 问一下大家，栈内的帖子会自动转换节点吗？</title>
-<link>https://www.v2ex.com/t/1014548</link>
-<guid>https://www.v2ex.com/t/1014548</guid>
-<content:encoded><![CDATA[
-<p>如下图
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/IKBpFi0.png" />
-原来帖子是在投资节点的，我比较感兴趣特地点了收藏主题。今天打开收藏的主题竟然无了，我以为是被吞了，就翻看昨天的历史记录。结果可以打开。但是节点换了，这是为什么呢？难道是 OP 重新编辑了帖子吗？</p>
-]]></content:encoded>
-<pubDate>2024-02-06T01:11:07Z</pubDate>
-</item>
-<item>
-<title>[Electron] electron 和 Java swing 开发出的软件 哪个体验好</title>
-<link>https://www.v2ex.com/t/1014546</link>
-<guid>https://www.v2ex.com/t/1014546</guid>
-<content:encoded><![CDATA[
-在 win\linux\mac 平时上, 开发出的软件 哪个体验会好些
-]]></content:encoded>
-<pubDate>2024-02-06T01:07:19Z</pubDate>
 </item>
 </channel>
 </rss>
