@@ -5,14 +5,96 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 大家如何看待代码中的拼写错误？</title>
+<link>https://www.v2ex.com/t/1015793</link>
+<guid>https://www.v2ex.com/t/1015793</guid>
+<content:encoded><![CDATA[
+
+<p>举几个例子我看见过的：</p>
+<p>红帽是 redhad ，乌班图是 ubutu ，<br />
+加密是 encript ，解密是 discrypt ，<br />
+前台是 forground ，后台进程是 damon 。  </p>
+<p>最初是项目里编译出 <code>lib/redhad/lib*.so</code>，这个 redhad 让我震惊了一整天。</p>
+<hr />
+<p>刚接触代码时，我是想去改掉的。但是了解到这个目录 N 年前就是这样了，而且也不清楚到底有多少依赖，便作罢。</p>
+<p>后来我也佛系了，毕竟不关我事，能跑就行。</p>
+<p>直到我某天写代码，要用到一个大写的常量 某 DEFALUT ，怎么看怎么怪，定睛一瞧还是拼错的。一搜发现有三十多处。</p>
+<hr />
+<p>如果是你，该怎么办？</p>
+<ol>
+<li>全改掉</li>
+<li>捏着鼻子继续用</li>
+</ol>
+<hr />
+<p>...我最终还是选择了 2 ，因为前者会让 git blame 全变成了我，而我并不想背这个锅...</p>
+]]></content:encoded>
+<pubDate>2024-02-15T19:07:59Z</pubDate>
+<pubDate>2024-02-15T20:04:05Z</pubDate>
+</item>
+<item>
+<title>[Python] 奇技淫巧</title>
+<link>https://www.v2ex.com/t/1015792</link>
+<guid>https://www.v2ex.com/t/1015792</guid>
+<content:encoded><![CDATA[
+
+<p>起因是两个痛点：</p>
+<ul>
+<li>IO 常用方法，比如读取和写入文件，每次都要写一长串，好烦</li>
+<li>调试代码时候偶尔会出现忘记把'w'模式改成'r'模式，导致数据被意外清空的情况</li>
+</ul>
+<pre><code class="language-python">with open('text.txt', 'w', encoding='utf-8') as f:
+    f.write("Hello World!")
+with open('text.txt', 'r', encoding='utf-8') as f:
+    text = f.read()
+</code></pre>
+<p>由于编码基本上除了 utf-8 很少用别的，所以直接两句话写成函数，变成：</p>
+<pre><code class="language-python">from pipeit import Read, Write
+
+Write("text.txt", "Hello World!")
+text = Read("text.txt")
+</code></pre>
+<p>好处除了少写几个字外，拆成 Read 和 Write 更不容易调错模式。
+当然，这是幼儿园时候做的工作了，不值一提。</p>
+<p>但是事已至此还有一个痛点，就是在这种模式下需要使用序列化的话（这也是常用操作），逻辑顺序就不太对</p>
+<pre><code class="language-python">from pipeit import Read, Write
+import json 
+
+l = list(range(10))
+Write("l.json", json.dumps(l))  # 符合向 A 文件写入 B 的逻辑顺序
+ll = json.loads(Read("l.json")) # 书写顺序上，不是先“读”再“解”，感觉写起来很别扭
+</code></pre>
+<p>py 做链式逻辑和函数式运算经常出现这种不太舒服的问题，不舒服这么长时间也一直忍着了。不过今天临睡前突然脑洞，既然函数式运算可以将习惯改成<code>l = range(10) | Filter(lambda x:x^2) | Map(str) | list</code>这种形式，读写能不能也进一步魔改一下，变成如下效果：</p>
+<pre><code class="language-python">json.dumps(list(range(10))) | Write("l.json")
+l = Read("l.json") | json.loads
+</code></pre>
+<p>想了想，类似管道的写法用魔术方法重载可以很容易地实现，但是需要同时让 Read/Write 函数能向管道传递东西，又能直接读文件到字符串，这就需要再多费些力气了。于是又推迟睡眠时间 1 小时，罪过罪过，明天一定早睡。。。</p>
+<p>最后成品效果大概是这样：
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3cnvGJ0.png" /></p>
+<p>思路大概是用内建的 inspect 和 ast 模块实现抽象和反射，让<code>Read()</code>既是类也是函数，需要是类就是类，需要是函数就是函数。。。困了，代码还没整理上传到 pypi ，有时间再搞吧。</p>
+<p>没什么意义，有点回字的四种写法。但是一个语言能灵活至此，我玩得很开心就是。</p>
+]]></content:encoded>
+<pubDate>2024-02-15T19:06:39Z</pubDate>
+<pubDate>2024-02-15T19:06:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 什么网吧能体验 hdr1000 或者 true black600 的 2077</title>
+<link>https://www.v2ex.com/t/1015791</link>
+<guid>https://www.v2ex.com/t/1015791</guid>
+<content:encoded><![CDATA[
+
+那家网吧现在标配 oled 或者 miniled 显示器了
+]]></content:encoded>
+<pubDate>2024-02-15T18:49:51Z</pubDate>
+<pubDate>2024-02-13T18:48:51Z</pubDate>
+</item>
+
+<item>
 <title>[宽带症候群] 垃圾 114dns 用不了一点</title>
 <link>https://www.v2ex.com/t/1015790</link>
 <guid>https://www.v2ex.com/t/1015790</guid>
 <content:encoded><![CDATA[
-
 小米还给他硬编码到系统里面去了<br /><a href="https://i.imgur.com/qtoEiLi.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/qtoEiLi.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2024-02-15T18:04:17Z</pubDate>
 <pubDate>2024-02-15T18:01:17Z</pubDate>
 </item>
 <item>
@@ -20,7 +102,6 @@
 <link>https://www.v2ex.com/t/1015789</link>
 <guid>https://www.v2ex.com/t/1015789</guid>
 <content:encoded><![CDATA[
-
 <p>各位大佬，请教一个问题，我想在 nodejs 环境下运行 nvm for windows 的指令，但是在 nvm 最近更新的版本里，发现新增了终端检测代码：</p>
 <pre><code>if !isTerminal() {
 		alert("NVM for Windows should be run from a terminal such as CMD or PowerShell.", "Terminal Only")
@@ -44,7 +125,6 @@ func isTerminal() bool {
 </code></pre>
 <p>请问我可以绕开这个检测吗</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T17:22:06Z</pubDate>
 <pubDate>2024-02-15T17:31:12Z</pubDate>
 </item>
 <item>
@@ -52,7 +132,6 @@ func isTerminal() bool {
 <link>https://www.v2ex.com/t/1015787</link>
 <guid>https://www.v2ex.com/t/1015787</guid>
 <content:encoded><![CDATA[
-
 <p>pdd 店家假激活要求输入这个命令</p>
 <pre><code>irm steam.*** | iex 
 </code></pre>
@@ -197,10 +276,8 @@ function PwStart() {
 </code></pre>
 <p>整体看下来就是给 steam 添加了两个文件，可是看起来并没有进行注入什么的啊，我理解就需要 dll 时候是先拉文件目录内的 dll 进行执行？这样才能解释为啥就是只添加了两个文件？</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T16:54:12Z</pubDate>
 <pubDate>2024-02-15T17:13:21Z</pubDate>
 </item>
-
 <item>
 <title>[奇思妙想] 在中国实现婚前协议分配共有财产和婚后收入可行吗</title>
 <link>https://www.v2ex.com/t/1015786</link>
@@ -15350,35 +15427,6 @@ git add .
 <p>希望你在本文中找到了对你的项目实用的见解。如果你对 <a href="https://github.com/huanghanzhilian/c-shopping" rel="nofollow">C-Shopping</a> ：<a href="https://github.com/huanghanzhilian/c-shopping" rel="nofollow">https://github.com/your-username/C-Shopping</a> 及其相关技术感兴趣，欢迎在 GitHub 上查看项目。如果你喜欢这些内容并期望看到更多类似的文章，请别忘了给仓库点亮一颗星星。</p>
 ]]></content:encoded>
 <pubDate>2024-02-06T02:25:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有用 bootstrap 的大佬不？ button 按下之后就一直处于激活状态，如何恢复默认状态？</title>
-<link>https://www.v2ex.com/t/1014625</link>
-<guid>https://www.v2ex.com/t/1014625</guid>
-<content:encoded><![CDATA[
-<p>给孩子做了个口算网页，用了 JQ+bootstrap 点击按钮作为回答。电脑端用网页还好，用手机打开网页，按钮按下之后，再次出题时，前面按过的按钮就一直处于激活状态，比较容易误导孩子。
-百度，google 了一堆，要么是$(this).removeClass("active") 要么是$(this).blur(),试来试去，总是不行
-想问下怎么实现每次出题时候这些按钮都处在默认状态？</p>
-]]></content:encoded>
-<pubDate>2024-02-06T05:25:20Z</pubDate>
-</item>
-<item>
-<title>[Telegram] [求助] macOS 版 Telegram 无法连接</title>
-<link>https://www.v2ex.com/t/1014624</link>
-<guid>https://www.v2ex.com/t/1014624</guid>
-<content:encoded><![CDATA[
-<p>macOS 版的 Telegram 真的有毒，我用同一个梯子，使用 Clash 代理可以登录，但无法加载出图片，使用 Surge 代理直接无法连接（全局模式和规则模式都不行）。我在 Mac 上开 Windows 虚拟机，再在里面用 Telegram （同一个梯子，Clash 代理），一切正常。。我试过从 App Store 和官网下载安装，都是同样的问题。求助各位看看到底是什么原因，感激不尽</p>
-]]></content:encoded>
-<pubDate>2024-02-06T05:37:15Z</pubDate>
-</item>
-<item>
-<title>[投资] 今天给大伙发糖了，是逃顶？还是坚守？</title>
-<link>https://www.v2ex.com/t/1014622</link>
-<guid>https://www.v2ex.com/t/1014622</guid>
-<content:encoded><![CDATA[
-回了好几滴血，还在 35%的深坑中，是逃还是再坚守？
-]]></content:encoded>
-<pubDate>2024-02-06T06:01:33Z</pubDate>
 </item>
 </channel>
 </rss>
