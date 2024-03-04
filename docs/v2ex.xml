@@ -5,11 +5,869 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Visual Studio Code] Python in Visual Studio Code – 三月更新 “Add Imports”代码操作、调试 Django 或 Flask 应用时自动启动浏览器、REPL 的 Shell 集成</title>
+<link>https://www.v2ex.com/t/1020458</link>
+<guid>https://www.v2ex.com/t/1020458</guid>
+<content:encoded><![CDATA[
+
+<p>我们很高兴地宣布 2024 年 3 月发布适用于 Visual Studio Code 的 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python</a> 和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter</a> 扩展！</p>
+<p>此版本包括以下公告：</p>
+<ul>
+<li>新的“Add Imports”代码操作设置</li>
+<li>调试 Django 或 Flask 应用时自动启动浏览器</li>
+<li>Python REPL 的 Shell 集成</li>
+<li>对本地运行的 Jupyter 服务器的语言支持
+如果您有兴趣，可以在 <a href="https://github.com/microsoft/vscode-python/releases" rel="nofollow">Python</a>、<a href="https://github.com/microsoft/vscode-jupyter/blob/main/CHANGELOG.md" rel="nofollow">Jupyter</a> 和 <a href="https://github.com/microsoft/pylance-release/blob/main/CHANGELOG.md" rel="nofollow">Pylance</a> 扩展的更新日志中查看完整的改进列表。</li>
+</ul>
+<h1>新的“添加导入代码操作”启发式设置</h1>
+<p>在 Python 项目中缺少导入时触发的 Add Import 快速修复 （💡） 已在 Pylance 扩展的预发布版本中进行了改进！ Pylance 现在使用启发式方法仅显示前 3 个高置信度导入选项，优先级基于：最近使用的导入、来自同一模块的符号、来自标准库的符号、来自用户模块的符号、来自第三方包的符号，最后按模块和符号名称排序。如果 3 个高置信度导入选项不是您要查找的选项，Pylance 引入了一个新的代码操作，<strong>Search for additional import matches</strong>，该操作显示一个快速选择菜单，允许您搜索与缺少的导入符号前缀匹配的导入选项。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://devblogs.microsoft.com/python/wp-content/uploads/sites/12/2024/02/add-imprt-v4.gif" /></p>
+<p>此外，Pylance 还引入了<strong>Change spelling</strong>操作，该操作为由于拼写错误而丢失的导入提供了导入建议。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://devblogs.microsoft.com/python/wp-content/uploads/sites/12/2024/02/codespellingv2.gif" /></p>
+<p>我们计划很快默认启用此新行为。但是，与此同时，您现在可以通过设置<code>python.analysis.addImport.heuristics : "true" </code>来启用它。</p>
+<h1>调试 Django 或 Flask 应用时自动启动浏览器</h1>
+<p>现在，使用 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.debugpy" rel="nofollow">Python 调试器扩展</a>，开发和测试 Python Web 应用程序更加方便！现在，可以通过在<code>launch.json</code>中设置<code>autoStartBrowser: true</code>，在使用 Django 或 Flask 应用启动调试器时自动打开浏览器：</p>
+<pre><code class="language-json">{
+    "name": "Python Debugger: Flask",
+    "type": "debugpy",
+    "request": "launch",
+    "module": "flask",
+    "env": {
+        "FLASK_APP": "hello_app.webapp",
+        "FLASK_DEBUG": "1"
+    },
+    "args": [
+        "run"
+    ],
+    "jinja": true,
+    "autoStartBrowser": true
+}
+</code></pre>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://devblogs.microsoft.com/python/wp-content/uploads/sites/12/2024/02/browser-auto-open.gif" /></p>
+<h1>Python REPL 的 Shell 集成</h1>
+<p>现在，我们在 Mac 、Linux 和 Windows 上启用了 Python REPL 的 shell 集成（使用 <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl" rel="nofollow">WSL 扩展</a>时）。在 Python REPL 中执行命令时，彩色圆圈装饰器将指示命令是成功还是失败。这还支持<strong>Terminal: Run Recent Command</strong>命令，允许您查看和利用 REPL 的命令历史记录。此外，此功能允许通过<strong>Terminal: Run Recent Command</strong>访问所有操作系统的 Python shell 文件历史记录。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://devblogs.microsoft.com/python/wp-content/uploads/sites/12/2024/02/python-shell-integration.gif" /></p>
+<h1>对本地运行的 Jupyter 服务器的语言支持</h1>
+<p>以前，在连接到本地 Jupyter 服务器时，Jupyter 扩展将这些服务器视为远程服务器，因此 Pylance 扩展无法检测到已安装的软件包。在此迭代中，我们进行了更改，以便 Jupyter 扩展检测连接的 Jupyter 服务器是本地服务器还是远程服务器，因此 Pylance 现在能够基于本地 Python 环境中安装的包提供更丰富的语言功能。</p>
+<h1>其他更改和增强功能</h1>
+<p>我们还添加了一些小的增强功能，并修复了用户请求的问题，这些问题应该可以改善你在 Visual Studio Code 中使用 Python 和 Jupyter Notebook 的体验。一些值得注意的变化包括：</p>
+<ul>
+<li>
+<p>降低丢失发送到 Python REPL 的第一个命令的风险 <a href="https://github.com/microsoft/vscode-python/issues/22691" rel="nofollow">@vscode-python#22691</a>。</p>
+</li>
+<li>
+<p>修复了符号链接工作区中 pytest 的 Bug <a href="https://github.com/microsoft/vscode-python/issues/22658" rel="nofollow">@vscode-python#22658</a>。
+我们还要特别感谢本月的贡献者：</p>
+</li>
+<li>
+<p><a href="https://github.com/aydar-kamaltdinov" rel="nofollow">@aydar-kamaltdinov</a>在 <a href="https://github.com/microsoft/vscode-python/pull/22873" rel="nofollow">@vscode-python#22873</a> 中添加 UnicodeDecodeError 捕获</p>
+</li>
+</ul>
+<h1>征集社区反馈意见</h1>
+<p>当我们计划和优先考虑未来的工作时，我们重视您的反馈！以下是我们希望得到反馈的几个问题：</p>
+<ul>
+<li><a href="https://github.com/microsoft/vscode-python/issues/22827" rel="nofollow">@vscode-python#22827</a> 中测试覆盖率的设计方案
+通过从市场下载 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python 扩展</a>和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter 扩展</a>来试用这些新的改进，或直接从 Visual Studio Code 中的扩展视图（ Ctrl + Shift + X 或 ⌘ + ⇧ + X ）安装它们。可以在文档中详细了解 <a href="https://code.visualstudio.com/docs/python/python-tutorial" rel="nofollow">Visual Studio Code 中的 Python 支持</a>。如果遇到任何问题或有建议，请在 <a href="https://github.com/Microsoft/vscode-python" rel="nofollow">Python VS Code GitHub 页面</a>上<a href="https://github.com/microsoft/vscode-python/issues/new/choose" rel="nofollow">提交问题</a>。</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-03-04T07:11:14Z</pubDate>
+<pubDate>2024-03-04T07:10:14Z</pubDate>
+</item>
+<item>
+<title>[跑步] 正在为人生的首次马拉松做训练</title>
+<link>https://www.v2ex.com/t/1020457</link>
+<guid>https://www.v2ex.com/t/1020457</guid>
+<content:encoded><![CDATA[
+
+<p>正在为自己的人生首马做训练</p>
+<ul>
+<li><a href="https://conge.livingwithfcs.org/2024/03/03/ReturnPoint-am55-week04/" rel="nofollow">折返点 2409 - 2024 隧道马训练第 4 周</a></li>
+<li><a href="https://conge.livingwithfcs.org/2024/02/27/ReturnPoint-am55-week03/" rel="nofollow">折返点 2408 - 2024 隧道马训练第 3 周</a></li>
+<li><a href="https://conge.livingwithfcs.org/2024/02/20/ReturnPoint-am55-week02/" rel="nofollow">折返点 2407 - 2024 隧道马训练第 2 周</a></li>
+<li><a href="https://conge.livingwithfcs.org/2024/02/12/ReturnPoint-am55-week01/" rel="nofollow">折返点 2406 - 2024 隧道马训练第 1 周</a></li>
+<li><a href="https://conge.livingwithfcs.org/2024/02/05/ReturnPoint-marathon-preparaton/" rel="nofollow">折返点 2405 - 准备人生第一场马拉松</a></li>
+</ul>
+<h1>以下是第四周的训练周记：</h1>
+<p>训练计划完成第 4 周。本周训练计划中各种目标配速，是按照 305 的完赛目标进行的，所以难度相对于前三个星期提高了的。</p>
+<p>随着跑量和强度的逐渐增加，身体也开始出现种种抱怨了。周中跑完 10 英里的有氧跑后，左脚瘸了一天，足底筋膜痛。</p>
+<p>没想到，接下来几天竟然又快速的恢复了。功臣，可能是家里新添的红光治疗仪。</p>
+<h2>2 月 27 日 8Ew10x100</h2>
+<h3><strong>计划</strong>：</h3>
+<p>轻松跑加 Strides</p>
+<ul>
+<li>
+<p>路线：跑去 ballard high school 操场，2.3 英里，在操场接着 2.5 英里轻松跑，跑 1 英里 stride ，stride 的跑法是 100 米快，60 米冷身，重复 10 次，回程 2.3 英里。</p>
+</li>
+<li>
+<p>配速：轻松跑 8:00/mi stide 不看配速。</p>
+</li>
+<li>
+<p>Stride 要点：快跑的时候注意高效，没有多余的动作的跑姿。前七十米提速。后三十米不加速也不减速，专注跑姿，利用惯性接着跑完，floating 。strides 主要目的是体会对最经济的跑姿是什么样的，<strong>重点是后 30 米的 floating</strong>。</p>
+</li>
+<li>
+<p>其它：天气比较冷，要戴手套，穿长袖衣服。用时应在一个小时左右。</p>
+</li>
+</ul>
+<h3><strong>结果</strong>：</h3>
+<p>没想到去和回 Ballard High 的路，都有大上坡路段，在坡的挑战下，做不到 8:00/mi 的配速啊。Strides 倒是完成的挺好，10x100 ， 中间慢跑 100 米左右。体会巡航。反馈心得是，加速不必加到那么高，反而忘记了关注身体，提醒自己提速时不要紧张了。</p>
+<p>Laps</p>
+<ul>
+<li><img alt="2024-02-27-laps.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/28/NYUi6aegwFpboHJ.png" /></li>
+</ul>
+<p>HR</p>
+<ul>
+<li><img alt="2024-02-27-hr.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/28/Gjnxzk6oRPSFIpi.png" /></li>
+</ul>
+<h3><strong>讨论</strong>： 为什么后 30 米巡航更重要</h3>
+<p>@<a href="https://www.v2ex.com/member/Mei">Mei</a> 🍐 Xu </p>
+<p>“重点是后 30 米的 floating” 好像是 @春华 告诉我的。</p>
+<p>AM 书里说，Stride 跑的目的是提高跑步经济性，即给定的速度下，需要多少氧气来支持奔跑。但书里也没有说为啥重复百米的 Stides 会提高跑步经济性。但提到“《丹尼尔斯经典跑步训练法》建议通过跑快速的间歇，去除多余的身体动作，同时改善肌肉纤维的组合。”</p>
+<p>因为 AM 训练计划的目标是马拉松，而马拉松不是加速跑，而是在保持一定速度的“巡航”运动状态。Strides 的后三十米正是这样的“巡航”状态。我猜这是 @春华 说重点是 floating 。</p>
+<p>加速后的巡航，会因为身体的高速而减少多余动作。AM 书里也强调在加速的时候要注意身体不要过于紧张，跑姿良好。所谓的跑姿良好，我认为是紧张和放松间的一个平衡区间。</p>
+<p>我的理解，让身体体验并记住此状态下的跑姿，是 strides 训练的第一任务。</p>
+<h2>2 月 28 日 5RE</h2>
+<h3>计划：</h3>
+<ul>
+<li>5 英里轻松跑，配速为 8:35/mi </li>
+<li>绕绿湖一周跑。</li>
+<li>会下雨，但应该不冷。准备雨衣。</li>
+</ul>
+<h3>执行</h3>
+<p>围绕绿湖一圈儿，再跑回家，正好 5 英里。
+小雨，8 度的天气，不冷，穿了雨衣，轻微出汗。
+鞋湿了，不太舒服，好在时间短。</p>
+<h3>结果</h3>
+<p>开头和结尾慢一点儿，中间快一点儿，平均配速 8:37/mi ，总共用时 43 分钟。</p>
+<p>假设心率数据正确的话，后半程心率上升有些快。可配速掉到 9:00/mi 之下的时候正是心率的最大值出现的地方，所以这心率也未必靠谱。</p>
+<h3>反思</h3>
+<p>无论怎样，昨天的间歇训练还是让身体感到吃力了。好消息是，今天 recover run 身体并没有抱怨。接下来专注于营养，睡觉，促进恢复。</p>
+<p>Laps</p>
+<ul>
+<li><img alt="2024-02-28-laps.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/29/kzbILd2Qc5ljJpr.png" /></li>
+</ul>
+<p>HR</p>
+<ul>
+<li><img alt="2024-02-28-hr.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/29/i1ewg8L4Yoh7MnQ.png" /></li>
+</ul>
+<h2>2 月 29 日 世界罕见病日 10E</h2>
+<h3>计划</h3>
+<ul>
+<li>10 英里综合有氧跑，</li>
+<li>8:00/mi 配速，需要 80 分钟，约一个半小时。</li>
+<li>如果 5 点起来就去跑。最迟五点半出门。如果过了五点半，就另找时间吧。</li>
+<li>夜里可能雨夹雪，早上有雨。准备好雨衣，注意地面防滑到。</li>
+</ul>
+<h3>执行</h3>
+<ul>
+<li>果然 5 点半没起来。早上没跑成，一天都惦记着。好在发现女儿去练习合唱正好需要一个半小时，往常都是妻子送，这次我说干脆我送，等待的时间正好跑步。提前做好计划，是为了清楚要做什么。清楚之后，改变计划也变得容易了。</li>
+<li>由于是新路线，所以跑的时候注意力更集中。</li>
+<li>阴天，有雨，感觉有点儿凉。  </li>
+</ul>
+<h3>结果</h3>
+<ul>
+<li>前面三英里配速稍慢，中间三英里追回了，最后四英里就玩儿速度保持。最终正好用了 80 分钟完成 10 英里。</li>
+<li>平均心率保持在 140 以下，最大心率在 150 以下。</li>
+<li>可跑完了出现了较低筋膜的疼痛。左脚。回家之后好一顿按摩，希望能尽快恢复。  </li>
+</ul>
+<p>Laps</p>
+<ul>
+<li><img alt="2024-02-29-laps.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/01/m1QoVW258CBKPU7.png" /></li>
+</ul>
+<p>HR</p>
+<ul>
+<li><img alt="2024-02-29-hr.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/01/ljriUHs9NgXdwJ7.png" /></li>
+</ul>
+<h3>关于伤病</h3>
+<ul>
+<li>跑完之后，左脚脚心内侧链接脚跟的筋膜疼痛，走路就疼。</li>
+<li>可能的原因：1 ）昨天的跑步路线太多坑洼不平处，side walk 距离车道又太近，总得分心躲车，不能完全注意地面，估计是不小心抻到了。2 ） 我脚外侧小趾后面的跖骨有旧伤，造成左脚落地姿势可能不对，内侧的筋膜的过度补偿，太过紧张了。2 ）朋友说也要考虑是鞋子不对或前脚掌着地的问题。应该不是。</li>
+<li>处理：1 ）自己手动按摩，2 ）照红光，3 ）通过正念放松身心，消除焦虑。跑团的 @小皮球 建议冷敷，我没来得及做，就去睡觉了。</li>
+<li>早上醒来后，已经感觉不到疼。起来走路，做提踵都没问题。用力按压的话，仍有未痊愈的酸胀感。接下来几天，继续理疗按摩，进行辅助力量练习，科学之行计划，让身体恢复。</li>
+</ul>
+<h2>3 月 2 日 4RE</h2>
+<h3>计划</h3>
+<ul>
+<li>8:40/配速，跑 35 分钟，去绿湖跑往返吧。</li>
+<li>如果早上跑的话，比较冷，3 摄氏度左右，要戴手套，穿长袖长裤。夜间还可能有雪，注意防滑。</li>
+</ul>
+<h3>执行</h3>
+<ul>
+<li>早上没起来，夜跑的。下雨，地面湿的很，好在不滑。</li>
+<li>跑到了绿湖然后折返。</li>
+</ul>
+<h3>结果</h3>
+<ul>
+<li>黑灯瞎火的，眼睛得看路，就不能老盯着表，一会儿跑快一会儿跑慢的，也不在意了。没想到最后跑完，平均速度 8:42/mi ，跟计划还挺吻合。</li>
+<li>跑完之后，脚没有疼，但是过程中很是发酸。所以，明天的 15MLR 还是跑吧。</li>
+</ul>
+<p>Laps</p>
+<ul>
+<li><img alt="2024-03-02-laps.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/03/tHcv2YwFemB1ypd.png" /></li>
+</ul>
+<p>HR</p>
+<ul>
+<li><img alt="2024-03-02-HR.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/03/mCYRUakED7MiLd4.png" /></li>
+</ul>
+<h2>3 月 3 日：15MLR</h2>
+<h3>计划：</h3>
+<ul>
+<li>平均配速控制在：7:50 吧，最后 4 英里可以达到 7:40 。</li>
+<li>需要训练时间大约是 8x15=120 分钟。两个小时。最好早起点醒来就去跑。</li>
+<li>记住：MLR 为了练耐力和积累跑量。如果速度提不上去，也没关系。注意脚底的筋膜状况，如果脚疼，放弃一次训练也没关系。</li>
+</ul>
+<h3>执行：</h3>
+<ul>
+<li>今天早上总算是起来了，7:30 开跑，围着绿湖外圈的石子路刷圈。</li>
+<li>出门时天上飘零星小雨，到了绿湖，路面积水不少，就这么着吧。</li>
+<li>前面几英里，老天很是下了一阵冰粒子，但没给路面造成什么困扰，不滑。最后三英里的时候，又下起了雨夹雪，没戴帽子，下雨就很不舒服，雨水会进入眼睛。提醒自己下次下雨要记得把帽子找出来。</li>
+<li>周四跑后疼的足底筋膜，昨天还发酸，今天居然就一点儿问题都没有了。真是神速痊愈。</li>
+</ul>
+<h3>结果：</h3>
+<ul>
+<li>比计划的配速 7:50 要快出 15 秒，平均配速 7:35 跑完的。对比上周的 14MLR 平均配速 7:17/mi ，又慢了。</li>
+<li>基于这周开始的时候定的训练目标是按照 305 的目标 MP 安排训练，用 7:35 跑 MLR 还是挺让我满意的。</li>
+<li>体感上，这次跑的没那么轻松，呼吸有些吃力，最后几英里肌肉也感到发僵，当然，也有可能是气温低给我造成的错觉。</li>
+</ul>
+<p>Laps</p>
+<ul>
+<li><img alt="2024-03-03-laps.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/tAwFXEGq8VuUjD6.png" /></li>
+</ul>
+<p>HR</p>
+<ul>
+<li><img alt="2024-03-03-HR.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/HGMPovmysr56OBh.png" /></li>
+</ul>
+<h2>Running log</h2>
+<table>
+<thead>
+<tr>
+<th>week 09, 2024</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="2024_week09.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/x2bLjZHBC9XPV1c.png" /></td>
+</tr>
+</tbody></table><h2>折返点</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Pics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20240226</td>
+<td><img alt="20240226.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/5OhuqoN6yAP8mgJ.jpg" /></td>
+</tr>
+<tr>
+<td>20240227</td>
+<td><img alt="20240227.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/OgGaWmIKke8A51M.jpg" /></td>
+</tr>
+<tr>
+<td>20240228</td>
+<td><img alt="20240228.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/WIo3BkZrOwpKLeQ.jpg" /></td>
+</tr>
+<tr>
+<td>20240229</td>
+<td><img alt="20240229.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/hwOUNLktWHvRJdV.jpg" /></td>
+</tr>
+<tr>
+<td>20240301</td>
+<td></td>
+</tr>
+<tr>
+<td>20240302</td>
+<td><img alt="20240302.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/VeXQU1GY2qzcl7F.jpg" /></td>
+</tr>
+<tr>
+<td>20240303</td>
+<td><img alt="20240303.jpeg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/4crMg2RBTJnodES.jpg" /></td>
+</tr>
+</tbody></table><h2>我的更多跑步数据展示</h2>
+<ul>
+<li><a href="https://conge.livingwithfcs.org/running_page/" rel="nofollow">我的跑步主页</a></li>
+<li><a href="https://github.com/conge/RunningStreak" rel="nofollow">我跑步手动记录 github repo</a></li>
+<li><a href="https://www.strava.com/athletes/57680242" rel="nofollow">我的 Strava 页面</a></li>
+</ul>
+<pre><code>2024-03-03 初稿
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-03-04T07:07:32Z</pubDate>
+<pubDate>2024-03-04T07:07:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 自己做饭真的能省钱吗？</title>
+<link>https://www.v2ex.com/t/1020456</link>
+<guid>https://www.v2ex.com/t/1020456</guid>
+<content:encoded><![CDATA[
+
+<p>目前
+早饭 10
+午饭 30
+晚饭 30
+夜宵 25
+合计 95</p>
+<p>平时早上 9 点上班，6 点下班，健身回去 9 点多
+自己做饭估计只能控制一下夜宵，周末每天的两顿饭
+午饭如果带盒饭的话，自己未必高兴做</p>
+]]></content:encoded>
+<pubDate>2024-03-04T07:04:52Z</pubDate>
+<pubDate>2024-03-04T03:03:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于丧假，公司需要开出死亡证明、关系证明。这两需要本人去当地派出所才能开吗？</title>
+<link>https://www.v2ex.com/t/1020455</link>
+<guid>https://www.v2ex.com/t/1020455</guid>
+<content:encoded><![CDATA[
+
+<p>怎么开？去哪开？找谁开？</p>
+]]></content:encoded>
+<pubDate>2024-03-04T07:01:04Z</pubDate>
+<pubDate>2024-03-04T07:10:34Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 周末搞了一个 Chrome 插件，现在 Chrome 审核也变快了呀！</title>
+<link>https://www.v2ex.com/t/1020453</link>
+<guid>https://www.v2ex.com/t/1020453</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://chromewebstore.google.com/detail/helthpal/jnkkhbadiacplpihlilbgnjikcecjeno?hl=zh-CN&amp;authuser=0" rel="nofollow">HelthPal 便签 Chrome 插件</a>
+功能如下：
+1 、提醒喝水、休息、活动筋骨
+2 、添加便签条、以及便签条提醒
+接下来: 记录网站摸鱼时间！！！</p>
+<p><img alt="WeChatf16e0f667d2ce192bd08cb33af866499.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4dae5fe8a29840d28766ce8d79aa9cb9%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1280&amp;h=800&amp;s=241024&amp;e=png&amp;b=ffffff" /></p>
+<p><img alt="WeChat2e15506ef82f8f3f8ecd79fa1c067608.png" class="embedded_image" rel="noreferrer" src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f14decdded15444ca16fa8b087495660%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1280&amp;h=800&amp;s=211567&amp;e=png&amp;b=768dff" /></p>
+<p><img alt="WeChate8a290d5f68d45da1d8727ace44230b1.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/673a2e7967a840eb84fbd7fd6cf95274%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1280&amp;h=800&amp;s=300308&amp;e=png&amp;b=778eff" /></p>
+<p><img alt="WeChat20dbe76fc359a996a6b70e88216790a5.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/75ec968ef9cd4aaf9481265e16554c23%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1280&amp;h=800&amp;s=1324145&amp;e=png&amp;b=fffbfa" /></p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:53:06Z</pubDate>
+<pubDate>2024-03-04T06:50:06Z</pubDate>
+</item>
+<item>
+<title>[问与答] 怎么注册域名比较安全？</title>
+<link>https://www.v2ex.com/t/1020452</link>
+<guid>https://www.v2ex.com/t/1020452</guid>
+<content:encoded><![CDATA[
+
+<p>用 gmail 或者 hotmail 邮箱容易被封
+国内邮箱就更不用提了
+万一邮箱被封或丢失，是不是域名就找不回来了</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:46:14Z</pubDate>
+<pubDate>2024-03-04T07:07:58Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教如何绕过美团 APP 的截屏限制</title>
+<link>https://www.v2ex.com/t/1020451</link>
+<guid>https://www.v2ex.com/t/1020451</guid>
+<content:encoded><![CDATA[
+
+<p>请教大家一个问题：</p>
+<p>美团 APP 为了避免用户将卡号二维码等发给别人，发现用户截屏之后就会触发服务端把原来的卡号或二维码失效掉，应该是捕获了截屏的事件，类似用手机银行 APP 截图也会弹出安全提醒一样。</p>
+<p>请问有没有办法可以绕过这样的限制，能想到的办法是用“控制中心”里的录屏功能，缺点是有点麻烦，启动录制屏幕都有一个 3 秒种的倒计时。</p>
+<p>希望有经验的朋友在假定我这需求合理的情况下，帮忙分享一下方案，提前表示感谢，3Q ！</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:46:11Z</pubDate>
+<pubDate>2024-03-04T06:53:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] wechat 在 sandboxie 中无法播放视频</title>
+<link>https://www.v2ex.com/t/1020450</link>
+<guid>https://www.v2ex.com/t/1020450</guid>
+<content:encoded><![CDATA[
+
+在 sandboxie 中播放 wechat 视频的时候很容易崩溃，视频无法播放，大家有出现这个问题吗？
+]]></content:encoded>
+<pubDate>2024-03-04T06:45:56Z</pubDate>
+<pubDate>2024-03-04T06:43:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 MYSQL 数据库迁移的求助</title>
+<link>https://www.v2ex.com/t/1020449</link>
+<guid>https://www.v2ex.com/t/1020449</guid>
+<content:encoded><![CDATA[
+
+我想找个关于数据库迁移方面的知识，最好是热备份的，有什么推荐的书或者发布的帖子嘛<br />公司现在是想这样<br />场景：现在有 mysql5.7 数据库服务器 1 和 mysql5.7 数据库服务器 2 进行主从复制，上面的数据库有 db_a,db_b 。还有另一台 mysql5.7 数据库服务器 3 ，上面的数据库为 db_c,db_d 。<br />需求：现在需要把数据库服务器 3 上的 db_c 和 db_d 迁移到数据库服务器 1 上。
+]]></content:encoded>
+<pubDate>2024-03-04T06:45:53Z</pubDate>
+<pubDate>2024-03-04T06:42:53Z</pubDate>
+</item>
+<item>
+<title>[职场话题] gap 一到二个月 再找工作 怎么样？</title>
+<link>https://www.v2ex.com/t/1020447</link>
+<guid>https://www.v2ex.com/t/1020447</guid>
+<content:encoded><![CDATA[
+
+<p>兄弟 帮忙看看</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:36:30Z</pubDate>
+<pubDate>2024-03-04T07:00:46Z</pubDate>
+</item>
+<item>
+<title>[路由器] 求问网络相关问题</title>
+<link>https://www.v2ex.com/t/1020446</link>
+<guid>https://www.v2ex.com/t/1020446</guid>
+<content:encoded><![CDATA[
+
+<p>现在家里网络是光猫拨号，想改成路由器拨号，光猫桥接；这样是不是需要重置路由器，重新设置模式？家里的黑群晖地址会受影响么？只要保持和之前 wifi 名称密码一样，家里的智能设备是不是不用重新联网了？</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:36:04Z</pubDate>
+<pubDate>2024-03-04T06:46:38Z</pubDate>
+</item>
+<item>
+<title>[酷工作] SmartDeer 招聘全职/兼职后端工程师</title>
+<link>https://www.v2ex.com/t/1020445</link>
+<guid>https://www.v2ex.com/t/1020445</guid>
+<content:encoded><![CDATA[
+
+<p>我们正在寻找一位技术扎实、责任心强的 Java 工程师 加入我们的团队。您将负责设计、开发和维护高性能的应用程序，以及在我们的微服务架构中实现新功能。</p>
+<p><a href="https://smartdeer.com/" rel="nofollow">https://smartdeer.com/</a></p>
+<p>主要工作范围</p>
+<ul>
+<li>SmartDeer App 后端</li>
+<li>全球合规的雇佣服务的后端 toB 系统开发</li>
+<li>CRM 系统后端</li>
+</ul>
+<p>职位要求</p>
+<ul>
+<li>熟练掌握 Java 编程语言</li>
+<li>熟悉 Spring Boot 框架和微服务架构模式</li>
+<li>扎实的计算机科学基础，包括数据结构、算法和设计模式</li>
+<li>熟练使用 MySQL 和 ElasticSearch</li>
+<li>熟练使用 Redis 和缓存逻辑</li>
+<li>熟练使用 Git 版本控制系统</li>
+<li>良好的问题解决技能和优秀的团队合作精神</li>
+</ul>
+<p>加分项</p>
+<ul>
+<li>拥有分布式系统开发经验</li>
+<li>对 Web3 概念有一定的了解或经验，如区块链、智能合约或分布式应用（ DApp ）等</li>
+</ul>
+<p>职位类型</p>
+<ul>
+<li>全职</li>
+<li>兼职</li>
+<li>实习</li>
+</ul>
+<p>工作地点</p>
+<ul>
+<li>北京市</li>
+</ul>
+<p>如果感兴趣可以给我发邮件：</p>
+<p>x@guojing.me</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:33:49Z</pubDate>
+<pubDate>2024-03-04T06:38:48Z</pubDate>
+</item>
+<item>
+<title>[信息安全] 新产品，欢迎提意见</title>
+<link>https://www.v2ex.com/t/1020444</link>
+<guid>https://www.v2ex.com/t/1020444</guid>
+<content:encoded><![CDATA[
+
+<h2>首页大屏</h2>
+<p><img alt="iShot_2024-03-04_14.22.08.png" class="embedded_image" rel="noreferrer" src="https://heap-web.oss-cn-hangzhou.aliyuncs.com/octopus/iaieHyKreOEloJuR.png" /></p>
+<h2>内测阶段，免费试用一个月</h2>
+<p>有兴趣体验的师傅，来长亭云图极速版群里找我 py</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:33:39Z</pubDate>
+<pubDate>2024-03-04T02:33:39Z</pubDate>
+</item>
+<item>
+<title>[Java] 苏南的小微国企值得去么。</title>
+<link>https://www.v2ex.com/t/1020443</link>
+<guid>https://www.v2ex.com/t/1020443</guid>
+<content:encoded><![CDATA[
+
+<p>大数据中心下，老家政府全资创建的，面试通过了，但是工资很低，年薪要砍一半再一半，10w 多点，坐标苏南某小县城。  目前所在的公司发展势头很好，有点犹豫</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:31:51Z</pubDate>
+<pubDate>2024-03-04T07:01:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么 12 寸（忘记多大了）的 iPad Pro 操作起来还不如更小的 iPhone 方便？</title>
+<link>https://www.v2ex.com/t/1020442</link>
+<guid>https://www.v2ex.com/t/1020442</guid>
+<content:encoded><![CDATA[
+
+我发现我输入同一段中文话的速度总是 Macbook&gt;&gt;iPhone&gt;&gt;iPad ，输入英文因为有候选词三者差别不大
+]]></content:encoded>
+<pubDate>2024-03-04T06:26:19Z</pubDate>
+<pubDate>2024-03-04T06:23:19Z</pubDate>
+</item>
+<item>
+<title>[Apple] macos 连接打印机打印的疑难问题</title>
+<link>https://www.v2ex.com/t/1020440</link>
+<guid>https://www.v2ex.com/t/1020440</guid>
+<content:encoded><![CDATA[
+
+之前是正常打印的，突然就出现打印提示纸张方向不对，请插入 A4 SEF ，然后打印出来的纸张方向都是反的，我确定我选的是 a4 ，纸张方向也是正确<br /><br />另外同组的 macos 打印也是这种情况，并且之前也是正常的<br /><br /><a href="https://i.imgur.com/p79OXyS.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/p79OXyS.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-03-04T06:23:16Z</pubDate>
+<pubDate>2024-03-04T06:23:16Z</pubDate>
+</item>
+<item>
+<title>[汽车] 关于二手车，请给些建议</title>
+<link>https://www.v2ex.com/t/1020439</link>
+<guid>https://www.v2ex.com/t/1020439</guid>
+<content:encoded><![CDATA[
+
+<p>是这样的，我在抖音上看上了一款车，16 款荣威 e550 ，里程 9 万公里，报价 25800 ，感觉挺便宜的。由于我对车这一块也是小白，想问下各位 V 友的建议。
+PS：本人坐标魔都，用车需求主要也是上下班代步，另一方面顺当练手了
+<a href="https://imgur.com/a/CWZ8ymz" rel="nofollow">https://imgur.com/a/CWZ8ymz</a>
+<a href="https://imgur.com/a/9XVspJz" rel="nofollow">https://imgur.com/a/9XVspJz</a></p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:21:35Z</pubDate>
+<pubDate>2024-03-04T06:43:16Z</pubDate>
+</item>
+<item>
+<title>[程序员] 浏览器登录有没有绑定设备这一技术原理是如何实现的？</title>
+<link>https://www.v2ex.com/t/1020436</link>
+<guid>https://www.v2ex.com/t/1020436</guid>
+<content:encoded><![CDATA[
+
+<p>印象中好像苹果网站登录 appleid 的时候或者是阿里云登录的时候，首次在台新的 PC 登录的时候有提示说是否记住信任该设备，如果信任了下次登录输入账号密码就直接可以登录了，否则可能会有二次验证，例如手机短信或者邮箱验证码之类的</p>
+<p>想请问下各位大佬这种技术是基于什么原理实现的？</p>
+<p>手机 app 的话是可以拿到类似设备唯一编号之类的，PC 浏览器有类似的功能吗？</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:14:10Z</pubDate>
+<pubDate>2024-03-04T07:06:22Z</pubDate>
+</item>
+<item>
+<title>[程序员] 学习现实增强应该从哪里入手</title>
+<link>https://www.v2ex.com/t/1020434</link>
+<guid>https://www.v2ex.com/t/1020434</guid>
+<content:encoded><![CDATA[
+
+据我所知，最强的是微软和苹果，微软是直接看到外面，再叠加一层图像。苹果是用摄像头把街景抓进来，然后叠加好图像再统一呈现。<br />是不是只有这两条主流路线选择？<br />我网上搜到的都说苹果的路线好，但我看描述还是觉得微软好。像苹果那种先把图像加抓进来再处理，再传给眼睛，难道没延迟吗？我快速晃动脑袋岂不是有拖曳感。
+]]></content:encoded>
+<pubDate>2024-03-04T06:12:03Z</pubDate>
+<pubDate>2024-03-04T06:47:10Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想问问持有小米 13 的 v 友</title>
+<link>https://www.v2ex.com/t/1020433</link>
+<guid>https://www.v2ex.com/t/1020433</guid>
+<content:encoded><![CDATA[
+
+近期打算出掉 iPhone14 和 watch s8 ，打算入安卓了。<br /><br />目前看中了小米 13 ，但是我看有人说，半年后续航变差好多？<br /><br />所以想请各位目前持有小米 13 的 v 友，分享下日常体验和缺点。
+]]></content:encoded>
+<pubDate>2024-03-04T06:11:54Z</pubDate>
+<pubDate>2024-03-04T06:29:53Z</pubDate>
+</item>
+<item>
+<title>[推广] 「不忠诚计划」ONEW 上架一周年特别企划！</title>
+<link>https://www.v2ex.com/t/1020432</link>
+<guid>https://www.v2ex.com/t/1020432</guid>
+<content:encoded><![CDATA[
+
+<p>🎉 庆祝 ONEW 一周年！🎉</p>
+<p>自 ONEW 上线以来，我们已经历了 23 次迭代更新，平均每月更新 2 次。我们的产品也从最初的「余额记账」功能顺利升级为全面的「资产管理」形态。现在，ONEW 支持以下核心功能：</p>
+<ul>
+<li><strong>资产价格自动更新</strong>：涵盖 A 股、基金、港美股等。</li>
+<li><strong>汇率自动换算</strong>：支持加密货币，让全球资产一目了然。</li>
+<li><strong>资产趋势</strong>：随时掌握，资产变化。</li>
+</ul>
+<p>随着产品的成长，ONEW Plus 的价格也从最初的 12 元/年调整至 58 元/年。尽管价格有所上涨，但我们依然获得了用户的支持和认可，收入也能覆盖每年的开发者保护费用。</p>
+<p>🎁 为了庆祝这一里程碑，我们推出了「品牌不忠诚计划」特别活动！如果你已经是其他泛记账类 App 的会员，现在就有机会免费升级到 ONEW Plus 。只需按照以下步骤参与：</p>
+<ol>
+<li>添加我们的小助手微信（微信号：onewapp ）。</li>
+<li>私聊发送你的 App 会员购买凭证或已开通状态的截图。</li>
+<li>我们的团队将核验你的凭证。</li>
+<li>核验通过后，你将获得「 ONEW Plus 」一年期的兑换码。</li>
+<li>前往 App Store 使用兑换码激活你的 ONEW Plus 会员。</li>
+</ol>
+<p>抓住这个机会，让 ONEW Plus 为你的资产管理带来全新的体验！🚀</p>
+<p><a href="https://apps.apple.com/cn/app/id1670048788" rel="nofollow">App Store 商店地址</a></p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:03:49Z</pubDate>
+<pubDate>2024-03-04T06:03:49Z</pubDate>
+</item>
+<item>
+<title>[程序员] 简洁无广告的 apk 直接下载网站，收录 42w+的 app， apkpure 替代网站</title>
+<link>https://www.v2ex.com/t/1020431</link>
+<guid>https://www.v2ex.com/t/1020431</guid>
+<content:encoded><![CDATA[
+
+<p>花了两个月爬取的 apk 文件，花了两个星期开发的网站，目前收录了 42w+的 app ，简单绿色无广告，<a href="https://apkfreedown.com" rel="nofollow">apkfreedown</a> ，但是有些 app 有兼容性问题，不一定能正常使用</p>
+]]></content:encoded>
+<pubDate>2024-03-04T06:01:11Z</pubDate>
+<pubDate>2024-03-04T07:06:09Z</pubDate>
+</item>
+<item>
+<title>[Linux] 想转 manjaro 但是有几个问题困扰着我</title>
+<link>https://www.v2ex.com/t/1020430</link>
+<guid>https://www.v2ex.com/t/1020430</guid>
+<content:encoded><![CDATA[
+
+<p>各位大佬好,想把系统切换到 manjaro , 目前是 win11 之前也用过五六年的 macOS</p>
+<p>有以下几点困扰着我切换到 manjaro</p>
+<ol>
+<li>
+<p>我需要一个剪贴板管理软件, 但不光是剪贴板管理功能, 还需要带类似于代码片段或者便捷回复短语的功能,最好支持分组, 在 win 上 类似的软件是 ditto , 在 MacOS 上, 类似的软件是 paste</p>
+</li>
+<li>
+<p>我需要顺手的截图软件, 可以指定矩形, 箭头, 输入文字, 马赛克等快捷键,支持贴图, 同时支持保存图片格式为 webp 格式, 在 win 上类似的软件为 pixpin , 在 MacOS 上,有 ishot</p>
+</li>
+<li>
+<p>我需要划词翻译软件,最好能够支持划词翻译,截图翻译,然后支持各个翻译 API 可以自己填写 win 上有 pot , MacOS 上有 bob</p>
+</li>
+<li>
+<p>类似于 clash-verge 的软件</p>
+</li>
+<li>
+<p>清理软件,清理系统垃圾 软件缓存之类的</p>
+</li>
+<li>
+<p>输入法的支持, 最好支持设置中文下使用英文标点的功能 能支持颜文字最好了</p>
+</li>
+<li>
+<p>蓝牙驱动和网卡驱动我不清楚怎么下载 安装系统后 我没有网线 是 WiFi 连接的网络 我有 win 环境下的驱动包</p>
+</li>
+</ol>
+<p>以下是我的设备型号</p>
+<p><img alt="设备" class="embedded_image" rel="noreferrer" src="https://s11.ax1x.com/2024/03/04/pFB4ci8.jpg" /></p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:54:40Z</pubDate>
+<pubDate>2024-03-04T07:01:34Z</pubDate>
+</item>
+<item>
+<title>[微信] 企业微信 - 私有部署在 Mac 上有原生支持 Apple silicon 的版本吗？</title>
+<link>https://www.v2ex.com/t/1020429</link>
+<guid>https://www.v2ex.com/t/1020429</guid>
+<content:encoded><![CDATA[
+
+<p>公司提供的 Mac 安装包只有 X86 的，跑起来贼卡（安装包还贼大，1 个 G ）。</p>
+<p>App Store 上也没有上架 Mac 的 App ，虽然有 IOS 的版本，但好像做了特别设置，不允许在 Mac 上运行。</p>
+<p>从网上找了下，发现有些公司虽然使用了私有化的企业微信，但没有定制客户端，所以这些版本的客户端是直接能用的，但找到的版本都比较老，也没发现 arm64 的版本。目前找了个 200M 左右的通用版先用着，虽然比那个 1 个 G 的版本稍微好点，但还是有点卡。</p>
+<p>大家有没有见过原生支持 Apple silicon 的私有化企业微信客户端呀，有的话能提供个不。</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:53:02Z</pubDate>
+<pubDate>2024-03-04T05:53:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在国内还有电子诈骗吗？坐标：福州？我老表他妈周末打电话来问我</title>
+<link>https://www.v2ex.com/t/1020428</link>
+<guid>https://www.v2ex.com/t/1020428</guid>
+<content:encoded><![CDATA[
+
+<p>事情是这样的，我老表在去年年前找到一份类似直播带货的工作（他这样跟我讲）</p>
+<pre><code>然后，过年的时候，就这个工作谈过，说是灰色产业？然后卖东西给欧洲？什么都卖？然后他也知道这个事情不稳定，风险高？想搞到钱就脱身？
+现在，我老表他妈也就是我姨周末打电话跟我讲，想问清楚一下，具体是干什么？如果是搞 wf 的赶快撤，因为他村里已经有一个人就是做类似这种的进去了？？？
+
+后来，我跟老表闲谈，属于半夜工作到早上 6 点半？我问他做什么他也不说。
+重点只有一张照片
+https://imgur.com/a/aDOJXEa
+各位分析分析，支支招
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-03-04T05:52:22Z</pubDate>
+<pubDate>2024-03-04T06:38:18Z</pubDate>
+</item>
+<item>
+<title>[程序员] 户外摆摊油车供电问题</title>
+<link>https://www.v2ex.com/t/1020427</link>
+<guid>https://www.v2ex.com/t/1020427</guid>
+<content:encoded><![CDATA[
+
+<p>周末在家闲着无聊，准备去摆摊做 AI 绘画，打印出来装到相框里卖，让用户自己选择一张照片，用 SD 做图生图，变装之类的（对象是游戏公司平面设计，非常专业，SD 非常熟练）。</p>
+<p>目前各种设备都已经下单了，包括：米家 1S 照片打印机（ 24V 1.6A ），摆摊折叠小桌子，各种 6 寸相框若干个。</p>
+<p>摆摊区域也已经选好了，一个车备箱摆摊广场，周末一个摊位 40 元一天。之前去逛了好多次，人挺多的，大部分摊主都是开车电车过去的。现在问题来了，我没有户外电源，现在的户外电源动辄 1-2000 ，而且我平时也没这方面需求，买一个感觉不太划算，而且我只有一个打印机低功率电器，跑 SD 的电脑放在家里，我用一台平板远程连接的，一个 2w 毫安的充电宝完全够用（ 18w 的充电宝，带不动打印机）。</p>
+<p>现在有几个方案:<br />
+1 、买一个二手小容量的户外电源，大概 500 块钱左右，估计用几次就扔在那里吃灰了。<br />
+2 、用我油车的点烟器逆变接打印机，不知道功率输出稳不稳定，打印机能不能带得动，汽车电瓶会不会用亏电。<br />
+3 、我有一台小电瓶车，把电瓶拆下来接逆变器，需要折腾。<br />
+4 、厚脸皮找附近电车车主，蹭个电。</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:52:12Z</pubDate>
+<pubDate>2024-03-04T06:42:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有哪个网站可以查询一部剧当前在国外哪个流媒体播出？？</title>
+<link>https://www.v2ex.com/t/1020426</link>
+<guid>https://www.v2ex.com/t/1020426</guid>
+<content:encoded><![CDATA[
+
+<p>比如哈利波特，奈飞只有日本和英国有版权，其他区都下架了，  哥谭也是，，奈飞以前有，现在也没了，
+有没有什么网站可以查询下这部剧在哪个流媒体，或者奈飞哪个区现在可以看。</p>
+<p>另外怎么知道奈飞是不是解锁了？能看绝命毒师这个方法好像过时了吧，我可以看毒师，但是里面大部分也是自制剧，也不知道是解锁了还是没解锁，查了下，也没什么具体方法</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:41:41Z</pubDate>
+<pubDate>2024-03-04T05:51:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 手绘地图，并在里面设置线路导航，这类 H5 页面实现的思路是什么？</title>
+<link>https://www.v2ex.com/t/1020425</link>
+<guid>https://www.v2ex.com/t/1020425</guid>
+<content:encoded><![CDATA[
+
+1.先找人手绘好作为地图<br />2.通过 Canvas+js 制作导航线路<br />这样去实现的吗？
+]]></content:encoded>
+<pubDate>2024-03-04T05:37:16Z</pubDate>
+<pubDate>2024-02-25T05:37:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] 线下全日制零基础英语培训班哪个好？</title>
+<link>https://www.v2ex.com/t/1020424</link>
+<guid>https://www.v2ex.com/t/1020424</guid>
+<content:encoded><![CDATA[
+
+打算系统的学习一下英语，英语底子很差（可以说零基础）。有推荐的培训班吗？最好是线下全日制的。<br /><br />目前我在上海，全天都可以去学习，当然学费便宜点最好。
+]]></content:encoded>
+<pubDate>2024-03-04T05:35:49Z</pubDate>
+<pubDate>2024-03-04T06:25:25Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] S5 续航一天不稳</title>
+<link>https://www.v2ex.com/t/1020423</link>
+<guid>https://www.v2ex.com/t/1020423</guid>
+<content:encoded><![CDATA[
+
+S5 电池效能 82%，系统 9.X ，AOD 关，噪音开，后台刷新开，eSIM 关，飞行模式开但保留蓝牙。电池晚上 20 点充满，平均一小时掉 4-5%电力，睡前 88%，早 7 点起来 76%，现在下午一点多 43%，目测感觉一天也 HOLD 不住。<br /><br />求懂的老哥来看看是否正常，之前那块电池效能 93%的 S3 也是这样用，系统 8.X ，下班时还有 66%电池，能做到 1.5 天充，极限两天（日常使用，电池 20%）。
+]]></content:encoded>
+<pubDate>2024-03-04T05:32:40Z</pubDate>
+<pubDate>2024-03-04T06:58:38Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 域名好价格,阿里云的</title>
+<link>https://www.v2ex.com/t/1020422</link>
+<guid>https://www.v2ex.com/t/1020422</guid>
+<content:encoded><![CDATA[
+
+<p>如题,数字+.xyz 的 10 年 68 可以买到,刚需的可以去看看
+我是生日日期+.xyz 买了 10 年的,用来 nas ddns 解析</p>
+<p>我是 7 位数字然后后面是.xyz 的域名</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:26:51Z</pubDate>
+<pubDate>2024-03-04T06:26:59Z</pubDate>
+</item>
+<item>
+<title>[Apple] 16 寸 M1 PRO 32G 1T 电池 99%</title>
+<link>https://www.v2ex.com/t/1020420</link>
+<guid>https://www.v2ex.com/t/1020420</guid>
+<content:encoded><![CDATA[
+
+<p>各位 V 友们，麻烦帮忙问下，16 寸 M1 PRO 32G 1T 电池健康 99 ，购于苹果官网，准备当二手出了，care 到今年的 12 月份，现在行情价多少可以顺利出呀？或者真心有意的也可以联系。</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:24:18Z</pubDate>
+<pubDate>2024-03-04T05:37:48Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何让 Rime 的 [小鹤双拼] 更好用？</title>
+<link>https://www.v2ex.com/t/1020419</link>
+<guid>https://www.v2ex.com/t/1020419</guid>
+<content:encoded><![CDATA[
+
+<p>目前 Rime 用的是雾凇配置，小鹤输入法，缺点就是很多时候无法使用<strong>超级简拼</strong>功能，请问大家有什么方法或者配置可以让 rime 支持双拼的<strong>超级简拼</strong>呢？</p>
+<p>希望能让双拼的容错率也能提高一点，不知道大家有没有什么好的方案。</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:20:56Z</pubDate>
+<pubDate>2024-03-04T05:17:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大哥们，索尼的 XR-65X91L 电视怎么样？</title>
+<link>https://www.v2ex.com/t/1020418</link>
+<guid>https://www.v2ex.com/t/1020418</guid>
+<content:encoded><![CDATA[
+
+平时看的不多，打算后面接 switch 玩游戏啥的，然后可能买个电视盒子看看剧。同时也看了 TCL 的 Q10G Pro ，参数啥的都挺好，但是一直担心国产电视软件这块出幺蛾子。大家有啥推荐的吗？ 9000 以下的都可。
+]]></content:encoded>
+<pubDate>2024-03-04T05:05:10Z</pubDate>
+<pubDate>2024-03-04T06:00:34Z</pubDate>
+</item>
+<item>
+<title>[程序员] 「送码」chatgpt 国内免翻版本，不是 api 套壳！</title>
+<link>https://www.v2ex.com/t/1020417</link>
+<guid>https://www.v2ex.com/t/1020417</guid>
+<content:encoded><![CDATA[
+
+<p>国内免翻墙可以直接使用 chatgpt plus 全部功能</p>
+<p>完全 1:1 官网，不是使用 api 的套皮站</p>
+<p>你可以理解为，我们内置了一个梯子来使用 chatgpt</p>
+<p>当然还是有使用限制，每三小时 40 次</p>
+<p>30 一个月，质保一个月可用时间</p>
+<p>1700 人售后群，售后有保障！</p>
+<p>免费试用码（三天）：</p>
+<p>pMwddB</p>
+<p>AGdL8b</p>
+<p>pvJsHK</p>
+<p>buRXoB</p>
+<p>GNTZPM</p>
+<p>Z8NwFm</p>
+<p>8zrScx</p>
+<p>Usynwl</p>
+<p>aNEQGy</p>
+<p>6Sc3NC</p>
+<p>使用地址：<a href="https://www.sbai.plus/list" rel="nofollow">sbai.plus</a></p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:03:16Z</pubDate>
+<pubDate>2024-03-04T02:01:16Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 分享下深圳的失业金和求职补助金领取</title>
+<link>https://www.v2ex.com/t/1020416</link>
+<guid>https://www.v2ex.com/t/1020416</guid>
+<content:encoded><![CDATA[
+
+<p>去年十月份，正式从前司离职，因为短时间不考虑重新回归固定工位，所以申请了失业金。<br />
+下图是可领取月份，以及每月领取金额。<br />
+申请方式也很简单，直接通过支付宝，社保-失业栏申请即可。<br />
+前提是，需要是非主动离职才可以。而且好像还需要公司人事，在社保系统上，把状态改成“非自愿离职”才行。一开始我也不行，最后是给人事领导打电话，让她帮我修改后，才正常申请。<br />
+之前缴纳社保的年限越长，那能领取的时间就越长，最长是累计 24 个月，我目前能领取 11 个月。<br />
+如果也有 V 友跟我一样，也暂时不打算回归工位，可以考虑领一下这一笔钱，毕竟也是一项收入。<br />
+说是一笔，其实是两笔，以深圳为准哈。<br />
+第一笔是失业金，深圳是 2124 元/每月，领取期数看个人缴费长短。<br />
+第二笔是求职补助金，深圳是领 6 个月，354 元/每月。<br />
+每个月会自动打到你的银行卡里，唯一需要做的，就是每个月到微信粤省事上签到，确认自己当前的状态。<br />
+还有一点比较优秀，不知道其他城市有没有。就是领取失业金期间，失业局会代交医保，这点很棒，至少失业期间不用担心医保断保问题。<br />
+下面的图，就是以上提到的内容。<br />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KDth9L2.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:02:42Z</pubDate>
+<pubDate>2024-03-03T13:01:42Z</pubDate>
+</item>
+<item>
+<title>[问与答] syncthing 有能力支持在 2 个不同地理位置的私有 IP 之间同步数据么？</title>
+<link>https://www.v2ex.com/t/1020415</link>
+<guid>https://www.v2ex.com/t/1020415</guid>
+<content:encoded><![CDATA[
+
+<p>假设一下场景，两台不同的电脑，分别北京和上海的 2 个局域网内，没有公网 IP 。有没有办法用 syncthing 实现这两台电脑相互同步某个指定的文件夹。需要借助第三方服务来实现么？</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:01:32Z</pubDate>
+<pubDate>2024-03-04T03:01:32Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 日本 it 现场案件急招！大家有考虑转职的可以看看，待遇可</title>
+<link>https://www.v2ex.com/t/1020414</link>
+<guid>https://www.v2ex.com/t/1020414</guid>
+<content:encoded><![CDATA[
+
+日本 IT 案件现场信息：<br /><br />1.4 月 RPA 案件<br />UiPathの開発経験 2 年以上<br />または<br />PowerAutomateの開発経験<br />BP/個人大歓迎！！！<br /> <br /> <br /> <br />2.３月 OR 3 月中旬稼働～<br />4 年 3ヶ月　日本語１級　英語：可能<br />Java 、Html 、Javascript 、VB 、C 、VUE.JS 、Oracle 、SQL 、Shell 、Python 、Springboot<br />基本設計〜テスト<br /> <br /> <br /> <br />3.半在宅案件<br />案件名：旅行系 Webシステム開発<br />必要スキル：<br />C#.Net Framework 経験 <br />Java (Spring Framework) / JSP 経験<br />6 年以上経験<br /><br /><br /><br />4.4 月案件<br />長期 1 年ほど、140-180 、渋谷常駐<br />・設計～開発～本番稼働<br />・<a href="http://VB.net/ASP.netによる開発経験があること" rel="nofollow noopener" target="_blank">VB.net/ASP.netによる開発経験があること</a><br />・要件を伝えればSQLを書けること。<br />・設計/テスト仕様書を書けること。<br /><br />有相关技术方向经验大佬考虑转职的话，可以投递简历至 base64 码：<br />YmVpYmVpNjc4MjAyM0AxNjMuY29t<br />具体岗位详细待遇信息，投递简历咨询哈~~！<br /> <br /><br /><br />下面是网站媒体的一些关于我们株式会社 GSD 的介绍，大家可以自行查看哈<br /><a href="http://www.worldtechnewss.com/info/2024/article954.html" rel="nofollow noopener" target="_blank">http://www.worldtechnewss.com/info/2024/article954.html</a><br /><a href="https://www.sohu.com/a/761163252_121398522" rel="nofollow noopener" target="_blank">https://www.sohu.com/a/761163252_121398522</a><br /><br />公司官网： <a href="https://www.g-s-d.co.jp/" rel="nofollow noopener" target="_blank">https://www.g-s-d.co.jp/</a><br />会社地址：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801 号室<br /><br /><br />GSD 日本总社持续招聘技术者，日语 n2 以上可沟通交流，无论你是哪一种技术方向的大咖我们都需要哈<br />薪资待遇：300w-1000w 日元/年<br />仕事内容：<br />JAVA 、<a href="http://VB.Net" rel="nofollow noopener" target="_blank">VB.Net</a> 、C#、VC ／ C++、PL/SQLなど言語での設計、製造及びテスト作業<br />※ 未経験者の方もご相談ください<br />資格：ソフトウェア開発経験者<br />職種：PM 、PL 、SE 、PG<br />勤務時間：9:00~18:00 ※勤務地により変動あり<br />休暇：有給休暇<br />健康保险、厚生年金、雇佣保险等各种保险社会福利完备；<br />福利待遇：：全额交通费报销+加班费+每年至少涨薪一次+保险+社员旅行+高度人才加分（最高可加 20 分）+中国传统节假日礼品<br /><br /><br />GSD 大连支社营业担当及对日招聘岗位也正在招，随时可以约面试哈<br />IT 营业担当需求：<br />1 、日语口语流利<br />2 、有营业认知或者经验<br />3 、IT/互联网行业销售经验 or 猎头经验<br />4 、或者有猎头客户资源，可以做人才介绍担当<br /><br />对日招聘 HR 担当需求：<br />1 、统招本科以上学历，人力资源相关专业优先、持有人力资源相关证书优先(学历非硬性要求) ;<br />2 、招聘经验/猎头经验（ IT 方向）；<br />3 、优秀的沟通表达能力，具备一定的抗压能力，主观能动性学习能力强；<br />4 、日语二级以上或有在日本的生活经验者优先<br />5 、乐观开朗，有上进心<br /><br />工作地点：辽宁省大连市沙河口区深蓝国际大厦 1604<br />工作时间：8:30-17:30 ，周末双休<br />待遇福利：五险一金，法定节假日正常休息，有年假，节日礼品，团建等~氛围嘎嘎滴！<br /><br />大家可以投递简历至 base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t<br />（我随时在线！！具体详细信息大家可以投递咨询哈）
+]]></content:encoded>
+<pubDate>2024-03-04T04:57:47Z</pubDate>
+<pubDate>2024-03-04T04:54:47Z</pubDate>
+</item>
+<item>
+<title>在线接私活，前端 ，欢迎老板咨询 +v Y2x5ODY2</title>
+<link>https://www.v2ex.com/t/1020421</link>
+<guid>https://www.v2ex.com/t/1020421</guid>
+<content:encoded><![CDATA[
+
+<p>9 年经验，有大厂经历，
+项目经验包含 3D 、lowCode 、 管理页面 、编辑器 等</p>
+]]></content:encoded>
+<pubDate>2024-03-04T05:24:47Z</pubDate>
+<pubDate>2024-03-04T01:24:47Z</pubDate>
+</item>
+
+<item>
 <title>[Kubernetes] （K8s 教程系列）新增文章： K8s 实战指导</title>
 <link>https://www.v2ex.com/t/1020413</link>
 <guid>https://www.v2ex.com/t/1020413</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li><a href="https://github.com/chaseSpace/k8s-tutorial-cn/blob/main/doc_k8s_actions_guide.md" rel="nofollow">K8s 实战指导</a></li>
 </ul>
@@ -27,14 +885,12 @@
 </ul>
 ]]></content:encoded>
 <pubDate>2024-03-04T04:49:06Z</pubDate>
-<pubDate>2024-03-04T04:49:06Z</pubDate>
 </item>
 <item>
 <title>[宽带症候群] 淘宝这种 sdwan 监控组网的硬件谁买过有什么有缺点嘛</title>
 <link>https://www.v2ex.com/t/1020412</link>
 <guid>https://www.v2ex.com/t/1020412</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="2rtVZ1w9ezsmIUM.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/2rtVZ1w9ezsmIUM.png" /></p>
 <h1>这个东西谁买过有什么优缺点吗</h1>
 <ul>
@@ -44,7 +900,6 @@
 <li>组网成本怎么样</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:46:37Z</pubDate>
 <pubDate>2024-03-04T04:43:37Z</pubDate>
 </item>
 <item>
@@ -52,10 +907,8 @@
 <link>https://www.v2ex.com/t/1020410</link>
 <guid>https://www.v2ex.com/t/1020410</guid>
 <content:encoded><![CDATA[
-
 Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the electrifying synergy of gaming, blockchain, and cryptocurrency. We eat, sleep, and breathe pixels and private keys, and our hearts beat to the rhythm of both joystick jiggles and blockchain bounces.<br /><br />🔔 We're not just playing games, we're making them, and in the process, we're redefining what it means to have fun in the digital era. our playground is as vast as our ambitions, stretching from the bright lights of the USA to the historic landscapes of Europe, from our home turf in Japan to the bustling cities of Southeast Asia, and beyond.<br /><br />🔔 Our workspace is a sandbox designed to spark your creativity and fuel your personal growth. Our mantra? Flexibility, adaptability, and collaboration. In essence, it's a way of life. It's about embracing challenges, celebrating wins, and reimagining what's possible in the world of gaming. We’re on an extraordinary journey, and we're looking for extraordinary people to join us. 🗣 Are you ready to Advance Beyond Ambition? Game on! 🗣<br /><br />Position : Java 後端工程師 Location : Japan<br /><br />职位描述: -连接内外平台，整合相关功能 -负责系统设计和功能模块设计,编程和重写 -带领 1-2 个成员完成开发任务 -找到并发现问题，提高功能相应速度 -设计和实施支持的服务和 API -成为确保我们的代码可扩展、可维护和可靠的一部分 -构建用于在生产环境中监控、跟踪和调试我们的服务的解决方案 -在实验系统上快速迭代以解决实际用户问题 -与其他团队密切合作，帮助我们为客户提供解决方案<br /><br />任职要求： 有 5 年以上经验。计算机科学或 IT 相关专业的文凭 极其熟悉 git 、java 、spring cloud 、MySQL 、Redis 、Kafka 、MongoDB 熟练使用 mysql ，理解索引原理，能对 sql 进行性能优化 能够设计幂等性接口 解分布式事务 熟练运用多线程 灵活运用设计模式<br /><br />双休＋法定假期 ,早九晚六或早 10 晚七 ,底薪＋奖金＋年终 -搬迁员工可提供当地工作签证  支持外宿 *搬迁补贴 -工作签证还没下来之前 远程办公 WFH<br /><br />Why Join Us ⁉️<br />●We offer a competitive salary, commensurate with qualifications and experience. ●With our passion in gaming, we continue to grow and offering tremendous career opportunities! ●We are an international company made up of people from various backgrounds and nationalities! ●We are a super-fast growing company in a competitive and ever-changing industry. ●And above all, we are passionate about what we are building altogether! ●We are aiming to spread to more than 30 countries this year!<br /><br />🎬 Recruitment Process: You will be contacted by our team within 72 hours of your application. Our recruitment process takes a maximum of 7 days from the first interview and you will be notified in case of success or failure.<br /><br />📫 Please send your resume to drop me a message for more information or add Telegram: <a href="https://t.me/SamHanHR" rel="nofollow noopener" target="_blank">https://t.me/SamHanHR</a> Thank you! 😃
 ]]></content:encoded>
-<pubDate>2024-03-04T04:39:14Z</pubDate>
 <pubDate>2024-03-04T04:37:14Z</pubDate>
 </item>
 <item>
@@ -63,7 +916,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020409</link>
 <guid>https://www.v2ex.com/t/1020409</guid>
 <content:encoded><![CDATA[
-
 <p>不知道大家是否有这样的难题：家里老人年纪大了，在家又坐不住，想找点轻松自由的工作，赚点生活费（有退休金的打扰了），打发时间。</p>
 <p>除了已知的开顺风车、保安、开便利店，还有什么可选项呢？</p>
 <p>列举下目前的一些考虑：</p>
@@ -75,7 +927,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 </ul>
 <p>……</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:21:51Z</pubDate>
 <pubDate>2024-03-04T04:20:51Z</pubDate>
 </item>
 <item>
@@ -83,10 +934,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020408</link>
 <guid>https://www.v2ex.com/t/1020408</guid>
 <content:encoded><![CDATA[
-
 <p>目前币安已经停止了加拿大的业务，请问如何转法币呢？</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:20:06Z</pubDate>
 <pubDate>2024-03-04T04:35:55Z</pubDate>
 </item>
 <item>
@@ -94,7 +943,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020407</link>
 <guid>https://www.v2ex.com/t/1020407</guid>
 <content:encoded><![CDATA[
-
 <p>万事开头需要一个名字，我就问了一下 ChatGPT 的意见</p>
 <ul>
 <li>我要做一个 shopify app 是 bundle 的功能，帮我给它起一个名字
@@ -117,7 +965,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.discordapp.com/attachments/1099127807671533640/1214064317981532160/GHzHCYRbQAA6qFe.jpeg?ex=65f7c081&amp;is=65e54b81&amp;hm=e92b5fe0edf8ec09e9c9d669017326eb3cc7b685889f6bbefcb9c3e9f52edf87&amp;" />
 接下去继续开发。</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:19:54Z</pubDate>
 <pubDate>2024-03-04T04:26:15Z</pubDate>
 </item>
 <item>
@@ -125,7 +972,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020406</link>
 <guid>https://www.v2ex.com/t/1020406</guid>
 <content:encoded><![CDATA[
-
 <p>今天开发的时候碰到一个问题</p>
 <p>nodejs 在计算</p>
 <p>(99.1 *1.05).toFixed(2)</p>
@@ -140,7 +986,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <p>感觉 nodejs 这么流行的语言不太会出现这种问题</p>
 <p>发个贴来问下大家的看法</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:12:07Z</pubDate>
 <pubDate>2024-03-04T04:50:06Z</pubDate>
 </item>
 <item>
@@ -148,11 +993,9 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020405</link>
 <guid>https://www.v2ex.com/t/1020405</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://www.zero2me.com" rel="nofollow">www.zero2me.com</a></p>
 <p>做知识总结，写日记都挺适合的，欢迎大家来玩</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:10:54Z</pubDate>
 <pubDate>2024-03-03T12:09:54Z</pubDate>
 </item>
 <item>
@@ -160,10 +1003,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020404</link>
 <guid>https://www.v2ex.com/t/1020404</guid>
 <content:encoded><![CDATA[
-
 微信通话录音是我的需求，但是找了一圈只有努比亚、realme 、小米这几个厂商有应用内录音功能（即麦克风和接听用户的声音都会被录制）。<br /><br />比较匪夷所思的是，本以为这个功能是受制于芯片，结果问了小米客服说天玑芯片的 K70e 也支持录音。另外厂商 realme 支持应用内录音，而它的兄弟品牌 OPPO 却不支持。V 友推荐过一款 Cube talk ，支持录制微信通话，但是录制环境要求很高，要求不能切换到后台。<a href="http://v2ex.com/t/999424" rel="nofollow noopener" target="_blank">v2ex.com/t/999424</a><br /><br />我想知道这个“应用内通话录音”的功能没有普及是因为：（ 1 ）用户需求小；（ 2 ）涉及核心科技、专利费用（ realme 是亲儿子？）；（ 3 ）开发难度大；（ 4 ）一种市场策略，只给中高端机型配备；（ 5 ）没什么特别的原因。<br /><br />还是什么其他的原因？
 ]]></content:encoded>
-<pubDate>2024-03-04T04:10:06Z</pubDate>
 <pubDate>2024-03-04T04:15:02Z</pubDate>
 </item>
 <item>
@@ -171,7 +1012,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020402</link>
 <guid>https://www.v2ex.com/t/1020402</guid>
 <content:encoded><![CDATA[
-
 <p>1.2.1 发布日志：</p>
 <ul>
 <li>解决黑名单无效的问题</li>
@@ -198,7 +1038,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <p>开源地址：</p>
 <p><a href="https://github.com/WuKongIM/WuKongIM" rel="nofollow">https://github.com/WuKongIM/WuKongIM</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:08:09Z</pubDate>
 <pubDate>2024-03-04T04:05:09Z</pubDate>
 </item>
 <item>
@@ -206,10 +1045,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020401</link>
 <guid>https://www.v2ex.com/t/1020401</guid>
 <content:encoded><![CDATA[
-
 没有用镀锌钢板容易生锈的车不考虑。比亚迪秦驱逐舰荣耀版就不考虑了没有用镀锌钢板
 ]]></content:encoded>
-<pubDate>2024-03-04T04:07:27Z</pubDate>
 <pubDate>2024-02-29T04:06:27Z</pubDate>
 </item>
 <item>
@@ -217,12 +1054,10 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020400</link>
 <guid>https://www.v2ex.com/t/1020400</guid>
 <content:encoded><![CDATA[
-
 <p>不是专业程序员，目前工作是关于库存管理以及与客户对接下单那种，由于公司原本使用中的系统我觉得有一些地方很繁琐不方便，去年 12 月搞了个库存管理系统自己使用。</p>
 <p>上个月觉得合适了，放到 Shopee 上卖订阅制，但是不出意外一个订单都没有，今天想想还是算了，试也试过了，拿去开源。</p>
 <p>我原本想直接放上去就好了，但是 Shopee 上我还是要继续放着的，保不准有人买呢。我想要使用者不能用于商业服务，类似我卖服务这种，除非得到许可。除了这个以外，爱怎么搞就与我无关了。哪个协议适合？之前没有了解过。</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T04:07:18Z</pubDate>
 <pubDate>2024-03-04T04:40:22Z</pubDate>
 </item>
 <item>
@@ -230,10 +1065,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020398</link>
 <guid>https://www.v2ex.com/t/1020398</guid>
 <content:encoded><![CDATA[
-
 刚看到个 OP ，心仪小米汽车，想买<br /><br />看了他的描述，收入也不是很高，买车对自己也是很大的支出，可以说是很重要的一件事<br /><br />他们为啥要拿自己辛辛苦苦挣的钱，还是这么大一笔，去买一个未经市场检验和考验的东西<br /><br />真的是因为爱吗？<br /><br /><br />本人<br />小米手机时常黑屏了亮屏<br />路由器总是没网需每周重启一次<br />小米手环一年触控失灵了<br /><br />当然我一直在用小米，东西能不换就不换，没钱，要养老婆
 ]]></content:encoded>
-<pubDate>2024-03-04T03:48:37Z</pubDate>
 <pubDate>2024-03-02T03:45:37Z</pubDate>
 </item>
 <item>
@@ -241,7 +1074,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020397</link>
 <guid>https://www.v2ex.com/t/1020397</guid>
 <content:encoded><![CDATA[
-
 <blockquote>
 <p>写了个推文系统,希望大家提点意见</p>
 </blockquote>
@@ -261,7 +1093,6 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <h2>地址</h2>
 <p><a href="https://chat.anchongai.com/" rel="nofollow">https://chat.anchongai.com/</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:48:11Z</pubDate>
 <pubDate>2024-03-04T04:29:35Z</pubDate>
 </item>
 <item>
@@ -269,13 +1100,11 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020396</link>
 <guid>https://www.v2ex.com/t/1020396</guid>
 <content:encoded><![CDATA[
-
 <p>RT 。我是土区 iCloud 直接订阅的每人每月 1 块多点。年付 15 哈。
 就是均摊下车费。
 按照添加我微信顺序上车哈。</p>
 <p>上车联系：国民绿色软件：bTE4MzEwOTM2NzU4</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:47:23Z</pubDate>
 <pubDate>2024-03-04T03:47:23Z</pubDate>
 </item>
 <item>
@@ -283,12 +1112,10 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020395</link>
 <guid>https://www.v2ex.com/t/1020395</guid>
 <content:encoded><![CDATA[
-
 <p>我已经有一台 Arch Linux 是安装到笔记本主机上的，但是还有另一台 Gentoo Linux 是安装到移动硬盘上的。</p>
 <p>现在如何在我启动 Arch 之后把 Gentoo 挂载到当前系统，并切换为 Gentoo ？不需要切换桌面环境，只需要在某个特定的终端环境中是 Gentoo 即可，而这个终端环境之外依旧是 Arch 。即同时运行 Arch 和 Gentoo ，两者共享磁盘之外的物理硬件。</p>
 <p>（不一定非要先启动 Arch ，先启动 Gentoo 然后在 Gentoo 上启动 Arch 也是可以的）</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:46:15Z</pubDate>
 <pubDate>2024-03-04T04:38:08Z</pubDate>
 </item>
 <item>
@@ -296,10 +1123,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020394</link>
 <guid>https://www.v2ex.com/t/1020394</guid>
 <content:encoded><![CDATA[
-
 记得 18 年入手 iPadPro 的时候，有一款 H 打头的文件管理，很好用而且完全免费，忘记叫啥了，后来 iPad 重置后闲置了好几年，今天上去看找不到这个软件了，而且历史纪录也翻不出来，可能是下架了<br /><br />在 AppStore 上搜了文件管理，排最前的是 Documents ，这个东西在各大搜索引擎里那是铺天盖地的存在，而且进去以后诱导订阅，就搞得很反感<br /><br />所以有没有除了 Documents 外，好用的文件管理工具呢？
 ]]></content:encoded>
-<pubDate>2024-03-04T03:45:51Z</pubDate>
 <pubDate>2024-03-04T03:43:51Z</pubDate>
 </item>
 <item>
@@ -308,9 +1133,7 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <guid>https://www.v2ex.com/t/1020393</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-04T03:43:02Z</pubDate>
 <pubDate>2024-03-04T03:42:02Z</pubDate>
 </item>
 <item>
@@ -318,13 +1141,11 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020392</link>
 <guid>https://www.v2ex.com/t/1020392</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，有 C/C++和 JAVA 的多年经验，用过 kubernetes 的云原生环境，但是不会 go 语言。</p>
 <p>请大家帮忙推荐个最好的几天能入门 go 语言，能上手 coding 的方法或者教程吧！</p>
 <p>中英文都可以，准备最近花几天来认真学下。</p>
 <p>感谢！</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:40:00Z</pubDate>
 <pubDate>2024-03-04T04:25:39Z</pubDate>
 </item>
 <item>
@@ -332,10 +1153,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020390</link>
 <guid>https://www.v2ex.com/t/1020390</guid>
 <content:encoded><![CDATA[
-
 各位有没有 k70pro/小米 14pro 刷了 eu 版的？我是 k70pro 。刷完后原神无法开启 2k 。国行系统默认有标准、省电、画质优先、帧率优先和自定义的选项，在自定义里把分辨率开到极致就能开 2k （图 1 ）。<br />刷完 eu 后画质优先和帧率优先这两个选项没了取而代之的是高质量和自定义（图 2 ，普通版小米 14 的选项才是这样）<br /><br /><a href="https://i.imgur.com/r1UX5DW.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/r1UX5DW.jpeg" /></a><br /><br /><a href="https://i.imgur.com/4eilXQ5.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4eilXQ5.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:35:34Z</pubDate>
 <pubDate>2024-03-03T23:35:34Z</pubDate>
 </item>
 <item>
@@ -343,10 +1162,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020389</link>
 <guid>https://www.v2ex.com/t/1020389</guid>
 <content:encoded><![CDATA[
-
 <p>小游戏场景，公司美术用的辅助作图，需要有 PS 插件，好用一点的，大家有什么推荐嘛</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:34:14Z</pubDate>
 <pubDate>2024-03-03T23:34:14Z</pubDate>
 </item>
 <item>
@@ -354,12 +1171,10 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020388</link>
 <guid>https://www.v2ex.com/t/1020388</guid>
 <content:encoded><![CDATA[
-
 <p>大概 3.20 前后几天带父母去北京玩，看了下 15 天天气预报，到时候大概最低 3-6 度，最高 14-16 度。</p>
 <p>这个时间大概天气如何？适合带父母去玩吗？</p>
 <p>常年待在广东，没什么北方的厚衣服，需要专门买点吗？</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:30:22Z</pubDate>
 <pubDate>2024-03-04T04:28:25Z</pubDate>
 </item>
 <item>
@@ -367,10 +1182,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020387</link>
 <guid>https://www.v2ex.com/t/1020387</guid>
 <content:encoded><![CDATA[
-
 <p>佬们，刚拿到大智慧 offer ，16K ，不知道加班情况咋样，也不知道会不会裁员，有没有了解的大佬指点一下</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:28:10Z</pubDate>
 <pubDate>2024-03-04T03:25:10Z</pubDate>
 </item>
 <item>
@@ -378,11 +1191,9 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020386</link>
 <guid>https://www.v2ex.com/t/1020386</guid>
 <content:encoded><![CDATA[
-
 <p>问问熟悉 PT 的大佬们，如果只是白天刷 10 个小时，能达到 PT 站点的要求吗？</p>
 <p>如果没问题的话，求个 MT 的药，群晖 923+，64t ，base64:bXV0ZWlnbm9yYW5jZUBnbWFpbC5jb20=</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:25:40Z</pubDate>
 <pubDate>2024-03-04T03:29:47Z</pubDate>
 </item>
 <item>
@@ -390,10 +1201,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020385</link>
 <guid>https://www.v2ex.com/t/1020385</guid>
 <content:encoded><![CDATA[
-
 这几年，每年的三月份我都会把手里的手机卖掉，然后在 pdd 上购买最低配的百亿补贴 Pro 系列，几年下来，每年换新手机的成本只有 1500 。<br /><br />在我的使用场景下（ 128G 机身存储 + 2T 家庭 iCloud ），感觉性价比非常高。
 ]]></content:encoded>
-<pubDate>2024-03-04T03:23:25Z</pubDate>
 <pubDate>2024-03-04T04:38:05Z</pubDate>
 </item>
 <item>
@@ -401,10 +1210,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020384</link>
 <guid>https://www.v2ex.com/t/1020384</guid>
 <content:encoded><![CDATA[
-
 <p>上周每天几乎都会在 boss 上聊，但是回的没几个，这是为啥？都不招人了吗</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:21:35Z</pubDate>
 <pubDate>2024-03-04T03:54:20Z</pubDate>
 </item>
 <item>
@@ -412,14 +1219,12 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020382</link>
 <guid>https://www.v2ex.com/t/1020382</guid>
 <content:encoded><![CDATA[
-
 <p>两年 java<br />
 投了五十来个，要简历的就 5 个，面试 1 个。 </p>
 <p>吐槽一下上周面试，技术面过了，期望薪资填的 10k ，hr 问为什么要 10k ，如果给不到 10k 最低能接受多少，我就回 10k 是心里预期，低了可能要考虑一下，然后 hr 就一直追问最低多少，我就回了最低 9k 吧，结果这个 hr 又问如果 9k 给不了最低能接受多少。。。。。。</p>
 <p>附上简历，boss 在线简历直接照搬的附件简历，是简历有什么问题吗？
 <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/v8efo3w.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:17:43Z</pubDate>
 <pubDate>2024-03-04T03:52:04Z</pubDate>
 </item>
 <item>
@@ -427,10 +1232,8 @@ Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the elec
 <link>https://www.v2ex.com/t/1020380</link>
 <guid>https://www.v2ex.com/t/1020380</guid>
 <content:encoded><![CDATA[
-
 Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams 软件内进行研讨交流。<br /> - 不使用微信，而是使用 Teams 内的社区。<br /> - 可以右击 Teams 内的社区，在弹出菜单选择共享社区加入链接的方式，来邀请我们加入。
 ]]></content:encoded>
-<pubDate>2024-03-04T03:09:43Z</pubDate>
 <pubDate>2024-03-04T03:09:43Z</pubDate>
 </item>
 <item>
@@ -438,7 +1241,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <link>https://www.v2ex.com/t/1020379</link>
 <guid>https://www.v2ex.com/t/1020379</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://learnopencv.com/wp-content/uploads/2024/02/feature-1.gif" /> </p>
 <p>是否有开源的半成品项目，可以运行在旧 android 或 iOS 手机上，作为家里的移动目标检测？</p>
 <p>甚至可以扩展一些：</p>
@@ -448,7 +1250,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <li>老人跌倒检测</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:06:13Z</pubDate>
 <pubDate>2024-03-04T03:46:34Z</pubDate>
 </item>
 <item>
@@ -456,7 +1257,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <link>https://www.v2ex.com/t/1020378</link>
 <guid>https://www.v2ex.com/t/1020378</guid>
 <content:encoded><![CDATA[
-
 <p>今天早上，手机发生严重 bug ，特地来记录下，顺便想咨询下有没有 v 友遇到过</p>
 <h2>设备详情</h2>
 <p>设备：15pro </p>
@@ -481,7 +1281,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <p>所以现在就有点后怕，主要是因为，我发现真出现了问题，貌似除了堵他自己好，没有什么太好的高效解决方案。</p>
 <p>关键这是个啥 bug 啊，似乎是整个手机都崩溃了。</p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:04:20Z</pubDate>
 <pubDate>2024-03-04T04:50:19Z</pubDate>
 </item>
 <item>
@@ -489,7 +1288,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <link>https://www.v2ex.com/t/1020377</link>
 <guid>https://www.v2ex.com/t/1020377</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://ddyx.me/windowslist" rel="nofollow">https://ddyx.me/windowslist</a></p>
 <p>目前还没公开 windows 链接，属于内部测试阶段，后续还会修改一些特性，可能会导致存盘丢失，所以不要认真玩，防止后续更新后存档消失。现在星际，暗黑，红警 windows 版，古墓丽影 2 和 3 ，极品飞车 2se ，最终幻想 7 ，大富翁 4 等等等等都能正常跑起来了。</p>
 <p>支持 MT32 和 GM Soundfont 选择（如果游戏支持），支持手柄，支持 3DFX ，且修复了一些 dosbox-x 在 fpu 上的计算错误（仍然有一些游戏无法正常跑），以上特性可以说全世界独一无二的存在。</p>
@@ -497,14 +1295,12 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <p>目前仅支持最新版本的 EDGE 和 CHROME 。</p>
 ]]></content:encoded>
 <pubDate>2024-03-04T03:04:07Z</pubDate>
-<pubDate>2024-03-04T03:04:07Z</pubDate>
 </item>
 <item>
 <title>虽然有点卷，但还是想记录一下关于 OpenAISora.video 上线的经历</title>
 <link>https://www.v2ex.com/t/1019152</link>
 <guid>https://www.v2ex.com/t/1019152</guid>
 <content:encoded><![CDATA[
-
 <p>2 月 16 日，一个美国的朋友突然给我发信息：快看 OpenAI 发布了文生视频的 Sora ！</p>
 <p>在兴奋、感叹 Sora 强大之余，灵光一现。要不做一个 Sora All in one 的网站？（这点跟大都数伙伴不谋而合）</p>
 <p>想到就开干！马上注册了域名： <a href="https://www.OpenAISora.video" rel="nofollow">https://www.OpenAISora.video</a> </p>
@@ -515,7 +1311,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <p>继续加油！希望 Sora 早日公测～</p>
 <p>如果伙伴们有什么建议，也欢迎留言讨论。</p>
 ]]></content:encoded>
-<pubDate>2024-02-28T07:26:14Z</pubDate>
 <pubDate>2024-02-29T04:29:23Z</pubDate>
 </item>
 <item>
@@ -523,7 +1318,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <link>https://www.v2ex.com/t/1018451</link>
 <guid>https://www.v2ex.com/t/1018451</guid>
 <content:encoded><![CDATA[
-
 <p>V2ex 是获取第一批种子用户的地方,目前 SSH 工具已经进入正反馈阶段，根据用户的反馈不断的更新，特意向给为大佬汇报。</p>
 <p>其中这三个月主要折腾稳定性和易用性，并且加入了部分大模型的功能</p>
 <ul>
@@ -535,7 +1329,6 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <h5>官网地址 <a href="https://www.xterminal.cn/" rel="nofollow">https://www.xterminal.cn/</a></h5>
 <h5>AI 相关介绍地址 <a href="https://www.yuque.com/u64817/isrom7/bhpgngc1ip9r0ttb" rel="nofollow">https://www.yuque.com/u64817/isrom7/bhpgngc1ip9r0ttb</a></h5>
 ]]></content:encoded>
-<pubDate>2024-02-26T03:47:15Z</pubDate>
 <pubDate>2024-02-28T15:29:07Z</pubDate>
 </item>
 <item>
@@ -543,14 +1336,11 @@ Microsoft Teams 个人版求加一个 Teams 内的社区讨论组，以在 Teams
 <link>https://www.v2ex.com/t/1020391</link>
 <guid>https://www.v2ex.com/t/1020391</guid>
 <content:encoded><![CDATA[
-
 <p>承接项目: PC 管理后台,小程序,H5 等
 个人技术栈: vue,uniapp,小程序原生等</p>
 ]]></content:encoded>
 <pubDate>2024-03-04T03:38:11Z</pubDate>
-<pubDate>2024-03-04T03:38:11Z</pubDate>
 </item>
-
 <item>
 <title>[硬件] 求无线鼠标，多连接的，一个 USB 能连接多个鼠标，一个鼠标能连接多个 USB</title>
 <link>https://www.v2ex.com/t/1020376</link>
@@ -15753,810 +16543,6 @@ www.v2ex.com
 就是自己创建一个 bot ，然后根据它自带的教程 3 分钟就可以创建出一个 discord bot ，就可以私信了，非常方便。
 ]]></content:encoded>
 <pubDate>2024-02-28T05:53:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于机场节点的一些麻烦</title>
-<link>https://www.v2ex.com/t/1019217</link>
-<guid>https://www.v2ex.com/t/1019217</guid>
-<content:encoded><![CDATA[
-<p>前段时间想让机场主为我开几条专线用用，但机场主只给了我一个域名让我自己去搞，然后我看了一下 clash 的配置文件，发现添加一个节点一般包含域名、端口号、加密方式、密码等，目前我只有端口号不知道，有没有什么方法能够让我扫描到是哪个端口有节点？求指教
-<img alt="clash 配置文件机场节点" class="embedded_image" rel="noreferrer" src="https://pang-blog-imge.oss-cn-beijing.aliyuncs.com/img/202402281749128.png" /></p>
-]]></content:encoded>
-<pubDate>2024-02-28T10:17:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 房贷还款方式变更的疑惑</title>
-<link>https://www.v2ex.com/t/1019216</link>
-<guid>https://www.v2ex.com/t/1019216</guid>
-<content:encoded><![CDATA[
-<p>当前房贷情况如下：商业房贷 210w ，公积金贷款 120w ，总计 330w 。还款方式为等额本息，每月还款 1.5w （包含商业+公积金）。目前已经还了一年多，商业房贷还剩下 205w 多一点。还了这么多都是还利息，所以有点心疼。</p>
-<p>请问现在是否有必要将还款方式改为等额本金吗？。用小程序算了下，等额本金每月还款 1.96w （每月还款金额递减 29.03 元）。</p>
-]]></content:encoded>
-<pubDate>2024-02-28T10:02:04Z</pubDate>
-</item>
-<item>
-<title>[Linux] Shell 当前运行进程怎么分离</title>
-<link>https://www.v2ex.com/t/1019215</link>
-<guid>https://www.v2ex.com/t/1019215</guid>
-<content:encoded><![CDATA[
-<p>我在命令行中运行很长的程序时，我的命令行如果退出了，当前运行的进程也会退出，有没有什么办法能让这两个进程分离？</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:54:27Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 有用过 talent 的吗, 今天发现好像倒了, 貌似仅限于国内版</title>
-<link>https://www.v2ex.com/t/1019213</link>
-<guid>https://www.v2ex.com/t/1019213</guid>
-<content:encoded><![CDATA[
-<p>今天发现 cdn 都过期了, 抽空搜了搜</p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/O3aocba.png" /></p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/0XPyuwQ.png" /></p>
-<p>这家还蛮年轻的, 一直有关注, 不过一直没找到过合适的 job</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:42:21Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] openWRT 如何实现通过识别协议的方式主动 drop 包？</title>
-<link>https://www.v2ex.com/t/1019212</link>
-<guid>https://www.v2ex.com/t/1019212</guid>
-<content:encoded><![CDATA[
-<p>最近编译了一个新的 wrt 做旁路由，预期功能都已基本实现，就差这一个：</p>
-<blockquote>
-<p><strong>识别 in 和 out 方向的 ssh 和 rdp(win 远程)协议数据包，然后 drop 或者 reject</strong></p>
-</blockquote>
-<p>粗略看了可选装的 app 们似乎没有具备这个功能，但总感觉是自己没发现存在这么个东西。找遍 google 问遍 gpt3.5 都没得到合适的答案，基本上都是基本的 iptables 阻断单个端口，遂想问下网友们有没有了解这个的。</p>
-<hr />
-<p>环境:</p>
-<ul>
-<li>openwrt_x86_v23.11</li>
-<li>足够的计算资源&amp;良好的网络条件</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-02-28T09:43:23Z</pubDate>
-</item>
-<item>
-<title>[推广] 低价 gpt 中转 api 支持 gpt-4， gpt-4-all， gpt4-v 多模态， dalle3 文生图 0.7 元 1 刀，官方同等
-计费，只要官方价格的十分之一, 注册就送 1 刀体验额度，先体验后付款</title>
-<link>https://www.v2ex.com/t/1019211</link>
-<guid>https://www.v2ex.com/t/1019211</guid>
-<content:encoded><![CDATA[
-<p>访问链接 <a href="https://dzqc.link" rel="nofollow">https://dzqc.link</a></p>
-<p>自建 gpt 中转 api ，国内网络稳定访问 支持 GPT 4.0 和 GPT 3.5-turbo mj 文生图等模型 支持多模态</p>
-<p>注册即可获得 1$ 额度 充值 0.7 ￥ ＝ 1$ 额度 官方同等倍率，与官方扣费相同， 价格为 openai 官方 api 的十分之一</p>
-<p>支持 gpt-4-all 模型，内置各种插件，可以联网，生成图片，数据分析，文件分析，识图等，上传文件、图片直接发送带有文件后缀的直链即可</p>
-<p>gpt-4-vision-preview 支持识图，图片直接发送带有文件后缀的直链即可</p>
-<p>新增官方 dalle-3 绘画模型，价格为 0.1$/次</p>
-<p>支持 gpt-3.5-turbo-1106 ，gpt-3.5-turbo-16k ，gpt-4-1106-preview, gpt-4-32k 等众多模型</p>
-]]></content:encoded>
-<pubDate>2024-02-28T10:02:20Z</pubDate>
-</item>
-<item>
-<title>[程序员] AIGC 时代，我觉得小团队创业会多起来，这估计是最后一波技术红利了</title>
-<link>https://www.v2ex.com/t/1019210</link>
-<guid>https://www.v2ex.com/t/1019210</guid>
-<content:encoded><![CDATA[
-<p>算是半个软文贴了，但初心不是在这种地方宣传，这里也没有我软件的受众，大家轻喷，我只是想聊聊最近所思所想。
-<a href="https://pixgen.pro/" rel="nofollow">https://pixgen.pro/</a> 自己做的大模型相关的网站</p>
-<p>2022 年吧，我发布了一个《 2022 年，移动端需求是不是无了》主题，那时候只是尝试找工作，公司很多年的 iOS 被裁员，很久没找到工作，让我危机感拉满，回头看那时候反应是正确的，当时唯一有需求的只有“车企”，很多 Android 都去做了理想，小鹏的外包吧。第一次裁员发生后的一年后，也就是 2023 年，我也被迫毕业，小公司舍弃了移动端，当时还是挺绝望的，到处都是经济不好的消息，裁员的消息。</p>
-<p>被裁后的一个半月，我准备面试，顺带想开启自己因为上班而无法开始的副业，满脑子的想法，其实回头想想，当没有方向的时候，眼前就会冒出一堆模糊的方向，这个产品这是这个时间段和朋友决定做的。然后在绝望想 24 年再找工作的我，闪电般的入职了，这种事情，我现在都觉得有点儿魔幻，我也从<code>Android</code>开发转向使用 Flutter 为主要框架的<code>客户端开发</code>, 技多不压身，要感谢自己，在 2022 年的 flutter 的付出。</p>
-<p>好像是一些没用的废话，但确实是这段时间的总结，<code>技术的深度和广度占一个，总归是能混到饭吃。</code></p>
-<p>AIGC 最近听得最多的一个词了，为此还买了一块 2080Ti 22G 的魔改显卡。我为什么任务他是技术人员的机会呢。低代码平台是想抛弃昂贵的程序员，AIGC 可以抛弃除技术外的人员配置，这世界真是二极管，当你做应用时，需要产品提供隐私声明，现在你可以去问 GPT ，你需要一张插画，你可以找 AIGC 网站生成，他们可以被<code>商用</code>。我想现在已经有或者很快就会有，输入 APP 的主要功能，就可以生成原型图和相应的插画了，这对技术人员来说是幸福的。</p>
-<p>另外一点</p>
-<p>现在的入门技术已经足够简单了，你可以用 python 写出足够简单好用的后台，用 flutter 写出跨平台的客户端，这一切有时候仅仅需要两个志同道合的人。当然，不必为三年后担忧社会，要担忧自己的三年，也许是<code>万物生</code>, 也许也会被替代吧。</p>
-<p>感谢大家听我发牢骚🤡</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:46:04Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 江苏电信 上行包开通不了</title>
-<link>https://www.v2ex.com/t/1019209</link>
-<guid>https://www.v2ex.com/t/1019209</guid>
-<content:encoded><![CDATA[
-<p>今天和宽带师傅聊了下，反馈说现在上行提速包不卖了，现在有什么方式可以提速或者类似国际精品网那种的吗，访问海外方便点</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:36:59Z</pubDate>
-</item>
-<item>
-<title>[Surge] Surge for Mac 五人车 剩余两位 145 每人</title>
-<link>https://www.v2ex.com/t/1019208</link>
-<guid>https://www.v2ex.com/t/1019208</guid>
-<content:encoded><![CDATA[
-请把 vx 发送到 isxrwang@gmail.com 谢谢
-]]></content:encoded>
-<pubDate>2024-02-28T09:32:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] Onedrive 不能直连了么？ Obsidian+remotely save</title>
-<link>https://www.v2ex.com/t/1019207</link>
-<guid>https://www.v2ex.com/t/1019207</guid>
-<content:encoded><![CDATA[
-<p>我使用 Obsidian ，用 Remotely save + Onedrive 同步。</p>
-<p>直连就无法同步，插件会报错提示。</p>
-<p>啥原因呢？</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:28:15Z</pubDate>
-</item>
-<item>
-<title>[程序员] 老哥们 这种格式有简便点转 Java 对象的方法吗 谢谢</title>
-<link>https://www.v2ex.com/t/1019206</link>
-<guid>https://www.v2ex.com/t/1019206</guid>
-<content:encoded><![CDATA[
-<pre><code class="language-txt">SIB1-IEs ::=
-{
-  cellSelectionInfo
-  {
-    q-RxLevMin -60,
-    q-QualMin -29
-  },
-  cellAccessRelatedInfo
-  {
-    plmn-IdentityList
-    {
-      {
-        plmn-IdentityList
-        {
-          {
-            mcc
-            {
-              4,
-              6,
-              0
-            },
-            mnc
-            {
-              0,
-              0
-            }
-          }
-        },
-        trackingAreaCodeList
-        {
-          '00000000 00010001 00100010'B
-        },
-        cellIdentity '00000011 00100101 00011010 00000000 010 ...'B,
-        cellReservedForOperatorUse notReserved
-      }
-    }
-  },
-  servingCellConfigCommon
-  {
-    downlinkConfigCommon
-    {
-      frequencyInfoDL
-      {
-        frequencyBandList
-        {
-          {
-            freqBandIndicatorNR 1
-          }
-        },
-        offsetToPointA 244,
-        scs-SpecificCarrierList
-        {
-          {
-            offsetToCarrier 0,
-            subcarrierSpacing kHz120,
-            carrierBandwidth 264
-          }
-        }
-      },
-      initialDownlinkBWP
-      {
-        genericParameters
-        {
-          locationAndBandwidth 13033,
-          subcarrierSpacing kHz120,
-          cyclicPrefix extended
-        },
-        pdcch-ConfigCommon setup :
-        {
-          controlResourceSetZero 3,
-          searchSpaceZero 0,
-          commonSearchSpaceList
-          {
-            {
-              searchSpaceId 1,
-              controlResourceSetId 0,
-              monitoringSlotPeriodicityAndOffset sl1 : NULL,
-              nrofCandidates
-              {
-                aggregationLevel4 n0,
-                aggregationLevel8 n2,
-                aggregationLevel16 n2
-              },
-              searchSpaceType common :
-              {
-                dci-Format0-0-AndFormat1-0
-                {
-                }
-              }
-            }
-          },
-          searchSpaceSIB1 0,
-          searchSpaceOtherSystemInformation 1,
-          pagingSearchSpace 1,
-          ra-SearchSpace 1
-        },
-        pdsch-ConfigCommon setup :
-        {
-          pdsch-TimeDomainAllocationList
-          {
-            {
-              k0 0,
-              startSymbolAndLength 68
-            },
-            {
-              k0 0,
-              startSymbolAndLength 81
-            },
-            {
-              k0 0,
-              startSymbolAndLength 94
-            }
-          }
-        }
-      },
-      bcch-Config
-      {
-        modificationPeriodCoeff n4
-      },
-      pcch-Config
-      {
-        defaultPagingCycle rf32,
-        nAndPagingFrameOffset halfT : 1,
-        ns one
-      },
-      k-OffsetCommon ms8
-    },
-    uplinkConfigCommon
-    {
-      frequencyInfoUL
-      {
-        frequencyBandList
-        {
-          {
-            freqBandIndicatorNR 1
-          }
-        },
-        absoluteFrequencyPointA 411984,
-        scs-SpecificCarrierList
-        {
-          {
-            offsetToCarrier 0,
-            subcarrierSpacing kHz120,
-            carrierBandwidth 264
-          }
-        },
-        p-Max 23
-      },
-      initialUplinkBWP
-      {
-        genericParameters
-        {
-          locationAndBandwidth 3574,
-          subcarrierSpacing kHz120,
-          cyclicPrefix extended
-        },
-        rach-ConfigCommon setup :
-        {
-          rach-ConfigGeneric
-          {
-            prach-ConfigurationIndex 36,
-            msg1-FDM one,
-            msg1-FrequencyStart 12,
-            zeroCorrelationZoneConfig 0,
-            preambleReceivedTargetPower -100,
-            preambleTransMax n10,
-            powerRampingStep dB2,
-            ra-ResponseWindow sl80
-          },
-          totalNumberOfRA-Preambles 3,
-          ra-ContentionResolutionTimer sf64,
-          prach-RootSequenceIndex l139 : 24,
-          msg1-SubcarrierSpacing kHz60,
-          restrictedSetConfig unrestrictedSet,
-          msg3-transformPrecoder enabled,
-          beamTypeRachConfig beam2 :
-          {
-            beam-perRACH-OccasionAndCB-PreamblesPerBeam one : n2
-          }
-        },
-        pusch-ConfigCommon setup :
-        {
-          pusch-TimeDomainAllocationList
-          {
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 27,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 41,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 55,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 69,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 83,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 97,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 98,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 84,
-              k-offset ms8
-            },
-            {
-              k2 6,
-              mappingType typeA,
-              startSymbolAndLength 70,
-              k-offset ms8
-            }
-          },
-          msg3-DeltaPreamble 2,
-          p0-NominalWithGrant -74
-        },
-        pucch-ConfigCommon setup :
-        {
-          pucch-ResourceCommon 8,
-          pucch-GroupHopping neither,
-          p0-nominal -100
-        }
-        },
-      timeAlignmentTimerCommon infinity,
-      srs-ConfigServingCell setup :
-      {
-        periodicity sl160,
-        srs-SlotLocation 0,
-        nrofSymbols 2
-      }
-    },
-    n-TimingAdvanceOffset n0,
-    satelliteID 0,
-    beamConfig type2BeamConfig :
-    {
-      beam-Periodicity ms10,
-      duration 10,
-      startTime 0,
-      beamDurationDlToUlOffset ms0,
-      ssb-Periodicity 1
-    },
-    t-MaxMeasOffsetNTN ms1,
-    ss-PBCH-BlockPower 30
-  },
-  ue-TimersAndConstants
-  {
-    t300 ms1000,
-    t301 ms600,
-    t310 ms1000,
-    n310 n20,
-    t311 ms1000,
-    n311 n1,
-    t319 ms1000
-  }
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-02-28T09:34:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] BMI 29.1，有中度脂肪肝。 想用替西帕肽减肥，治疗脂肪肝，可以吗？</title>
-<link>https://www.v2ex.com/t/1019205</link>
-<guid>https://www.v2ex.com/t/1019205</guid>
-<content:encoded><![CDATA[
-<p>年龄 30 了，身高 173. 体重 175 斤。
-从小就比较胖，之前结婚前减肥饿加运动，艰难的减肥瘦到过 150 斤，但是没多久恢复饮食又反弹了。
-有一个日本代购的那里了解到替西帕肽，说的是副作用小，效果好。
-想纯粹靠自己运动加饿来减肥太难了，没时间没精力，想的是能不能靠替西帕肽配合运动，减肥更有效果一些？
-主要是想要把脂肪肝减掉</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:57:45Z</pubDate>
-</item>
-<item>
-<title>[汽车] 海鲜市场的二手轮胎能买吗</title>
-<link>https://www.v2ex.com/t/1019204</link>
-<guid>https://www.v2ex.com/t/1019204</guid>
-<content:encoded><![CDATA[
-该换轮胎了，近几年该换车了又不想投太多钱在上面，有老哥在上面买过轮胎吗
-]]></content:encoded>
-<pubDate>2024-02-28T09:32:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 在滴滴打出租车被多收费，你会投诉吗？</title>
-<link>https://www.v2ex.com/t/1019203</link>
-<guid>https://www.v2ex.com/t/1019203</guid>
-<content:encoded><![CDATA[
-今早上班打出租车，打表计费，到达目的地的时候表显 14.5 ，但是司机在滴滴上输入的费用是 16 元，并没有告知为何多收费。如果是你你会投诉吗？<br />其他信息: 司机放空 2.5km 来接的，本次行程不到 5km 。<br />之前打出租车，结束之后司机都告知：南昌打出租车要收 2 元的燃油附加费。这次啥也没说，而且这次打的是电车，似乎是不需要征收燃油附加费的<br />我纠结的不是他多收多少钱，而是没有跟我说明原因，让我有点坑蒙拐骗的感觉，这种体验让人不舒服。你觉得呢，你会投诉吗？  <br />考虑到今天是下雨天，放空 2.5KM 来接的，投诉对他们的影响应该挺大的，我就没投诉
-]]></content:encoded>
-<pubDate>2024-02-28T09:43:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在那些类似于 character ai 的 chatbot，可以用哪些开源组件来平替呢？</title>
-<link>https://www.v2ex.com/t/1019201</link>
-<guid>https://www.v2ex.com/t/1019201</guid>
-<content:encoded><![CDATA[
-<p>想尝试做一些用于自己开放世界游戏的 npc ，看了下 character ai ，发现挺有趣，想搭建完全本地的，不知道都可以用哪些开源组件自己尝试下，求有经验的大佬指路。。。</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:15:34Z</pubDate>
-</item>
-<item>
-<title>[汽车] 比亚迪又掀桌子了</title>
-<link>https://www.v2ex.com/t/1019200</link>
-<guid>https://www.v2ex.com/t/1019200</guid>
-<content:encoded><![CDATA[
-16.98 的汉，周末去试驾看看<br /> <a href="https://i.imgur.com/3x01HXk.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3x01HXk.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-02-28T10:14:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 济南有没有什么企业推荐？</title>
-<link>https://www.v2ex.com/t/1019199</link>
-<guid>https://www.v2ex.com/t/1019199</guid>
-<content:encoded><![CDATA[
-薪资要求不高，加班少稳定即可。<br />不知道有没有推荐的企业。
-]]></content:encoded>
-<pubDate>2024-02-28T09:44:16Z</pubDate>
-</item>
-<item>
-<title>[React] 兄弟们， JS/TS 里字符串用 单引号 or 双引号呢？ 你们公司对这个有规范吗？</title>
-<link>https://www.v2ex.com/t/1019197</link>
-<guid>https://www.v2ex.com/t/1019197</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-02-28T10:05:59Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] [30 秒搞定] 什么是 ChatGPT Team？一键升级官方 ChatGPT Team 教程</title>
-<link>https://www.v2ex.com/t/1019196</link>
-<guid>https://www.v2ex.com/t/1019196</guid>
-<content:encoded><![CDATA[
-<h2><strong>1. ChatGPT Team 介绍</strong></h2>
-<p><strong>ChatGPT Team</strong>是 OpenAI 在 2023 年下半年推出的<strong>一种会员计划</strong>，旨在为企业和团队用户提供更加专业和高级的服务。</p>
-<p>与 ChatGPT Plus 版本相比，Team 版本不仅能访问 ChatGPT4 、DALLE 等高级模型，还提供了<strong>更长的上下文窗口</strong>、<strong>更多的对话次数</strong>，并且保证用户产生的数据不会被用于训练 GPT 模型。</p>
-<p><a href="https://s2.loli.net/2024/02/13/RFbnjK3voegXwlY.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/RFbnjK3voegXwlY.png" /></a></p>
-<p>这一计划特别适合需要<strong>高频使用 ChatGPT</strong>服务且对数据隐私有较高要求的企业用户。</p>
-<p>今天我就来教大家如何开通 ChatGPT Team ，分别是<strong>一键升级方式</strong>和<strong>手动开通方式</strong>。</p>
-<h2><strong>2. ChatGPT Team 的优势</strong></h2>
-<p>下面是 ChatGPT Team 的优势和特点：</p>
-<ul>
-<li>访问 GPT-4 ，拥有 32K 上下文窗口（比 Plus 拥有<strong>更长的上下文</strong>）</li>
-<li><strong>GPT-4 、DALL·E 3 、数据分析、联网</strong>等高级功能都可以使用；</li>
-<li>对话次数更多，Plus 会员的话是每三个小时 40 次，Team 版本则是<strong>每三个小时 100 次</strong></li>
-<li>不会将商业数据或对话用户训练 GPT 模型</li>
-<li>为团队提供安全的工作空间（<strong>数据不会被用于训练模型</strong>）</li>
-<li>在自己的工作空间内创建和分享自定义 GPTs</li>
-<li>工作空间和团队管理的管理员控制台</li>
-<li>新功能和改进的早期访问权限</li>
-</ul>
-<h2><strong>3. ChatGPT Team 价格</strong></h2>
-<p>当前，ChatGPT Team 的订阅费用定为每月 25 美元，与 ChatGPT Plus 的月费 20 美元相比，并没有高多少。</p>
-<p>但是，想要享受这一优惠价格，用户需要一次性支付全年的费用。</p>
-<p>如果选择按月支付的话，费用上升至每月 30 美元。</p>
-<p>此外，想要设立 ChatGPT Team 账户，起始成员数不得少于两人。</p>
-<p><a href="https://s2.loli.net/2024/02/13/AK4zpblGUxmWhH7.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/AK4zpblGUxmWhH7.png" /></a></p>
-<h2><strong>4. 如何开通 ChatGPT Team</strong></h2>
-<p><strong>工具准备：</strong>一台电脑、科学上网工具、ChatGPT 账号</p>
-<p>如果你没有 ChatGPT 账号，请点击：<a href="https://gptcard.cn/2024/02/10/t-10-reg-openai/" rel="nofollow">ChatGPT 注册太繁琐？教你一键注册官方 GPT 账号！</a></p>
-<h3><strong>4.1 一键升级 ChatGPT Team 教学</strong></h3>
-<p>首先进入<a href="https://bewildcard.com/i/EVEN" rel="nofollow">wildcard</a>首页，进去开通一张虚拟信用卡，开通需要支付 11.9 美元（从链接进入可以优惠两美元，即 9.9 美元，并且是<strong>一次性付费</strong>，之后不需要再付费）</p>
-<p>如果需要<strong>详细手把手教学</strong>，请点击：<a href="https://gptcard.cn/2024/02/10/t-02-how-to-add-card/" rel="nofollow">wildcard 保姆级教程</a></p>
-<p>开通后，点击”我的服务“进入主界面</p>
-<p><a href="https://s2.loli.net/2024/02/13/Wg6jK3CY5yvTSub.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/Wg6jK3CY5yvTSub.png" /></a></p>
-<p>再点击进入一键升级 ChatGPT Team</p>
-<p><a href="https://s2.loli.net/2024/02/13/VqbKcwZ9dWAHmBr.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/VqbKcwZ9dWAHmBr.png" /></a></p>
-<p>然后订阅类型选择 team</p>
-<p><a href="https://s2.loli.net/2024/02/13/t8aobuUZmIXk5T6.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/t8aobuUZmIXk5T6.png" /></a></p>
-<p>接着按照图中步骤（这里的步骤<strong>跟本文 4.2 节里的前半部分相同</strong>，也可以参考 4.2 节）进入 ChatGPT 官网，选择你需要的订阅方式、team 人数、team 名称设置好之后，点击下一步</p>
-<p><a href="https://s2.loli.net/2024/02/13/x6J19mFIrASlqXp.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/x6J19mFIrASlqXp.png" /></a></p>
-<p>最后将支付链接拷贝到输入框，点击确定支付并升级，就可以升级到 GPT Team 啦！</p>
-<p><a href="https://s2.loli.net/2024/02/13/C3JtPSZ6sTzFdfg.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/C3JtPSZ6sTzFdfg.png" /></a></p>
-<p><a href="https://s2.loli.net/2024/02/13/pziyRrHfhNZ5taQ.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/pziyRrHfhNZ5taQ.png" /></a></p>
-<h3><strong>4.2 手动开通 ChatGPT Team 教学</strong></h3>
-<p>首先进入网站首页，首先点击自己的头像，然后再弹出菜单中选择 My plan</p>
-<p><a href="https://s2.loli.net/2024/02/13/m65j4FueSgI2BHv.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/m65j4FueSgI2BHv.png" /></a></p>
-<p>然后点击 Add Team wokrspace ，进入升级界面</p>
-<p><a href="https://s2.loli.net/2024/02/13/o2x549pKgZibjyN.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/o2x549pKgZibjyN.png" /></a></p>
-<p>接下来会要求你创建 workspace ，先输入你团队的名字，注意，这里的名字在后续可以随时更改的</p>
-<p><a href="https://s2.loli.net/2024/02/13/jZJARC1yTL9MdGl.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/jZJARC1yTL9MdGl.png" /></a></p>
-<p>设置好名字后，点击 Select billing options ，即选择订阅计划</p>
-<p>这里有两种订阅计划，年付和月付，年付的话是 25 刀每月，月付的话是 30 刀每月。根据个人需要选择即可。</p>
-<p>此外，还可以选择 team 里面的人数，最低是 2 人</p>
-<p><a href="https://s2.loli.net/2024/02/13/ecRt71xmFdOBUgV.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/ecRt71xmFdOBUgV.png" /></a></p>
-<p>然后点击 continue to billing ，进入支付，在这里输入你的信用卡信息，然后点击确认支付即可</p>
-<p>如果你<strong>没有国外信用卡</strong>或者有虚拟信用卡但是<strong>订阅失败</strong>，可以参考使用 4.1 节的<strong>一键升级 ChatGPT Team 教程</strong></p>
-<p><a href="https://s2.loli.net/2024/02/13/K4qOjJmcEiwHbT9.png" rel="nofollow"><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/02/13/K4qOjJmcEiwHbT9.png" /></a></p>
-<h2>5. <strong>总结</strong></h2>
-<p><strong>工具网站（从链接进入有 14 块钱优惠）</strong>： <a href="https://bewildcard.com/i/EVEN" rel="nofollow">WildCard 一分钟开卡，轻松订阅海外软件服务</a></p>
-<p><strong>总费用：</strong></p>
-<ul>
-<li>开卡费用 9.99$（一整年的费用，平均下来每天不到两毛钱）</li>
-<li>GPT Team 订阅的费用（ 25$）</li>
-<li>总共 34.99$，折合<strong>人民币约 245 元</strong>（参考汇率 7 ）</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-02-28T09:06:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在还有一些精简类 win7 win10 可安装吗？</title>
-<link>https://www.v2ex.com/t/1019195</link>
-<guid>https://www.v2ex.com/t/1019195</guid>
-<content:encoded><![CDATA[
-<p>手边拿到一个旧笔记本 thinkpad x260 ，配置比较旧了，i5 6200u +8G + 256G ssd 。</p>
-<p>准备格式化重新装一下，早年 xp 时代有各种精简版，现在都是 win11 时代了，早年 7 和 10 有精简吗？</p>
-]]></content:encoded>
-<pubDate>2024-02-28T10:03:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] Teams 的会议通知邮件使用的代发服务器 IP 最近是不是有问题？</title>
-<link>https://www.v2ex.com/t/1019193</link>
-<guid>https://www.v2ex.com/t/1019193</guid>
-<content:encoded><![CDATA[
-<p>公司邮箱用的 <a href="http://bl.spamcop.net" rel="nofollow">bl.spamcop.net</a> 这套黑名单，这两天开始收不到 Teams 的会议通知邮件。错误信息如下</p>
-<p>xxxx 提供了此错误:
-Decision Engine classified the mail item was rejected because of IP Block (from outbound normal IP
-pools) -&gt; 554 5.7.1 Service unavailable; Client host [40.107.255.108] blocked using <a href="http://bl.spamcop.net" rel="nofollow">bl.spamcop.net</a>;
-Blocked - see <a href="https://www.spamcop.net/bl.shtml?40.107.255.108" rel="nofollow">https://www.spamcop.net/bl.shtml?40.107.255.108</a></p>
-<p>AS 信息：
-AS8075 MICROSOFT-CORP-MSN-AS-BLOCK</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:37:17Z</pubDate>
-</item>
-<item>
-<title>[程序员] 今天备案 APP 发现限制又增加了</title>
-<link>https://www.v2ex.com/t/1019192</link>
-<guid>https://www.v2ex.com/t/1019192</guid>
-<content:encoded><![CDATA[
-搞错节点了，重新发一下。<br /><br />上次刚吐槽完 APP 需要备案和每次需要买备案服务码 100 元的问题。<br />今天在阿里又看到流程改了一下，还提示了额外的限制：<br /><br /><a href="https://cdn.ipfsscan.io/ipfs/QmZWeF7epuhYUWAPoCgoHk6mGZHaie2ijUqtREZHR2SpeA?filename=image.png" rel="nofollow noopener" target="_blank">https://cdn.ipfsscan.io/ipfs/QmZWeF7epuhYUWAPoCgoHk6mGZHaie2ijUqtREZHR2SpeA?filename=image.png</a><br /><br /><a href="https://cdn.ipfsscan.io/ipfs/QmaoBSnzn5KQDfhcLp7rcqkdEKjnSPNkLEpHcwfRBBT38j?filename=image.png" rel="nofollow noopener" target="_blank">https://cdn.ipfsscan.io/ipfs/QmaoBSnzn5KQDfhcLp7rcqkdEKjnSPNkLEpHcwfRBBT38j?filename=image.png</a>
-]]></content:encoded>
-<pubDate>2024-02-28T09:52:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 阻止手机版 Edge 自动翻译</title>
-<link>https://www.v2ex.com/t/1019191</link>
-<guid>https://www.v2ex.com/t/1019191</guid>
-<content:encoded><![CDATA[
-同样是移动端，Chrome 可以点击从不翻译此网页，但是目前为止我没看见 Edge 可以这样做。每次点进 Reddit 这样的网站就会触发自动翻译，拖慢加载速度。<br />出于美观等一系列原因，我已经不在手机上用 Chrome 了，Edge 各方面来说都更好，有什么方法能解决上述问题吗？
-]]></content:encoded>
-<pubDate>2024-02-28T08:59:41Z</pubDate>
-</item>
-<item>
-<title>[macOS] Arc 浏览器会抢 AirPods 的自动切换？</title>
-<link>https://www.v2ex.com/t/1019190</link>
-<guid>https://www.v2ex.com/t/1019190</guid>
-<content:encoded><![CDATA[
-前言：<br />平时耳机（ AirPods Pro 2 ）在 iPhone 和 Mac 上都是开的自动切换，很丝滑<br /><br />问题：<br />但最近发现，iPhone 这边戴着耳机听着播客/音乐，只要 MacBook 从合盖状态把屏幕推起来点亮，耳机就直接没声儿了（ iPhone 暂停，Mac 显示已连接）<br /><br />问题定位：<br />1 、测试了一遍怀疑对象，定位到 Arc （刚好也是最近开始装的），只要不开 Arc 就是正常丝滑的，开 Arc 即使没在播什么，也会抢耳机<br /><br />2 、于是尝试用同一个组合动作 [先盖上 Mac ，iPhone 连耳机播音乐，打开 Mac 盖子，看会不会抢] ，对 Arc 每一个状态都测一遍，做下具体问题定位：<br /><br />step1：Mac 开机，不开 Arc——不抢<br />step2：打开 Arc ，处于无任何网页打开的状态——不抢<br />step3：Arc 开 B 站，随便播一个视频——抢（符合预期）✅<br />step4：关掉 B 站，恢复到 step2 的清空状态——还抢（？？？）❌<br />step5：dock 栏右键退出 Arc——不抢<br /><br />3 、我遇到的问题应该就是 step4 ，似乎 Arc 只要产生播放行为后，就会开个后台一直播放点啥，导致抢 AirPods （有点像早先 iPhone 某些 app 为了后台保活，播一个无声音频）<br /><br />你们有遇到这种情况吗？还是就我碰到 bug 了😂，Arc 还挺有意思，不想因为这个逼着回 Chrome
-]]></content:encoded>
-<pubDate>2024-02-28T09:22:05Z</pubDate>
-</item>
-<item>
-<title>[生活] 买个理发器，从此之后我就是自己的 Tony 老师了 😅</title>
-<link>https://www.v2ex.com/t/1019189</link>
-<guid>https://www.v2ex.com/t/1019189</guid>
-<content:encoded><![CDATA[
-我的头发生长迅速，大约 20 天便需要修剪两侧，以致每年得光顾理发店近 20 次，这既麻烦又耗时。<br /><br />为了省事，我购买了米家理发器 2 ，第一次使用便掌握了基本技巧😄。唯一无法解决的是头顶长发（我不是寸头），打算再购置一把剪刀。<br /><br />理发器非常适合头发生长较快的用户（特别是两侧），一年还可以省下几百块。<br /><a href="https://i.imgur.com/XBW78W2.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XBW78W2.jpg" /></a>
-]]></content:encoded>
-<pubDate>2024-02-28T09:59:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] VoIP 设备拨出的电话是可以伪造成任意来电显示和短信号码吗？</title>
-<link>https://www.v2ex.com/t/1019188</link>
-<guid>https://www.v2ex.com/t/1019188</guid>
-<content:encoded><![CDATA[
-它有没有距离限制？是对设备附近拨打的手机号码伪造还是长距离全球都可以拨打伪造来电？<br />这和伪基站一样吗，屏蔽正常信号，显示虚假来电号码<br />还有 GoIP 设备
-]]></content:encoded>
-<pubDate>2024-02-28T09:51:48Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 2024 年 2 月赴港开通银行卡记录</title>
-<link>https://www.v2ex.com/t/1019187</link>
-<guid>https://www.v2ex.com/t/1019187</guid>
-<content:encoded><![CDATA[
-<h2>赴港背景</h2>
-<p>因为需要投资港美股，加上虚拟货币的原因，拥有一张香港的银行卡已经成为了迫切需要的工具。同时因为目前 A 股市场的不景气，同时又有传言称 2 月之后，香港会加强银行卡的申请限制。因此决定 2024 年 2 月前往香港肉身开卡。</p>
-<h2>开卡目标</h2>
-<ul>
-<li>
-<p>开通 中银香港的银行卡</p>
-</li>
-<li>
-<p>开通 汇丰 One 的银行卡</p>
-</li>
-<li>
-<p>开通 ZA Bank 的虚拟银行卡</p>
-</li>
-</ul>
-<h2>前期准备</h2>
-<h3>开通漫游</h3>
-<p>虽然香港是中国的一部分，但是内地的电话卡如果想要在香港使用，还是需要打电话给运营商，开通国际漫服务的。</p>
-<p>如果你不想麻烦，可以在手机运营商或者支付宝上购买境外流量。亦或者和我一样，入关的时候购买<code>MySIM</code>卡（ 33 港币，50G 本地流量）。</p>
-<p><strong>提醒</strong>：开通漫游服务免费，不用担心开通之后就被扣费。</p>
-<h3>线上预约</h3>
-<p>从 2023 年 12 月开始，中银香港、汇丰香港的大部分银行，都开始严格遵守预约制度。因此在前往香港之前， 需要先在网上预约对应的银行开户日期。</p>
-<p>我分别在<code>中银香港微服务</code>微信公众号和<code>汇丰香港</code>网站上进行了预约。这部分不展开详细描述。网上有很多教程。</p>
-<h3>下载 App</h3>
-<p>分别下载以下 App ，减少办卡时的无效时间：</p>
-<ul>
-<li>
-<p>ZA Bank</p>
-</li>
-<li>
-<p>HSBC HK</p>
-</li>
-<li>
-<p>BOCHK 中银香港</p>
-</li>
-<li>
-<p>BOC Pay</p>
-</li>
-</ul>
-<h2>材料准备</h2>
-<p>为了保证 100%能否下卡，你可能需要携带以下几份材料。</p>
-<ul>
-<li>
-<p>身份证</p>
-</li>
-<li>
-<p>港澳台通行证</p>
-</li>
-<li>
-<p>入港小白条</p>
-</li>
-<li>
-<p>收入证明（非必须）</p>
-</li>
-<li>
-<p>纳税证明（非必须）</p>
-</li>
-<li>
-<p>社保记录（非必须）</p>
-</li>
-<li>
-<p>地址证明（包括但不限于 信用卡账单、水电单等能够证明你地址的文件）</p>
-</li>
-</ul>
-<p>以上内容都是我自己准备的。虽然有些复杂，但是 100%保证通过银行卡的审核。其中需要注意的，是信用卡账单最好是招商银行的。因为我看到不止一例，其他银行的账单香港方面不认可。</p>
-<h2>办卡流程</h2>
-<p>8:00 达到福田口岸，进入香港。入关后，在入关口的 711 便利店中购买<code>MySim</code>电话卡（里面包含 50G 的香港流量）。</p>
-<p>8:20 乘坐 B1 公交前往元朗。在公交上使用手机开通了 ZA 虚拟银行卡；</p>
-<p>8:40 到达汇丰元朗大厦。<strong>注意</strong>:汇丰元朗开卡业务目前在 2 楼（内地层数是 3 楼，因为香港的一楼叫 G 层），不要呆呆站在门口等着开门，直接去 2 楼等待。</p>
-<p>9:01 取号。</p>
-<p>9:10 叫号，随汇丰人员进入办卡房间。</p>
-<p>9:11 询问开卡目的（<strong>这里为了保证下卡，一定要说投资</strong>。）检验了身份证、港澳台通行证和入关小白条，确认后开始在 App 上指导操作。</p>
-<p>9:20 办理结束，直接下卡。提示需要去楼下修改密码，汇入一笔钱保证开通（我汇入了 100 港币）</p>
-<p>9:40 前往对面的中银元朗青山道分行，取号。</p>
-<p>10:00 银行经理确认地址证明可用，指导在手机的 APP 上填写相关信息；</p>
-<p>10:10 办理银行卡；</p>
-<p>10:11 询问开户目的、投资金额、是否购买港股经验。这里按照实际情况说就行；</p>
-<p>10:20 办理结束，直接下卡。要求汇入一笔钱保证开通，同时需要查询银行卡。</p>
-<p>10:30 整体办理结束。</p>
-<h2>注意事项</h2>
-<ul>
-<li>
-<p>汇丰预约，网上说需要工作人员电话沟通。但如果你已经确定要去哪里，其实你完全可以在<a href="https://www.eticketing.hsbc.com.hk/Booking/Index/TC" rel="nofollow">这个汇丰香港预约网站</a>上直接预约指定的分行</p>
-</li>
-<li>
-<p>中银香港目前申请人数特别多，一定要预约</p>
-</li>
-<li>
-<p>如果你工作日没时间，可以尝试周六办理，香港银行周六正常上班，但是下班时间较早；</p>
-</li>
-<li>
-<p>预约日期是在每天凌晨更新。可以在凌晨刷新预约网站，看是否有你合适的日期。</p>
-</li>
-</ul>
-<h2>其他说明</h2>
-<ul>
-<li>有部分支行可以不提前预约，直接 walk in 现场开卡，但是一定要趁早。如果你想知道的话，欢迎关注我的公众号<code>君若雅</code>，或者加我微信 RWxlZ2FudG9mS2luZw==</li>
-<li>公众号发送 **<code>香港卡办卡地址</code>**，即可查询对内地办卡友好的银行地址。</li>
-<li>欢迎访问<a href="https://psxjoy.com/" rel="nofollow">我的博客</a> 获取更多的信息。</li>
-<li>如果你有任何不明白或者不清楚的地方，欢迎沟通。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-02-27T16:48:24Z</pubDate>
-</item>
-<item>
-<title>[小米] 小米 14u 相机模组过凸，求推荐机子</title>
-<link>https://www.v2ex.com/t/1019186</link>
-<guid>https://www.v2ex.com/t/1019186</guid>
-<content:encoded><![CDATA[
-<p>昨天拿到小米 14u 后直接被相机模组高度震惊到了
-握持感一言难尽，一定要把手指抵在凸起一截的相机上才能稳定拿住，放桌面的时候也是直接翘起来的。虽然相机很好，但这个机身体验实在不能接受 🤣
-问下大佬们有什么机子推荐么，游戏要求不高，王者差不多了。偶尔会用来拍照。
-最好还是小米，和米家绑定太多了 😑
-可以蹲到 618</p>
-]]></content:encoded>
-<pubDate>2024-02-18T09:16:55Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 有用过 talentorg 的吗, 今天发现好像倒了</title>
-<link>https://www.v2ex.com/t/1019185</link>
-<guid>https://www.v2ex.com/t/1019185</guid>
-<content:encoded><![CDATA[
-<p>今天发现 cdn 都过期了, 抽空搜了搜</p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/O3aocba" /></p>
-<p>这家还蛮年轻的, 一直有关注, 不过一直没找到过合适的 job</p>
-<p><img alt="Imgur" class="embedded_image" rel="noreferrer" src="https://imgur.com/0XPyuwQ" /></p>
-]]></content:encoded>
-<pubDate>2024-02-18T08:45:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 结婚后能拆出来独立户吗？</title>
-<link>https://www.v2ex.com/t/1019184</link>
-<guid>https://www.v2ex.com/t/1019184</guid>
-<content:encoded><![CDATA[
-结婚后，双方户口（都为农村户口）均未迁移，还在各自父亲户主下。<br /><br />在不和老婆组户口的情况下，我可以从我爸户主下独立出来 1 个人成立 1 个户口吗（即独立户）？<br /><br />有没有这种操作过的。
-]]></content:encoded>
-<pubDate>2024-02-28T09:22:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有一台闲置的服务器，不知道干啥能回血</title>
-<link>https://www.v2ex.com/t/1019183</link>
-<guid>https://www.v2ex.com/t/1019183</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-02-28T08:48:19Z</pubDate>
-</item>
-<item>
-<title>[程序员] 兄弟们，我已经转行做家具贴膜了</title>
-<link>https://www.v2ex.com/t/1019182</link>
-<guid>https://www.v2ex.com/t/1019182</guid>
-<content:encoded><![CDATA[
-<p>之前发过一个帖子，讨论在石家庄做啥能赚到 6000
-<a href="https://www.v2ex.com/t/976691" rel="nofollow">https://www.v2ex.com/t/976691</a></p>
-<p>至于为啥做了 9 年的 PHP 找不到工作以及为什么我的目标只有 6k 就不做解释了。</p>
-<p>去年 11 月时考虑开网约车（一天多开几个小时，一个月也能赚个 6k ）
-老婆说她表弟在做家具贴膜，可以问问能不能跟着学做贴膜。
-于是就去跟着表弟学了家具贴膜，目前已经接了几单生意，慢慢来希望可以接到更多的生意。</p>
-<p>在石家庄的兄弟家具厨房需要贴膜的可以找我。</p>
-]]></content:encoded>
-<pubDate>2024-02-28T09:35:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 今年 24 了, 主要做前端和爬虫, 再学个安卓逆向还来得及吗</title>
-<link>https://www.v2ex.com/t/1019181</link>
-<guid>https://www.v2ex.com/t/1019181</guid>
-<content:encoded><![CDATA[
-<p>前端主要写 react 和 vue, 基本都是把轮子拿来用, 偶尔自己也会造一些轮子给公司内部用, 爬虫主要就是做抓包分析, 反爬以及调度这块, 封装成 api 给同事用, 很焦虑, 想提升自己, 再学点安卓逆向还来得及吗, lsp frida hook 之类的</p>
-]]></content:encoded>
-<pubDate>2024-02-28T08:26:27Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 小区保利物业，车位临停两块钱一个小时上不封顶，算什么水平</title>
-<link>https://www.v2ex.com/t/1019179</link>
-<guid>https://www.v2ex.com/t/1019179</guid>
-<content:encoded><![CDATA[
-<p>本人感觉都不好意思让亲友过来玩太久了，过夜停一天的话就要 48 块钱，万科物业 15 块一天封顶。而且保利地产把剩下的车位打包给外面的人对外出租。去物业那儿都租不了。另外买了车位的人产权证一直下不来，契税都交了，没有产权，想卖也卖不了。我感觉，开发商是把车位给抵押了吧，所以产权证一下下不来拖着。</p>
-]]></content:encoded>
-<pubDate>2024-02-28T10:11:22Z</pubDate>
 </item>
 </channel>
 </rss>
