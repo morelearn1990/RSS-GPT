@@ -5,14 +5,134 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[职场话题] 成都 7 年，找不到工作了</title>
+<link>https://www.v2ex.com/t/1021280</link>
+<guid>https://www.v2ex.com/t/1021280</guid>
+<content:encoded><![CDATA[
+
+<p>函授大专，空窗 10 个月了，本来去年底有家 14*13 由于种种原因没去成。上家外包 16 今年外包都要全日制本科，简历都投不过去。离职时间也一直在往后面改。最近简历学历也调整了下正在投。想找一线试试好多都要现场面试，成都真的太难了。今天面试写的 13-18 我当时说期望 16 可能面试效果也有可能其他情况，说这个岗位只有 12-13 其他啥都没。能接受再考虑复试😂 有没有老哥分享下经验。</p>
+]]></content:encoded>
+<pubDate>2024-03-06T17:17:36Z</pubDate>
+<pubDate>2024-03-06T18:03:25Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 爬墙 wifi 配置的疑问</title>
+<link>https://www.v2ex.com/t/1021278</link>
+<guid>https://www.v2ex.com/t/1021278</guid>
+<content:encoded><![CDATA[
+
+<p>最近有个想法，想在局域网搞个‘旁路由’。想爬墙方便点，同时不影响主要网络结构。但是觉得手动修改网关、dns 等觉得太麻烦了，决定在主路由上面搞一个固定爬墙网关 的 wifi ，爬墙 wifi 和普通 wifi 共存。</p>
+<p>试验了一下，没有成功。想问问大哥们这个思路对不对？还是这个思路无法实现？也想知道是哪里错了，知道如何调试。</p>
+<p>接下来说一下细节配置。整体思路和 <a href="https://forum.openwrt.org/t/using-another-lan-device-in-a-different-subnet-as-gateway/152351" rel="nofollow">https://forum.openwrt.org/t/using-another-lan-device-in-a-different-subnet-as-gateway/152351</a> 类似但是不完全一致。</p>
+<p>配置目标：</p>
+<ul>
+<li>想要爬墙的时候，就可以链接爬墙 wifi ，同时不影响局域网访问任何东西</li>
+<li>想要精细爬墙的时候，可是使用普通家庭 wifi</li>
+<li>爬墙服务坏掉了，只影响爬墙 wifi 。完全不需要任何修改，主链路继续上网</li>
+</ul>
+<p>初始状态：</p>
+<ul>
+<li>主路由是 redmi ax6000 ； openwrt 原生系统；版本 23.05 （基本上啥都没装）</li>
+<li>光猫桥接，主路由 pppoe 拨号</li>
+<li>lan 网段是 192.168.100.1/24</li>
+<li>有一个爬墙的 linux 地址是 192.168.100.22 ，部署了一个 xary 透明代理 ；手动修改网关测试没问题</li>
+<li>192.168.100.11 有一个 nas </li>
+</ul>
+<hr />
+<p>新增爬墙 wifi 的改动 v1</p>
+<ul>
+<li>新建一个 static address 的 interface 名叫 proxy 。配置 ip 为 192.168.200.1/24 ；设置 dhcp ；关闭 v6 ；加入防火墙 lan ；<strong>同时配置 gateway 为 192.168.100.22</strong></li>
+<li>新建 一个 wireless network （ wifi ）名叫 guest ，选定 network 为上一步中配置的 proxy</li>
+</ul>
+<p>在我天真的以为，这样就 ok 的时候，连上 guest wifi 发现完全没有爬墙功能，使用 命令 <code>tracert</code> 查了一下，发现路由如下</p>
+<pre><code>C:\Users\bbbbbb&gt;tracert www.bilibili.com
+
+通过最多 30 个跃点跟踪
+到 a.w.bilicdn1.com [117.23.60.14] 的路由:
+
+  1     1 ms     1 ms     3 ms  OpenWrt.ax6kdns [192.168.200.1]
+  2     2 ms     1 ms     2 ms  100.69.128.1
+。。。。。
+</code></pre>
+<p>可以上网，但是没有经过指定的 gateway 。</p>
+<p>经过一番搜索，找到了 <a href="https://forum.openwrt.org/t/using-another-lan-device-in-a-different-subnet-as-gateway/152351" rel="nofollow">Using another LAN device in a different subnet as gateway</a> 然后参考配置了一下</p>
+<p>改动 v2</p>
+<ul>
+<li>新增 ipv4 rules ipv4 规则，设置 proxy interface 的流量走 table 100</li>
+<li>设置 静态 ipv4 路由，其中 interface 为 lan ； target 为 0.0.0.0/0 即全流量； gateway 为 192.168.100.22 即 代理网关; 同时设置为 table 100</li>
+<li>回滚 proxy interface 中 gateway 配置 为空</li>
+</ul>
+<p>配置生效过后，可以在 Routing 看到所有配置</p>
+<p><img alt="https://imgur.com/a/9xY9Pmf" class="embedded_image" rel="noreferrer" src="https://imgur.com/p344z32" /></p>
+<p>但是测试发生了这样的事情</p>
+<pre><code>C:\Users\bbbbbb&gt;tracert www.bilibili.com
+
+通过最多 30 个跃点跟踪
+到 a.w.bilicdn1.com [111.225.214.25] 的路由:
+
+  1    &lt;1 毫秒   &lt;1 毫秒   &lt;1 毫秒 OpenWrt.ax6kdns [192.168.200.1]
+  2     2 ms     4 ms     5 ms  192.168.100.22
+  3     1 ms     1 ms     1 ms  OpenWrt.ax6kdns [192.168.200.1]
+  4     *        *        *     请求超时。
+  5     *        *        *     请求超时。
+  6     *     ^C
+</code></pre>
+<p>后来想了很久，感觉是不是缺少一个 nat ？和 openwrt 论坛里面的人配置对比一下，我没有新建防火墙，我只是复用了之前的 lan 防火墙；没配置防火墙之间的 forwarding ，也没配置 masquerade </p>
+<ol>
+<li>我自己想了半天，还是很迷惑，希望能有大哥指指路（跪谢）说明下到底是为什么</li>
+<li>在配置过程中，反复查看 <code>/etc/config/network</code> <code>router -n</code> <code>ip route</code> <code>ip rule</code> 发现 ip rule 和 openwrt 中的配置并不一致，很困惑</li>
+<li>大哥们有没有其他更简单的做法，指指路。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-03-06T16:47:22Z</pubDate>
+<pubDate>2024-03-06T17:59:41Z</pubDate>
+</item>
+<item>
+<title>分享一个业余时间做的网站</title>
+<link>https://www.v2ex.com/t/1020061</link>
+<guid>https://www.v2ex.com/t/1020061</guid>
+<content:encoded><![CDATA[
+
+<p>Hello ，大家好，我叫胡海龙，由于家里闲置了两台笔记本了，心想放着也是浪费，刚好我有外网服务器（配置不高，主要用于科学上网用），于是通过使用 Frp 将这台笔记本作为内网服务器穿透出来练习开发一些东西玩，今天给大家分享是最近刚完成的一个在线笔记和类似朋友圈的功能（也可以看为动态功能吧），其他的后台管理功能就不开放了，下面是现在开放出来的功能：</p>
+<p><a href="https://www.huhailong.vip" rel="nofollow">网站地址：www.huhailong.vip</a></p>
+<ul>
+<li><strong>文章：</strong>可以查看和评论文章，一般文章页面的内容都睡完整的长篇内容，来源于笔记功能模块，文章支持评论和回复（需要登录）</li>
+<li><strong>动态：</strong>这里发布的内容是碎片化的，因为我发现我平时大部分想突然发送的是短的，碎片的内容，写成笔记或者文章有点不值得，所以就可以采用发送动态的方式（ 200 字以内），并且可以支持图文发布。动态同样支持评论回复，还有支持点赞，用来当一个树洞或者发牢骚的地方很合适，哈哈哈</li>
+<li><strong>笔记：</strong>这个就是一个在线笔记的功能，支持 Markdown 语法，同时支持公式这类的编辑，图片粘贴上传，手动上传，都是可以的，写完的笔记可以通过设置将其设置为公开，这样在首页文章列表就可以看到了。</li>
+</ul>
+<p>因为是通过内网穿透的形式提供服务，所以网站加载速度可能不是很快，仅供娱乐，后续在线笔记功能会增加一个下载功能，支持将所有的笔记打包下载。下面是一些截图</p>
+<p><img alt="www.huhailong.vip_1" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r69eau.jpg" />
+<img alt="www.huhailong.vip_2" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r69uyz.jpg" />
+<img alt="www.huhailong.vip_3" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r6a00n.jpg" />
+<img alt="www.huhailong.vip_4" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r6alqe.jpg" /></p>
+]]></content:encoded>
+<pubDate>2024-03-02T08:46:00Z</pubDate>
+<pubDate>2024-03-04T04:38:23Z</pubDate>
+</item>
+<item>
+<title>Tablesmith 在 Product Hunt 上发布了🎉</title>
+<link>https://www.v2ex.com/t/1020050</link>
+<guid>https://www.v2ex.com/t/1020050</guid>
+<content:encoded><![CDATA[
+
+<p>Tablesmith 是一个免费的表格 ETL 工具，支持 web/iOS 双端。主打功能是简单易用，本地数据处理以及移动端友善。支持 XLSX/CSV 两种格式，可以方便的进行数据排序筛选分组等操作。同时也添加了 AI 自动更新/填充数据的功能。</p>
+<p>Tablesmith 的主要的目标用户是 Excel ，Google Sheets 这些表格类工具的使用者，通过提前设计好的 ETL 流程可以快速完成一些重复操作。</p>
+<p>官网是: <a href="https://tablesmith.io/" rel="nofollow">https://tablesmith.io/</a></p>
+<p>也可以直接看介绍视频: <a href="https://www.youtube.com/watch?v=ZQwTZR2hduM&amp;ab_channel=tablesmith" rel="nofollow">https://www.youtube.com/watch?v=ZQwTZR2hduM&amp;ab_channel=tablesmith</a></p>
+<p>Product Hunt: <a href="https://www.producthunt.com/posts/tablesmith" rel="nofollow">https://www.producthunt.com/posts/tablesmith</a></p>
+<p>觉得不错的欢迎在 Product Hunt 上点个 upvote❤️</p>
+]]></content:encoded>
+<pubDate>2024-03-02T08:16:08Z</pubDate>
+<pubDate>2024-03-03T11:32:06Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 发送营销邮件，把收件人列表无论放在收件人 CC 还是 BCC，都会泄露其它收件人的邮箱地址，这是为什么？正确的发送方式是什么？</title>
 <link>https://www.v2ex.com/t/1021276</link>
 <guid>https://www.v2ex.com/t/1021276</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-06T16:16:50Z</pubDate>
 <pubDate>2024-03-06T16:13:50Z</pubDate>
 </item>
 <item>
@@ -20,10 +140,8 @@
 <link>https://www.v2ex.com/t/1021275</link>
 <guid>https://www.v2ex.com/t/1021275</guid>
 <content:encoded><![CDATA[
-
 官方说过 miui 的机子解锁后不能 ota 澎湃 os ，那现在有两个疑问：<br />1. 比如小米 14 解锁后还能 ota 吗？<br />2. 国行小米 14 解锁后刷入 global 或者 eea 后还能 ota 吗？<br />有没有 dalao 实践过的请告知一下~
 ]]></content:encoded>
-<pubDate>2024-03-06T16:00:13Z</pubDate>
 <pubDate>2024-03-06T12:00:13Z</pubDate>
 </item>
 <item>
@@ -31,10 +149,8 @@
 <link>https://www.v2ex.com/t/1021274</link>
 <guid>https://www.v2ex.com/t/1021274</guid>
 <content:encoded><![CDATA[
-
 Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" target="_blank">Poe.com</a> 推出的人工智能机器人对话平台，目前支持 ChatGPT 3.5 和 4.0 模型。<br /><br />今天刚部署到生产环境，已开放注册。用户可以免费与基于 GPT-3.5 GPT-4 的机器人进行对话，速率限制为：<br /><br />3.5 模型 40 次 / 3 小时<br />4.0 模型 2 次 / 1 天<br /><br />公测网址： https://poe.monster<br /><br /><a href="https://i.imgur.com/d38qwjA.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/d38qwjA.png" /></a><br /><br /><br />平台会有一个 prompt to earn 的概念，用户通过 prompt 提示词创建机器人，其他用户若使用该机器人则可以为创作者带来收益。计划通过 USDT 支付创作者收益。<br /><br />同时，我们计划开发多个版本来解决不同用户群体的需求。包括：<br /><br /><a href="https://i.imgur.com/dUvhgJ9.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/dUvhgJ9.png" /></a><br /><br /><br />目前正在开发免费版本，已基本完成，近期将开放机器人广场功能。<br /><br /><a href="https://i.imgur.com/WTZUVpr.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WTZUVpr.png" /></a><br /><br /><br />欢迎佬们注册体验，对任何善意的反馈表示感谢。<br /><br /><a href="https://i.imgur.com/M1eqRwd.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/M1eqRwd.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-03-06T15:54:51Z</pubDate>
 <pubDate>2024-03-06T16:02:40Z</pubDate>
 </item>
 <item>
@@ -43,9 +159,7 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <guid>https://www.v2ex.com/t/1021273</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-06T15:53:10Z</pubDate>
 <pubDate>2024-03-06T16:15:28Z</pubDate>
 </item>
 <item>
@@ -53,10 +167,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021272</link>
 <guid>https://www.v2ex.com/t/1021272</guid>
 <content:encoded><![CDATA[
-
 像 Windows 版那样，网上搜了一下好像都只提到了 Windows 版有
 ]]></content:encoded>
-<pubDate>2024-03-06T15:39:10Z</pubDate>
 <pubDate>2024-03-06T15:39:10Z</pubDate>
 </item>
 <item>
@@ -64,10 +176,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021271</link>
 <guid>https://www.v2ex.com/t/1021271</guid>
 <content:encoded><![CDATA[
-
 各位有经验的大佬，请帮我解惑，我是个在二线省会城市从事爬虫相关工作的小卡拉米，工作了 3 年技术没有多大进步还把一些技术给丢了，自学了一年渗透测试，想转岗，但是又怕一步错步步错。求解惑
 ]]></content:encoded>
-<pubDate>2024-03-06T15:29:36Z</pubDate>
 <pubDate>2024-03-06T12:29:36Z</pubDate>
 </item>
 <item>
@@ -75,13 +185,11 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021269</link>
 <guid>https://www.v2ex.com/t/1021269</guid>
 <content:encoded><![CDATA[
-
 <p>本人是双非二本的 24 应届生，无实习经历，未来是想要在计算机行业吃饭。我清楚现在工作不好找，但我依然希望能做这行。
 我想问问靠 Java 入行计算机，接着转 C++，这规划可行吗？
 以及我想学习 C++,但不知如何下手，例如：我不太清楚当前 C++的市场具体情况，也不清楚相应赛道的学习规划，我该怎么办呢？
 求解答。</p>
 ]]></content:encoded>
-<pubDate>2024-03-06T15:10:45Z</pubDate>
 <pubDate>2024-03-06T16:18:53Z</pubDate>
 </item>
 <item>
@@ -89,10 +197,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021268</link>
 <guid>https://www.v2ex.com/t/1021268</guid>
 <content:encoded><![CDATA[
-
 很少绘画 但是手头有个 11 寸的 ipad air4 原装的 2 代笔坏了 过了保修期基本没有保修了，想找第三方维修好呢，还是直接买个山寨的？拼多多上面很多 什么华强北顶配乱七八糟的 20 几块钱 不绘画能买吗？质量咋样？还是必须上原装，或者有更好的原装 1：1 功能的
 ]]></content:encoded>
-<pubDate>2024-03-06T15:04:15Z</pubDate>
 <pubDate>2024-03-04T15:02:15Z</pubDate>
 </item>
 <item>
@@ -100,7 +206,6 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021267</link>
 <guid>https://www.v2ex.com/t/1021267</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>🌍 公司&amp;部门：蚂蚁集团 · 支付宝技术部 · 支付宝体验技术部</li>
 <li>📍 工作地点：杭州、上海</li>
@@ -127,7 +232,6 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 </ol>
 ]]></content:encoded>
 <pubDate>2024-03-06T15:00:18Z</pubDate>
-<pubDate>2024-03-06T15:00:18Z</pubDate>
 </item>
 <item>
 <title>[问与答] 为什么我总觉得生活少了点什么，但是又不知道少了些什么？</title>
@@ -135,9 +239,7 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <guid>https://www.v2ex.com/t/1021266</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-06T14:57:34Z</pubDate>
 <pubDate>2024-03-06T16:17:45Z</pubDate>
 </item>
 <item>
@@ -145,10 +247,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021264</link>
 <guid>https://www.v2ex.com/t/1021264</guid>
 <content:encoded><![CDATA[
-
 最近逛论坛发现已经有一部分人从 mac 转向 win 了，我也刚开始 mac 转 win ，转 win 的过程中发现还是有各种问题需要解决，目前自己找了一些方案，也想像 v 友征求一些方案。<br /><br />1：三指拖拽，windows 有专门的应用 threefingersdrag ，用起来还好，当遇到外接触控板和内置触控板同时存在时，就不能用了，滑动速度不一样<br /><br />2：桌面切换，如何丝滑的切过去，windows 动画拖泥带水，让人心里不舒服，没有找到解决方案<br /><br />3：空格键预览，quicklook<br /><br />4 ，触控板，不是很能接受 windows 的触控板，不过经过几天的使用稍微习惯了一点点，windows 触控板功能都有，但是反馈不够，不知道操作是否成功，经常操作好多次，然后卡主再多次打开重复窗口。windows 触控板和 mac 触控板功能差不多，但是触感，压感，滑行速度 这些细节，完全不是一个档次。于是我购买了 mac 的触控板，操作的时候放在笔记本右边，手总是不自觉的用自带的触控板，而且，mac 触控板在 windows 下，有些提升但不是巨大，最终我放弃了外接触控板方案，选择去习惯 windows 。<br /><br />4 ，输入法，好多地方不让用第三方输入法小狼毫，不知道什么原因，现在用的自带的输入法，无法用下方向键换行候选字，也挺难受。<br /><br />mac 转 win 感受，系统很快很流畅，特别是 office 秒开，wsl 也很赞。但是上面问题还没解决完，转换的还不完美。
 ]]></content:encoded>
-<pubDate>2024-03-06T14:48:51Z</pubDate>
 <pubDate>2024-03-06T16:03:30Z</pubDate>
 </item>
 <item>
@@ -157,9 +257,7 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <guid>https://www.v2ex.com/t/1021263</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-06T14:47:40Z</pubDate>
 <pubDate>2024-03-06T10:47:40Z</pubDate>
 </item>
 <item>
@@ -167,10 +265,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021262</link>
 <guid>https://www.v2ex.com/t/1021262</guid>
 <content:encoded><![CDATA[
-
 最近从苹果换到了安卓，在代理软件上碰到了问题，来问问各位大佬都是用哪个代理软件。目前 surfboard ，clash ，sing box ，hiddify next ，nekobox 都安装试了，都没有一个特别满意的。如果一直挂着其中 surfboard ，clash ，sing box 的耗电都比高，nekobox 又没有自动节点测速，其实 hiddify next 用着最舒服，但是目前它碰到 google play 能打开但是下载一直转圈，下载不了 app ，不知道是不是我哪里设置不对
 ]]></content:encoded>
-<pubDate>2024-03-06T14:43:19Z</pubDate>
 <pubDate>2024-03-06T16:15:03Z</pubDate>
 </item>
 <item>
@@ -178,11 +274,9 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021259</link>
 <guid>https://www.v2ex.com/t/1021259</guid>
 <content:encoded><![CDATA[
-
 <p>楼主自己感觉如果你很好说话，态度比较好，总有一些人跟你沟通时语气会比较冲，居高临下，觉得自己都懂。有些不好说话的，偏偏其它人跟这种人沟通时客客气气的。这就是好人被人欺吗。</p>
 <p>大家有什么心得呢，楼主本人心态比较平稳，工作上的沟通语气一般都比较平和，嘴说不清的就写在纸上。</p>
 ]]></content:encoded>
-<pubDate>2024-03-06T14:34:46Z</pubDate>
 <pubDate>2024-03-06T15:14:58Z</pubDate>
 </item>
 <item>
@@ -190,10 +284,8 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021258</link>
 <guid>https://www.v2ex.com/t/1021258</guid>
 <content:encoded><![CDATA[
-
 我碰到一个奇怪的问题：在 Chrome 地址栏或者是网页中的任何文本输入框（包括搜索框），假设已经输入了一段文本，并用 Ctrl+A 全选，或用鼠标选中部分文本，这时执行复制（ Ctrl+C ），然后鼠标在旁边点击一下，复制的内容就会从原来的位置消失。而不确定什么时候，只要执行复制（ Ctrl+C ），那么选中的文字就会立即丢失。<br /><br />已经做过多种尝试，包括删除 Chrome 的所有插件、缓存；删除 .config/google-chrome/ 目录，重新安装 Chrome ，情况都是相同的。<br /><br />系统中的火狐浏览器没有这个问题，系统的其它应用中也没有这个问题。<br /><br />这个问题已经出现不短时间了，网上也没有搜索到类似问题，不知道有没有人碰到过。<br /><br /><br />系统：<br />Chrome 版本：122.0.6261.111 （正式版本） （ 64 位）<br />Linux 内核：5.10.4-051004-generic<br />Ubuntu 18.04.6
 ]]></content:encoded>
-<pubDate>2024-03-06T14:33:48Z</pubDate>
 <pubDate>2024-03-03T14:33:48Z</pubDate>
 </item>
 <item>
@@ -201,7 +293,6 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021257</link>
 <guid>https://www.v2ex.com/t/1021257</guid>
 <content:encoded><![CDATA[
-
 <p>通过 Poe 使用 Claude ，模型是 <code>Claude-3-Sonnet</code>。</p>
 <p>无意中遇到一次问他 <strong>你是谁</strong>，它说自己是<strong>一个由 OpenAI 公司开发的对话式人工智能助手</strong>。</p>
 <p>然后无论再怎么尝试，都没有复现了，都会说自己的是 <strong>由 Anthropic 公司开发</strong> 。</p>
@@ -209,7 +300,6 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <p>如果不是 bug ，听说 Claude 是由前 OpenAI 的员工创建的，可能是训练数据集的影响吗？</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/gW7lD2h6.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-06T14:29:49Z</pubDate>
 <pubDate>2024-03-06T15:13:40Z</pubDate>
 </item>
 <item>
@@ -217,13 +307,10 @@ Poe.Monster 是我们对标 <a href="http://Poe.com" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1021255</link>
 <guid>https://www.v2ex.com/t/1021255</guid>
 <content:encoded><![CDATA[
-
 因为从没开过会员，也没注意过这个功能，所以问一下这个漫游记录的意思是，我打开了以后，可以从云端把这一段时间内的聊天记录下载到本地吗？<br /><br />比如举个例子，假如有一个月手机 QQ 没登陆，一个月后，打开好友的聊天窗口，通过漫游的方式查看这一个月的聊天记录。那这些消息是不是已经被保存到手机本地，成为手机本地的聊天记录，并且可以通过备份方式备份到电脑上，跟以前的聊天记录备份合并？<br /><br />还是说只是能在线看，并不会拉取到本地？<br /><br />先谢谢解答
 ]]></content:encoded>
-<pubDate>2024-03-06T14:23:54Z</pubDate>
 <pubDate>2024-03-06T14:51:43Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] cloudflare 点击了清理全部缓存后， 3 个 url 的 svg 图片一直打不开</title>
 <link>https://www.v2ex.com/t/1021253</link>
@@ -16734,260 +16821,6 @@ d.期望能够和团队其他成员一样，足够乐观，具备创业者心态
 最近发现我 dc 账号异地登陆需要邮箱校验，登录完成后，邮箱立马就被封，怀疑是同一 ip 下连接的邮箱太多被检测，想着试试挂代理进行连接，但是 imap 没有直接支持代理连接，想问问怎么改呢
 ]]></content:encoded>
 <pubDate>2024-03-02T09:48:44Z</pubDate>
-</item>
-<item>
-<title>[程序员] Linux 非阻塞 epoll 编程中，如何解决大量 ESTABLISHED 连接后占着茅坑不拉屎的行为？</title>
-<link>https://www.v2ex.com/t/1020072</link>
-<guid>https://www.v2ex.com/t/1020072</guid>
-<content:encoded><![CDATA[
-<p>Linux socket 中，无论是<br />
-server_fd = socket(AF_INET, SOCK_STREAM, 0);<br />
-listen(server_fd)</p>
-<p>还是接过来的<br />
-client_fd=accept(server_fd)</p>
-<p>全部加进 epoll 事件监听中。
-epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &amp;ev)</p>
-<p>但是接到的 client_fd ，必须要收到对方发送数据才能激活事件。
-如果对方一直不 send()任何数据。那么建立了 ESTABLISHED 连接后就占着茅坑不拉屎。epoll 也不会通知</p>
-<hr />
-<p>网上找到两个方法：</p>
-<h4>1.</h4>
-<pre><code class="language-C">epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-改为
-epoll_wait(epoll_fd, events, MAX_EVENTS, 10);
-</code></pre>
-<p>没用，这是 epoll 事件超时，而不是连接超时。<br />
-epoll_wait 返回的是活跃事件，如果不发送任何数据，epoll_wait 不会返回这个事件的 fd</p>
-<h4>2.</h4>
-<pre><code class="language-C">struct timeval timeout;
-timeout.tv_sec = 10;
-timeout.tv_usec = 0;
-setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&amp;timeout, sizeof(timeout);
-</code></pre>
-<p>没用，这是阻塞超时，recv()用的。非阻塞会立即返回。</p>
-<hr />
-<p>这种连接浪费了<strong>茅坑</strong>资源，不知道有什么解决方法。设置 accept 后 10s<strong>不拉屎</strong>就断开。<br />
-阻塞情况下很好解决，但是非阻塞暂时没想到好办法。</p>
-]]></content:encoded>
-<pubDate>2024-03-02T10:05:52Z</pubDate>
-</item>
-<item>
-<title>[杭州] 杭州招聘后端 Java 开发工程师，会 Spring 微服务优先。</title>
-<link>https://www.v2ex.com/t/1020071</link>
-<guid>https://www.v2ex.com/t/1020071</guid>
-<content:encoded><![CDATA[
-3 年以上工作经验，有一定的项目经验，最好对前端 vue react 有了解。薪资 20K 左右。工作地点，杭州上城区保利中心。
-]]></content:encoded>
-<pubDate>2024-03-02T09:31:14Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 用 WireGuard 连回家经常断， OpenVPN 稳得一匹</title>
-<link>https://www.v2ex.com/t/1020069</link>
-<guid>https://www.v2ex.com/t/1020069</guid>
-<content:encoded><![CDATA[
-<p>坐标广州。以前用 WireGuard 连接回家，电脑端每隔十几分钟会断线，手机端好像几分钟断一次。改用 OpenVpn ，基本上都不断线。请问何故？另外 OpenVPN 似乎很耗电，请问有哪些稳定、省电的 VPN ？</p>
-]]></content:encoded>
-<pubDate>2024-03-02T09:41:23Z</pubDate>
-</item>
-<item>
-<title>[上海] 上海算法同学找寻（创业）</title>
-<link>https://www.v2ex.com/t/1020068</link>
-<guid>https://www.v2ex.com/t/1020068</guid>
-<content:encoded><![CDATA[
-团队字节背景，本地生活业务相关，线下已验证模式成立 希望找一个算法同学一起沟通交流！<br />感兴趣同学可以留言+v
-]]></content:encoded>
-<pubDate>2024-03-01T09:11:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2024 了，还没有安全、好用的跨平台浏览器书签管理应用吗？</title>
-<link>https://www.v2ex.com/t/1020064</link>
-<guid>https://www.v2ex.com/t/1020064</guid>
-<content:encoded><![CDATA[
-多设备、多账户管理书签烦得一批呀，救救孩子吧
-]]></content:encoded>
-<pubDate>2024-03-02T09:25:21Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 有没有大疆无人机的微信群啊？</title>
-<link>https://www.v2ex.com/t/1020063</link>
-<guid>https://www.v2ex.com/t/1020063</guid>
-<content:encoded><![CDATA[
-<p>求大疆无人机微信交流群，飞友交流交流，聊天，吹水</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:54:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] Mac 接入外接屏时怎么自动切换桌面布局</title>
-<link>https://www.v2ex.com/t/1020062</link>
-<guid>https://www.v2ex.com/t/1020062</guid>
-<content:encoded><![CDATA[
-<p>如题，平时在宿舍习惯接一个外接屏，有一套比较成熟的桌面布局，出门上课时只带电脑就用另一套布局。
-Mac 上能实现接入外接屏时自动把相应软件移动到外接屏上并放到指定位置吗？</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:58:16Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一个业余时间做的网站</title>
-<link>https://www.v2ex.com/t/1020061</link>
-<guid>https://www.v2ex.com/t/1020061</guid>
-<content:encoded><![CDATA[
-<p>Hello ，大家好，我叫胡海龙，由于家里闲置了两台笔记本了，心想放着也是浪费，刚好我有外网服务器（配置不高，主要用于科学上网用），于是通过使用 Frp 将这台笔记本作为内网服务器穿透出来练习开发一些东西玩，今天给大家分享是最近刚完成的一个在线笔记和类似朋友圈的功能（也可以看为动态功能吧），其他的后台管理功能就不开放了，下面是现在开放出来的功能：</p>
-<p><a href="https://www.huhailong.vip" rel="nofollow">网站地址：www.huhailong.vip</a></p>
-<ul>
-<li><strong>文章：</strong>可以查看和评论文章，一般文章页面的内容都睡完整的长篇内容，来源于笔记功能模块，文章支持评论和回复（需要登录）</li>
-<li><strong>动态：</strong>这里发布的内容是碎片化的，因为我发现我平时大部分想突然发送的是短的，碎片的内容，写成笔记或者文章有点不值得，所以就可以采用发送动态的方式（ 200 字以内），并且可以支持图文发布。动态同样支持评论回复，还有支持点赞，用来当一个树洞或者发牢骚的地方很合适，哈哈哈</li>
-<li><strong>笔记：</strong>这个就是一个在线笔记的功能，支持 Markdown 语法，同时支持公式这类的编辑，图片粘贴上传，手动上传，都是可以的，写完的笔记可以通过设置将其设置为公开，这样在首页文章列表就可以看到了。</li>
-</ul>
-<p>因为是通过内网穿透的形式提供服务，所以网站加载速度可能不是很快，仅供娱乐，后续在线笔记功能会增加一个下载功能，支持将所有的笔记打包下载。下面是一些截图</p>
-<p><img alt="www.huhailong.vip_1" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r69eau.jpg" />
-<img alt="www.huhailong.vip_2" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r69uyz.jpg" />
-<img alt="www.huhailong.vip_3" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r6a00n.jpg" />
-<img alt="www.huhailong.vip_4" class="embedded_image" rel="noreferrer" src="https://s1.wzznft.com/i/2024/03/02/r6alqe.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-03-02T10:13:37Z</pubDate>
-</item>
-<item>
-<title>[求职] base 广州/深圳/珠海，广东都可， 五年前端开发，找一个 非外包 工作机会，在线等</title>
-<link>https://www.v2ex.com/t/1020060</link>
-<guid>https://www.v2ex.com/t/1020060</guid>
-<content:encoded><![CDATA[
-<h2>技能/亮点</h2>
-<ul>
-<li>⾃⼰从 0-1 实现的 <a href="https://github.com/xiangshu233/vue3-vant4-mobile" rel="nofollow">vue3-vant4-mobile</a> Github 开源的项⽬，有 300 star</li>
-<li>熟练掌握 Vue3 + TS + Vite + Pinia+ Tailwind CSS ，React 可以做一些基础的 CURD</li>
-<li>参与过社区开源贡献，并提交过相应 PR</li>
-<li>项目重构、Webpack/Vite 优化经验丰富、组件二次封装经验（ BasicForm ）产出规范化开发文档（风格指南）</li>
-<li>熟悉 Nginx 、Https 证书管理、域名、CDN 网站部署经验</li>
-<li>熟练掌握 Js 、Vue2 、Vue3 、Vite 、TypeScript 、Es6 等 Web 技术栈</li>
-<li>熟练掌握 Element Plus 、AntdV 、Vant 、Naive UI 、Echarts 、DataV 等 UI 框架</li>
-<li>熟练掌握 Less 、Sass 、Tailwind CSS 、UnoCss 、WindiCss 预处理工具</li>
-<li>熟练使用 Openlayers 、高德、百度等地图 Api SDK</li>
-<li>熟悉 Java 、C#、Blazor 后端语言，有实际编写经验</li>
-</ul>
-<h2>开源作品</h2>
-<p><a href="https://github.com/xiangshu233/vue3-vant4-mobile" rel="nofollow">vue3-vant4-mobile</a></p>
-<h2>在线简历</h2>
-<p><a href="https://www.v2ex.com/aHR0cHM6Ly9yZXN1bWUueGlhbmdzaHUyMzMuY24v" rel="nofollow">在线简历</a></p>
-<h2>微信</h2>
-<p>eXVtZV9zaHU=</p>
-]]></content:encoded>
-<pubDate>2024-03-02T09:15:45Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 京东云活动异常...工单也异常......</title>
-<link>https://www.v2ex.com/t/1020057</link>
-<guid>https://www.v2ex.com/t/1020057</guid>
-<content:encoded><![CDATA[
-<p>活动异常：
-<a href="https://imgse.com/i/pF05UVP" rel="nofollow"><img alt="pF05UVP.md.png" class="embedded_image" rel="noreferrer" src="https://s11.ax1x.com/2024/03/02/pF05UVP.md.png" /></a></p>
-<p>显示内部错误。</p>
-<p>提交工单，edge 浏览器，搜狗输入法
-问题描述没法输入中文。
-输入英文没问题。</p>
-<p>怎么那么大个厂商都这样......</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:30:35Z</pubDate>
-</item>
-<item>
-<title>[程序员] 20 年老程序员出海第 3 个月的总结</title>
-<link>https://www.v2ex.com/t/1020056</link>
-<guid>https://www.v2ex.com/t/1020056</guid>
-<content:encoded><![CDATA[
-<p>没错，我就是那个，之前已经出现过几次，已经干了 20 年的老程序员，</p>
-<p>我的作品是一个很特别的低代码开发平台 <a href="http://LCDP.ai" rel="nofollow">LCDP.ai</a> （特别之处您可以参考 <a href="https://www.v2ex.com/t/1013233#reply19" rel="nofollow">https://www.v2ex.com/t/1013233#reply19</a> ）</p>
-<p>牧言低代码平台 <a href="http://LCDP.ai" rel="nofollow">LCDP.ai</a> 2024 年 2 月出海总结（出海的第三个月，第二个整月）</p>
-<ul>
-<li>👍 总营收 Total Revenue： $644.33 (相比上个月 +386.33)</li>
-<li>👍 试用期，已预订营收 Booked Revenue: $398(相比上个月 -398)</li>
-</ul>
-<p>社媒运营（都靠我一个人，我累啊！大家有什么建议吗？）</p>
-<ul>
-<li>👍 <a href="http://x.supa.is" rel="nofollow">http://x.supa.is</a> Tweet followers:  4322(+?)</li>
-<li>👍 <a href="http://yt.supa.is" rel="nofollow">http://yt.supa.is</a> YouTube followers: 11(+3)</li>
-<li>👍 <a href="http://xhs.supa.is" rel="nofollow">http://xhs.supa.is</a> 小红书 followers: 18 (+18)</li>
-</ul>
-<p>总体感受，一句话：累了……</p>
-<p>疯狂发推，累，起小红书号，累，跟写代码相比，累太多了，心理压力也大，赚的也不多，我这种 to b 的产品，又很难像 to c 的应用一样，可能会爆发式增长。</p>
-<p>对了，前段时间听了个 SEO 的讲座，于是信心满满，尝试优化了网站的内容和关键字之类的，
-想要让 SEO 来帮我做点宣传，搞点自然流量，结果发现做完后，效果还不如之前……
-28 天只有 3 个点击进来 </p>
-<p>大家如果有什么想要聊的，可以跟帖，也可以在 tweet 上找我 <a href="https://x.com/xqliu" rel="nofollow">https://x.com/xqliu</a></p>
-<h2>传送门：</h2>
-<p><a href="https://www.v2ex.com/t/1013233" rel="nofollow">老程序员出海创业第二个月统计</a></p>
-<h2>附录：</h2>
-<p><img alt="LCDP.ai 2024 年 2 月营收" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GHglMeCXQAQ9kP1?format=jpg&amp;name=small" />
-<img alt="LCDP.ai 2024 年 1 月营收" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GHpsiBiWcAA5akL?format=jpg&amp;name=small" /></p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:26:20Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有知道这个是怎么实现的吗</title>
-<link>https://www.v2ex.com/t/1020054</link>
-<guid>https://www.v2ex.com/t/1020054</guid>
-<content:encoded><![CDATA[
-<p>最近接了一个单子，下载某度文库的文档，基本功能实现了，但是下载出来的只有文字，排版不太好，图片定位哪些不知道怎么搞，但是看到有一个网站提供的下载功能，下载下来的几乎是原格式，这个有谁研究过吗，提供一点思路。</p>
-<p>参考地址： <a href="https://sora.it9g.com/" rel="nofollow">https://sora.it9g.com/</a></p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:39:04Z</pubDate>
-</item>
-<item>
-<title>[生活] 父亲走了。我好难受。</title>
-<link>https://www.v2ex.com/t/1020051</link>
-<guid>https://www.v2ex.com/t/1020051</guid>
-<content:encoded><![CDATA[
-<p>父亲在岗位上走了，突然的。
-家里的顶梁柱没了。
-急匆匆地请假，买票，出发。
-我需要做哪些事情善后。😭</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:16:35Z</pubDate>
-</item>
-<item>
-<title>[分享创造] Tablesmith 在 Product Hunt 上发布了🎉</title>
-<link>https://www.v2ex.com/t/1020050</link>
-<guid>https://www.v2ex.com/t/1020050</guid>
-<content:encoded><![CDATA[
-<p>Tablesmith 是一个免费的表格 ETL 工具，支持 web/iOS 双端。主打功能是简单易用，本地数据处理以及移动端友善。支持 XLSX/CSV 两种格式，可以方便的进行数据排序筛选分组等操作。同时也添加了 AI 自动更新/填充数据的功能。</p>
-<p>Tablesmith 的主要的目标用户是 Excel ，Google Sheets 这些表格类工具的使用者，通过提前设计好的 ETL 流程可以快速完成一些重复操作。</p>
-<p>官网是: <a href="https://tablesmith.io/" rel="nofollow">https://tablesmith.io/</a></p>
-<p>也可以直接看介绍视频: <a href="https://www.youtube.com/watch?v=ZQwTZR2hduM&amp;ab_channel=tablesmith" rel="nofollow">https://www.youtube.com/watch?v=ZQwTZR2hduM&amp;ab_channel=tablesmith</a></p>
-<p>Product Hunt: <a href="https://www.producthunt.com/posts/tablesmith" rel="nofollow">https://www.producthunt.com/posts/tablesmith</a></p>
-<p>觉得不错的欢迎在 Product Hunt 上点个 upvote❤️</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:16:08Z</pubDate>
-</item>
-<item>
-<title>[程序员] 100u 收 fluence 空投资格，只要给 web3 项目 commit 就会有</title>
-<link>https://www.v2ex.com/t/1020049</link>
-<guid>https://www.v2ex.com/t/1020049</guid>
-<content:encoded><![CDATA[
-<p>以下是教程，自己领的话 20u 左右的 Gas 费，不想自己领可以把资格出给我，我 100u 收。我 discord 账号 daniel_zong</p>
-<p>官网 <a href="https://fluence.network/" rel="nofollow">https://fluence.network/</a></p>
-<p>博客页面 <a href="https://blog.fluence.network/the-future-is-cloudless-fluences-depin-computing-platform-and-flt-token-are-now-live/" rel="nofollow">https://blog.fluence.network/the-future-is-cloudless-fluences-depin-computing-platform-and-flt-token-are-now-live/</a></p>
-<p>领取 输入 github 用户名检测一下有没有 <a href="https://claim.fluence.network/" rel="nofollow">https://claim.fluence.network/</a></p>
-<p>目前这个 token 还没上交易所，并且 claim 之后会锁仓两个月</p>
-<p>你也可以介绍你的同事把资格卖给我，介绍一个给你 100u 辛苦费</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:13:11Z</pubDate>
-</item>
-<item>
-<title>[推广] PTT3.3 开放注册</title>
-<link>https://www.v2ex.com/t/1020047</link>
-<guid>https://www.v2ex.com/t/1020047</guid>
-<content:encoded><![CDATA[
-<p>开注邀请码：zabzft
-要求不玩死，可以送魔力，过审核</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:11:36Z</pubDate>
-</item>
-<item>
-<title>[Windows] 各位，最近我的移动硬盘在电脑上要移除的时候老是报错无法解除占用，这是咋回事</title>
-<link>https://www.v2ex.com/t/1020046</link>
-<guid>https://www.v2ex.com/t/1020046</guid>
-<content:encoded><![CDATA[
-<p>之前移除前不弹出直接拔，搞坏过几个 U 盘，现在不敢直接拔了又找不到那里解除占用，这种情况应该咋办呢</p>
-]]></content:encoded>
-<pubDate>2024-03-02T08:02:54Z</pubDate>
 </item>
 </channel>
 </rss>
