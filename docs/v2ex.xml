@@ -5,14 +5,305 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[酷工作] [兼职/全职][200RMB/小时] 招聘前端&amp;全栈工程师-远程</title>
+<link>https://www.v2ex.com/t/1021647</link>
+<guid>https://www.v2ex.com/t/1021647</guid>
+<content:encoded><![CDATA[
+
+<p>[全栈工程师]
+兼职:200RMB/小时
+全职：面议</p>
+<p>职责</p>
+<p>理解业务，识别需求，设计和开发用户界面，以实现可靠、易用和高性能的前端应用程序。
+参与系统规划，架构设计与核心功能开发，构建服务核心业务的高性能后端系统。
+代码编写、文档撰写、单元测试，确保项目的进度和质量，具备良好的风险识别及控制能力。</p>
+<p>要求</p>
+<p>3 年及以上全栈开发工作经验。
+熟悉网页端开发并熟练掌握 Nodejs ，React ，Typescript 。
+熟悉服务端开发流程并熟练掌握至少一种服务端语言。
+具有前后端架构分析与设计能力，有良好的工程习惯，具备技术攻坚能力,具有良好的代码编写习惯、能编写易读、易维护、高质量的代码，以及文档撰写能力。</p>
+<p>联系方式：
+邮箱投递简历： <a href="mailto:yqy18879347453@gmail.com">yqy18879347453@gmail.com</a>
+微信：Alice19980115</p>
+]]></content:encoded>
+<pubDate>2024-03-07T17:37:49Z</pubDate>
+<pubDate>2024-03-07T17:36:49Z</pubDate>
+</item>
+<item>
+<title>[C] 开源 C 库 bfdev： MPI 大数运算</title>
+<link>https://www.v2ex.com/t/1021646</link>
+<guid>https://www.v2ex.com/t/1021646</guid>
+<content:encoded><![CDATA[
+
+<p>本文展示开源 C 库 bfdev 的大数运算模块。我们将分别在 x86 Linux 平台和 py32f030 为代表的嵌入式平台上分别进行演示，并进行性能测试。</p>
+<p>关于 bfdev 库，这是一个开源的 C 语言算法库, 它具有：良好的可移植性，面向对象的方法设计、安装部署简单等等优势。</p>
+<p><a href="https://github.com/openbfdev/bfdev" rel="nofollow">Github 仓库链接</a></p>
+<h2>简介</h2>
+<p><strong>MPI</strong> 即 Multi precision integer （多精度整数），就是对很大的数进行一系列的运算。在数学中，数的大小是没有上限的，但是在计算机中，由于受 ALU 字长的限制，处理器无法对其进行直接计算，我们就需要用到多精度整数算法。</p>
+<h2>使用</h2>
+<p>我们先给出两个平台基于 <strong>MPI</strong> 使用 <strong>machin 公式</strong> 计算圆周率的测试代码，再进行说明。</p>
+<h4>bfdev 仓库 <a href="https://github.com/openbfdev/bfdev/blob/devel/examples/mpi/machin.c" rel="nofollow">示例</a></h4>
+<pre><code class="language-c">#define MODULE_NAME "mpi-machin"
+#define bfdev_log_fmt(fmt) MODULE_NAME ": " fmt
+
+#include &lt;stdio.h&gt;
+#include &lt;bfdev/mpi.h&gt;
+#include &lt;bfdev/log.h&gt;
+#include "../time.h"
+#include "helper.h"
+
+#define TEST_LEN 10000
+#define TEST_SIZE (TEST_LEN / 4 + 1)
+#define TEST_LOOP (TEST_LEN / 1.39793 + 1)
+#define PRINT_RESULT 1
+
+int main(int argc, const char *argv[])
+{
+    bfdev_mpi_t *vw, *vs, *vv, *vq;
+    unsigned int k;
+    int retval;
+
+    if (!((vw = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vs = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vv = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vq = bfdev_mpi_create(NULL))))
+        return 1;
+
+    /**
+     * Machin-like formula:
+     *  PI = 16arctan(1/5) - 4arctan(1/239)
+     *
+     * These formulas are used in conjunction with Gregory's
+     * series, the Taylor series expansion for arctangent:
+     *  arctan(x) = x - (x^3)/3 + (x^5)/5 - (x^7)/7 + ...
+     */
+
+    if ((retval = bfdev_mpi_seti(vw, 16 * 5)) ||
+        (retval = bfdev_mpi_seti(vv, 4 * 239)) ||
+        (retval = bfdev_mpi_seti(vq, 10000)))
+        return retval;
+
+    for (k = 0; k &lt; TEST_SIZE; ++k) {
+        if ((retval = bfdev_mpi_mul(vw, vw, vq)) ||
+            (retval = bfdev_mpi_mul(vv, vv, vq)))
+            return retval;
+    }
+
+    bfdev_log_info("Convergence Machin %d:\n", TEST_LEN);
+    EXAMPLE_TIME_STATISTICAL(
+        for (k = 1; k &lt;= TEST_LOOP; ++k) {
+            if ((retval = bfdev_mpi_divi(vw, vw, vw, 5 * 5)) ||
+                (retval = bfdev_mpi_divi(vv, vv, vv, 239 * 239)) ||
+                (retval = bfdev_mpi_sub(vq, vw, vv)) ||
+                (retval = bfdev_mpi_divi(vq, vq, vq, 2 * k - 1)))
+                return retval;
+
+            if (k &amp; 1)
+                retval = bfdev_mpi_add(vs, vs, vq);
+            else
+                retval = bfdev_mpi_sub(vs, vs, vq);
+
+            if (retval)
+                return retval;
+        }
+        0;
+    );
+
+#if PRINT_RESULT
+    char *result;
+
+    result = print_num(vs, 10);
+    if (!result)
+        return 1;
+
+    printf("%c.", *result);
+    puts(result + 1);
+    free(result);
+#endif
+
+    bfdev_mpi_destory(vw);
+    bfdev_mpi_destory(vs);
+    bfdev_mpi_destory(vv);
+    bfdev_mpi_destory(vq);
+
+    return 0;
+}
+</code></pre>
+<p>以下是运算 pi 后 10000 位的结果，共使用了 0.36 秒。</p>
+<pre><code class="language-shell">❯ ./build/examples/mpi/mpi-machin
+[info] mpi-machin: Convergence Machin 10000:
+[info] mpi-machin:      real time: 0.360000
+[info] mpi-machin:      user time: 0.350000
+[info] mpi-machin:      kern time: 0.000000
+3.14159
+...
+</code></pre>
+<h4>py32f030 平台 <a href="https://github.com/openbfdev-devel/py32f0xx-bfdev/blob/master/examples/benchmark/mpi.c" rel="nofollow">示例</a></h4>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;bfdev.h&gt;
+
+#include "main.h"
+#include "py32f0xx_hal.h"
+
+#define TEST_LEN 100
+#define TEST_SIZE (TEST_LEN / 4 + 1)
+#define TEST_LOOP (TEST_LEN / 1.39793 + 1)
+
+int mpi_benchmark(void)
+{
+    uint32_t start, time;
+    bfdev_mpi_t *vw, *vs, *vv, *vq;
+    unsigned int k;
+    int retval;
+
+    if (!((vw = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vs = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vv = bfdev_mpi_create(NULL)) &amp;&amp;
+          (vq = bfdev_mpi_create(NULL))))
+        return 1;
+
+    if ((retval = bfdev_mpi_seti(vw, 16 * 5)) ||
+        (retval = bfdev_mpi_seti(vv, 4 * 239)) ||
+        (retval = bfdev_mpi_seti(vq, 10000)))
+        return retval;
+
+    for (k = 0; k &lt; TEST_SIZE; ++k) {
+        if ((retval = bfdev_mpi_mul(vw, vw, vq)) ||
+            (retval = bfdev_mpi_mul(vv, vv, vq)))
+            return retval;
+    }
+
+    bfdev_log_info("Convergence Machin %d:\n", TEST_LEN);
+    start = HAL_GetTick();
+    for (k = 1; k &lt;= TEST_LOOP; ++k) {
+        if ((retval = bfdev_mpi_divi(vw, vw, vw, 5 * 5)) ||
+            (retval = bfdev_mpi_divi(vv, vv, vv, 239 * 239)) ||
+            (retval = bfdev_mpi_sub(vq, vw, vv)) ||
+            (retval = bfdev_mpi_divi(vq, vq, vq, 2 * k - 1)))
+            return retval;
+
+        if (k &amp; 1)
+            retval = bfdev_mpi_add(vs, vs, vq);
+        else
+            retval = bfdev_mpi_sub(vs, vs, vq);
+
+        if (retval)
+            return retval;
+
+        iwdg_touch();
+    }
+
+    bfdev_mpi_destory(vw);
+    bfdev_mpi_destory(vs);
+    bfdev_mpi_destory(vv);
+    bfdev_mpi_destory(vq);
+    iwdg_touch();
+
+    time = HAL_GetTick() - start;
+    bfdev_log_notice("Total time: %lu.%lus\n", time / 1000, time % 1000);
+
+    return 0;
+}
+</code></pre>
+<p>以下是运算结果，由于 py32f030 只有 4KiB RAM ，我们这里只计算 100 位。</p>
+<pre><code class="language-shell">[info] benchmark: Benchmark for PY32F0xx.
+[info] benchmark: Bfdev version: 1.0.1-devel
+[info] benchmark: This may take a few minutes...
+
+[info] Convergence Machin 100:
+[notice] Total time: 0.21s
+...
+</code></pre>
+<p>我们计算的大体流程如下：</p>
+<ol>
+<li>首先使用 <strong>bfdev_mpi_create</strong> 创建 <strong>MPI</strong> 对象</li>
+<li>对 <strong>MPI</strong> 对象使用 <strong>bfdev_mpi_seti</strong> 方法赋值</li>
+<li>使用计算方法进行运算</li>
+<li>输出完成并退出</li>
+</ol>
+<p>bfdev 中，使用 <strong>MPI</strong> 需要引入 <code>&lt;bfdev/mpi.h&gt;</code> 头文件，或者引入 <code>&lt;bfdev.h&gt;</code> 顶层头文件也可以。</p>
+<p>这里要重点介绍一下 <code>bfdev_mpi_create(alloc)</code> 函数，它使用了 bfdev 的 allocator 兼容层，传入 NULL 将使用系统默认内存分配器，用户也可以使用自己的内存池为 <strong>MPI</strong> 分配内存。</p>
+<h2>结语</h2>
+<p>欢迎各位感兴趣的读者去访问 bfdev 仓库。</p>
+<p><a href="https://openbfdev.github.io/bfdev-docs/" rel="nofollow">bfdev 文档</a></p>
+]]></content:encoded>
+<pubDate>2024-03-07T17:33:56Z</pubDate>
+<pubDate>2024-03-06T17:33:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 哪个老哥知道这个数据汇聚平台是用什么开发的？</title>
+<link>https://www.v2ex.com/t/1021645</link>
+<guid>https://www.v2ex.com/t/1021645</guid>
+<content:encoded><![CDATA[
+
+<a href="https://mp.weixin.qq.com/s/TbzNDqlFlvxwrouw5Zn-pA" rel="nofollow noopener" target="_blank">https://mp.weixin.qq.com/s/TbzNDqlFlvxwrouw5Zn-pA</a><br /><br />公众号文章里有视频，<br /><br />这个平台看到过很多次了，感觉像开源？但没找到，有老哥知道吗，谢谢！求告知！
+]]></content:encoded>
+<pubDate>2024-03-07T17:16:12Z</pubDate>
+<pubDate>2024-03-07T17:45:43Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [兼职/全职][200RMB/小时] 招聘全栈工程师-远程</title>
+<link>https://www.v2ex.com/t/1021643</link>
+<guid>https://www.v2ex.com/t/1021643</guid>
+<content:encoded><![CDATA[
+
+<p>[全栈工程师]
+兼职 200RMB/小时
+全职 面议</p>
+<p>职责</p>
+<p>理解业务，识别需求，设计和开发用户界面，以实现可靠、易用和高性能的前端应用程序。
+参与系统规划，架构设计与核心功能开发，构建服务核心业务的高性能后端系统。
+代码编写、文档撰写、单元测试，确保项目的进度和质量，具备良好的风险识别及控制能力。</p>
+<p>要求</p>
+<p>3 年及以上全栈开发工作经验。
+熟悉网页端开发并熟练掌握 Nodejs ，React ，Typescript 。
+熟悉服务端开发流程并熟练掌握至少一种服务端语言。
+具有前后端架构分析与设计能力，有良好的工程习惯，具备技术攻坚能力,具有良好的代码编写习惯、能编写易读、易维护、高质量的代码，以及文档撰写能力。</p>
+<p>联系方式：
+邮箱投递简历： <a href="mailto:yqy18879347453@gmail.com">yqy18879347453@gmail.com</a>
+微信：Alice19980115</p>
+]]></content:encoded>
+<pubDate>2024-03-07T16:50:50Z</pubDate>
+<pubDate>2024-03-07T16:49:50Z</pubDate>
+</item>
+<item>
+<title>[天黑以后] 20240308 午夜俱乐部</title>
+<link>https://www.v2ex.com/t/1021642</link>
+<guid>https://www.v2ex.com/t/1021642</guid>
+<content:encoded><![CDATA[
+
+<p>不想一天结束，不想一天开始</p>
+<p>看一个视频，蜗牛🐌爬来爬去，想起小时候家门口有蜗牛，还有各种野花野草。</p>
+<p>从小到大，和家里人也是聚少离多。现在上班了，感觉时间也不属于自己。</p>
+<p>小时候上学，长大了上班，从来没有能自由自在的感觉。</p>
+<p>到一个经常阴天的地方打工，狗屎，路上到处有吸烟的。</p>
+<p>希望在人多地方吸烟的人都阳痿吧。神圣的狗屎。</p>
+]]></content:encoded>
+<pubDate>2024-03-07T16:43:51Z</pubDate>
+<pubDate>2024-03-07T00:43:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求一个 windows11 专业版的密钥。</title>
+<link>https://www.v2ex.com/t/1021641</link>
+<guid>https://www.v2ex.com/t/1021641</guid>
+<content:encoded><![CDATA[
+
+<p>各位大佬，由于今晚新装了台式机，需要 win11 专业版密钥，还望有的 v 友给个，在此小弟先行谢过。</p>
+]]></content:encoded>
+<pubDate>2024-03-07T16:34:17Z</pubDate>
+<pubDate>2024-03-07T17:42:06Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 基于 edge-tts 和 nextjs 实现的简单 tts 网页</title>
 <link>https://www.v2ex.com/t/1021639</link>
 <guid>https://www.v2ex.com/t/1021639</guid>
 <content:encoded><![CDATA[
-
 <p>简单的 tts 网页应用 <a href="https://github.com/animebing/edge-tts-nextjs" rel="nofollow">edge-tts-nextjs</a>，基于 <a href="https://github.com/rany2/edge-tts" rel="nofollow">edge-tts</a> 和 <a href="https://nextjs.org/" rel="nofollow">nextjs</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-07T16:17:48Z</pubDate>
 <pubDate>2024-03-07T16:17:48Z</pubDate>
 </item>
 <item>
@@ -20,12 +311,10 @@
 <link>https://www.v2ex.com/t/1021638</link>
 <guid>https://www.v2ex.com/t/1021638</guid>
 <content:encoded><![CDATA[
-
 <p>日前，翟欣欣涉嫌敲诈勒索一案已移送法院。感谢相关人员的辛苦付出[作揖]，感谢大家的关注和支持[作揖]。 </p>
 <p>转自：苏享茂的哥哥苏享龙 微博</p>
 <p><a href="https://weibo.com/6359617406/O3VPYBNrg" rel="nofollow">https://weibo.com/6359617406/O3VPYBNrg</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-07T16:12:03Z</pubDate>
 <pubDate>2024-03-07T16:12:03Z</pubDate>
 </item>
 <item>
@@ -33,10 +322,8 @@
 <link>https://www.v2ex.com/t/1021636</link>
 <guid>https://www.v2ex.com/t/1021636</guid>
 <content:encoded><![CDATA[
-
 技术栈<br /><br />React + Vite + TailwindCSS / Nestjs + TRPC + Prisma(SQLite) / Docker <br /><br /><br />GitHub: <a href="https://github.com/cooderl/react-nestjs-full-web-app" rel="nofollow noopener" target="_blank">https://github.com/cooderl/react-nestjs-full-web-app</a>
 ]]></content:encoded>
-<pubDate>2024-03-07T16:05:35Z</pubDate>
 <pubDate>2024-03-07T16:05:35Z</pubDate>
 </item>
 <item>
@@ -44,10 +331,8 @@
 <link>https://www.v2ex.com/t/1021635</link>
 <guid>https://www.v2ex.com/t/1021635</guid>
 <content:encoded><![CDATA[
-
 <p>绿色 QWR2YW5jZVBsdXM=</p>
 ]]></content:encoded>
-<pubDate>2024-03-07T15:54:16Z</pubDate>
 <pubDate>2024-03-07T15:54:16Z</pubDate>
 </item>
 <item>
@@ -55,10 +340,8 @@
 <link>https://www.v2ex.com/t/1021634</link>
 <guid>https://www.v2ex.com/t/1021634</guid>
 <content:encoded><![CDATA[
-
 <p>刚才看到一款科大讯飞的耳机，开会可以实时翻译，我这边会听到中文，我用中文说，对面会听到英文，有没有老板使用这种科技，有的话麻烦说下使用体验如何，谢谢</p>
 ]]></content:encoded>
-<pubDate>2024-03-07T15:38:41Z</pubDate>
 <pubDate>2024-03-07T15:50:08Z</pubDate>
 </item>
 <item>
@@ -67,9 +350,7 @@
 <guid>https://www.v2ex.com/t/1021632</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-07T15:26:23Z</pubDate>
 <pubDate>2024-03-07T15:23:23Z</pubDate>
 </item>
 <item>
@@ -77,10 +358,8 @@
 <link>https://www.v2ex.com/t/1021631</link>
 <guid>https://www.v2ex.com/t/1021631</guid>
 <content:encoded><![CDATA[
-
 最近刷到消息说 pypi 有问题会盗数据？有无知道的说一下
 ]]></content:encoded>
-<pubDate>2024-03-07T15:21:26Z</pubDate>
 <pubDate>2024-03-07T15:18:26Z</pubDate>
 </item>
 <item>
@@ -88,10 +367,8 @@
 <link>https://www.v2ex.com/t/1021630</link>
 <guid>https://www.v2ex.com/t/1021630</guid>
 <content:encoded><![CDATA[
-
 最近收到的 offer 里有一家公司是按照上海最低标准（ 7310 ）缴纳社保，hr 说我每个月到手会变多，我理解社保按最低标准交是不是意味着养老保险、医保、税额等都是按照 7310 的标准进行？<br /><br />整体来看是影响了各类保险的缴纳金额，但实际上每个月到手的钱也确实会更多些，这样一增一减看似没亏，但其实最后吃亏的还是打工人吧？
 ]]></content:encoded>
-<pubDate>2024-03-07T15:20:32Z</pubDate>
 <pubDate>2024-03-07T15:26:28Z</pubDate>
 </item>
 <item>
@@ -99,7 +376,6 @@
 <link>https://www.v2ex.com/t/1021628</link>
 <guid>https://www.v2ex.com/t/1021628</guid>
 <content:encoded><![CDATA[
-
 <p>你可以在任意地方去运行你的 node, github 的 codespace, 腾讯云的实验室. 不过不建议消耗别人的资源. </p>
 <p>可以在自己的电脑, 手机上运行</p>
 <h2>分布式生成钱包</h2>
@@ -198,7 +474,6 @@
 </ul>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/LTe7DVL.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-07T15:04:09Z</pubDate>
 <pubDate>2024-03-07T15:03:09Z</pubDate>
 </item>
 <item>
@@ -206,10 +481,8 @@
 <link>https://www.v2ex.com/t/1021626</link>
 <guid>https://www.v2ex.com/t/1021626</guid>
 <content:encoded><![CDATA[
-
 运营商为联通，想把副卡转换为主卡，主卡转为副卡，这样可以吗
 ]]></content:encoded>
-<pubDate>2024-03-07T15:01:46Z</pubDate>
 <pubDate>2024-03-07T15:06:55Z</pubDate>
 </item>
 <item>
@@ -217,10 +490,8 @@
 <link>https://www.v2ex.com/t/1021625</link>
 <guid>https://www.v2ex.com/t/1021625</guid>
 <content:encoded><![CDATA[
-
 <p>我有一台旧笔记本，和一个安卓系统的电视，两个在同一局域网里。有没有什么方案，用旧笔记本作为服务器，储存电影电视剧等节目，然后用电视访问笔记本来播放电影？</p>
 ]]></content:encoded>
-<pubDate>2024-03-07T15:00:16Z</pubDate>
 <pubDate>2024-03-07T15:14:02Z</pubDate>
 </item>
 <item>
@@ -228,13 +499,11 @@
 <link>https://www.v2ex.com/t/1021624</link>
 <guid>https://www.v2ex.com/t/1021624</guid>
 <content:encoded><![CDATA[
-
 <p>之前买了一个精臣的打印机，发现只能使用他们家自己的打印纸，而其他家的却不能使用。
 仔细观察后发现他们的家的标签纸上都有一个感应线圈，应该是通过 nfc 处理的，还有计数功能。
 这个打印机有没有其他办法，让他可以使用其他平替纸。有重谢
 vx:ejEwMTAzNTY1NDM=</p>
 ]]></content:encoded>
-<pubDate>2024-03-07T14:42:19Z</pubDate>
 <pubDate>2024-03-07T15:22:41Z</pubDate>
 </item>
 <item>
@@ -242,11 +511,9 @@ vx:ejEwMTAzNTY1NDM=</p>
 <link>https://www.v2ex.com/t/1021623</link>
 <guid>https://www.v2ex.com/t/1021623</guid>
 <content:encoded><![CDATA[
-
 <p>java 如何抓取浏览器 F12 中 Network 界面所有信息的 API
 想抓里面的内容手动能扒出来但用 java 真不知道怎么弄</p>
 ]]></content:encoded>
-<pubDate>2024-03-07T14:40:01Z</pubDate>
 <pubDate>2024-03-07T14:52:08Z</pubDate>
 </item>
 <item>
@@ -254,10 +521,8 @@ vx:ejEwMTAzNTY1NDM=</p>
 <link>https://www.v2ex.com/t/1021622</link>
 <guid>https://www.v2ex.com/t/1021622</guid>
 <content:encoded><![CDATA[
-
 如题，想去北方玩，但是不知道去哪里。<br />个人觉得最好是物价消费低一点，然后靠海的城市。<br />难道说，大连？
 ]]></content:encoded>
-<pubDate>2024-03-07T14:31:54Z</pubDate>
 <pubDate>2024-03-07T15:42:19Z</pubDate>
 </item>
 <item>
@@ -265,7 +530,6 @@ vx:ejEwMTAzNTY1NDM=</p>
 <link>https://www.v2ex.com/t/1020300</link>
 <guid>https://www.v2ex.com/t/1020300</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/367qU6cg.png" /></p>
 <p>刚开始整，架构还不是很完善，欢迎讨论～～</p>
 <ul>
@@ -273,7 +537,6 @@ vx:ejEwMTAzNTY1NDM=</p>
 <li><a href="https://uvcanvas.com/" rel="nofollow">uvcanvas.com</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-03-03T21:25:18Z</pubDate>
 <pubDate>2024-03-07T16:24:02Z</pubDate>
 </item>
 <item>
@@ -281,7 +544,6 @@ vx:ejEwMTAzNTY1NDM=</p>
 <link>https://www.v2ex.com/t/1020397</link>
 <guid>https://www.v2ex.com/t/1020397</guid>
 <content:encoded><![CDATA[
-
 <blockquote>
 <p>写了个推文系统,希望大家提点意见</p>
 </blockquote>
@@ -301,10 +563,8 @@ vx:ejEwMTAzNTY1NDM=</p>
 <h2>地址</h2>
 <p><a href="https://chat.anchongai.com/" rel="nofollow">https://chat.anchongai.com/</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-04T03:48:11Z</pubDate>
 <pubDate>2024-03-04T14:26:59Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 针对开发者用代币空投骗取私钥背后有哪些骚操作？</title>
 <link>https://www.v2ex.com/t/1021621</link>
@@ -17262,206 +17522,6 @@ https://imgur.com/a/aDOJXEa
 4 、厚脸皮找附近电车车主，蹭个电。</p>
 ]]></content:encoded>
 <pubDate>2024-03-04T06:42:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有哪个网站可以查询一部剧当前在国外哪个流媒体播出？？</title>
-<link>https://www.v2ex.com/t/1020426</link>
-<guid>https://www.v2ex.com/t/1020426</guid>
-<content:encoded><![CDATA[
-<p>比如哈利波特，奈飞只有日本和英国有版权，其他区都下架了，  哥谭也是，，奈飞以前有，现在也没了，
-有没有什么网站可以查询下这部剧在哪个流媒体，或者奈飞哪个区现在可以看。</p>
-<p>另外怎么知道奈飞是不是解锁了？能看绝命毒师这个方法好像过时了吧，我可以看毒师，但是里面大部分也是自制剧，也不知道是解锁了还是没解锁，查了下，也没什么具体方法</p>
-]]></content:encoded>
-<pubDate>2024-03-04T05:51:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 手绘地图，并在里面设置线路导航，这类 H5 页面实现的思路是什么？</title>
-<link>https://www.v2ex.com/t/1020425</link>
-<guid>https://www.v2ex.com/t/1020425</guid>
-<content:encoded><![CDATA[
-1.先找人手绘好作为地图<br />2.通过 Canvas+js 制作导航线路<br />这样去实现的吗？
-]]></content:encoded>
-<pubDate>2024-02-25T05:37:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 线下全日制零基础英语培训班哪个好？</title>
-<link>https://www.v2ex.com/t/1020424</link>
-<guid>https://www.v2ex.com/t/1020424</guid>
-<content:encoded><![CDATA[
-打算系统的学习一下英语，英语底子很差（可以说零基础）。有推荐的培训班吗？最好是线下全日制的。<br /><br />目前我在上海，全天都可以去学习，当然学费便宜点最好。
-]]></content:encoded>
-<pubDate>2024-03-04T06:25:25Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] S5 续航一天不稳</title>
-<link>https://www.v2ex.com/t/1020423</link>
-<guid>https://www.v2ex.com/t/1020423</guid>
-<content:encoded><![CDATA[
-S5 电池效能 82%，系统 9.X ，AOD 关，噪音开，后台刷新开，eSIM 关，飞行模式开但保留蓝牙。电池晚上 20 点充满，平均一小时掉 4-5%电力，睡前 88%，早 7 点起来 76%，现在下午一点多 43%，目测感觉一天也 HOLD 不住。<br /><br />求懂的老哥来看看是否正常，之前那块电池效能 93%的 S3 也是这样用，系统 8.X ，下班时还有 66%电池，能做到 1.5 天充，极限两天（日常使用，电池 20%）。
-]]></content:encoded>
-<pubDate>2024-03-04T06:58:38Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 域名好价格,阿里云的</title>
-<link>https://www.v2ex.com/t/1020422</link>
-<guid>https://www.v2ex.com/t/1020422</guid>
-<content:encoded><![CDATA[
-<p>如题,数字+.xyz 的 10 年 68 可以买到,刚需的可以去看看
-我是生日日期+.xyz 买了 10 年的,用来 nas ddns 解析</p>
-<p>我是 7 位数字然后后面是.xyz 的域名</p>
-]]></content:encoded>
-<pubDate>2024-03-04T06:26:59Z</pubDate>
-</item>
-<item>
-<title>[Apple] 16 寸 M1 PRO 32G 1T 电池 99%</title>
-<link>https://www.v2ex.com/t/1020420</link>
-<guid>https://www.v2ex.com/t/1020420</guid>
-<content:encoded><![CDATA[
-<p>各位 V 友们，麻烦帮忙问下，16 寸 M1 PRO 32G 1T 电池健康 99 ，购于苹果官网，准备当二手出了，care 到今年的 12 月份，现在行情价多少可以顺利出呀？或者真心有意的也可以联系。</p>
-]]></content:encoded>
-<pubDate>2024-03-04T05:37:48Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何让 Rime 的 [小鹤双拼] 更好用？</title>
-<link>https://www.v2ex.com/t/1020419</link>
-<guid>https://www.v2ex.com/t/1020419</guid>
-<content:encoded><![CDATA[
-<p>目前 Rime 用的是雾凇配置，小鹤输入法，缺点就是很多时候无法使用<strong>超级简拼</strong>功能，请问大家有什么方法或者配置可以让 rime 支持双拼的<strong>超级简拼</strong>呢？</p>
-<p>希望能让双拼的容错率也能提高一点，不知道大家有没有什么好的方案。</p>
-]]></content:encoded>
-<pubDate>2024-03-04T05:17:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大哥们，索尼的 XR-65X91L 电视怎么样？</title>
-<link>https://www.v2ex.com/t/1020418</link>
-<guid>https://www.v2ex.com/t/1020418</guid>
-<content:encoded><![CDATA[
-平时看的不多，打算后面接 switch 玩游戏啥的，然后可能买个电视盒子看看剧。同时也看了 TCL 的 Q10G Pro ，参数啥的都挺好，但是一直担心国产电视软件这块出幺蛾子。大家有啥推荐的吗？ 9000 以下的都可。
-]]></content:encoded>
-<pubDate>2024-03-04T06:00:34Z</pubDate>
-</item>
-<item>
-<title>[程序员] 「送码」chatgpt 国内免翻版本，不是 api 套壳！</title>
-<link>https://www.v2ex.com/t/1020417</link>
-<guid>https://www.v2ex.com/t/1020417</guid>
-<content:encoded><![CDATA[
-<p>国内免翻墙可以直接使用 chatgpt plus 全部功能</p>
-<p>完全 1:1 官网，不是使用 api 的套皮站</p>
-<p>你可以理解为，我们内置了一个梯子来使用 chatgpt</p>
-<p>当然还是有使用限制，每三小时 40 次</p>
-<p>30 一个月，质保一个月可用时间</p>
-<p>1700 人售后群，售后有保障！</p>
-<p>免费试用码（三天）：</p>
-<p>pMwddB</p>
-<p>AGdL8b</p>
-<p>pvJsHK</p>
-<p>buRXoB</p>
-<p>GNTZPM</p>
-<p>Z8NwFm</p>
-<p>8zrScx</p>
-<p>Usynwl</p>
-<p>aNEQGy</p>
-<p>6Sc3NC</p>
-<p>使用地址：<a href="https://www.sbai.plus/list" rel="nofollow">sbai.plus</a></p>
-]]></content:encoded>
-<pubDate>2024-03-04T02:01:16Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 分享下深圳的失业金和求职补助金领取</title>
-<link>https://www.v2ex.com/t/1020416</link>
-<guid>https://www.v2ex.com/t/1020416</guid>
-<content:encoded><![CDATA[
-<p>去年十月份，正式从前司离职，因为短时间不考虑重新回归固定工位，所以申请了失业金。<br />
-下图是可领取月份，以及每月领取金额。<br />
-申请方式也很简单，直接通过支付宝，社保-失业栏申请即可。<br />
-前提是，需要是非主动离职才可以。而且好像还需要公司人事，在社保系统上，把状态改成“非自愿离职”才行。一开始我也不行，最后是给人事领导打电话，让她帮我修改后，才正常申请。<br />
-之前缴纳社保的年限越长，那能领取的时间就越长，最长是累计 24 个月，我目前能领取 11 个月。<br />
-如果也有 V 友跟我一样，也暂时不打算回归工位，可以考虑领一下这一笔钱，毕竟也是一项收入。<br />
-说是一笔，其实是两笔，以深圳为准哈。<br />
-第一笔是失业金，深圳是 2124 元/每月，领取期数看个人缴费长短。<br />
-第二笔是求职补助金，深圳是领 6 个月，354 元/每月。<br />
-每个月会自动打到你的银行卡里，唯一需要做的，就是每个月到微信粤省事上签到，确认自己当前的状态。<br />
-还有一点比较优秀，不知道其他城市有没有。就是领取失业金期间，失业局会代交医保，这点很棒，至少失业期间不用担心医保断保问题。<br />
-下面的图，就是以上提到的内容。<br />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KDth9L2.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-03-03T13:01:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] syncthing 有能力支持在 2 个不同地理位置的私有 IP 之间同步数据么？</title>
-<link>https://www.v2ex.com/t/1020415</link>
-<guid>https://www.v2ex.com/t/1020415</guid>
-<content:encoded><![CDATA[
-<p>假设一下场景，两台不同的电脑，分别北京和上海的 2 个局域网内，没有公网 IP 。有没有办法用 syncthing 实现这两台电脑相互同步某个指定的文件夹。需要借助第三方服务来实现么？</p>
-]]></content:encoded>
-<pubDate>2024-03-04T03:01:32Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 日本 it 现场案件急招！大家有考虑转职的可以看看，待遇可</title>
-<link>https://www.v2ex.com/t/1020414</link>
-<guid>https://www.v2ex.com/t/1020414</guid>
-<content:encoded><![CDATA[
-日本 IT 案件现场信息：<br /><br />1.4 月 RPA 案件<br />UiPathの開発経験 2 年以上<br />または<br />PowerAutomateの開発経験<br />BP/個人大歓迎！！！<br /> <br /> <br /> <br />2.３月 OR 3 月中旬稼働～<br />4 年 3ヶ月　日本語１級　英語：可能<br />Java 、Html 、Javascript 、VB 、C 、VUE.JS 、Oracle 、SQL 、Shell 、Python 、Springboot<br />基本設計〜テスト<br /> <br /> <br /> <br />3.半在宅案件<br />案件名：旅行系 Webシステム開発<br />必要スキル：<br />C#.Net Framework 経験 <br />Java (Spring Framework) / JSP 経験<br />6 年以上経験<br /><br /><br /><br />4.4 月案件<br />長期 1 年ほど、140-180 、渋谷常駐<br />・設計～開発～本番稼働<br />・<a href="http://VB.net/ASP.netによる開発経験があること" rel="nofollow noopener" target="_blank">VB.net/ASP.netによる開発経験があること</a><br />・要件を伝えればSQLを書けること。<br />・設計/テスト仕様書を書けること。<br /><br />有相关技术方向经验大佬考虑转职的话，可以投递简历至 base64 码：<br />YmVpYmVpNjc4MjAyM0AxNjMuY29t<br />具体岗位详细待遇信息，投递简历咨询哈~~！<br /> <br /><br /><br />下面是网站媒体的一些关于我们株式会社 GSD 的介绍，大家可以自行查看哈<br /><a href="http://www.worldtechnewss.com/info/2024/article954.html" rel="nofollow noopener" target="_blank">http://www.worldtechnewss.com/info/2024/article954.html</a><br /><a href="https://www.sohu.com/a/761163252_121398522" rel="nofollow noopener" target="_blank">https://www.sohu.com/a/761163252_121398522</a><br /><br />公司官网： <a href="https://www.g-s-d.co.jp/" rel="nofollow noopener" target="_blank">https://www.g-s-d.co.jp/</a><br />会社地址：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801 号室<br /><br /><br />GSD 日本总社持续招聘技术者，日语 n2 以上可沟通交流，无论你是哪一种技术方向的大咖我们都需要哈<br />薪资待遇：300w-1000w 日元/年<br />仕事内容：<br />JAVA 、<a href="http://VB.Net" rel="nofollow noopener" target="_blank">VB.Net</a> 、C#、VC ／ C++、PL/SQLなど言語での設計、製造及びテスト作業<br />※ 未経験者の方もご相談ください<br />資格：ソフトウェア開発経験者<br />職種：PM 、PL 、SE 、PG<br />勤務時間：9:00~18:00 ※勤務地により変動あり<br />休暇：有給休暇<br />健康保险、厚生年金、雇佣保险等各种保险社会福利完备；<br />福利待遇：：全额交通费报销+加班费+每年至少涨薪一次+保险+社员旅行+高度人才加分（最高可加 20 分）+中国传统节假日礼品<br /><br /><br />GSD 大连支社营业担当及对日招聘岗位也正在招，随时可以约面试哈<br />IT 营业担当需求：<br />1 、日语口语流利<br />2 、有营业认知或者经验<br />3 、IT/互联网行业销售经验 or 猎头经验<br />4 、或者有猎头客户资源，可以做人才介绍担当<br /><br />对日招聘 HR 担当需求：<br />1 、统招本科以上学历，人力资源相关专业优先、持有人力资源相关证书优先(学历非硬性要求) ;<br />2 、招聘经验/猎头经验（ IT 方向）；<br />3 、优秀的沟通表达能力，具备一定的抗压能力，主观能动性学习能力强；<br />4 、日语二级以上或有在日本的生活经验者优先<br />5 、乐观开朗，有上进心<br /><br />工作地点：辽宁省大连市沙河口区深蓝国际大厦 1604<br />工作时间：8:30-17:30 ，周末双休<br />待遇福利：五险一金，法定节假日正常休息，有年假，节日礼品，团建等~氛围嘎嘎滴！<br /><br />大家可以投递简历至 base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t<br />（我随时在线！！具体详细信息大家可以投递咨询哈）
-]]></content:encoded>
-<pubDate>2024-03-04T04:54:47Z</pubDate>
-</item>
-<item>
-<title>在线接私活，前端 ，欢迎老板咨询 +v Y2x5ODY2</title>
-<link>https://www.v2ex.com/t/1020421</link>
-<guid>https://www.v2ex.com/t/1020421</guid>
-<content:encoded><![CDATA[
-<p>9 年经验，有大厂经历，
-项目经验包含 3D 、lowCode 、 管理页面 、编辑器 等</p>
-]]></content:encoded>
-<pubDate>2024-03-04T01:24:47Z</pubDate>
-</item>
-<item>
-<title>[Kubernetes] （K8s 教程系列）新增文章： K8s 实战指导</title>
-<link>https://www.v2ex.com/t/1020413</link>
-<guid>https://www.v2ex.com/t/1020413</guid>
-<content:encoded><![CDATA[
-<ul>
-<li><a href="https://github.com/chaseSpace/k8s-tutorial-cn/blob/main/doc_k8s_actions_guide.md" rel="nofollow">K8s 实战指导</a></li>
-</ul>
-<p>部分大纲截图</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/utuoj0U.png" /></p>
-<p>从年前到年后，花费 1 个月时间，这篇新的文章终于接近完稿。文章 [ K8s 实战指导] 属于 K8s 教程系列的进阶教程，
-参考官网/《 K8s 实战》/个人经验进行了详细的总结，亮点主要是简练有序且全面的大纲以及深入浅出的内容。本篇文章的 90%内容已基本完成，
-均由本人一字一句提交（详见 commit-history ），现归纳到开源的 <a href="https://github.com/chaseSpace/k8s-tutorial-cn" rel="nofollow">K8s 教程项目</a> 中对外发布，
-欢迎大家相互传阅，且希望得到各位的反馈！</p>
-<blockquote>
-<p>其中部分内容可能会后续进行纠正或完善，欢迎 PR!</p>
-</blockquote>
-<ul>
-<li><a href="https://www.v2ex.com/t/998891#reply56" rel="nofollow">往期主题</a></li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-03-04T04:49:06Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 淘宝这种 sdwan 监控组网的硬件谁买过有什么有缺点嘛</title>
-<link>https://www.v2ex.com/t/1020412</link>
-<guid>https://www.v2ex.com/t/1020412</guid>
-<content:encoded><![CDATA[
-<p><img alt="2rtVZ1w9ezsmIUM.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/04/2rtVZ1w9ezsmIUM.png" /></p>
-<h1>这个东西谁买过有什么优缺点吗</h1>
-<ul>
-<li>异地组网</li>
-<li>不同地区的监控汇聚</li>
-<li>长时间使用怎么样，稳定吗</li>
-<li>组网成本怎么样</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-03-04T04:43:37Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Java 後端工程師 Location : Japan</title>
-<link>https://www.v2ex.com/t/1020410</link>
-<guid>https://www.v2ex.com/t/1020410</guid>
-<content:encoded><![CDATA[
-Who We Are ❓ ❓ 🔔 We're a vibrant and ambitious company driven by the electrifying synergy of gaming, blockchain, and cryptocurrency. We eat, sleep, and breathe pixels and private keys, and our hearts beat to the rhythm of both joystick jiggles and blockchain bounces.<br /><br />🔔 We're not just playing games, we're making them, and in the process, we're redefining what it means to have fun in the digital era. our playground is as vast as our ambitions, stretching from the bright lights of the USA to the historic landscapes of Europe, from our home turf in Japan to the bustling cities of Southeast Asia, and beyond.<br /><br />🔔 Our workspace is a sandbox designed to spark your creativity and fuel your personal growth. Our mantra? Flexibility, adaptability, and collaboration. In essence, it's a way of life. It's about embracing challenges, celebrating wins, and reimagining what's possible in the world of gaming. We’re on an extraordinary journey, and we're looking for extraordinary people to join us. 🗣 Are you ready to Advance Beyond Ambition? Game on! 🗣<br /><br />Position : Java 後端工程師 Location : Japan<br /><br />职位描述: -连接内外平台，整合相关功能 -负责系统设计和功能模块设计,编程和重写 -带领 1-2 个成员完成开发任务 -找到并发现问题，提高功能相应速度 -设计和实施支持的服务和 API -成为确保我们的代码可扩展、可维护和可靠的一部分 -构建用于在生产环境中监控、跟踪和调试我们的服务的解决方案 -在实验系统上快速迭代以解决实际用户问题 -与其他团队密切合作，帮助我们为客户提供解决方案<br /><br />任职要求： 有 5 年以上经验。计算机科学或 IT 相关专业的文凭 极其熟悉 git 、java 、spring cloud 、MySQL 、Redis 、Kafka 、MongoDB 熟练使用 mysql ，理解索引原理，能对 sql 进行性能优化 能够设计幂等性接口 解分布式事务 熟练运用多线程 灵活运用设计模式<br /><br />双休＋法定假期 ,早九晚六或早 10 晚七 ,底薪＋奖金＋年终 -搬迁员工可提供当地工作签证  支持外宿 *搬迁补贴 -工作签证还没下来之前 远程办公 WFH<br /><br />Why Join Us ⁉️<br />●We offer a competitive salary, commensurate with qualifications and experience. ●With our passion in gaming, we continue to grow and offering tremendous career opportunities! ●We are an international company made up of people from various backgrounds and nationalities! ●We are a super-fast growing company in a competitive and ever-changing industry. ●And above all, we are passionate about what we are building altogether! ●We are aiming to spread to more than 30 countries this year!<br /><br />🎬 Recruitment Process: You will be contacted by our team within 72 hours of your application. Our recruitment process takes a maximum of 7 days from the first interview and you will be notified in case of success or failure.<br /><br />📫 Please send your resume to drop me a message for more information or add Telegram: <a href="https://t.me/SamHanHR" rel="nofollow noopener" target="_blank">https://t.me/SamHanHR</a> Thank you! 😃
-]]></content:encoded>
-<pubDate>2024-03-04T04:37:14Z</pubDate>
 </item>
 </channel>
 </rss>
