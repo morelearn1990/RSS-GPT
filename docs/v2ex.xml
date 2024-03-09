@@ -5,14 +5,256 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享创造] 一个基于 chrome devtools 的 web 远程调试工具</title>
+<link>https://www.v2ex.com/t/1022204</link>
+<guid>https://www.v2ex.com/t/1022204</guid>
+<content:encoded><![CDATA[
+
+<h2>1. 前言</h2>
+<p>关于 web 远程调试，最近看到货拉拉的前端团队在这个领域上持续发力，开源了 PageSpy 项目，同时也发表了文章阐述了远程调试的使用场景，解决了很多痛点问题。</p>
+<p>那这里我将介绍另外一种 web 远程调试的实现方案：<strong>devtools-remote-debugger</strong></p>
+<p>项目地址：<a href="https://github.com/Nice-PLQ/devtools-remote-debugger" rel="nofollow">https://github.com/Nice-PLQ/devtools-remote-debugger</a></p>
+<h4>先来看下远程调试的效果</h4>
+<p>为了方便演示，用单独窗口来模拟，动态图片比较大，可能需要点加载时间</p>
+<p><img alt="237612275-93c5cbb4-c13d-4f93-866c-9b97ffc327e9.gif" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ef92f1a2726b43cf8d7268697f2ab1fd%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h2>2. 介绍</h2>
+<p>Chrome Devtools 是前端几乎每天都需要用到的开发调试工具，其功能强大，易用，使用场景多种多样，包括但不限于 node 、小程序开发等。devtools 本身是开源的前端项目，很容易构建并集成，并与 <a href="https://chromedevtools.github.io/devtools-protocol/" rel="nofollow">Chrome DevTools Protocol</a>(<code>简称 CDP</code>)协议进行对接。然后再通过 Javascript 按 CDP 的规范实现其协议，就可以实现远程调试 Web 的能力。</p>
+<p>简单来说，实现远程调试需要具备三个条件：</p>
+<ol>
+<li>通过原生 Javascript 实现<code>CDP</code>的协议规范，构建出 sdk.js(文件名称任意)，并在被调试页面中加载该 js</li>
+<li>构建出 Chrome Devtools 前端产物，并部署为<code>web</code>页面</li>
+<li>实现<code>websocket</code>协议转发</li>
+</ol>
+<p>Chrome Devtools 与目标页面之间的协议交互是用 <code>websocket</code> 来通信的。通过实现一个 <code>websocket</code> 转发的中间服务层，其作用是将 devtools 的协议消息转发给目标页面处理，或将目标页面的协议消息转发给 devtools 处理。大概的示意图如下</p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5bc90254e1df4215a4e30370c6bfda7f%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h2>如何使用远程调试</h2>
+<ol>
+<li>根据<a href="https://github.com/Nice-PLQ/devtools-remote-debugger#how-to-use" rel="nofollow">项目 README 说明</a>构建出<code>sdk.js</code>代码，该 SDK 是<code>CDP</code>的协议实现。然后在需要调试的 Web 项目 HTML 中加载该文件</li>
+<li><code>npm run start</code>部署远程调试后端 Node 服务</li>
+<li>建立连接后，在调试管理端打开 Chrome Devtools 开发者工具来调试目标页面</li>
+</ol>
+<p>目前来说，已实现的功能如下，基本上能够覆盖常用的调试能力，同时也扩展了调试协议，实现了页面实时预览能力。</p>
+<h3>1 、调试管理端</h3>
+<ul>
+<li>展示当前可调试的页面信息</li>
+</ul>
+<p><img alt="iShot_2023-07-19_10.15.16.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d8ee3e1b527545668e8f166e52fb680b%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>2 、Element</h3>
+<ul>
+<li>HTML 实时查看、属性编辑</li>
+<li>Style 、Computed 样式预览</li>
+<li>hover 元素高亮</li>
+<li>元素审查</li>
+<li>Screencast</li>
+</ul>
+<p><img alt="element.gif" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/56bd37e7d73f43dc88af3b8b840d96be%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<p><img alt="screencast.gif" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5a90aaf92e034ef79255476550d7ec49%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>3 、Console</h3>
+<ul>
+<li>JS 代码执行</li>
+<li>JS 运行时错误堆栈预览</li>
+<li>DOM 元素片段</li>
+<li>查看 console.log/warn 调用堆栈</li>
+</ul>
+<p><img alt="console.gif" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7bb8c62fa5e54f55a49d1b773e9f7ce1%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>4 、Source</h3>
+<ul>
+<li>JS 运行时错误代码文件定位及索引</li>
+<li>查看 HTML 、JS 、CSS 源文件代码</li>
+<li>源代码格式化预览</li>
+</ul>
+<p><img alt="source.gif" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7f7b26fe72cc4e54b09d2e163149c198%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>5 、Network</h3>
+<ul>
+<li>异步请求抓包（ Fetch 、XHR ）</li>
+<li>HTML 、JS 、CSS 、图片等静态资源请求抓包</li>
+</ul>
+<p><img alt="network.gif" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e4973ace6b274cffa15d8907b615c860%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>6 、Application</h3>
+<ul>
+<li>Local Storage</li>
+<li>Session Storage</li>
+<li>Cookies</li>
+</ul>
+<p><img alt="application.gif" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/057efba11f1a4604b2ae1a06e9130e3d%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<h3>7 、ScreenPreview （扩展协议）</h3>
+<ul>
+<li>页面实时预览</li>
+</ul>
+<p><img alt="screen_preview.gif" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/27829d94e5fb448d9891de1968ae63fb%7Etplv-k3u1fbpfcp-watermark.image" /></p>
+<p>更多信息请参阅项目说明，<a href="https://github.com/Nice-PLQ/devtools-remote-debugger" rel="nofollow">https://github.com/Nice-PLQ/devtools-remote-debugger</a></p>
+]]></content:encoded>
+<pubDate>2024-03-09T18:11:52Z</pubDate>
+<pubDate>2024-03-09T18:08:52Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] Go1.22： fastrand 变成 slowrand 了</title>
+<link>https://www.v2ex.com/t/1022203</link>
+<guid>https://www.v2ex.com/t/1022203</guid>
+<content:encoded><![CDATA[
+
+<p>今天在写 <a href="https://nickxu.me/post/kitex-loadbalance-weighted-balancer" rel="nofollow">Kitex 框架关于负载均衡算法的源码解析</a>，在跑 Benchmark 的时候突然发现我之前贡献的一个负载均衡算法性能有很大的倒退，折腾了好久都没明白，甚至把我当时本地的几个 commit 都签出测试还是一样</p>
+<p>排查来排查去，感觉可能是依赖的 fastrand 有问题，框架里依赖的是字节的 fastrand</p>
+<pre><code class="language-golang">import "github.com/bytedance/gopkg/lang/fastrand"
+</code></pre>
+<p>但是我过去一看，这个 fastrand 已经两年没动过了，但是这个 fastrand 又依赖 <code>runtimex</code> 包里的 <code>Fastrand()</code>，这个包更是三年没动过了（</p>
+<p>我就去看这个 <code>runtimex</code> 是什么东西</p>
+<pre><code class="language-golang">package runtimex
+
+import (
+	_ "unsafe" // for linkname
+)
+
+//go:linkname Fastrand runtime.fastrand
+func Fastrand() uint32
+</code></pre>
+<p>啊，原来是直接搬来的 <code>runtime</code> 里的 <code>fastrand</code> ，我一想，难道是 Go 的版本问题吗？</p>
+<p>于是我写了个 Benchmark ，再把 Go 从 1.22 调到 1.21 ，卧槽，的确是这个原因</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/n1BV8Ke.png" /> </p>
+<p>于是我在 Kitex 里也改成了 1.21 ，的确和当时一模一样了</p>
+<p>我去 issue 和 PR 里找相关的内容，但是没找到，但这个 fastrand 肯定很多人都在用吧，怎么我成了第一个发现的了</p>
+<p>于是我自己交了一个 PR <a href="https://github.com/bytedance/gopkg/pull/206" rel="nofollow">bytedance/gopkg#206</a> ，但这个仓库好像已经不怎么维护了，一堆 issue 和 PR 挂着（）</p>
+<p>原因就是 1.22 的更新导致的，找到了一篇文章 <a href="https://zhuanlan.zhihu.com/p/673906980" rel="nofollow">https://zhuanlan.zhihu.com/p/673906980</a></p>
+]]></content:encoded>
+<pubDate>2024-03-09T17:41:49Z</pubDate>
+<pubDate>2024-03-09T17:38:49Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] CentOS7 如何设置 DHCPv6 客户端的 DUID 类型为 Link-Layer？</title>
+<link>https://www.v2ex.com/t/1022202</link>
+<guid>https://www.v2ex.com/t/1022202</guid>
+<content:encoded><![CDATA[
+
+<p>想用 CentOS 做个软路由，结果接到光猫上之后一直获取不到 PD 前缀，OP 则正常。<br />
+我的 ISP 限制了必须使用 DUID-LL 的方式请求，对两个系统抓 DHCPv6 包做分析之后发现 CentOS 的 DUID-Type 是 LLT ，而 OP 是 LL  </p>
+<p>dhclient 有一个参数-D 根据说明设置为 LL 就可以使用 DUID-LL 的方式了，但我直接运行 dhclient -6 -D LL eth0 抓包发现仍在使用 DUID-LLT 。<br />
+请问 CentOS 大神如何修改 centos 的 DHCPv6 客户端的请求方式？</p>
+]]></content:encoded>
+<pubDate>2024-03-09T17:31:14Z</pubDate>
+<pubDate>2024-03-09T17:29:14Z</pubDate>
+</item>
+<item>
+<title>[Apple] 关于国区 iCloud 照片的问题</title>
+<link>https://www.v2ex.com/t/1022201</link>
+<guid>https://www.v2ex.com/t/1022201</guid>
+<content:encoded><![CDATA[
+
+国区 iCloud 照片链接没法使用，提示「准备共享出错，请稍后再试」<br />23 年年初就这样了（有可能可以追溯到更早以前），找身边朋友尝试，同样没法用。<br /><br /><a href="https://www.v2ex.com/i/6Tq8oHL8.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 6Tq8oHL8.jpeg"><img class="embedded_image" src="https://i.v2ex.co/6Tq8oHL8.jpeg" /></a><br /><br />不知道 V 友们有没有能正常使用的？<br />还是说国区 ban 了这个功能？（为什么）
+]]></content:encoded>
+<pubDate>2024-03-09T17:23:01Z</pubDate>
+<pubDate>2024-03-09T17:21:01Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2024 年 3 月，有没有百元安卓机（Android 机）最适合当备用机？</title>
+<link>https://www.v2ex.com/t/1022200</link>
+<guid>https://www.v2ex.com/t/1022200</guid>
+<content:encoded><![CDATA[
+
+<p>預算 650 以內，如果品質極好可以考慮 700 ，二手沒問題</p>
+<p>必要項：</p>
+<ul>
+<li>可以刷原生/類原生 Android 14</li>
+<li>螢幕正常或僅有小瑕疵</li>
+<li>中國電信可使用</li>
+<li>相機起碼可以掃碼</li>
+</ul>
+<p>可選項：</p>
+<ul>
+<li>有快速充電（ 15 瓦以上）</li>
+<li>續航好些</li>
+<li>DRM L1</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-03-09T17:00:28Z</pubDate>
+<pubDate>2024-03-09T18:05:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 中国电信澳门蓝卡无信号</title>
+<link>https://www.v2ex.com/t/1022199</link>
+<guid>https://www.v2ex.com/t/1022199</guid>
+<content:encoded><![CDATA[
+
+<p>是 sim 卡坏了吗？换了几个手机试都是无信号，短信和流量都用不了，手机能识别出这张卡是 CTMO ，但是始终显示无信号。除了跑澳门换卡以外，还有什么方法能尝试拯救一下吗</p>
+]]></content:encoded>
+<pubDate>2024-03-09T16:49:40Z</pubDate>
+<pubDate>2024-03-09T16:55:38Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 提高自身的技术护城河</title>
+<link>https://www.v2ex.com/t/1022198</link>
+<guid>https://www.v2ex.com/t/1022198</guid>
+<content:encoded><![CDATA[
+
+<p>年后简历投了一段时间了，上周把 APP 里的期望薪资下调到下限 30k 才陆续有一些面试（在此之前根本约不到面试），工作日安排起来基本是一到两天排一家面试，但是有面试的都是那些岗位薪资范围里上限是 30k 的的岗位。</p>
+<p>薪资高的岗位，投递的人很多，招聘方可以很轻松地把门槛设置成 211 及以上或者有大厂背景。</p>
+<p>离家近且薪资稍微可以接受的（就是 1~4 公里范围内可以直接骑电瓶车上班的那种，薪资 25k 的），感觉又嫌弃我非计算机相关专业，面试机会也拿不到。</p>
+<p>怎么样才能让自己有比较高的技术护城河呢？我的意思是一来不容易被旧公司裁，二来很容易找到新公司。</p>
+<p>什么全栈，或者说熟悉源码、八股文啥的，都不会让人感觉安全。我觉得开发走到有架构思维/大局观判断就走到头了。比如说张三没看过 babel 源码，但是知道 babel 用了其他库可以将 JS 代码生成对应的抽象语法树，然后当他想做条件编译的时候，知道可以用这个库来帮忙做判断（或者不知道然后强写正则判断），我感觉已经够可以了。再比如说，李四知道 google chrome 官方出了个 npm 包叫 web-vitals ，可以用于检测页面性能数据，那为啥还要知道浏览器的 performance.timing 和那个啥 getEntries 这种 API ，然后一堆属性减来减去自己算呢，调用一个 7 层高阶函数比调用一个 8 层高阶函数显得更底层有优越性吗？再再比如想开发一个开发环境下使用的构建系统，不喜欢硬盘里出现临时生成的文件，然后因为用过 webpack 类的，知道这是可以实现的，然后看了个屁的源码（看了 webpack-dev-server 项目的 package.json ）知道有个叫 memfs 的包可以在内存里模拟文件系统，那不就可以完事告急了吗，然后面试你问我看过源码没我和你说我看了个 package.json ？再再再比如，没弄过 JS 和 wasm 的交互那就不会了吗，那不就是几个 api 的事情吗。还有面试问 webpack loader 或者 plugin 怎么写的，或者 vite 的什么钩子的，感觉好捉急啊，这些 api 、钩子有什么好问的，你只要知道主流的构建工具肯定你想要的时间点的钩子都会给你的，你只要需要的时候翻文档对一下哪个钩子适合塞入你的脚本逻辑就好了，你的主要时间不是找钩子，是在钩子里写你的脚本啊亲（大部分都是读下内容然后改改内容）。突然想起来刚转行的时候碰到过问 jQuery 上用什么 api 去挂自定义函数的，或者后面类似的 vue 上怎么挂的。会抄就很强了，就像学生时代抄数学题答案交差，带着脑子抄就好了。又不是所有人都喜欢去大厂当螺丝钉的。</p>
+<p>感觉建筑专业的、擅长 webgl 的程序员应该在建筑细分行业里会符合我说的这种情况。</p>
+<p>那药学专业的程序员，去做生物分析是不是一个合适的路子，有过来人可以说说吗，最好是做生信这块的。</p>
+<p>我自己调研了下，家边上有不少这方面的工作岗位。有些薪资低的接受本科学历，除了个别经理岗位会需要博士学历外，主体目标人群的学历是硕士，感觉入行门槛没有特别高（对于有经验的员工，学历和专业限制比较松）。而且根据我自己调研的情况，生信似乎不太依赖硬件实验设备，所以感觉挺适合自学转进去的。计算机+非计算机双背景的感觉入行后的门槛高度会让人感觉有比较大的安全感。</p>
+<p>帖子不是按顺序写的，最长的那段是最后写的，写得我有点愤青了。轻喷。</p>
+]]></content:encoded>
+<pubDate>2024-03-09T16:43:35Z</pubDate>
+<pubDate>2024-03-09T17:07:54Z</pubDate>
+</item>
+<item>
+<title>[Apple] 买的二手 Macbook 查询 GSX 购买日期和激活时间相差一年是翻新机吗？</title>
+<link>https://www.v2ex.com/t/1022197</link>
+<guid>https://www.v2ex.com/t/1022197</guid>
+<content:encoded><![CDATA[
+
+在闲鱼买了一个 MacBook Pro M1MAX 64+8T 。<br /><br />怕买到假货特意在买之前打电话问了一下客服，报了序列号，内存和硬盘容量对的上，而且也有 applecare+。<br /><br />但是我用微信上的 gsx 查询信息，发现购买日期和激活日期差了一年，其他的信息都正常。<br /><br />这是有什么问题吗？我需要怎么验机？或者说这个微信查的 GSX 可能也不准？<br /><br /><a href="https://imgur.com/a/7aSOgF1" rel="nofollow noopener" target="_blank">https://imgur.com/a/7aSOgF1</a><br /><br />各位大佬帮忙看看。
+]]></content:encoded>
+<pubDate>2024-03-09T16:38:11Z</pubDate>
+<pubDate>2024-03-09T17:49:35Z</pubDate>
+</item>
+<item>
+<title>[TypeScript] vscode 纯 js 项目有类型推断和成员变量提示，但是如果 ts 混用的话， js 导入就全变成 any 了，请问有办法解决吗</title>
+<link>https://www.v2ex.com/t/1022195</link>
+<guid>https://www.v2ex.com/t/1022195</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-03-09T16:28:10Z</pubDate>
+<pubDate>2024-03-09T00:28:10Z</pubDate>
+</item>
+<item>
+<title>开源一个无人自助酒店用户端 app</title>
+<link>https://www.v2ex.com/t/1020957</link>
+<guid>https://www.v2ex.com/t/1020957</guid>
+<content:encoded><![CDATA[
+
+<h1>无人自助酒店用户端 app</h1>
+<h2>项目简介</h2>
+<p>本项目是一个无人自助酒店用户端 app(小程序)，用户可以通过 app 预定酒店，配合酒店一体机实现无人办理入住，一键开门，退房、续房等操作。特别适合中小酒店以及公寓酒店。</p>
+<h2>项目说明</h2>
+<p>完整的项目由四部分组成，分别是用户端 app(小程序)，酒店管理商家端 app(小程序)，后台管理系统(网页)，酒店一体机系统。
+功能：</p>
+<ul>
+<li>用户端 app(小程序)：用户可以通过 app 预定酒店房间，入住酒店房间，办理入住，一键开门，退房，房间打扫，退房提醒等操作。</li>
+<li>酒店管理商家端 app(小程序)：酒店管理人员可以通过 app 管理酒店房态，查看订单，修改订单信息，退房，退押金，房价修改，一键开门，收益走势与结算等操作。</li>
+<li>后台管理系统(网页)：对用户、酒店、订单、门锁、公安系统模块管理等。</li>
+<li>酒店一体机系统：酒店一体机系统是一个硬件设备，可以用于办理入住，退房，续房， 一键开门等操作。
+本项目开源的是用户端 app(小程序)的部分。其他部分涉及隐私过多暂无法开源，如对项目感兴趣或者想完整体验请私聊我🛰️：EnigmaGuest,备注来来源 V2EX 。</li>
+</ul>
+<h2>项目技术栈</h2>
+<p>使用 uniapp cli 方式进行开发，vue2 版本，uviewui 组件库。</p>
+<h2>部分截图</h2>
+<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/03/06/041788e537b0f52ca81a9759d49fa840.png" /></p>
+]]></content:encoded>
+<pubDate>2024-03-06T01:23:41Z</pubDate>
+<pubDate>2024-03-08T02:22:25Z</pubDate>
+</item>
+
+<item>
 <title>[汽车] 请问 2024 款奥迪 A4 星夜版现在能入手吗？</title>
 <link>https://www.v2ex.com/t/1022194</link>
 <guid>https://www.v2ex.com/t/1022194</guid>
 <content:encoded><![CDATA[
-
 <p>双方家里长辈都希望买一台油车，但是个人希望买一台电车，例如新款的极氪 001 ，在省会城市可能会节约一大笔开支，但是由于资金都是长辈提供，所有拿不定主意，希望 V 友能提供下思路，是让我去说服长辈，还是买一辆油车？还有星夜版贷款多少钱落地比较合适呢？</p>
 ]]></content:encoded>
-<pubDate>2024-03-09T15:54:23Z</pubDate>
 <pubDate>2024-03-09T15:57:42Z</pubDate>
 </item>
 <item>
@@ -20,10 +262,8 @@
 <link>https://www.v2ex.com/t/1022193</link>
 <guid>https://www.v2ex.com/t/1022193</guid>
 <content:encoded><![CDATA[
-
 链接： <a href="https://neitui.italent.cn/37wan/sharejobs/detail?shareId=cec698fc-a8bb-46c2-8cac-f807b1b0a2fa&amp;language=zh_CN" rel="nofollow noopener" target="_blank">https://neitui.italent.cn/37wan/sharejobs/detail?shareId=cec698fc-a8bb-46c2-8cac-f807b1b0a2fa&amp;language=zh_CN</a><br /><br />工作职责<br /><br />1 、负责公司平台产品，小程序产品功能的后端开发及日常维护工作，撰写开发文档；<br />2 、根据需求独立完成系统设计、编码以及 codereview ；<br />3 、与团队成员合作，设计应用架构，确保系统的可扩展性、安全性和稳定性；<br />4 、参与完善平台安全体系，保证平台平稳运行及性能扩展。<br /><br />任职资格<br /><br />1 、计算机相关专业本科及以上学历，3 年或以上的开发经验；<br />2 、熟练掌握 Go 语言，有至少 2 年以上的 Go 语言项目经验；<br />3 、熟悉 mysql 索引；熟悉 memcached 、redis 等 nosql 产品；<br />4 、熟悉 svn 、gitlab 代码管理；<br />5 、了解 linux 常用操作命令，了解 nginx 基本配置；<br />6 、有对新技术不断探索和研究的精神，工作有激情；<br />7 、有良好的团队合作能力、沟通能力、学习能力和自我管理能力；<br />8 、熟悉腾讯云，阿里云云产品使用，包括但不限于云服务器、云数据库、云存储、云网络等。<br /><br />❤️公司福利❤️：<br /><br />1 、免费早餐➕餐补➕免费健身➕节日礼盒&amp;下午茶<br /><br />2 、五险一金，并额外购买商业保险<br /><br />3 、住房免息借款 20-50W<br /><br />4 、周年纪念➕生日礼物➕结婚贺礼➕生育贺礼<br /><br />5 、入职&amp;年度体检➕爱心基金➕心理关爱计划<br /><br />6 、每年 5-15 天年假，6 天带薪病假➕生理假➕青年节➕儿童节等特色福利假<br /><br />7 、每年 2 次调薪和晋升机会，一般是 4 月和 10 月<br /><br />8 、团建有意思~大大小小团建真的多<br /><br />9 、年会 100%中奖，还有超爱的好声音、辩论赛、家庭日<br /><br />10 、领导基本都是 90 后，团队年轻有活力<br /><br />11 、十几个员工俱乐部，业余生活超丰富
 ]]></content:encoded>
-<pubDate>2024-03-09T15:50:23Z</pubDate>
 <pubDate>2024-03-09T15:48:23Z</pubDate>
 </item>
 <item>
@@ -31,10 +271,8 @@
 <link>https://www.v2ex.com/t/1022192</link>
 <guid>https://www.v2ex.com/t/1022192</guid>
 <content:encoded><![CDATA[
-
 转自隔壁<br /><br />YD/T 3328-2023 《公众固定宽带接入业务上下行速率配置要求》标准解读 <a href="https://www.ccsa.org.cn/detail/?id=54372" rel="nofollow noopener" target="_blank">https://www.ccsa.org.cn/detail/?id=54372</a><br />主要内容如下<br /><a href="https://i.imgur.com/yu1yXcf.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/yu1yXcf.png" /></a><br /><br /><a href="https://std.samr.gov.cn/hb/search/stdHBDetailed?id=108B29E37A6CB367E06397BE0A0AAFC2" rel="nofollow noopener" target="_blank">https://std.samr.gov.cn/hb/search/stdHBDetailed?id=108B29E37A6CB367E06397BE0A0AAFC2</a><br />发布于 2023-12-20 ，实施于 2024-04-01
 ]]></content:encoded>
-<pubDate>2024-03-09T15:48:41Z</pubDate>
 <pubDate>2024-03-09T15:57:44Z</pubDate>
 </item>
 <item>
@@ -42,10 +280,8 @@
 <link>https://www.v2ex.com/t/1022191</link>
 <guid>https://www.v2ex.com/t/1022191</guid>
 <content:encoded><![CDATA[
-
 RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍然不支持，有点落后了。不得不考虑 Spring JPA 。<br /><br />但我对 Spring JPA 的印象还停留在把 SQL 写在方法名中。那如果需求一多，可能方法就暴增。<br /><br />我还是期待能有类似于 mybatis plus 那样接收 QuerryWrapper 参数，然后 QueryWrapper 的参数构造的时候就像在写 SQL 语句，mybatis plus 根据这个参数拼出 SQL 的 Java 数据层库。<br /><br />Spring JPA 能做吗？不能的话有支持了 spring boot 3 的能做到的库吗？<br /><br />谢谢！
 ]]></content:encoded>
-<pubDate>2024-03-09T15:48:31Z</pubDate>
 <pubDate>2024-03-09T15:46:31Z</pubDate>
 </item>
 <item>
@@ -53,7 +289,6 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022190</link>
 <guid>https://www.v2ex.com/t/1022190</guid>
 <content:encoded><![CDATA[
-
 <p>在淘宝上买了一台 pixel 4a 5G</p>
 <p>现状：</p>
 <ul>
@@ -71,7 +306,6 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <li>还有救？</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-03-09T15:48:28Z</pubDate>
 <pubDate>2024-03-09T16:06:52Z</pubDate>
 </item>
 <item>
@@ -79,10 +313,8 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022189</link>
 <guid>https://www.v2ex.com/t/1022189</guid>
 <content:encoded><![CDATA[
-
 我觉得喝纯牛奶这种天然的比较好<br />爽歪歪虽然貌似对身体无害，但是比起天然的牛奶，也更容易上瘾，担心经常喝，喝多了不好。我妈拿出爽歪歪配料表，跟我说这个对身体有多好多好<br />而且最近对哇哈哈的操作我是很反感的，老一辈的容易被洗脑
 ]]></content:encoded>
-<pubDate>2024-03-09T15:43:49Z</pubDate>
 <pubDate>2024-03-09T16:20:57Z</pubDate>
 </item>
 <item>
@@ -90,13 +322,11 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022188</link>
 <guid>https://www.v2ex.com/t/1022188</guid>
 <content:encoded><![CDATA[
-
 <p>无意间刷到这个仓库： <a href="https://github.com/practical-tutorials/project-based-learning" rel="nofollow">https://github.com/practical-tutorials/project-based-learning</a></p>
 <p>上面的课程真的好多好全啊</p>
 <p>然后推荐给我身边想学习编程的童鞋，其中有个朋友和我说这个看的不够直观，于是乎我在周末做了一个网站</p>
 <p>分享给各位 V 大佬： <a href="https://programmingtutorials.top" rel="nofollow">https://programmingtutorials.top</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-09T15:34:18Z</pubDate>
 <pubDate>2024-03-09T16:12:58Z</pubDate>
 </item>
 <item>
@@ -104,10 +334,8 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022187</link>
 <guid>https://www.v2ex.com/t/1022187</guid>
 <content:encoded><![CDATA[
-
 现在平时用云听 app 听央广台，所在位置的收音机收音效果比较差，大部分时间用 app 听广播了。<br /><br />不知道有没有广播爱好者，有无喜欢的音乐频道推荐？
 ]]></content:encoded>
-<pubDate>2024-03-09T15:29:32Z</pubDate>
 <pubDate>2024-03-09T15:29:32Z</pubDate>
 </item>
 <item>
@@ -115,10 +343,8 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022186</link>
 <guid>https://www.v2ex.com/t/1022186</guid>
 <content:encoded><![CDATA[
-
 本人于 3 月 4 号面试东莞顺丰某快递站点，然后 3 月 5 号开始上班，上班第一天早上 7 点 15 到达顺丰站点，刚到，也没干啥活，但同时还见到了另外 3 个刚来试岗的；不胜唏嘘，快递员岗位都这么抢手了（这个站点总共将近 50 号人）；过了没多久，主管召集大家开晨会了，主要是强调大家礼貌用语，即时收派之类的；然后我开始帮忙搬快递，分件，比较辛苦，有些大件我是真搞不动；就这样搞了一个小时，大家都开着三轮宝马出去派件去了，我和几个新来的，没事干，被唤去拖地，搞卫生，叠收纳袋；这两天，广东回南天，地面一直酷酷冒水，那个仓库组长还让拖地，我有点疑惑了🤔；但生为牛马，还是第一天上工的新🐂，努力干就完了，第一天就在持续不断的卸货，分件中度过了。<br />        第二天，浑身上下哪哪都痛，我不得不感叹，寄生的这幅肉体太孱弱了，四肢不勤，都快要退化成蹼了。。😓  但打工魂硬拉着我 6 点 40 起来，在清晨的冷风中往站点赶去，这两天广东又冷又热；难熬的天气；今天依旧是在搬货中度过，中午找了个木桶饭，点了个酸豆角肉沫，结果全是酸豆角，肉真的是肉眼可见的少得可怜；一点点可怜的肉沫丝夹杂在酸豆角之中，给了我亿点点黑店震惊；草草吃了饭，15 块，吃得无语；又买了两散装槟榔，4 块；一包烟加打火机，27 块；心痛，分哔没挣，半天就花了四五十；嗷呜！（用来代替一种植物）下午又是在卸车中度过；<br />        第三天，依旧是 7 点半之前到达站点，开始搬快递，分件；今天终于分到人带我了，主管让我跟一个别墅区； one hours later 。。坐上了三轮宝马，进入了工作区域，屁股还没坐热乎，带我的老哥，让我下去，让我自己在里面转悠熟悉区域，给我解释说，这个区域里面的房子，编号是不连贯的，且很跳，abcd 编号的房子东南西北都有，A1 在东边，A2 在北边，A5 可能在南边，反正主打一个随心而为；我一听，好家伙；既然给我赶下来了，那我就自己转吧；然后就自己在小区里面反反复复转悠；还导致一个保安问我干啥的，搞得我后面都尽量避着保安走，特喵像个做贼的。到晚上，步数已经破 3 万了；回去之后，躺床上，腿肚子直抽抽；不想动弹；<br />        第四天，才开始办入职手续，本来昨天打了电话，办的，结果那个人事说加我卫星联系，后面就没消息了，我今天又打电话催他，搞到中午才和那个哔玩意对接上；（这个人事，办事巨拖沓）然后发了个人资料给他，然后就再也没有然后了，这也占据了部分导致我不想干的原因；今天我特意骑着电驴跟着带我的人跑地图；因为他好像不想让我坐他的三轮宝马。前面坐了几次，都是屁股没坐热，就被他赶下来了；所以我也明白了，自己骑电驴跟他吧，顺便熟悉一下工作流程。打工的为难打工的，哈哈哈<br />        第五天（ 3 月 9 号），big ending ；今天稍微起晚了 5 分钟，6 点 40 的闹钟；洗漱来到楼下，天空飘着一点点鱼丝，骑着亲戚家的电驴往站点赶，顺便买了早餐，一个包子一个鸡蛋一杯豆浆；找了个美宜佳门口的一体桌椅，迅速解决掉早饭；在 7 点 27 到达站点，然后开始勤劳的一天，分件，把快递搬到三轮宝马边上，等我的老大哥用手机扫描，然后搬进宝马货仓，但鱼越下越大；此时主管在催促大家集合开晨会，晨会几乎是每天早上都有的东西；开会之前，要先整队，就像读书军训那样的，立正，向右看齐，向前看，稍息；这一套连招之后，开始讲事情了；先让大家关注顺丰抖音的账号，然后就是说周末业绩太差，让大家多多推广，拉新，每人都要拉，有指标要求，每天都要截图发群，我一听这个，瞬间汗流浃背了；太老火了😱；然后站我边上的老人，问我注册了没有，我还帮他完成了一个指标。。后面的内容我没太注意听了，老人给我拉进了几个群，说让我进群后，打个招呼，做一下自我介绍；我听完之后，窒息了；在十几分钟之后，主管也意识到耽误的时间有点久了，而且下着雨，有些人拿出去的快递被淋湿了；然后匆匆结束了晨会；我也继续去分件，搬快递；带我的老哥问我入职办好了没，我只能苦笑，说没信；昨天在电话里面他答应说给我办好，但后面又没下文了；在分完件后，我去找主管说了这个情况，然后他打了个电话，问什么情况，结果他们今天不上班，但那个人事又说今天给我办好。。然后带我的老哥说让我每隔十分钟就打一次电话，今天就在主管办公室呆着，那也别去了，哈哈哈；我一想，这特喵天天干活，又没钱，还下着雨，还干个 der 啊；干脆骑电驴回去了；回家躺着，玩着玩着手机睡着了，到中午一点多，被卫星消息惊醒，主管在群里召集大家回站点开例会；我一看，立马起来了，匆匆下楼骑了电驴就往站点去了，午饭也顾不上吃了，让亲戚给我留一点，等下我回来再吃；赶到站点，还好会议刚开始，开了没一会，主管就开始骂人了，说早上迟到的，派件电话不说礼貌用语的，拉新任务一个都没拉到的，会员推广也一个都没有，反正就是一通杀威棒；<br />然后说他自己也很不容易，1 月业绩太差，还被叫去东莞总部述职，做检讨；反正内容挺多了，但我在写这个文的时候，有些已经忘记了；只记得部分原话了：一三五晨会，二四六例会，这个星期我都尽量控制，不开例会，不占用大家太多时间，结果发现，不开不行了，情况都快烂了；站点业绩只要不是倒数，只要在中下游，我就能接受，可现在中下游也快保不住了，我要是被撸下去，那下一个来的主管肯定能干好，说上一个主管是个傻逼；毕竟现在是比较困难的阶段，好几个休假了，2 月又离职了一批，仓管有一半是新人，我也体谅大家，有些兄弟初九开始到现在还没休息过，我知道现在很难，派件的时候，这人退货了，收件的时候，收完，走了，那吊毛又下一个，但大家一定要把不耐烦的心思收起来，有些老人整天搁这怨天尤人的，我看哪些新来的就很好，别人下一个单，他开开心心的去了，下一个，收一个，下一个，收一个，没一点怨言，人家干得很起劲；我要是想让你离职，手段多得很，随随便便就可以用制度拿捏你；我就是在晨会的时候，在几十人面前，指着你鼻子骂，让你滚，我估计你立马转头就走了；我们这应该没有脸皮特别厚的，就算有一两个，那我想让你走人，办法也很多；<br />杀威棒打完之后，开始怀柔政策了；说我把你们当兄弟，你们别把我当沙笔；现在集团下派的各种任务都压在我这里，我还是给你们减半分派了的；要搞 36 大场景，连寺庙里面都要搞一码一寄，昨天我还开车到庙里去拜访那几个老和尚，庙里的东鹏都要 6 块钱一瓶，停车费收了我 5 块，来回十几公里，油费要花我十几块，结果啥也没办成，白瞎了几十；然后开始分派指标，新人今天每人两个指标，拉新之后，截图发群；我一听这话，瞬间就头疼了；主管说，先找自己的亲戚朋友注册；唉，到写文的时候，心情还是很沮丧，让我想起了某位企业家的一句话，把寒气传递到每一个人；寒，真的是太寒了，寒得我都要宫寒了，嗷呜！（用来代替一种植物）<br />开完这个会之后，我就决定不在这干了，就是白瞎了我这 5 天的苦力活；我还把我要负责的区域打印了一张地图出来，因为这个小区的编号很乱，而且有些房子编号地图上没采集，我还特意手工在地图上标注了编号，结果却用不上了；嗷呜！本来开会之前，我还在催购笔人事给我办入职的，现在我反而有那么一丝丝感谢他，然后我就拨了他的电话，第一遍，响到自动挂断都没接，然后等了几分钟，拨第二遍，依旧是这样，算了，我又不感谢他了，嗷呜！然后我就在会议室外面等主管和其他几个老人开完会，当面和他说明了一下情况，他问我为啥不干了，有什么难处？身为打工人的我，还撒了个谎，说我亲戚给我另外找了份工作，嗷呜！这谎说得我心烦意乱的，在撒谎的时候，连音调都小了许多，事后想想，有点气；卑微到了尘埃里；哈哈哈哈，又要重新开始找活了。<br />卑微打工人在线写日记；
 ]]></content:encoded>
-<pubDate>2024-03-09T15:27:58Z</pubDate>
 <pubDate>2024-03-09T16:18:59Z</pubDate>
 </item>
 <item>
@@ -126,10 +352,8 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022185</link>
 <guid>https://www.v2ex.com/t/1022185</guid>
 <content:encoded><![CDATA[
-
 <p>现在在用 <a href="https://librechat.ai/" rel="nofollow">https://librechat.ai/</a> ，架设好之后输入 API 就可以用，有一些和 ChatGPT 官方版一样的插件，但是结合 Google 等搜索插件，发现搜索响应速度相当慢， 还有什么类似的开源项目么，能使用 Google 和 bing 搜索引擎的，用户体验好一些的。</p>
 ]]></content:encoded>
-<pubDate>2024-03-09T15:04:43Z</pubDate>
 <pubDate>2024-03-09T15:04:43Z</pubDate>
 </item>
 <item>
@@ -137,7 +361,6 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022184</link>
 <guid>https://www.v2ex.com/t/1022184</guid>
 <content:encoded><![CDATA[
-
 <p>今天要给大家分享的一个独立开发案例是 Easlo ；</p>
 <p>它的官网是： <a href="https://www.easlo.co/" rel="nofollow">https://www.easlo.co/</a></p>
 <p><a href="https://link.easlo.co/" rel="nofollow">https://link.easlo.co/</a></p>
@@ -186,7 +409,6 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <p>独立开发前线持续分享 2024 搞钱攻略，独立开发 idea 。几杯咖啡的钱，帮你换终身高质量分享的独立开发社群。</p>
 <p>2024 ，一起搞钱搞钱搞钱～</p>
 ]]></content:encoded>
-<pubDate>2024-03-09T14:53:40Z</pubDate>
 <pubDate>2024-03-09T10:52:40Z</pubDate>
 </item>
 <item>
@@ -194,7 +416,6 @@ RT ，在考虑升级到使用 spring boot 3 ，但目前好像 mybatis plus 仍
 <link>https://www.v2ex.com/t/1022183</link>
 <guid>https://www.v2ex.com/t/1022183</guid>
 <content:encoded><![CDATA[
-
 <p>不知道能不能用移动硬盘？
 大概是以下需求
 双盘位即可，不是收藏癖 ，不存小姐姐，会存经典电影和课程。
@@ -205,7 +426,6 @@ vidhub 可以读取，手机之类的可以备份。
 高质量也可以，除了硬盘易坏，不知道一个 nas 本体可以用几年？
 大概就是这样了，求各路大佬给出意见和建议</p>
 ]]></content:encoded>
-<pubDate>2024-03-09T14:48:55Z</pubDate>
 <pubDate>2024-03-09T16:14:34Z</pubDate>
 </item>
 <item>
@@ -213,11 +433,9 @@ vidhub 可以读取，手机之类的可以备份。
 <link>https://www.v2ex.com/t/1022181</link>
 <guid>https://www.v2ex.com/t/1022181</guid>
 <content:encoded><![CDATA[
-
 <p>感觉项目经历很拉胯，工作以来，做的项目一直都谈不上难，实在想不出来能写的亮点了。</p>
 <p><a href="https://base-pic-static.oss-cn-beijing.aliyuncs.com/Java%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88-4%E5%B9%B4-%E8%84%B1%E6%95%8F.pdf" rel="nofollow">https://base-pic-static.oss-cn-beijing.aliyuncs.com/Java%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88-4%E5%B9%B4-%E8%84%B1%E6%95%8F.pdf</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-09T14:47:33Z</pubDate>
 <pubDate>2024-03-09T14:45:33Z</pubDate>
 </item>
 <item>
@@ -225,10 +443,8 @@ vidhub 可以读取，手机之类的可以备份。
 <link>https://www.v2ex.com/t/1022179</link>
 <guid>https://www.v2ex.com/t/1022179</guid>
 <content:encoded><![CDATA[
-
 看到不少朋友想试玩, 增加了新用户赠送 10 个积分, 欢迎试玩.<br /><a href="https://ai-emojis.sh" rel="nofollow noopener" target="_blank">https://ai-emojis.sh</a>
 ]]></content:encoded>
-<pubDate>2024-03-09T14:37:18Z</pubDate>
 <pubDate>2024-03-09T14:34:18Z</pubDate>
 </item>
 <item>
@@ -236,10 +452,8 @@ vidhub 可以读取，手机之类的可以备份。
 <link>https://www.v2ex.com/t/1022178</link>
 <guid>https://www.v2ex.com/t/1022178</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="截图" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/03/09/doMWJevD6Yw2N5C.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-09T14:35:41Z</pubDate>
 <pubDate>2024-03-09T14:35:41Z</pubDate>
 </item>
 <item>
@@ -247,13 +461,10 @@ vidhub 可以读取，手机之类的可以备份。
 <link>https://www.v2ex.com/t/1022177</link>
 <guid>https://www.v2ex.com/t/1022177</guid>
 <content:encoded><![CDATA[
-
 请问，有没有全平台的密码管理器推荐，最好能界面美观，操作逻辑简单，最好可以开源免费。如果没有，但是安全性有足够保证，也可以付费
 ]]></content:encoded>
-<pubDate>2024-03-09T14:21:04Z</pubDate>
 <pubDate>2024-03-09T16:14:31Z</pubDate>
 </item>
-
 <item>
 <title>[宽带症候群] 讲个笑话：福建联通，家里有多条其它运营商宽带，拒绝复机！</title>
 <link>https://www.v2ex.com/t/1022176</link>
@@ -15395,222 +15606,6 @@ Linode 96 GB	$576	$0.864	96 GB	20	1920 GB	 20 TB	    40/10 Gbps</p>
 </ol>
 ]]></content:encoded>
 <pubDate>2024-03-06T02:07:31Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 发 10 个 Linux .do 站的邀请，三天有效</title>
-<link>https://www.v2ex.com/t/1020970</link>
-<guid>https://www.v2ex.com/t/1020970</guid>
-<content:encoded><![CDATA[
-<a href="https://linux.do/invites/8TTw52MKgY" rel="nofollow noopener" target="_blank">https://linux.do/invites/8TTw52MKgY</a>
-]]></content:encoded>
-<pubDate>2024-03-06T02:21:20Z</pubDate>
-</item>
-<item>
-<title>[macOS] 我的废纸篓坏了</title>
-<link>https://www.v2ex.com/t/1020968</link>
-<guid>https://www.v2ex.com/t/1020968</guid>
-<content:encoded><![CDATA[
-不知道从哪次开始，删除废纸篓总会提示：<br /><br />现在不能打开“废纸篓”，因为它正用于其他用途，例如移动项目、拷贝项目或清倒废纸篓。请在当前任务完成后重试。
-]]></content:encoded>
-<pubDate>2024-03-06T02:13:23Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 一次 GO 项目重构的疑问</title>
-<link>https://www.v2ex.com/t/1020966</link>
-<guid>https://www.v2ex.com/t/1020966</guid>
-<content:encoded><![CDATA[
-<pre><code>type A struct {
-   a ComponentA
-   b ComponentB
-   d ComponentD
-}
-func NewA(a ComponentA, b ComponentB, d ComponentD) {}
-type B struct {
-   b ComponentB
-   c ComponentC
-   d ComponentD
-}
-func NewB(b ComponentB, c ComponentC, d ComponentD) {}
-
-
-// 大概有十几个这样的 struct
-....
-</code></pre>
-<p>这十几个 struct 都有一些共同的变量（当然也不是完全一模一样）。
-现在是每个结构体的 New 方法传的参数都不一样。当然这十几个 struct 其实做的功能比较相似（每个 struct  其实是 k8s 里面 crd 的 controller ），代码结构也有一定的相似性。</p>
-<p>现在重构后的代码</p>
-<pre><code>type Common struct {
-   a ComponentA
-   b ComponentB
-   c ComponentC
-   d ComponentD
-   // 一共大概 20 几个
-   ...
-}
-
-type A struct {
-    *Common
-}
-type B struct {
-    *Common
-}
-</code></pre>
-<p>这样重构后，每个结构体的 New 方法的参数就很简单，只要传一个 Common 就好了。
-但是，这样每个结构体其实引入了一些自己不需要的东西，我自己感觉不是特别好。</p>
-<p>各位大佬怎么看？</p>
-]]></content:encoded>
-<pubDate>2024-03-06T02:13:21Z</pubDate>
-</item>
-<item>
-<title>[上海] 青浦汇金路，现在租房多少钱</title>
-<link>https://www.v2ex.com/t/1020963</link>
-<guid>https://www.v2ex.com/t/1020963</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-03-06T01:54:30Z</pubDate>
-</item>
-<item>
-<title>[分享发现] Arc windows 测试版本邀请</title>
-<link>https://www.v2ex.com/t/1020962</link>
-<guid>https://www.v2ex.com/t/1020962</guid>
-<content:encoded><![CDATA[
-<p>感觉扩大测试规模了</p>
-<p>想试试的朋友留一个邮箱。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://obisidian-1254343683.cos.ap-chengdu.myqcloud.com/202403060934490.png" /></p>
-]]></content:encoded>
-<pubDate>2024-03-06T02:31:49Z</pubDate>
-</item>
-<item>
-<title>[Apple] Apple 停止在新加坡销售礼品卡</title>
-<link>https://www.v2ex.com/t/1020961</link>
-<guid>https://www.v2ex.com/t/1020961</guid>
-<content:encoded><![CDATA[
-一早起来收到苹果邮件，这可咋办？ infuse 的订阅还在新加坡区呢，而且是涨价前的订阅费用，现在转美区订阅的话亏大了。<br /><br />而且看第二自然段的意思，难道四月一号以后，连余额都不能用了？应该不会吧……<br /><br /><a href="https://www.v2ex.com/i/8t8d84RX.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 8t8d84RX.jpeg"><img class="embedded_image" src="https://i.v2ex.co/8t8d84RX.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-03-06T01:34:03Z</pubDate>
-</item>
-<item>
-<title>[Apple] Developer 欧盟区域更新日志</title>
-<link>https://www.v2ex.com/t/1020958</link>
-<guid>https://www.v2ex.com/t/1020958</guid>
-<content:encoded><![CDATA[
-以下更新内容仅限欧盟地区（ <a href="https://developer.apple.com/support/dma-and-apps-in-the-eu" rel="nofollow noopener" target="_blank">https://developer.apple.com/support/dma-and-apps-in-the-eu</a> ） ：<br /><br />·新增首次打开 Safari 时的“默认浏览器”选择界面；<br />·新增检测到的用户所在地区显示功能；<br />·新增允许 iOS 用户使用替代应用市场和支付的选项；<br />·新增从 App Store 下载应用时的提示；<br />·新增向第三方应用程序开放 NFC 权限，允许新的支付 App 上线；<br />·新增“免接触功能与 NFC”隐私设置选项；<br />·新增对从第三方软件商店上下载的恶意软件检测。<br /><br /><br />特色国区厕载应该快来了~
-]]></content:encoded>
-<pubDate>2023-12-12T21:23:45Z</pubDate>
-</item>
-<item>
-<title>[程序员] 开源一个无人自助酒店用户端 app</title>
-<link>https://www.v2ex.com/t/1020957</link>
-<guid>https://www.v2ex.com/t/1020957</guid>
-<content:encoded><![CDATA[
-<h1>无人自助酒店用户端 app</h1>
-<h2>项目简介</h2>
-<p>本项目是一个无人自助酒店用户端 app(小程序)，用户可以通过 app 预定酒店，配合酒店一体机实现无人办理入住，一键开门，退房、续房等操作。特别适合中小酒店以及公寓酒店。</p>
-<h2>项目说明</h2>
-<p>完整的项目由四部分组成，分别是用户端 app(小程序)，酒店管理商家端 app(小程序)，后台管理系统(网页)，酒店一体机系统。
-功能：</p>
-<ul>
-<li>用户端 app(小程序)：用户可以通过 app 预定酒店房间，入住酒店房间，办理入住，一键开门，退房，房间打扫，退房提醒等操作。</li>
-<li>酒店管理商家端 app(小程序)：酒店管理人员可以通过 app 管理酒店房态，查看订单，修改订单信息，退房，退押金，房价修改，一键开门，收益走势与结算等操作。</li>
-<li>后台管理系统(网页)：对用户、酒店、订单、门锁、公安系统模块管理等。</li>
-<li>酒店一体机系统：酒店一体机系统是一个硬件设备，可以用于办理入住，退房，续房， 一键开门等操作。
-本项目开源的是用户端 app(小程序)的部分。其他部分涉及隐私过多暂无法开源，如对项目感兴趣或者想完整体验请私聊我🛰️：EnigmaGuest,备注来来源 V2EX 。</li>
-</ul>
-<h2>项目技术栈</h2>
-<p>使用 uniapp cli 方式进行开发，vue2 版本，uviewui 组件库。</p>
-<h2>部分截图</h2>
-<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/03/06/041788e537b0f52ca81a9759d49fa840.png" /></p>
-]]></content:encoded>
-<pubDate>2024-03-06T01:17:41Z</pubDate>
-</item>
-<item>
-<title>[程序员] 类似于 Github copilot, 百度推出了 comate， 感兴趣的可以尝试下</title>
-<link>https://www.v2ex.com/t/1020955</link>
-<guid>https://www.v2ex.com/t/1020955</guid>
-<content:encoded><![CDATA[
-<p>百度 comate: <a href="https://comate.baidu.com/?inviteCode=7gxiljkg" rel="nofollow">https://comate.baidu.com/?inviteCode=7gxiljkg</a></p>
-]]></content:encoded>
-<pubDate>2024-03-06T02:20:27Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 使用飞书发现很多产品问题 为什么字节不把产品做好</title>
-<link>https://www.v2ex.com/t/1020954</link>
-<guid>https://www.v2ex.com/t/1020954</guid>
-<content:encoded><![CDATA[
-<p>1.企业认证提供因为安全原因无法通过认证。
-2.使用盖章授权又有很多信息要填写。
-3.企业邮箱域名认证做的好难用哈。
-4.。。。。。。</p>
-<p>好多</p>
-<p>字节的人可以联系我
-a2FpeGluMTEwQGdtYWlsLmNvbQ==</p>
-]]></content:encoded>
-<pubDate>2024-03-06T02:20:15Z</pubDate>
-</item>
-<item>
-<title>[Bitcoin] 比特币昨晚涨到 69000 后大跌是什么逻辑，为啥不能突破。</title>
-<link>https://www.v2ex.com/t/1020953</link>
-<guid>https://www.v2ex.com/t/1020953</guid>
-<content:encoded><![CDATA[
-导致我投资别的币亏了 20 个点。
-]]></content:encoded>
-<pubDate>2024-03-06T02:21:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求一款 iOS 上的支持脚本的抓包工具</title>
-<link>https://www.v2ex.com/t/1020952</link>
-<guid>https://www.v2ex.com/t/1020952</guid>
-<content:encoded><![CDATA[
-<p>因为用青龙跑狗东脚本，需要用到狗东的 key 。
-手动的方法是用 iOS 上的抓包工具抓包狗东 app 的请求，人工找到 key 之后，打开青龙把 key 更新进去。</p>
-<p>狗东现在封 key 很勤快，有时候一天封两次。
-如果有一个 ios 的抓包工具能实现：
-1.脚本分析请求内容获取 key （及格）
-2.脚本把 key 发送给青龙（满分）</p>
-<p>就好了。</p>
-<p>求助。
-如果有更好的方案也请赐教。</p>
-]]></content:encoded>
-<pubDate>2024-03-05T09:16:03Z</pubDate>
-</item>
-<item>
-<title>AI 工具集合，欢迎推荐你们的工具</title>
-<link>https://www.v2ex.com/t/1019770</link>
-<guid>https://www.v2ex.com/t/1019770</guid>
-<content:encoded><![CDATA[
-朋友们，我做了个 AI 工具站<br /><br />网址： https://www.aitool.bot/<br /><br />AI 工具导航站市面上很多，我这挺全的，有超过 20000+的 AI 工具，对人工智能工具和应用程序进行了分类，以方便能快速搜索。<br />每个工具都有详细深入的介绍，还有相关的视频演示。<br /><br />如果你想要把自己的 AI 工具收录的，也欢迎给我们发邮件。
-]]></content:encoded>
-<pubDate>2024-03-02T08:04:11Z</pubDate>
-</item>
-<item>
-<title>在线接单, 接私活, 人在北京，有需求可+v: Lm1993-Byron</title>
-<link>https://www.v2ex.com/t/1020967</link>
-<guid>https://www.v2ex.com/t/1020967</guid>
-<content:encoded><![CDATA[
-<p>本人时间充裕，承接项目: PC 管理后台,小程序,H5 等 个人技术栈: vue,react,taro 小程序等；</p>
-]]></content:encoded>
-<pubDate>2024-03-05T01:38:35Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 国际互联网昨晚地震了？</title>
-<link>https://www.v2ex.com/t/1020951</link>
-<guid>https://www.v2ex.com/t/1020951</guid>
-<content:encoded><![CDATA[
-<p>昨晚一堆网站出现了波动，我看电报上已经讨论开了但是没看见啥靠谱的分析</p>
-<p><a href="https://downdetector.com/" rel="nofollow">https://downdetector.com/</a>
-<a href="https://w.wiki/9NeL" rel="nofollow">https://w.wiki/9NeL</a></p>
-]]></content:encoded>
-<pubDate>2024-03-06T01:12:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 觉得大部分期刊和论文都是屎 是我的错觉吗</title>
-<link>https://www.v2ex.com/t/1020950</link>
-<guid>https://www.v2ex.com/t/1020950</guid>
-<content:encoded><![CDATA[
-最近有在省级及以上刊物发表论文的需求<br /><br />所以正在阅读期刊和文章 看看哪里适合投稿 顺便熟悉下论文的语言 结果发现哪怕是省级期刊 内容也是很空洞 严重注水 偶尔扫到一眼垃圾期刊的文章更是没法看  而这些狗屎论文的作者 有些出自名校 有些副教授 还有些有一堆头衔<br /><br />看完不禁为自己行业的前途担忧 世界果然是一个大草台班子
-]]></content:encoded>
-<pubDate>2024-03-06T01:10:21Z</pubDate>
 </item>
 </channel>
 </rss>
