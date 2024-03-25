@@ -5,11 +5,168 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[NAS] 白群换黑群要怎样操作？</title>
+<link>https://www.v2ex.com/t/1026984</link>
+<guid>https://www.v2ex.com/t/1026984</guid>
+<content:encoded><![CDATA[
+
+目前正在使用白群 920 ，dsm7.2<br />两块 HC320 都是 basic 分区<br />目前在 PVE 上打算安装 SA6400 黑群晖，这两个盘可以直接插上用吗
+]]></content:encoded>
+<pubDate>2024-03-25T20:18:11Z</pubDate>
+<pubDate>2024-03-25T20:16:11Z</pubDate>
+</item>
+<item>
+<title>[硬件] 买到两根奇怪的 DDR4 条子，大伙帮看看</title>
+<link>https://www.v2ex.com/t/1026983</link>
+<guid>https://www.v2ex.com/t/1026983</guid>
+<content:encoded><![CDATA[
+
+<p>德亚上的，商品链接： <a href="https://www.amazon.de/dp/B07YDR5MXK" rel="nofollow">https://www.amazon.de/dp/B07YDR5MXK</a>
+这似乎是德亚最便宜的 16G DDR4 2400 （声称）条子，因为我没在内存上翻过车，以前也搞过什么 AMD 专用条，还有些翻新的假条，觉得内存这东西不像闪存颗粒有写入寿命，也没有太多什么体质/性能的差别（规格相同，不超频的情况下），一般来说不容易出问题，所以觉得选个最便宜的也没啥，只要它规格没造假。</p>
+<p>到手了它标签上面写的确实是 2400 ，而且不管是商品介绍网页上还是包装上都写了 CL17</p>
+<p><img alt="img1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/oaDm7Rw.png" /></p>
+<p>但是，上机了以后看了下 SPD ，这居然是 2666 的条子？我这是赚了？我的机器最大支持 2400 ，所以没法测能不能稳上 2666 以及时序。</p>
+<p><img alt="img1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/c8OID9F.png" /></p>
+<p><img alt="img1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7q7Wx3f.png" /></p>
+<p>最关键的问题是，在我的机器上 2400 只能跑到 18-18-18-39 时序，我原来的 8G 2400 的条子是 17-17-17-39 ，手头上还有另一条 8G 2666 的，插在我最大 2400 的机器上运行在 2400 频率时同样是 17-17-17-39 ，不知道这个新条子的 18-18-18-39 时序性能差别大不，有多大影响？</p>
+<p><img alt="img1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/GWiqiEI.png" /></p>
+<p>稳定性方面，跑了下 Windows 内存测试能过，用了几天也没什么问题</p>
+<p>不知道这是不是翻车了，到底是赚了还是亏了</p>
+]]></content:encoded>
+<pubDate>2024-03-25T20:14:14Z</pubDate>
+<pubDate>2024-03-25T16:14:14Z</pubDate>
+</item>
+<item>
+<title>[前端开发] [typeorm][mysql]两张表,没有建立外键,怎么关联查询?</title>
+<link>https://www.v2ex.com/t/1026982</link>
+<guid>https://www.v2ex.com/t/1026982</guid>
+<content:encoded><![CDATA[
+
+<p>两个 entity: <code>user</code>, <code>user_profile</code></p>
+<pre><code class="language-ts">// base.ts
+import { CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+
+export abstract class BaseEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
+  updated_at: Date;
+}
+
+// user.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { BaseEntity } from './base';
+
+@Entity('user')
+export class User extends BaseEntity {
+  @Column()
+  first_name: string;
+
+  @Column()
+  last_name: string;
+
+  @Column()
+  age: number;
+}
+
+// user_profile.ts
+import { Column, Entity } from 'typeorm';
+import { BaseEntity } from './base';
+
+@Entity('user_profile')
+export class UserProfile extends BaseEntity {
+  @Column()
+  email: string;
+
+  @Column()
+  user_id: number;
+}
+</code></pre>
+<p>数据库数据有 <strong>user</strong></p>
+<pre><code>id	created_at	updated_at	first_name	last_name	age
+1	2024-03-26 02:08:26.106077	2024-03-26 02:08:26.106077	Timber	Saw	25
+2	2024-03-26 02:17:34.012850	2024-03-26 02:21:58.541499	aaa	a	11
+</code></pre>
+<p><strong>user_profile</strong></p>
+<pre><code>id	created_at	updated_at	email	user_id
+1	2024-03-26 02:08:26.124340	2024-03-26 02:08:26.124340	123@aaa.com	1
+2	2024-03-26 02:17:45.472608	2024-03-26 02:17:45.472608	bbb@bbb.com	2
+</code></pre>
+<p>index.ts 文件</p>
+<pre><code class="language-ts">import { AppDataSource } from './data-source';
+import { User } from './entity/user';
+import { UserProfile } from './entity/user_profile';
+
+AppDataSource.initialize()
+  .then(async () =&gt; {
+    const userRepo = AppDataSource.getRepository(User);
+    const data = await userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect(UserProfile, 'user_profile', 'user.id = user_profile.user_id')
+      .where('user.id = :userId', { userId: 2 })
+      .getOne();
+    console.log(`☁️🚀☁️ `, data);
+  })
+  .catch((error) =&gt; console.log(error));
+</code></pre>
+<p>打印结果为:</p>
+<pre><code>☁️🚀☁️  User {id: 2, created_at: Tue Mar 26 2024 02:17:34 GMT+0800 (中国标准时间), updated_at: Tue Mar 26 2024 02:21:58 GMT+0800 (中国标准时间), first_name: 'aaa', last_name: 'a', …}
+arg1: User {id: 2, created_at: Tue Mar 26 2024 02:17:34 GMT+0800 (中国标准时间), updated_at: Tue Mar 26 2024 02:21:58 GMT+0800 (中国标准时间), first_name: 'aaa', last_name: 'a', …}
+age: 11
+created_at: Tue Mar 26 2024 02:17:34 GMT+0800 (中国标准时间)
+first_name: 'aaa'
+id: 2
+last_name: 'a'
+updated_at: Tue Mar 26 2024 02:21:58 GMT+0800 (中国标准时间)
+[[Prototype]]: BaseEntity
+
+</code></pre>
+<p>发现,<code>user_profile</code> 中的数据没有在里面(如 email 等),请问是怎么回事?
+查看 typeorm 的 query 如下</p>
+<pre><code class="language-sql">QUERY : SELECT
+`user`.`id` AS `user_id`,
+`user`.`created_at` AS `user_created_at`,
+`user`.`updated_at` AS `user_updated_at`,
+`user`.`first_name` AS `user_first_name`,
+`user`.`last_name` AS `user_last_name`,
+`user`.`age` AS `user_age`,
+`user_profile`.`id` AS `user_profile_id`,
+`user_profile`.`created_at` AS `user_profile_created_at`,
+`user_profile`.`updated_at` AS `user_profile_updated_at`,
+`user_profile`.`email` AS `user_profile_email`,
+`user_profile`.`user_id` AS `user_profile_user_id`
+FROM
+	`user` `user`
+	LEFT JOIN `user_profile` `user_profile` ON `user`.`id` = `user_profile`.`user_id`
+WHERE
+	`user`.`id` = ? -- PARAMETERS: [2]
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-03-25T19:26:36Z</pubDate>
+<pubDate>2024-03-25T19:25:36Z</pubDate>
+</item>
+<item>
+<title>[问与答] 996.icu 是否还会继续续费？</title>
+<link>https://www.v2ex.com/t/1026981</link>
+<guid>https://www.v2ex.com/t/1026981</guid>
+<content:encoded><![CDATA[
+
+<p>针对最近的 icu 后缀的域名大幅涨价的情况，这个域名之后是否会被重定向或干脆就不做了</p>
+]]></content:encoded>
+<pubDate>2024-03-25T18:40:19Z</pubDate>
+<pubDate>2024-03-25T14:40:19Z</pubDate>
+</item>
+
+<item>
 <title>[职场话题] 拿到了 offer，国内的外企找了 Hireright 做背调</title>
 <link>https://www.v2ex.com/t/1026979</link>
 <guid>https://www.v2ex.com/t/1026979</guid>
 <content:encoded><![CDATA[
-
 <p>有几个问题需要大佬们出主意：</p>
 <p>背调公司要求提供劳动合同复印件，工资单，个税，在职证明，和其他证明就职证明</p>
 <ol>
@@ -23,7 +180,6 @@
 <p>当初给公司报的总包比实际多大概 5-10w ，然后 offer 在这之上谈判的。个人主要在薪资背调这块有比较大顾虑</p>
 <p>请求各位大佬们出主意和建议，先谢！</p>
 ]]></content:encoded>
-<pubDate>2024-03-25T17:08:58Z</pubDate>
 <pubDate>2024-03-25T17:36:42Z</pubDate>
 </item>
 <item>
@@ -31,14 +187,12 @@
 <link>https://www.v2ex.com/t/1026978</link>
 <guid>https://www.v2ex.com/t/1026978</guid>
 <content:encoded><![CDATA[
-
 <p>宣传片地址： <a href="http://m.weibo.cn/status/5015936447023946" rel="nofollow">http://m.weibo.cn/status/5015936447023946</a><br />
 预售链接： <a href="https://sspai.com/product/36" rel="nofollow">https://sspai.com/product/36</a><br />
 链接下面啥参数都没写，功能怎么实现的也没写，我看了两遍宣传片，和朋友讨论了一下，猜测是完全通过快捷指令实现的，而且作者也在微博下面回复里说了是蓝牙连接的。<br />
 我猜测是要额外安装一个软件，这个按钮走蓝牙通过软件调起快捷指令，视频里提到的所有功能都是通过快捷指令实现的，例如启动相机，拍照发 ins （视频里虽然是发 ins ，但是快捷指令里面还是有中文的），打开 ChatGPT 的语音功能，添加待办事项，查看日历。但是按钮只有三种操作：单击、双击和长按，这个操作太少了，如果想实现很多场景要么频繁更换快捷指令，要么自己写一个指令。但是至少能上 14 pro 和 14 promax 用户用上 action button ，也算聊胜于无吧。不过按照苹果的特性来回跳转是少不了的。<br />
 我不太能接受的是已经开始预售了还没有公布手机壳的材质和重量，从宣传片里看边框挺厚，后背也挺厚，还要在手机壳里加上电子元件，估计厚度和重量都不会小，而且看视频里好像材质一般，有点塑料的感觉。我对材质有点要求，169 这个价位说实话也不便宜，而且预计发货日期是 5 月初，时间有点尴尬，再过几个月 14 pro 用户可能都要换新机了。</p>
 ]]></content:encoded>
-<pubDate>2024-03-25T16:53:40Z</pubDate>
 <pubDate>2024-03-25T17:49:04Z</pubDate>
 </item>
 <item>
@@ -46,7 +200,6 @@
 <link>https://www.v2ex.com/t/1026976</link>
 <guid>https://www.v2ex.com/t/1026976</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，今天给大家分享一下鄙人的开源项目 LafTools ，它支持许多常见的代码转换、生成、编码等功能更，还提供夜间功能保护视力，代码已经完全开源了。</p>
 <p>你也许会留意到页面有 [文档]  [资源]  [ AI 实验室] 等功能，它们也都不会缺席， 都还在内部开发中....</p>
 <p>话不多说，以下是预览图和项目地址，欢迎前来试用，感激不尽:  </p>
@@ -64,17 +217,14 @@
 <p>关于移动端的话，在考虑弄个 React Native 专门客户端，也敬请期待啦</p>
 ]]></content:encoded>
 <pubDate>2024-03-25T16:49:57Z</pubDate>
-<pubDate>2024-03-25T16:49:57Z</pubDate>
 </item>
 <item>
 <title>[问与答] 家里新房装修请教一下各位</title>
 <link>https://www.v2ex.com/t/1026975</link>
 <guid>https://www.v2ex.com/t/1026975</guid>
 <content:encoded><![CDATA[
-
 家里户型图<br />楼上: <a href="https://s2.loli.net/2024/03/26/k3Xb7lY6xPmAZaV.jpg" rel="nofollow noopener" target="_blank">https://s2.loli.net/2024/03/26/k3Xb7lY6xPmAZaV.jpg</a><br />楼下: <a href="https://s2.loli.net/2024/03/26/yANO7n6319M5pYB.jpg" rel="nofollow noopener" target="_blank">https://s2.loli.net/2024/03/26/yANO7n6319M5pYB.jpg</a><br />1 、家里是 7 楼顶楼带露台和一个卧室，想着使用 unifi 路由器 ap 覆盖网络不知道怎么选择 ap 位置？能够覆盖效果最好在设备最少前提下。<br />2 、家里装修弱电网线都选择什么品牌的？家里不考虑屏蔽线了。就知道这个泛达这个牌子 305m 好像 1900 多是 cat6e 。家里需要 2.5G 网络，一般牌子的网线能不能跑满，我害怕网线不好再加上路线长跑不满。<br />3 、家里网络面包选择什么样的？厂家都标注跑满千兆，我也不会试错成本承担不起。一样 v 友推荐一下用过的。<br />4 、我家是 7 楼书房里面汇聚所有弱电，但是一楼车楼需要一根网线（能跑满 2.5G ）和一根光纤（车库有 2u 服务器跑应用）光纤选择单模的还是双模的？
 ]]></content:encoded>
-<pubDate>2024-03-25T16:47:54Z</pubDate>
 <pubDate>2024-03-25T16:45:54Z</pubDate>
 </item>
 <item>
@@ -82,14 +232,12 @@
 <link>https://www.v2ex.com/t/1026973</link>
 <guid>https://www.v2ex.com/t/1026973</guid>
 <content:encoded><![CDATA[
-
 <h1>网址： <a href="https://aibotpro.cn" rel="nofollow">https://aibotpro.cn</a></h1>
 <h1>开源地址： <a href="https://github.com/MayDay-wpf/AIBotPublic" rel="nofollow">https://github.com/MayDay-wpf/AIBotPublic</a></h1>
 <p>基本上能开发的功能都开发完了，插件，自定义模型，自定义 apikey 这些的，唯独缺少 workflow ，我看了市面上两款 workflow ，fastgpt 和 coze 这两个灵活性都不太高，只能说上手难度较低</p>
 <p>所以我一直在想要不要给 aibotpro 加上我理解的，面向程序员的 workflow ，学习成本高，最大化的灵活性和自由度，但是这个开发周期还是挺长的，而且现在制作思路也不是很清晰</p>
 <h2>综上所述，大家认为我应该继续攻克 workflow ，还是好好维护开源，毕竟现在的开源部署难度还是蛮高的，没做简易部署</h2>
 ]]></content:encoded>
-<pubDate>2024-03-25T16:36:37Z</pubDate>
 <pubDate>2024-03-25T16:33:37Z</pubDate>
 </item>
 <item>
@@ -97,10 +245,8 @@
 <link>https://www.v2ex.com/t/1026972</link>
 <guid>https://www.v2ex.com/t/1026972</guid>
 <content:encoded><![CDATA[
-
 <p>magnet:?xt=urn:btih:XGGXDBWSGYSL4C5UOQARFJBMJMUT6RZZ&amp;dn=%E6%AF%94%E4%BC%AF%20%E8%A5%BF%E5%9F%9F%E7%94%B7%E5%AD%A9&amp;xl=30450608255</p>
 ]]></content:encoded>
-<pubDate>2024-03-25T16:28:12Z</pubDate>
 <pubDate>2024-03-25T17:54:50Z</pubDate>
 </item>
 <item>
@@ -108,7 +254,6 @@
 <link>https://www.v2ex.com/t/1026974</link>
 <guid>https://www.v2ex.com/t/1026974</guid>
 <content:encoded><![CDATA[
-
 <p>提供服务：</p>
 <p>UI 设计 、静态样式前端（ h5+div+css3+js ）</p>
 <p>擅长：</p>
@@ -127,10 +272,8 @@
 <p><a href="https://payment.chainpaygo.com/" rel="nofollow">https://payment.chainpaygo.com/</a> 服务：UI 设计 +响应前端</p>
 <p><a href="https://transformer.knn3.xyz/homepage" rel="nofollow">https://transformer.knn3.xyz/homepage</a> 服务：UI 设计 +响应前端</p>
 ]]></content:encoded>
-<pubDate>2024-03-25T16:46:31Z</pubDate>
 <pubDate>2024-03-25T16:44:31Z</pubDate>
 </item>
-
 <item>
 <title>[PayPal] 创建了一个 paypal 交流群，有兴趣的可以加进来</title>
 <link>https://www.v2ex.com/t/1026971</link>
@@ -14105,122 +14248,6 @@ China, Shanghai	Tencent	24.2%	99	–	107.7	102.42	199.24	14.72	show</p>
 最近想买台台式机来玩玩，平常打打游戏(3A) <br /><br /> jd 看到这款 各位彦祖帮忙看看？<br /><br />主打一个听劝..(手动狗头)<br /><br /><br /><br />预算：5-7k<br /><br /><a href="https://item.jd.com/10088897340798.html" rel="nofollow noopener" target="_blank">https://item.jd.com/10088897340798.html</a><br /><br />配置如下：<br /><br /><br /><a href="https://i.imgur.com/XZJ6b9r.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XZJ6b9r.png" /></a>
 ]]></content:encoded>
 <pubDate>2024-03-21T07:17:48Z</pubDate>
-</item>
-<item>
-<title>[问与答] 哪个工具可以让视频人物说出自己指定的文本来着?</title>
-<link>https://www.v2ex.com/t/1025764</link>
-<guid>https://www.v2ex.com/t/1025764</guid>
-<content:encoded><![CDATA[
-就是上传一段原人物的视频,然后准备文本.让视频人物自然的说出来.<br />上次看到忘了,感谢
-]]></content:encoded>
-<pubDate>2024-03-21T07:17:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于 finalshell 能否使用 yubikey 登录</title>
-<link>https://www.v2ex.com/t/1025763</link>
-<guid>https://www.v2ex.com/t/1025763</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<blockquote>
-<blockquote>
-<p>关于 finalshell 能否使用 yubikey 登录
-辛辛苦苦给 yubikey 登录公钥搞出来了
-结果发现 finalshell 似乎使用不了
-请问各位大神，是否有解？</p>
-</blockquote>
-</blockquote>
-</blockquote>
-]]></content:encoded>
-<pubDate>2024-03-21T07:17:27Z</pubDate>
-</item>
-<item>
-<title>[Chrome] 操! 新 UI 真丑</title>
-<link>https://www.v2ex.com/t/1025762</link>
-<guid>https://www.v2ex.com/t/1025762</guid>
-<content:encoded><![CDATA[
-一打开给就我丑到了...<br /><a href="https://i.imgur.com/xyQqCRb.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xyQqCRb.png" /></a>
-]]></content:encoded>
-<pubDate>2024-03-21T08:16:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于继续北漂还是回西安的选择，我想咨询下大家的意见</title>
-<link>https://www.v2ex.com/t/1025761</link>
-<guid>https://www.v2ex.com/t/1025761</guid>
-<content:encoded><![CDATA[
-<h3>个人情况</h3>
-<p>陕西咸阳人，程序员，现在在一家中厂，97 年生人，工作第 4 个年头，单身，无房（现在想买，但是纠结在西安还是咸阳，咸阳便宜 一些，且亲戚基本上都在咸阳买的房子，西安的话，可能房贷压力会很大... 普通人，父母能力有限...）</p>
-<h3>关于为什么想回西安</h3>
-<p>我是 19 年末就来北京实习了，20 年正式上班，一直到现在，中间只休息过两个月，换过一次工作（因为起薪略低）。</p>
-<ol>
-<li>
-<p>在北京感觉还是朋友，同学基本上没有来北京的，感觉自己社交这块还是不足，尤其是年纪越大，27 快 28 了，周末的话，基本上出了去找几个熟人去吃饭，就只剩下晚上一个人去跑步了，而且我发现我认识的很多朋友都是这样，比较宅一些...</p>
-<p>我记得刚来北京的时候，每天都是下班后学习，周末开黑打游戏，丝毫不觉得有什么孤独感。</p>
-<p>现在基本上工作快四年，技术上差不多摆脱了萌新，没有刚开始那么慌了，游戏也基本上不咋玩了，但是周末也偶尔开黑，所以下班之后的生活比较孤独一些。</p>
-</li>
-<li>
-<p>父母年纪大了，虽然我不是独生子，但是爸妈很爱我，我也想周末回家走一走，多陪陪父母，有时候我午睡起来，会质疑这是我么，一个人在北京漂泊这么多年，钱其实也没赚很多，友谊、照顾、陪伴也同样失去了。</p>
-</li>
-<li>
-<p>前几天和父母打电话，虽然他们没有很催我婚姻这个事，但是我现在越来越觉得还是要对这个事上心一些，也理解了一些父母，谁不希望自己孩子幸福呢？我之前没怎么在意过这个事，现在随着每天几乎一成不变的通勤、工作，岁数变大，也该做些改变了。</p>
-<p>不是说在北京不能谈，我个人感觉两个人在同一个地方还是好一些吧。</p>
-</li>
-<li>
-<p>在北京的话，每天通勤几乎都是快三个小时，回去就八九点了，除了在地铁上看书打发时间，就没有别的事可做了，四年来每天都是如此，感觉完全没有生活感，和其他人合租，居住体验上其实也比较差强人意。</p>
-</li>
-<li>
-<p>不想去看房、找房、一个人搬家、遇见黑中介、一个人去医院这种了，好吧，我感觉我有点矫情，但是有时候确实感觉这种对生活体验感影响很大，我也奢求一些生活感的。</p>
-</li>
-</ol>
-<h3>为什么纠结在北京</h3>
-<ol>
-<li>来北京的时候想法很简单，机会多，薪资高一些，发展好，公积金拉满，自由等等。</li>
-<li>北京也可以租近一些的房子，多花点钱提升生活体验，也能遇到很有趣的人。</li>
-<li>年纪也不是很大？行情现在也不好，回去的话，有可能薪水会降低很多，五险一金会大打折扣。</li>
-</ol>
-<h3>选择</h3>
-<p>现在准备投简历了，我看了下之前在 v 站上其他小伙伴的帖子，总结了大概两个方向：</p>
-<ol>
-<li>西安、北京同时找工作，哪边的薪水合理，能带来这些总体的权衡就选择哪边。</li>
-<li>找对象的事情，要多主动，多社交，不要为了找对象而回家，不一定要找西安附近的对象，主要是看会不会遇见两情相悦的人。</li>
-</ol>
-<h3>个人偏向</h3>
-<p>我倾向于回西安，因为还是自我感觉这个城市比较没有温度和生活感。可能还是因为个人的社交能力有限，总融不进去吧。</p>
-<p>钱的话，我觉得我对生活的需求也不是非常高，买不了大的房子，或者感觉压力很大，可以先买个小的或者二手的， 再花时间在这里等到三十岁，拿着那些钱，我自我感觉这不是我想要的。</p>
-<p>可能就是觉得幸福感和体验感很重要，也不定要很多钱，够花点就好啦。</p>
-<p><strong>希望大家能给我一些建议或者传授一些经验，或者随便说什么都行，有不对的，或者见解狭隘的，请指正指正，谢谢大家！</strong></p>
-]]></content:encoded>
-<pubDate>2024-03-21T08:13:20Z</pubDate>
-</item>
-<item>
-<title>[程序员] 做了个文章封面生成工具（半成品），不知道这玩意受众有多大，有没有成产品带来收入的可能</title>
-<link>https://www.v2ex.com/t/1025759</link>
-<guid>https://www.v2ex.com/t/1025759</guid>
-<content:encoded><![CDATA[
-<p>做了个封面生成工具：<a href="https://picprose.pixpark.net/" rel="nofollow">https://picprose.pixpark.net/</a></p>
-<p>半成品，模板和字体什么的还不能使用，主要自己写博客或者微信公众号的时候生成封面使用，特点就是简单。</p>
-<p>仿照 <a href="https://coverview.vercel.app/editor" rel="nofollow">https://coverview.vercel.app/editor</a>  做的。
-不知道这玩意受众有多大，有没有成产品带来收入的可能</p>
-]]></content:encoded>
-<pubDate>2024-03-21T08:16:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问：在类似 leanpub 等需要美元支付的电子书平台上买书有什么渠道？</title>
-<link>https://www.v2ex.com/t/1025758</link>
-<guid>https://www.v2ex.com/t/1025758</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-03-21T07:14:33Z</pubDate>
-</item>
-<item>
-<title>[macOS] 用 PD 反向供电的扩展坞连接 macbook 和显示器，还需要接上 macbook 原装电源来保护电池么？</title>
-<link>https://www.v2ex.com/t/1025757</link>
-<guid>https://www.v2ex.com/t/1025757</guid>
-<content:encoded><![CDATA[
-<p>扩展坞是几百块钱的，质量不怎么样，macbook 休眠后会一直被唤醒并唤醒外接显示器。感觉好像一直在用 macbook 的电池，然后再充电进去。以至于我用完就拔，不敢插着过夜了。
-如果同时接上原装电源，会不会扩展坞就不会主动给电脑充电了？</p>
-]]></content:encoded>
-<pubDate>2024-03-21T08:17:08Z</pubDate>
 </item>
 </channel>
 </rss>
