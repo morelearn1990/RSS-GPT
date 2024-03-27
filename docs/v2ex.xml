@@ -5,14 +5,375 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Go 编程语言] Go: string 和 rune</title>
+<link>https://www.v2ex.com/t/1027560</link>
+<guid>https://www.v2ex.com/t/1027560</guid>
+<content:encoded><![CDATA[
+
+<h2>字符集和编码方式</h2>
+<p>字符集(character set)是一组字符(character)的集合.
+简单的如 ASCII 字符集定义了英语中常见的 128 个字符.
+复杂的如 Unicode 字符集定义了超过 14 万个字符, 囊括了绝大多数语言文字的需求.
+Unicode 为每一个字符分配一个唯一的 code point, 从 0 到 0x10FFFF, 通常表示为 U+X,
+X 为 4 到 6 个十六进制数字, 如英语字符 A 对应 U+0041.</p>
+<p>编码(encoding)是指如何将字符集中的字符转化为计算机可以理解的二进制形式.
+UTF-8 和 UTF-16 是最常见的两种编码方式, 针对的都是 Unicode 字符集.</p>
+<p>UTF-8 用一到四个字节来表示一个 Unicode 字符 code point.
+在 UTF-8 中, 127 个 ASCII 字符仅需一个字节来存储,
+使得其在英语环境中非常高效, 同时页完全兼容了 ASCII 编码.</p>
+<p>UTF-16 用二或四个字节来代表一个 Unicode code point.
+其在包含中文, 日文或韩文等的场景中, 可能比 UTF-8 更高效.</p>
+<h2>rune</h2>
+<p>Go 中的 <a href="https://go.dev/ref/spec#Rune_literals" rel="nofollow">rune</a> 是指 int32, 对应 Unicode 字符集中的 code point.
+其值包括在单引号中，既可以是字符, 如 <code>'a'</code>, 也可以是由反斜杠转义的内容, 如</p>
+<ul>
+<li>反斜杠加单个字符代表一些特殊值, 包括 <code>\n</code>, <code>\t</code>, <code>\'</code>, <code>\\</code> 等</li>
+<li>\x 跟两个十六进制数字, 如 <code>\x41</code> 代表 A</li>
+<li>\u 跟四个十六进制数字, 如 <code>\u0041</code> 代表 A</li>
+<li>\U 跟八个十六进制数字, 如 <code>\U00000041</code> 代表 A</li>
+<li>\ 跟三个 8 进制数字, 如 <code>\x101</code> 代表 a</li>
+</ul>
+<pre><code class="language-go">func ExampleRune() {
+	r := 'A'
+	fmt.Println(r == '\x41')
+	fmt.Println(r == '\u0041')
+	fmt.Println(r == '\U00000041')
+	fmt.Println(r == '\101')
+	// Output: true
+	// true
+	// true
+	// true
+}
+</code></pre>
+<h2>string</h2>
+<p>Go 中的 string 有两种形式: raw 和 interpreted.
+前者用反引号`, 如 `foo`, 后者用双引号, 如 "foo".</p>
+<p>我们可以在 interpreted literal string 中使用 rune 的反斜杠转义来表示任意字符, 如:</p>
+<pre><code class="language-go">func ExampleLiteralString() {
+	fmt.Print("Hello\n")
+	fmt.Print("H\x65llo\n")
+	fmt.Print("H\u0065llo\n")
+	fmt.Print("H\145llo\n")
+	// Output: Hello
+	// Hello
+	// Hello
+	// Hello
+}
+</code></pre>
+<p>我们并不能在在 interpreted literal string 中转义反引号, "`" 不是一个合法的字符串,
+因为反引号在 Go 中用于表示 raw literal string.
+不同于 interpreted string, raw string 并不处理任何转义.</p>
+<pre><code class="language-go">func ExampleRawString() {
+	fmt.Println(`H\x64llo`)
+	// Output: H\x64llo
+}
+</code></pre>
+<p>Go 中的 string 实质是只读的字节数组(read-only slice of bytes).
+string literal 按 UTF-8 编码后存放在字节数组中, 如 "中国" 就需要占用 6 个字节.</p>
+<pre><code class="language-go">func ExampleStringIsBytes() {
+	fmt.Println(len("中国"))
+	fmt.Println(string([]byte{0xe4, 0xb8, 0xad, 0xe5, 0x9b, 0xbd}))
+	// Output: 6
+	// 中国
+}
+</code></pre>
+<p>这种情况下, 遍历字符串是逐字节遍历字节数组而不是逐字符遍历字符串.
+大多数人对此感知不明显的主要原因是:</p>
+<ul>
+<li>大部分时候处理的都是 ASCII 字符, 仅占一字节</li>
+<li>诸如 for-range 等语法糖是按字符遍历</li>
+</ul>
+<pre><code>func ExampleIterString() {
+	s := "中国"
+	for i := 0; i &lt; len(s); i++ {
+		fmt.Printf("%x,", s[i])
+	}
+	fmt.Println("")
+	for _, c := range s {
+		fmt.Printf("%c,", c)
+	}
+	fmt.Println("")
+	// Output: e4,b8,ad,e5,9b,bd,
+	// 中,国,
+}
+</code></pre>
+<h2>Reference</h2>
+<ul>
+<li><a href="https://go.dev/blog/strings" rel="nofollow">Strings, bytes, runes and characters in Go</a></li>
+<li><a href="https://go.dev/ref/spec#Rune_literals" rel="nofollow">Rune literals</a></li>
+<li><a href="https://go.dev/ref/spec#String_literals" rel="nofollow">String literals</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-03-27T12:16:52Z</pubDate>
+<pubDate>2024-03-27T12:15:52Z</pubDate>
+</item>
+<item>
+<title>[NAS] 大佬们好，我想搞个自制游戏加速盒</title>
+<link>https://www.v2ex.com/t/1027559</link>
+<guid>https://www.v2ex.com/t/1027559</guid>
+<content:encoded><![CDATA[
+
+<p>大佬们好，我想搞个自制加速盒，主要是用 clash ，同时也想用这个当软路由，目前我用的网件 r6400 主路由加猫咪爬梯插件实现的透明网关，科学上网和 xbox 游戏加速都挺好，但不稳定，而且路由比较老了，对应的固件和插件也没人维护了，还是想弄一个独立的，之前手了个绿联的 nas 4600 也没折腾成功，而且弄的时候会影响 nas 日常使用，想一方面是硬件有没有推荐，成本几百就好，系统的话 linux 或 op 或梅林或 nas 都行(怎么选好?)，要求就是要有 docker ，能支持虚拟机更好,看看有没有推荐?或者现成开源方案?</p>
+]]></content:encoded>
+<pubDate>2024-03-27T12:14:34Z</pubDate>
+<pubDate>2024-03-27T12:14:34Z</pubDate>
+</item>
+<item>
+<title>[Python] pands DataFrame meger 问题，哪位带佬帮忙解释下这是什么现象</title>
+<link>https://www.v2ex.com/t/1027558</link>
+<guid>https://www.v2ex.com/t/1027558</guid>
+<content:encoded><![CDATA[
+
+<p>pands 不熟悉，就是拿来用一下，发现这个奇怪现象
+<img alt="1711540567843.png" class="embedded_image" rel="noreferrer" src="https://img2.imgtp.com/2024/03/27/Fm6hFGJG.png" /></p>
+<p>代码：</p>
+<pre><code class="language-python">    import pandas as pd
+
+    # 初始化一个空的 DataFrame
+    df = pd.DataFrame()
+
+    # 添加列数据
+    df['Name'] = ['Alice', 'Bob', 'Charlie']
+    df['Age'] = [25, 30, 35]
+    df_a = df.copy()
+    df_b = df.copy()
+    df_c = df.copy()
+    df_d = df.copy()
+    df_e = df.copy()
+    meger_df = df.merge(df_a, on='Name', how='left', suffixes=('_x', '_a'))
+    print(meger_df)
+    meger_df = meger_df.merge(df_b, on='Name', how='left', suffixes=('_a', '_b'))
+    print(meger_df)
+    meger_df = meger_df.merge(df_c, on='Name', how='left', suffixes=('_b', '_c'))
+    print(meger_df)
+    meger_df = meger_df.merge(df_d, on='Name', how='left', suffixes=('_c', '_d')) 
+    print(meger_df)
+    meger_df = meger_df.merge(df_e, on='Name', how='left', suffixes=('_d', '_e')) 
+    print(meger_df)
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-03-27T11:57:30Z</pubDate>
+<pubDate>2024-03-12T12:03:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] 舒服了 终于可以用小组件看服务器探针了</title>
+<link>https://www.v2ex.com/t/1027557</link>
+<guid>https://www.v2ex.com/t/1027557</guid>
+<content:encoded><![CDATA[
+
+<a href="https://i.imgur.com/zI1VHgY.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zI1VHgY.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-03-27T11:55:55Z</pubDate>
+<pubDate>2024-03-27T12:05:30Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 公司复印员工工资卡，卡背印的 CVV 能不能涂掉？</title>
+<link>https://www.v2ex.com/t/1027556</link>
+<guid>https://www.v2ex.com/t/1027556</guid>
+<content:encoded><![CDATA[
+
+<p>公司发工资需要登记员工的工资卡，而部分 16 位卡号的银联借记卡背后印有 3 位的 CVV 码。众所周知，境外交易凭借卡号，有效期和 CVV 可以完成境外消费。</p>
+<p>如果公司和员工存在某种纠纷，员工工作失误需要赔偿公司损失，有没有可能公司会调出员工的工资卡复印件，并使用上面印的 CVV 码通过境外无卡交易的形式直接刷走员工的钱完成赔偿流程？如果是的话，那么给公司复印工资卡，是存在安全隐患的。</p>
+<p>HR 当面用银行卡完成复印的时候，能否主张把复印好的材料的 CVV 三位数字进行涂抹处理？</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:53:54Z</pubDate>
+<pubDate>2024-03-27T12:30:53Z</pubDate>
+</item>
+<item>
+<title>[程序员] 现在个人小程序还能赚到钱吗</title>
+<link>https://www.v2ex.com/t/1027555</link>
+<guid>https://www.v2ex.com/t/1027555</guid>
+<content:encoded><![CDATA[
+
+<p>听说微信小程序开始收认证费，一年 300 元</p>
+<p>个人小程序一般靠流量主赚钱，大概多少流量一年能补平投入+认证费用？</p>
+<p>有没有懂哥分享一下</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:52:57Z</pubDate>
+<pubDate>2024-03-27T12:32:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 皮肤屏障受损和荨麻疹怎么调节 我感觉心态真的要崩了</title>
+<link>https://www.v2ex.com/t/1027554</link>
+<guid>https://www.v2ex.com/t/1027554</guid>
+<content:encoded><![CDATA[
+
+<p>初中那时候冬季来了，皮肤干燥用外用膏来搽脸了，过几天皮肤怎么突然发红发烫，所以没管了，然后过一二年后皮肤怎么突然起痘，就是青春痘，三甲医院去了好几次服用各种药效果不佳，我放弃了，这么难根治，但是天气特别冷手臂还有腿上起包了，擦药不行，我家人带我去三甲医院看病，就是荨麻疹，也开药了，后来荨麻疹好多了，不过几个月后荨麻疹又复发了，我家人又带我去医院，结果是慢性荨麻疹，我服了，药没效果了，这几年分不清时皮肤屏障受损或者脂溢性皮炎和慢性荨麻疹让我烦心了，现在自己的这些症状已经严重影响到我的生活工作了，不知道什么才能根治根治这些麻烦？
+目前皮肤上只要遇冷遇热还有做体力活容易发红发烫，角质层受损了，很难修复
+吃药：每 4-5 天荨麻疹复发就吃氯雷他定吃一片</p>
+<p><a href="https://imgur.com/a/rWIz7gY.jpg" rel="nofollow">https://imgur.com/a/rWIz7gY.jpg</a></p>
+<p><a href="https://imgur.com/a/rWIz7gY.jpg" rel="nofollow">https://imgur.com/a/rWIz7gY.jpg</a></p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:48:16Z</pubDate>
+<pubDate>2024-03-27T12:31:24Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 那些年遇到的打工人（十二）</title>
+<link>https://www.v2ex.com/t/1027553</link>
+<guid>https://www.v2ex.com/t/1027553</guid>
+<content:encoded><![CDATA[
+
+<p>俗话说的好：手中有粮，心中不慌！既然证实了之前定下来的战略在实战中确实可行，那么如何将利益最大化就是必须要考虑的事情了。如何利益最大化呢？很显然，再多买几个“套件”去撸不就行了吗？产品同事把这一想法和法律同事一提，立即就被法律同事拒绝了。富贵险中求，也在险中丢，这种利益和风险有着极大正相关的事情，是绝不可能干的。</p>
+<p>那么，如何保持现有生产资料去撬动更多资本呢？一般人可能做不到。但我说过，我这两位同事并不是一般人。也许有人会好奇我为什么总是提及这一点？那是因为，如果一个人抓住一次风口，还可以说是运气使然的话，那么能同时抓住两次，就绝不是运气这么简单了。</p>
+<p>既然不再买套件，又要保证撸口子弄到的钱不能牵扯到自己，怎么办呢？那只能将搞到的钱投入一个灰色的中间行业了。但这样的行业在哪呢？在这之前，他或许没有任何头绪。</p>
+<p>但巧就巧在，这一天中午，我这位同事也许在哪个倒霉的馆子里吃了不卫生的饭菜，肚子突然开始绞痛起来。他抄起手机冲进厕所，坐在马桶上正酣畅淋漓释放大招的时候，一条新闻通知从屏幕顶部弹了下来，这条新闻的内容，就是比特币著名的门头沟事件。</p>
+<p>“门头沟”是 MT.Gox 的中译名，而 MT.Gox 是位于日本东京的的一家比特币交易所，早在 2010 年就开始开展比特币交易业务，是最早参与这项业务的平台之一，由于其参与早，竞争对手少，当时一度成为世界上最大的比特币交易所，其交易量更是占据了全球的 80%之多，很多中国的比特币用户最早也都在 MT.Gox 上面做交易，MT.Gox 一时风光无限。</p>
+<p>然而，2014 年 2 月，MT.Gox 交易所宣布关闭并申请破产。使得比特币的价格严重下滑，从高峰值 951.39 美元跌至 309.87 美元，跌幅高达 67%。</p>
+<p>股市的一位大师曾经说过这样一句名言：别人贪婪我恐惧，别人恐惧我贪婪！在此时许多币圈玩家眼瞅着手中的币几乎跌的底裤都没了，纷纷抛售的时候。我这位产品同事再次出手了。</p>
+<p>他靠着一个产品人的直觉和对文字内容的敏感，觉得比特币或许正是他们要找的“灰色的中间行业”。于是他和法律同事碰面商量：要不要购买比特币？比特币在这次事件之后，价值是否会回升？在经过一个下午的讨论和查阅了大量比特币的背景资料后，终于在下班的前一秒，两人对投资比特币这事达成了一个共识：</p>
+<p>梭哈是一种智慧。</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:40:13Z</pubDate>
+<pubDate>2024-03-27T12:12:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 RocketMQ 顺序消息的疑问</title>
+<link>https://www.v2ex.com/t/1027552</link>
+<guid>https://www.v2ex.com/t/1027552</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="1711538972172.png" class="embedded_image" rel="noreferrer" src="https://img2.imgtp.com/2024/03/27/G7g51BcY.png" />
+<a href="https://rocketmq.apache.org/zh/docs/featureBehavior/03fifomessage/" rel="nofollow">https://rocketmq.apache.org/zh/docs/featureBehavior/03fifomessage/</a>
+这里的单一生产者指的是单个线程吗？生产都是多实例部署的，如果用户先发起一个下单请求，再发起支付请求，这两个请求都需要发送 MQ 消息。这两个请求被不同的机器处理，用户肯定是先下单再支付的，但是如何保证这两条 MQ 消息也是有序的？</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:33:49Z</pubDate>
+<pubDate>2024-03-27T11:33:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] Mac（M 芯片）上有哪些好用的 Android 模拟器？</title>
+<link>https://www.v2ex.com/t/1027551</link>
+<guid>https://www.v2ex.com/t/1027551</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，Mac 这块的应用生态真的远不如 Windows ，有说用 Android Studio 曲线救国的，一言难尽</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:33:44Z</pubDate>
+<pubDate>2024-03-27T11:30:44Z</pubDate>
+</item>
+<item>
+<title>[Android] 为什么 adb 无法直接安装，但是 Android Studio 运行源码可以安装？</title>
+<link>https://www.v2ex.com/t/1027550</link>
+<guid>https://www.v2ex.com/t/1027550</guid>
+<content:encoded><![CDATA[
+
+<p>想问一下 Android 开发的大佬们，因为我不想直接注册个没用的账号登录，又想可以安装 apk ，我通过 adb shell 把管理系统账号的 apk 给删了，但是通过 adb 安装 apk 还是要我登录，怎么绕过去呢？用的是中兴手机 Android 11 、版本号：MyOS11.0.14_8031_JD ，，小米的 pad 就没有这个问题；</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:32:41Z</pubDate>
+<pubDate>2024-03-27T11:58:43Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求教，推送的本质是什么？服务器如何向几百万台手机设备推送的信息的</title>
+<link>https://www.v2ex.com/t/1027549</link>
+<guid>https://www.v2ex.com/t/1027549</guid>
+<content:encoded><![CDATA[
+
+<p>如题。是设备不断向服务器发送 tcp 或者 udp 请求吗？还是服务器记录了设备的网络地址，反向向设备请求。</p>
+<p>有了解类似技术细节的大佬告知下吗</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:26:32Z</pubDate>
+<pubDate>2024-03-27T12:21:16Z</pubDate>
+</item>
+<item>
+<title>[推广] “按照 ChatGPT 指示做了之后…” OTT 网络电视剧《Sticker》进军戛纳影展</title>
+<link>https://www.v2ex.com/t/1027546</link>
+<guid>https://www.v2ex.com/t/1027546</guid>
+<content:encoded><![CDATA[
+
+<p>陷入 AI 陷阱的网红心理惊悚片《 Sticker 》<br />
+韩国影剧制作公司 MooAm ，参加戛纳国际电视剧节<br />
+MooAm ，凭借青年新兴势力二战戛纳  </p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/Wsyn2Mh/1-2.jpg" /></p>
+<p>“Talk GPT ，告诉我涨粉的方法”，想要成为 10 万粉丝网红的主人公，在寻找自己的粉丝进行“狩猎”的过程中展开的心理惊悚电视剧——《 Sticker 》（导演/编剧：玄海梨）将在戛纳国际电视剧节上亮相。</p>
+<p>MooAm Production23 日表示，其新作《 Sticker 》将参加 2024 年 4 月在法国戛纳举行的第 7 届戛纳国际电视剧节，并在“韩国内容”单元展出。这是继 2023 年之后，MooAm Production 第二次进军戛纳电视剧节。</p>
+<p>《 Sticker 》是一部心理惊悚片，讲述了拥有 10 万粉丝的网红“Yeonji”在目标达到 100 万粉丝的过程中，根据人工智能顾问“Talk GPT （暂名）”的建议所作出的决定面临着无法预测结果。该作品批判性地探讨了现代社会的欲望和偷窥癖。</p>
+<p>在韩国广播通信传播振兴院（ KCA ）的支持下，为 OTT 平台专门策划开发的《 Sticker 》在去年 10 月的釜山国际电影节的国际 OTT 大赏中，获得了主要投资公司的投资意向。</p>
+<p>作为与科学技术信息通讯部主办、韩国广播通信传播振兴院（ KCA ）主管的戛纳电视剧节联合广播、OTT 海外分销参与支持项目的一部分，本作品将在 4 月 7 日至 9 日举行的戛纳第 7 届戛纳国际电视剧节上亮相。</p>
+<p>在此次活动中，MooAm 计划向全球 OTT 服务、投资公司、买家介绍《 Sticker 》的内容 IP 及海外进军策略。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/jJW1rbh/image.jpg" /></p>
+<p>玄海梨导演表示：“将《 Sticker 》从长篇电影重构为 OTT 电视剧，给了我们更多与全球观众见面的机会…这部作品是探讨 AI 和 GPT 技术可能成为人类双刃剑的惊悚片，处理了当代的重要议题。”
+《 Sticker 》目前处于前期制作阶段，预计于今年下半年开拍。</p>
+<p>另一方面，MooAm Production 是由平均年龄 28 岁的年轻导演和 PD 组成的创意团队，自 2022 年以来，持续运营着涵盖自主 IP 开发、内容制作、市场营销的一体化系统。特别是在 K-内容领域（电影、网络剧）表现积极，以 Luna 币为主题的独立电影《生意失败的男人（ DEATH BUSINESS ）》已提交至国际电影节，并计划今年下半年在院线上映。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/YPyw8ZY/mooam.jpg" /></p>
+&lt;Media Contact&gt;  
+<p>company : MooAm Production Co., Ltd.  </p>
+<p>contact(person) : June Park   </p>
+<p>Email : <a href="mailto:contact@mooam.co.kr">contact@mooam.co.kr</a> </p>
+<p>site : <a href="http://www.mooam.co.kr/" rel="nofollow">www.mooam.co.kr/</a> </p>
+<p>country : South Korea</p>
+]]></content:encoded>
+<pubDate>2024-03-27T11:00:22Z</pubDate>
+<pubDate>2024-03-27T10:59:22Z</pubDate>
+</item>
+<item>
+<title>[创业组队] 寻互联网广告销售一起组队</title>
+<link>https://www.v2ex.com/t/1027545</link>
+<guid>https://www.v2ex.com/t/1027545</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-03-27T10:56:04Z</pubDate>
+<pubDate>2024-03-27T10:53:04Z</pubDate>
+</item>
+<item>
+<title>[求职] [求职] 1 年前端，能干苦活，寻稳定工作</title>
+<link>https://www.v2ex.com/t/1027542</link>
+<guid>https://www.v2ex.com/t/1027542</guid>
+<content:encoded><![CDATA[
+
+<p><strong>个人经历：</strong> </p>
+<ul>
+<li>
+<p>毕业前：开程序工作室接外包，主要业务为熟人推荐的小程序/门户网站/旧 APP 二开。技术栈为 Vue2.x/JavaScript/uni-app/Java/SpringBoot ...;</p>
+</li>
+<li>
+<p>第一段工作经历：先从事 WEB 前端开发，后升任产品跨平台负责人。主导了产品优化、跨平台落地（小程序/iOS ）、以及视频流兼容性解决方案。技术栈为 Vue3/React/TypeScript/uni-app/Node.js/FFmpeg ...;</p>
+</li>
+<li>
+<p>第二段工作经历(半全职半自由职业)：担任全栈工程师，重点参与 WEB 前端和小程序开发，同时涉及后端及 AI 技术集成，技术栈为 Vue3/React/TypeScript/Taro/Python/SpringBoot ...;</p>
+</li>
+</ul>
+<p><strong>自我评价：</strong>
+如果不涉及 React/Vue 之类源码、云原生等，其他的能自己造轮子，后端能 curd ，自认为一般水平，所以不要求太高，主要能吃苦，需求理解快</p>
+<p><strong>详细简历：</strong> 👉  <a href="https://github.com/uiuing/uiuing/blob/main/resume.pdf" rel="nofollow">resume</a></p>
+<p><strong>求职期望：</strong>
+Base：广州、东莞、上海、深圳 ..
+最好能包吃包住</p>
+<p>感兴趣的大佬可联系简历内邮箱或留言🙏</p>
+]]></content:encoded>
+<pubDate>2024-03-27T10:30:46Z</pubDate>
+<pubDate>2024-03-27T11:49:36Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 因为经常搬家不想一直办宽带，有什么插 sim 卡的 lte 路由器推荐吗</title>
+<link>https://www.v2ex.com/t/1027541</link>
+<guid>https://www.v2ex.com/t/1027541</guid>
+<content:encoded><![CDATA[
+
+<p>买一张无限流量卡当宽带，不怎么玩游戏不在乎延时是否可行？我不在家的时候还可能有别人在用网络，所以不能一直用手机开热点，而且手机热点信号也不太好，无法覆盖全屋。</p>
+]]></content:encoded>
+<pubDate>2024-03-27T10:28:32Z</pubDate>
+<pubDate>2024-03-27T11:52:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大佬们， pycharm 怎么调整自动补全选项的顺序</title>
+<link>https://www.v2ex.com/t/1027540</link>
+<guid>https://www.v2ex.com/t/1027540</guid>
+<content:encoded><![CDATA[
+
+<p>以前会自动记录我输入习惯，把最多的放最上面，后面更新过后就不行了。现在每次打了 pr 还要往下翻选择 print ，类似的有很多，感觉挺不方便了，谷歌找了没翻到。。。</p>
+]]></content:encoded>
+<pubDate>2024-03-27T10:20:11Z</pubDate>
+<pubDate>2024-03-27T10:20:11Z</pubDate>
+</item>
+
+<item>
 <title>[区块链] 求助，哪里有渠道可以出 USDT-OMNI</title>
 <link>https://www.v2ex.com/t/1027539</link>
 <guid>https://www.v2ex.com/t/1027539</guid>
 <content:encoded><![CDATA[
-
 哪里有渠道可以出 USDT-OMNI ，现金或 trc20 或其他币都行<br /><br />去年有人问： <a href="https://global.v2ex.com/t/833278" rel="nofollow noopener" target="_blank">https://global.v2ex.com/t/833278</a><br />我试了下，都没了
 ]]></content:encoded>
-<pubDate>2024-03-27T10:18:33Z</pubDate>
 <pubDate>2024-03-27T10:18:33Z</pubDate>
 </item>
 <item>
@@ -21,9 +382,7 @@
 <guid>https://www.v2ex.com/t/1027538</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-27T10:16:13Z</pubDate>
 <pubDate>2024-03-27T06:16:13Z</pubDate>
 </item>
 <item>
@@ -31,11 +390,9 @@
 <link>https://www.v2ex.com/t/1027537</link>
 <guid>https://www.v2ex.com/t/1027537</guid>
 <content:encoded><![CDATA[
-
 <p>真给我气炸了！我所有邮件服务都托管在 icloud 上了，这一跑路差点没给我整死！</p>
 <p>13 号上车，到现在才 14 天，收了我半年的钱，我的愤怒无法言语！</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T10:14:45Z</pubDate>
 <pubDate>2024-03-27T10:13:45Z</pubDate>
 </item>
 <item>
@@ -43,10 +400,8 @@
 <link>https://www.v2ex.com/t/1027535</link>
 <guid>https://www.v2ex.com/t/1027535</guid>
 <content:encoded><![CDATA[
-
 <p>把 iCon 从 Dock 和工具栏移除的特效，好像都没有了，我一查好像十年前就没了，但是我怎么总觉得前不久还见过？</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T10:05:37Z</pubDate>
 <pubDate>2024-03-27T10:05:37Z</pubDate>
 </item>
 <item>
@@ -54,13 +409,11 @@
 <link>https://www.v2ex.com/t/1027532</link>
 <guid>https://www.v2ex.com/t/1027532</guid>
 <content:encoded><![CDATA[
-
 <p>brave 浏览器支持类似 arc 的垂直标签页</p>
 <p>试用了一下网页打开速度挺快的, 关闭钱包奖励等选项好像也挺简洁</p>
 <p>但发现网上有一些 brave 的历史问题, 比如 <a href="https://news.ycombinator.com/item?id=26332183" rel="nofollow">https://news.ycombinator.com/item?id=26332183</a></p>
 <p>想问现在有多少人在用 brave 当主力浏览器的</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:47:03Z</pubDate>
 <pubDate>2024-03-27T09:47:03Z</pubDate>
 </item>
 <item>
@@ -68,10 +421,8 @@
 <link>https://www.v2ex.com/t/1027531</link>
 <guid>https://www.v2ex.com/t/1027531</guid>
 <content:encoded><![CDATA[
-
 尝试了 python-docx ，发现他超链接做文档内部链接太弱了，可以用，但是好像不规范，wps 打开看不到
 ]]></content:encoded>
-<pubDate>2024-03-27T09:40:33Z</pubDate>
 <pubDate>2024-03-27T09:40:33Z</pubDate>
 </item>
 <item>
@@ -79,7 +430,6 @@
 <link>https://www.v2ex.com/t/1027530</link>
 <guid>https://www.v2ex.com/t/1027530</guid>
 <content:encoded><![CDATA[
-
 <p>明天 3 月 28 号，小米 su7 将正式发布出售，但我除去雷军的名人光辉，不看好小米雷军造车。</p>
 <p>个人觉得小米这么多年开拓如此多的产品品类，电动汽车赛道将会是小米和雷军的索姆河战役！</p>
 <p>因为汽车和手机不一样。</p>
@@ -91,7 +441,6 @@
 <p>中国的消费人群不是只有北京上海五环内人群。二十三万对于 6 亿月收入不足 1000 人来说，是很大一笔钱。</p>
 <p>作为大宗消费品，苹果公司选择退出，小米和雷军选择进入，目前的战况，我认为将非常惨烈，投入那么多，商战形式堪比一战的索姆河战役。作为曾经的米粉，咱们就看看小米这五年内在电动汽车领域的发展如何。</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:40:13Z</pubDate>
 <pubDate>2024-03-27T10:18:29Z</pubDate>
 </item>
 <item>
@@ -99,7 +448,6 @@
 <link>https://www.v2ex.com/t/1027528</link>
 <guid>https://www.v2ex.com/t/1027528</guid>
 <content:encoded><![CDATA[
-
 <h2>面临的问题</h2>
 <ul>
 <li>大量结交新朋友，老朋友难以维护，准确来说是感觉哪个都不那么重要</li>
@@ -109,7 +457,6 @@
 <p>总的来说社交对于我来说，不知道什么场合说那些话，能说到什么程度</p>
 <p>有没有推荐相关的书籍学习学习？</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:30:43Z</pubDate>
 <pubDate>2024-03-27T09:27:43Z</pubDate>
 </item>
 <item>
@@ -117,10 +464,8 @@
 <link>https://www.v2ex.com/t/1027527</link>
 <guid>https://www.v2ex.com/t/1027527</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://gamemcu.com/su7/" rel="nofollow">https://gamemcu.com/su7/</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:28:28Z</pubDate>
 <pubDate>2024-03-27T09:38:44Z</pubDate>
 </item>
 <item>
@@ -128,7 +473,6 @@
 <link>https://www.v2ex.com/t/1027526</link>
 <guid>https://www.v2ex.com/t/1027526</guid>
 <content:encoded><![CDATA[
-
 <p>我的公司好多年前就注册在深圳南山科技园，开通了对公账户，当时也是几乎跑遍了大小银行才办下来。目前就我一个人，目前个人社保在自己公司名下交。</p>
 <p>年前 1 月份社保突然扣不了款，去查对公账户发现可用余额为 0 ，咨询银行后得知是 NJ 的公安局把我的账户冻结了。我一层一层的打电话询问，最后获知是 NJ 雨花台区下面的一个派出所操作的，让我带上公司的资料和银行流水，本人过去才能解封。</p>
 <p>买了个硬卧摇了一个晚上，早上到达派出所，这是我第一次来 NJ ，本来也想顺便玩一下的，半天下来打消了这个念头，办完事还是买了个硬卧摇回去。</p>
@@ -143,7 +487,6 @@
 <p>从此以后，我不再轻易让别人得知我的对公账户和公司相关私密信息，只提供简单报价之类的，也不盖公章。</p>
 <p>希望我的经历对朋友们有点借鉴作用。</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:28:18Z</pubDate>
 <pubDate>2024-03-27T06:28:18Z</pubDate>
 </item>
 <item>
@@ -151,10 +494,8 @@
 <link>https://www.v2ex.com/t/1027525</link>
 <guid>https://www.v2ex.com/t/1027525</guid>
 <content:encoded><![CDATA[
-
 现在的计算机毕业生是不是很难找工作了？聊聊现在国内的软件就业问题吧！
 ]]></content:encoded>
-<pubDate>2024-03-27T09:17:57Z</pubDate>
 <pubDate>2024-03-23T09:17:57Z</pubDate>
 </item>
 <item>
@@ -162,10 +503,8 @@
 <link>https://www.v2ex.com/t/1027524</link>
 <guid>https://www.v2ex.com/t/1027524</guid>
 <content:encoded><![CDATA[
-
 喂给她很多其他产品的照片，有模糊的 清晰的 各种角度的<br />然后他能渲染出一个新的产品图片出来？
 ]]></content:encoded>
-<pubDate>2024-03-27T09:14:48Z</pubDate>
 <pubDate>2024-03-26T17:13:48Z</pubDate>
 </item>
 <item>
@@ -173,7 +512,6 @@
 <link>https://www.v2ex.com/t/1027523</link>
 <guid>https://www.v2ex.com/t/1027523</guid>
 <content:encoded><![CDATA[
-
 <p>其实挺简单的。  </p>
 <p>当年同事说报名，趁着团购也一起报了，想着艺多不压身嘛。<br />
 报完名不久，我忘了，大概一年后，报名点给我打电话，问我科目一准备好了没，我才又想起来。<br />
@@ -188,7 +526,6 @@
 晚上回去再次突击，第二天。。。hmm 。。。100 分过的。<br />
 另外还发现一个问题： 我答完的时候用了 7 分钟，是不能提交的，必须要等够 15 分钟，才可以提交！</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:13:30Z</pubDate>
 <pubDate>2024-03-27T09:29:05Z</pubDate>
 </item>
 <item>
@@ -196,10 +533,8 @@
 <link>https://www.v2ex.com/t/1027521</link>
 <guid>https://www.v2ex.com/t/1027521</guid>
 <content:encoded><![CDATA[
-
 行政专员  5-6K 16 薪 本科<br /><br />地点：广州·番禺区·长隆<br /><br />以下是 JD 内容：<br />1 、负责公司供餐服务管理，包括早中晚餐、下午茶、夜宵等供应商配餐运营管理;<br />2 、负责公司商配服务管理，包括快递公件、饮用水、打印机、售货机等日常运营与供应商管理;<br />3 、负责公司日常行政事务处理，包括日常问题反馈跟踪、文件管理、会议组织、办公环境优化等<br />4 、负责进行相关账单与费用的数据整理、核对分析等:<br />5 、协助行政康体活动开展与执行<br />6 、完成上级交办的其他临时性任务<br />任职资格:<br />1 、本科学历，2 年以上大中型互联网行政工作经验:<br />2 、逻辑清晰，沟通协调力良好，执行力强...<br /><br /><br />联系微信：bHlpbmc1MTc0MQ==
 ]]></content:encoded>
-<pubDate>2024-03-27T09:04:18Z</pubDate>
 <pubDate>2024-03-27T09:01:18Z</pubDate>
 </item>
 <item>
@@ -208,9 +543,7 @@
 <guid>https://www.v2ex.com/t/1027520</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-27T09:03:52Z</pubDate>
 <pubDate>2024-03-27T09:00:52Z</pubDate>
 </item>
 <item>
@@ -218,13 +551,11 @@
 <link>https://www.v2ex.com/t/1027518</link>
 <guid>https://www.v2ex.com/t/1027518</guid>
 <content:encoded><![CDATA[
-
 <p>双飞本科应届生，金融类专业的，秋招报了几个银行，莫名奇妙录取了工行的科技岗。觉得比其他的销售营销类岗位要好，就签约了。</p>
 <p>是市支行录取的，应该没什么编程研发的任务，但是应该有数据库操作这种的吧，但我对 access 和 SQL 啥的一窍不通。
 我有计算机三级网络技术的证书，觉得面试官可能是看着这个才让我上科技岗的，所以查查网路问题这种任务应该也有吧。</p>
 <p>问题我发现要进行半年轮岗，我怕水平不够高，担心下去轮岗后不被调回科技岗来。所以来问问有没有前辈在银行干，帮我指导指导，7 月份上岗前自己先学一学。谢谢各位啦！</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T09:03:07Z</pubDate>
 <pubDate>2024-03-27T09:39:35Z</pubDate>
 </item>
 <item>
@@ -233,9 +564,7 @@
 <guid>https://www.v2ex.com/t/1027517</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-03-27T09:02:31Z</pubDate>
 <pubDate>2024-03-27T09:00:31Z</pubDate>
 </item>
 <item>
@@ -243,7 +572,6 @@
 <link>https://www.v2ex.com/t/1027516</link>
 <guid>https://www.v2ex.com/t/1027516</guid>
 <content:encoded><![CDATA[
-
 <p>这个是正常的:</p>
 <pre><code>fmt.Printf(`user_%d`, 1)
 </code></pre>
@@ -256,14 +584,12 @@
 <p>而且无法消除，即使关闭 IDE 与 SQL 相关的所有语法检查依然会提示。</p>
 ]]></content:encoded>
 <pubDate>2024-03-27T08:57:08Z</pubDate>
-<pubDate>2024-03-27T08:57:08Z</pubDate>
 </item>
 <item>
 <title>[程序员] 请教各位大佬， Docker registry push 的时候，如何检查版本号是否重复</title>
 <link>https://www.v2ex.com/t/1027515</link>
 <guid>https://www.v2ex.com/t/1027515</guid>
 <content:encoded><![CDATA[
-
 <p>第一次推送
 docker tag my-service:1.0.1 <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.baidu.com/my-service:1.0.1</a>
 docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.baidu.com/my-service:1.0.1</a></p>
@@ -272,7 +598,6 @@ docker tag my-service:1.0.1 <a href="http://www.baidu.com/my-service:1.0.1" rel=
 docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.baidu.com/my-service:1.0.1</a></p>
 <p>版本号是相同的，期望能返回错误提示</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:50:24Z</pubDate>
 <pubDate>2024-03-27T09:50:16Z</pubDate>
 </item>
 <item>
@@ -280,10 +605,8 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027514</link>
 <guid>https://www.v2ex.com/t/1027514</guid>
 <content:encoded><![CDATA[
-
 看了 Spring Integration 相关的内容，但是发现网上资料很少，也很少有项目用到<br /><br />疑问：<br />1. Spring Integration 项目中用来解决哪些问题<br />2. 为什么很少有项目用到，是因为用到的地方有什么替代解决方案吗
 ]]></content:encoded>
-<pubDate>2024-03-27T08:49:43Z</pubDate>
 <pubDate>2024-03-27T08:46:43Z</pubDate>
 </item>
 <item>
@@ -291,11 +614,9 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027513</link>
 <guid>https://www.v2ex.com/t/1027513</guid>
 <content:encoded><![CDATA[
-
 <p>比如 3 岁以下宝宝头上大量出汗，应该看哪个科？</p>
 <p>某讯的智能导诊竟然让看皮肤科。。。</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:47:22Z</pubDate>
 <pubDate>2024-03-26T16:47:22Z</pubDate>
 </item>
 <item>
@@ -303,7 +624,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027512</link>
 <guid>https://www.v2ex.com/t/1027512</guid>
 <content:encoded><![CDATA[
-
 <p>标题有点绕，让我捋一下。</p>
 <p>“用前端写”就是该项目用 nuxt v3 和 nuxt-ui 写的。</p>
 <p>“admin 后台数据管理平台”就是个后台的界面。</p>
@@ -316,7 +636,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <p>文档： <a href="https://www.muyi.dev/open_source/nuxtAdmin/" rel="nofollow">https://www.muyi.dev/open_source/nuxtAdmin/</a></p>
 <p>欢迎点评，也希望能共建。</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:45:09Z</pubDate>
 <pubDate>2024-03-27T10:19:11Z</pubDate>
 </item>
 <item>
@@ -324,7 +643,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027510</link>
 <guid>https://www.v2ex.com/t/1027510</guid>
 <content:encoded><![CDATA[
-
 <h4>概述</h4>
 <p>外婆给我发了十多分钟的语音，核心内容总结如下：</p>
 <ol>
@@ -360,7 +678,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 </ol>
 <p>综上所述，我将这种行为理解为对小辈的掌控欲，可以理解，但由于缺少应对经验，想知道大家伙如果在我这个场景，会采用什么样的方式来应对咧</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:37:51Z</pubDate>
 <pubDate>2024-03-27T09:12:25Z</pubDate>
 </item>
 <item>
@@ -368,13 +685,11 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027509</link>
 <guid>https://www.v2ex.com/t/1027509</guid>
 <content:encoded><![CDATA[
-
 <p>新接手一个项目. 但我对 oracle 很不熟悉.
 有一张表, 数据会频繁的增删.  表的数据保存的是近 7 天的数据. 总量在 50 万条左右.
 现在 select count(*) 一下. 需要将近 1 分钟左右时间.
 怎么样去排查出问题所在</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:37:36Z</pubDate>
 <pubDate>2024-03-27T08:37:36Z</pubDate>
 </item>
 <item>
@@ -382,7 +697,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027507</link>
 <guid>https://www.v2ex.com/t/1027507</guid>
 <content:encoded><![CDATA[
-
 <p>最近行情实在太难了，在职面试有好几家走到 HR ，然后没有后续</p>
 <ul>
 <li>小米商业化 3+1 hr 面完，两周无后续已挂</li>
@@ -393,7 +707,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 </ul>
 <p>难顶，最近面了一个半月，各种挂，还有些一面挂，二面挂，HR 面挂，谈薪挂。曾一度觉得找不到工作了，希望阿里 offer 能够顺利下来</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:34:56Z</pubDate>
 <pubDate>2024-03-27T10:07:50Z</pubDate>
 </item>
 <item>
@@ -401,13 +714,11 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027506</link>
 <guid>https://www.v2ex.com/t/1027506</guid>
 <content:encoded><![CDATA[
-
 <p>最近在研究 Laravel Sail ，使用 composer create-project 命令创建了一个 laravel 项目，然后发现 vendor/bin/sail 与 vendor/laravel/sail/bin/sail 不一样的（见截图），没搞明白这个不一样是怎么实现的。</p>
 <p>按理说 laravel/sail 的 composer.json 文件里说明了 bin 文件的位置，composer install 的时候应该是把这个文件复制到 vendor/bin 里的，那为什么这两个文件的内容不一样呢？搜索代码没看到有处理的逻辑，也搜不到 vendor/bin/sail 文件里代码的内容。</p>
 <p>各位大佬能否帮忙指个路，这个逻辑可能是在哪边处理的？多谢！</p>
 <p><img alt="Laravel Sail 的 bin 文件 vendor/bin/sail 与 vendor/laravel/sail/bin/sail 不一样，是如何实现的呢？" class="embedded_image" rel="noreferrer" src="https://cdn.learnku.com/uploads/images/202403/27/97765/dOpVx6AyCI.png%21large" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:32:24Z</pubDate>
 <pubDate>2024-03-27T09:03:22Z</pubDate>
 </item>
 <item>
@@ -415,7 +726,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027505</link>
 <guid>https://www.v2ex.com/t/1027505</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 <p>周末要下载大文件，用百度网盘，开了 vip ，但是文件大于 20G ，要开 svip 才行。。。</p>
@@ -429,7 +739,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:31:45Z</pubDate>
 <pubDate>2024-03-25T08:31:45Z</pubDate>
 </item>
 <item>
@@ -437,10 +746,8 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027504</link>
 <guid>https://www.v2ex.com/t/1027504</guid>
 <content:encoded><![CDATA[
-
 <p>请问 V 友知道美团有没有类似生意参谋那样的数据软件吗？就是可以查到不同的搜索词对应的搜索次数的软件？</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:31:43Z</pubDate>
 <pubDate>2024-03-27T08:31:43Z</pubDate>
 </item>
 <item>
@@ -448,12 +755,10 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027501</link>
 <guid>https://www.v2ex.com/t/1027501</guid>
 <content:encoded><![CDATA[
-
 <p>我在浏览器窗口中打开 <a href="http://jd.com" rel="nofollow">jd.com</a> ，并登录
 我在新标签页中打开 <a href="http://jdl.com" rel="nofollow">jdl.com</a> ，发现可以自动登录
 请问实现原理是什么，是判断设备的指纹 ID 嘛，还是别的？</p>
 ]]></content:encoded>
-<pubDate>2024-03-27T08:29:49Z</pubDate>
 <pubDate>2024-03-27T09:58:57Z</pubDate>
 </item>
 <item>
@@ -461,10 +766,8 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1027499</link>
 <guid>https://www.v2ex.com/t/1027499</guid>
 <content:encoded><![CDATA[
-
 工作职责：<br /><br />1. 负责公司产品私有化交付，持续提升交付标准化和自动化；<br /><br />2. 负责私有化项目的日常运维，包括软硬件、存储的故障处理和跟进，集群配置变更；<br /><br />3. 负责集群设备性能的测试和优化，软硬件参数调优；<br /><br />4. 负责监控和售后运维平台建设，开发运维工具优化监控和运维效率。<br /><br />任职要求：<br /><br />1. 统招本科，3 年以上工作经验；<br /><br />2. 具备扎实的 Linux 平台运维和调试能力，能够熟练进行故障排查、配置调优、性能分析；<br /><br />3. 熟悉常见数据库的高可用架构配置调优及排障；<br /><br />4. 扎实的网络技术基础，能够熟练定位网络问题；<br /><br />5. 熟悉 Kubernetes 架构，并了解各组件的功能特性，对 Kubernetes 有丰富的部署调优实践经验；<br /><br />6. 有大规模服务器和容器的监控、运维管理经验；<br /><br />7. 熟练使用 python/go 进行开发。<br /><br />邮箱: d2FuZ3F1YW45M0BqZC5jb20K
 ]]></content:encoded>
-<pubDate>2024-03-27T08:25:59Z</pubDate>
 <pubDate>2024-03-27T08:22:59Z</pubDate>
 </item>
 <item>
@@ -472,7 +775,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1022037</link>
 <guid>https://www.v2ex.com/t/1022037</guid>
 <content:encoded><![CDATA[
-
 <p>这段时间写了个微信小程序，先放二维码：</p>
 <p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
 <h2>产品定位</h2>
@@ -500,7 +802,6 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <p>欢迎大家在这里反馈 Bug 或提出你的建议，我今天会尽可能地回复。</p>
 <p><img alt="二维码图片" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqf.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-03-09T02:49:00Z</pubDate>
 <pubDate>2024-03-27T08:48:46Z</pubDate>
 </item>
 <item>
@@ -508,10 +809,8 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1026225</link>
 <guid>https://www.v2ex.com/t/1026225</guid>
 <content:encoded><![CDATA[
-
 16 号在某东已经下单了，15 寸 16+512 的 Air 午夜色，<br />一直到今天还是采购中，已经退单。<br /><br />这两天一直在纠结上 Pro 还是 Air ，<br />平时主要是轻度办公，自己偶尔写写代码（ VSCODE go 语言、C#之类，非专业大神）；<br />有些自身增值需求，想尝试学习做一些简单的视频剪辑；<br />会有 AI 应用的需求，例如 stable diffusion 之类。<br /><br />个人比较喜欢 Air 的轻便，又觉得 Pro 的屏幕超值，Pro 的充电器也是比较大。<br />颜色也很纠结。<br /><br />这次购买会长时间用做主力机。<br /><br />所以 16+512 ，15 寸 Air 和 14 寸 Pro ，特别纠结。<br /><br />求大神推荐帮助。
 ]]></content:encoded>
-<pubDate>2024-03-22T15:21:33Z</pubDate>
 <pubDate>2024-03-25T11:34:25Z</pubDate>
 </item>
 <item>
@@ -519,13 +818,10 @@ docker push <a href="http://www.baidu.com/my-service:1.0.1" rel="nofollow">www.b
 <link>https://www.v2ex.com/t/1026254</link>
 <guid>https://www.v2ex.com/t/1026254</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.ithome.com/0/757/586.htm" rel="nofollow">https://www.ithome.com/0/757/586.htm</a></p>
 ]]></content:encoded>
-<pubDate>2024-03-23T00:28:48Z</pubDate>
 <pubDate>2024-03-25T10:12:01Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] ollama run 报错请教大佬</title>
 <link>https://www.v2ex.com/t/1027497</link>
@@ -14904,359 +15200,6 @@ Connection closed by UNKNOWN port 65535
 <div class="embedded_video_wrapper"></div><br />在初中的时候因为看过环太平洋后知道的菊地凛子 之后就听说过这部电影 只不过一直忘掉了这部电影  <br /><br />片子整体的剧情来讲是不错的 整部电影围绕着一把枪展开 虽然每个角色的关系都是间接的 但是电影的主要思想是人与人之间的隔阂与误解<br /><br />babel 实际上就是巴别塔 对宗教感兴趣的可以去了解下 上帝为了镇压人类让人们原先统一的语言拆散并将人口分布到世界各地让巴别塔的建造以搁浅而终 电影中虽然有着摩洛哥人、美国人、日本人、墨西哥人 他们讲着各自的语言 但电影更像告诉观众 巴别塔存在于每个人的心中
 ]]></content:encoded>
 <pubDate>2024-03-23T07:41:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] Windscribe 的 IKEv2 协议在大陆到底能不能连上？</title>
-<link>https://www.v2ex.com/t/1026332</link>
-<guid>https://www.v2ex.com/t/1026332</guid>
-<content:encoded><![CDATA[
-Winscribe 有个问题困扰了我很长一段时间，安卓端的默认协议是 IKEv2 ，无论是官方或者是用户社区都会优先推荐这个。<br />现实情况是我在 IKEV2 之下从未成功连接过任何一个免费节点。<br />在 Reddit 上问了一圈，Windscribe 在外国最慢的协议貌似就是 UDP ，然而在我这就变成了最快的。至于其他的比如说 Stealth 、Wireguard 、TCP 基本上是半残状态，要么连不上要么延迟高。<br />所以我想请教下各位老用户，这种问题要怪本地运营商还是墙？还是说只是单纯的“水土不服”？
-]]></content:encoded>
-<pubDate>2024-03-23T07:31:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有什么好方法可以强效限制自己不在 iPhone 上下载外卖 APP？</title>
-<link>https://www.v2ex.com/t/1026331</link>
-<guid>https://www.v2ex.com/t/1026331</guid>
-<content:encoded><![CDATA[
-<p>想减肥了，最近一量体重又破防了
-每次删除后，晚上一饿又下载了</p>
-<p>求问在手机技术（设置）层面，如何可以限制自己下载这个 app ？</p>
-<p>单纯问这个技术问题，我知道减肥还有其他层面，其他角度不是本帖的讨论范围。</p>
-]]></content:encoded>
-<pubDate>2024-03-23T07:52:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 怀念一款 2016 年偶遇的安卓设备隐身监控软件，不知道他近况如何</title>
-<link>https://www.v2ex.com/t/1026329</link>
-<guid>https://www.v2ex.com/t/1026329</guid>
-<content:encoded><![CDATA[
-大约 2016 年前后在一档节目中看到一个 自称大学教授的人推广自己团队的软件，后来也下载尝试了，大致就是设备上安装后 可以远程启动摄像头、远程监听等（曾测试用来监控婴儿睡觉），如果付费的话还可以隐藏自身， 不知道有没有见过这个软件；还是说这个软件从来没有存在过 很困惑
-]]></content:encoded>
-<pubDate>2024-03-23T07:02:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求解 c2c 支付模式是怎么实现的</title>
-<link>https://www.v2ex.com/t/1026328</link>
-<guid>https://www.v2ex.com/t/1026328</guid>
-<content:encoded><![CDATA[
-<p>c2c 支付中必须要有一个第三方的支付平台吗？如果是的话具体的支付流程是什么样的呢？</p>
-]]></content:encoded>
-<pubDate>2024-03-23T07:19:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大佬们可以分享下最近在听的歌吗？</title>
-<link>https://www.v2ex.com/t/1026327</link>
-<guid>https://www.v2ex.com/t/1026327</guid>
-<content:encoded><![CDATA[
-<p>最近歌慌，求推荐。最近听的觉得不错的就可以</p>
-]]></content:encoded>
-<pubDate>2024-03-23T06:58:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 服务器每时每刻 /var/log/secure 有大量登录日志，会有什么问题吗？</title>
-<link>https://www.v2ex.com/t/1026326</link>
-<guid>https://www.v2ex.com/t/1026326</guid>
-<content:encoded><![CDATA[
-类似这样：<br />Mar 23 14:45:03 VM-4-16-opencloudos sshd[988302]: Received disconnect from 174.138.24.127 port 35340:11: Bye Bye [preauth]<br />Mar 23 14:45:03 VM-4-16-opencloudos sshd[988302]: Disconnected from authenticating user root 174.138.24.127 port 35340 [preauth]<br /><br />腾讯云上防火墙，和服务器上防火墙都只有开发几个端口，而且确认了并没有日志中这些端口，比如这条的 35340 ，那么为啥它还会有记录？<br /><br />我 ssh 就是开发的默认端口，我也了解了下用上了 fail2ban ，但我也问了 ai 似乎 fail2ban 也能配置把 ssh 端口直接写 any ，那么到底是 any 直接封禁所有这样的尝试登录消耗性能，还是其实这样日志并没什么关系？
-]]></content:encoded>
-<pubDate>2024-03-21T06:49:54Z</pubDate>
-</item>
-<item>
-<title>[SONY] 中国电信在 Sony 手机上，只能上网不能电话。</title>
-<link>https://www.v2ex.com/t/1026324</link>
-<guid>https://www.v2ex.com/t/1026324</guid>
-<content:encoded><![CDATA[
-我近期购买了一部 Sony Xperia PRO-I 手机，插入「中国电信(CN)」一切正常通话上网用着完全没毛病。但是问题来了插入「中国电信澳门(Mo)」时能读卡，开启漫游能 4G 上网；但就是不能通话。解了 BL 锁刷入面具后，刷了模块依然无效果。后来了解到这些电信补丁只针对「中国电信(CN)」有效，中国电信澳门卡使用这些电信补丁是没有效果的。有大佬能帮助下吗？
-]]></content:encoded>
-<pubDate>2024-03-23T07:07:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么 app 可以管理自己在虚拟商品上的花费？</title>
-<link>https://www.v2ex.com/t/1026321</link>
-<guid>https://www.v2ex.com/t/1026321</guid>
-<content:encoded><![CDATA[
-比如说可以记录某某软件，买了半年的订阅，到期日是多少，花了多少钱，某某软件买断了，花了多少钱这种？
-]]></content:encoded>
-<pubDate>2024-03-15T06:26:39Z</pubDate>
-</item>
-<item>
-<title>iPhone 15 和 iPhone15pro 怎么选？</title>
-<link>https://www.v2ex.com/t/1024684</link>
-<guid>https://www.v2ex.com/t/1024684</guid>
-<content:encoded><![CDATA[
-手持 13 标准版用了两年<br />如果不玩游戏也不怎么喜欢拍照的话，是不是选 15 就够用了，<br />高刷这个都说用过就回不去了的，但是没有用过，标准版好像也没啥不好反正之前的水果机一直如此。<br />还有就是 2g 闪存的差距大不大呢，现在 13 老是杀后台，换 15 能多 2g ，当然 15pro 多 4g 。<br /><br />两者实际体验差距大不大呢
-]]></content:encoded>
-<pubDate>2024-03-21T17:19:59Z</pubDate>
-</item>
-<item>
-<title>被苹果 MBP 16 寸的音质震撼到了，有没有类似这种音质的小音箱，或者这种喇叭哪里可以买到？</title>
-<link>https://www.v2ex.com/t/1025073</link>
-<guid>https://www.v2ex.com/t/1025073</guid>
-<content:encoded><![CDATA[
-<h3>背景：</h3>
-<p>家里有漫步者 MR4 、S880 ，音质只能说很平庸，感觉和几年前 99 买的天猫精灵差不多；周末刚买了 MBP ，一下子被自带喇叭的音质震撼到了，比上面提到的音响的音质要好很多，听起来很舒服，很悦耳，高中低音感觉都很到位（声音不是很大的情况，基本用不到太大的声音）。</p>
-<h3>需求：</h3>
-<p>1 、主要在卧室使用；<br />
-2 、体积尽量小些；<br />
-3 、有 AUX 输入接口；<br />
-4 、音质类似 MBP 自带的喇叭</p>
-]]></content:encoded>
-<pubDate>2024-03-21T13:19:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 22 届家里蹲想转码，向大家咨询下水硕的选择</title>
-<link>https://www.v2ex.com/t/1026320</link>
-<guid>https://www.v2ex.com/t/1026320</guid>
-<content:encoded><![CDATA[
-水硕选校求助各位：<br />1.香港城市大学：数字化转型与科技创新   <br />2.昆士兰大学：计算机<br />背景是普通 211 自动化，0 实习，Java 学到了 springboot ，一年非相关工作经验，离职后家里蹲快九个月了。。。想通过水硕重开毕业后转码，不打算进体制内，在国内找软件测试的工作(965 的那种，外包也行)<br />总结的优缺点如下：<br />港城<br />优点：专业难度低，空余时间多可以面向就业学习，距开学还有五个月看能不能找到接受 gap 的测试实习、日常深圳实习比较方便<br />缺点：专业水，担心被专业歧视导致无法过简历关<br />昆士兰<br />优点:cs 专业，QS 排名高<br />缺点:听学长学姐说难度较大任务较多、实习没有港城方便（只能 11 月放假回国最多实习 3 个月）、总花费港城多 17-19 万左右<br />留位费快截止了，各位大佬麻烦给些意见吧
-]]></content:encoded>
-<pubDate>2024-03-23T06:21:19Z</pubDate>
-</item>
-<item>
-<title>[程序员] 域环境下的登录事件</title>
-<link>https://www.v2ex.com/t/1026319</link>
-<guid>https://www.v2ex.com/t/1026319</guid>
-<content:encoded><![CDATA[
-<p>域环境下 windows 出现很多 4624 的日志，但是当账号并没有进行登录操作的时候，也会显示 4624 ，应该如何判断某个域账户是否执行登录操作呢</p>
-]]></content:encoded>
-<pubDate>2024-03-23T06:11:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 诸君是怎么一步步走入婚姻殿堂的？什么年纪</title>
-<link>https://www.v2ex.com/t/1026318</link>
-<guid>https://www.v2ex.com/t/1026318</guid>
-<content:encoded><![CDATA[
-沦为了上称的猪<br />朋友 D 劝心理年龄不成熟<br />做不了家里的主就等着被安排<br />有底气一辈子不结婚不生娃<br />就早点宣告全世界<br /><br />被醍醐灌顶了<br />但确实没有结婚想法更不想生娃<br />生娃太疼太血腥了糟不了那个罪<br />实在喜欢想要打算领养或资助满足自己主要<br /><br />或许问题没有答案<br />人生这个课题真的好头疼啊<br />面试一样年度琐事结婚计划搬上了日程<br /><br />想问：<br />结婚的你们开心吗？<br />生娃的你们满足吗？<br />有一刻后悔吗？<br />到底是为什么选择了 TA 呢？
-]]></content:encoded>
-<pubDate>2024-03-23T06:10:30Z</pubDate>
-</item>
-<item>
-<title>[微信] 微信功能限制</title>
-<link>https://www.v2ex.com/t/1026317</link>
-<guid>https://www.v2ex.com/t/1026317</guid>
-<content:encoded><![CDATA[
-微信太气人了，新买的小米 14Pro 以及新办的广电号码；在 KFC 蹭那边的 WiFi 注冊新微信号。没过 5 分钟突然微信下线，然后重新登录进入提示说：“因违规行为被多人举报”，微信功能被限制。10 分钟后又一次被踢下线，从新登录时仅剩下注销功能还能正常操作；然后提交了注销申请。今天满 15 了查了下微信注销成功。<br />微信行为实在搞不懂，新设备、新号码莫名其妙被限制功能，好友也没加、实名认证也没做。
-]]></content:encoded>
-<pubDate>2024-03-23T06:05:40Z</pubDate>
-</item>
-<item>
-<title>[Apple] [求知] Vision Pro 观看 3D 电影的感受问题</title>
-<link>https://www.v2ex.com/t/1026316</link>
-<guid>https://www.v2ex.com/t/1026316</guid>
-<content:encoded><![CDATA[
-在电影院看 3D 电影，戴着那个 3D 眼镜，总感觉视觉的焦点有点跑焦，差点意思，不够震撼。<br /><br />不知道我的感受是不是个例。<br /><br />Vision Pro 理论上两个眼睛是两个屏幕，并且会自动对齐瞳距，理论上是 3D 的最好的状态，不知道有没有大佬实际体验过，戴着 Vision Pro 看 3D 电影的时候和电影院看 3D 电影的观感差距大吗？
-]]></content:encoded>
-<pubDate>2024-03-23T06:00:26Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享 Suno Tools 网站, 一个关于 Suno AI 的工具集网站</title>
-<link>https://www.v2ex.com/t/1026315</link>
-<guid>https://www.v2ex.com/t/1026315</guid>
-<content:encoded><![CDATA[
-<p>Suno V3 的推出，标志着音乐创作领域的一次重大变革。Suno AI 的目标是吸引全球十亿用户，让他们能够以每月十美元的费用，享受到专业级别的音乐创作服务。这一愿景不仅为音乐产业带来了新的商业模式，也为普通用户提供了一个展示创意的舞台。
-Suno Tools 网站为所有热爱音乐的人提供了一个全新的起点，整合 Suno 相关的资讯与工具。目前暂时能够下载 Suno 上面的音频文件到本地，后续会继续新增新的功能。
-欢迎体验：
-<a href="https://sunotools.top" rel="nofollow">https://sunotools.top</a></p>
-]]></content:encoded>
-<pubDate>2024-03-23T05:43:28Z</pubDate>
-</item>
-<item>
-<title>[科技] 给大家分享一个可以自己部署的美观简洁强大的书签程序，格子拖拽布局，支持多用户</title>
-<link>https://www.v2ex.com/t/1026313</link>
-<guid>https://www.v2ex.com/t/1026313</guid>
-<content:encoded><![CDATA[
-<p>mTab 书签支持文件夹功能，还有页面的分类功能。</p>
-<p>可以更好的管理标签，同时正在快速迭代中，新功能也在不断的更新中。</p>
-<p>大家可以自行部署试试，如果是多用户我推荐使用源码部署或者 docker 部署，个人的话如果有 nas 就使用 nas 部署，没有的话可以选择使用轻量云服务器部署即可，有宝塔面板的朋友可以使用宝塔商城的一键部署。</p>
-<p>我优先推荐大家使用 Docker 部署。</p>
-<p>官网地址：<a href="https://www.mtab.cc" rel="nofollow">https://www.mtab.cc</a></p>
-<p>QQ 交流群：694155153</p>
-<p>下面是部署规划好后的页面截图</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://download.mtab.cc/file/20240323/a504a722495c36081b9d8ab6b38f7d18.png" /></p>
-]]></content:encoded>
-<pubDate>2024-03-23T05:35:48Z</pubDate>
-</item>
-<item>
-<title>[macOS] m3pro 自带输入法肉眼可见的卡顿</title>
-<link>https://www.v2ex.com/t/1026310</link>
-<guid>https://www.v2ex.com/t/1026310</guid>
-<content:encoded><![CDATA[
-<p>自带输入法，没有安装别的输入法</p>
-<p>36gb 内存的版本，所以应该不是硬件问题</p>
-<p>网上老机器这个问题的多，好像还很难彻底根治</p>
-<p>大家的新机器也有这样的问题吗，打很多字时就很难受</p>
-<p>尤其是用了一段时间之后更卡，重启之后会好很多</p>
-<p>求一劳永逸的办法，还原系统会好吗</p>
-]]></content:encoded>
-<pubDate>2024-03-23T05:24:20Z</pubDate>
-</item>
-<item>
-<title>[生活] 把相亲对象拉黑了，父辈朋友那关怎么混？？</title>
-<link>https://www.v2ex.com/t/1026307</link>
-<guid>https://www.v2ex.com/t/1026307</guid>
-<content:encoded><![CDATA[
-P 是相亲对象，有一搭没一搭逗着<br /> 职业：高铁司机<br /> 偶然间洗完澡视频过彼此都能看<br /> 矛盾一两次<br /> <br /> 职业原因时间不固定<br /> 半夜打电话说想听呼噜<br /> 耐心敷衍参半一分钟挂断<br /> 继续睡…<br /> <br /> <br /> 我开 H 玩笑了<br /> P 开始说玩的这么花<br /> 嫁不出去巴拉巴拉<br /> 这么不乖告诉长辈等…噼里啪啦<br /> OS：这熊孩子还告状<br /> 冷处理不回复了就<br /> <br /> <br /> 然后就开始夺命连环 call<br /> 短信扬言还没娶就开始耍脾气<br /> 不接电话告诉长辈<br /> 拿皮带抽人了要吧啦吧啦<br /> 不惯着拉黑了就<br /> <br /> 难点：<br /> 让长辈知道自己另一面有点尴尬<br /> 不知道怎么摊开说这人出言不逊
-]]></content:encoded>
-<pubDate>2024-03-23T05:39:30Z</pubDate>
-</item>
-<item>
-<title>[程序员] 个体工商户 开通小程序、商户号准备做多商户版电商平台，申请时有什么注意事项吗</title>
-<link>https://www.v2ex.com/t/1026306</link>
-<guid>https://www.v2ex.com/t/1026306</guid>
-<content:encoded><![CDATA[
-<p>我知个体工商户，可以开通小程序；也可以申请微信支付商户号；</p>
-<p>接下来准备做多商户版的电商小程序，在微信方面来说，会不会有哪些环节，个体工商户是没法实现申请的？ 因为我这边一直使用的企业，但现在用个体，不知道有什么必须的要求？</p>
-<p>另外：申请小程序时，必须有公众号的前提下，才能申请小程序吗？</p>
-]]></content:encoded>
-<pubDate>2024-03-23T05:22:09Z</pubDate>
-</item>
-<item>
-<title>[macOS] 请教各位大佬上 mac 一个问题， mac 应用全屏时，怎么永久隐藏 mac 的菜单栏</title>
-<link>https://www.v2ex.com/t/1026305</link>
-<guid>https://www.v2ex.com/t/1026305</guid>
-<content:encoded><![CDATA[
-在使用 chrome 浏览器时<br /><br />场景 1：浏览器未全屏，顶部有 mac 菜单栏，每次鼠标移动顶部切换浏览器 tab ，就无法想 win 那样，直接移动到屏幕最顶部，还得防止碰到 mac 菜单栏<br /><br />场景 2：浏览器全屏了，mac 菜单栏虽然自动隐藏，但是鼠标直接移动到屏幕最顶部，mac 菜单栏又会显示😂<br /><br /><br /><br />因为 chrome 的标签在最顶部，win 上顶部没有自己的东西，可以直接把鼠标移动到顶部切换； mac 上顶部有自己的菜单栏，向顶部移动鼠标时还得留一点位置，难受。
-]]></content:encoded>
-<pubDate>2024-03-23T06:19:22Z</pubDate>
-</item>
-<item>
-<title>[Android] 一个 arm 开发板下载了 arndroidTV，怎么扩容</title>
-<link>https://www.v2ex.com/t/1026304</link>
-<guid>https://www.v2ex.com/t/1026304</guid>
-<content:encoded><![CDATA[
-刷入一张 32G 的 TF 卡，但是只有 4G 可用，不知道有什么方法可以把没用上的给利用上，在 linux 下查了 tf 竟有 19 个分区
-]]></content:encoded>
-<pubDate>2024-03-23T01:14:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 开发者头条网为什么突然关停了</title>
-<link>https://www.v2ex.com/t/1026303</link>
-<guid>https://www.v2ex.com/t/1026303</guid>
-<content:encoded><![CDATA[
-之前用 rss 订阅开发者头条的文章，感觉质量还挺高的，没有了之后一直找不到可以替代的，这家公司是怎么黄的？好像一点消息都没有就没了。
-]]></content:encoded>
-<pubDate>2024-03-23T06:20:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] pingora 之网络设计模式</title>
-<link>https://www.v2ex.com/t/1026302</link>
-<guid>https://www.v2ex.com/t/1026302</guid>
-<content:encoded><![CDATA[
-<p>我录的 rust 视频</p>
-<p>[ pingora 之网络设计模式-哔哩哔哩]  <a href="https://b23.tv/4B9u0qR" rel="nofollow">https://b23.tv/4B9u0qR</a></p>
-]]></content:encoded>
-<pubDate>2024-03-23T04:45:45Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 趁着 Reddit 上市，我买了人生的第一只美股</title>
-<link>https://www.v2ex.com/t/1026301</link>
-<guid>https://www.v2ex.com/t/1026301</guid>
-<content:encoded><![CDATA[
-<p>前段时间办了香港的银行卡，随即在长桥开户并入金。</p>
-<p>前晚巧遇 Reddit 上市，没多考虑，便以开盘价 34 刀的价格下了买入一股的委托单。之前在大 A 交易时，最低交易通常是一手，而美股最小的交易单位允许一股，这让我不禁感叹试错成本之低，也忽略了股票单价之间其实存在巨大差异……</p>
-<p>恰逢失眠，终于熬到了一点开盘，Reddit 直接起飞到$57 ，先前的委托交易自然是无法成交。于是我取消委托，重新下了一单$55 的买入委托，没错，既然允许一股买入，我就是这么任性，勇敢追高。谁知刚提交不久，Reddit 股价应声倒下，直接回落到$50 左右。</p>
-<p>昨晚我写这个小文时，Reddit 剩下$46 左右。也就是说，我的美股首笔交易还不到 24 小时，就已经让我损失了将近 10 刀……</p>
-<p>博文地址：<a href="https://zyu.me/my-first-us-stock/" rel="nofollow">趁着 Reddit 上市，我买了人生的第一只美股</a></p>
-]]></content:encoded>
-<pubDate>2024-03-23T06:07:19Z</pubDate>
-</item>
-<item>
-<title>[程序员] 局域网下互传文件的速度问题</title>
-<link>https://www.v2ex.com/t/1026299</link>
-<guid>https://www.v2ex.com/t/1026299</guid>
-<content:encoded><![CDATA[
-<p>最近在做 linux 的嵌入式开发，有一个装了 ubuntu 系统的开发板，我们称为 A 机。我自己的电脑也是 ubuntu 系统，我们称为 B 机。现在 A 、B 机都连上了一个 WIFI ，现在我能够在 B 机上通过 SSH 来连接到我的 A 机，现在想用 Termius 里面的 SFTP 工具把我 B 机上下载的一些数据集传到 A 机上，但是传输的速度只有 1mb/s ，速度很慢，不知道该怎么提升速度，也不知道问题出在哪里。</p>
-]]></content:encoded>
-<pubDate>2024-03-23T05:40:47Z</pubDate>
-</item>
-<item>
-<title>[分享发现] umami 统计突然访问了增加了一堆，来源域名是 v2ex.com，感谢大佬们捧场</title>
-<link>https://www.v2ex.com/t/1026298</link>
-<guid>https://www.v2ex.com/t/1026298</guid>
-<content:encoded><![CDATA[
-昨天博客访客直接+991 ，原来是有朋友在这里分享了我的一个博文链接！然后我就找到了这个论坛，这个论坛是真的大大大大大啊！<br /><br />过来膜拜一下各位大佬，感觉看着各位都是专业程序员，我是个二流子敲代码的，以后经常来逛逛哈哈
-]]></content:encoded>
-<pubDate>2024-03-23T06:11:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 距离 AR 增强现实爆火还需要多久</title>
-<link>https://www.v2ex.com/t/1026297</link>
-<guid>https://www.v2ex.com/t/1026297</guid>
-<content:encoded><![CDATA[
-<p>在去年 Ai 爆火过后，</p>
-<p>在 Ai 的推动下应该加强 Ar 增强现实的发展</p>
-<p>一直持有 2 个域名，等待他们的升值。
-<a href="http://av.ar" rel="nofollow">av.ar</a>
-<a href="http://im.ar" rel="nofollow">im.ar</a></p>
-]]></content:encoded>
-<pubDate>2024-03-23T04:16:33Z</pubDate>
-</item>
-<item>
-<title>[程序员] 整理了一些常用的 AI 资源，陆续完善</title>
-<link>https://www.v2ex.com/t/1026296</link>
-<guid>https://www.v2ex.com/t/1026296</guid>
-<content:encoded><![CDATA[
-<p>做了个 AI 导航页，汇总了一些常用的国内外大语言模型、AI 搜索引擎、AI 创作工具和提示工程教程等内容，方便日常使用。</p>
-<p>&gt;&gt;&gt;<a href="https://www.996geek.com/ai" rel="nofollow">https://www.996geek.com/ai</a></p>
-<p>目前整体内容还比较少，接下来会陆续增加一些文章和常用的工具。通过利用好工具，来提高工作效率。</p>
-<p>建议收藏好地址：<a href="http://996geek.com" rel="nofollow">996geek.com</a></p>
-]]></content:encoded>
-<pubDate>2024-03-23T00:04:21Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享英文字幕翻译并加载回视频的全流程，总结一下具体操作流程</title>
-<link>https://www.v2ex.com/t/1026295</link>
-<guid>https://www.v2ex.com/t/1026295</guid>
-<content:encoded><![CDATA[
-分享英文字幕翻译并加载回视频的全流程，总结一下具体操作流程：<br /><br />1.  使用 yt-dlp 下载 youtube 上的视频，譬如：<br /><br />yt-dlp <a href="https://youtube.com/watch?v=ahnGLM-RC1Y" rel="nofollow noopener" target="_blank">https://youtube.com/watch?v=ahnGLM-RC1Y</a><br /><br />2. 使用 whisper 进行字幕抽取，譬如：<br /><br />whisper A\ Survey\ of\ Techniques\ for\ Maximizing\ LLM\ Performance\ \[ahnGLM-RC1Y\].webm --task translate --language Chinese --model small<br /><br />3. 使用 ChatGPT 将生成的 srt 文件进行翻译.<br /><br />4. 使用 moviepy 进行字幕重新加载回视频，生成新视频 output.mp4<br /><br /><a href="https://github.com/zgimszhd61/movieAddSubtitle" rel="nofollow noopener" target="_blank">https://github.com/zgimszhd61/movieAddSubtitle</a><br /><br />整个过程中，moviepy 的运行时间比较久（可能是我电脑比较烂的原因），花了 4 个小时，需要有点耐心。<br /><br />请教各位大佬们这个过程什么地方可以加速，<br /><br />有没有更好的办法？
-]]></content:encoded>
-<pubDate>2024-03-23T03:51:01Z</pubDate>
-</item>
-<item>
-<title>[程序员] CF 上托管的域名收到了 DMCA 版权侵权投诉，有必要处理吗</title>
-<link>https://www.v2ex.com/t/1026294</link>
-<guid>https://www.v2ex.com/t/1026294</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>侵权邮件内容：</li>
-</ul>
-<p><a href="https://upload.cc/i1/2024/03/23/6Hv2oE.png" rel="nofollow">https://upload.cc/i1/2024/03/23/6Hv2oE.png</a></p>
-<ul>
-<li>网站访问量：</li>
-</ul>
-<p><a href="https://upload.cc/i1/2024/03/23/YF9nWk.png" rel="nofollow">https://upload.cc/i1/2024/03/23/YF9nWk.png</a></p>
-<p>由于网站访问量较大，也不知道处不处理好，还是像其他站的侵权内容那样搞个会员登录可见</p>
-]]></content:encoded>
-<pubDate>2024-03-23T04:08:01Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 知乎评论被删了，能找回吗</title>
-<link>https://www.v2ex.com/t/1026293</link>
-<guid>https://www.v2ex.com/t/1026293</guid>
-<content:encoded><![CDATA[
-<p>知道现在知乎科技圈新品问题下的评论都是自媒体通稿了，平时也不咋看。 </p>
-<p>前两天偶尔刷到个回答，引用了极客湾的数据，正好我当时刚看完被引用的极客湾的那期节目。
-发现回答引用了 CPU 能效曲线图来说明处理器能打，却没有 GPU 的能效曲线图。恰恰是 GPU 能效曲线比较拉胯。</p>
-<p>所以我在答案评论里面做了回复： ”只看 CPU 能效不看 GPU 能效可能容易让人产生误解“，并附上了极客湾测评的 GPU 能效曲线截图。</p>
-<p>没过多久，我看到我的评论大概有 5 个赞。</p>
-<p>但昨晚我在时间线上再次刷到这个问题，重新点开评论，我的评论已经无了。</p>
-<p>想了想，我的回答没有任何冒犯的地方，竟然也能被答主删掉， 真是见识了。</p>
-<p>答案的内容：</p>
-<p><img alt="1711164009501.jpeg" class="embedded_image" rel="noreferrer" src="https://img2.imgtp.com/2024/03/23/pz4YX0qs.jpeg" /></p>
-<p>我看到后，当时在手机上打开极客湾视频，截图了 GPU 能效对比图，在评论中进行了回复：</p>
-<p><img alt="1711165372114.jpeg" class="embedded_image" rel="noreferrer" src="https://img2.imgtp.com/2024/03/23/ZDgjRCmQ.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-03-23T03:44:38Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [前端 深圳] 最近公司最后一个窗口期招人了，券商</title>
-<link>https://www.v2ex.com/t/1026292</link>
-<guid>https://www.v2ex.com/t/1026292</guid>
-<content:encoded><![CDATA[
-深圳福田券商公司，招前端，主要技术栈 vue 、小程序，有没有在看机会的小伙啊，找我内推，大家一起搬砖一起玩呢。<br />工作待遇还在国内是不错的，要求 211 起，5 年内不超过 2 跳的。
-]]></content:encoded>
-<pubDate>2024-03-23T03:59:09Z</pubDate>
 </item>
 </channel>
 </rss>
