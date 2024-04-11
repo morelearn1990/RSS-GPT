@@ -5,14 +5,1238 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] PKI 体系中，由 SSL/TSL 实现 HTTPS 应用，浏览器和服务器之间用于加密 HTTP 消息的方式是？</title>
+<link>https://www.v2ex.com/t/1031691</link>
+<guid>https://www.v2ex.com/t/1031691</guid>
+<content:encoded><![CDATA[
+
+A.会话密钥+公钥加密<br />B.会话密钥+对称加密<br /><br />------------<br />看到了几个不同的答案，要么 A 要么 B ，我对这个不太了解，请问是 A 还是 B ？
+]]></content:encoded>
+<pubDate>2024-04-11T08:22:28Z</pubDate>
+<pubDate>2024-04-11T08:22:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] gpt3.5 现在限制太多了吧.</title>
+<link>https://www.v2ex.com/t/1031690</link>
+<guid>https://www.v2ex.com/t/1031690</guid>
+<content:encoded><![CDATA[
+
+刚才问了 gpt 2 个问题,中间还断连了吗,每个问题就回了几句话,就被提示访问太多,1 小时后再访问.现在感觉 gpt3.5 基本没法满足日常使用了,还有哪个可以替代的吗?
+]]></content:encoded>
+<pubDate>2024-04-11T08:16:47Z</pubDate>
+<pubDate>2024-04-11T08:21:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] WPS 桌面端好像不能连接 webdav，没找到，安卓和 iOS 端都可以连接</title>
+<link>https://www.v2ex.com/t/1031689</link>
+<guid>https://www.v2ex.com/t/1031689</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-11T08:15:20Z</pubDate>
+<pubDate>2024-04-11T04:15:20Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 搬家导致公网 IP 无了之后，我琢磨出的公司办公机搭配 Clash，访问家庭网络的方案</title>
+<link>https://www.v2ex.com/t/1031688</link>
+<guid>https://www.v2ex.com/t/1031688</guid>
+<content:encoded><![CDATA[
+
+<h2>有什么优势</h2>
+<ul>
+<li>通过家里的局域网 IP 访问设备</li>
+<li>解决公司内部网络，内部 DNS 问题</li>
+<li>直连网络，流量不需要经过服务器中转</li>
+<li>和 Clash 配合，不需要再装其它 VPN 软件</li>
+<li>相比于 zerotier tailscale ，没有 QoS 的问题</li>
+<li>安全，不需要对外暴露端口</li>
+<li>适合多对一的情况</li>
+</ul>
+<p>前提：搞清楚 NAT 类型，确定能够打洞穿透才行</p>
+<p><a href="https://imgse.com/i/pFXNYiF" rel="nofollow"><img alt="pFXNYiF.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/04/11/pFXNYiF.png" /></a></p>
+<h2>1. 准备</h2>
+<ul>
+<li><a href="https://github.com/clash-verge-rev/clash-verge-rev" rel="nofollow">Clash.Verge</a></li>
+<li><a href="https://github.com/fatedier/frp" rel="nofollow">FRP</a></li>
+<li>
+一台云服务器<ul>
+<li>frps 负责 P2P 打洞，失败也可以作为降级，Frp 提供穿透失败走中转的策略</li>
+</ul>
+</li>
+<li>
+家里<ul>
+<li>frpc</li>
+<li>socks-server</li>
+</ul>
+</li>
+<li>
+公司<ul>
+<li>frpc</li>
+<li>clash</li>
+</ul>
+</li>
+</ul>
+<h2>2. Frp 配置</h2>
+<h3>2.1 云服务器 Frps 配置</h3>
+<p>frps.toml</p>
+<pre><code class="language-toml">bindPort = 7000
+</code></pre>
+<p>docker-compose.yml</p>
+<pre><code class="language-yaml">version: '3.5'
+
+services:
+  frps:
+    image: snowdreamtech/frps:0.56.0
+    networks:
+      - cluster
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    configs:
+      - source: frps_config
+        target: /etc/frp/frps.toml
+    ports:
+      - target: 7000
+        published: 7000
+configs:
+  frps_config:
+    file: ./frps.toml
+</code></pre>
+<h3>2.2 家里</h3>
+<ul>
+<li>
+部署 socks 服务<ul>
+<li>我是用的 openwrt passwall 自带的</li>
+</ul>
+</li>
+</ul>
+<p>frpc.toml</p>
+<pre><code class="language-toml"># frps 部署地址
+serverAddr = "xxxx"
+serverPort = 7000
+
+[[proxies]]
+name = "socks-proxies"
+# frp xtcp 才支持 p2p 打洞穿透
+type = "xtcp"
+# 秘钥，公司的 frpc 会用到
+secretKey = "xxxx"
+# 填你的 socks 所在设备的 ip port
+localIP = "192.168.5.2"
+localPort = 10080
+</code></pre>
+<h3>2.3 公司</h3>
+<p>frpc.toml</p>
+<pre><code># frps 部署地址
+serverAddr = "xxxx"
+serverPort = 7000
+
+[[visitors]]
+# 随便取
+name = "socks_visitor"
+# 和家里保持一致
+type = "xtcp"
+serverName = "socks-proxies"
+secretKey = "xxxx"
+# 绑定到本地的端口
+bindAddr = "0.0.0.0"
+bindPort = 10080
+# 定时轮询，保持连接
+# keepTunnelOpen = true
+</code></pre>
+<p>运行</p>
+<pre><code class="language-bash"> docker run --restart=always -p 10080:10080 -d -v ./frpc.toml:/etc/frp/frpc.toml --name frpc snowdreamtech/frpc
+</code></pre>
+<h2>3. Clash 配置</h2>
+<p><strong>在 Clash-Verge 中开启 Tun 模式</strong>：这样可以创建一个网卡，接管电脑所有网络，否则只能浏览器，或者支持代理的软件访问</p>
+<p>Clash 基础配置可以看： <a href="https://github.com/juzisang/Rules/blob/main/clash.yaml" rel="nofollow">https://github.com/juzisang/Rules/blob/main/clash.yaml</a></p>
+<p>添加如下配置</p>
+<p>clash-config.yaml</p>
+<pre><code class="language-yaml"># 添加节点
+proxies:
+  - {
+      name: HomeProxy,
+      server: 127.0.0.1,
+      port: 10080,
+      type: socks5,
+      username: xxx,
+      password: xxx,
+    }
+
+...
+
+proxy-groups:
+  - name: 🏠 家庭网络
+    type: select
+    proxies:
+      - HomeProxy
+
+...
+
+rules:
+  # 自定义规则
+  - IP-CIDR,192.168.5.0/24,🏠 家庭网络
+</code></pre>
+<h3>3.1 解决公司内部 DNS 问题</h3>
+<p>公司有很多内部服务，不对外开放，一般都是内部有一个私有 DNS 服务器，来负责这些内部服务的域名解析，但是 clash 接管整机网络之后，DNS 也会接管，会导致这些服务找不到 ip</p>
+<p>添加如下配置</p>
+<p>clash-config.yaml</p>
+<pre><code class="language-yaml">dns:
+  enable: true
+  listen: :1053
+  enhanced-mode: fake-ip
+  fake-ip-filter:
+    - "*"
+    - "+.lan"
+    - "+.local"
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+  nameserver:
+    # 这里填公司的私有 DNS 地址
+    - 192.168.x.x
+    - 192.168.x.x
+  nameserver-policy:
+    # 被墙的域名才走这个解析
+    "geosite:gfw":
+      - "tls://8.8.4.4#dns"
+      - "tls://1.0.0.1#dns"
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-04-11T08:14:34Z</pubDate>
+<pubDate>2024-04-11T08:16:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 安卓原生开发关于地图的疑问。现在高德地图，百度地图的 sdk 都开始收费了，但是我们业务需要用到这些，老板又不愿意花钱，请教这个大佬们如何实现？</title>
+<link>https://www.v2ex.com/t/1031686</link>
+<guid>https://www.v2ex.com/t/1031686</guid>
+<content:encoded><![CDATA[
+
+根据当前地址位置 查询周围 5 公里的博物馆 ，怎么拿当前的经纬度？如果 android 自带 的 GPS 定位存在定位不到的现象，有没有什么好的方法？？？
+]]></content:encoded>
+<pubDate>2024-04-11T08:08:26Z</pubDate>
+<pubDate>2024-04-11T04:08:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 你们的 chatgpt 能登录吗？ 我的登录后总返回登录界面</title>
+<link>https://www.v2ex.com/t/1031685</link>
+<guid>https://www.v2ex.com/t/1031685</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-11T08:02:17Z</pubDate>
+<pubDate>2024-04-09T08:02:17Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 128flash+128ram 跑 Python 够用吗？</title>
+<link>https://www.v2ex.com/t/1031683</link>
+<guid>https://www.v2ex.com/t/1031683</guid>
+<content:encoded><![CDATA[
+
+请问各位老哥，我看中了小米的 AC2100 ，价格合适长的也好看。想要刷 openwrt 跑几个轻量化的 Python 脚本，不知道 128 的内存是否够用？
+]]></content:encoded>
+<pubDate>2024-04-11T08:01:55Z</pubDate>
+<pubDate>2024-04-11T08:18:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] 新领养个小猫，有什么要准备的</title>
+<link>https://www.v2ex.com/t/1031682</link>
+<guid>https://www.v2ex.com/t/1031682</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，没养过宠物猫，月底要领养一个小橘猫，需要买哪些东西。有没有推荐的链接啊。</p>
+]]></content:encoded>
+<pubDate>2024-04-11T08:00:36Z</pubDate>
+<pubDate>2024-04-11T08:23:42Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 iQOO 手机的状态栏问题</title>
+<link>https://www.v2ex.com/t/1031680</link>
+<guid>https://www.v2ex.com/t/1031680</guid>
+<content:encoded><![CDATA[
+
+我看别的手机可以调整状态栏是否显示 vpn 图标，我这个 vpn 图标可以隐藏吗？用的 surfboard
+]]></content:encoded>
+<pubDate>2024-04-11T07:57:56Z</pubDate>
+<pubDate>2024-04-11T07:55:56Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教一个关于 Firewalld 防火墙的问题</title>
+<link>https://www.v2ex.com/t/1031678</link>
+<guid>https://www.v2ex.com/t/1031678</guid>
+<content:encoded><![CDATA[
+
+<h3>防火墙配置如下</h3>
+<pre><code>public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens3
+  sources: 
+  services: cockpit dhcpv6-client ssh
+  ports: 80/tcp
+  protocols: 
+  forward: no
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+	rule family="ipv4" source address="111.111.111.1/32" port port="3306" protocol="tcp" accept
+	rule family="ipv4" source address="22.22.22.2/32" port port="22" protocol="tcp" accept
+</code></pre>
+<h3>我疑惑的地方</h3>
+<p>111.111.111.1 是一个服务器 ip ，需要访问我服务器的 3306 端口，我没加规则前是访问不通的，加了规则后就可以访问我服务器的 3306 端口了，所以防火墙规则应该是生效了的。</p>
+<p>22.22.22.2 是我 vpn 的 ip 地址，我只允许我自己的 vpn 访问服务器的 22 端口，但实际情况是我同事的 vpn 也可以，我同事的是 22.22.22.3 ，所以是防火墙规则未生效？</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:56:14Z</pubDate>
+<pubDate>2024-04-11T07:55:14Z</pubDate>
+</item>
+<item>
+<title>[投资] 走你 IBKR referral 注册，我存 1W 放一年，你拿到奖励后分我一半，有人愿意吗？</title>
+<link>https://www.v2ex.com/t/1031677</link>
+<guid>https://www.v2ex.com/t/1031677</guid>
+<content:encoded><![CDATA[
+
+或者你走我邀请 ，等我拿到 200$推荐奖励后返你 100$， 有人感兴趣吗？<br /><br />这是官网达标条件 <a href="https://www.interactivebrokers.com/en/trading/referral-member-to-member.php" rel="nofollow noopener" target="_blank">https://www.interactivebrokers.com/en/trading/referral-member-to-member.php</a>
+]]></content:encoded>
+<pubDate>2024-04-11T07:55:08Z</pubDate>
+<pubDate>2024-04-10T15:55:08Z</pubDate>
+</item>
+<item>
+<title>[程序员] 给大伙分享个微信小程序的新功能（超级后门，提权神器）🤣</title>
+<link>https://www.v2ex.com/t/1031676</link>
+<guid>https://www.v2ex.com/t/1031676</guid>
+<content:encoded><![CDATA[
+
+<p>今天听群友抱怨小程序的 bug 才知道的，去社区搜了下，发现有人早发现这个问题了，原文可以点这里： <a href="https://developers.weixin.qq.com/community/develop/article/doc/000ae2dd1e0bd0d8efe05a66c66813" rel="nofollow">https://developers.weixin.qq.com/community/develop/article/doc/000ae2dd1e0bd0d8efe05a66c66813</a>
+总结一下就是，如果你手机自带截图，截取了你当前小程序的图，发给别人，别人点开截图后，下方有个直接进入小程序的按钮</p>
+<h2>重点是！</h2>
+<p>根据群友的信息，这个进入会携带你的用户信息直接进入！直接用你的账号登录了！</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:54:27Z</pubDate>
+<pubDate>2024-04-11T08:21:54Z</pubDate>
+</item>
+<item>
+<title>[MySQL] 本人前端，请教大家一个后端问题，谢谢</title>
+<link>https://www.v2ex.com/t/1031675</link>
+<guid>https://www.v2ex.com/t/1031675</guid>
+<content:encoded><![CDATA[
+
+最近练手后端，express ，express-session ，mysql ，判断好友是否在线，是不是在用户表里加一个是否在线的字段来判断，还是直接用 session 就能检测到
+]]></content:encoded>
+<pubDate>2024-04-11T07:49:13Z</pubDate>
+<pubDate>2024-04-11T08:17:14Z</pubDate>
+</item>
+<item>
+<title>[Windows] 请教一下 windows 下，如何在不引起异常的情况下，将 D 盘的数据复制到 E 盘，并且将 E 盘盘符改为 D 盘</title>
+<link>https://www.v2ex.com/t/1031674</link>
+<guid>https://www.v2ex.com/t/1031674</guid>
+<content:encoded><![CDATA[
+
+<p>目前给电脑加装了一个固态硬盘，想把原来 D 盘的内容复制到固态上。再把盘符改一改，软件都不用动了。但是考虑到有的软件会开机自启之类的，如果直接在 windows 下更改盘符可能会造成一些异常，比如犹豫软件读不到 D 盘上的配置文件，自动恢复默认设置等。考虑过 pe 系统，但是 pe 下的盘符不一定和 windows 盘符一致，特别是多系统多硬盘的情况下。所以请教一下大家有什么办法可以解决这个问题吗？</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:46:31Z</pubDate>
+<pubDate>2024-04-11T08:18:41Z</pubDate>
+</item>
+<item>
+<title>[NAS] 现在开始焦虑要不要一个 UPS</title>
+<link>https://www.v2ex.com/t/1031673</link>
+<guid>https://www.v2ex.com/t/1031673</guid>
+<content:encoded><![CDATA[
+
+虽然停电情况很少，但也不是没有可能性，一旦停电对磁盘就会有风险，今年坏了 3 块盘了（不过也用了十年了）...有没有推荐的 UPS ，带 USB 通信的
+]]></content:encoded>
+<pubDate>2024-04-11T07:46:11Z</pubDate>
+<pubDate>2024-04-10T13:51:23Z</pubDate>
+</item>
+<item>
+<title>[Java] 关于 Java 中使用 smtp 进行邮箱认证的 bug 疑惑</title>
+<link>https://www.v2ex.com/t/1031672</link>
+<guid>https://www.v2ex.com/t/1031672</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>代码片段</li>
+</ol>
+<pre><code>    public boolean authBySMTP(String name, String password) throws IOException {
+        String encodedName = BaseEncoding.base64().encode(name.getBytes());
+        String encodedPassword = BaseEncoding.base64().encode(password.getBytes());
+        boolean authed = false;
+
+        Socket socket = new Socket("smtp.exmail.qq.com", 25);
+        socket.setSoTimeout(10000);
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));) {
+
+            writer.write("helo " + "smtp.exmail.qq.com" + "\r\n");
+            writer.write("auth login" + "\r\n");
+            writer.write(encodedName + "\r\n");
+            writer.write(encodedPassword + "\r\n");
+            writer.write("quit" + "\r\n");
+            writer.flush();
+
+            String response = null;
+            String code = null;
+            while ((response = reader.readLine()) != null) {
+                code = response.substring(0, 3);
+                if ("235".equals(code)){ // 返回码 235 表示认证成功
+                    authed = true;
+                }
+                if ("221".equals(code)){ // 返回码 235 表示认证成功
+                    break;
+                }
+            }
+        } finally {
+            socket.close();
+        }
+        return authed;
+    }
+</code></pre>
+<ol>
+<li>
+<p>问题背景
+这是一段几年前的代码（作者已经不在公司了），对应的系统一直使用好几年也没发现有啥问题，2024-04-09 下午突然好多人反馈好几个系统无法登录（使用的是腾讯企业邮箱和对应的邮箱密码），提示账号密码错误。经过我着急忙慌的排查，最终把问题定位到这段通过 smtp 进行企业邮箱认证的逻辑上。</p>
+</li>
+<li>
+<p>问题现象
+由于系统没有发现任何日志和报错信息，在本地跑起来系统后（庆幸这个系统没有其他的系统依赖，直接运行很简单），通过 debug 发现，正常登录的情况下可以获取到所有发送指令对应的响应信息。但是，异常的时候，在 while 循环中，只遍历到前 2 条指令对应的响应信息，加上建立连接时的初始响应信息，总计只有 3 条响应信息。</p>
+</li>
+<li>
+<p>原因猜测
+由于我工作中几乎接触不到 IO 流相关的内容，所以这个猜测很可能不正确。
+我猜测的是代码在发送完所有指令后，在只响应了 3 条信息后，while 循环就已经运行结束了，不过现在想好像也不太可能，因为问题虽然是偶现的，但是每次出现，必定是只响应 3 条然后 reader.readLine() 就读取到 null 从而结束循环了。</p>
+</li>
+<li>
+<p>临时修复
+由于是线上问题比较紧急，再结合我之前的猜测，我当时采用了最 low 的处理方式，通过 Threed.sleep(500) 进行等待，然后问题修复上线了。</p>
+</li>
+<li>
+<p>彻底修复
+以前不知道 smtp 可以这样通过指令进行邮箱的操作，在了解后，找了机器在终端里通过 telnet 的方式手动进行了代码中的操作，尝试了无数遍没有得到任何的重现，哪怕是直接在出问题的网络环境中。
+基于这个终端内的体验，我想到了代码中可能导致前几条指令并没有真正发出，最终 flush 才真正一起发出的可能，所以我把代码优化成严格的串行操作，每发出一条指令就进行 flush 并接收其响应，根据响应再发出下一条指令。经过自测，问题完全修复。
+个人认为这样更加标准，因为完全模拟了手动在终端里的操作流程。</p>
+</li>
+<li>
+<p>疑惑
+7.1 原作者的代码逻辑是哪里有什么隐患吗？我最终的处理是否标准合理？
+7.2 为什么好几年没有更改的情况下，突然出现这个问题？我们机房或者腾讯企业邮箱机房网络严重波动？
+7.3 关于 Threed.sleep(500) 临时修复有个奇怪的现象，在 flush 前进行 Threed.sleep(500) 可以修复问题，但是在 flush 后进行 Threed.sleep(500) 却不能修复，这是为什么？</p>
+</li>
+</ol>
+<p>感谢有懂的大佬进行指点</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:44:08Z</pubDate>
+<pubDate>2024-04-11T08:11:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] Linux 新装包需要重启终端才能自动补全，怎么修复？</title>
+<link>https://www.v2ex.com/t/1031671</link>
+<guid>https://www.v2ex.com/t/1031671</guid>
+<content:encoded><![CDATA[
+
+（ ArchLinux ）在终端模拟器安装新包，安装完毕后 shell 无法自动补全包名<br />需要重启终端模拟器后才能自动补全<br />但是如果知道包名，是可以执行的<br /><br />问题应该很简单，但是描述太长找不到有用信息<br />请不吝赐教，THX~
+]]></content:encoded>
+<pubDate>2024-04-11T07:39:22Z</pubDate>
+<pubDate>2024-04-11T07:39:22Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [阅牍产品故事 10] 苹果误我啊！审核 3 周之后阅牍(Readary) RSS 阅读器新版本终于上线了</title>
+<link>https://www.v2ex.com/t/1031670</link>
+<guid>https://www.v2ex.com/t/1031670</guid>
+<content:encoded><![CDATA[
+
+<p>我基本上每次大更新功能，就会写稿宣传一次，一个月之前阅牍上线了重构的新版本，但是发现了诸多 bug ，想着新版本修复之后再宣传，结果这个新版本苹果审核了近 3 周。。心态都差点崩了。。</p>
+<p>闲话就不多说了，给大家介绍一下重新设计之后的阅牍。</p>
+<h1>列表优先</h1>
+<p>阅牍的设计初衷是想减轻用户的信息过载，希望通过产品机制让用户优先阅读感兴趣的内容，主要通过主题与筛选来实现的。但是在原来的 App 中，主题的使用非常麻烦，而且重要性不明显。本次重构，将主题、发现、聚焦等概念进一步浓缩成『列表』这个概念。</p>
+<h2>内置列表</h2>
+<p>App 预先设置的列表，包括：</p>
+<ol>
+<li>今天：今天更新的内容</li>
+<li>稍后读：从任何一个其他列表都可以将内容转为稍后读</li>
+<li>关注：关注源或者关键词，内容会更新在关注列表，因为主题转为自定义列表，因此取消了主题关注的功能</li>
+<li>所有：所有文章，为默认列表</li>
+<li>最近阅读：最近读过的文章，按阅读时间排序</li>
+<li>收藏：收藏的内容</li>
+</ol>
+<p>关注与稍后读其实是原来聚焦列表的拆分。</p>
+<h2>自定义列表</h2>
+<p>我将信息分为 [重要信息] 、 [非重要信息] 和 [垃圾信息] 三类，对于垃圾信息，阅牍支持自动化过滤，一般的 RSS 产品也是基于这种思路来解决信息过载问题。但依据作者的使用经验来看，这其实远远不够，我们希望的是把重要信息筛选出来，自定义列表就是为了解决这个问题。</p>
+<p>自定义列表借鉴自搜索引擎，用户通过关键词及关键词组合筛选出相关的内容，创建视图，把它固定在 App 面板上后，下次直接进入阅读即可。除了关键词外，后续会尝试加入更多的条件。</p>
+<p>在一般 RSS 阅读器中，是把 RSS 或者 RSS 分组当做一种列表，但是阅牍中，列表是比 RSS 或分组更高一个层次的概念，RSS 和分组只作为一个筛选项，同关键词。当选中一个列表后，只会显示符合当前列表的 RSS ，这么做得原因主要考虑两点：</p>
+<ol>
+<li>很多 RSS 里的内容可能是很多不同的话题，放到一个列表里是不合适，而自定义列表可以按照话题聚合一个列表，当然也支持按单个 RSS 或分组制作自定义列表</li>
+<li>当订阅的数量达到几十个之后，列表就太长了，而自定义列表只会将重要列表固定在面板上，使用起来更方便。</li>
+</ol>
+<h1>Mac</h1>
+<p>初步支持 Mac ，但是 Mac 上还有些功能不够完善，比如不支持视频播放，后面会解决。目前商店版下掉了 AI 和翻译功能，dmg 版本还在，可以在反馈社区进内测群获取。</p>
+<h1>价格</h1>
+<p>试水了 3 年会员，发现用户并不买账，本次还是回归了永久会员。应苹果审核要求下线了自填 Key 的 AI 摘要和翻译功能，对价格也进行了下调，后续计划推出按量收费的摘要和翻译服务（标题翻译免费）。</p>
+<h1>历史故事</h1>
+<ol>
+<li><a href="https://www.v2ex.com/t/972052#reply34" rel="nofollow">阅牍产品故事 1-缘起</a></li>
+<li><a href="https://www.v2ex.com/t/973945#reply2" rel="nofollow">阅牍产品故事 2-支持 Cubox</a></li>
+<li><a href="https://www.v2ex.com/t/980554#reply4" rel="nofollow">阅牍产品故事 3-支持关键词筛选</a></li>
+<li><a href="https://www.v2ex.com/t/985188#reply5" rel="nofollow">阅牍产品故事 4-支持自定义主题</a></li>
+<li><a href="https://www.v2ex.com/t/989010#reply8" rel="nofollow">阅牍产品故事 5-支持自动归档与后台更新</a></li>
+<li><a href="https://www.v2ex.com/t/993230#reply44" rel="nofollow">阅牍产品故事 6-开通会员功能</a></li>
+<li><a href="https://www.v2ex.com/t/1005758#reply14" rel="nofollow">阅牍产品故事 7-支持翻译</a></li>
+<li><a href="https://www.v2ex.com/t/1011745#reply12" rel="nofollow">阅牍产品故事 8-支持 iPad</a></li>
+<li><a href="https://www.v2ex.com/t/1014744#reply2" rel="nofollow">阅牍产品故事 9-支持夜间模式</a></li>
+</ol>
+<h1>截图</h1>
+<p><img alt="桌面版" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/n83716JS.png" /></p>
+<p><img alt="移动版" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Etk1uq84.png" /></p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:38:28Z</pubDate>
+<pubDate>2024-04-11T07:36:28Z</pubDate>
+</item>
+<item>
+<title>[Apple] 之前其他 Apple ID 下载过 app 的账号弹窗</title>
+<link>https://www.v2ex.com/t/1031669</link>
+<guid>https://www.v2ex.com/t/1031669</guid>
+<content:encoded><![CDATA[
+
+不知道 Apple 服务今天下午什么故障，之前用其他 Apple ID 下载过 app 的所有账号，即使在该账号退出且下载过的 app 删除了的情况下还是给我弹窗，要求设置 Apple ID ，重新 d 输入密码。
+]]></content:encoded>
+<pubDate>2024-04-11T07:38:01Z</pubDate>
+<pubDate>2024-04-11T07:43:09Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [深圳]-后端开发工程师-AI 应用初创团队</title>
+<link>https://www.v2ex.com/t/1031667</link>
+<guid>https://www.v2ex.com/t/1031667</guid>
+<content:encoded><![CDATA[
+
+<p>我所在的团队希望招一个后端开发工程师，Python 技术栈，目前在做 AIGC 相关应用。</p>
+<p>大概要求：1-3 年相关技术栈的工作经验，计算机基础扎实，有意愿加入创业团队，对目前的方向感兴趣。</p>
+<p>有兴趣的可以发简历及相关说明到个人信息页的邮箱，进一步了解。</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:32:38Z</pubDate>
+<pubDate>2024-04-11T07:37:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在还有能买到水果味烟弹的地方吗？</title>
+<link>https://www.v2ex.com/t/1031666</link>
+<guid>https://www.v2ex.com/t/1031666</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-11T07:31:09Z</pubDate>
+<pubDate>2024-04-07T07:31:09Z</pubDate>
+</item>
+<item>
+<title>[汽车] 今天华为春季发布会，来聊聊"华为新车"</title>
+<link>https://www.v2ex.com/t/1031665</link>
+<guid>https://www.v2ex.com/t/1031665</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-11T07:30:54Z</pubDate>
+<pubDate>2024-04-11T03:30:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于自建域名邮箱的纠结，是否坚持个人域名邮箱？</title>
+<link>https://www.v2ex.com/t/1031663</link>
+<guid>https://www.v2ex.com/t/1031663</guid>
+<content:encoded><![CDATA[
+
+我注册了自己的域名，通过腾讯企业邮自建了个人域名邮箱。<br />QQ ，163 ，outlook 我都不太喜欢，最近发现 Gmail 很优秀，开始使用了。<br /><br />自建邮箱每年续费域名是 85 元，最近感觉 Gmail 真的好方便，部分国外邮件腾讯企业邮也可能出现收发不到的情况，例如我的 Typora 序列号邮件，腾讯 QQ 邮箱居然接收不到。<br /><br />总之我很纠结与是否坚持个人域名邮箱，这是一个折腾的事情，也需要花费一些金钱。而 Gmail 配合 iCloud 加上国内 QQ 邮箱，似乎完全覆盖了我所有可能遇到的使用场景，而且免费稳定，口碑都不错。<br /><br />另外前辈们关于自建域名邮箱是否知道一些缺点？就像是自建个人网站一样，现在互联网淡化了个人站长，越来越多服务被平台监管，能坚持下去的人越来越少了。
+]]></content:encoded>
+<pubDate>2024-04-11T07:30:16Z</pubDate>
+<pubDate>2024-04-11T07:27:16Z</pubDate>
+</item>
+<item>
+<title>[求职] 怎样才能快速找到工作</title>
+<link>https://www.v2ex.com/t/1031662</link>
+<guid>https://www.v2ex.com/t/1031662</guid>
+<content:encoded><![CDATA[
+
+<p>Boss 、拉钩全是已读不回或投了简历就没消息，还有其它什么渠道能快速找到前端的工作吗，急急急</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:29:38Z</pubDate>
+<pubDate>2024-04-11T04:27:38Z</pubDate>
+</item>
+<item>
+<title>[程序员] 关于设计设计数据库的原则</title>
+<link>https://www.v2ex.com/t/1031660</link>
+<guid>https://www.v2ex.com/t/1031660</guid>
+<content:encoded><![CDATA[
+
+<p>平时总结的自己做开发时设计 Schema 的一些原则，大家有什么这方面的分享么？
+这里放不下太多内容，贴一些主要的</p>
+<ul>
+<li>
+表尽量不要前缀 - 清晰明了<ul>
+<li>MySQL 额外考虑</li>
+<li>PG 支持 Schema 隔离 - 避免直接使用 public schema</li>
+</ul>
+</li>
+<li>字段尽量不要缩写</li>
+<li>
+尽量不要用 拼音<ul>
+<li>做国内环境除外 - 例如：政企数据无法很好翻译</li>
+</ul>
+</li>
+<li>维护开发字典 - 例如 <a href="https://wener.me/notes/dev/dict" rel="nofollow">开发用词字典</a></li>
+<li>
+尽量 <strong>不要</strong> 用自增长 ID<ul>
+<li>容易被遍历</li>
+<li>面向用户的可以 增加额外的 自增长 编号/序号</li>
+</ul>
+</li>
+<li>使用 有序的 随机主键 - ULID, UUID</li>
+<li>建议主键增加 type tag</li>
+<li>
+PostgreSQL<ul>
+<li>尽量用 text, bigint, jsonb, bool</li>
+<li>看情况用 array - array 能简化不少需要 join 表的场景 - 例如 <code>tags text[]</code></li>
+<li>
+避免 varchar(n) 限定长度<ul>
+<li>业务层控制 validation</li>
+<li>通过 check 验证</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>column</th>
+<th>for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>主键 - ULID, tagged ID</td>
+</tr>
+<tr>
+<td>sid</td>
+<td>租户维度单调递增 - 用户友好</td>
+</tr>
+<tr>
+<td>uid</td>
+<td>UUID</td>
+</tr>
+<tr>
+<td>tid</td>
+<td>租户 ID</td>
+</tr>
+<tr>
+<td>eid</td>
+<td>用于导入数据关联 - tid+eid 唯一</td>
+</tr>
+<tr>
+<td>cid</td>
+<td>外部系统租户 ID - Colocate ID/Corp ID - tid+cid+rid 唯一</td>
+</tr>
+<tr>
+<td>rid</td>
+<td>外部系统资源 ID - Ref ID/Relative ID</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td></td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td></td>
+</tr>
+<tr>
+<td>deleted_at</td>
+<td></td>
+</tr>
+<tr>
+<td>version</td>
+<td>基于版本的乐观锁</td>
+</tr>
+<tr>
+<td>metadata</td>
+<td>补充数据</td>
+</tr>
+<tr>
+<td>attributes</td>
+<td>使用端自定义数据 - 客户端 读写</td>
+</tr>
+<tr>
+<td>properties</td>
+<td>服务端自定义数据 - 客户端 只读</td>
+</tr>
+<tr>
+<td>extensions</td>
+<td>内部扩展数据 - 客户端 不可见</td>
+</tr>
+<tr>
+<td>owner_id</td>
+<td>所有者</td>
+</tr>
+<tr>
+<td>owner_type</td>
+<td>User, Team, Department, Organization</td>
+</tr>
+<tr>
+<td>owner_user_id</td>
+<td><code>case owner_type when 'User' then owner_id end</code></td>
+</tr>
+<tr>
+<td>owner_team_id</td>
+<td><code>case owner_type when 'Team' then owner_id end</code></td>
+</tr>
+<tr>
+<td>entity_id</td>
+<td>关联任意实体</td>
+</tr>
+<tr>
+<td>entity_type</td>
+<td></td>
+</tr>
+<tr>
+<td>created_by_id</td>
+<td></td>
+</tr>
+<tr>
+<td>updated_by_id</td>
+<td></td>
+</tr>
+<tr>
+<td>deleted_by_id</td>
+<td></td>
+</tr>
+<tr>
+<td>state</td>
+<td>状态 - 面向系统，不可自定义</td>
+</tr>
+<tr>
+<td>status</td>
+<td>业务状态、阶段、原因、细节 - 可自定义</td>
+</tr>
+</tbody></table><ul>
+<li>
+eid<ul>
+<li>同质系统导入外建关联 - 例如: SaaS &lt;-&gt; 现存内部系统</li>
+<li>也可能会导出再导入</li>
+</ul>
+</li>
+<li>
+cid &amp; rid<ul>
+<li>非同质系统 - 例如: 服务商、平台</li>
+<li>-&gt; sourceType+sourceId</li>
+<li>-&gt; vendorType+vendorId</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-sql">create table tpl_res
+(
+    -- 基础
+    id                  text        not null default gen_ulid(),
+    tid                 bigint      not null default current_tenant_id(), -- 租户
+    uid                 uuid        not null default gen_random_uuid(),
+    sid                 bigint      not null default (next_res_sid('tpl_pri_resources')),
+    eid                 text        null , -- 用于导入数据关联
+    created_at          timestamptz not null default current_timestamp,
+    updated_at          timestamptz not null default current_timestamp,
+    deleted_at          timestamptz,
+    -- auditor 信息
+    created_by_id       text                 default current_setting('app.user.id'),
+    updated_by_id       text                 default current_setting('app.user.id'),
+    deleted_by_id       text,
+    -- 按需附加任意层面的数据
+    -- 例如: attributes 允许客户端修改, properties 不允许客户端修改, extensions 客户端不可见
+    extensions          jsonb,
+    properties          jsonb,
+    attributes          jsonb,
+    -- 业务 owner 信息
+    owner_id            text,
+    owner_type          text,
+    owner_uid           uuid,
+    owner_id            text,
+    owner_type          text, -- User, Team, Department
+    owner_user_id       text generated always as ( case owner_type when 'User' then owner_id end ) stored,
+    owner_team_id       text generated always as ( case owner_type when 'Team' then owner_id end ) stored,
+    owner_department_id text,
+    primary key (tid, id),
+    unique (tid, sid),
+    unique (tid, uid)
+);
+</code></pre>
+<h1>FAQ</h1>
+<h2>created_at vs create_time</h2>
+<ul>
+<li>
+created_at, <code>*_at</code><ul>
+<li>语义 准确</li>
+<li>与 <code>created_by_id</code> 形式上类似</li>
+<li>使用: Spring, Gorm 默认</li>
+<li>面向 <strong>系统</strong></li>
+</ul>
+</li>
+<li>
+create_time, <code>*_time</code><ul>
+<li>使用: AIP</li>
+<li>面向 <strong>用户</strong>, 业务</li>
+</ul>
+</li>
+</ul>
+<h2>扩展 {#extension}</h2>
+<ul>
+<li>
+extensions<ul>
+<li>内部使用</li>
+</ul>
+</li>
+<li>
+properties<ul>
+<li>服务端使用，前端可见</li>
+</ul>
+</li>
+<li>
+attributes<ul>
+<li>前端使用，服务端可见</li>
+</ul>
+</li>
+<li>
+metadata<ul>
+<li>对数据内容的补充说明</li>
+</ul>
+</li>
+<li>
+raw<ul>
+<li>外部导入原始数据</li>
+<li>也可以记录到 metadata, properties.raw, extensions.raw</li>
+</ul>
+</li>
+</ul>
+<h2>单数还是复数表名 {#plural}</h2>
+<blockquote>
+<p>推荐单数形式。
+部分关键词使用复数: users, groups 。</p>
+</blockquote>
+<ul>
+<li>
+复数<ul>
+<li>大多框架默认</li>
+<li>语义上更准确</li>
+<li>逻辑上更复杂</li>
+</ul>
+</li>
+<li>
+单数<ul>
+<li>代码层面更好统一</li>
+<li>但部分单数形式可能需要 quote</li>
+<li>user 也可以用 <code>app_user</code> 之类的作为区分</li>
+</ul>
+</li>
+<li>
+参考<ul>
+<li><a href="https://stackoverflow.com/questions/338156" rel="nofollow">https://stackoverflow.com/questions/338156</a></li>
+</ul>
+</li>
+</ul>
+<h2>尽量使用外键 {#fk}</h2>
+<ul>
+<li>能一定程度提升查询性能</li>
+<li>增加部分 插入 和 更新 成本</li>
+<li>确保业务逻辑准确</li>
+<li>非强业务看情况</li>
+</ul>
+<hr />
+<ul>
+<li>原文 <a href="https://wener.me/notes/dev/design/schema" rel="nofollow">https://wener.me/notes/dev/design/schema</a></li>
+<li>原始 <a href="https://github.com/wenerme/wener/blob/master/notes/dev/design/design-schema.md" rel="nofollow">https://github.com/wenerme/wener/blob/master/notes/dev/design/design-schema.md</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-11T07:26:53Z</pubDate>
+<pubDate>2024-04-11T07:26:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 不知道是换季还是怎么回事，洗完澡后过一会就会特别干痒，不知大家有没有这样的情况，都是怎么解决的？</title>
+<link>https://www.v2ex.com/t/1031659</link>
+<guid>https://www.v2ex.com/t/1031659</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-11T07:25:12Z</pubDate>
+<pubDate>2024-04-11T05:25:12Z</pubDate>
+</item>
+<item>
+<title>[Raspberry Pi] raspberry pi 的 imager，烧录系统没改变的问题</title>
+<link>https://www.v2ex.com/t/1031658</link>
+<guid>https://www.v2ex.com/t/1031658</guid>
+<content:encoded><![CDATA[
+
+<p>我使用 raspberry pi 的 imager ，烧录 micro sd 的时候，感觉系统都没有烧录进去呢？换个系统也是之前的样子</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:24:12Z</pubDate>
+<pubDate>2024-04-11T03:24:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] 22 岁想去日本拿永驻</title>
+<link>https://www.v2ex.com/t/1031657</link>
+<guid>https://www.v2ex.com/t/1031657</guid>
+<content:encoded><![CDATA[
+
+大家好，我今年 22 岁，国内非全日制专科计算机专业，因为当时中考分流只读了三年技校，其实里面学不到东西，很后悔荒废了 3 年时间，此后我就一直在社会上工作，考虑到自身学历劣势每年又要去这么多大学生与自己竞争，为了提高自己的竞争力一开始想去重读一个统招大专但打听到的不知名学校一年学费也要 3 万，甚至最高 5 万都有，我考虑到 it 岗位已经逐渐减少，3 年专科读下来不知道以后岗位还会有什么变化，于是开始打听自考本科，但今年 it 很多自考的本科的朋友都不太景气，之前自考本科可以进的岗位现在 hr 必须要求统招学历，辛苦自考下来，付出与获得不成正比，于是放弃了这个想法。<br />最近了解到日本的语言学校与专门学校（学游戏开发），一方面可以半工半读，不仅能打工赚学费自给自足还可以学日语，最重要读完之后可以用专门学校的学历在日本工作。但我担心专门学校的学历对拿永驻帮助不大，请教各位前辈我应该怎么选择？
+]]></content:encoded>
+<pubDate>2024-04-11T07:22:43Z</pubDate>
+<pubDate>2024-04-11T03:22:43Z</pubDate>
+</item>
+<item>
+<title>[React] 重新构想 + 开源的一个聚合站， Built with Next.js</title>
+<link>https://www.v2ex.com/t/1031655</link>
+<guid>https://www.v2ex.com/t/1031655</guid>
+<content:encoded><![CDATA[
+
+<h3>💡 灵感</h3>
+<p>清明假期，在做产品、训练模型的时候，突然想到怎么没有一个聚合站，既有 awesome-list 的质量和广域，又有漂亮的前端和流畅的交互体验，于是就抽了一点时间搭了一个聚合站，呼朋唤友补充了一些初期的内容。</p>
+<p>希望能通过开源，认识更多有趣的人一起共创，但也甚至维护的不易（比如许多 awesome-list 最后都断更了），所以就想做一个小红书、X 的账号，通过运营的反馈坚持下来。</p>
+<p>现在还是非常非常早期的状态！非常期待大家的意见和建议！小红书和 X 也还没开更，想和大家聊聊看～</p>
+<ul>
+<li>网站： <a href="https://latentbox.com/zh" rel="nofollow">https://latentbox.com/zh</a></li>
+<li>GitHub： <a href="https://github.com/latentcat/latentbox" rel="nofollow">https://github.com/latentcat/latentbox</a></li>
+</ul>
+<h3>⬇️ 下面是正式一些的介绍</h3>
+<p>Latent Box 是一个重新构想的聚合站，由 Latent Cat 组织维护。为什么要做这件事情？我们有下面几个小小的追求：</p>
+<ul>
+<li>
+<p><b>通过高质量的内容抹平信息差。</b><br />
+我们不需要另一个搜索引擎、收录大量的网站、产品，配置复杂的自动化、检索和用户系统——因为那根本没人会看。我希望当我们收录一千个站点时，其中的一百个都是用户会打开试试并记住的、真正好的东西。</p>
+</li>
+<li>
+<p><b>尽可能多元、跨界。</b><br />
+我们认为一个好的产品、好的技术、好的团队，所涉及的学科知识、专业技能都是非常宽广的，希望这份合集能涵盖尽可能多的创意领域。因此，它适合同样热衷于突破自我的你。</p>
+</li>
+<li>
+<p><b>保持更新、社区共创。</b><br />
+保持更新非常难，社区会是我们坚持下去的动力。所以，我们在 GitHub 开源了整个网站，并建立了 Twitter 、小红书账号，和 Discord 、微信群。你可以在任何一个平台与我们分享内容，并可以直接在 GitHub 上提交 pull requests 、添加贡献者名字。除此之外，你的每次点赞都会是对我们最大的鼓励。</p>
+</li>
+</ul>
+<p>这就我们设立 Latent Box 的初心，希望能给大家带来一点帮助！</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/IvhWatcD.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yZ9Zqm8W.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/h78UhOeP.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/CqDc4hpJ.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/ZuVx1GTh.png" /></p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:19:11Z</pubDate>
+<pubDate>2024-04-11T08:42:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] iqoo12 怎么样？</title>
+<link>https://www.v2ex.com/t/1031654</link>
+<guid>https://www.v2ex.com/t/1031654</guid>
+<content:encoded><![CDATA[
+
+主要是屏幕咋样，看了配置参数几乎和 iqoo12pro 一样，基本上+1000 多块钱就是为了升级到三星 2k e7 屏幕，有在用这款手机的么？<br /><br />屏幕咋样，其他方面都比较满意
+]]></content:encoded>
+<pubDate>2024-04-11T07:19:03Z</pubDate>
+<pubDate>2024-04-11T07:19:03Z</pubDate>
+</item>
+<item>
+<title>[Python] yield 和 return 混用的问题</title>
+<link>https://www.v2ex.com/t/1031653</link>
+<guid>https://www.v2ex.com/t/1031653</guid>
+<content:encoded><![CDATA[
+
+<pre><code>def fun1(batch):
+    if batch:
+        return range(10)
+    else:
+        for item in range(10):
+            yield item
+
+
+a = fun1(True)
+for v in list(a):
+    print(v)
+print("-------------")
+b = fun1(False)
+for v in list(b):
+    print(v)
+</code></pre>
+<p>直觉上最后的结果分割线之上也是能输出 0~9 的，但是实际上是空，把 yield 改成 return 就好了，这是什么原因呢？</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:17:50Z</pubDate>
+<pubDate>2024-04-11T08:23:50Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 想做一个专门给各种聊天记录打马赛克的应用，技术有限，放弃了</title>
+<link>https://www.v2ex.com/t/1031651</link>
+<guid>https://www.v2ex.com/t/1031651</guid>
+<content:encoded><![CDATA[
+
+<p>因为想研究副业的原因加了很多自媒体运营相关的社群。</p>
+<p>发现这些社群运营者各种晒成绩，晒聊天记录，搞发售。</p>
+<p>他们朋友圈发聊天记录的时候一般会给成员的头像和昵称打马赛克，那么有没有一款工具可以针对这种情况进行快捷处理，然后卖铲子给这些自媒体运营者呢？</p>
+<p>调研：</p>
+<p>网上搜了搜，貌似华为手机做了这个功能，在微信界面两指长按 2s 以上，会出现扫描界面。然后可以自行选择打码部分。手上没有华为手机，没体验过，但是抖音和 B 站都找到了相应的视频。这个功能貌似友商没有跟进。</p>
+<p>我的想法：</p>
+<p>基于图像识别技术，训练一个<code>yolo</code>的模型，提供各种聊天记录的截图。训练完成后就比较简单了，可以根据识别出的位置坐标，使用<code>opencv</code>往图上画马赛克。</p>
+<p>开始行动&amp;失败原因：</p>
+<p>搞了 30 张聊天记录，在百度 easydl 平台，标注数据并进行训练。验证模型时发现，头像的识别率有 90%，昵称的识别率只有 0%。作为主技术栈不是<code>python</code>的我来说。突然就泄气了。不知道下一步该干啥。所以把想法分享出来，希望有屌大的 V 友研究一下，或者分享一下思路。</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:11:42Z</pubDate>
+<pubDate>2024-04-11T07:15:00Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 尼区车位</title>
+<link>https://www.v2ex.com/t/1031648</link>
+<guid>https://www.v2ex.com/t/1031648</guid>
+<content:encoded><![CDATA[
+
+<p>Spotify 尼区车位，有需要的请联系 <a href="https://t.me/Avkrh" rel="nofollow">https://t.me/Avkrh</a> 或者留言。</p>
+<p>年付 42</p>
+]]></content:encoded>
+<pubDate>2024-04-11T07:03:34Z</pubDate>
+<pubDate>2024-04-11T07:03:34Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 帮招一个多年经验高级后端开发工程师</title>
+<link>https://www.v2ex.com/t/1031647</link>
+<guid>https://www.v2ex.com/t/1031647</guid>
+<content:encoded><![CDATA[
+
+注册域名<br />网页搭建<br />服务器管理<br />软件部署<br />懂代码<br /><br />薪资好谈<br /><br />具体 tg：C02456
+]]></content:encoded>
+<pubDate>2024-04-11T06:59:53Z</pubDate>
+<pubDate>2024-04-11T08:12:04Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [自研开源] MyData 诚邀试用体验，成为永久免费用户 &amp; 附集成案例</title>
+<link>https://www.v2ex.com/t/1031646</link>
+<guid>https://www.v2ex.com/t/1031646</guid>
+<content:encoded><![CDATA[
+
+<p>MyData ，一个旨在简化 Web 应用之间数据对接的工具，提高日常工作效率，如其名“我的数据” 旨在让用户更好的掌控和管理数据。</p>
+<p>v1.0 的目标是：针对多应用之间数据集成的场景，为开发人员提供更安全、更方便的对接集成方案；</p>
+<p>开源地址：<a href="https://gitee.com/LIEN321/mydata-blade" rel="nofollow">gitee</a>  |  <a href="https://github.com/LIEN321/mydata-blade" rel="nofollow">github</a></p>
+<h2>诚邀试用</h2>
+<p>经过一段时间的打磨，MyData 升级到了 v0.8.0 版本，诚挚邀请更多用户试用；</p>
+<p>详细介绍见 <a href="https://mydata.work/docs" rel="nofollow">MyData 基于 Web API 的数据集成平台</a></p>
+<p>系统的主要功能和优势：</p>
+<ul>
+<li><strong>集成度高</strong>：通过 API 集成数据，没有数据库类型、开发技术等限制，有 API 即可对接；</li>
+<li><strong>数据安全</strong>：无需开放业务系统数据库；</li>
+<li><strong>零侵入性</strong>：无 SDK ，业务系统有 API 即可集成；</li>
+<li><strong>可控性高</strong>：统一调度集成任务，对业务系统几乎无感知；</li>
+<li><strong>复用性高</strong>：业务系统迁移、技术升级等，无需重复集成，API 可用即可恢复集成；</li>
+<li><strong>私有部署</strong>：支持本地部署，防止数据外泄；</li>
+</ul>
+<p>特此承诺：</p>
+<p>作为试用用户可享受 <strong>免费试用</strong>、<strong>免费升级功能</strong>、<strong>全程技术支持</strong>；</p>
+<p><strong>前 10 位纳入实际项目</strong>使用的将成为<strong>永久免费用户</strong>；</p>
+<p>试用方式：联系微信，开通专属账号，开展数据集成；</p>
+<p>截止日期：2024-08-30</p>
+<p><img alt="wx" class="embedded_image" rel="noreferrer" src="https://gitee.com/LIEN321/mydata-blade/raw/boot/doc/image/wechat.jpg" /></p>
+<h2>案例：电商场景 - 跨平台集成商品</h2>
+<h3>案例背景</h3>
+<p>有用户在初创阶段建了两个商城，一个在<a href="https://www.trademe.co.nz/a/search?member_listing=7583124" rel="nofollow">trademe 平台</a>、另一个用 WooCommerce<a href="https://www.mjstrading.co.nz/" rel="nofollow">自建商店</a>，虽然是两个独立运作的商城系统 但商品库存是共享的；</p>
+<p>前期通过手动方式分别维护两端的商品信息和更新库存，但随着商品种类增多、两个平台的订单量增长，需要简化两边库存的检测和同步工作；</p>
+<h3>集成方案</h3>
+<p>通过调研，两个平台都能提供 API 和 web hook ，可实现定时同步和实时同步；</p>
+<ul>
+<li>
+<p>方案一：定制开发对接程序</p>
+<p>优点：可以根据用户的具体需求进行定制，确保最终产品能够完全满足用户的需求和期望；</p>
+<p>缺点：成本较高，包括前期的人员、资源，后续的维护、需求变更等方面，对初创用户代价较高；</p>
+</li>
+<li>
+<p>方案二：使用 MyData 集成</p>
+<p>MyData 适用于 HTTP(S)协议 API 的应用之间对接数据，入驻平台即可通过配置实现数据集成；</p>
+<p>优点：通过界面配置即可完成数据对接，且无需额外资源和维护升级成本；</p>
+<p>缺点：部分需求 平台暂时无法满足；</p>
+</li>
+</ul>
+<p>最终，选用 MyData 进行集成，通过分析需求 暂时无法满足的需求 可通过升级功能实现，既低成本地实现了用户需求 也升级了平台功能；</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240411124009638.png" /></p>
+<h3>集成效果</h3>
+<p>通过界面配置应用 API 、数据标准和定时任务，实现定时拉取、合并数据和邮件推送；</p>
+<ul>
+<li>
+<p>应用 API 配置</p>
+<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240410191251341.png" /></p>
+</li>
+<li>
+<p>集成管理，查看数据量、来源、去向、任务情况
+<img alt="image-20240410192709645" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240410192709645.png" /></p>
+</li>
+<li>
+<p>数据标准</p>
+<p><img alt="image-20240410192402536" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240410192402536.png" /></p>
+</li>
+<li>
+<p>定时任务</p>
+</li>
+</ul>
+<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240410195527499.png" /></p>
+<ul>
+<li>
+<p>推送邮件</p>
+<p><img alt="image-20240410202108477" class="embedded_image" rel="noreferrer" src="https://mydata.work/docs/story/assets/image-20240410202108477.png" /></p>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-11T06:59:19Z</pubDate>
+<pubDate>2024-04-11T08:23:40Z</pubDate>
+</item>
+<item>
+<title>[程序员] 总算有一些成绩了 ^ ^</title>
+<link>https://www.v2ex.com/t/1031645</link>
+<guid>https://www.v2ex.com/t/1031645</guid>
+<content:encoded><![CDATA[
+
+本人男，人在日本，至今独身，普通打工族，<br />业余时间在搞个人开发，<br />把这几年关键时间点共享一下吧，
+]]></content:encoded>
+<pubDate>2024-04-11T06:54:05Z</pubDate>
+<pubDate>2024-04-11T08:22:02Z</pubDate>
+</item>
+<item>
+<title>[NGINX] 请教一下， NGINX 或者其他工具能否是写 HTTPS 请求 URL 重写</title>
+<link>https://www.v2ex.com/t/1031643</link>
+<guid>https://www.v2ex.com/t/1031643</guid>
+<content:encoded><![CDATA[
+
+需求是希望能够重写从内部网络环境发出的网络请求来阻止数据外泄的可能。<br /><br />比如 <a href="http://github.com" rel="nofollow noopener" target="_blank">github.com</a> ，还是需要能够进行 git clone/pull 等下载操作，但是想要禁止 git push 等上传操作。<br /><br />目前能想到的解决方案之一就是对请求 URL 重写，将其直接改成某个镜像站（不支持上传）。<br /><br />但是由于 https 的特性，一直没找到办法，尝试了 mitmproxy 好像也不行。<br /><br />想请教下大家有没有思路。
+]]></content:encoded>
+<pubDate>2024-04-11T06:47:49Z</pubDate>
+<pubDate>2024-04-11T07:06:50Z</pubDate>
+</item>
+<item>
+<title>[NAS] iOS 备份照片到群晖的 Photo，存在 Bug</title>
+<link>https://www.v2ex.com/t/1031642</link>
+<guid>https://www.v2ex.com/t/1031642</guid>
+<content:encoded><![CDATA[
+
+<p>设备：iPhone14pm 、白群晖 224+</p>
+<p>系统：iOS 17.4.1 、DSM7.2</p>
+<p>iCloud 里有 5 万张照片和一些视频，总大小 400GB 左右，使用 iOS 上的群晖 photos 备份，遇到稍微大一些的视频（ 1 个 G 左右）就会显示空间不足停止备份，并且可以 100%复现，
+但如果单独在相册中找到这个视频，使用 iOS 的分享到群晖 Photos 反而可以成功上传。
+一开始本以为是 iPhone 存储空间不够，腾出 30GB 的 iPhone 空间仍然会这样，把群晖 app 的缓存限制设置为无限制，仍然无法解决，并且存在漏照片的情况，总之，4 万张照片前前后后备份了 3 天才备份完，最后还漏了几十张照片，使用 iPad Pro 备份也会出现断断续续空间不足的情况。</p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:44:22Z</pubDate>
+<pubDate>2024-04-11T07:29:52Z</pubDate>
+</item>
+<item>
+<title>[硬件] 想组台主机，各位大佬帮我看一下怎么样</title>
+<link>https://www.v2ex.com/t/1031641</link>
+<guid>https://www.v2ex.com/t/1031641</guid>
+<content:encoded><![CDATA[
+
+最近在学 blender ，现在点 mbp 实在是搞不动了，感觉还是得组个主机才行，现在这个配置不知道行不行，为了省钱搜了好久，或者大家有没有更性价比的方案可以推荐下我吗？<br /><br /><br />i5 13600KF+微星 B760 BOMBER WIFI DDR5             2499-京东<br />微星 4060ti 万国师 2X-8g                           3050-pdd<br />金百达 黑刃 16x2 6000 套条                          677-京东<br />固态 英特尔 660p 1t （以前做移动硬盘的，过渡下）           0<br />长城 X6 650w                                     479-京东<br />利民 PA120SE 6X6MM 双塔青春版                        137-京东 <br /><br />总：6842
+]]></content:encoded>
+<pubDate>2024-04-11T06:42:27Z</pubDate>
+<pubDate>2024-04-11T07:22:33Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPad 更新 17.4.1 后， Loon 也提示更新，但更新后从 url 下载 一直提示下载失败~~</title>
+<link>https://www.v2ex.com/t/1031640</link>
+<guid>https://www.v2ex.com/t/1031640</guid>
+<content:encoded><![CDATA[
+
+<p>URL 肯定是可以访问的，用浏览器测试过。
+loon 重置过，不行
+loon 卸载重装过，也不行</p>
+<p>是不是新版 loon 的模板变了，还是啥原因，搞了一中午，火大</p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:42:06Z</pubDate>
+<pubDate>2024-04-11T06:41:06Z</pubDate>
+</item>
+<item>
+<title>[浏览器] 哪位大佬这个网站 https://www.dragonfly.xyz/ 的的这个文本滚动效果是什么实现的？用的什么编码技术</title>
+<link>https://www.v2ex.com/t/1031639</link>
+<guid>https://www.v2ex.com/t/1031639</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.dragonfly.xyz/" rel="nofollow">Dragonfly</a></p>
+<p>PORTFOLIO 这一节下面</p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:33:04Z</pubDate>
+<pubDate>2024-04-10T22:33:04Z</pubDate>
+</item>
+<item>
+<title>[推广] 快速上手！ 3 步安装 Baidu Comate</title>
+<link>https://www.v2ex.com/t/1031638</link>
+<guid>https://www.v2ex.com/t/1031638</guid>
+<content:encoded><![CDATA[
+
+<p><strong>基于文心大模型，结合百度多年编程数据打造</strong></p>
+<p><strong>我，新一代智能代码助手———Baidu Comate 免费开放使用啦！</strong></p>
+<ul>
+<li>我精通<strong>100 多种编程语言</strong>，支持 Visual Studio Code 和 JetBrains 全系列等主流 IDE 。</li>
+<li>无论是基础的代码续写，还是复杂的高级生成，都不在话下！</li>
+<li>任何与<strong>代码库有关的问题</strong>，也都能直接回答、深度解读~</li>
+<li>当开发者挂载自己的私域代码库时，我也能<strong>贴合个人开发者习惯</strong>，直接根据文档拆解需求，生成新代码！</li>
+</ul>
+<hr />
+<p><strong>💡 安装 Baidu Comate 仅需 3 步！</strong></p>
+<p><strong>Step1</strong> 打开<strong>Baidu Comate 官网</strong>，点击「免费使用」/「下载安装」</p>
+<p><strong>Step2</strong> 根据官网步骤可快速唤起 VS Code ，你也可以直接在<strong>VS Code 扩展</strong>或 <strong>JetBrains IDEs Plugins 插件市场</strong>中手动<strong>搜索“Baidu Comate”</strong>进行安装。</p>
+<p><strong>Step3</strong> 安装完成后登录账号，即刻开启智能代码之旅！</p>
+<p><strong>🎁邀请好友送好礼🎁</strong></p>
+<p>每成功邀请一位新人安装插件使用，您将获得 10 元京东卡！官网登陆后，右上方头像点击进入「积分商城」-「邀请好友获积分」，获取您的专属邀请链接~</p>
+<p>进入官网，开启智能编码新体验： <a href="https://comate.baidu.com/" rel="nofollow">https://comate.baidu.com/</a></p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:28:54Z</pubDate>
+<pubDate>2024-04-11T06:25:54Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 一键禁用 Windows 笔记本内置键盘</title>
+<link>https://www.v2ex.com/t/1031637</link>
+<guid>https://www.v2ex.com/t/1031637</guid>
+<content:encoded><![CDATA[
+
+<p>因为一直把外接键盘放在笔记本键盘上面用，</p>
+<p>虽然通过 cmd 输入命令禁用也可以但是总不是很方便，另外网上试了几个也没找到可用的</p>
+<p>所以弄了个可以一键关闭的小软件 </p>
+<p>下载=&gt; <a href="https://github.com/xx025/LockLaptopKeyboard" rel="nofollow">移步 GitHub 下载</a></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/xx025/LockLaptopKeyboard/master/img/img.png" /></p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:27:52Z</pubDate>
+<pubDate>2024-04-11T06:37:54Z</pubDate>
+</item>
+<item>
+<title>[Netflix] 尼区奈飞锁卡了么？</title>
+<link>https://www.v2ex.com/t/1031636</link>
+<guid>https://www.v2ex.com/t/1031636</guid>
+<content:encoded><![CDATA[
+
+<p>本来我尼区奈飞绑定的中行万事达过期换卡了，然后去奈飞里更新付款方式但一直显示黄字：使用的付款方法似乎有问题，换了张 visa 也是这样，用的是注册时用过的代理池应该没啥问题，不知道是不是锁卡的原因</p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:27:33Z</pubDate>
+<pubDate>2024-04-11T06:24:33Z</pubDate>
+</item>
+<item>
+<title>[Windows] 刚发现了 Windows11 记事本的一个小 bug，你们能复现吗？</title>
+<link>https://www.v2ex.com/t/1031635</link>
+<guid>https://www.v2ex.com/t/1031635</guid>
+<content:encoded><![CDATA[
+
+<p>我的记事本默认字体是微软雅黑，样式 Regular ，大小 11 。
+如果记事本内容有下划线，会看不见下划线，显示效果是一个空格，字体大小调整成 12 就能看到下划线了。</p>
+]]></content:encoded>
+<pubDate>2024-04-11T06:26:32Z</pubDate>
+<pubDate>2024-04-11T08:20:51Z</pubDate>
+</item>
+
+<item>
 <title>[Surge] surge 更新机场失败</title>
 <link>https://www.v2ex.com/t/1031634</link>
 <guid>https://www.v2ex.com/t/1031634</guid>
 <content:encoded><![CDATA[
-
 surge 更新机场失败，提示：“更新托管配置 subscribe 失败，此服务器证书无效......
 ]]></content:encoded>
-<pubDate>2024-04-11T06:23:48Z</pubDate>
 <pubDate>2024-04-11T06:20:48Z</pubDate>
 </item>
 <item>
@@ -20,14 +1244,12 @@ surge 更新机场失败，提示：“更新托管配置 subscribe 失败，此
 <link>https://www.v2ex.com/t/1031632</link>
 <guid>https://www.v2ex.com/t/1031632</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.datapipe.top/i/2024/nemqjw-1.png" /></p>
 <p>可以自己本地部署，如果想和其他大模型聚合使用，可以使用 <a href="https://c.datapipe.top" rel="nofollow">https://c.datapipe.top</a>，选择 <code>AskInternet</code> 进行免费对话搜索。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.datapipe.top/i/2024/ni4y5i-1.png" /></p>
 <p>系统也支持 GPT-4 和 Claude-3 等主流大模型，欢迎体验。</p>
 <p>地址：<a href="https://c.datapipe.top" rel="nofollow">https://c.datapipe.top</a></p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:22:49Z</pubDate>
 <pubDate>2024-04-11T02:22:49Z</pubDate>
 </item>
 <item>
@@ -35,10 +1257,8 @@ surge 更新机场失败，提示：“更新托管配置 subscribe 失败，此
 <link>https://www.v2ex.com/t/1031631</link>
 <guid>https://www.v2ex.com/t/1031631</guid>
 <content:encoded><![CDATA[
-
 switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.  换了拓展坞和线和 屏幕 还不行...  其他功能都正常.  北京哪里有维修的呢,
 ]]></content:encoded>
-<pubDate>2024-04-11T06:21:48Z</pubDate>
 <pubDate>2024-04-11T06:20:48Z</pubDate>
 </item>
 <item>
@@ -46,10 +1266,8 @@ switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.
 <link>https://www.v2ex.com/t/1031630</link>
 <guid>https://www.v2ex.com/t/1031630</guid>
 <content:encoded><![CDATA[
-
 在网页中右键图片，选择“图片翻译”可以将图片直接翻译为中文内容的图片。<br /><br /><div class="embedded_video_wrapper"></div><br /><br />插件地址： <a href="https://chrome.google.com/webstore/detail/dlilbookfdhgpflfgpbdfhnejmcngeeg" rel="nofollow noopener" target="_blank">https://chrome.google.com/webstore/detail/dlilbookfdhgpflfgpbdfhnejmcngeeg</a>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:19:24Z</pubDate>
 <pubDate>2024-04-11T06:16:24Z</pubDate>
 </item>
 <item>
@@ -57,10 +1275,8 @@ switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.
 <link>https://www.v2ex.com/t/1031628</link>
 <guid>https://www.v2ex.com/t/1031628</guid>
 <content:encoded><![CDATA[
-
 <p>经过几次洗礼，身体有点差，想去喝点凉茶补补。现在是不知道有没有比较正宗的凉茶，想去试试暂时不想跑广州。</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:10:27Z</pubDate>
 <pubDate>2024-04-11T06:09:27Z</pubDate>
 </item>
 <item>
@@ -68,11 +1284,9 @@ switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.
 <link>https://www.v2ex.com/t/1031627</link>
 <guid>https://www.v2ex.com/t/1031627</guid>
 <content:encoded><![CDATA[
-
 <p>目前有 2 个工具，一个是直接生成透明素材的，另一个是现在的抠图工具，欢迎试用和反馈，生成素材目前只支持英文输入</p>
 <p><a href="https://www.findpng.com/png-maker" rel="nofollow">https://www.findpng.com/png-maker</a></p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:09:54Z</pubDate>
 <pubDate>2024-04-11T06:09:54Z</pubDate>
 </item>
 <item>
@@ -80,13 +1294,11 @@ switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.
 <link>https://www.v2ex.com/t/1031626</link>
 <guid>https://www.v2ex.com/t/1031626</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="http://img.mp.itc.cn/upload/20170110/11ddff211a184d6ebbf7a1d8fd16c855_th.jpeg" /></p>
 <p>（图片是网上随便找的。但这种公交车确实就长这样，在南京西路还有）</p>
 <p>在过有些大十字路口时天线会降下来。过了路口又升起来。</p>
 <p>我手拿着晾衣杆去碰屋顶的晾衣绳，半天都碰不上。他这个车还是在运动的状态，怎么能做到天线升起来，刚好左边天线碰到左边电线，右边天线碰到右边电线？</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:07:30Z</pubDate>
 <pubDate>2024-04-11T06:23:08Z</pubDate>
 </item>
 <item>
@@ -94,7 +1306,6 @@ switch 主机突然不能联接显示器了, 用原始的线和底座 不可以.
 <link>https://www.v2ex.com/t/1031624</link>
 <guid>https://www.v2ex.com/t/1031624</guid>
 <content:encoded><![CDATA[
-
 <p>我根据 docker 官方文档 <a href="https://docs.docker.com/engine/alternative-runtimes/" rel="nofollow">https://docs.docker.com/engine/alternative-runtimes/</a> 中的命令在 fedora 39 系统上运行 hello world 结果报错，而且用这个命令就算跑起来也不一定是用 firecracker 。</p>
 <pre><code>root@fedora-server:~# docker run --runtime io.containerd.kata.v2 hello-world
 docker: Error response from daemon: failed to create task for container: failed to create shim task: exit status 1: stdout: , stderr: failed to add interface veth08b1d98 to sandbox: error setting interface "veth08b1d98" IP to 172.17.0.2/16: cannot program address 172.17.0.2/16 in sandbox interface because it conflicts with existing route {Ifindex: 3 Dst: 172.17.0.0/16 Src: 172.17.0.1 Gw: &lt;nil&gt; Flags: [] Table: 254 Realm: 0}
@@ -107,7 +1318,6 @@ root@fedora-server:~#
 <p>希望有熟悉 firecracker 和 kata containers 的老哥指点一下，在此先行感谢！</p>
 <p>另外，点进来这个帖子的 v 友们能否给我的这个主题发送一下感谢，我铜币发完这个帖子就没了。。。</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:05:34Z</pubDate>
 <pubDate>2024-04-11T06:03:34Z</pubDate>
 </item>
 <item>
@@ -115,10 +1325,8 @@ root@fedora-server:~#
 <link>https://www.v2ex.com/t/1031623</link>
 <guid>https://www.v2ex.com/t/1031623</guid>
 <content:encoded><![CDATA[
-
 <p>v2ex ios 版没有搜素功能吗</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:05:10Z</pubDate>
 <pubDate>2024-04-11T06:02:10Z</pubDate>
 </item>
 <item>
@@ -126,10 +1334,8 @@ root@fedora-server:~#
 <link>https://www.v2ex.com/t/1031621</link>
 <guid>https://www.v2ex.com/t/1031621</guid>
 <content:encoded><![CDATA[
-
 <p>我有台 mac 本，用来开发。还有一台用来娱乐的 pc 装的 windows7 。在网上买了根对拷线，但是发现只能实现鼠键插在 pc 端切换到控制 mac ，有没有一种方法或硬件，可以直接用 mac 自身的键盘切换到去控制 pc 呢，不再额外插入键盘。鼠标可以插在 mac 上。因为习惯将 pc 的大屏幕放在 mac 的背后抬高。就不好放置一个键盘了。</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T06:01:40Z</pubDate>
 <pubDate>2024-04-11T06:21:41Z</pubDate>
 </item>
 <item>
@@ -137,10 +1343,8 @@ root@fedora-server:~#
 <link>https://www.v2ex.com/t/1031620</link>
 <guid>https://www.v2ex.com/t/1031620</guid>
 <content:encoded><![CDATA[
-
 现在的去中心 app,一般只是只是说 app 的数据链路基于 p2p 或者区块链<br /><br />但其实:<br />应用分发下载基于中心化 app store<br />应用官网,文档,推广等基于中心化网站<br />应用代码基于 github 中心化管理<br />应用服务基于中心化域名和云服务商<br />应用管理层基于一个具体的中心化(有老板)的团队<br />应用日常管理基于几个具体的中心化的管理员<br />应用的资金基于特别中心化的账户管理员(财务和老板)<br />应用的组织结构基于中心化的管理架构<br /><br />那事情做绝一点,做一个从应用到分发到维护到运营团队都彻底去中心的应用架构会怎么样?<br /><br />这个应用或者平台可能会像 email/p2p 下载/市集,只是通过一些公开协议来耦合,实现业务功能.但是完全没有任何一个中心化角色
 ]]></content:encoded>
-<pubDate>2024-04-11T05:57:10Z</pubDate>
 <pubDate>2024-04-11T06:16:07Z</pubDate>
 </item>
 <item>
@@ -148,10 +1352,8 @@ root@fedora-server:~#
 <link>https://www.v2ex.com/t/1031619</link>
 <guid>https://www.v2ex.com/t/1031619</guid>
 <content:encoded><![CDATA[
-
 自己整理一些资料库，程序尽量使用开源，尽量不使用国内的大语言模型接口。有比较好的推荐方式么？显卡条件的话，租用类似 3080 的显卡, 12G 显存，自己玩，前端页面暂时不考虑，能够实现问问题，返回比较不错的内容就行。形式不考虑，可以自己做。
 ]]></content:encoded>
-<pubDate>2024-04-11T05:52:20Z</pubDate>
 <pubDate>2024-04-11T05:58:48Z</pubDate>
 </item>
 <item>
@@ -159,7 +1361,6 @@ root@fedora-server:~#
 <link>https://www.v2ex.com/t/1031618</link>
 <guid>https://www.v2ex.com/t/1031618</guid>
 <content:encoded><![CDATA[
-
 <pre><code class="language-python">box = "\u2610"
 check = "\u2611"
 </code></pre>
@@ -180,7 +1381,6 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 </code></pre>
 <p>好无语啊，如果不在文件头部加编码，一会儿报错\xe7 一会又是 \xe2 \xe9 ，啊啊啊啊啊</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:49:04Z</pubDate>
 <pubDate>2024-04-11T06:20:05Z</pubDate>
 </item>
 <item>
@@ -188,14 +1388,12 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031617</link>
 <guid>https://www.v2ex.com/t/1031617</guid>
 <content:encoded><![CDATA[
-
 <p>家里有一台 M1 Mac mini 16+256 由于出行想要携带电脑，手里的 MacBook Pro 14 太重了，就考虑把 Mac mini 置换成 MacBook Air 13 寸</p>
 <p>重量，13 寸 M2 MacBook Air 比 M1 的还轻，而且相比 M1 Air 的外形，更喜欢 M2 一些。</p>
 <p>现在性价比最高的是 M2 还是 M1 呢？ </p>
 <p>不考虑全新，二手或者官翻，16+256 大概价位在多少？</p>
 <p>另外我的 Mac mini 16+256+10G 网口，要出的话，价格多少合适呢？</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:47:24Z</pubDate>
 <pubDate>2024-04-11T06:22:08Z</pubDate>
 </item>
 <item>
@@ -203,7 +1401,6 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031616</link>
 <guid>https://www.v2ex.com/t/1031616</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="img" class="embedded_image" rel="noreferrer" src="https://imgur.com/SOgi2ub.png" /></p>
 <p>多了个 \ 导致 zsh-autosuggestions 的提示会错位，就贼难用</p>
 <p>我输入的是<code>npx eslint ./index.js</code>，但是显示的是 npxx eslint ./index.j s</p>
@@ -211,7 +1408,6 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <p>现在我只能每次执行完命令后，手动再输入一次<code>zsh</code>才行</p>
 <p>这个只会再 vscode 的终端才会出现，其他终端都是正常的</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:43:22Z</pubDate>
 <pubDate>2024-04-11T06:18:45Z</pubDate>
 </item>
 <item>
@@ -219,10 +1415,8 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031614</link>
 <guid>https://www.v2ex.com/t/1031614</guid>
 <content:encoded><![CDATA[
-
 兄弟姐妹们，我裸辞了。今天提了辞职申请，五一之后正式离职。<br /><br />从 2010 年开始工作到现在接近 14 年了，中间没有放过长假，换工作的时候中间间隔也没有超过两周，有的甚至是无缝衔接。<br /><br />最近想通了，给自己好好放个长假(几个月或者一两年？)。人生路很长，不着急，咱慢慢走。人累了，要知道休息，休息饱了咱再出发。<br /><br />至于之后的路怎么走，通过这个假期好好想一想。有腿有脚，也不至于饿死。
 ]]></content:encoded>
-<pubDate>2024-04-11T05:30:20Z</pubDate>
 <pubDate>2024-04-11T06:23:13Z</pubDate>
 </item>
 <item>
@@ -230,11 +1424,9 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031613</link>
 <guid>https://www.v2ex.com/t/1031613</guid>
 <content:encoded><![CDATA[
-
 <p>找领导帮忙找转岗。自己联系不认识的部门领导。哪个试过成功率高一点</p>
 <p>作为“不认识的部门领导”视角，怎么看转岗人员？</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:28:47Z</pubDate>
 <pubDate>2024-04-11T05:54:45Z</pubDate>
 </item>
 <item>
@@ -242,12 +1434,10 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031612</link>
 <guid>https://www.v2ex.com/t/1031612</guid>
 <content:encoded><![CDATA[
-
 <p>有朋友搞过数字真人的研究吗
 想问一下神经渲染和神经辐射场的区别？
 以及动作序列生成有哪些技术方案？</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:27:52Z</pubDate>
 <pubDate>2024-04-11T05:24:52Z</pubDate>
 </item>
 <item>
@@ -255,10 +1445,8 @@ SyntaxError: Non-ASCII character '\xe7' in file 青浦.py on line 7, but no enco
 <link>https://www.v2ex.com/t/1031610</link>
 <guid>https://www.v2ex.com/t/1031610</guid>
 <content:encoded><![CDATA[
-
 v 友们，有碰到过 Google 浏览器访问 <a href="https://cdn.jsdelivr.net/gh/USER/REPO@BRANCH/FILE" rel="nofollow noopener" target="_blank">https://cdn.jsdelivr.net/gh/USER/REPO@BRANCH/FILE</a> 会重定向回源的问题吗？是谷歌浏览器的策略还是 jsdelivr 的呀
 ]]></content:encoded>
-<pubDate>2024-04-11T05:18:07Z</pubDate>
 <pubDate>2024-04-11T05:38:29Z</pubDate>
 </item>
 <item>
@@ -267,9 +1455,7 @@ v 友们，有碰到过 Google 浏览器访问 <a href="https://cdn.jsdelivr.net
 <guid>https://www.v2ex.com/t/1031608</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-04-11T05:11:42Z</pubDate>
 <pubDate>2024-04-11T05:09:42Z</pubDate>
 </item>
 <item>
@@ -277,7 +1463,6 @@ v 友们，有碰到过 Google 浏览器访问 <a href="https://cdn.jsdelivr.net
 <link>https://www.v2ex.com/t/1031607</link>
 <guid>https://www.v2ex.com/t/1031607</guid>
 <content:encoded><![CDATA[
-
 <p>关于我们</p>
 <p>我们是位于湾区的一家初创公司，做 GenAI-assisted 的房产投资工具。公司已获 seed 轮融资和 MVP ，现需要招聘一位后端工程师，负责产品线的开发和维护。</p>
 <ul>
@@ -332,7 +1517,6 @@ v 友们，有碰到过 Google 浏览器访问 <a href="https://cdn.jsdelivr.net
 If you are passionate about AI and eager to contribute to a team that drives innovation, please submit your resume and a cover letter explaining why you are the ideal candidate for this position to <a href="mailto:aireflags@gmail.com">aireflags@gmail.com</a>. Ensure the subject line begins with "Backend ENG" and includes your full name.
 We look forward to hearing from you and potentially welcoming you to our team!</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:10:44Z</pubDate>
 <pubDate>2024-04-11T05:36:34Z</pubDate>
 </item>
 <item>
@@ -340,10 +1524,8 @@ We look forward to hearing from you and potentially welcoming you to our team!</
 <link>https://www.v2ex.com/t/1031605</link>
 <guid>https://www.v2ex.com/t/1031605</guid>
 <content:encoded><![CDATA[
-
 已婚有娃。<br />上班通勤就 3 公里。<br />前几年一直是在持续锻炼，所以肉比较瓷实。体重维持在 150 斤左右。<br />自从结婚媳妇怀孕生子到现在连着胖了 45 斤。<br />在不剧烈运动的前提下，如何快速瘦下去？
 ]]></content:encoded>
-<pubDate>2024-04-11T05:07:26Z</pubDate>
 <pubDate>2024-04-11T06:11:43Z</pubDate>
 </item>
 <item>
@@ -351,7 +1533,6 @@ We look forward to hearing from you and potentially welcoming you to our team!</
 <link>https://www.v2ex.com/t/1031604</link>
 <guid>https://www.v2ex.com/t/1031604</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/962xd9Hl.png" /></p>
 <p><strong>原文（含大量监控界面截图）： <a href="https://mp.weixin.qq.com/s/47nF1v4dS28cMFr3KIuPkQ" rel="nofollow">https://mp.weixin.qq.com/s/47nF1v4dS28cMFr3KIuPkQ</a></strong></p>
 <h2>报告介绍</h2>
@@ -461,7 +1642,6 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
     首字节延迟 = 3 * 25 ms = 75 ms
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-04-11T05:05:17Z</pubDate>
 <pubDate>2024-04-11T07:15:03Z</pubDate>
 </item>
 <item>
@@ -469,10 +1649,8 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
 <link>https://www.v2ex.com/t/1031603</link>
 <guid>https://www.v2ex.com/t/1031603</guid>
 <content:encoded><![CDATA[
-
 最新日本 IT 案件现场募集信息：<br /><br />1.<br />SAP 案件（ PM/PL/PMO ）<br /> [業務内容] <br />Intra Martのバージョンアッププロジェクトと同時並行で推進される<br />SAP ERPからS/4HANA Cloud Private Editionへの移行プロジェクトの<br />PLとして要件定義～稼働後支援まで関与いただきます。<br />SIer 社 PMの配下で進捗管理、作業指示、課題管理、IntraMartバージョンアッププロジェクトとの調整を主体的に行っていただきます。<br /> [必須経験/スキル] <br />・SAP ERP⇒S/4HANAの移行プロジェクト or SAP バージョンアッププロジェクト or SAP 導入プロジェクトのPM/PL/PMO 経験<br /> [勤務地] <br />ハイブリッドワーク(リモート＆出勤併用)<br /> [期間]  2024 年 5 月開始～ 2025 年 9 月末（要件定義～稼働後支援を予定）<br /><br /><br /><br /><br />2.<br />[必須]<br />・基本設計～<br />・Javascript 開発（ 3 年以上）<br />・DB 操作経験（ SQL 、DDL 作成）<br />・画面設計経験<br />・日本語流暢必須<br /> [場所] 常駐（田町/三田）<br />（立ち上がり2か月程度は上位オフィス（田町/三田）に出社、以降は週 2~3リモート応相談）<br /> [期間]  5 月～ 8 月<br /> [精算] 固定<br /><br /><br /><br /><br />3.<br />即日 or 5 月〜<br />ーーーーーーーーーーーーー<br />2 年経験　日本語１級<br />Java 、JavaScript 、HTML 、Springboot 、<br />SQL 、Oracle<br />詳細設計～運用保守　<br /><br />5 月～<br />ーーーーーーーーーー<br />4 年 1ヶ月 日本語　１級　英語可能<br />Java 、Html 、Javascript 、VB 、C 、VUE.JS 、Oracle 、<br />SQL 、Shell 、Python 、Springboot<br />基本設計〜テスト<br /><br /><br /><br /><br />4.<br />5 年 10 月　日本語流暢<br />JAVA 、python 、HTML 、SQL 、CSS 、svg 、<br />MySQL 、Junit 、Eclipse 、JP1<br />詳細設計〜テスト<br /><br /><br /><br /><br />5.<br />招 Android 方向技术者<br />要求：会点 c++，日语 N1 及以上<br />5 月份开始案件，在日本优先哈<br />待遇工作氛围嘎嘎滴！薪资根据技术和日语能力可谈~<br /><br /><br /><br />以上所有案件详细以及待遇信息大家可以投递简历咨询哈<br />联系我们：投递简历至 base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t<br /><br /><br />日本 IT--Python 方向<br />要求：<br />·N1 及び日本での就業経験者 3 年以上；<br />·円滑にコミコニケ-ションを取れる方；<br />·コミユニケ-ション能力、問题解決能力のある方；<br />·新しいフィ-ルドにチャレンジする強い意志協調性と柔軟性のある方；<br />·メンバ-との協力意識の高い方；<br />·新しい技術に対する勤勉性があり、吸収力の高い方<br />即日一手案件，单价高~<br /><br /><br /><br />另外株式会社 GSD 营业担当正在招聘中，要求人在日本~~<br />办公地点：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801<br />我社官网： <a href="https://www.g-s-d.co.jp/" rel="nofollow noopener" target="_blank">https://www.g-s-d.co.jp/</a><br /><br /> [仕事内容] ：<br />エンジニアと案件のマッチング業務<br />-オペレ-ション管理<br />-エンジニアの面談指導、フオロ-<br />現場の管理<br />新規顧客開拓(DM 送付、初回訪間など)<br />既存顧客フオ口-(定例会、案件発掘など<br />※やる気があれば未経験者も<br /><br /> [応募資格] ：<br />エンジニア経験がある<br />SES 営業やってみたい人(経験者含む)<br />新規営業、既存顧客フオ口一経験者<br />人とのコミュニゲ-ションが好き<br />主体的に動き、裁量権を広く持ちたい<br /><br /> [定着率は90%以上で好待遇] ：<br />-残業月 20h 以内<br />-前給保証<br />-年收 800 万円も目指せる<br />-無理せす生活水準も下けずに働ける当社なら、プライベ-トもしっかりと充実させることができます!<br /><br /> [福利厚生] ：<br />・ンセンティプ制度あり<br />・リモ-トワ-ク実績あり<br />・プロテイン飲み放題<br />・well box 加入<br />・誕生日休暇<br />・スノボ合宿(2 泊 3 日タダ)<br />・バスケット大会、BBQ 、ゴルフ等々定期的にイベント開催してます。もちるん会社経費!<br /><br /><br /><br />以上岗位考虑转职的家人，可以投递简历至 base64 码：<br />YmVpYmVpNjc4MjAyM0AxNjMuY29t
 ]]></content:encoded>
-<pubDate>2024-04-11T05:03:01Z</pubDate>
 <pubDate>2024-04-11T05:00:01Z</pubDate>
 </item>
 <item>
@@ -480,10 +1658,8 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
 <link>https://www.v2ex.com/t/1031602</link>
 <guid>https://www.v2ex.com/t/1031602</guid>
 <content:encoded><![CDATA[
-
 快 40 了，还不太会突破，主要练习外线投射能力，是不是没有上升空间了，想把突破搞定
 ]]></content:encoded>
-<pubDate>2024-04-11T05:02:51Z</pubDate>
 <pubDate>2024-04-11T06:23:48Z</pubDate>
 </item>
 <item>
@@ -491,10 +1667,8 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
 <link>https://www.v2ex.com/t/1031601</link>
 <guid>https://www.v2ex.com/t/1031601</guid>
 <content:encoded><![CDATA[
-
 三室一厅房屋，一个人住，找人合租，到 6 号线地铁站 1 公里。<br />房屋在一楼。<br />价格 2000 左右。<br />V 信：hgjian
 ]]></content:encoded>
-<pubDate>2024-04-11T04:51:33Z</pubDate>
 <pubDate>2024-04-11T04:51:33Z</pubDate>
 </item>
 <item>
@@ -502,10 +1676,8 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
 <link>https://www.v2ex.com/t/1031600</link>
 <guid>https://www.v2ex.com/t/1031600</guid>
 <content:encoded><![CDATA[
-
 有些帖子的回帖质量很高，只为了收藏某个回帖而收藏整个帖子感觉有点重了，而且还得点开帖子去里面找，甚至会忘了这个内容是来自这个帖子。而 v2 本身就自带记事本，如果可以整合一下就太好了。
 ]]></content:encoded>
-<pubDate>2024-04-11T04:41:40Z</pubDate>
 <pubDate>2024-04-11T05:08:27Z</pubDate>
 </item>
 <item>
@@ -513,13 +1685,10 @@ DNS 缓存后（去掉 DNS 解析的 1 次 RTT ）：
 <link>https://www.v2ex.com/t/1031599</link>
 <guid>https://www.v2ex.com/t/1031599</guid>
 <content:encoded><![CDATA[
-
 <p>看了小牛 U 不错  无奈无法解限速</p>
 ]]></content:encoded>
-<pubDate>2024-04-11T04:37:41Z</pubDate>
 <pubDate>2024-04-11T01:37:41Z</pubDate>
 </item>
-
 <item>
 <title>[Apple TV] Apple TV 发热</title>
 <link>https://www.v2ex.com/t/1031597</link>
@@ -15882,551 +17051,6 @@ RT ，深受微信的折磨，如果是电报就不存在这个问题。<br />�
 <p>哎每天不知道要吃什么，今天去了吃许久没去过的沙县吃了顿 说实话鸡腿很柴 煎蛋不错  <br /></p>
 ]]></content:encoded>
 <pubDate>2024-04-07T12:27:47Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 半夜的时候老是提示运营商欢迎语是什么问题</title>
-<link>https://www.v2ex.com/t/1030352</link>
-<guid>https://www.v2ex.com/t/1030352</guid>
-<content:encoded><![CDATA[
-<p>一般都是半夜时候出现的，关键这玩意的振动还关不掉。。。</p>
-<p>手机 14pm ，卡是联通的</p>
-]]></content:encoded>
-<pubDate>2024-04-07T12:09:45Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 内推｜洋钱罐｜前端后端｜北京（主）上海｜社招</title>
-<link>https://www.v2ex.com/t/1030350</link>
-<guid>https://www.v2ex.com/t/1030350</guid>
-<content:encoded><![CDATA[
-[岗位] 内推一下洋钱罐，最近很缺人，面试效率高，base 有北京和上海，岗位很多，基本技术、业务、市场、产品等等全覆盖，后端上包括 Java 、python 。<br /><br /> [工作时长] 工作时长的话部门之间有小差别，基本早上十点多 到晚上七点多。中午 11：30 之后吃饭，1.30 之后午休结束。 公司不加班，弹性工作，有事的情况可以晚来或早走。<br /><br /> [午晚餐] 午餐和晚餐公司负责，用的美餐，你只负责点，公司掏钱，商家每周一轮换，基本每天早晚都有六七家左右。<br /><br /> [假期] 假期是 10 天年假，入职每满 1 年加一天，每月一天全薪资病假，不需要证明。<br /><br /> [福利] 团建特别多，都是工作时间团建，每年一次公司整体团建，去年全公司去了青岛。<br /><br /> [投递简历方式] 链接投递 或 加 v<br /><br />投递链：aHR0cHM6Ly9qb2IuZmludG9waWEudGVjaC9yZWNvbW1lbmQvam9iL2xpc3Q/cmVmZXJyZXJJZD1lbE5xdUI=<br />加 v：<br />WXVhbnl1YW5NaWU5OQ==
-]]></content:encoded>
-<pubDate>2024-04-07T10:37:29Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 大家体感今年外企招人情况有回暖么</title>
-<link>https://www.v2ex.com/t/1030349</link>
-<guid>https://www.v2ex.com/t/1030349</guid>
-<content:encoded><![CDATA[
-<p>看外企招聘发布的多了，本来还想多面几家练习一下的，结果没几个面试。
-有一个本来上周约了今天技术面也没联系我了，感觉是适合的人太多直接跳了</p>
-]]></content:encoded>
-<pubDate>2024-04-07T11:15:53Z</pubDate>
-</item>
-<item>
-<title>[Android] 小白问一下 Android APK 数字签名相关地一个问题</title>
-<link>https://www.v2ex.com/t/1030348</link>
-<guid>https://www.v2ex.com/t/1030348</guid>
-<content:encoded><![CDATA[
-<p>备份阶段:</p>
-<p>●将常用软件+密码库+其它资源等等加密打包到①[All-In-One.7Z]</p>
-<p>●把压缩包②[Passphrase]打印出来离线保存</p>
-<p>●计算出③[SHA512(All-In-One.7Z)]并且打印出来离线保存</p>
-<p>●把①[All-In-One.7Z]上传到多家墙内网盘</p>
-<p>●计算出⑥[SHA512(ZArchiver.APK)]并且打印出来离线保存</p>
-<p>●把⑤[ZArchiver.APK]上传到多家墙内网盘</p>
-<p>恢复阶段:</p>
-<p>(你买了一部新手机/二手手机,无法翻墙,因为存在🐔和🥚问题)</p>
-<p>●从国产安卓内置应用商店中安装任一网盘 APP 并且登录</p>
-<p>●从任一备份网盘下载①[All-In-One.7Z]+⑤[ZArchiver.APK]到本地存储</p>
-<p>●立刻使用④[XXX]就地计算①[All-In-One.7Z]的“实际校验和”,并且与之前离线保存得“理论校验和”(即③)比较,匹配一致则证明压缩包完好无损,否则从头再来</p>
-<p>●继续使用④[XXX]计算⑤[ZArchiver.APK]的“实际校验和”,并且与之前离线保存得“理论校验和”(即⑥)比较,匹配一致则证明 APK 完好无损并且立刻安装之,否则从头再来</p>
-<p>●使用 ZArchiver 搭配之前离线保存得②[Passphrase]解压①[All-In-One.7Z]到任意本地目录</p>
-<p>●Enjoy~</p>
-<p>我的问题是:</p>
-<p>大家明显能看出来④[XXX]是整个流程中的罩门:因为我全程假定其“已经安装”并且“可信”,事实上在一部新手机上这俩点都不成立</p>
-<p>实际上,④[XXX]应该和⑤[ZArchiver.APK]拥有一模一样地备份恢复流程,但是如果那样问题就又变成了“在没有安装我的前提下,执行我然后计算我的 HASH”,这又是一个🐔和🥚的问题了😂😂😂</p>
-<p>我的想法是:</p>
-<p>●先参照⑤[ZArchiver.APK]的流程来备份④[XXX],但是微调恢复流程:</p>
-<p>从任一网盘下载④[XXX]的 APK 后,先不校验,无脑安装之(显然此时④[XXX]为“不可信”状态)</p>
-<p>启动④[XXX],计算网盘下载目录中④[XXX]的 APK 的“实际校验和”,并且与之前离线保存得“理论校验和”比较,匹配一致则证明 APK 完好无损(并且不需要安装了),否则从头再来</p>
-<p>我的问题是:此时能否判定④[XXX]为“可信”状态了?</p>
-<p>或者问得更具体一点儿:</p>
-<p>如果网盘服务商作恶,技术上是否存在这样地可能:构造一个[FakeXXX]来替换我上传得④[XXX],更改源代码,在其中硬编码一些逻辑/信息,使得使用[FakeXXX]来计算[FakeXXX]的 APK 所产生得结果总是我离线保存得“理论校验和”呢?</p>
-<p>●如果实在没有办法,只能借助外力,在已经构建好了全套流程地 WINDOWS(见文末解释)上校验④[XXX],确认完好无损后将其 APK 存储到双插口 U 盘(此类 U 盘既可连接标准 USB 插口被 WINDOWS 读写,也可连接手机 TYPE-C 插口被 ANDROID 读写),然后在安卓自带文件管理器中安装</p>
-<p>●或者大家还有什么建议/方案呢?因为我这几天搜索了解到,Android APK 其实自带数字签名,但是和 WINDOWS EXE/MSI 自带地数字签名不一样,Android APK 自带地数字签名似乎不依赖 CA 来为开发者身份背书?或者说 Android 其实放行任意 CA?这也是 Android 开放性的根源?</p>
-<p>注:其实此全套流程已经在 WINDOWS 上构建了,④[XXX]的替代品我选择了[],因为它自带数字签名(解决了“可信”问题),并且自带 SHA***SUM.EXE,并且是开源程序</p>
-]]></content:encoded>
-<pubDate>2024-04-07T11:25:48Z</pubDate>
-</item>
-<item>
-<title>开发了一个将 markdown 转为 xmind 思维导图的功能，并提供下载</title>
-<link>https://www.v2ex.com/t/1029094</link>
-<guid>https://www.v2ex.com/t/1029094</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.verticalmind.work" rel="nofollow">https://www.verticalmind.work</a>
-<img alt="例子" class="embedded_image" rel="noreferrer" src="https://www.verticalmind.work/demo.png" />
-将 gpt 生成的 markdown ，直接复制后一键生成，避免许多不必要的操作。
-欢迎体验</p>
-]]></content:encoded>
-<pubDate>2024-04-03T17:42:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 接了一个项目，大家帮看一下有没有风险</title>
-<link>https://www.v2ex.com/t/1030346</link>
-<guid>https://www.v2ex.com/t/1030346</guid>
-<content:encoded><![CDATA[
-<p>朋友介绍了一个单，一个单独的 h5 收款页面，对接微信支付，没有其他商品或服务。这种会有风险吗？会不会被拿去做灰产？因为之前另外一个朋友做了一个单被人拿去做诈骗，被叫去协助调查了，还是谨慎一点号</p>
-]]></content:encoded>
-<pubDate>2024-04-07T10:13:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想请教一下有做过软件开发国产化替代的 v 友， mysql、redis、mongoDB、rabbitMQ、nginx 等这些用什么替代合适</title>
-<link>https://www.v2ex.com/t/1030345</link>
-<guid>https://www.v2ex.com/t/1030345</guid>
-<content:encoded><![CDATA[
-想请教一下有做过软件开发国产化替代的 v 友，mysql 、redis 、mongoDB 、rabbitMQ 、nginx 等这些用什么替代合适
-]]></content:encoded>
-<pubDate>2024-04-07T10:13:01Z</pubDate>
-</item>
-<item>
-<title>[程序员] 使用 selenium 爬取数据时，如何在当前已经创建的浏览器实例上，动态切换代理 ip？</title>
-<link>https://www.v2ex.com/t/1030344</link>
-<guid>https://www.v2ex.com/t/1030344</guid>
-<content:encoded><![CDATA[
-请教一个问题，使用 java 、selenium 、chromedriver 爬取数据的时候，如何在当前已经打开的浏览器实例上，动态切换代理 ip ？之前采取的措施是，如果要切换代理 ip ，那就关闭浏览器实例再重新创建一个，但是这种反复关闭浏览器实例再创建的操作，开销比较大。有什么办法能够在不关闭浏览器实例的情况下，动态切换代理 ip 么？
-]]></content:encoded>
-<pubDate>2024-04-07T10:09:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 被家乡警方开盒了，因为翻墙</title>
-<link>https://www.v2ex.com/t/1030343</link>
-<guid>https://www.v2ex.com/t/1030343</guid>
-<content:encoded><![CDATA[
-<p>X 天前接到亲妈电话，说户口所在区警察给她打电话要我的联系方式，说我翻墙浏览非法信息</p>
-<p>很神奇，真不知道他们怎么定位到我的</p>
-<p>我啥信息都浏览只看不发，可能是电报用了国内+86 手机号？</p>
-<p>那他们为啥不联系我，而是联系了父母</p>
-<p>很神奇，死活想不到怎么被定位的</p>
-<p>fq 用的 amytelecom + ios 的 postato</p>
-]]></content:encoded>
-<pubDate>2024-04-07T10:17:27Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 效率工具 RunFlow 进阶篇手册来啦，欢迎大家来体验</title>
-<link>https://www.v2ex.com/t/1030342</link>
-<guid>https://www.v2ex.com/t/1030342</guid>
-<content:encoded><![CDATA[
-<p>欢迎来到 RunFlow 手册的进阶篇，如果您还不了解 RunFlow ，建议先阅读我们的<a href="https://mp.weixin.qq.com/s?__biz=MzkwODYwMTg5OQ==&amp;mid=2247483753&amp;idx=1&amp;sn=4ae2ebf4cefeb149b8ec93f38a2e776d&amp;chksm=c0c63e2df7b1b73b0fb1f3a47c304480d8aef3d4f146790a473a386e68887a806785b7cff1f8&amp;token=448517216&amp;lang=zh_CN#rd" rel="nofollow">基础篇</a>。</p>
-<h3>搜索文件</h3>
-<p>按文件大小过滤，添加 <code>len</code> 参数，比如：<code>len:1kb-2kb</code>，<code>len:3mb-5mb</code> 等等。</p>
-<p><img alt="find_file" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/find_file_with_size_filter_zhcn.gif" /></p>
-<blockquote>
-<p><code>**</code> 可以匹配多级目录，比如您想查找文件夹 <code>folder_a</code> 里面以 <code>test</code> 开头的文件，可以这样输入：<code>folder_a/**/test</code>。</p>
-</blockquote>
-<h3>计算器</h3>
-<p>我们内置了两个无理数 <code>e</code> 和 <code>pi</code>（圆周率π)。 </p>
-<p><img alt="pi_and_e" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/pi_and_e_zhcn.gif" /></p>
-<p>计算超大数，如果您想计算 <code>9999999999999999999*9999999999999999999</code>，直接这样输入是没有结果的，我们需要在数字后面添加一个 <code>d</code> 参数，像这样：<code>9999999999999999999d*9999999999999999999d</code>。</p>
-<p><img alt="calc_big_number" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/calc_big_number_zhcn.gif" /></p>
-<h3>解散文件夹</h3>
-<p>假设我们有下方示例的一个文件夹，现在我们需要删除文件夹，把所有文件提到同一级，我们就可以使用 <code>folderunwrap</code>。</p>
-<pre><code class="language-text">文件夹
-├─文本文件_01.txt
-├─文本文件_02.txt
-├─文件夹 01
-│ ├─文本文件_03.txt
-│ └─文本文件_04.txt
-└─文件夹 02
-  └─文件夹 03
-    ├─文本文件_05.txt
-    └─文本文件_06.txt
-</code></pre>
-<p>解散文件夹后都在同一个目录级别：</p>
-<pre><code class="language-text">文本文件_01.txt
-文本文件_02.txt
-文本文件_03.txt
-文本文件_04.txt
-文本文件_05.txt
-文本文件_06.txt
-</code></pre>
-<p><img alt="unwrap_folder" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/unwrap_folder_zhcn.gif" /></p>
-<h3>独立窗口运行</h3>
-<p><img alt="separate_window" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/separate_window_zhcn.gif" /></p>
-<h3>导入导出数据</h3>
-<p>我们支持导出 JSON 格式的数据，同样导入数据也需要是 JSON 格式的。</p>
-<h3>数据同步</h3>
-<h5>本地同步服务</h5>
-<p>基于本地的同步服务是我们内置的功能，它依赖于第三方的云盘服务，比如 OneDrive 、iCloud 、Google Drive 、小米云盘、百度云盘、阿里云盘等等。</p>
-<p>这里我以我常用的 OneDrive 作为示例，其他云盘的同步方法也都一样，我们可以先在 OneDrive 中新建一个 <code>MyFlow</code> 的文件夹用来存储需要同步的数据，然后打开 RunFlow 数据同步的设置页面，开启 <code>基于本地的数据同步服务</code>，并设置数据所在文件夹即可。</p>
-<p><img alt="data_sync" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/data_sync_zhcn.gif" /></p>
-<blockquote>
-<p>偷偷告诉你，开启数据同步服务可以同步剪贴板。</p>
-</blockquote>
-<h3>定时任务</h3>
-<p>在热点事件的设置页面中，我们可以通过 Cron 表达式来设置定时任务，比如定时清理电脑垃圾回收站、定期重建文件索引等等。</p>
-<p><img alt="cron" class="embedded_image" rel="noreferrer" src="https://myrest.top/local/myblog/images/cron_zhcn.gif" /></p>
-<p>这里简单解释一下上面的 Cron 表达式：</p>
-<table>
-<thead>
-<tr>
-<th>秒(0-59)</th>
-<th>分(0-59)</th>
-<th>时(0-23)</th>
-<th>天(1-31)</th>
-<th>月份(1-12)</th>
-<th>星期(0-7, 0 和 7 都是星期天)</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td>0</td>
-<td>12</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>每天中午的 12 点执行</td>
-</tr>
-<tr>
-<td>0</td>
-<td>0</td>
-<td>12</td>
-<td>*</td>
-<td>*</td>
-<td>1</td>
-<td>每周一的中午 12 点执行</td>
-</tr>
-</tbody></table><br />
-<blockquote>
-<p>了解等多 Cron 表达式，可以<a href="https://baike.baidu.com/item/cron" rel="nofollow">点击这里</a>。</p>
-</blockquote>
-<h3>结语</h3>
-<p>本工具内置常见的进阶功能就介绍到这里了，如果您还想了解更多功能，可以到我们的<a href="https://myrest.top/zh-cn/store/plugin" rel="nofollow">插件商店</a>看看，如果您是一名开发者，欢迎阅读我们的<a href="https://myrest.top/zh-cn/blog/runflow_developer_point.md" rel="nofollow">开发者篇手册</a>，也欢迎您来提交插件。</p>
-]]></content:encoded>
-<pubDate>2024-04-07T10:01:33Z</pubDate>
-</item>
-<item>
-<title>[macOS] CGPDFService 线程经常跑出来</title>
-<link>https://www.v2ex.com/t/1030341</link>
-<guid>https://www.v2ex.com/t/1030341</guid>
-<content:encoded><![CDATA[
-<p>最近发现 CGPDFService 线程经常跑出来，每两三天就跑出来一堆，占用了很多 cpu 资源。机子也没有增加什么 pdf 文件，有朋友知道是什么情况吗？系统是 14.4.1</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:57:25Z</pubDate>
-</item>
-<item>
-<title>[程序员] etcd 的写性能怎么样？有人用过吗</title>
-<link>https://www.v2ex.com/t/1030338</link>
-<guid>https://www.v2ex.com/t/1030338</guid>
-<content:encoded><![CDATA[
-<p>看了下文档，类似 zk 和 etcd 这类分布式一致性系统，它的写过程像是个二段提交过程，然后一次只能处理一个写请求，那岂不是写性能比较差，我理解写的 qps 最多等于 1000/网络往返时延(毫秒)，我这样理解对吗？
-但我看过网上一些性能测试，etcd 能达到每秒上万次写，有点不太懂是怎么做到的，有大佬线上用过吗</p>
-]]></content:encoded>
-<pubDate>2024-04-07T05:53:13Z</pubDate>
-</item>
-<item>
-<title>[程序员] 4 年后端想接点私活，但是前端太复杂</title>
-<link>https://www.v2ex.com/t/1030337</link>
-<guid>https://www.v2ex.com/t/1030337</guid>
-<content:encoded><![CDATA[
-<p>平日里主攻后端，主要技术栈是 Java 和 Go ，前端略会 React 和 Nextjs ，但是现在无论自己搓还是现成的框架前端真的很复杂，尤其是 Vue 根本搞不懂，大家都是如何接私活搓小项目的？</p>
-]]></content:encoded>
-<pubDate>2024-04-07T10:02:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] AI 视频生成平台，除了 runway 和 pika，还有哪家比较好？</title>
-<link>https://www.v2ex.com/t/1030334</link>
-<guid>https://www.v2ex.com/t/1030334</guid>
-<content:encoded><![CDATA[
-sora 就算了，都没正式放出来给大家使用，希望大家推荐一些目前就能上手用的平台，国内国外都行，充值买会员也 OK 。
-]]></content:encoded>
-<pubDate>2024-04-07T09:32:41Z</pubDate>
-</item>
-<item>
-<title>[程序员] 如果只是纯写代码，国内哪家的 AI 大模型最推荐？</title>
-<link>https://www.v2ex.com/t/1030333</link>
-<guid>https://www.v2ex.com/t/1030333</guid>
-<content:encoded><![CDATA[
-<p>本人是 java 开发，想咨询一下大家都是用的哪一家的产品。
-我目前还是用文心一言比较多，但是不太清楚国内这块到底哪家最强最准确。</p>
-]]></content:encoded>
-<pubDate>2024-04-07T10:09:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 怪问题，我用 go 开发了一个后台程序用来操作本的 sqlite3, go build 后， windows 下可以运行，但是 electron 拉起 go build 后的 exe 文件，就会出错</title>
-<link>https://www.v2ex.com/t/1030332</link>
-<guid>https://www.v2ex.com/t/1030332</guid>
-<content:encoded><![CDATA[
-<p>怪问题，我用 go 开发了一个后台程序用来操作本地的 sqlite3, go build 后生成的 exe 文件在 windows 的 cmd 下可以正常运行运行，但是 electron-egg 打包的程序拉起 go build 后的 exe 文件，就会出错</p>
-<pre><code>goroutine 1 [running]:
-modernc.org/libc.newFile(0xf1cd00?, 0x10cbd70?)
-        D:/env/gopkg/mod/modernc.org/libc@v1.22.5/libc_windows.go:293 +0x9e
-modernc.org/libc.init()
-        D:/env/gopkg/mod/modernc.org/libc@v1.22.5/libc.go:56 +0x14a5
-2024-04-01 11:53:49,948 INFO 8372 [ee-core] [corss/process] received a exit from child-process, code:2, signal:null, pid:5692
-
-</code></pre>
-<p>想问下各位大佬，这是为啥呀？能不能给点排查的思路？</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:27:41Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海] Prompt Engineering 工程师/初级工程师（15-40k+期权）</title>
-<link>https://www.v2ex.com/t/1030331</link>
-<guid>https://www.v2ex.com/t/1030331</guid>
-<content:encoded><![CDATA[
-<h3>公司背景</h3>
-<p>公司团队成员大多来自饿了么核心产品研发团队
-双休，基本不加班
-我们专注在 AI Agent 领域
-公司产品官网： <a href="https://heydola.com/" rel="nofollow">https://heydola.com/</a></p>
-<h3>岗位职责:</h3>
-<p>负责将公司的业务使用生成式 AI 技术落地</p>
-<ol>
-<li>分析产品需求，将产品需求拆解为技术方案，设计、开发和完善 Prompt 提示和 Flow</li>
-<li>对 Prompt 进行调优及效果分析，提升系统整体性能</li>
-<li>研发 Prompt 工具，提升 Prompt 工程效率</li>
-<li>了解并追踪人工智能、自然语言处理和机器学习的最新进展</li>
-</ol>
-<h3>任职要求:</h3>
-<ol>
-<li>3 年以上研发工程师背景（初级要求 1 年），可以是后端，前端，移动端</li>
-<li>半年以上 Prompt Engineering 相关项目实践（初级要求 3 个月），有 GPTs 上架项目优先</li>
-<li>熟悉 LLM 相关技术，不限于 prompt engineering / model fine-tune / langchain 等</li>
-<li>强大且快速的学习新领域知识的能力</li>
-<li>较强的书面和口语英语沟通能力</li>
-</ol>
-<h3>优先考虑</h3>
-<ol>
-<li>计算机科学，机器学习相关专业领域硕士学位</li>
-<li>熟悉 Python</li>
-<li>有上架的 GPTs 项目</li>
-</ol>
-<p>优秀的同学不限于薪资带宽</p>
-<p>简历投递：QnJ5YW5fV29uZw==</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:23:33Z</pubDate>
-</item>
-<item>
-<title>[问与答] 乳腺结节怎么买保险？</title>
-<link>https://www.v2ex.com/t/1030329</link>
-<guid>https://www.v2ex.com/t/1030329</guid>
-<content:encoded><![CDATA[
-有乳腺腺结节，甚至得了乳腺癌，还能不能买保险呢？要根据具体的情况去判断。<br /><br />乳腺增生<br />重疾险大部分都可以标体承保，也就是不用额外交保费，并且之后万一得了乳腺相关的疾病，也可以正常赔付的。<br />医疗险，标体承保、除责承保都是有可能的，除责承保就是不会赔付乳腺相关的疾病了。<br /><br />乳腺结节<br />最简单的办法就是去做一个分级，分为 0-6 级。<br />如果分级是 0 级，需要进一步复查。<br />1-2 级，重疾险大部分是可以标体承保的。<br />到了 3 级，大部分重疾险都会除责承保了。<br />1-3 级的乳腺结节，医疗险一般都是除责承保。<br />到了 4 级及以上，就不太好买了，几乎都会给延期承保的结论了，也就是需要观察一段时间，整体情况比较稳定的情况下才有机会除责承保。<br />如果没有分级，就需要具体看了，比如结节的大小、是否多发、边缘是否清晰等等。<br /><br />对乳腺腺结节进行了手术<br />术后病理是良性的，重疾险和医疗险都是有机会标体承保的。<br />如果手术后病理是恶性的，最少需要观察 2-3 年后，复查结果比较理想的情况下，重疾险和医疗险也是有机会除责承保的。<br /><br />关于我，一名保险经纪人。<br />之前从事 10 年 QA ，目前转行保险经纪人 3 年，保险经纪人和保险代理人最大的区别就是，保险经纪人会和很多保险公司合作，市面上 90%的产品都有，会根据委托人需求再选择产品，附上 V2EX 持续更新的保险科普帖： <a href="https://www.v2ex.com/t/981804" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/981804</a><br />同时我在全网多平台更新视频及文章，欢迎关注： 王瑞说保险 / 王瑞说保<br />也帮了不少 V 友进行了保险解答或保险规划，有想了解或者需要帮助的，可以加 V：WSJianBao 备注 V2
-]]></content:encoded>
-<pubDate>2024-04-07T09:19:50Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] Baidu Comate 免费了</title>
-<link>https://www.v2ex.com/t/1030328</link>
-<guid>https://www.v2ex.com/t/1030328</guid>
-<content:encoded><![CDATA[
-<p>Baidu Comate 免费了，和通义灵码差不多，体验上来说没啥太大差别，可以换着用
-<a href="https://comate.baidu.com/?inviteCode=y896kr8p" rel="nofollow">https://comate.baidu.com/?inviteCode=y896kr8p</a></p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:57:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 应该怎么彻底注销贝壳找房这个平台内的手机号呢？</title>
-<link>https://www.v2ex.com/t/1030327</link>
-<guid>https://www.v2ex.com/t/1030327</guid>
-<content:encoded><![CDATA[
-经过：上午打开小程序浏览了一下，提示注册时直接用了微信授权（忘记了有没有什么选项同意给业务员的，有的话应该是默认给了没取消，但是后续在小程序里也没找到这个选项）<br /><br />然后下午就开始来电了，其中一个明确说了是贝壳找房的，电话接的多了就有点绷不住了，这种是不是后台直接把明文号码分配给业务员的？<br /><br />目前在小程序里删除了授权的手机号（显示已通知删除），如果注销账号的话必须要下载它的 App ，问下 V2 里有无贝壳的员工，删除小程序授权的手机号会同步在你们系统内删掉吗？还是必须要在 App 内注销才可以删除<br />-----------------------------------------------------------------<br />还是说不管怎么注销，系统内都会留一份明文手机号？
-]]></content:encoded>
-<pubDate>2024-04-07T10:04:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] ikuai 下的 ac 上的 pc 怎么访问 ikuai 下的 nas</title>
-<link>https://www.v2ex.com/t/1030325</link>
-<guid>https://www.v2ex.com/t/1030325</guid>
-<content:encoded><![CDATA[
-<p>各位大佬好，我在光猫下接了 ikuai ，lan 口分别接了 nas 和 tplink 的 ac,pc 连接到了 ap 的网口，现在 pc 的网段和 nas ，ac 的网段不在同一个，请问怎么访问到 nas ？</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:59:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] CentOS Stream 9 经常无法解析域名</title>
-<link>https://www.v2ex.com/t/1030324</link>
-<guid>https://www.v2ex.com/t/1030324</guid>
-<content:encoded><![CDATA[
-<p>有没有 linux 服务器大佬帮忙看看问题：</p>
-<p>我有一台电脑装的 CentOS Stream 9 服务器无 GUI 版，网线直连的路由器，设置了固定 ip 。</p>
-<p>网络好的，可以内网连接，也可以访问外网。搭了 PHP 和 Apache 运行着。</p>
-<p>但问题是，时不时的就网络错误，表现为：</p>
-<p>[PDOException] SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known</p>
-<p>或</p>
-<p>cURL Error (6) Could not resolve host: <a href="http://xx.xx.com" rel="nofollow">xx.xx.com</a> （此处我改了域名 xx ）</p>
-<p>他也不是一直不行，就是偶尔，大概 10 分钟左右就会出现一次错误</p>
-<pre><code># cat /etc/NetworkManager/system-connections/enp4s0.nmconnection
-[connection]
-id=enp4s0
-uuid=(UUID here)
-type=ethernet
-interface-name=enp4s0
-timestamp=1712230701
-
-[ethernet]
-
-[ipv4]
-address1=192.168.2.120/24,192.168.2.1
-dns=192.168.2.1;114.114.114.114;8.8.8.8;
-method=manual
-
-[ipv6]
-addr-gen-mode=eui64
-method=auto
-
-[proxy]
-</code></pre>
-<pre><code># cat /etc/resolv.conf
-# Generated by NetworkManager
-nameserver 192.168.2.1
-nameserver 114.114.114.114
-nameserver 8.8.8.8
-</code></pre>
-<pre><code># cat /etc/nsswitch.conf | grep 'hosts'
-#     hosts: files dns
-#     hosts: files dns  # from user file
-# Valid databases are: aliases, ethers, group, gshadow, hosts,
-hosts:      files dns myhostname
-</code></pre>
-<pre><code># ip a
-1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    inet 127.0.0.1/8 scope host lo
-       valid_lft forever preferred_lft forever
-    inet6 ::1/128 scope host
-       valid_lft forever preferred_lft forever
-2: enp4s0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 58:11:22:bd:ae:31 brd ff:ff:ff:ff:ff:ff
-    inet 192.168.2.120/24 brd 192.168.2.255 scope global noprefixroute enp4s0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::5a11:22ff:febd:ae31/64 scope link noprefixroute
-       valid_lft forever preferred_lft forever
-3: wlo1: &lt;BROADCAST,MULTICAST&gt; mtu 1500 qdisc noop state DOWN group default qlen 1000
-    link/ether f4:26:79:f6:9d:43 brd ff:ff:ff:ff:ff:ff
-    altname wlp0s20f3
-</code></pre>
-<p>另外一个情况是：dns=192.168.2.1;114.114.114.114;8.8.8.8; 这里如果我不填 192.168.2.1 或把他移到后面，则完全连不上外网（内网是可以）！</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:39:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问在 android 设备的 app 里或者雷电模拟器的 app 里，有没有办法实现键盘翻页</title>
-<link>https://www.v2ex.com/t/1030322</link>
-<guid>https://www.v2ex.com/t/1030322</guid>
-<content:encoded><![CDATA[
-很多 app 内容都是必须用触摸滑动才能持续阅读<br />比如知乎之类的内容 app 翻页按键不起作用<br />希望有个键盘翻页功能 可以用键盘的快捷键来翻页就好了<br />不知道有没有解决办法<br /><br />现在只需要在雷电模拟器的 app 中实现就够了
-]]></content:encoded>
-<pubDate>2024-04-07T09:36:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如果觉得自己的领导太差，怎么解</title>
-<link>https://www.v2ex.com/t/1030321</link>
-<guid>https://www.v2ex.com/t/1030321</guid>
-<content:encoded><![CDATA[
-现在这个领导精于算计，总是做些表面的事情，所有的出发点都是为了自己，对自己基本也就是利用利用，在他下面做了一两年感觉没什么前途，虽然尽心尽力也没有啥认可，感觉碰到了这种领导确实很尴尬，走么又一把年纪了，外面不好找，消极怠工也不是我的性格。怎么解
-]]></content:encoded>
-<pubDate>2024-03-30T09:04:54Z</pubDate>
-</item>
-<item>
-<title>[推广] [长期活动] 阿里云服务器 99 元/年 续费同价 不限新老用户</title>
-<link>https://www.v2ex.com/t/1030320</link>
-<guid>https://www.v2ex.com/t/1030320</guid>
-<content:encoded><![CDATA[
-<p>这个活动短时间内不会取消，无论阿里云新老用户都可以购买，而且不是 T5 突发型实例，没有 CPU 100%基线限制，带宽 3M 确实不大不过国内服务器带宽都比较贵，这个确实没办法。</p>
-<p>有关本活动的机型或其他问题，欢迎联系楼主~</p>
-<p><b>热门款服务器：</b></p>
-<p><a href="https://ourl.co/aliesv" rel="nofollow">https://ourl.co/aliesv</a> (新用户有 aff ，下同，感谢支持！)</p>
-<p>2 核心 2GB 内存 3M 固定带宽和 40GB 硬盘，新老用户 99 元/1 年，续费 99 元，优惠价续费截止至 2026 年 3 月 31 日</p>
-<p>2 核心 4GB 内存 5M 固定带宽和 80GB 硬盘，企业认证用户 199 元/年，续费价 199 元/1 年。</p>
-<p>需要其他规格的服务器？请联系楼主咨询优惠，联系方式在本文结尾。</p>
-<p><b>轻量应用服务器：</b><a href="https://ourl.co/aliesv" rel="nofollow">https://ourl.co/aliesv</a></p>
-<p>此促销款适用于阿里云新用户，2 核心 2GB 内存 3M 带宽无流量限制，活动价仅 61 元/1 年。</p>
-<p><b>腾讯云服务器</b></p>
-<p>腾讯云主推的是轻量应用服务器，也是支持老用户，首次购买轻量机的新用户或老用户 61 元/年，之前购买过的复购是 99 元/年，活动地址： <a href="https://ourl.co/tcnor" rel="nofollow">https://ourl.co/tcnor</a></p>
-<p><b>联系方式：</b></p>
-<p>wx：id7371 </p>
-<p>tg： <a href="https://ourl.co/tel" rel="nofollow">https://ourl.co/tel</a> </p>
-<p>扣扣：2543492</p>
-]]></content:encoded>
-<pubDate>2024-04-07T11:26:51Z</pubDate>
-</item>
-<item>
-<title>[Arc] ARC 的 peek 功能为啥在有些网站不工作？</title>
-<link>https://www.v2ex.com/t/1030318</link>
-<guid>https://www.v2ex.com/t/1030318</guid>
-<content:encoded><![CDATA[
-我看到说只有加到 favorite 或 pinned 的 tab 才能用 peek 功能，我发现我 pin 了五六个网站后，有的直接就可以使用 peek ，有的网站还是打开了新的 tab 。我知道按着 shift 可以打开 peek 功能，但我想默认这些都能用 peek 的功能，这个是网站本身的问题还是 arc 的问题？有大家知道嘛，还有在最新版 arc 里，我看已经没有关于 peek 的任何设置了
-]]></content:encoded>
-<pubDate>2024-04-07T04:58:08Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小程序组件库</title>
-<link>https://www.v2ex.com/t/1030317</link>
-<guid>https://www.v2ex.com/t/1030317</guid>
-<content:encoded><![CDATA[
-<p>最近要用 Uniapp 开发一个微信小程序，各位有推荐比较好用和美观的组件库吗？之前用过 Vant 和 uView 感觉一般。。。ps:打算自己开发不找后端了。看了看云开发数据库那个靠谱吗？之前我看有免费的调用次数和存储现在好像都收费了</p>
-]]></content:encoded>
-<pubDate>2024-04-07T09:42:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] CentOS Stream 9 经常 “Name or service not known”</title>
-<link>https://www.v2ex.com/t/1030316</link>
-<guid>https://www.v2ex.com/t/1030316</guid>
-<content:encoded><![CDATA[
-<p>有没有 linux 服务器大佬帮忙看看问题：</p>
-<p>我有一台电脑装的 CentOS Stream 9 服务器无 GUI 版，网线直连的路由器，设置了固定 ip 。</p>
-<p>网络好的，可以内网连接，也可以访问外网。搭了 PHP 和 Apache 运行着。</p>
-<p>但问题是，时不时的就网络错误，表现为：</p>
-<p>[PDOException] SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known</p>
-<p>或</p>
-<p>cURL Error (6) Could not resolve host: <a href="http://xx.xx.com" rel="nofollow">xx.xx.com</a> （此处我改了域名 xx ）</p>
-<p>他也不是一直不行，就是偶尔，大概 10 分钟左右就会出现一次错误</p>
-<pre><code># cat /etc/NetworkManager/system-connections/enp4s0.nmconnection
-[connection]
-id=enp4s0
-uuid=(UUID here)
-type=ethernet
-interface-name=enp4s0
-timestamp=1712230701
-
-[ethernet]
-
-[ipv4]
-address1=192.168.2.120/24,192.168.2.1
-dns=192.168.2.1;114.114.114.114;8.8.8.8;
-method=manual
-
-[ipv6]
-addr-gen-mode=eui64
-method=auto
-
-[proxy]
-</code></pre>
-<pre><code># cat /etc/resolv.conf
-# Generated by NetworkManager
-nameserver 192.168.2.1
-nameserver 114.114.114.114
-nameserver 8.8.8.8
-</code></pre>
-<pre><code># cat /etc/nsswitch.conf | grep 'hosts'
-#     hosts: files dns
-#     hosts: files dns  # from user file
-# Valid databases are: aliases, ethers, group, gshadow, hosts,
-hosts:      files dns myhostname
-</code></pre>
-<pre><code># ip a
-1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    inet 127.0.0.1/8 scope host lo
-       valid_lft forever preferred_lft forever
-    inet6 ::1/128 scope host
-       valid_lft forever preferred_lft forever
-2: enp4s0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 58:11:22:bd:ae:31 brd ff:ff:ff:ff:ff:ff
-    inet 192.168.2.120/24 brd 192.168.2.255 scope global noprefixroute enp4s0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::5a11:22ff:febd:ae31/64 scope link noprefixroute
-       valid_lft forever preferred_lft forever
-3: wlo1: &lt;BROADCAST,MULTICAST&gt; mtu 1500 qdisc noop state DOWN group default qlen 1000
-    link/ether f4:26:79:f6:9d:43 brd ff:ff:ff:ff:ff:ff
-    altname wlp0s20f3
-</code></pre>
-<p>另外一个情况是：dns=192.168.2.1;114.114.114.114;8.8.8.8; 这里如果我不填 192.168.2.1 或把他移到后面，则完全连不上外网（内网是可以）！</p>
-]]></content:encoded>
-<pubDate>2024-03-20T08:57:51Z</pubDate>
 </item>
 </channel>
 </rss>
