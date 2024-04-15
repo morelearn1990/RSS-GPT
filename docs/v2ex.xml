@@ -5,14 +5,942 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Java] Java , 写了一个生成模糊查询和时间区间查询 wrapper 的函数,有什么优化建议或是隐藏的坑吗?</title>
+<link>https://www.v2ex.com/t/1032664</link>
+<guid>https://www.v2ex.com/t/1032664</guid>
+<content:encoded><![CDATA[
+
+<p>模糊查询大致思路是先遍历实体类，然后实体类如果有值，则获取它的 TableField 注解，获取字段名，然后拼接 wrapper 。<br />
+时间查询的大体思路和上面差不多，前端传来 xxxStart 和 xxxxEnd, 首先保存到实体类中，然后再做字符拼接。<br />
+想起写这个的原因是因为基本每个前端 Table 都需要类似的查询，本来是写在 XML 文件里，但是每改一次字段都会联动着更改 XML ，太过繁琐，增加出错几率。 所以写了这么一个工具类来通过实体类动态拼接模糊查询。   </p>
+<pre><code class="language-java">//拼接函数
+/**
+     * 通过实体类生成模糊搜索和日期区间查询的 wrapper
+     * @param cls   类名
+     * @param entity    实体类
+     * @param orderByField  排序字段
+     * @param orderByAsc    是否升序
+     * @return  QueryWrapper
+     * @param &lt;T&gt;   实体类
+     */
+    public &lt;T&gt; QueryWrapper&lt;T&gt; generateFuzzySearchAndBetweenDateWrapper(Class&lt;T&gt; cls, T entity, String orderByField, Boolean orderByAsc) {
+        QueryWrapper&lt;T&gt; wrapper = new QueryWrapper&lt;&gt;();
+
+        //先检查是否排序
+        if (!DataUtil.isEmpty(orderByField)) {
+            wrapper.orderBy(true, orderByAsc, StringFormat.camelToUnderscore(orderByField));
+        }
+        //再检查实体类是否为空
+        if (DataUtil.isEmpty(entity)) {
+            return wrapper;
+        }
+        try {
+            //遍历实体类的所有字段. getAllFields 方法获取不止当前类的字段, 还包括父类的字段
+            for (Field field: DataUtil.getAllFields(cls)) {
+                //如果是 final, static, transient 修饰的字段, 则跳过. 一般用来排除 private static final long serialVersionUID = 1L; 序列化 id
+                if (Modifier.isFinal(field.getModifiers())
+                        || Modifier.isStatic(field.getModifiers())
+                        || Modifier.isTransient(field.getModifiers())) {
+                    continue;
+                }
+                //获取字段的 get 方法
+                Method getFunc = cls.getMethod("get" + StringFormat.capitalize(field.getName()));
+                Object value = getFunc.invoke(entity);
+                //如果字段有 TableField 注解, 并且值不为空
+                if (field.isAnnotationPresent(TableField.class) &amp;&amp; !DataUtil.isEmpty(value)) {
+                    //如果 TableField 注解的 exist 属性为 true, 则使用注解的 value 作为字段名
+                    if (field.getAnnotation(TableField.class).exist()) {
+                        String column = field.getAnnotation(TableField.class).value();
+                        wrapper.like(column, value);
+                    } else {
+                        //如果 TableField 注解的 exist 属性为 false, 证明可以能是一个时间区域查询
+                        String name = field.getName();
+                        if (name.endsWith("Start")) {
+                            String column = name.substring(0, name.length() - 5);
+                            wrapper.ge(StringFormat.camelToUnderscore(column), value);
+                        } else if (name.endsWith("End")) {
+                            String column = name.substring(0, name.length() - 3);
+                            wrapper.le(StringFormat.camelToUnderscore(column), value);
+                        }
+                    }
+                }
+
+            }
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+        return wrapper;
+    }
+
+
+</code></pre>
+<pre><code class="language-java">//controller
+
+@GetMapping("select/page")
+    public IPage&lt;Company&gt; selectPage(@RequestBody(required = false) Company company,
+                                    @RequestParam(defaultValue = "1") Integer current,
+                                    @RequestParam(defaultValue = "10") Integer size,
+                                    @RequestParam(required = false)String orderByField,
+                                    @RequestParam(defaultValue = "true")Boolean orderByAsc) {
+        QueryWrapper&lt;Company&gt; companyQueryWrapper = generateFuzzySearchAndBetweenDateWrapper(Company.class, company, orderByField,orderByAsc);
+        Page&lt;Company&gt; companyPage = new Page&lt;&gt;();
+        companyPage.setCurrent(current);
+        companyPage.setSize(size);
+        IPage&lt;Company&gt; companyIPage = companyService.page(companyPage, companyQueryWrapper);
+        return companyIPage;
+    }
+</code></pre>
+<p><strong>已知的问题:</strong><br />
+1.Get 请求携带请求体，功能是可以实现，但似乎有些不合规矩，隐隐约约记得当时学 J2EE 的时候有讲过不要在 Get 请求携带请求体<br />
+2.每个时间字段都需要增加两个虚拟属性，用于接受前端发来的时间范围数据</p>
+<pre><code class="language-java">
+		@TableField("expire_date")
+        @ApiModelProperty(value = "到期时间")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        private Date expireDate;
+
+        @TableField(exist = false)
+        private String expireDateStart;
+
+        @TableField(exist = false)
+        private String expireDateEnd;
+</code></pre>
+<p>3.想实现数据字典的功能，但是感觉有点复杂， 首先需要调用其他 Service 来查询数据表，然后实体类还需要多加一个虚拟字段，用于存储数据字典对应的值。例如：   </p>
+<pre><code class="language-java">		
+        @TableField("industry_type")
+        @ApiModelProperty(value = "企业类型")
+        private Integer industryType;
+
+		@TableField(exist = false)
+		private String industryTypeValue;
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-04-15T08:16:01Z</pubDate>
+<pubDate>2024-04-15T08:16:01Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [日本/新加坡] PHP ,Go,运维，前端，测试， Flutter 等多职位</title>
+<link>https://www.v2ex.com/t/1032663</link>
+<guid>https://www.v2ex.com/t/1032663</guid>
+<content:encoded><![CDATA[
+
+<p>日本 Okasa 入职 交易所
+税前约 30-45k<br />
+產品經理
+運維工程師
+PHP 高級工程師
+PHP 資深架構師
+前端工程師(VUE)
+DBA
+測試工程師
+移動開發工程師(Flutter)
+UI 設計師</p>
+<p>新加坡
+税前 40-50k
+Golang 工程师
+node.js 后端</p>
+<p>统一要求 年龄 36 岁以下
+本科学历以上
+3 年以上工作经验
+日本前期国内远程 3 个月后出国
+新加坡职位到岗一个月可回国远程，需在 4 月底之前入职
+不接受直接完全远程</p>
+<p>简历投递： <a href="mailto:ben@marsconsult.com.tw">ben@marsconsult.com.tw</a>
+欢迎有出国工作意向的同仁咨询，会在邮箱回传更详细信息</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:15:40Z</pubDate>
+<pubDate>2024-04-15T08:12:40Z</pubDate>
+</item>
+<item>
+<title>[推广] 防御服务器被 ddos cc 攻击问题</title>
+<link>https://www.v2ex.com/t/1032662</link>
+<guid>https://www.v2ex.com/t/1032662</guid>
+<content:encoded><![CDATA[
+
+<p>防御好用不贵，支持免费测试。
+vx   790881552</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:14:54Z</pubDate>
+<pubDate>2024-04-15T08:11:54Z</pubDate>
+</item>
+<item>
+<title>[互联网] 用移动的 5G 上国外网站很快，可为什么移动 wifi 网络慢的几乎打不开？</title>
+<link>https://www.v2ex.com/t/1032661</link>
+<guid>https://www.v2ex.com/t/1032661</guid>
+<content:encoded><![CDATA[
+
+<p>会不会路由器问题？
+还是说移动网络没公网，所以是这样慢？ （之前都还可以的）</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:12:32Z</pubDate>
+<pubDate>2024-04-15T08:17:30Z</pubDate>
+</item>
+<item>
+<title>[程序员] zabbix 监控网络设备使用 sflow 或 netflow 协议。有没有方案？</title>
+<link>https://www.v2ex.com/t/1032660</link>
+<guid>https://www.v2ex.com/t/1032660</guid>
+<content:encoded><![CDATA[
+
+如题，zabbix 监控网络设备使用 sflow 或 netflow 协议。有没有方案？
+]]></content:encoded>
+<pubDate>2024-04-15T08:09:04Z</pubDate>
+<pubDate>2024-04-15T08:11:48Z</pubDate>
+</item>
+<item>
+<title>[北京] 京 A running club 有人感兴趣吗</title>
+<link>https://www.v2ex.com/t/1032659</link>
+<guid>https://www.v2ex.com/t/1032659</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.youtube.com/watch?v=7JPRUXUVMxs&amp;t=4s" rel="nofollow">https://www.youtube.com/watch?v=7JPRUXUVMxs&amp;t=4s</a></p>
+<p>主要流程就是绕工体跑两圈，然后免费喝一杯啤酒</p>
+<p>每个月跑一次，欢迎爱跑步的朋友来玩</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:06:42Z</pubDate>
+<pubDate>2024-04-15T08:06:42Z</pubDate>
+</item>
+<item>
+<title>[北京] 出一年 100M 联通宽带，价格可谈～</title>
+<link>https://www.v2ex.com/t/1032658</link>
+<guid>https://www.v2ex.com/t/1032658</guid>
+<content:encoded><![CDATA[
+
+<p>26 年 4 月 30 到期的 100M 联通宽带，不包括免费移机次数了，因此需要自费移机。代价来，价格可谈～</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:04:45Z</pubDate>
+<pubDate>2024-04-15T08:04:45Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求个展示商品的网站模板</title>
+<link>https://www.v2ex.com/t/1032657</link>
+<guid>https://www.v2ex.com/t/1032657</guid>
+<content:encoded><![CDATA[
+
+<p>想做个售卖单页的简单网站，能实现展示多样化的商品，点击某一样商品进去之后能显示商品介绍以及联系方式等，不需要太复杂，不清楚有没有 v2 朋友们知道哪里有模板可以借鉴或者能直接套用之类的？</p>
+<p>求大佬们的推荐，谢谢。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T08:01:34Z</pubDate>
+<pubDate>2024-04-15T07:58:34Z</pubDate>
+</item>
+<item>
+<title>[Cloudflare] 推荐一个精选的 Cloudflare 工具、开源项目、指南、博客和其他资源列表。</title>
+<link>https://www.v2ex.com/t/1032656</link>
+<guid>https://www.v2ex.com/t/1032656</guid>
+<content:encoded><![CDATA[
+
+<p>代码仓库地址： <a href="https://github.com/zhuima/awesome-cloudflare" rel="nofollow">https://github.com/zhuima/awesome-cloudflare</a></p>
+<p>被称为赛博菩萨的 Cloudflare 提供内容交付网络 （ CDN ） 服务、DDoS 缓解、互联网安全和分布式域名服务器 （ DNS ） 服务，位于访问者和 Cloudflare 用户的托管提供商之间，充当网站的反向代理。</p>
+<p>该仓库只收录基于 Cloudflare 的开源工具，为独立开发者早期摸索期提供一个省心省时的工具集，持续整理中……</p>
+<p>Contents
+图床
+邮箱
+博客
+短链
+网站分析
+隧道
+加速
+文件分享
+测速
+文章
+其他</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:59:37Z</pubDate>
+<pubDate>2024-04-15T07:58:37Z</pubDate>
+</item>
+<item>
+<title>[GitHub] 基于 vx.dev 也搞了一个自动生成前端代码的工具</title>
+<link>https://www.v2ex.com/t/1032655</link>
+<guid>https://www.v2ex.com/t/1032655</guid>
+<content:encoded><![CDATA[
+
+<p>基于<a href="https://github.com/Yuyz0112/dewhale" rel="nofollow">vx.dev</a></p>
+<p>搞了一个这个：<a href="https://github.com/xing393939/autogen-vue-code/issues" rel="nofollow">autogen-vue-code</a></p>
+<p>使用方法：创建一个 issue ，标题写你想要的页面，就生成 vue 代码，最终的效果预览地址会附在 issue 的回复上。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:55:11Z</pubDate>
+<pubDate>2024-04-15T07:55:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求助 mysql 查询优化</title>
+<link>https://www.v2ex.com/t/1032654</link>
+<guid>https://www.v2ex.com/t/1032654</guid>
+<content:encoded><![CDATA[
+
+<h2>表 abc_http_detail_log_2024_04_13 为网络日志表，包含部分字段：</h2>
+<pre><code>uid int	// 用户 id
+account_id int // 子账号 id
+flow bingint // 量消耗
+ip char // 本机 ip
+address varchar // 请求地址
+</code></pre>
+<h2>联合索引 idx_uid_account_ip 包含字段 uid, account_id, ip</h2>
+<p>现在需要查询当日的用户流量使用情况。account_id 可以为 0 或者大于 0 。
+<img class="embedded_image" rel="noreferrer" src="https://oss.haiouxingxuan.com/images/967e517c-6c76-4ba8-851b-bf500daf26fb.jpg" /></p>
+<p>表 abc_http_detail_log_2024_04_13 有 2075w 条数据，uid=114708 的数据量最多，有 637w 条。在统计流量消耗时出现上图的情况。如何才能优化查询呢？</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:54:52Z</pubDate>
+<pubDate>2024-04-15T07:59:39Z</pubDate>
+</item>
+<item>
+<title>[程序员] 面相对象过时了吗？现在一个大型项目的开发你们会优先考虑用什么编程范式？</title>
+<link>https://www.v2ex.com/t/1032653</link>
+<guid>https://www.v2ex.com/t/1032653</guid>
+<content:encoded><![CDATA[
+
+<p>面相对象很多地方繁琐让人诟病，个人井底的呆久了，好奇看在的中、大型开发都考虑说明样的编程范式，开发风格？</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:52:46Z</pubDate>
+<pubDate>2024-04-14T23:49:46Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 大龄一线开发，最近找工作找到怀疑人生</title>
+<link>https://www.v2ex.com/t/1032652</link>
+<guid>https://www.v2ex.com/t/1032652</guid>
+<content:encoded><![CDATA[
+
+<p>本人虚岁 40 了，公司业务萎缩，顺理成章的毕业了，玩了几个月之后开始找工作。</p>
+<p>才发现，现在不能直接投简历了，要先沟通，对方回复后才能投，然而有下文的不到 10%，有面试机会的就更少了。</p>
+<p>我上一次找工作时，一周能安排好几个面试，现在却无人问津了。身边却也有同龄朋友最近跳槽了，整体行情好不好很难说，但我个人行情是真的糟糕，再这样下去只能躺平了。</p>
+<p>经验和技术处于巅峰时期，精力也不差，却快要半退休了。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:48:29Z</pubDate>
+<pubDate>2024-04-14T15:48:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 感觉 IDEA 跑 Angular 项目运行很卡？</title>
+<link>https://www.v2ex.com/t/1032651</link>
+<guid>https://www.v2ex.com/t/1032651</guid>
+<content:encoded><![CDATA[
+
+<p>M1 Pro ，16G 内存，我承认内存是小，手上有一个 angular16+Arcgis 的地图项目，每次跑这个项目的时候机器感觉吃力，无论是 IDEA 编写状态下打字响应速度、中文输入候选词响应速度、修改代码后保存时编译的速度、项目在浏览器刷新后的速度都感觉远远慢于写 Vue2 、Vue3 、Java SpringBoot 项目、PHP 项目。
+是不是 Angular 吃配置更高一些？现在当年后悔没多加 3000 上 M1 Max 32G
+这个 Angular 项目打中文的时候卡的候选词（ macos 自带输入法）都要等好几秒才出来。。。
+反观如果是写 Vue3 项目 十分流畅
+不知道大家有没有遇到过这个现象。
+IDEA 经常更新始终是最新版，现在是 2024.1</p>
+<p>还有一点吐槽一下这个 Angular 项目缓存文件好像是每次保存代码编译一次就会累积，每隔一段时间我就得手动删除一次 20G+的缓存文件</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:46:49Z</pubDate>
+<pubDate>2024-04-15T07:44:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐这样一款软件或者插件等。监控 twitter 上特定的用户的发言。</title>
+<link>https://www.v2ex.com/t/1032650</link>
+<guid>https://www.v2ex.com/t/1032650</guid>
+<content:encoded><![CDATA[
+
+<p>有更新就提示或者推送。<br />
+谢谢。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:42:13Z</pubDate>
+<pubDate>2024-04-15T07:54:09Z</pubDate>
+</item>
+<item>
+<title>[问与答] 同一段文字经过 openai 的模型 embedding 之后得到的向量每次都是一致的吗？</title>
+<link>https://www.v2ex.com/t/1032648</link>
+<guid>https://www.v2ex.com/t/1032648</guid>
+<content:encoded><![CDATA[
+
+<p>萌新提问</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:40:15Z</pubDate>
+<pubDate>2024-04-15T07:38:15Z</pubDate>
+</item>
+<item>
+<title>[旅行] 有没有推荐五一国内外旅游地的</title>
+<link>https://www.v2ex.com/t/1032647</link>
+<guid>https://www.v2ex.com/t/1032647</guid>
+<content:encoded><![CDATA[
+
+请假三天，预计游玩 5 天左右<br />不会开车，如果能推荐旅行社更好~<br />预算在 5000 左右
+]]></content:encoded>
+<pubDate>2024-04-15T07:37:32Z</pubDate>
+<pubDate>2024-04-15T07:51:19Z</pubDate>
+</item>
+<item>
+<title>[全球工单系统] 语雀又 G 了</title>
+<link>https://www.v2ex.com/t/1032645</link>
+<guid>https://www.v2ex.com/t/1032645</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-15T07:36:19Z</pubDate>
+<pubDate>2024-04-15T07:38:16Z</pubDate>
+</item>
+<item>
+<title>[生活] 有人长期使用漱口水吗？</title>
+<link>https://www.v2ex.com/t/1032643</link>
+<guid>https://www.v2ex.com/t/1032643</guid>
+<content:encoded><![CDATA[
+
+昨天开始使用李施德林的一款漱口水：冰蓝劲爽漱口水。<br />第一次使用时，口腔顿时像被刀割一般，哪哪都疼，舌头、嘴巴不敢动，过了一会就吐掉了。<br />过了好一会，都感觉嘴巴里干。<br />我去看了下配方，里面有乙醇（酒精）。<br />使用说明是吐了后就不需要用水再漱口了，然而我还是忍不住吐了好多唾液，蓝色的。然后咽下去的唾液有点甜。<br />晚上再使用时，就感觉好些了。就像口里含水那样，来回漱口，过个几秒钟，痛的受不了，就含住不动，一会就吐了。<br />今天早上甚至有点期待使用...<br />我想了解长期使用漱口水会使嘴里的菌落失衡吗？<br />有失衡的现身说法吗？<br />还是说这可以长期使用啊？
+]]></content:encoded>
+<pubDate>2024-04-15T07:32:57Z</pubDate>
+<pubDate>2024-04-13T19:41:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 美股量化有啥好的选股开源框架？</title>
+<link>https://www.v2ex.com/t/1032641</link>
+<guid>https://www.v2ex.com/t/1032641</guid>
+<content:encoded><![CDATA[
+
+主要是看芯片股和大科技
+]]></content:encoded>
+<pubDate>2024-04-15T07:29:55Z</pubDate>
+<pubDate>2024-04-15T07:29:55Z</pubDate>
+</item>
+<item>
+<title>[macOS] Quantumult X 使用问题</title>
+<link>https://www.v2ex.com/t/1032640</link>
+<guid>https://www.v2ex.com/t/1032640</guid>
+<content:encoded><![CDATA[
+
+<p>想请问一下各位使用 Quantumult X 的大佬。
+这个软件在 mac 端，可以像 clashX 那样只驻留在菜单栏吗？</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:29:43Z</pubDate>
+<pubDate>2024-04-05T08:14:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 使用 ffmpeg 将多张图片，多个 mp3 合成视频，咨询熟练人员？</title>
+<link>https://www.v2ex.com/t/1032639</link>
+<guid>https://www.v2ex.com/t/1032639</guid>
+<content:encoded><![CDATA[
+
+<p>假设要合成 60 秒的视频，总共有 6 张图片，每张图片大约 10 秒种，对应 2-3 句话，每句话有一个 mp3 文件，有一段文本（字幕）要显示在图片上，切换图片时有点转场效果。</p>
+<p>就这么一个任务，GPT4 跟狗屎一样说的全都不对，一运行就各种错。</p>
+<p>有各种方案：</p>
+<p>a 方案： 每个图片和它的 mp3 生成一个视频，然后 6 个视频连接，然后总视频加上字幕；</p>
+<p>b 方案： 所有 mp3 连接得到总音频，6 个图片生成总视频，然后总音频，总字幕加到总视频上；</p>
+<p>我一点经验没有，让 gpt4 实现转场就没有一个达到目地的，说的全都不对。</p>
+<p>我很奇怪，这应该是最基础的需求，为何 ffmpeg 的开发者就想不到让人轻松点</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:29:38Z</pubDate>
+<pubDate>2024-04-15T08:02:31Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [小而美外企 Zenni] 招 Android/iOS/FullStack/QA/Automation Testing 工程师</title>
+<link>https://www.v2ex.com/t/1032637</link>
+<guid>https://www.v2ex.com/t/1032637</guid>
+<content:encoded><![CDATA[
+
+<p>办公地点是：上海市静安区威海路 Wework</p>
+<p>简历发我邮件哈： <a href="mailto:frederick.hu@zennioptical.com">frederick.hu@zennioptical.com</a></p>
+<h2>其中一些员工基本福利</h2>
+<ul>
+<li>对于 onsite 岗位，每周可以申请 Work From Home </li>
+<li>有完全 Remote 岗位 </li>
+<li>法定节日会福利（春节，端午，中秋） </li>
+<li>生日礼品卡</li>
+<li>结婚和育儿福利 </li>
+<li>积分奖励制度 </li>
+<li>下午茶，Happy Hour, 和 Team building </li>
+<li>配备苹果 Macbook Pro M3Max </li>
+</ul>
+<h1> 职位列表 </h1>
+<p>B2B Team: 办公形式: 远程</p>
+<ul>
+<li>Senior Fullstak Engineer </li>
+<li>QA Engineer</li>
+<li>Frontend Engineer (new grad)</li>
+<li>Backend Engineer (new grad)</li>
+</ul>
+<p>Mobile Team: 办公形式: 现场</p>
+<ul>
+<li>iOS Engineer</li>
+<li>Android Engineer</li>
+<li>Software Development Engineer in Test</li>
+<li>Senior QA Engineer</li>
+<li>Mobile App Ecommerce Merchandiser</li>
+</ul>
+<p>AIML Team: 办公形式: 远程</p>
+<ul>
+<li>Senior Software Development Engineer</li>
+<li>Deep Learning Engineer (Computer Vision)</li>
+<li>CRM Product Designer</li>
+<li>Machine Learning Engineer (new grad)</li>
+</ul>
+<h1>一些职位要求</h1>
+<p><strong>安卓</strong>:</p>
+<ul>
+<li>本科或本科以上学历，计算机或相关专业，流利的英语口语和书面语是必备条件</li>
+<li>5-10 年 Android 移动应用开发经验</li>
+<li>精通 Kotlin, 对 Android 架构组件有深入实践</li>
+<li>对设计模式、安卓 APP 架构原则和最佳实践有深刻理解</li>
+<li>强大的调试和解决问题的能力</li>
+<li>熟练使用 Git 等版本控制系统</li>
+<li>了解 CI/CD 流水线和自动化测试</li>
+<li>(资深) 具备指导能力并愿意指导团队其他成员</li>
+<li>熟悉敏捷环境下的工作，参与日常站会</li>
+</ul>
+<p><strong>iOS</strong>：</p>
+<ul>
+<li>本科或本科学历以上，流利的英语口语和书面语是必备条件</li>
+<li>5-10 年相关工作经验，精通 Swift 、熟悉 OC,熟悉常用的设计模式与算法</li>
+<li>有使用 Git 进行源代码管理的经验,熟悉常见的 Git-flow</li>
+<li>良好的编程习惯和文档编写能力</li>
+<li>善于独立学习，具备良好的分析问题解决能力、技术钻研能力</li>
+<li>熟悉响应应框架（ RAC, RxSwift ）的优先</li>
+<li>深入研究 AR 相关技术的优先考虑</li>
+<li>有 KMM 的经验优先</li>
+</ul>
+<p><strong>QA 自动化工程师</strong>:</p>
+<ul>
+<li>5-10 年软件测试经验，3 年以上移动端 APP 测试经验</li>
+<li>具备移动端 APP 自动化测试经验，熟悉 iOS 和 Android 平台。</li>
+<li>熟练掌握至少一种移动端自动化测试框架，如 Appium 、XCUITest 、Espresso 等。</li>
+<li>熟悉至少一种 Python, Java 等常用的开发语言</li>
+<li>熟悉接口测试工具和技术，如 Postman 、Swagger 、RESTful API 等。</li>
+<li>一本或以上学历，计算机科学、软件工程或相关领域优先考虑</li>
+<li>具备性能测试经验，熟悉性能测试工具和技术，如 JMeter 、LoadRunner 等。</li>
+<li>熟悉软件测试理论、方法和流程，了解测试策略和测试设计。</li>
+<li>具备良好的问题分析和解决能力，能够快速定位和复现问题。</li>
+<li>具备良好的团队合作和沟通能力，能够与开发团队紧密合作。</li>
+<li>良好的英语读写能力。</li>
+<li>（加分项）具备云端测试经验，熟悉云服务和基于云的测试工具测试经验</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-15T07:23:36Z</pubDate>
+<pubDate>2024-04-15T03:23:36Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [🎁送码] ElemSnap ：通过捕获网页元素实现快速截图美化的浏览器插件</title>
+<link>https://www.v2ex.com/t/1032636</link>
+<guid>https://www.v2ex.com/t/1032636</guid>
+<content:encoded><![CDATA[
+
+<h3>🚶🏻 ElemSnap 的操作步骤：</h3>
+<ol>
+<li>点击图标或使用快捷键<strong>（⌘ + ⇧ + X ）</strong>开启 ElemSnap</li>
+<li>通过鼠标滑动选择元素点击进入编辑页</li>
+</ol>
+<h3>💻 编辑页支持键盘操作，实用快捷键有：</h3>
+<ol>
+<li>复制：<strong>⌘ + C</strong></li>
+<li>保存：<strong>⌘ + S</strong></li>
+<li>裁切：<strong>C</strong></li>
+</ol>
+<h3>📷 截图：</h3>
+<p><img alt="第一步" class="embedded_image" rel="noreferrer" src="https://imgur.com/pMxPmwa" />
+<img alt="第二步" class="embedded_image" rel="noreferrer" src="https://imgur.com/rR72pv" /></p>
+<h3>🥳 送码</h3>
+<ul>
+<li>回馈早期支持的小伙伴，在购买页面选择 2 devices ，不用输入其他信息，在折扣一栏输入全额优惠码 <strong>QXNTM0NG</strong>（前 20 位），即可享受「 ElemSnap Pro 」终身版本</li>
+<li>购买链接： <a href="https://go.elemsnap.com/pro" rel="nofollow">https://go.elemsnap.com/pro</a></li>
+<li>购买后邮件会收到授权码，通过授权码来激活当前设备</li>
+<li>当然免费版本也可以随意使用，没有次数限制</li>
+<li>当前 Pro 版本功能：移除水印</li>
+</ul>
+<h3>🚀 Pro 版本计划（正在开发）</h3>
+<ul>
+<li>添加文字、模糊效果</li>
+<li>本地 IndexDB 保存，批量下载 </li>
+</ul>
+<h3>🎉 感谢</h3>
+<p>欢迎使用并期待你的反馈，对于 ElemSnap 你有任何想法和功能建议都可以在帖子下面评论或者邮件与我联系，我会认真回复。</p>
+<ul>
+<li>下载： <a href="https://chromewebstore.google.com/detail/elemsnap/mblkhbaakhbhiimkbcnmeciblfhmafna" rel="nofollow">https://chromewebstore.google.com/detail/elemsnap/mblkhbaakhbhiimkbcnmeciblfhmafna</a></li>
+<li>官网： <a href="https://elemsnap.com/" rel="nofollow">https://elemsnap.com/</a></li>
+<li>email: <a href="mailto:hi@elemsnap.com">hi@elemsnap.com</a></li>
+<li>微信：YXlkZW5nZW4=</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-15T07:22:13Z</pubDate>
+<pubDate>2024-04-15T07:22:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 医疗保险、医疗资源与生存率的关系？</title>
+<link>https://www.v2ex.com/t/1032635</link>
+<guid>https://www.v2ex.com/t/1032635</guid>
+<content:encoded><![CDATA[
+
+<p>“发布这个内容需要你已经注册满 1014 天” 详情见 <a href="https://rentry.co/zveckbzu" rel="nofollow">https://rentry.co/zveckbzu</a></p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:18:58Z</pubDate>
+<pubDate>2024-04-15T07:16:58Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 怎么在公司访问家里网络才可以访问的资源呢？</title>
+<link>https://www.v2ex.com/t/1032634</link>
+<guid>https://www.v2ex.com/t/1032634</guid>
+<content:encoded><![CDATA[
+
+比如，家里我电信是可以访问 iptv 的 url 的（设置了 openwrt 拨号，且设置了某些 ip 走 iptv 线路）。<br />那么我在公司的时候，怎么通过 vpn 之类的，直接可以访问家里的网络才可以访问的资源呢？谢谢<br /><br />我想实现最终效果就是，我在公司电脑开了 vpn ，就可以打开本来在公司打不开的 url 。
+]]></content:encoded>
+<pubDate>2024-04-15T07:18:17Z</pubDate>
+<pubDate>2024-04-15T07:49:48Z</pubDate>
+</item>
+<item>
+<title>[问与答] ZEGO 后端开发二面-求指导</title>
+<link>https://www.v2ex.com/t/1032633</link>
+<guid>https://www.v2ex.com/t/1032633</guid>
+<content:encoded><![CDATA[
+
+说一下个人情况，我现在工作三年，在广州一家做移动通信的公司，主要用 Go 。<br /><br />前几天一面过了，约的这周二面。毕业到现在没面过几次，而且面的都是小厂，一般一轮面试就结束了。听说 ZEGO 有三轮面试，想知道二面和三面都会面哪些方向的，我应该如何提前准备？(我真的太想进步了)<br /><br />如果有哪位面试官想指导小弟的，我可以接受付费咨询。<br /><br />万分感谢<br /><br />微信：echo dGFvdGFvX3RvZGF5Cg== | base64 -d
+]]></content:encoded>
+<pubDate>2024-04-15T07:18:07Z</pubDate>
+<pubDate>2024-04-14T07:18:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] 法律做的是平衡各方势力？还是以人为本？</title>
+<link>https://www.v2ex.com/t/1032632</link>
+<guid>https://www.v2ex.com/t/1032632</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>
+<p>今天仲裁开庭，仲裁员说我的诉求不合理，说差额根据基本工资计算。<br />
+但是劳动合同法，白纸黑字写的很清楚就是平均工资，仲裁员说她们开过会，明确规定过差额根据基本工资计算。不按劳动合同法走。 我实在是搞不明白：要是法律条文写的不清楚，有异议，各地有自己是判例标准，那 ok ；但是 这种劳动合同法上写的清清楚楚、明明白白的，为什么不遵守？<br /> </p>
+<p>后来我和别人讨论这件事，他们说现在经济环境不好，偏向公司。之前疫情的时候也是。 <br /> </p>
+<p>法律这东西最重要的难道不是看谁对谁错吗，而是为了维护稳定？？？？那为什么口口声声以人为本？？现在连一个执法机构都做不到有法必依，还是在北京，我感觉执法环境全国最好的地方</p>
+</li>
+<li>
+<p>还有前不久闹的很火的婚姻法，还有福建的 t0 方案。 很多人说是为了平衡男女势力。</p>
+</li>
+<li>
+<p>我实在是搞不明白，法律口号不是有法必依，执法必严，违法必究吗？ 。</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-04-15T07:15:17Z</pubDate>
+<pubDate>2024-04-15T08:15:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] win11，笔记本，外接一个显示器。win + tab 新建一个桌面，能否实现两个显示器分别显示两个桌面？</title>
+<link>https://www.v2ex.com/t/1032630</link>
+<guid>https://www.v2ex.com/t/1032630</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-15T07:06:42Z</pubDate>
+<pubDate>2024-04-15T07:13:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 甲骨文云比较适合的搭配是什么？</title>
+<link>https://www.v2ex.com/t/1032629</link>
+<guid>https://www.v2ex.com/t/1032629</guid>
+<content:encoded><![CDATA[
+
+<p>永久免费主要是 </p>
+<ul>
+<li>2 个 AMD 每个 1C1G</li>
+<li>最多 4 个 Arm 最大 4C24G</li>
+<li>存储 最多 200G ，最多 4 个</li>
+</ul>
+<p>因为受到存储的限制 我看比较常见的搭配应该是</p>
+<ul>
+<li>2 个 AMD</li>
+<li>2 个 ARM 每个 2Core 12GB</li>
+<li>以上四个每个 50G Boot Volume</li>
+</ul>
+<p>这样应该能做到永远免费不付钱了</p>
+<p>然后当然最简单的做法就是默认配置，每个机器机器给个公网 IP 了事儿</p>
+<p>但因为想主要学习一下 Oracle （其实 Oracle 和 AWS 几乎一样）再加上考虑到一些安全性问题，想讨论下以下类似搭配的可行性</p>
+<ul>
+<li>VCN 配置双子网，一公用一私有</li>
+<li>使用 NAT Gateway 给私有网络提供单项公网访问</li>
+<li>利用以下某些搭配形式进行公网对内网的访问，</li>
+</ul>
+<ol>
+<li>将其中一个 AMD 服务器作为跳板机，且运行 nginx/caddy 之类的反代，用以访问内网服务器上的服务。这样做似乎有一个一拖三的问题，不知道会不会有短板</li>
+<li>两个 AMD 一拖一，类似上面做反代，主程序运行在 ARM 机子上</li>
+<li>使用某些方法访问 SSH ，然后网页服务（ 80/443 ）交给 Load Balancer 完成。这个弊端就是看了眼 LB 的 Always Free 好像只能绑定一个机器，那另外三个怎办</li>
+<li>还有没有别的方案可行？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-04-15T07:02:04Z</pubDate>
+<pubDate>2024-04-15T07:21:28Z</pubDate>
+</item>
+<item>
+<title>[iOS] iOS 应用第一次安装没有提示“是否允许使用无线局域网与蜂窝移动数据”</title>
+<link>https://www.v2ex.com/t/1032627</link>
+<guid>https://www.v2ex.com/t/1032627</guid>
+<content:encoded><![CDATA[
+
+<p>iOS 应用第一次安装没有提示“是否允许使用无线局域网与蜂窝移动数据”</p>
+<p>应该如何解决，这属于系统 BUG 还是代码 BUG </p>
+<p>开发的 iOS 应用，有的会弹有的不会，使用的 flutter 开发的，有没有什么办法在代码层面解决，原生解决方案也行</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:00:50Z</pubDate>
+<pubDate>2024-04-15T07:58:09Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 后端最近找工作找到怀疑人生</title>
+<link>https://www.v2ex.com/t/1032626</link>
+<guid>https://www.v2ex.com/t/1032626</guid>
+<content:encoded><![CDATA[
+
+<p>java 后端 也快七年➕了</p>
+<p>面试了很多公司 有回答的好好的结果没下文的</p>
+<p>有难度上天的</p>
+<p>是我面试姿势不对吗？还是这个世道就是这么艰难啊。。。</p>
+<p>只是想找一份合适的工作而已，怎么感觉这么难啊。。。</p>
+<p>这个世界怎么了。。。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T06:57:00Z</pubDate>
+<pubDate>2024-04-15T08:15:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] 6 月 10 号 wwdc 就要开始了，不知道苹果今年的生成式 AI 会有什么创新的东西，会不会使得一些 APP 功能失去存在价值。</title>
+<link>https://www.v2ex.com/t/1032625</link>
+<guid>https://www.v2ex.com/t/1032625</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-15T06:53:46Z</pubDate>
+<pubDate>2024-04-15T08:08:36Z</pubDate>
+</item>
+<item>
+<title>[问与答] 本地运行 Gemini Pro 聊天的最简 WebUI 代码 遇到的问题？</title>
+<link>https://www.v2ex.com/t/1032623</link>
+<guid>https://www.v2ex.com/t/1032623</guid>
+<content:encoded><![CDATA[
+
+<p>老哥们，我有一个问题想请教一下。我正在本地运行这个项目，需要使用谷歌的 API ，但是这个 API 是国外的。我现在有一个 VPN ，想知道该如何配置才能在本地运行项目时正常使用 API 。谢谢，主要是没搞过😂</p>
+]]></content:encoded>
+<pubDate>2024-04-15T06:36:50Z</pubDate>
+<pubDate>2024-04-15T08:05:55Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 为什么 B 站上突然冒出那么多‘独立游戏’公司和个人？</title>
+<link>https://www.v2ex.com/t/1032622</link>
+<guid>https://www.v2ex.com/t/1032622</guid>
+<content:encoded><![CDATA[
+
+不会真有人觉得一款好玩的 MMO 游戏是一个人就能搞定的吧？<br /><br />还有人说做游戏公司有多苦，<br /><br />视频里展示得越苦，越多人看，越是被 B 站算法推荐，<br /><br />我的 timeline 里面，每天 30 个里面有 5-6 个是独立游戏的视频推荐，<br /><br />是我被算法拟合了吗？还是说现在 2024 年就流行做独立游戏了？
+]]></content:encoded>
+<pubDate>2024-04-15T06:36:15Z</pubDate>
+<pubDate>2024-04-15T06:57:41Z</pubDate>
+</item>
+<item>
+<title>[Apple] 有用 idea 的老哥出现过这个问题吗？</title>
+<link>https://www.v2ex.com/t/1032621</link>
+<guid>https://www.v2ex.com/t/1032621</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.processon.com/view/link/661cca32e0d6716b065210ed?cid=661cc9d2fc660f29a3dea6b1" rel="nofollow noopener" target="_blank">https://www.processon.com/view/link/661cca32e0d6716b065210ed?cid=661cc9d2fc660f29a3dea6b1</a><br /><br />这几天出现了一个问题：idea 打开之后，无论开多少个空间，idea 界面会跟随着出现在所有空间，但是在空间缩略图中又不会显示，关其中一个，会全部关闭。有老哥遇到这种情况吗？
+]]></content:encoded>
+<pubDate>2024-04-15T06:35:52Z</pubDate>
+<pubDate>2024-04-15T06:32:52Z</pubDate>
+</item>
+<item>
+<title>[北京] 记一次退租经历</title>
+<link>https://www.v2ex.com/t/1032620</link>
+<guid>https://www.v2ex.com/t/1032620</guid>
+<content:encoded><![CDATA[
+
+昨天退了自己在北京直接找房东租的一居室，我们相当于是提前一周退租，给房间做了大扫除，之后约了房东交接<br /><br />租房期间事少打钱快，到期打钱，小问题自己处理，没找过房东什么事<br /><br />房东上门后检查了一遍房子，把所有电器都试了一遍，然后随口来了一句我原来那束假花呢<br /><br />一句话给我干懵了，假花？什么假花，难道是入住前那束脏不拉几的假花？好像没扔，又好像扔了？<br /><br />我说我给你找找吧，然后在阳台某个角落找了一遍没找到，心想，坏了！这估计是要我赔了！<br /><br />随后如是和房东说应该是找不到了，房东没说什么。<br /><br />坐下来开始算账，水电燃气算完以后房东又来了句，卫生费你去交了吗？<br /><br />我说什么卫生费，没人来收啊。<br /><br />她说合同里应该写着呢，你看看吧，物业费是我交，卫生费你们交，应该没多少钱。<br /><br />我心想，交就交吧，反正没多少钱，我说行。<br /><br />房东说卫生费我也不知道多少钱，我先扣你 300 ，完事知道了多退少补。<br /><br />后续突然又说还有有线电视费，一月 18 ， 一年 216 。<br /><br />这个有线电视费扣的我是真冤，入住的时候是有台电视，也没告我有有线电视可以看啊，我们平时都看自己的投影仪，关键是电视我还自己挪了位置，线我也没看到一根啊，操蛋的是这项在合同里有！<br /><br />谁让咱押金还在人手里呢，我说行。<br /><br />房东：完了到最后说说假花吧，是你给我买呢还是我来<br /><br />心想，该来的还是来了，我说我给你找找或者拼多多买一束吧<br /><br />房东来了句，也别费事了，我扣你 50 ，我自己去买吧。<br /><br />我心想，一束假花能用了 50 ？拼多多 20 不就搞定了？但是我说了句行，谁让咱押金还在人手里呢。<br /><br />到这所有费用基本都算完了，然后把剩下的全部押金全部退给我之后，我出门就奔物业去了。<br /><br />因为有个 300 的卫生费是啥还没说清楚。房东也不知道卫生费交多少钱。<br /><br />到了物业，工作人员说没有单独交卫生费这一说，都包含在物业费里了，然后物业费里确实有这一项，让我说了是哪户，然后帮忙查一下。<br /><br />一查好家伙，5 年没交物业费了，物业费里确实有 60 一年的公共卫生清洁费+垃圾清运费。<br /><br />随后给房东打电话，我说没有单独交的卫生费，都在物业费里了。<br /><br />房东说是吗？物业电话多少，我给他们打个电话。<br /><br />房东电话打到物业，我在旁边听着，房东愣是把物业费里的卫生费这一项摘出来算到我头上。<br /><br />我心想，不是说物业费你交吗？这物业费里的卫生费还算我头上？？况且你也没交过物业费啊？？<br /><br />当时就给我气笑了，我心平气和的说行，然后房东退了我 240.还算有点良心<br /><br />至此，交接完毕，真是又好气又好笑，谁能想到一年以后，房东还问我要她的假花？<br /><br />不过还好，大部分押金还是拿到了。<br /><br />发出来就是想记录一下，顺便给各位 V 友图一乐呵，吃一堑长一智，也建议各位 V 友，在外租房看好合同，把需要交的费用问清楚，还有就是房东屋里的东西，能留就留，别乱扔
+]]></content:encoded>
+<pubDate>2024-04-15T06:35:32Z</pubDate>
+<pubDate>2024-04-15T08:07:53Z</pubDate>
+</item>
+<item>
+<title>[Apple] 选 MacBook Pro 还是 Mac Studio？ M2， M3， M4</title>
+<link>https://www.v2ex.com/t/1032619</link>
+<guid>https://www.v2ex.com/t/1032619</guid>
+<content:encoded><![CDATA[
+
+<p>我现在用的 M1 Pro 14 寸丐版，主要用来副业剪视频，普通的 4K 24 帧素材还好，一到 422 10Bit 100 兆码率的 4K 60 帧素材，就掉帧严重，时间轴感觉拖不动。</p>
+<p>考虑 96% 时间都在家用（晚上下班周末放假），加上 M3 Max 提升明显，准备等 M3 Mac Studio 。但是看到网上 M4 的消息都出来了，加入 AI ，感觉性能又会提升明显，现在电脑更新咋这么快❓也不知道会不会出 M3 Mac Studio 。</p>
+<p>现在的需求是直接搞 M2 还是等 M3 还是 Macbook Pro ？再就是搞 Mac Studio 会不会不好出二手，毕竟用个五六年换新怕不好出浪费了……求建议❗️</p>
+<p>现在说急也急，视频剪起来总感觉不丝滑，16G 导出渲染经常杀后台，有点影响到心情效率了。说不急也不急，凑合憋屈着也能用 😭</p>
+]]></content:encoded>
+<pubDate>2024-04-15T06:30:28Z</pubDate>
+<pubDate>2024-04-15T08:04:09Z</pubDate>
+</item>
+<item>
+<title>[NAS] 有没有自建 NAS 的方案，求大神推荐</title>
+<link>https://www.v2ex.com/t/1032618</link>
+<guid>https://www.v2ex.com/t/1032618</guid>
+<content:encoded><![CDATA[
+
+<p>有没有自建 NAS 的方案？求大神推荐
+家里有几台 windows 和 mac 空闲的，正好手机也装满了，想自建搞个 NAS 玩一下。
+需求比较简单，就是在家里局域网络的时候用。</p>
+]]></content:encoded>
+<pubDate>2024-04-15T06:26:47Z</pubDate>
+<pubDate>2024-04-15T08:17:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] 友友们有什么合适的充电宝推荐的嘛？</title>
+<link>https://www.v2ex.com/t/1032617</link>
+<guid>https://www.v2ex.com/t/1032617</guid>
+<content:encoded><![CDATA[
+
+1.小，5000-10000 万毫安就可以，一定要小要便携，要不然出门和板砖一样。<br />2.最好自带充电线，方便不需要额外再带一根，曾经出门带了充电宝没带充电线，在日本车站花费 100 大洋买了最便宜的 USB 充电线历历在目.
+]]></content:encoded>
+<pubDate>2024-04-15T06:23:00Z</pubDate>
+<pubDate>2024-04-15T07:09:18Z</pubDate>
+</item>
+<item>
+<title>网线的颜色顺序重要吗？</title>
+<link>https://www.v2ex.com/t/1032500</link>
+<guid>https://www.v2ex.com/t/1032500</guid>
+<content:encoded><![CDATA[
+
+我问了 AI ，他说不重要，只要水晶头两端都一致就可以。<br /><br />网线内部通常有 8 根线，分为 4 对。做网线最方便的方法，就是按照预置的"橙白/橙、绿白/绿、蓝白/蓝、棕白/棕"的顺序。<br /><br />然而，按照标准无论是 T568A 还是 T568B ，都需要交叉一条线序。比如 T568A 就需要按照橙白/蓝/蓝白/橙的交叉顺序，把蓝色硬插入橙色中间。<br /><br />为什么就不能用颜色就近原则呢？
+]]></content:encoded>
+<pubDate>2024-04-15T01:44:54Z</pubDate>
+<pubDate>2024-04-15T08:07:03Z</pubDate>
+</item>
+<item>
+<title>客户端需求</title>
+<link>https://www.v2ex.com/t/1032665</link>
+<guid>https://www.v2ex.com/t/1032665</guid>
+<content:encoded><![CDATA[
+
+现要求 pc 客户端，<br />要求能对浏览器的一个页面进行一些自动化的操作<br />这些自动化的操作可以配置于更改<br />其中有一个难点是 div 会刷新出评论，我们可以根据关键词去触发一些页面操作<br />（这个页面是大公司的后台，操作只是替代人工，不是注入或者攻击）<br /><br /><br />工期越快越好，预算合理，接受报价<br /><br />你留下联系方式我来加你
+]]></content:encoded>
+<pubDate>2024-04-15T08:16:06Z</pubDate>
+<pubDate>2024-04-15T08:15:06Z</pubDate>
+</item>
+<item>
+<title>visa、master 支付对接合作</title>
+<link>https://www.v2ex.com/t/1032649</link>
+<guid>https://www.v2ex.com/t/1032649</guid>
+<content:encoded><![CDATA[
+
+<p>如题，有做过 visa 、master 支付的，希望合作。请提供测试页面、报价、开发语言, 谢谢~
+aG9uZ3lsQG91dGxvb2suY29t</p>
+]]></content:encoded>
+<pubDate>2024-04-15T07:41:23Z</pubDate>
+<pubDate>2024-04-15T07:53:49Z</pubDate>
+</item>
+<item>
+<title>[实习] [远程] Casbin 开源社区《Talent 2024》开发预选生，正在招募中！</title>
+<link>https://www.v2ex.com/t/1026349</link>
+<guid>https://www.v2ex.com/t/1026349</guid>
+<content:encoded><![CDATA[
+
+<div><h2>Casbin 明日之星预选生计划-Talent for Casbin 2024</h2>
+<h3>“Casbin 明日之星预选生计划-Talent for Casbin 2024”是什么？</h3>
+<p>“Casbin 明日之星预选生计划-Talent for Casbin 2024”（以下简称 Talent 2024 ）是由 Casbin 开源社区举办的一项面向高校学生的编程活动，旨在鼓励在校学生积极参与 Casbin 社区旗下开源软件的开发维护，促进国内优秀开源软件的蓬勃发展。</p>
+<p>2020 年，Casbin 以开源社区的身份首次参加了由 Google 公司主办的<a href="https://summerofcode.withgoogle.com/archive/2020/organizations/6587176113930240/" rel="nofollow">Google Summer of Code 2020</a> 和由中科院软件所、OpenEuler 社区主办的<a href="https://isrc.iscas.ac.cn/summer2020" rel="nofollow">开源软件供应链点亮计划-暑期 2020</a> 。在上述活动中，Casbin 社区共派出 7 位来自国内外（中国、法国等）互联网一线的资深社区导师，共培养、指导了国内外 15 名学生（ 14 位中国同学、1 位印度同学）进行为期 3 个月的开源编程活动。Casbin 项目已毕业的同学，有的成长为 Casbin 项目核心维护者、以开源大牛的身份活跃于 GitHub ，有的毕业后全职加入腾讯微信事业部等互联网头部公司，有的凭借在 Casbin 社区的出色经历拿到全球顶级投行 Morgan Stanley （摩根士丹利）的 offer ，在工业界和学术界发挥着重要作用。</p>
+<p>2021 年和 2022 年，Casbin 社区继续参加上述两项活动，Google Summer of Code 和开源软件供应链点亮计划-暑期编程之夏，题目的数量与招纳的学生人数均创下新高。</p>
+<table>
+<thead>
+<tr>
+<th>活动</th>
+<th>学生人数</th>
+<th>最终考核通过人数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GSoC 2020</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>暑期 2020</td>
+<td>12</td>
+<td>10</td>
+</tr>
+<tr>
+<td>GSoC 2021</td>
+<td>9</td>
+<td>9</td>
+</tr>
+<tr>
+<td>暑期 2021</td>
+<td>11</td>
+<td>11</td>
+</tr>
+<tr>
+<td>GSoC 2022</td>
+<td>12</td>
+<td>11</td>
+</tr>
+<tr>
+<td>暑期 2022</td>
+<td>6</td>
+<td>5</td>
+</tr>
+</tbody></table><p>为了在非暑期时间能够继续促进 Casbin 开源软件的发展，同时挖掘有潜力的学生作为 Google Summer of Code 2024 和暑期 2024 （若该赛事仍举行并且 Casbin 社区获得参加资格）的有力竞争者，Casbin 社区将自筹资金，在 Google Summer of Code 等活动的闭幕期间，开展常态化的“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动，针对 Casbin 社区旗下开源软件的开发与维护提供 mini 项目，并向全国高校学生开放报名。学生可自主选择感兴趣的项目进行申请，并在中选后获得该软件资深维护者（社区导师）亲自指导的机会。</p>
+<p>根据项目的难易程度和完成情况，参与者可获取“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动奖金和加盖 Casbin 社区公章的参与（实习）证明。</p>
+<p><strong>“Talent 2024”项目在 2024 年第四次举办，与 Google Summer of Code 等活动类似，不同点是“Talent 2024”在非 GSoC 申请时间举行，与 GSoC 等活动是互补的关系。</strong></p>
+<ol>
+<li>Casbin 明日之星预选生计划-Talent for Casbin 2024 官网： <a href="https://github.com/casbin/Talent2024" rel="nofollow">https://github.com/casbin/Talent2024</a></li>
+<li>Google Summer of Code 官网： <a href="https://summerofcode.withgoogle.com/" rel="nofollow">https://summerofcode.withgoogle.com/</a></li>
+<li>Google Summer of Code 中文介绍： <a href="https://github.com/gsoc-cn/gsoc-cn" rel="nofollow">https://github.com/gsoc-cn/gsoc-cn</a> 或 <a href="https://zhuanlan.zhihu.com/p/27823910" rel="nofollow">https://zhuanlan.zhihu.com/p/27823910</a> 或 <a href="https://zhuanlan.zhihu.com/p/27330699" rel="nofollow">https://zhuanlan.zhihu.com/p/27330699</a></li>
+<li>开源软件供应链点亮计划-暑期活动官网： <a href="https://summer.iscas.ac.cn/" rel="nofollow">https://summer.iscas.ac.cn/</a></li>
+</ol>
+<h3>活动的主要参与方有哪些？</h3>
+<p>活动组织方：Casbin 开源软件社区。</p>
+<p>活动参与方主要角色为学生和导师。</p>
+<ol>
+<li>学生：学生自由选择项目，与导师沟通实现方案并撰写项目计划书。被选中的学生将在导师指导下，按计划完成开发工作，并将成果贡献给社区。社区评估学生的完成度，主办方根据评估结果发放资助金额给学生。</li>
+<li>社区：社区提供项目列表和描述，并安排项目对应的导师，导师与申请者沟通方案、并从申请者中选中一位承接项目。在为期三个月的开发周期中，导师指导学生进行对应项目的开发工作。</li>
+<li>导师：社区针对每一个项目指定一个导师，与学生一起制定合适的开发计划和方案，指导学生按计划完成开发。</li>
+</ol>
+<h3>本项目的资助额度是多少？</h3>
+<p>资助金按月发放，分为基础资助金：600 元 + 奖金：0~400 元
+（均为每月税后，根据上手快慢程度及技术栈匹配程度会有浮动，项目开始前会协商好。）</p>
+<h2>Casbin 开源项目介绍</h2>
+<p>Casbin 是一个强大的、高效的开源访问控制框架，支持 Go, Java, Node.js, Javascript (React), Python, PHP, .NET, C++, Rust 等十几种语言。Casbin 开源项目由北京大学罗杨博士创立于 2017 年，核心维护团队有二十多人。Casbin 在业界具有广泛影响力。目前已经被 Intel 、VMware 、Orange 、RedHat 、T-Mobile 等公司开源使用，被腾讯云、Cisco 、Verizon 等公司闭源使用。具体详见 Casbin 主页。Casbin Go 主项目目前 GitHub 10000+ stars ，加上所有语言的实现、插件等可达到 15000+ stars 。</p>
+<p>Casbin 技术已经被列入多个国内外权威机构、政府部门的白皮书：</p>
+<ol>
+<li>国家广电总局《广播电视和网络视听区块链系统》白皮书（第 85 页）： <a href="http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf" rel="nofollow">http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf</a></li>
+<li>美国国家标准与技术研究院（ NIST ）《 Attribute-based Access Control for Microservices-based Applications Using a Service Mesh 》白皮书（第 10 页）： <a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf" rel="nofollow">https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf</a></li>
+</ol>
+<p>Casbin 也曾经在国际上进行多次线下宣讲：</p>
+<ol>
+<li>新加坡政府技术部 Open Government Products： <a href="https://www.youtube.com/watch?v=OTT84oplR9o" rel="nofollow">https://www.youtube.com/watch?v=OTT84oplR9o</a></li>
+<li>俄罗斯最大在线旅游平台 <a href="http://tutu.ru" rel="nofollow">tutu.ru</a>： <a href="https://www.youtube.com/watch?v=Z5dUxH4PqYM" rel="nofollow">https://www.youtube.com/watch?v=Z5dUxH4PqYM</a></li>
+</ol>
+<p>具体请了解 Casbin 官网： <a href="https://casbin.org/" rel="nofollow">https://casbin.org/</a></p>
+<h2>可选项目列表</h2>
+<p>所有可选项目详见： <a href="https://github.com/casbin/Talent2024#%E5%8F%AF%E9%80%89%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8" rel="nofollow">https://github.com/casbin/Talent2024#可选项目列表</a></p>
+<h2>候选人要求</h2>
+<h3>工作职责：</h3>
+<ul>
+<li>每周与项目导师进行线上讨论，完成项目规定的开发任务。项目导师由开源项目创始人或其他核心成员担任；</li>
+<li>积极参与开源社区的建设，参与代码提交、解决 Issue 、审核 PR 等日常工作；</li>
+<li>配合完成官方要求的材料提交等事项，包括项目申请书撰写、社区反馈任务完成度追踪等。</li>
+</ul>
+<h3>职位要求：</h3>
+<ul>
+<li>本科、硕士或博士在读（已毕业、工作的无法参加）；</li>
+<li>对开源软件、开源社区感兴趣；</li>
+<li>熟悉一种或多种编程语言，有较强的工程能力，代码格式清晰规范，善于团队协作；</li>
+<li>有一定英文读写能力，能够熟练运用英语在 GitHub 进行开发、协作；</li>
+<li>较强的沟通能力和逻辑表达能力。</li>
+</ul>
+<h3>具有以下条件者优先：</h3>
+<ul>
+<li>熟悉 Go, Javascript 、React 等语言或框架、Web 系统、分布式系统、微服务架构，有相关项目经验；</li>
+<li>在 GitHub 较为活跃，有自己的开源项目，或参与过知名开源项目；</li>
+<li>可以在项目结束后继续长期参与开源社区的开发、建设或维护。</li>
+</ul>
+<h2>投递要求</h2>
+<p>申请学生需要同时完成以下“联系社区”和“官网投递”两个环节：</p>
+<h3>1. 联系社区（ 2024 年 3 月 1 日 - 2024 年 12 月 31 日）</h3>
+<ol>
+<li>加入《 Casbin 访问控制社区群》（ QQ 大群）：<a href="https://shang.qq.com/wpa/qunwpa?idkey=8ac8b91fc97ace3d383d0035f7aa06f7d670fd8e8d4837347354a31c18fac885" rel="nofollow">546057381</a></li>
+<li>加入《 Casbin 明日之星预选生计划-Talent for Casbin 2024-群》（ QQ 小群）：<a href="https://qm.qq.com/cgi-bin/qm/qr?k=5MjIdZuPmAio6lfAr-NTxBY0CcoGL1yl&amp;jump_from=webapi" rel="nofollow">540163681</a> ，联系导师，与导师沟通项目细节和方案，完成社区指定的 Easy Tasks</li>
+</ol>
+<div>
+<img alt="qrcode-casbin" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-casbin.png" />
+<img alt="qrcode-talent" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-talent.png" />
+</div>
+<h3>2. 官网投递（ 2024 年 3 月 1 日 - 2024 年 12 月 31 日）</h3>
+<p>发送 [中文简历 PDF ] 至 Casbin 社区官方邮箱： <a href="mailto:admin@casbin.org">admin@casbin.org</a></p>
+</div>
+]]></content:encoded>
+<pubDate>2024-03-23T09:18:04Z</pubDate>
+<pubDate>2024-04-15T06:53:43Z</pubDate>
+</item>
+
+<item>
 <title>[Bitcoin] 华夏基金（香港）携手合作伙伴部署发行现货比特币，以太币 ETF</title>
 <link>https://www.v2ex.com/t/1032616</link>
 <guid>https://www.v2ex.com/t/1032616</guid>
 <content:encoded><![CDATA[
-
 WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/lDVQMk6.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-04-15T06:15:04Z</pubDate>
 <pubDate>2024-04-15T06:14:04Z</pubDate>
 </item>
 <item>
@@ -20,13 +948,11 @@ WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1032614</link>
 <guid>https://www.v2ex.com/t/1032614</guid>
 <content:encoded><![CDATA[
-
 <p>最近注意到，饭后老打嗝，平时也偶尔打嗝，偶尔还反酸。（这种情况应该很久了，只是以前没在意）</p>
 <p>去医院看了下，按照反流治疗的，基本就是促进胃动力的+抑制胃酸的药物。（几年前做过胃镜，浅表性胃炎）</p>
 <p>现在感觉不怎么反酸了，但是依旧打嗝。并且感觉胃酸少了，有点消化不良了，一些菜叶感觉没以前分解多了</p>
 <p>我这是不是贲门松弛，如果做手术是不是能完全康复 （不反酸不打嗝）</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T06:11:49Z</pubDate>
 <pubDate>2024-04-15T06:13:27Z</pubDate>
 </item>
 <item>
@@ -34,11 +960,9 @@ WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1032613</link>
 <guid>https://www.v2ex.com/t/1032613</guid>
 <content:encoded><![CDATA[
-
 <p>我们现在有 70 台安卓盒子，这些盒子都通过网线连接到交换机上面，这些盒子通过通断电的方式同时启停。
 每次通电的时候总有随机的几台连不上网络。请问这是什么原因呢。</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T06:06:30Z</pubDate>
 <pubDate>2024-04-15T06:13:48Z</pubDate>
 </item>
 <item>
@@ -46,11 +970,9 @@ WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1032611</link>
 <guid>https://www.v2ex.com/t/1032611</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/lihaoyun6/AirBattery/main/img/preview.png" /></p>
 <p><a href="https://github.com/lihaoyun6/AirBattery" rel="nofollow">https://github.com/lihaoyun6/AirBattery</a></p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:59:36Z</pubDate>
 <pubDate>2024-04-14T13:59:36Z</pubDate>
 </item>
 <item>
@@ -58,10 +980,8 @@ WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1032610</link>
 <guid>https://www.v2ex.com/t/1032610</guid>
 <content:encoded><![CDATA[
-
 <p>家里的宽带是移动的，无法申请 ipv4 公网 ip ，打算用 ipv6 公网 ip ，目前测试外网能够 ping 通家里的 ipv6 地址，但是无法访问端口，比如我开一个 nginx 服务，端口 8081 ，外网访问不了，光猫和拨号的路由器防火墙都已经关闭，我怀疑是移动运营商做了限制，或者说是我自己配置的问题？</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:54:26Z</pubDate>
 <pubDate>2024-04-15T06:00:16Z</pubDate>
 </item>
 <item>
@@ -69,10 +989,8 @@ WOW <br /> <a href="https://i.imgur.com/lDVQMk6.png" rel="nofollow noopener" tar
 <link>https://www.v2ex.com/t/1032608</link>
 <guid>https://www.v2ex.com/t/1032608</guid>
 <content:encoded><![CDATA[
-
 ios 系统 Temu 以图搜图有次数限制怎么办，搜图 40 多次 就不能用了
 ]]></content:encoded>
-<pubDate>2024-04-15T05:53:04Z</pubDate>
 <pubDate>2024-04-15T05:51:04Z</pubDate>
 </item>
 <item>
@@ -80,7 +998,6 @@ ios 系统 Temu 以图搜图有次数限制怎么办，搜图 40 多次 就不�
 <link>https://www.v2ex.com/t/1032607</link>
 <guid>https://www.v2ex.com/t/1032607</guid>
 <content:encoded><![CDATA[
-
 <p>我们有一个视觉项目，目前用到的内容大概有以下几种：</p>
 <ul>
 <li>Yolov8 目标识别</li>
@@ -107,7 +1024,6 @@ cpu 海光 7265*2 ，24core/2.2Ghz
 <p>我们做过几天调研，但是机器还没摸透，就被供应商拿走了。。</p>
 <p>有没有有经验的老哥，这些算法能不能做适配，做完适配大概要多久，适配的难点在哪儿？</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:50:29Z</pubDate>
 <pubDate>2024-04-15T06:18:56Z</pubDate>
 </item>
 <item>
@@ -115,10 +1031,8 @@ cpu 海光 7265*2 ，24core/2.2Ghz
 <link>https://www.v2ex.com/t/1032606</link>
 <guid>https://www.v2ex.com/t/1032606</guid>
 <content:encoded><![CDATA[
-
 感觉挺好玩的  但是不知道是啥
 ]]></content:encoded>
-<pubDate>2024-04-15T05:49:40Z</pubDate>
 <pubDate>2024-04-15T05:54:11Z</pubDate>
 </item>
 <item>
@@ -126,7 +1040,6 @@ cpu 海光 7265*2 ，24core/2.2Ghz
 <link>https://www.v2ex.com/t/1032605</link>
 <guid>https://www.v2ex.com/t/1032605</guid>
 <content:encoded><![CDATA[
-
 <p>类型：腾讯云轻量
 cpu:2
 内存：2G
@@ -135,7 +1048,6 @@ cpu:2
 时间：2 年</p>
 <p>想要的留下 wx ，我联系你。</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:38:26Z</pubDate>
 <pubDate>2024-04-15T01:38:26Z</pubDate>
 </item>
 <item>
@@ -143,7 +1055,6 @@ cpu:2
 <link>https://www.v2ex.com/t/1032604</link>
 <guid>https://www.v2ex.com/t/1032604</guid>
 <content:encoded><![CDATA[
-
 <p>你好，我是刘卡卡，微信 liukaka136</p>
 <p>写在前面：副业社群门票：5 元 （不是我赚，是社群有个配套的知识星球，需要收手续费）</p>
 <p>社群致力于 帮助程序员提升 [认知] 和 [技能] ，配合 [点子] 和 [项目] ，以 [实战] 的方式找到副业，做好副业</p>
@@ -151,7 +1062,6 @@ cpu:2
 <p>同时，我们也还有一系列的交流群，如视频号实战交流群、小红书、闲鱼等交流群</p>
 <p>感兴趣的，欢迎链接</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:37:33Z</pubDate>
 <pubDate>2024-04-14T05:37:33Z</pubDate>
 </item>
 <item>
@@ -159,10 +1069,8 @@ cpu:2
 <link>https://www.v2ex.com/t/1032601</link>
 <guid>https://www.v2ex.com/t/1032601</guid>
 <content:encoded><![CDATA[
-
 <p>预算 28 ，混动里面选目前对这两款车有点意思，大佬们讲讲，试驾了 08 隔音差点意思</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:27:38Z</pubDate>
 <pubDate>2024-04-15T06:13:48Z</pubDate>
 </item>
 <item>
@@ -170,13 +1078,11 @@ cpu:2
 <link>https://www.v2ex.com/t/1032599</link>
 <guid>https://www.v2ex.com/t/1032599</guid>
 <content:encoded><![CDATA[
-
 <p>请教大家，目前使用的是上海电信 SDN 网关拨号，下接路由器，路由器中装了 Tailscale 。
 SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口转发路由器的 41461 端口，也开启了 UPNP 。
 问题是为什么公网终结点端口不是 41461 ，而且有多个 Tailscale 端口，如图：
 <img alt="终结点" class="embedded_image" rel="noreferrer" src="https://nashome-image-bucket.oss-cn-shanghai.aliyuncs.com/PicGo/202404151322717.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:24:27Z</pubDate>
 <pubDate>2024-04-15T05:31:20Z</pubDate>
 </item>
 <item>
@@ -184,10 +1090,8 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032598</link>
 <guid>https://www.v2ex.com/t/1032598</guid>
 <content:encoded><![CDATA[
-
 20 万买 380 帕萨特还是 330 迈腾
 ]]></content:encoded>
-<pubDate>2024-04-15T05:12:36Z</pubDate>
 <pubDate>2024-04-15T05:10:36Z</pubDate>
 </item>
 <item>
@@ -195,11 +1099,9 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032597</link>
 <guid>https://www.v2ex.com/t/1032597</guid>
 <content:encoded><![CDATA[
-
 <p>如果预计国内放水，那未来几年的贷款利率是不是会越来越低？</p>
 <p>现在想申请信用贷(年利率 3.25%)，只申请 1 年，到期后再申请是不是更好一点（利率更低）</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:07:45Z</pubDate>
 <pubDate>2024-04-15T06:19:31Z</pubDate>
 </item>
 <item>
@@ -207,13 +1109,11 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032596</link>
 <guid>https://www.v2ex.com/t/1032596</guid>
 <content:encoded><![CDATA[
-
 <p>1.本来想买个 99 服务器玩一下，结果用不了；
 2.试了下非优惠的普通云服务器，好像也没法用券；
 3.目前只发现 OSS 的自动扣费可以用。
 不知道还有哪些服务可以用，券的适用范围标注的不是很详细的样子。</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T05:05:43Z</pubDate>
 <pubDate>2024-04-15T06:15:57Z</pubDate>
 </item>
 <item>
@@ -221,10 +1121,8 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032594</link>
 <guid>https://www.v2ex.com/t/1032594</guid>
 <content:encoded><![CDATA[
-
 <p>rtrt</p>
 ]]></content:encoded>
-<pubDate>2024-04-15T04:52:17Z</pubDate>
 <pubDate>2024-04-15T05:55:31Z</pubDate>
 </item>
 <item>
@@ -232,10 +1130,8 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032593</link>
 <guid>https://www.v2ex.com/t/1032593</guid>
 <content:encoded><![CDATA[
-
 价位：4-5k<br /><br />本来想入手 iPhone15 ，结果到实体店体验后发现屏幕太小了，而且没有快充，信号和续航估计也拉垮。<br /><br />身边有朋友买了小米 14 ，用着还可以，就是澎湃 OS 有点不太稳定，偶尔会出现卡死或者一些其他小 bug<br /><br />其他品牌不是很了解
 ]]></content:encoded>
-<pubDate>2024-04-15T04:49:55Z</pubDate>
 <pubDate>2024-04-15T05:09:15Z</pubDate>
 </item>
 <item>
@@ -243,11 +1139,9 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032591</link>
 <guid>https://www.v2ex.com/t/1032591</guid>
 <content:encoded><![CDATA[
-
 <p>如下图所示，空闲状态用户 CPU 占用约 20%，耗电太快了，但是实在找不到是啥 App 导致的。重启手机不打开任何 App ，闲置一段时间后 CPU 占用 3%左右才算正常。
 <a href="https://sm.ms/image/TJpXLkb4myOaZGV" rel="nofollow"><img class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/15/TJpXLkb4myOaZGV.jpg" /></a></p>
 ]]></content:encoded>
-<pubDate>2024-04-15T04:48:24Z</pubDate>
 <pubDate>2024-04-15T06:05:13Z</pubDate>
 </item>
 <item>
@@ -255,10 +1149,8 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032589</link>
 <guid>https://www.v2ex.com/t/1032589</guid>
 <content:encoded><![CDATA[
-
 [大连岗位] <br /><br />岗位：俄语/韩语客服<br />需求：10 人<br />地点：大连周水子机场航站楼-南航<br />薪资：6-8k 不等<br />求推荐！！身边如有朋友可推荐！！！<br /><br />大家可以投递简历至 base64 码咨询详情哈：<br />YmVpYmVpNjc4MjAyM0AxNjMuY29t<br /><br /><br /> [日本岗位] <br /><br />更新下最近日本 IT 现场案件募集信息：<br />1.<br />5 月 C 言語案件<br />------------------------<br />・基本設計の経験<br />・C 言語の経験３年以上<br />・DBを使用した開発経験<br />・日本語流暢<br />------------------------<br />bp/個人大歓迎<br /><br /><br /><br />2.<br />企保フロシス開発] <br />スキル　：中級 PGレベル以上を希望<br />（ <a href="http://VB.net" rel="nofollow noopener" target="_blank">VB.net</a> 、ASP.netの知識をもっていてプログラム解析が可能だと尚良い）<br />作業期間：5 月～長期<br />人数　　：2 名<br />作業場所：東陽町 9:00 ～ 18:00 （テレワーク併用）<br />面接　　：1 回<br />日本語　：業務会話レベル<br /><br /><br /><br />3.<br />7 月開始 python 案件<br />------------------------<br />・日本語流暢<br />・リーダーの経験<br />・pythonの経験 5 年以上<br />・募集人数　 15 名<br />・個人事業主優先<br />・在宅あり<br />------------------------<br />bp/個人大歓迎（御社まで）<br /><br /><br /><br />4.<br />案件：診断業務へのAI 適用<br />■場所：横浜・川崎<br />■期間：即日 ～ 2024/09/30(継続予定)<br />■人数：2 名<br />■必须スキル：<br />1. Power BI<br />2. Azure SQL Database<br />3. Power apps<br />4. Power Automate<br />5. Azure Logic apps<br />いずれか１つ以上の実務経験 2 年以上、若い番号が優先スキルとなります。<br />■日本語：流畅<br /><br /><br /><br />5.<br />案件：SAP 開発支援<br />業界：製造業<br />期間：5 月～中長期<br />場所：日本橋（リモート併用）<br />募集：複数名<br />スキル：FIの設計開発経験<br /><br /><br /><br />另外 GSD 自社案件多数募集，欢迎大家投递。<br />主要募集技术方向为 INTRA-MART 、AWS 、INFORMATICA 、大数据、PAD 、IOS 、安卓、PYTHON 等。<br />相关职位对应招聘担当均在线！回复调整面试快~<br />（日语需 n2 及以上，口语可沟通交流）<br /><br />本社高度人才可+20 分，实现永驻；<br />勤务时间 140-180H/150-190H/160-200H<br />（具体時間は現場によって異なります。）<br />※勤務地により変動あり<br /><br />各位小伙伴考虑转职的可以投递简历咨询岗位待遇详情哈！<br />联系：投递简历至 base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t
 ]]></content:encoded>
-<pubDate>2024-04-15T04:39:40Z</pubDate>
 <pubDate>2024-04-15T04:36:40Z</pubDate>
 </item>
 <item>
@@ -266,10 +1158,8 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1032588</link>
 <guid>https://www.v2ex.com/t/1032588</guid>
 <content:encoded><![CDATA[
-
 听说集采后种牙便宜，受伤的上门牙也终究撑不下去了，牙根已断，就去私立口腔医院拔掉种了一颗，花费比集采之前的报价便宜两三千，报价是种植体、基台、牙冠、骨粉骨膜，总共 6600 ，目前只种下了种植体，今天跑来医院拆线。<br /><br />种牙的手术时间挺快，20 分钟左右就结束了，痛感就是打麻药和缝合伤口时痛下，牙齿被拔掉没啥感觉，可能因为本来就已经不牢固的缘故，但是医生在刮牙槽时明显感觉到什么东西摩擦骨头，还有后面用电钻开螺纹，植体拧进去，最后医生还用力拧了两下确保牢固，后面给植体上螺丝也用力拧了两下，当时好担心给我骨头拧碎了。<br /><br />上好了植体就是放骨粉，骨粉好像是类似喷枪喷砂一样喷上去的，因为听到了喷枪一样的声音，然后感觉到牙槽有东西附着在上面，骨膜覆盖就没啥感觉。伤口缝合前还是缝合后补了一针（应该是麻药），然后手术结束，给了一块纱布咬着，二十分钟左右伤口止血了，纱布就可以去掉了。<br /><br />术后麻药消后伤口也没疼，最疼的地方就是麻药注射，其他什么的电钻声还好，上电钻的时候有种 asmr 的酥麻感，倒不觉得口口相传的恐惧是啥😂<br /><br />注：本来手术前说送个隐形义齿遮丑的，前天通知我拆线和制作隐形义齿，结果，今天来拆线医生不建议用隐形义齿，让我不要配 emm ，想换成补蛀牙也不行，拆线就是两剪刀的事情，社区医院应该都行，害我跑一百公里来拆线。
 ]]></content:encoded>
-<pubDate>2024-04-15T04:34:14Z</pubDate>
 <pubDate>2024-04-15T04:33:14Z</pubDate>
 </item>
 <item>
@@ -277,13 +1167,10 @@ SDN 网关通过小翼管家设置了 DMZ 到路由器 IP ，也设置了端口�
 <link>https://www.v2ex.com/t/1031341</link>
 <guid>https://www.v2ex.com/t/1031341</guid>
 <content:encoded><![CDATA[
-
 <p>意大利 家宽 ip 最近访问部分大陆网站连接超时。用站长工具（ <a href="http://ping.chinaz.com" rel="nofollow">ping.chinaz.com</a> ） ping 我的家宽 ip, 大陆节点全部超时，海外可以。非常像是被 GFW 墙了。</p>
 ]]></content:encoded>
-<pubDate>2024-04-10T08:04:46Z</pubDate>
 <pubDate>2024-04-13T16:53:33Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] Testflight 和付费订阅怎么结合比较好呢？</title>
 <link>https://www.v2ex.com/t/1032587</link>
@@ -15357,603 +16244,6 @@ Cannot convert value of type '[ResourceLink]' to expected argument type 'Binding
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/gdeamIs.png" /></p>
 ]]></content:encoded>
 <pubDate>2024-04-10T08:56:46Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 上的奇怪提示。</title>
-<link>https://www.v2ex.com/t/1031361</link>
-<guid>https://www.v2ex.com/t/1031361</guid>
-<content:encoded><![CDATA[
-出现两次了，iPhone 上莫名出现一个奇怪的 banner ，不知道有没有哪位大神知道这个是什么。<br />如图： <a href="https://imgur.com/a/Z9CzURb" rel="nofollow noopener" target="_blank">https://imgur.com/a/Z9CzURb</a><br />点击毫无反应，可以左滑关闭。<br />出现两次了。
-]]></content:encoded>
-<pubDate>2024-04-10T09:02:15Z</pubDate>
-</item>
-<item>
-<title>[硬件] 买 7600 还是 4060</title>
-<link>https://www.v2ex.com/t/1031359</link>
-<guid>https://www.v2ex.com/t/1031359</guid>
-<content:encoded><![CDATA[
-<p>懂哥们，想买个入门卡，帮忙分析下 7600 还是 4060 ，用途主要是日常使用，看看视频偶尔打打游戏。极偶尔闲的发慌的时候会折腾算法模型，以及黑苹果之类的。
-7600 狗东 1850 ，多多便宜 100 的样子。
-4060 狗东和多多都差不多 2200 多的样子。
-之前没用 amd 的卡，掉驱动严重吗？</p>
-]]></content:encoded>
-<pubDate>2024-04-10T10:19:27Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 端口映射套 cdn</title>
-<link>https://www.v2ex.com/t/1031358</link>
-<guid>https://www.v2ex.com/t/1031358</guid>
-<content:encoded><![CDATA[
-坐标 0752 ，公司是电信宽带，目前已申请公网 ip ，现在内网有个测试服务挂了个 helloworld 页面（脱敏：1.2.3.4:5678 ），内网端口被爱快端口映射为公网 ip 的另一个端口（脱敏：9.10.11.12:1234 ），公网 ip+端口目前可以访问，现在想着套 cdn 在上证书的同时防止被抓到源站以避免不必要的麻烦。但现在套了 aws 的 cdn 一直报错 502 。<br />目前就这些吧，暂时也想不到还要提供什么，如果还有别的要补充的在评论区说。还请万能的 v 友若能指点一二。
-]]></content:encoded>
-<pubDate>2024-04-10T10:01:48Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 传统行业的前端还有前途么</title>
-<link>https://www.v2ex.com/t/1031357</link>
-<guid>https://www.v2ex.com/t/1031357</guid>
-<content:encoded><![CDATA[
-<p>公司不是互联网企业 ，不过也上市了</p>
-]]></content:encoded>
-<pubDate>2024-04-10T05:44:45Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 主流大模型写代码全军覆没：根据助记词查询钱包余额</title>
-<link>https://www.v2ex.com/t/1031356</link>
-<guid>https://www.v2ex.com/t/1031356</guid>
-<content:encoded><![CDATA[
-<p>根据钱包（区块链）助记词查询钱包的余额（可以是 btc ，eth 等）</p>
-<p>试了一下 gpt-4 、Claude-Opus 、谷歌 gemini-pro 、通义千问、百度灵码，结果全部翻车。没一个正常的，出现</p>
-<p>的错误发给它，反复修改几遍还是无法正常运行。</p>
-<p>选取部分错误</p>
-<pre>Traceback (most recent call last):
-  File "/root/pyu.py", line 3, in &lt;module&gt;
-    from eth_account.hdaccount import mnemonic_to_private_key
-ImportError: cannot import name 'mnemonic_to_private_key' from 'eth_account.hdaccount' (/usr/local/lib/python3.10/dist-packages/eth_account/hdaccount/__init__.py)
-
-</pre>
-<pre>Traceback (most recent call last):
-  File "/root/e1.py", line 10, in &lt;module&gt;
-    if web3.isConnected():
-AttributeError: 'Web3' object has no attribute 'isConnected'. Did you mean: 'is_connected'?
-</pre>
-<pre>Traceback (most recent call last):
-  File "/root/e2.py", line 35, in &lt;module&gt;
-    wallet_address = wallet.get_address(0, 0)
-AttributeError: 'Wallet' object has no attribute 'get_address'
-</pre>
-<pre>Traceback (most recent call last):
-  File "/root/e3.py", line 27, in &lt;module&gt;
-    wallet = bip44.Wallet(seed)
-  File "/usr/local/lib/python3.10/dist-packages/bip44/wallet.py", line 20, in __init__
-    self._seed = Mnemonic(language).to_seed(mnemonic, passphrase)
-  File "/usr/local/lib/python3.10/dist-packages/mnemonic/mnemonic.py", line 234, in to_seed
-    mnemonic = cls.normalize_string(mnemonic)
-  File "/usr/local/lib/python3.10/dist-packages/mnemonic/mnemonic.py", line 96, in normalize_string
-    utxt = txt.decode("utf8")
-UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9e in position 0: invalid start byte
-</pre>
-<pre>Traceback (most recent call last):
-  File "/root/b1.py", line 30, in &lt;module&gt;
-    balance = get_wallet_balance_from_mnemonic(mnemonic)
-  File "/root/b1.py", line 5, in get_wallet_balance_from_mnemonic
-    private_key = Web3.to_checksum_address(Web3.accounts.privateKeyFromMnemonic(mnemonic))
-AttributeError: type object 'Web3' has no attribute 'accounts'
-</pre>
-]]></content:encoded>
-<pubDate>2024-04-10T09:37:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐：万能的 V 友们，有没有一些和 V2EX 论坛类似的友好社区/论坛？</title>
-<link>https://www.v2ex.com/t/1031355</link>
-<guid>https://www.v2ex.com/t/1031355</guid>
-<content:encoded><![CDATA[
-类型：综合型、AI 、深度学习等等吧<br />我常逛的除了这个 ，还有改程序错误经常找的的 stackoverflow ，  其他新闻啥的逛逛 youtube 。 <br /><br />大佬们走过路过，留个建议呀~
-]]></content:encoded>
-<pubDate>2024-04-10T08:46:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为什么漫展会有内场的设定？</title>
-<link>https://www.v2ex.com/t/1031354</link>
-<guid>https://www.v2ex.com/t/1031354</guid>
-<content:encoded><![CDATA[
-严格来说本人不是二次元，但是之前没去过漫展，就想去见见世面。<br /><br />上周 CD27 ，约了朋友去逛了一下，买了票去了内场，人挤人，内场三个场馆，一个官方场馆没啥人，剩下两个场馆就是摊位，基本上都是谷子，像是逛了一遍摊贩版天府红<br /><br />遂产生了疑问，因为是花钱进了内场，可能会筛掉一部分客源，就摊位营收来说，这些摊位摆在外场会不会赚的更多？<br />进一步说，买了内场票进内场买谷子，内场票的意义是什么？
-]]></content:encoded>
-<pubDate>2024-04-10T09:30:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] Python 有没有类似 Java itext 那样的东西？</title>
-<link>https://www.v2ex.com/t/1031353</link>
-<guid>https://www.v2ex.com/t/1031353</guid>
-<content:encoded><![CDATA[
-用来向 pdf 模板文件填充数据
-]]></content:encoded>
-<pubDate>2024-04-10T08:47:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小米/安卓平板链接显示器后如何 平板和显示器显示不同的桌面</title>
-<link>https://www.v2ex.com/t/1031352</link>
-<guid>https://www.v2ex.com/t/1031352</guid>
-<content:encoded><![CDATA[
-<p>现在链接到显示器后，就是把平板的内容镜像到了显示器上，有没有办法像 windows 或者 mac 那样，把显示器变成扩展模式呢？</p>
-]]></content:encoded>
-<pubDate>2024-04-10T10:08:42Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 又来招募了这回是深圳，清华大学经济管理学院深圳研究院联合招聘助理等</title>
-<link>https://www.v2ex.com/t/1031351</link>
-<guid>https://www.v2ex.com/t/1031351</guid>
-<content:encoded><![CDATA[
-清华大学经济管理学院、清华大学经济管理学院深圳研究院和清华大学深圳国际研究生院联合招聘<br /><br />合作教授：王自干<br /><br />Base: 深圳<br />性质：清华新事业编<br />适合申请者：gap year 新兴大佬<br />工作内容：以学术发表为目的的数据分析、代码编程、调查研究等<br />具体研究方向包括但不限于：<br />- 金融文本信息处理，通过分析 TB 量级的金融媒体和报表信息，开发新的文本信息处理算法<br />- 微观公司财务理论模型，通过拓展近年来发展的微观公司财务理论模型，开创新的 PDE 模型解法（连续时间模型）以及新的动态规划（ DP ）数值模拟解法<br />- 金融网络，通过分析 TB 量级的现金流大数据，构建高维矩阵和动态网络，优化其算法<br />- 资产定价，通过分析国际金融资产相关数据，挖掘新的资产定价因子<br /><br />岗位一：博士后（ 15-25 万/年），RA （科研专业岗）（ 10-15 万/年）<br /><br />+ 优先 数学系、物理系、统计系、计算机系、其他学科统计方向等持有硕士学位者或即将获得相关硕士学位者（博士后要求符合清华大学博士后招收基本条件）；<br />+ 优先 985 、211 、QS100 等大学特别优秀的本科生<br />+ 优先 中国科学院学位持有者<br />+ 优先 前端、数据库、后端、人工智能算法经验丰富者<br />+ 优先 发过 CCF-C 以上会议或期刊，SCI 二区以上期刊<br />+ 优先 有优秀的英语水平，申请时附上托福等成绩者<br />+ 优先 性格成熟、自驱力强<br />+ 优先 有业界工作经验者<br />+ 优先 有合作精神，能够胜任 multitasking 的工作环境<br />+ 优先 良好的沟通表达能力<br /><br />福利：<br />+ 所有的国内差旅费用只要不过分都可以全额报销<br />+ 知名教授推荐信和境内外内推<br />+ 清华深圳院相关规定的福利待遇<br />+ 其他面谈<br /><br />岗位二：行政秘书<br /><br />9-12 万/年<br /><br />Base: 深圳<br />性质：清华新事业编<br />工作内容之一：跟海外外国人 Email 无障碍交流<br />必要条件：英语特别好<br /><br />+ 优先 女汉子<br />+ 优先 女生<br />+ 优先 有非常优秀的英语水平，申请时附上托福等成绩者<br />+ 优先 性格成熟、自驱力强<br />+ 优先 有业界工作经验者<br /><br />福利：<br />+ 所有的国内差旅费用只要不过分都可以全额报销<br />+ 知名教授推荐信和境内外内推<br />+ 清华深圳院相关规定的福利待遇<br />+ 其他面谈<br /><br />带简历发送至 jing_li@tsinghua.edu.cn 并抄送到 wangzigan@gmail.com
-]]></content:encoded>
-<pubDate>2024-04-10T08:27:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 35 岁大龄中年男生如何保养皮肤显得年轻一些？</title>
-<link>https://www.v2ex.com/t/1031350</link>
-<guid>https://www.v2ex.com/t/1031350</guid>
-<content:encoded><![CDATA[
-35 了，还是没有女票，夜夜抱着飞机杯流泪。<br />看了小红书未免一些是软广，为了不显得越来越油腻，大家的护肤措施有哪些？
-]]></content:encoded>
-<pubDate>2024-04-02T08:26:59Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一个我一年前的练手作品</title>
-<link>https://www.v2ex.com/t/1031349</link>
-<guid>https://www.v2ex.com/t/1031349</guid>
-<content:encoded><![CDATA[
-<p>该项目诞生于居家隔离的那段时间，因为当时 Edge 给新标签页加了很多冗杂的内容，Chrome 的背景略为枯燥，那时刚学完 JS ，就仿照 Chrome 写了一个标签页。 </p>
-<p>特性： </p>
-<ul>
-<li>均静态页面，不收集用户信息 </li>
-<li>可以多个搜索引擎切换，以及建议词来源 </li>
-<li>可以设置图片背景，视频背景 </li>
-<li>右键能直达剪切板里的内容/网址 </li>
-</ul>
-<p>...</p>
-<p>界面主打一个极简，可保留仅需要的，只是给认识的朋友用过，适用于 PC 端，移动端只测试了 iOS ，没另外做宣传，毕竟后面就转 React 了，除了用到 i18n 库以外，其他都是原生实现，目前部署在 CF 。</p>
-<p>体验链接：</p>
-<p><a href="https://go.uuphy.com/" rel="nofollow">1Tab</a></p>
-<p>预览图：</p>
-<p><a href="https://i.imgur.com/mEv4e13.png" rel="nofollow">预览图 1</a>
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/mEv4e13.png" />
-<a href="https://i.imgur.com/FNrI61B.png" rel="nofollow">预览图 2</a>
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/FNrI61B.png" />
-<a href="https://i.imgur.com/EB8XveX.png" rel="nofollow">预览图 3</a>
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/EB8XveX.png" /></p>
-]]></content:encoded>
-<pubDate>2024-04-10T08:25:01Z</pubDate>
-</item>
-<item>
-<title>2024 Windows 日常软件推荐</title>
-<link>https://www.v2ex.com/t/1030062</link>
-<guid>https://www.v2ex.com/t/1030062</guid>
-<content:encoded><![CDATA[
-drawboard pdf:和触控笔配合最好的软件，没有之一，非常类似于 iPad 的 PDF expert 的手感，个人很喜欢<br />threefingersdragonwindows：实现类似于 Mac 的三指拖动，实际效果一般般。<br />powertoys：神器，替换按键，快捷搜索，都挺好用<br />snipaste：快速截图神器<br />dnest：类似于 Mac 的 dropover ，没咋用，最近刚尝试，可能在 Windows 上还是没习惯。<br />spacesniffer：可视化看硬盘容量分布（管理员权限记得开）<br />boosterx：最近比较火的性能提升工具，效果没有量化测试，但是感官上游戏是更流畅了，缺点是：电脑字体变丑；陀螺仪功能失效等..，需要重置就可以恢复
-]]></content:encoded>
-<pubDate>2024-04-09T12:22:17Z</pubDate>
-</item>
-<item>
-<title>小工具集合应用 DevHub ，欢迎大家给我提需求</title>
-<link>https://www.v2ex.com/t/1030051</link>
-<guid>https://www.v2ex.com/t/1030051</guid>
-<content:encoded><![CDATA[
-<p>已经有 39 个小工具了</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-1-cn.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-2-cn.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-3-cn.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-4-cn.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-5-cn.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wangchujiang.com/DevHub/assets/screenshots-6-cn.png" /></p>
-<p>■ API 请求<br />
-■ 正则表达式测试<br />
-■ Chmod 计算器<br />
-■ Crontab 生成器<br />
-■ 日期转换器<br />
-■ 设备信息<br />
-■ 密码生成器<br />
-■ 生命倒计时<br />
-■ 温度转换器<br />
-■ 文本转语音<br />
-■ PX/REM 转换器<br />
-■ 条形码生成器<br />
-■ 随机数生成器<br />
-■ 数据大小转换器<br />
-■ QRCode 读取/生成器<br />
-■ WiFi 二维码生成器<br />
-■ 事件二维码生成器<br />
-■ 名片二维码生成器<br />
-■ 随机端口生成器<br />
-■ RSA 密钥生成器<br />
-■ 颜色转换器<br />
-■ 精密计时器<br />
-■ ASCII 转字符串<br />
-■ 字符串转 ASCII<br />
-■ 哈希生成器<br />
-■ 基本验证生成器<br />
-■ EXIF 查看器<br />
-■ 图片转 Base64<br />
-■ ICO 转换器<br />
-■ HTML 编码/解码<br />
-■ 字符串浏览器<br />
-■ 文本转 Base64<br />
-■ 文本转 Unicode<br />
-■ 文本案例<br />
-■ 摩尔斯电码<br />
-■ 乱数假文生成器<br />
-■ UUID 生成器<br />
-■ URL 解析器<br />
-■ URL 编码/解码  </p>
-<p>搜集需求 <a href="https://github.com/jaywcjlove/DevHub" rel="nofollow">https://github.com/jaywcjlove/DevHub</a></p>
-]]></content:encoded>
-<pubDate>2024-04-08T11:35:33Z</pubDate>
-</item>
-<item>
-<title>分包出去一个小程序,小项目仓库入库预算 1000</title>
-<link>https://www.v2ex.com/t/1031377</link>
-<guid>https://www.v2ex.com/t/1031377</guid>
-<content:encoded><![CDATA[
-<p>分包出去一个小程序，小项目仓库入库
-要求熟悉 uniapp ，使用 uniapp 开发，
-详细需求, 登录页面
-扫码入库，
-入库列表
-三个页面
-留下 wx 我加你,准备之前小程序截图</p>
-]]></content:encoded>
-<pubDate>2024-04-10T10:01:11Z</pubDate>
-</item>
-<item>
-<title>[实习] [远程] Casbin 开源社区《Talent 2024》开发预选生，正在招募中！</title>
-<link>https://www.v2ex.com/t/1026349</link>
-<guid>https://www.v2ex.com/t/1026349</guid>
-<content:encoded><![CDATA[
-<div><h2>Casbin 明日之星预选生计划-Talent for Casbin 2024</h2>
-<h3>“Casbin 明日之星预选生计划-Talent for Casbin 2024”是什么？</h3>
-<p>“Casbin 明日之星预选生计划-Talent for Casbin 2024”（以下简称 Talent 2024 ）是由 Casbin 开源社区举办的一项面向高校学生的编程活动，旨在鼓励在校学生积极参与 Casbin 社区旗下开源软件的开发维护，促进国内优秀开源软件的蓬勃发展。</p>
-<p>2020 年，Casbin 以开源社区的身份首次参加了由 Google 公司主办的<a href="https://summerofcode.withgoogle.com/archive/2020/organizations/6587176113930240/" rel="nofollow">Google Summer of Code 2020</a> 和由中科院软件所、OpenEuler 社区主办的<a href="https://isrc.iscas.ac.cn/summer2020" rel="nofollow">开源软件供应链点亮计划-暑期 2020</a> 。在上述活动中，Casbin 社区共派出 7 位来自国内外（中国、法国等）互联网一线的资深社区导师，共培养、指导了国内外 15 名学生（ 14 位中国同学、1 位印度同学）进行为期 3 个月的开源编程活动。Casbin 项目已毕业的同学，有的成长为 Casbin 项目核心维护者、以开源大牛的身份活跃于 GitHub ，有的毕业后全职加入腾讯微信事业部等互联网头部公司，有的凭借在 Casbin 社区的出色经历拿到全球顶级投行 Morgan Stanley （摩根士丹利）的 offer ，在工业界和学术界发挥着重要作用。</p>
-<p>2021 年和 2022 年，Casbin 社区继续参加上述两项活动，Google Summer of Code 和开源软件供应链点亮计划-暑期编程之夏，题目的数量与招纳的学生人数均创下新高。</p>
-<table>
-<thead>
-<tr>
-<th>活动</th>
-<th>学生人数</th>
-<th>最终考核通过人数</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>GSoC 2020</td>
-<td>3</td>
-<td>3</td>
-</tr>
-<tr>
-<td>暑期 2020</td>
-<td>12</td>
-<td>10</td>
-</tr>
-<tr>
-<td>GSoC 2021</td>
-<td>9</td>
-<td>9</td>
-</tr>
-<tr>
-<td>暑期 2021</td>
-<td>11</td>
-<td>11</td>
-</tr>
-<tr>
-<td>GSoC 2022</td>
-<td>12</td>
-<td>11</td>
-</tr>
-<tr>
-<td>暑期 2022</td>
-<td>6</td>
-<td>5</td>
-</tr>
-</tbody></table><p>为了在非暑期时间能够继续促进 Casbin 开源软件的发展，同时挖掘有潜力的学生作为 Google Summer of Code 2024 和暑期 2024 （若该赛事仍举行并且 Casbin 社区获得参加资格）的有力竞争者，Casbin 社区将自筹资金，在 Google Summer of Code 等活动的闭幕期间，开展常态化的“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动，针对 Casbin 社区旗下开源软件的开发与维护提供 mini 项目，并向全国高校学生开放报名。学生可自主选择感兴趣的项目进行申请，并在中选后获得该软件资深维护者（社区导师）亲自指导的机会。</p>
-<p>根据项目的难易程度和完成情况，参与者可获取“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动奖金和加盖 Casbin 社区公章的参与（实习）证明。</p>
-<p><strong>“Talent 2024”项目在 2024 年第四次举办，与 Google Summer of Code 等活动类似，不同点是“Talent 2024”在非 GSoC 申请时间举行，与 GSoC 等活动是互补的关系。</strong></p>
-<ol>
-<li>Casbin 明日之星预选生计划-Talent for Casbin 2024 官网： <a href="https://github.com/casbin/Talent2024" rel="nofollow">https://github.com/casbin/Talent2024</a></li>
-<li>Google Summer of Code 官网： <a href="https://summerofcode.withgoogle.com/" rel="nofollow">https://summerofcode.withgoogle.com/</a></li>
-<li>Google Summer of Code 中文介绍： <a href="https://github.com/gsoc-cn/gsoc-cn" rel="nofollow">https://github.com/gsoc-cn/gsoc-cn</a> 或 <a href="https://zhuanlan.zhihu.com/p/27823910" rel="nofollow">https://zhuanlan.zhihu.com/p/27823910</a> 或 <a href="https://zhuanlan.zhihu.com/p/27330699" rel="nofollow">https://zhuanlan.zhihu.com/p/27330699</a></li>
-<li>开源软件供应链点亮计划-暑期活动官网： <a href="https://summer.iscas.ac.cn/" rel="nofollow">https://summer.iscas.ac.cn/</a></li>
-</ol>
-<h3>活动的主要参与方有哪些？</h3>
-<p>活动组织方：Casbin 开源软件社区。</p>
-<p>活动参与方主要角色为学生和导师。</p>
-<ol>
-<li>学生：学生自由选择项目，与导师沟通实现方案并撰写项目计划书。被选中的学生将在导师指导下，按计划完成开发工作，并将成果贡献给社区。社区评估学生的完成度，主办方根据评估结果发放资助金额给学生。</li>
-<li>社区：社区提供项目列表和描述，并安排项目对应的导师，导师与申请者沟通方案、并从申请者中选中一位承接项目。在为期三个月的开发周期中，导师指导学生进行对应项目的开发工作。</li>
-<li>导师：社区针对每一个项目指定一个导师，与学生一起制定合适的开发计划和方案，指导学生按计划完成开发。</li>
-</ol>
-<h3>本项目的资助额度是多少？</h3>
-<p>资助金按月发放，分为基础资助金：600 元 + 奖金：0~400 元
-（均为每月税后，根据上手快慢程度及技术栈匹配程度会有浮动，项目开始前会协商好。）</p>
-<h2>Casbin 开源项目介绍</h2>
-<p>Casbin 是一个强大的、高效的开源访问控制框架，支持 Go, Java, Node.js, Javascript (React), Python, PHP, .NET, C++, Rust 等十几种语言。Casbin 开源项目由北京大学罗杨博士创立于 2017 年，核心维护团队有二十多人。Casbin 在业界具有广泛影响力。目前已经被 Intel 、VMware 、Orange 、RedHat 、T-Mobile 等公司开源使用，被腾讯云、Cisco 、Verizon 等公司闭源使用。具体详见 Casbin 主页。Casbin Go 主项目目前 GitHub 10000+ stars ，加上所有语言的实现、插件等可达到 15000+ stars 。</p>
-<p>Casbin 技术已经被列入多个国内外权威机构、政府部门的白皮书：</p>
-<ol>
-<li>国家广电总局《广播电视和网络视听区块链系统》白皮书（第 85 页）： <a href="http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf" rel="nofollow">http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf</a></li>
-<li>美国国家标准与技术研究院（ NIST ）《 Attribute-based Access Control for Microservices-based Applications Using a Service Mesh 》白皮书（第 10 页）： <a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf" rel="nofollow">https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf</a></li>
-</ol>
-<p>Casbin 也曾经在国际上进行多次线下宣讲：</p>
-<ol>
-<li>新加坡政府技术部 Open Government Products： <a href="https://www.youtube.com/watch?v=OTT84oplR9o" rel="nofollow">https://www.youtube.com/watch?v=OTT84oplR9o</a></li>
-<li>俄罗斯最大在线旅游平台 <a href="http://tutu.ru" rel="nofollow">tutu.ru</a>： <a href="https://www.youtube.com/watch?v=Z5dUxH4PqYM" rel="nofollow">https://www.youtube.com/watch?v=Z5dUxH4PqYM</a></li>
-</ol>
-<p>具体请了解 Casbin 官网： <a href="https://casbin.org/" rel="nofollow">https://casbin.org/</a></p>
-<h2>可选项目列表</h2>
-<p>所有可选项目详见： <a href="https://github.com/casbin/Talent2024#%E5%8F%AF%E9%80%89%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8" rel="nofollow">https://github.com/casbin/Talent2024#可选项目列表</a></p>
-<h2>候选人要求</h2>
-<h3>工作职责：</h3>
-<ul>
-<li>每周与项目导师进行线上讨论，完成项目规定的开发任务。项目导师由开源项目创始人或其他核心成员担任；</li>
-<li>积极参与开源社区的建设，参与代码提交、解决 Issue 、审核 PR 等日常工作；</li>
-<li>配合完成官方要求的材料提交等事项，包括项目申请书撰写、社区反馈任务完成度追踪等。</li>
-</ul>
-<h3>职位要求：</h3>
-<ul>
-<li>本科、硕士或博士在读（已毕业、工作的无法参加）；</li>
-<li>对开源软件、开源社区感兴趣；</li>
-<li>熟悉一种或多种编程语言，有较强的工程能力，代码格式清晰规范，善于团队协作；</li>
-<li>有一定英文读写能力，能够熟练运用英语在 GitHub 进行开发、协作；</li>
-<li>较强的沟通能力和逻辑表达能力。</li>
-</ul>
-<h3>具有以下条件者优先：</h3>
-<ul>
-<li>熟悉 Go, Javascript 、React 等语言或框架、Web 系统、分布式系统、微服务架构，有相关项目经验；</li>
-<li>在 GitHub 较为活跃，有自己的开源项目，或参与过知名开源项目；</li>
-<li>可以在项目结束后继续长期参与开源社区的开发、建设或维护。</li>
-</ul>
-<h2>投递要求</h2>
-<p>申请学生需要同时完成以下“联系社区”和“官网投递”两个环节：</p>
-<h3>1. 联系社区（ 2024 年 3 月 1 日 - 2024 年 12 月 31 日）</h3>
-<ol>
-<li>加入《 Casbin 访问控制社区群》（ QQ 大群）：<a href="https://shang.qq.com/wpa/qunwpa?idkey=8ac8b91fc97ace3d383d0035f7aa06f7d670fd8e8d4837347354a31c18fac885" rel="nofollow">546057381</a></li>
-<li>加入《 Casbin 明日之星预选生计划-Talent for Casbin 2024-群》（ QQ 小群）：<a href="https://qm.qq.com/cgi-bin/qm/qr?k=5MjIdZuPmAio6lfAr-NTxBY0CcoGL1yl&amp;jump_from=webapi" rel="nofollow">540163681</a> ，联系导师，与导师沟通项目细节和方案，完成社区指定的 Easy Tasks</li>
-</ol>
-<div>
-<img alt="qrcode-casbin" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-casbin.png" />
-<img alt="qrcode-talent" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-talent.png" />
-</div>
-<h3>2. 官网投递（ 2024 年 3 月 1 日 - 2024 年 12 月 31 日）</h3>
-<p>发送 [中文简历 PDF ] 至 Casbin 社区官方邮箱： <a href="mailto:admin@casbin.org">admin@casbin.org</a></p>
-</div>
-]]></content:encoded>
-<pubDate>2024-04-10T09:45:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] [UNIAPP] 在 UNIAPP 开发的小程序中，调用 H5 链接的一个问题？</title>
-<link>https://www.v2ex.com/t/1031348</link>
-<guid>https://www.v2ex.com/t/1031348</guid>
-<content:encoded><![CDATA[
-<h2>场景</h2>
-<pre><code>我用 UNIAPP 开发了一个小程序，现在我在小程序内调用一个 H5 的链接，我想在这个访问 H5 的链接的页面，使用 H5 页面的导航栏有办法实现吗？
-
-微信小程序文档：
-web-view
-功能描述
-承载网页的容器。会自动铺满整个小程序页面，个人类型的小程序暂不支持使用。
-客户端 6.7.2 版本开始，navigationstyle:custom 对 web-view 组件无效
-</code></pre>
-<h2>需求</h2>
-<pre><code>1.例如我从 H5 的页面 （ A 页面 -&gt; B 页面 -&gt; C 页面） 但是返回的时候， 从 C 页面通过判断可能直接返回 A 页面；
-
-2.导航栏的文字动态
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-04-10T08:13:26Z</pubDate>
-</item>
-<item>
-<title>[Telegram] 使用 telegram 来监控你的小鸡</title>
-<link>https://www.v2ex.com/t/1031347</link>
-<guid>https://www.v2ex.com/t/1031347</guid>
-<content:encoded><![CDATA[
-<p>TeleMonitor 是一个使用 Python 编写的系统监控工具，它可以监控 CPU 、内存和磁盘的使用情况，并通过 Telegram 发送警告。</p>
-<p><code><a href="https://github.com/bboysoulcn/telemonitor" rel="nofollow">https://github.com/bboysoulcn/telemonitor</a></code></p>
-]]></content:encoded>
-<pubDate>2024-04-10T04:16:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助各位朋友谁有星球大战中文网的账号</title>
-<link>https://www.v2ex.com/t/1031346</link>
-<guid>https://www.v2ex.com/t/1031346</guid>
-<content:encoded><![CDATA[
-<p>方便共享个邀请码给我吗？我想要注册网站的账号</p>
-]]></content:encoded>
-<pubDate>2024-04-10T08:16:11Z</pubDate>
-</item>
-<item>
-<title>[创业组队] 程序员创业，可以怎么开始？想做 AI 应用落地</title>
-<link>https://www.v2ex.com/t/1031345</link>
-<guid>https://www.v2ex.com/t/1031345</guid>
-<content:encoded><![CDATA[
-想做 AI 应用落地<br />本人主持过两次从 0 到 1 的项目，但也只能搞定技术和产品<br />之前找了一个老板，向他提议，我搞定技术，他搞定市场和融资，但得到答复：这个城市发展还没到那个阶段<br />个人想法是，给人做 AI 应用外包开发，或者常规互联网系统/信息系统+AI<br />资金倒还是其次，首先客户、订单哪来？
-]]></content:encoded>
-<pubDate>2024-04-10T08:12:41Z</pubDate>
-</item>
-<item>
-<title>[JavaScript] 这次，我们想真正为前端开发的你做点儿贡献</title>
-<link>https://www.v2ex.com/t/1031344</link>
-<guid>https://www.v2ex.com/t/1031344</guid>
-<content:encoded><![CDATA[
-<p>前段时间，我设计开发了一个叫做 alovajs 的 js 请求策略库，在 23 年 4 月份开始对外宣传以来已经取得了来自世界各地开发者的好评，也获得了 2400+stars ，其中不乏大厂的牛人的认可，这已经让我很兴奋得失眠了好几次。</p>
-<p><img alt="s0.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/515f1ea684884b989a91cba25b228881%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1334&amp;h=393&amp;s=73752&amp;e=png&amp;b=fcfcfc" /></p>
-<p>本来只是一个普通的请求工具，但我希望它做一些其他请求工具没有做的，真正能帮助前端的事。经过不断地思考，推翻，再思考，再推翻，我想我确实找到了这个点，接下来把这个新想法分享给你。</p>
-<p>在了解它前，还得简单说说 alovajs 的过去，这也可能会让对开源有更深入地认识，也希望可以给你提供一些能量。</p>
-<p>如果对你有帮助，请帮忙点个赞或留下宝贵的评论，我都会一一认真阅读。</p>
-<p><strong>对啦，4 月 14 日（周天） 20:00 我将会开启一场直播，有空来聊聊啊，微信扫码提前预约↓↓↓</strong></p>
-<p><img alt="9470dc110efc35ca38f31308d536532.jpg" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1ed1ae9c2df744688f09302ba284aae9%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=5144&amp;h=1787&amp;s=819108&amp;e=jpg&amp;b=f8f8f8" /></p>
-<p>同时，如果你对 alovajs 感兴趣，也诚挚邀请你加入社区共同进步，我们也将会在微信群不定期直播分享一些技术干货。</p>
-<ul>
-<li><a href="https://alova.js.org/img/wechat_qrcode.jpg" rel="nofollow">加入微信群</a></li>
-<li><a href="https://discord.gg/S47QGJgkVb" rel="nofollow">加入在 Discord 社区</a></li>
-</ul>
-<h2>alovajs 源于小项目，使命却是驶向大海</h2>
-<p>2022 年 3 月的一天，我因某种情况萌生了开发一个名叫“目标控”的 App ，那时候得益于微信设置功能和滴答清单的启发，我希望目标控可以实现无延迟的数据请求和提交，即立即响应模式，即使在弱网或断网模式下也可以正常使用，但由于在网上翻了一遍都没有合适的解决方案，相似的乐观更新方案也无法满足，该死的热爱分享欲又让我决定以一个请求库的形式实现它，这就是 alovajs 的萌芽点，但那会儿还没有这名儿呢。</p>
-<h3>设计 alovajs</h3>
-<p><strong>一个库的开始不是设计，不是开发，而是理清需求</strong></p>
-<blockquote>
-<p>温馨提示：强烈建议你先简单了解下 alovajs 的<a href="https://alova.js.org/tutorial/getting-started" rel="nofollow">概述部分</a>，才能更好地理解下面的内容。</p>
-</blockquote>
-<p>那会儿也没有产品定位可言，只是做出满足自己需求的 js 库，我研究了现有的请求库，列出了下面这些需求：</p>
-<ol>
-<li>要支持无感数据交互模式，即在断网情况下也能正常提交且无延迟，让用户毫无感知</li>
-<li>按时下热门的 useHook 设计，让接口更加易用</li>
-<li>一套代码同时支持多种框架如 vue 、react 等，js 运行环境如浏览器、react-native 、uniapp 和 taro 等</li>
-<li>多 js 环境下一致的使用方式</li>
-<li>鉴于 react-query 的缓存功能很不错，这个也要加进来</li>
-<li>由于 axios 的影响力和简便性，让 alovajs 容易上手，设计要类似 axios</li>
-</ol>
-<p>然后根据需求进行库的 API 设计。</p>
-<ul>
-<li>对于需求 1 是我做 alovajs 的出发点，但也不简单，当时的设计是在 useHook 的配置中加入了一个<code>silent</code>参数，它可以立即响应 success 回调，但后来也证明有问题，并且重新设计了，也就是现在的<a href="https://alova.js.org/tutorial/strategy/sensorless-data-interaction/" rel="nofollow">无感数据交互策略</a></li>
-</ul>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b7fbfc7253b64145ae5c51784c348ab7%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=491&amp;h=235&amp;s=12044&amp;e=png&amp;b=ffffff" /></p>
-<ul>
-<li>
-<p>针对需求 2 设计了 useRequest 、useWatcher 和 useFetcher 三个核心 useHook ，这个大家都很熟悉了，例如 ahooks 的 useRequest 、vueuse 的 useAsyncState 、react-query 以及 swr 这些，自不用多说，确实很方便</p>
-</li>
-<li>
-<p>既然要用 useHook 设计，那么不同框架需要会有不同的状态管理，但又不想像 react-query 一样针对每一个框架搞一个 js 库，因此针对需求 3 设计了 statesHook 适配器、请求适配器、存储适配器的规范，并按规范编写不同适配器即可，将框架环境和运行环境相关逻辑剥离成单独的模块。</p>
-</li>
-<li>
-<p>针对需求 4 设计了 method 实例代理的模式，method 实例代理去调用不同适配器的钩子函数，这样即使你开发任何应用都可以毫不陌生地上手 alovajs ，也可以无缝移植</p>
-</li>
-<li>
-<p>对于需求 5 ，同类 js 库都是自定义 key 的形式实现缓存的，而我的思路却放在了请求信息上，常见场景是在以相同请求方式、相同参数请求相同接口时需要命中上一次的响应数据，那我们何不把这些请求信息作为缓存 key 呢，因此 alovajs 设计了自动化的缓存机制，在 GET 请求上默认是开启的。</p>
-</li>
-<li>
-<p>需求 6 嘛，借鉴参考一下 axios 。</p>
-</li>
-</ul>
-<p>这些设计确实在以后的时间里得到了证实，alovajs 已经通过适配器的方式完美兼容了 vue 、react 、svelte 框架，并且也可以在浏览器、react-native 、uniapp 和 taro 等多种 js 环境下运行，并且保持了一致的使用方式，这让我看到了曙光。</p>
-<p>在这之后的几个月里 alovajs 虽然发布了，但一直没有去宣传它，一方面是因为我就是拿他用在“目标控”项目上的，虽然它在这个项目上历练完善了一番，但依旧很不完整，定位也不清晰，最初的版本介绍就是这样的。</p>
-<p><img alt="企业微信截图_17016791831963.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cbe1cf157fab477584279a7361d37707%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=718&amp;h=680&amp;s=40883&amp;e=png&amp;b=fffefe" /></p>
-<p>到后来，“目标控”项目已宣告夭折了（但<a href="http://www.mubiaokong.com" rel="nofollow">官网还在</a>），但 alovajs 却还在继续坚持着。</p>
-<h3>alovajs 的方向探索</h3>
-<p>本着曾经互联网产品经理身份的执念，我还是希望将 alovajs 打造成一个差异化的产品。我常常会问自己，alovajs 和其他请求库有什么区别吗？用户为什么要用 alovajs ？它在设计上确实和其他库有些不一样，这并不是马上能回答出来的问题。后来我尝试将请求库的方向定位在“轻量级请求库”、“多端统一的请求库”，但后来都被自己否定了，因为这些都不能为开发者带来实质性的帮助，也都不能称之为优势。</p>
-<p>时间来到了 22 年 9 月份，一次契机让我发现了 vue-request 这个优秀的基于 vue 的请求库，它的<code>usePagination</code>和<code>useLoadMore</code>立刻给了我灵感，这种分页的实现形式让我发现这也是我想要的，同时这让我意识到 useHook 的力量之强大，我可以把它按请求场景切分模块，根据不同场景使用不同的 useHook ，而且之前实现的无感数据交互其实也算是其中一种场景。如果以这为方向的话，开发者按不同的请求场景选择不同的 useHook 就可以了，既提高了开发效率、降低了编码复杂度，又能防止初级前端写出低效代码，还能更大化地利用 alovajs 的核心特性实现性能更好、服务端压力更小的请求功能，至此，“轻量级的请求策略库”被我选中了。</p>
-<p>然后为了指导 alovajs 以后的设计方向，我还提炼抽象出了 alovajs 的请求场景模型（ RSM ），主要分为以下四个流程：</p>
-<pre><code>请求时机 -&gt; 请求行为 -&gt; 请求事件 -&gt; 响应处理
-</code></pre>
-<p>这里就简单提一下。</p>
-<p><strong>说干就干</strong>，我根据这个定位开始重构 alovajs2.0 ，将无感数据交互功能从 1.0 中剥离出来，并设计了中间件机制来适应更多请求场景策略 useHook 的开发，潜心研究并设计开发了分页策略和无感数据交互策略。</p>
-<ul>
-<li>
-<p>alovajs 的分页策略是我自认为最好用的<code>usePagination</code>，它利用 alovajs 的缓存功能实现了前后页数据的预加载、分页数据搜索和请求级防抖、提供自动化管理的新增编辑和删除函数，以及无需重置地刷新指定页码的数据。</p>
-</li>
-<li>
-<p>无感数据交互策略更是花了我 4 个月时间，不断遇到死胡同，又不断重新设计的成果，实现了一个即使在弱网或断网环境下，用户也能无延迟的数据交互策略，同时它也可以更稳定地保证请求成功。我设计了一个虚拟数据的玩意儿，可以让请求在响应之前作为响应数据的占位符使用，让用户感觉是立即响应的，当响应成功后 再将虚拟数据替换成真实数据。按目前的探索结果，它的使用场景可以是编辑器类的应用、系统设置类模块，以及部分较简单的列表中。</p>
-</li>
-</ul>
-<p>在后来也陆续增加了其他的请求策略模块，但这还远远不够。</p>
-<h3>星辰大海的未来</h3>
-<p>到现在，alovajs 收到了一些负面评论，但更多的好评让我对这个项目有了更多的动力，谁还在乎那些负面评价呢。</p>
-<p>23 年的 5 月 13 日，我在 github 上收到了这样一个 issue</p>
-<p><img alt="openAPI 的支持.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/651ca3c37f2d415d8c5d6975c5123562%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=911&amp;h=393&amp;s=38679&amp;e=png&amp;b=ffffff" /></p>
-<p>起初我并没在意这个 issue ，只是简单了解了下 openAPI 自动生成请求代码的功能，觉得很不错，但迫于经历有限也没深入思考，那会儿也还没在思考 alovajs 的方向。但在最近，我又会偶尔思考 alovajs 的方向，这个还是 open 状态的 issue 一直跑到我的思绪里，然后默默地把这个 issue 的 label 从"feature-request"改成了"feature-request:confirmed"。</p>
-<p>同时，这个 issue 让我灵光闪到，其实 alovajs 还可以拉近前端和后端的协作距离，并更进一步地简化前端开发的工作流，这就是我为 alovajs 制定的下一个发展方向：</p>
-<blockquote>
-<p><strong>alovajs 将在请求方面帮你省去大部分的工作，你只需要指定使用哪个 API ，以什么策略执行请求就可以了。别再花时间在请求这件小事上了，交给 alova</strong></p>
-</blockquote>
-<p><img alt="截屏 2024-04-09 20.10.47.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/31ac88515a9c4998aa76cd31ddaee0e8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2356&amp;h=938&amp;s=122421&amp;e=png&amp;b=fceeed" /></p>
-<p>具体如下：</p>
-<ol>
-<li>
-<p>自动生成 ts 类型完整的、描述完整的请求函数，无论是 js 项目还是 ts 项目，都调用无需引入，让开发者就像直接调用<code>location.reload</code>这样方便，并且请求函数可直接看到完整的描述和请求参数类型提示，这些都可以由 openAPI 自动生成。</p>
-</li>
-<li>
-<p>由于自动生成的请求函数拥有完整的描述和类型提示，通过 vscode 插件完成交互式的方式快速检索需要使用的 API ，你也不再需要去查阅 API 文档了。</p>
-</li>
-<li>
-<p>解决前后端协作断层的问题，接口的任何变动前端可自动被通知，如果在构建项目时发现存在变动，则会抛出错误停止构建，如果是 ts 项目也会在编译时抛出错误，也可以通过 vscode 插件查看变动记录。</p>
-</li>
-</ol>
-<p>先发一张剧照，直接在编辑器中根据接口描述或接口地址来插入接口调用函数。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/865caf6e74ba494eb02a24ae83a14d51%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2190&amp;h=1505&amp;s=1375978&amp;e=png&amp;b=1d1d1d" /></p>
-<blockquote>
-<p>具体的方案可点此查看 <a href="https://wilhgi5u21.feishu.cn/docx/ZJzSdX05woIcUux2hlXc31EmnPd" rel="nofollow">alova 产品白皮书及 3.0 更新一览</a>。</p>
-</blockquote>
-<p>如果这个能实现，应该能为前端技术实打实地做出一点贡献吧。</p>
-<p>同时，alovajs 将会探索更广泛的使用场景，例如适配兼容 solidjs 、preact 、angular 、lit 、原生小程序等更多框架和 js 环境，最终，我们会实现这样一个蓝图</p>
-<p><img alt="截屏 2024-04-09 20.18.51.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3e3809b8145f45aba0f9ec183228fb2b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2248&amp;h=1202&amp;s=313044&amp;e=png&amp;b=ffffff" /></p>
-<h2>只有不断探索不断精进，才能变得更加优秀</h2>
-<p>当时一篇被吐槽的文章《是时候该替换你的 axios 了》冲上了热搜，我们曾经收到过这样的评论</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/07bab2b844ab4086994c46d1493bea4a%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=739&amp;h=251&amp;s=39348&amp;e=png&amp;b=f9f8f8" /></p>
-<p>在刚推出来的时候确实没那么好，但我深知每个产品都不是一蹴而就的，它需要时间沉淀。</p>
-<p>Apple 1 电脑开始连机箱都没有</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4dd151b0e2df4977a6e23bfa50ce3742%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=800&amp;h=450&amp;s=591498&amp;e=png&amp;b=e8d7bd" /></p>
-<p>vue 的发展旅程也是不断摸索前进的过程</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/da79e85770014bf4ae094d7b2203c17e%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=736&amp;h=440&amp;s=65523&amp;e=png&amp;b=fffefe" /></p>
-<p>我只是被这样的产品历程所打动，坚持做一件事是最容易成功的途径，好的产品都要经过几年十几的考验，何况 alovajs 也只有 1 年半左右时间，被一部分人接触只有 8 个月。在这个期间也在一次次地探索更好的方案一步步前进的。</p>
-<p>alovajs 开始设计的 useHook 包含 useRequest 、useWatcher 、useEffectWatcher 、useManual 、useController ，然后再慢慢缩减为只有 useRequest 、useWatcher 、useFetcher 三个核心 hooks 。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c180efbe93164709b9011b02b61edf63%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=498&amp;h=566&amp;s=41776&amp;e=png&amp;b=fffefe" /></p>
-<blockquote>
-<p><a href="https://github.com/alovajs/alova/commit/a6d2f245eaab09d7395c0c5a3fab4615cea5ac2e" rel="nofollow">Commit 地址</a></p>
-</blockquote>
-<p>在并行请求的设计上，是自定义实现一个类似 Promise.all 的形式，还是现在的 onSuccess 函数绑定形式，在这里纠结了好几个版本，改来又改去，以下是当年被废弃的 responser 设计。</p>
-<p><img alt="当年被废弃的 responser 设计.jpg" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2c92768dfa5a4d60ab6edaec03f7690f%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1087&amp;h=552&amp;s=135181&amp;e=jpg&amp;b=ffffff" /></p>
-<blockquote>
-<p>Commit 记录找不到了</p>
-</blockquote>
-<p>为了兼容 IndexedDB 等异步的缓存方案，一开始尝试将存储适配器设计为异步函数，但会带来一系列问题，然后又尝试 StorageConnector 通过事件机制实现，依然不够完美，最后再到现在的自定义 localCache 异步函数机制。</p>
-<p><img alt="新建项目的副本.jpg" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f0c42d3d084c4bc6b6eab58053628a85%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1027&amp;h=1041&amp;s=407158&amp;e=jpg&amp;b=fbecea" /></p>
-<blockquote>
-<p><a href="https://github.com/alovajs/alova/commit/86a4e47ce5c02884e91ca69778672234a7ec389a" rel="nofollow">Commit 地址</a></p>
-</blockquote>
-<p>也感谢对 alovajs 做出支持和贡献的朋友们，以下随便截了几张图，还有很多未被包含的贡献。</p>
-<p><img alt="新建项目.jpg" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ad53b15b68094d65917a6fab39efa8be%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1502&amp;h=962&amp;s=738969&amp;e=jpg&amp;b=fffefe" /></p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/36ea9bacd7b04a16818d65a650fac49b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=946&amp;h=386&amp;s=43659&amp;e=png&amp;b=ffffff" /></p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bb643bf1f28c48d18cab3f9858b814e7%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=954&amp;h=383&amp;s=53291&amp;e=png&amp;b=ffffff" /></p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9df9dc639b114e8e926ad42fdd73e9a0%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=934&amp;h=367&amp;s=42953&amp;e=png&amp;b=ffffff" /></p>
-<p>以及对文档不断地对细节补充和最佳实践的完善、对缓存恢复模式大胆尝试了缓存版本的方案，以及为了让 alovajs 可以提供完整的 ts 类型提示，尽量地使用自动推断类型来减少开发者定义类型的麻烦，在这方面也确实花了很大的精力优化和兼容不同的 UI 框架等等。</p>
-<p>其中，文档大改了两到三次，感谢 @橘子皮 给我提供了第一次文档修改的意见，@well 给我提供了第二次文档修改的意见，然后我们的文档就有了这样的口碑。</p>
-<p><img alt="111.jpg" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ea3e738b8d5546c38e9dbf3fb7308a7b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=2916&amp;h=2977&amp;s=2083041&amp;e=jpg&amp;b=efeeee" /></p>
-<p>@青木 却帮我打开了新的 alova 全端思路。</p>
-<p><strong>得供起来！</strong></p>
-<p><img alt="新建项目.jpg" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8dab3b76d6e1437faa88de0806ad9361%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=458&amp;h=54&amp;s=15105&amp;e=jpg&amp;b=f7f5f4" /></p>
-<p>很多已经记不清楚了，npmjs 上的记录告诉我已经发布了 146 个版本。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8b1620fe69124e0caeaf5db7051e3989%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=444&amp;h=355&amp;s=17797&amp;e=png&amp;b=fefefe" /></p>
-<p>github 上也有很多人提出 bug ，我也在第一时间回复和修复，真的非常感谢，如果无法马上判断问题所在，我也会在 codesandbox 上自行复现，并用这个 demo 作为和使用者的沟通桥梁。</p>
-<h2>alovajs 推广的心路历程</h2>
-<p>我自己对互联网推广真的是一窍不通，写文章又烂，毕竟搞技术的大多不擅长表达嘛，又没有办法沉下心来不断产出文章，但是不得不尝试一下。</p>
-<p>我清楚地认识到，<strong>在推广这件事上需要做的，一点也不比开发少</strong>，而且需要有耐心，不能一蹴而就，也需要有自己的坚定信念，因为喷子真的无处不在。</p>
-<p>所以在去年 8 月份尝试编写了一篇文章，然后在网上发一些介绍的文章，在 QQ 群里发广告消息，但发现没什么效果，QQ 群里还遭人讨厌，但也收获了 alovajs 的第一颗 star ，应该也是出于同情心给的吧，效果甚微。</p>
-<p>直到确定好了定位，项目 2.0 重构完成后，才开始编写大量 demo ，让人在了解后可以马上尝试一下。</p>
-<p>在 23 年 4 月初，碰运气写了一篇爆款文章获得了不错的阅读量，沾了 axios 的光，然后网上开始陆续有人试用并分享出了自己试用的情况，也有人开始推荐 alova 了，这让我很欣慰。</p>
-<p>但很多人对 alova 都是持怀疑态度，又是一个重复的轮子，在没有名气的时候被这样认为也无可厚非，当然，现在也只是稍微有名就了一点点，还需更加努力。</p>
-<p>在需要帮别人复现 bug 、改 bug 、思考新特性设计、维护文档的同时，还需要思考如何推，执行推广工作真的是一件很累人的事。</p>
-<p>但不能不推吧，然后就想把教程搬过来发一遍，总比没有好，不过这真的没啥人看。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6b6ec1654f8d413da5283c261ab4ec27%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=971&amp;h=597&amp;s=59868&amp;e=png&amp;b=fefdfd" /></p>
-<p>也还发过一些类似自擂自吹的，没有说明白的文章。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9691293cc9314ea3bc0bcb168e5a4fc8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=535&amp;h=254&amp;s=20976&amp;e=png&amp;b=fffefe" /></p>
-<p>但这种确实会让人反感想想自己看到这样的文章也是这样的反应。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8857f159fa1c49a89d484ed28d744962%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=630&amp;h=354&amp;s=20683&amp;e=png&amp;b=fefefe" /></p>
-<p>所以在这方面确实有点力不从心，alovajs 也就只在发了这些文章的情况下成长的。</p>
-<p>之前听一位营销大佬说过一句话：</p>
-<p><strong>做营销应该是做一组军体拳，而不是花里胡哨的舞技</strong></p>
-<p>这句话让我对产品推广有了思维上的转变，产品好的话，只要把它的优势说清楚就行了，而不用搞过多的花拳绣腿，然后把产品体验和学习门槛降到足够低，比如一件体验产品，以及出个视频教程之类的。</p>
-<p>现在我就在这诚心地邀请正在看文章的你来体验体验 alovajs：</p>
-<blockquote>
-<p>alovajs 是一个请求策略库，它提供了一套完整的应对复杂请求场景的方案，我们称之为请求策略，只需一行代码就能快速实现各种复杂的请求逻辑，不仅能帮你提升开发效率，还能帮你提升 App 的运行效率，降低服务端压力。</p>
-</blockquote>
-<p>感兴趣的话可以前往<a href="https://alova.js.org/tutorial/getting-started" rel="nofollow">alovajs 概述</a>了解详情，<a href="https://alova.js.org/category/examples" rel="nofollow">这里也有一些 alovajs 示例</a>，你可以立即体验体验，喜欢就直接拿去用，我也不赚你一分钱。</p>
-<p>如果喜欢的话，还请帮忙发发朋友圈、掘金文章，或者抖音 b 站发视频都行，你的分享可以让更多人从 alovajs 中受益，也可以加入我们的社区，我们也将会在微信群不定期直播分享一些技术干货。</p>
-<ul>
-<li><a href="https://alova.js.org/img/wechat_qrcode.jpg" rel="nofollow">加入微信群</a></li>
-<li><a href="https://discord.gg/S47QGJgkVb" rel="nofollow">加入在 Discord 社区</a></li>
-</ul>
-<p><strong>别忘了，4 月 14 日（周天） 20:00 我将会开启一场直播，有空来聊聊啊，微信扫码提前预约↓↓↓</strong></p>
-<p><img alt="9470dc110efc35ca38f31308d536532.jpg" class="embedded_image" rel="noreferrer" src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1ed1ae9c2df744688f09302ba284aae9%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=5144&amp;h=1787&amp;s=819108&amp;e=jpg&amp;b=f8f8f8" /></p>
-<h2>寻找志同道合的人</h2>
-<p>能看到这边的你，应该花了不少耐心吧，非常感谢你的阅读🤗！</p>
-<p>alovajs 至今已得到一定的可行性验证，为了加快发展，现需邀请两名认同 alovajs 的朋友加入核心团队（现已确认一名），负责 alovajs 的核心工作，这可能会让你获得丰厚的收益，有意愿进一步了解的朋友可以加我微信，具体可见<a href="https://alova.js.org/contributing/become-core-member" rel="nofollow">成为核心成员</a>。</p>
-]]></content:encoded>
-<pubDate>2024-04-10T08:09:16Z</pubDate>
 </item>
 </channel>
 </rss>
