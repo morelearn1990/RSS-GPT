@@ -5,14 +5,384 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 使用 clash 上网时应对 dns 泄露的心得</title>
+<link>https://www.v2ex.com/t/1034325</link>
+<guid>https://www.v2ex.com/t/1034325</guid>
+<content:encoded><![CDATA[
+
+<p>** 本人使用的是 clash verge rev 客户端，内核为 clash-meta （ mihomo ），windows 系统。</p>
+<h1>一、</h1>
+<p>最近我对上网隐私有些关注，虽然 vpn 可以有效保护隐私，但根据大家都知道的原因，vpn 上网在国内非常不方便，一个是无法根据域名和 ip 分流，另一个是 vpn 协议太容易被检测。所以我就在想，使用 clash 这类更符合国情的代理软件，怎么才能保证基本的隐私和信息安全呢？</p>
+<p>当然我只是追求基本的隐私保护，对于更高的安全需求，当然可以使用 tor 网络和虚拟机等，这些不在此次讨论范围，我主要以 <a href="http://ipleak.net" rel="nofollow">ipleak.net</a> 这类网站的结果作为判断标准。</p>
+<p><a href="http://ipleak.net" rel="nofollow">ipleak.net</a> 这类网站对泄露的检测可以分为三类：dns 泄露，ip 泄露，webrtc 泄露。</p>
+<p>只要使用 clash 上网，ip 泄露和 webrtc 泄露检测的结果都是代理服务器的 ip ，这两个没什么问题。但是对于 dns 泄露，我总是发现检测到的服务器列表里，除了国外的服务器，竟然还有很多是国内的 dns 服务器（包括本地 isp 运营商的），而在我的 clash 中（系统代理+规则模式），dns 字段里 nameserver 设置的是 8.8.8.8 ，fallback 设置的是国外加密 dns 。这有些不对劲，因国内的 dns 服务器不应该出现。</p>
+<p>这里说明一下，clash 的 dns 字段里，nameserver 就是主要使用的 dns 服务器，default-nameserver 是用来解析 nameserver 中的加密 dns （如果有加密 dns 的话），fallback 是备用的 dns 服务器，当 clash 要发出 dns 请求时，如果 fallback-filter 没有特别设置，会并发的向 nameserver 和 fallback 中的 dns 服务器发出解析请求，使用最早响应的那个结果。</p>
+<p><img alt="mihomo 的 dns 解析流程" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OB9ER5A.png" /></p>
+<p>言归正传，为了搞清楚这背后的原理，我做了很多测试，用到了 wireshark 抓包 53 端口的 dns 请求。发现 wireshark 中，电脑是按照 clash 配置正确地，并发地向 nameserver 和 fallback 中的 dns 服务器发出了域名解析请求（ ipleak 提供的测试域名），也收到了发回的响应，所以不太可能是 clash 或者 windows 系统的问题。</p>
+<p>我推测会不会是因为 nameserver 使用了明文 dns ，导致 dns 泄露，使得 isp 运营商的 dns 服务器也向测试域名发出了解析请求。于是我把配置里 nameserver 中的 dns 服务器全部替换成加密 dns （ DOH ），果然，再次检测后就再也没有中国 dns 服务器的踪迹了。</p>
+<p>需要说明的是，当 clash 使用系统代理+全局模式时，dns 请求会被 clash 加密并全部发往代理服务器，是让代理服务器的 dns 去解析域名，所以也不会出现国内 dns 服务器的踪迹。</p>
+<h1>二、</h1>
+<p>在解决了上面的 dns 泄露问题后，我又有了新的疑惑。</p>
+<p>clash 系统代理下的规则模式打开，通过 ipleak 网站测试，我发现明明 clash 日志中这些 ipleak 的测试域名最后都是命中了我规则中最后一行的 final （ final 的作用是兜底，当前面的所有规则都没有命中时，域名最后会命中 final 规则，我设置的是命中 final 规则后使用代理服务器）.本应该是通过代理服务器去解析域名，但得到的结果和全局模式下检测到的 dns 服务器不同，而且 wireshark 中会发现 clash 在通过 nameserver 和 fallback 发送域名解析请求.</p>
+<p>因为根据那张流程图，域名命中代理规则后应该直接让代理服务器去解析域名，电脑上的 clash 是不该发出这些请求的。这是为什么呢？原因只能是这些测试域名既通过了代理服务器解析域名，又通过 clash 的 dns 去解析域名，</p>
+<p>我又折腾了一下，到处上网查阅，仔细查看那张 dns 解析流程图，我注意到了“匹配到基于 ip 的规则”这几个字，瞬间恍然大悟。原来这是因为 clash 通过从上往下的方式一条条匹配规则，直到命中规则停止。这些测试域名的确命中了 final 规则，通过代理服务器的 dns 解析了域名。</p>
+<p>但是，在此之前，由于我的配置中有基于 ip 的规则存在，位置比 final 规则更靠前，并且没有加上 no- resolve 这个参数（ no-resolve 告诉 clash 在遇到基于 ip 的规则时，不要去单独解析域名），导致在遇到这些靠前的 ip 规则时，clash 会先通过 nameserver 和 fallback 中的服务器并发请求，以查看该域名是否符合该 ip 规则，不符合则继续往下匹配规则，最后命中了 final 规则。</p>
+<p>所以这就是为什么这些 ipleak 的测试域名既会先被 clash 上的 dns 解析，还会被代理服务器上的 dns 解析。而在全局模式下，因为不需要判断规则，这些自定义测试域名只会被代理服务器解析。</p>
+<h1>三、</h1>
+<p>说了这么多，我总结出来的经验是，要想避免 dns 泄漏，一个方法是在 nameserver 中使用加密 dns ，另一个是给配置中的 ip 规则后面加上 no- resolve ，告诉 clash 直接跳过，不要去解析域名。最后是 fallback-filter 中设置 geosite 为“!CN”等，这样在遇到国外的网站域名时，clash 不会再并发请求，只会使用 fallback 的 dns 服务器而不会使用 nameserver 中的服务器。可以看出，最后两个方法的思路都是不让 clash 向 nameserver 发送国外网站的 dns 请求。我建议这三个方法同时使用。</p>
+<p>上面就是最近这段时间我自己折腾后整理出来的心得，希望能帮助知道如何处理出现的 dns 泄露。不知道文中有没有什么错误，欢迎大家反馈。另外，我到现在也不太清楚图片中的 fake-ip 未命中和 fakeip-Direct 未命中是什么意思，该如何理解，希望有大佬解释一下。</p>
+]]></content:encoded>
+<pubDate>2024-04-21T04:15:57Z</pubDate>
+<pubDate>2024-04-21T04:14:57Z</pubDate>
+</item>
+<item>
+<title>[耳机] AZ80 vs Bose QC Ultra vs AirPods Pro 2</title>
+<link>https://www.v2ex.com/t/1034323</link>
+<guid>https://www.v2ex.com/t/1034323</guid>
+<content:encoded><![CDATA[
+
+<p>接上贴 <a href="https://v2ex.com/t/1030097" rel="nofollow">https://v2ex.com/t/1030097</a> 花了一周多体验了三款耳机，简单说下体验</p>
+<h2>AZ80:</h2>
+<h3>优点:</h3>
+<ol>
+<li>跨设备切换：在两设备之间切换体验非常好，与 airpods 在苹果生态中切换体验相同，设备切换数目可以在 app 中调节</li>
+<li>蓝牙连接体验感觉比 airpods 强，不需要将耳机放在盒子里然后按盒子背键，只需带上耳机，同时按两只耳机 5s 即可连接</li>
+<li>音质：比 boseqc45 稍强，但也没有达到惊艳的程度</li>
+</ol>
+<h3>缺点</h3>
+<ol>
+<li>连接距离：较短，不如 airpods ，且与 windows 断开连接后，windows 声音不会暂停（容易社死，也有可能是 windows 的原因）</li>
+<li>提示音：无中文（只有日文、英文、法语、俄语等）</li>
+<li>佩戴舒适感一般，左耳试了所有耳塞型号仍感觉戴不稳</li>
+<li>通透模式：通透模式和关闭（什么模式都不开）有一定的听诊器效应。在户外使用通透模式对话时听诊器效应更严重（无法忍受已退）</li>
+</ol>
+<h2>Bose QC Ultra Earbuds</h2>
+<h3>优点</h3>
+<ol>
+<li>由于多了稳定鳍，佩戴起来极为稳定，舒适感强于 az80</li>
+<li>降噪比 qc 45 优秀</li>
+</ol>
+<h3>缺点</h3>
+<ol>
+<li>切换设备居然需要到 bose app 中切换，且一次只能连接一个设备，无法多设备连接（无法忍受，已退）</li>
+<li>音质感觉基本没变，与 qc 45 基本一致</li>
+</ol>
+<h3>Airpods Pro 2</h3>
+<h3>优点</h3>
+<ol>
+<li>通透模式确实属于强于其他两款</li>
+<li>个人感觉音质与 az80 差不多</li>
+<li>功能多，自适应降噪、人声感知等</li>
+</ol>
+<h3>缺点</h3>
+<ol>
+<li>还是老生常谈的不能与 windows 无缝连接，不过在 magicpods 的加持下可以忍受</li>
+<li>通透模式非常优秀，但肯定还是不如真的“通透”，出街戴时需要适应</li>
+</ol>
+<h2>总结</h2>
+<p>最终决定入手 app2 ，因为相比较而言 app2 各方面做的是最均衡的。qc ultra 是最不推荐入手的，主要是极为反人类的需要到 app 中切换设备，便利程度甚至不如有线耳机。</p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:58:37Z</pubDate>
+<pubDate>2024-04-21T03:58:37Z</pubDate>
+</item>
+<item>
+<title>[Java] 如何安全中断一个正在运行的线程？</title>
+<link>https://www.v2ex.com/t/1034322</link>
+<guid>https://www.v2ex.com/t/1034322</guid>
+<content:encoded><![CDATA[
+
+线程是操作系统进行运算调度的最小单位，所以线程是系统级别的概念。<br /><br />在 Java 中，可以使用 Thread.interrupt()方法安全中断一个正在运行的线程。<br /><br />其中 Thread.interrupt()方法用于设置线程的中断状态为"中断"。它并不会直接终止线程的执行，而是给线程一个中断信号。<br /><br />在执行线程的代码中，可以通过检查 Thread.interrupted()或 Thread.currentThread().isInterrupted()方法来判断线程是否被中断。<br /><br />如果线程被中断，应根据具体情况决定如何处理中断。可以选择抛出 InterruptedException 异常、恢复线程到一个安全的状态，或者终止线程的执行。<br /><br />如果线程处于等待状态（如 Thread.sleep()、Object.wait()、Thread.join()等），那么线程会立即从等待状态返回，并且 InterruptedException 异常会被抛出。<br /><br />使用 Thread.interrupt()方法可以安全地中断一个正在运行的线程，并通过 Thread.currentThread().isInterrupted()方法检查线程的中断状态。在处理中断时，可以选择抛出 InterruptedException 异常、恢复线程到安全状态或者终止线程的执行。
+]]></content:encoded>
+<pubDate>2024-04-21T03:50:21Z</pubDate>
+<pubDate>2024-04-21T04:15:07Z</pubDate>
+</item>
+<item>
+<title>[推广] woc.space 全球不限速大文件分享平台 MVP 正式发布，附送 25 个 1 个月 PRO 账号体验券</title>
+<link>https://www.v2ex.com/t/1034321</link>
+<guid>https://www.v2ex.com/t/1034321</guid>
+<content:encoded><![CDATA[
+
+woc.space 全球不限速大文件分享平台经过 1 个多月的打磨终于上线首个 MVP<br /><br />这里提供 25 个 1 个月 PRO 账号体验券，通过 PC 浏览器进入并登陆后，点击上方：价格按钮后即可兑换。<br />b7v9s9jv42b4<br />4k1bzeqjly61<br />a3ywf4cmz20o<br />hfijdimup1f3<br />hs8k2k51vbqc<br />5rrivporucq5<br />fhyksrqp2glw<br />qpjc7yqm9k5p<br />3gt7z18ykkod<br />qslrbgkahoto<br />hptn89fhjygs<br />omw286fbjcj5<br />zvxn6b0mks52<br />fl2nr6rs6b5h<br />wv100n3w6ac4<br />a88lt59ezem7<br />fm6wtu7cqv7u<br />6umk6psalasl<br />pl7ww5raeid7<br />odj8eq1go6q2<br />lofrsejavo98<br />agzvs3ge2fen<br />vmifge2dfkg5<br />7em8by7mnt8d<br />o2bf0q353scz
+]]></content:encoded>
+<pubDate>2024-04-21T03:44:41Z</pubDate>
+<pubDate>2024-04-21T04:18:22Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 应届生找不到工作的话有没有什么非编程类的工作能做的？有没有生活经验丰富的老哥给点建议</title>
+<link>https://www.v2ex.com/t/1034320</link>
+<guid>https://www.v2ex.com/t/1034320</guid>
+<content:encoded><![CDATA[
+
+<p><strong>快毕业了，到目前看校招是寄了。</strong></p>
+<p>我目前心态倒是还行，因为我倒不感觉自己真会饿死，毕竟学历还是在这摆着，还可以，技术也还凑合。目前所有谈到的能给岗位的工作，要不然就是工资比较低，我感觉我教育投资这么多，找个低工资的工作亏了。要不然就是工资开的高，但是明确说了我们加班很多的，说实话我是想正常过双休的。所以只能说是工资给低了不愿意去，高的又找不到这样。</p>
+<p><strong>最近突然有个想法是，能不能先找个非编程类的工作干着，比如送外卖啊，卖手抓饼啊，当服务生啊这类的。</strong></p>
+<p>因为我感觉自己有个问题是跟社会脱节比较远。比如一直是感觉自己成绩好，技术牛逼这种的，家里也有没逼我出去赚钱，我是感觉有空余时间多学习比出去打工划算的，所以就从上大学开始就一直在学校里，也没说出去接触什么社会。实际上现在感觉这套东西纯粹是自己陷入乌托邦幻想了，以为自己牛逼，你不去接触真实的群众，阶层滑落现在是很容易就发生的事情，本来也没说谁比谁高级。</p>
+<p>我现在的想法是我的学历技术在这，相对于没学历没技术的老哥们来讲肯定是有优势了，但是老哥们了解社会比我多。我想能不能找个贴近老哥们工作的真实社会的工作，多了解了解社会，总归是有好处的。就算校招里面这次找到了个体面的工作，走精英路线了，每天过体面人上人的生活，少这一层了解我感觉总归从做人角度也是缺失的，不是好事。</p>
+<p>有没有老哥给提提建议，有没有什么能临时做的工作的种类，比较好入行的，还能接触真实社会的。跑外卖或者开滴滴这两个是直接就能想到的，但是想跑滴滴的问题是没车，跑外卖的话感觉好像不怎么跟人打交道啊。</p>
+<p>工地搬砖这种我是不太行。进厂打螺丝的话，我没啥了解，不知道现在是不是说找个厂就能找到的。而且这种工作如果是准备短期做，比如做两个月或者三个月的，进厂签合同有支持这种短期合同的？</p>
+<p>卖手抓饼，咱又没有推车，没有生产资料，还得预先投资买一套，感觉不太合适</p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:44:12Z</pubDate>
+<pubDate>2024-04-21T04:21:34Z</pubDate>
+</item>
+<item>
+<title>[Surge] TV 版的 Surge 怎么换节点呢？</title>
+<link>https://www.v2ex.com/t/1034319</link>
+<guid>https://www.v2ex.com/t/1034319</guid>
+<content:encoded><![CDATA[
+
+是不是只能使用一个分组里的默认第一个节点？如果我要换节点，就要手动在 icloud 的 surge 文件里修改分组的默认第一个节点，然后等 icloud 同步到 TV 上才行？～
+]]></content:encoded>
+<pubDate>2024-04-21T03:42:51Z</pubDate>
+<pubDate>2024-04-21T04:04:29Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教一下 cloudflare zero trust 的相关问题</title>
+<link>https://www.v2ex.com/t/1034318</link>
+<guid>https://www.v2ex.com/t/1034318</guid>
+<content:encoded><![CDATA[
+
+想用 zero trust+warp 给家里 homelab 组 vpn ，但是网上一直没有找到相关的教程，网上的教程基本上全都是拿 zerotrust 当内网穿透或者科学上网用的，不知道有没有大佬有这方面的教程<br />官方文档里的概念有点多，一直没有太看明白<br />另外想请教一下几个问题：<br />1.zerotrust+warp 可以实现类似 tailscale 那样的 vpn 吗，还是得每个 app 都要单独用内网穿透暴露到公网上<br />2.zerotrust 的身份验证中的 onetime pin 是所有邮箱都能收这个验证码还是只能是组织内的邮箱，github 同理（想避免安全问题）<br />3.不知道 warp 的节点对大陆友不友好（打算用优选 ip ）
+]]></content:encoded>
+<pubDate>2024-04-21T03:19:30Z</pubDate>
+<pubDate>2024-04-21T04:20:37Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 分享个人认为是旁路由透明代理的终极方案</title>
+<link>https://www.v2ex.com/t/1034317</link>
+<guid>https://www.v2ex.com/t/1034317</guid>
+<content:encoded><![CDATA[
+
+<p><del>想来想去这玩意除了 GitHub 好像只有这里能讨论了</del></p>
+<h2>开头先叠个甲</h2>
+<p>本方案，<del>配置繁琐完全不能开箱即用</del>，适合</p>
+<ul>
+<li>有一定网络基础知识（理解透明代理，路由表，防火墙等）</li>
+<li>有网关大流量吞吐需求（例如：BT/PT 下载）</li>
+<li>对家庭网络稳定性要求高（例如：主路由为纯粹电信级设备）</li>
+<li>有任意内网终端的科学需求（例如：坐在马桶上可以接力阅读电脑网页的内容）</li>
+<li>不希望在终端设备上做特殊设置（包括切换终端设备默认网关，切换 SSID 等）</li>
+<li>有异地组网需求的用户（远程 L2TP 回家，异地打洞组网等）</li>
+</ul>
+<p>以下内容不是完全教程向，仅会在关键步骤上予以解释说明。</p>
+<p>请在充分理解方案，并考虑自己需求后再进行尝试，有问题我会尽量解答。</p>
+<h1>背景</h1>
+<p>我个人需求是，
+科学只部署在旁路由上，
+主路由只承担拨号，转发，vlan ，子网划分等纯 L2/L3 的工作，追求极致稳定。
+内网设备不用安装代理软件，切换网关等。</p>
+<p>所以，基本就只有网关透明代理一种方案可选。</p>
+<p>但现有的两种基于透明代理的网关方案</p>
+<ul>
+<li>要么是流量全部经过代理（默认网关设置为旁路）</li>
+<li>要么是指定某一台内网设备全部过代理（这台设备的默认网关写旁路由）</li>
+</ul>
+<p>前者性能差，而且面对 BT/PT 等高连接数大流量的场景表现不好，而且经过代理后，NAT 状况可能会变的复杂。<del>当然你说加钱可以解决，但是我用不起 E5 当软路由网关这个确实是我的问题。</del></p>
+<p>后者不够灵活，每次要使用的时候都需要设置，用完还得恢复，过于繁琐。<del>懒才是人类进步的第一动力</del></p>
+<p>所以，我需要一种能够<strong>按需分流至旁路由，全程无需人工介入的方案。</strong></p>
+<p>在这个方案中，主路由仍然负责大多数场景的流量处理，仅在命中某些规则的时候，按需转发流量至旁路处理。</p>
+<h1>方案</h1>
+<p>现有的代理软件尤其是 *Ray-core 系列，在规则定义上已经非常成熟好用，社区也有非常多的预定义的域名/IP 列表可以使用。</p>
+<p>但是，主路由作为电信设备，不能也不适合直接加载域名列表/进行流量嗅探之类的。</p>
+<p>这种设备唯一进行流量转发的依据就只有路由表/防火墙规则。</p>
+<p>所以，我需要将这些规则，适当翻译成电信设备能理解的路由表和防火墙规则。</p>
+<p>基于这个想法，我去年<a href="https://github.com/v2fly/v2ray-core/discussions/2686" rel="nofollow">在 v2fly 社区，提出了基于 DNS 嗅探的动态路由通告方案</a>，详细罗列了优缺点。
+有兴趣的可以去看看。</p>
+<p><del>然后因为太忙鸽了大半年</del></p>
+<p><strong>最近终于抽出时间来，按照自己的想法，手搓了一个对应的实现。</strong></p>
+<p>但在使用中也碰到一些小问题，<a href="https://github.com/XTLS/Xray-core/discussions/3284" rel="nofollow">目前分享在 xray 社区讨论</a>，里边也有一些配置的截图和基本解释。
+<del>感兴趣的可以来填坑</del></p>
+<h2>原理上主要还是三大块：</h2>
+<ul>
+<li>*Ray-core 接管 DNS 解析</li>
+<li>根据 DNS 解析结果+配置的路由决策，将路由决策结果转换为动态路由表，然后通告给主路由</li>
+<li>路由环路的预防和解决</li>
+</ul>
+<h2>实现步骤为</h2>
+<ul>
+<li>将主路由的 DNS 指向旁路由</li>
+<li>旁路由上的*Ray-core 接管内网 DNS 解析，并按照国内外域名做 DNS 分流请求： <a href="https://github.com/Loyalsoldier/v2ray-rules-dat/" rel="nofollow">Loyalsoldier/v2ray-rules-dat</a></li>
+<li>根据域名和 DNS 解析结果，预先查询一次自身的路由规则（同样可以应用上面的规则集）</li>
+<li>如果该域名命中代理规则，则将对应的 IP 段通告给主路由，让主路由将对应流量转发过来</li>
+<li>如果不命中，则不做任何操作，返回 DNS 解析结果，对应流量仍由主路由处理</li>
+</ul>
+<h2>这一套组合拳下来</h2>
+<ul>
+<li><strong>解决了 DNS 污染问题</strong>：GFW 污染，以及同类型方案 FakeDNS 造成的污染</li>
+<li><strong>避免网关性能问题</strong>：流量按需转发，麻麻再也不怕我的旁路冒烟了</li>
+<li>避免全局透明代理可能的 NAT 问题</li>
+<li><strong>内网设备完全无感</strong>：无需 SSID 切换也无需划 vlan 换网关等操作</li>
+<li><strong>网络稳定性问题</strong>：不用担心科学爆炸导致断网</li>
+<li><strong>自动容灾</strong>：如果旁路 GG ，OSPF 探活会自动清理对应路由，实际只有 DNS 会受到影响，但并不致命</li>
+</ul>
+<h1>设备需求</h1>
+<h2>主路由</h2>
+<ul>
+<li>支持动态路由协议 OSPFv2 ，</li>
+<li>支持策略路由（用于防止路由环路）</li>
+</ul>
+<p><del>推荐使用 ROS</del></p>
+<h2>旁路由</h2>
+<ul>
+<li>可以运行 v2ray/xray 的 linux 机器，有一个网口即可</li>
+</ul>
+<p>我个人使用运行在 AIO 里的 Debian 12 </p>
+<p><del>最后，拿一根网线把主路由和旁路由连接起来</del></p>
+<p>理论上，如果你旁路由是跑在主路由里的虚拟机也没问题，但是你都主路由上软路由了，搞这个没意义的。</p>
+<h1>关键步骤</h1>
+<ol>
+<li><strong>旁路由</strong> 配置 TPROXY 方式的*Ray-core 透明代理，接管 53 UDP 的 DNS 查询，接受 TCP/UDP 协议传入，linux 内核开启 ip 转发（开 ipv4 即可）</li>
+<li><strong>旁路由</strong> *Ray-core 配置国内网站的 DNS 分流，建议使用 ISP DNS + 腾讯 DNS Backup 的形式（<a href="https://github.com/v2fly/v2ray-core/issues/2981" rel="nofollow">这块 v2ray 有 bug 记得不要跟我一样再踩一遍</a>），默认兜底 DNS 依据你个人喜欢，配 CF 或者谷歌都可以</li>
+<li><strong>旁路由</strong> 配置*Ray-core 的路由分流规则，建议用 GFW 黑名单规则。</li>
+<li><strong>旁路由</strong> nftable 配置 srcnat ，即所有转发 IP 报文要 masquerade<strong>（重要）</strong></li>
+<li><strong>主路由</strong> 开启 OSPFv2 动态路由协议：类型 broadcast ，area=0 ，HelloInterval=10s ，DeadInterval=40s ，RouterId 填主路由自己内网 IP 。</li>
+<li><strong>观察旁路由</strong> 的*Ray-core 是否已经完成路由协议握手，即日志有没有 neighbor state Full 的字样，同时主路由上应该也能看到旁路由的邻接状态。</li>
+<li><strong>主路由</strong> 将 DNS 服务器指向旁路由的 IP ，此时 DNS 请求应该全部由旁路的*Ray-core 进行处理。</li>
+<li><strong>主路由</strong> 设置策略路由：来源为旁路由 IP 的报文直接经由 WAN 口发出<strong>（用于配合配置 4 避免路由环路，以及直接发出透明代理不处理的流量，毕竟透明代理只处理 TCP/UDP 数据）</strong></li>
+<li>如果有访问旁路的需求，则在相同策略路由表里，再添加一条到内网地址区间的静态路由即可。</li>
+</ol>
+<p><del>这里贴不了图</del>，部分步骤的图示及配置可以参考<a href="https://github.com/XTLS/Xray-core/discussions/3284" rel="nofollow">xray 社区的 discussion</a></p>
+<p><strong>可用代码目前在我 fork 的 v2ray 分支上。可以自行构建。</strong></p>
+<h1>FAQ</h1>
+<p><strong>Q：主路由表不会爆炸吗</strong></p>
+<p>A：目前会以 DNS 解析结果的/24 掩码进行 OSPF 路由通告，且 2 小时内不访问的网段会自动清理。日常大概 200-300 条路由的样子。</p>
+<p><strong>Q：OSPF 收敛速度怎么样</strong></p>
+<p>A：啪的一下，很快啊。首次访问的情况下如果运气不好被 RST 了，立即刷新一下就能加载出来。</p>
+<p><strong>Q：eBPF DAE/paopaoGateway/mosdns 了解一下？</strong></p>
+<p>A：<del>别骂了别骂了，我要是买的起性能那么好的软路由做网关折腾这个干啥。</del></p>
+<p>开个玩笑，DAE 是内核态加速，本质流量还是要从透明代理过。ppGW 基于 FakeDNS ，我接受不了污染问题。mosdns 仍然需要配合多个软件使用，我的哲学还是 simple is better <del>大道智减</del>，所以最终魔改了一个仅需要*Ray-core 就可以的方案。</p>
+<p>而且我也有 L2TP 回家，vlan 划分，子网转发/ACL ，远程异地网等一堆传统电信设备强项的需求。传统的硬件路由设备稳定性都还是要好不少的。<del>呜呜我开机 600 多天的 ROS 上周被我不小心重启了</del></p>
+<p><strong>Q：碰到 IP 直连，DoH/DoT 的应用怎么办</strong></p>
+<p>A：<del>你怎么知道我被 telegram 的回旋镖打了。</del></p>
+<p>提供 persistentRoute 配置，支持 geoip 或者手写静态路由，由*Ray-core 固定通告给主路由即可。</p>
+<p>这种 case 还是比较少，完全可以挨个打地鼠解决，会视情况考虑 persistentDomain 之类的配置。</p>
+<h1>One more thing</h1>
+<p>除开 ROS 本身具有的 GRE/L2TP IPSec 这些组网工具外，XRay-core 透明代理玩的比较花的应该已经意识到了，通过透明代理这一桥梁，还可以将任意运行 XRay-core 的远程网络纳入自己的局域网（尤其是自己有公网地址的话），实现两侧网络的 L3 级别互通，再搭配 DNS 分流机制，具体用途就不细说了，一个字，香！</p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:18:05Z</pubDate>
+<pubDate>2024-04-20T03:18:05Z</pubDate>
+</item>
+<item>
+<title>[问与答] 咸鱼商家为啥发货地址在 A，但是显示 ip 在 B？</title>
+<link>https://www.v2ex.com/t/1034316</link>
+<guid>https://www.v2ex.com/t/1034316</guid>
+<content:encoded><![CDATA[
+
+<p>比如我在 B 城市，搜索 B 城市的二手商品。一聊，几乎都是外地比如 A 城市/省份。
+这里有啥猫腻吗？</p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:18:00Z</pubDate>
+<pubDate>2024-04-21T04:11:17Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 基于 Rust + Skia 的 2D 图形 Vue 渲染库 - vue-skia 版本更新啦 🎉 (0.0.9)</title>
+<link>https://www.v2ex.com/t/1034315</link>
+<guid>https://www.v2ex.com/t/1034315</guid>
+<content:encoded><![CDATA[
+
+<p>在 <code>&lt;v-image&gt;</code> 新支持 <code>:blur</code> <code>:grayscale</code> <code>:brighten</code> <code>:invert</code> 等滤镜相关属性</p>
+<p><img alt="blur" class="embedded_image" rel="noreferrer" src="https://github.com/rustq/vue-skia/assets/11075892/14321847-664b-461a-a568-63db80490bae" /></p>
+<p>Live Demo: <a href="https://vue-skia.netlify.app" rel="nofollow">https://vue-skia.netlify.app</a></p>
+<p>Repo: <a href="https://github.com/rustq/vue-skia" rel="nofollow">https://github.com/rustq/vue-skia</a></p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:15:28Z</pubDate>
+<pubDate>2024-04-21T03:23:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 真诚请教， U 换成 Wise，再转回 RMB，是否有风险？</title>
+<link>https://www.v2ex.com/t/1034314</link>
+<guid>https://www.v2ex.com/t/1034314</guid>
+<content:encoded><![CDATA[
+
+<p>目前发现 U 可以用比较大的汇率换成 Wise ，Wise 再换成 RMB 损失也不大，这样就会有额外的收益。
+虽然知道天山不会掉馅饼，但因为收益超过 50%，并且平时都是几千块的额度，就有试试的打算。
+但我从谷歌上没找到更多有效的信息，尚不确定这样操作是不是会被卷进洗钱的漩涡里。
+真诚请教～</p>
+]]></content:encoded>
+<pubDate>2024-04-21T03:01:49Z</pubDate>
+<pubDate>2024-04-21T04:16:45Z</pubDate>
+</item>
+<item>
+<title>[软件] 最喜欢 obsidian 的这几个功能 2</title>
+<link>https://www.v2ex.com/t/1034313</link>
+<guid>https://www.v2ex.com/t/1034313</guid>
+<content:encoded><![CDATA[
+
+<p>承接上周，上一篇分析了一些其他笔记软件的功能和不足以及发现 obsidian 的契机，这期重点说一下几个功能
+。</p>
+<h1>双链</h1>
+<p>双链是最近几年比较火的概念。双链全称是双向链接。</p>
+<p>正常我们在网页上可以看到一些链接可以点进去，例如百度百科里的周杰伦介绍，</p>
+<p>这个页面上现在有个淡江中学，这是一个链接，我们可以点进去，</p>
+<p>可以看到这样的效果，是关于淡江中学的介绍，看上去很完美对不对，我们把周杰伦当做一个笔记，淡江中学当做一个笔记，如果我们想知道哪些笔记里引用了这个淡江中学，传统的单链的笔记就很难做到了</p>
+<p>双链笔记的好处是，它可以链接回来，这样两个页面可以直接关联起来。</p>
+<p>我们针对淡江中学的笔记，会看到具体有哪些笔记会引用到这个，自然也就帮助我们归类了，原来胡德夫和周杰伦是校友，对于其他的科目知识也一样，无形中帮助我们对知识进行了归纳和整理</p>
+<p>这里不得不提起卡片笔记法了，以前我们笔记的结构就是文件夹-文件夹 1-文件夹 2 ，这样层层嵌套的树状的结构，层次很清楚，但是也限制了范围，归类也会有问题，当你有一个厨房美食的文件夹，有一个植物的文件夹，而你新建一个胡萝卜的笔记时， 该放在哪个文件夹下呢？而卡片笔记法的通过双链这种，不需要归纳，也不需要特定的文件夹，直接通过连接的形式自动连接每篇笔记，你所要做的仅仅是加上双中括号。</p>
+<h1>关系图谱</h1>
+<p>关系图谱可谓是 obsidian 的特色功能，这个一直是它宣传的重点以及亮点，obsidian 宣传说是把它打造成人的第二大脑。我以前很喜欢看《中国诗词大会》，里面有个环节是飞花令，经常出的题目是说出一联含春的诗词，然后选手就会轮流说出，最后谁说不出来就算失败。按照这个思路，我做了一个关于古诗词的关系图谱，在每一篇笔记里摘录下古诗词，将诗词中我觉得可以作为链接或者有意向的词语都作为双链标记，最后就形成了这样的效果。</p>
+<p>当我找酒的时候，就会把关联酒的诗词都连接在一起，当我想看白居易有哪些诗的时候，只要看一下这个关系图谱，就能很快找到关联。而且这个笔记你做的越多，这个图谱的信息量就会越大，当积累到一定量的时候，我觉得它是完全可以当做第二大脑来用的。</p>
+<h1>dataview</h1>
+<p>dataview 是一种 js 语法，它的功能非常的强大，我目前用它主要做一些统计的功能。</p>
+<p>针对看过的电影，做了一个电影记录墙，这个看过的电影都会展示在这里，这里会展示电影的名称，看过的时间，上映的时间，导演，豆瓣评分等等，还可以根据自己想要的顺序排序，我这里是根据豆瓣评分从高到低排序的。</p>
+<p>第二个是根据论坛里大神提供的脚本，我稍微修改了一下样式，做了一个可视化的进度条，通过加减按钮可以动态的记录下自己完成某件事的一个目标，每天进步一点点。</p>
+<h1>丰富的插件</h1>
+<p>虽然 obsidian 这个软件是闭源的，但是网上有各种大神为它写了丰富的第三方插件，而且官方的中文论坛十分活跃，有什么想法或者 bug 都可以反馈到论坛里，这让我觉得十分安心。</p>
+<p>dataview 在上面说过了，其他目前用到的第三方的插件有这些：</p>
+<h2>File Explorer Note Count Settings</h2>
+<p>这个插件主要是统计每个文件夹有多少笔记，我的文字记录是这样的效果</p>
+<h2>Recent Files List</h2>
+<p>顾名思义，这是可以看到最近打开的文件，如果你想看一下最近有哪些改动，或者是做了写了哪些笔记，那么这个插件将十分有用。</p>
+<h2>Remember cursor position</h2>
+<p>记住编辑位置，当你有一篇很长的笔记时，如果关掉再打开，那么你需要一直拖动滚动条，直到找到你上次编辑的位置，十分不方便，有了这个插件，它可以在你打开笔记的时候，迅速定位到你上次编辑的位置，继续你的笔记。</p>
+<h2>Vault Statistics</h2>
+<p>我理解的 vault 就是单独的一个笔记本，这个插件会统计这个 vault 里总共有多少篇笔记，多少个附件，多少个文件，当你打开具体某一个笔记时，它还会统计当前笔记的文字数量，字符数量。</p>
+<p>主要用的插件就是这些，我个人认为插件在精而不是在多，之前看到有人安装了几百个插件，不但很少用到，而且还会拖慢打开软件的速度。</p>
+<h1>不足</h1>
+<p>obsisian 原始的功能比较单一，很多功能要配合插件完成，而插件需要一定的技术手段才能获取，这对于小白来说实在是件难事。</p>
+]]></content:encoded>
+<pubDate>2024-04-21T02:52:01Z</pubDate>
+<pubDate>2024-04-21T04:21:48Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 淦！完全免费的 AI Icon Generator，船新的版本，全面支持透明背景，快来玩呀~</title>
+<link>https://www.v2ex.com/t/1034312</link>
+<guid>https://www.v2ex.com/t/1034312</guid>
+<content:encoded><![CDATA[
+
+<h1>支持生成 4 种风格透明图标</h1>
+<h2><a href="https://ai-icon.top/" rel="nofollow">AI Icon Generator</a></h2>
+<h3>风格 1</h3>
+<p><img alt="炫彩" class="embedded_image" rel="noreferrer" src="https://picsbed.top/file/SGZ6vJJGXt4%2FpHwsLcbJ43vJYsf4OCn4s0J2kMc82PU%3D" /></p>
+<h3>风格 2</h3>
+<p><img alt="写实" class="embedded_image" rel="noreferrer" src="https://picsbed.top/file/8UjjeTSNB7890gzoAZyJgxLsWbh%2FxpyXCmgsZ7EiLr0%3D" /></p>
+<h3>风格 3</h3>
+<p><img alt="卡通贴纸" class="embedded_image" rel="noreferrer" src="https://picsbed.top/file/TDGeKlaiI0vtkUuZSvxEk0DZ6MA%2BM5ypkSdyhDUeo%2Bc%3D" /></p>
+<h3>风格 4</h3>
+<p><img alt="扁平风格" class="embedded_image" rel="noreferrer" src="https://picsbed.top/file/8lAbEVFT%2BvrlMW4LWWw8M1tEjnYHB16dNBpb1Kihmoo%3D" /></p>
+<h5>界面有 google 广告，请别介意😅</h5>
+]]></content:encoded>
+<pubDate>2024-04-21T02:48:21Z</pubDate>
+<pubDate>2024-04-20T22:45:21Z</pubDate>
+</item>
+<item>
+<title>[问与答] AlibabaCloud/Opencloud/centos8/Ubuntu/Debian 各自有什么优势</title>
+<link>https://www.v2ex.com/t/1034311</link>
+<guid>https://www.v2ex.com/t/1034311</guid>
+<content:encoded><![CDATA[
+
+新手想避避坑，问 Ai 就是说各有优势，有没有实际有使用体会的兄弟指点一下的，感谢
+]]></content:encoded>
+<pubDate>2024-04-21T02:34:01Z</pubDate>
+<pubDate>2024-04-21T03:14:54Z</pubDate>
+</item>
+
+<item>
 <title>[Notes] 求一个触摸屏编辑友好的笔记软件</title>
 <link>https://www.v2ex.com/t/1034309</link>
 <guid>https://www.v2ex.com/t/1034309</guid>
 <content:encoded><![CDATA[
-
 <p>手机平板用起来方便，主要编辑一些粘贴过来的链接和文章，插入链接如果能自动转化成 markdown 模式最好，隐藏掉 url 。另外希望同步方便，最后还是要到电脑上整理。</p>
 ]]></content:encoded>
-<pubDate>2024-04-21T02:18:58Z</pubDate>
 <pubDate>2024-04-21T02:18:58Z</pubDate>
 </item>
 <item>
@@ -20,11 +390,9 @@
 <link>https://www.v2ex.com/t/1034307</link>
 <guid>https://www.v2ex.com/t/1034307</guid>
 <content:encoded><![CDATA[
-
 <p>如题,我有一个个人网页,其中包含一段文字,和一张名为 abc.jpg 的图片.
 如何只复制一次,就能把这个图片和文字,都粘贴到我的微信聊天窗口呢?</p>
 ]]></content:encoded>
-<pubDate>2024-04-21T01:41:44Z</pubDate>
 <pubDate>2024-04-20T21:39:44Z</pubDate>
 </item>
 <item>
@@ -32,13 +400,10 @@
 <link>https://www.v2ex.com/t/1034306</link>
 <guid>https://www.v2ex.com/t/1034306</guid>
 <content:encoded><![CDATA[
-
 <p>2 代手写笔被饿死了，根本充不了电，过保也不知道去哪里维修，求一款价格比较划算的平替 可以手写记笔记就可以。</p>
 ]]></content:encoded>
-<pubDate>2024-04-21T01:24:47Z</pubDate>
 <pubDate>2024-04-20T22:22:47Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] cdn 问题想请教：知道一个 cdn 的地址，但是不知道具体的文件路径，要怎样能把 cdn 里面的文件全部爬下来</title>
 <link>https://www.v2ex.com/t/1034305</link>
@@ -14656,49 +15021,6 @@ ip6tables -I zone_lan_input -p udp --sport 546 --dport 547 -j ACCEPT<br /><br />
 <p>120/位<br />需要的联系</p>
 ]]></content:encoded>
 <pubDate>2024-04-16T18:48:51Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 我想转行去煤矿下井不知道怎样呢？</title>
-<link>https://www.v2ex.com/t/1033107</link>
-<guid>https://www.v2ex.com/t/1033107</guid>
-<content:encoded><![CDATA[
-<p>软件测试很久没去投简历找工作了，在北京我爸想让我回山西，那边工作离家近，也可以攒下钱，让我报名回去，一个五线城市可以有八千多收入吧，我不知道怎样好</p>
-]]></content:encoded>
-<pubDate>2024-04-16T19:21:13Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 有没有月薪 1000 的工作？</title>
-<link>https://www.v2ex.com/t/1033106</link>
-<guid>https://www.v2ex.com/t/1033106</guid>
-<content:encoded><![CDATA[
-一月工作五天以内。
-]]></content:encoded>
-<pubDate>2024-04-16T14:33:04Z</pubDate>
-</item>
-<item>
-<title>[iPhone] 求解惑！最近在 ios 上发现一个 jpg 图片特有的问题</title>
-<link>https://www.v2ex.com/t/1033105</link>
-<guid>https://www.v2ex.com/t/1033105</guid>
-<content:encoded><![CDATA[
-<p>设备信息：15 pro, ios 17.4.1</p>
-<p>背景：最近在 Immich app 中下载 nas 中图片的时候，发现只要是 jpg 格式的图片在下载完后，server 端会出现两个看上去一样的图，比对后发现是图片的二进制数据大小不一致，导致 hash 不一样，从而被服务端判断为两张图片了。试了下 PNG 、HEIC 格式都没有这个问题。</p>
-<p>排查：上传、下载了多组 JPG 图后发现，从手机下载的图总是会比原本上传的图要大，并且这个问题不止局限在 Immich ，例如我从浏览器打开下面这个 693 个字节大小的图片<br />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://img.chkaja.com/54a5a6595e69f103.jpg" /></p>
-<p>做以下三种操作对应的表现：   </p>
-<ol>
-<li>直接保存到「文件」，保存下来的图就是 693 个 byte</li>
-<li>直接保存到「相册」中，「相册」中图有 3kb   </li>
-<li>从「文件」中点击分享按钮，选择存储图像，「相册」中的图有 17kb （这个大小和通过 immich 保存下来的大小一致）</li>
-</ol>
-<p>初步怀疑是「相册」这个 app 在系统层的图片写入有一些 jpg 图片的重编码逻辑，然后 immich 存图的逻辑与上面第 3 点一致，导致的这个问题</p>
-<p>求助：   </p>
-<ol>
-<li>这个问题在各位手机上是否能够复现</li>
-<li>如果是已有问题，有无 ios 客户端大佬从技术层面解释一下</li>
-</ol>
-<p>因为问题起于 Immich ，本人非常喜欢的一个图片管理工具，也提了<a href="https://github.com/immich-app/immich/issues/8815" rel="nofollow">issue</a>，奈何英语水平有限沟通效率比较低，希望在这能找到一些线索，进而能够让官方解决掉这个 bug</p>
-]]></content:encoded>
-<pubDate>2024-04-16T17:31:20Z</pubDate>
 </item>
 </channel>
 </rss>
