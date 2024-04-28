@@ -5,11 +5,310 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[VPS] 两台新安装系统的 VPS，一模一样的安装 WG 的方法，怎么一台正常一台无法用呢？</title>
+<link>https://www.v2ex.com/t/1036261</link>
+<guid>https://www.v2ex.com/t/1036261</guid>
+<content:encoded><![CDATA[
+
+系统情况：<br />系统是 ubuntu 22 ，新安装的系统。Docker 安装 wg-easy.<br /><br />有问题的那一台尝试重装了很多次，两台 VPS 的网络不通，一台是美西 GIA ，一台是 HK GIA<br />HK GIA 的有问题，怀疑是 MTU 的问题，多次尝试修改无效。<br /><br />尝试过修改端口，无效。<br /><br />服务器没有开 ufw ，ip route get 路由正确。<br /><br /><br /><br />安装脚本：<br />version: "3.3"<br />services:<br />  wg-easy:<br />    container_name: wg-easy<br />    environment:<br />      - WG_HOST=<a href="http://xxx.xxx.one" rel="nofollow noopener" target="_blank">xxx.xxx.one</a><br />      - PASSWORD=pwdtest<br />      - WG_MTU=1420<br />      - WG_PERSISTENT_KEEPALIVE=25<br />      - WG_DEFAULT_ADDRESS=192.168.18.x<br />      - WG_DEFAULT_DNS=8.8.8.8,1.1.1.1<br />      - WG_ALLOWED_IPS=0.0.0.0/0,::/0<br />    volumes:<br />      - /root/docker_data/wg-easy:/etc/wireguard<br />    ports:<br />      - 41820:51820/udp<br />      - 41821:51821/tcp<br />    cap_add:<br />      - NET_ADMIN<br />      - SYS_MODULE<br />    sysctls:<br />      - net.ipv4.conf.all.src_valid_mark=1<br />      - net.ipv4.ip_forward=1<br />    restart: always<br />    image: <a href="http://ghcr.io/wg-easy/wg-easy" rel="nofollow noopener" target="_blank">ghcr.io/wg-easy/wg-easy</a><br />networks: {}<br /><br />日志： <br /><br />2024-04-28 09:10:03.139 [APP] startActivation: Entering (tunnel: DMIT-299-1_TMBP)<br />2024-04-28 09:10:03.141 [APP] startActivation: Starting tunnel<br />2024-04-28 09:10:03.141 [APP] startActivation: Success<br />2024-04-28 09:10:03.147 [APP] Tunnel 'DMIT-299-1_TMBP' connection status changed to 'connecting'<br />2024-04-28 09:10:03.272 [NET] App version: 1.0.16 (27)<br />2024-04-28 09:10:03.272 [NET] Starting tunnel from the app<br />2024-04-28 09:10:03.891 [NET] DNS64: mapped 103.135.x.x (服务器 IP) to itself.<br />2024-04-28 09:10:03.891 [NET] Attaching to interface<br />2024-04-28 09:10:03.892 [NET] UAPI: Updating private key<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 4 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 2 - started<br />2024-04-28 09:10:03.892 [NET] UAPI: Removing all peers<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 2 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 1 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 1 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 3 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 2 - started<br />2024-04-28 09:10:03.892 [NET] Routine: event worker - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 7 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 5 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 4 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 1 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 3 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 4 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 6 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 3 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 7 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 7 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 6 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 6 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 8 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 8 - started<br />2024-04-28 09:10:03.892 [NET] Routine: decryption worker 5 - started<br />2024-04-28 09:10:03.892 [NET] Routine: handshake worker 5 - started<br />2024-04-28 09:10:03.892 [NET] Routine: encryption worker 8 - started<br />2024-04-28 09:10:03.892 [NET] Routine: TUN reader - started<br />2024-04-28 09:10:03.893 [NET] peer(aUHP…zrhw) - UAPI: Created<br />2024-04-28 09:10:03.893 [NET] peer(aUHP…zrhw) - UAPI: Updating preshared key<br />2024-04-28 09:10:03.893 [NET] peer(aUHP…zrhw) - UAPI: Updating endpoint<br />2024-04-28 09:10:03.893 [NET] peer(aUHP…zrhw) - UAPI: Updating persistent keepalive interval<br />2024-04-28 09:10:03.893 [NET] peer(aUHP…zrhw) - UAPI: Removing all allowedips<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - UAPI: Adding allowedip<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - UAPI: Adding allowedip<br />2024-04-28 09:10:03.894 [NET] UDP bind has been updated<br />2024-04-28 09:10:03.894 [NET] Routine: receive incoming v4 - started<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - Starting<br />2024-04-28 09:10:03.894 [NET] Routine: receive incoming v6 - started<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - Routine: sequential sender - started<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - Sending keepalive packet<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - Routine: sequential receiver - started<br />2024-04-28 09:10:03.894 [NET] peer(aUHP…zrhw) - Sending handshake initiation<br />2024-04-28 09:10:03.895 [NET] Interface state was Down, requested Up, now Up<br />2024-04-28 09:10:03.895 [NET] Device started<br />2024-04-28 09:10:03.895 [NET] Tunnel interface is utun3<br />2024-04-28 09:10:03.895 [NET] Network change detected with satisfied route and interface order [en0]<br />2024-04-28 09:10:03.895 [NET] Routine: receive incoming v4 - stopped<br />2024-04-28 09:10:03.896 [NET] Routine: receive incoming v6 - stopped<br />2024-04-28 09:10:03.896 [NET] UDP bind has been updated<br />2024-04-28 09:10:03.896 [NET] Routine: receive incoming v6 - started<br />2024-04-28 09:10:03.896 [NET] Routine: receive incoming v4 - started<br />2024-04-28 09:10:03.896 [APP] Tunnel 'DMIT-299-1_TMBP' connection status changed to 'connected'<br />2024-04-28 09:10:03.937 [NET] peer(aUHP…zrhw) - Received handshake response<br />2024-04-28 09:10:03.997 [NET] Network change detected with satisfied route and interface order [en0, utun3]<br />2024-04-28 09:10:03.998 [NET] Routine: receive incoming v4 - stopped<br />2024-04-28 09:10:03.999 [NET] Routine: receive incoming v6 - stopped<br />2024-04-28 09:10:03.999 [NET] UDP bind has been updated<br />2024-04-28 09:10:03.999 [NET] peer(aUHP…zrhw) - Sending keepalive packet<br />2024-04-28 09:10:04.000 [NET] Routine: receive incoming v4 - started<br />2024-04-28 09:10:04.000 [NET] Routine: receive incoming v6 - started<br />2024-04-28 09:10:08.142 [APP] Status update notification timeout for tunnel 'DMIT-299-1_TMBP'. Tunnel status is now 'connected'.<br />2024-04-28 09:10:19.918 [NET] peer(aUHP…zrhw) - Received handshake initiation			——— 问题出现 ——— <br />2024-04-28 09:10:19.918 [NET] peer(aUHP…zrhw) - Sending handshake response<br />2024-04-28 09:10:25.008 [NET] peer(aUHP…zrhw) - Received handshake initiation<br />2024-04-28 09:10:25.008 [NET] peer(aUHP…zrhw) - Sending handshake response<br />2024-04-28 09:10:30.382 [NET] peer(aUHP…zrhw) - Received handshake initiation<br />2024-04-28 09:10:30.382 [NET] peer(aUHP…zrhw) - Sending handshake response<br />2024-04-28 09:10:35.523 [NET] peer(aUHP…zrhw) - Received handshake initiation<br />2024-04-28 09:10:35.523 [NET] peer(aUHP…zrhw) - Sending handshake response<br />2024-04-28 09:10:40.643 [NET] peer(aUHP…zrhw) - Received handshake initiation<br />2024-04-28 09:10:40.643 [NET] peer(aUHP…zrhw) - Sending handshake response<br />2024-04-28 09:10:44.460 [APP] startDeactivation: Tunnel: DMIT-299-1_TMBP			——  手动停止 WG ———— <br />2024-04-28 09:10:44.467 [APP] Tunnel 'DMIT-299-1_TMBP' connection status changed to 'disconnecting'<br />2024-04-28 09:10:44.611 [NET] Network change detected with satisfied route and interface order [en0]<br />2024-04-28 09:10:44.613 [NET] Routine: receive incoming v4 - stopped<br />2024-04-28 09:10:44.613 [NET] Routine: receive incoming v6 - stopped<br />2024-04-28 09:10:44.613 [NET] UDP bind has been updated<br />2024-04-28 09:10:44.618 [NET] Routine: receive incoming v4 - started<br />2024-04-28 09:10:44.618 [NET] peer(aUHP…zrhw) - Sending keepalive packet<br />2024-04-28 09:10:44.620 [NET] Routine: receive incoming v6 - started<br />2024-04-28 09:10:44.846 [NET] Stopping tunnel<br />2024-04-28 09:10:44.846 [NET] Device closing<br />2024-04-28 09:10:44.846 [NET] Routine: TUN reader - stopped<br />2024-04-28 09:10:44.846 [NET] Routine: event worker - stopped<br />2024-04-28 09:10:44.846 [NET] Routine: receive incoming v4 - stopped<br />2024-04-28 09:10:44.846 [NET] Routine: receive incoming v6 - stopped<br />2024-04-28 09:10:44.846 [NET] peer(aUHP…zrhw) - Stopping<br />2024-04-28 09:10:44.846 [NET] peer(aUHP…zrhw) - Routine: sequential sender - stopped<br />2024-04-28 09:10:44.846 [NET] peer(aUHP…zrhw) - Routine: sequential receiver - stopped<br />2024-04-28 09:10:44.847 [NET] Device closed<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 7 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 4 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 8 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 2 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 3 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 8 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 1 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 3 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 4 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 6 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 5 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 6 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 1 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 2 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: decryption worker 5 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: handshake worker 7 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 6 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 8 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 1 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 7 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 4 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 3 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 5 - stopped<br />2024-04-28 09:10:44.847 [NET] Routine: encryption worker 2 - stopped<br />2024-04-28 09:10:44.853 [APP] Tunnel 'DMIT-299-1_TMBP' connection status changed to 'disconnected'
+]]></content:encoded>
+<pubDate>2024-04-28T01:20:11Z</pubDate>
+<pubDate>2024-04-28T01:17:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] 新手请教一个关于签合同接项目的问题</title>
+<link>https://www.v2ex.com/t/1036260</link>
+<guid>https://www.v2ex.com/t/1036260</guid>
+<content:encoded><![CDATA[
+
+<p>遇到一个问题大伙们帮忙分析一下，我名下的公司最近谈了第一笔活，对一个小程序进行二次开发，我司负责前后端的前端、设计图部分的开发和设计。项目甲方，服务端接口乙方，我是前端开发设计乙方。甲方与乙方签合同，我与乙方签署开发合同，现在甲方的开发需求都谈好了，但是到最后了，我问乙方现有的项目开发框架用的是什么，乙方就是不说非要求先签合同，虽然我与乙的合同是我写的，但是我感觉这个事情好诡异感觉有坑。
+向 V 们请教一下这个合同还要不要签，我是觉得哪有找人干活不说要干什么的， 还是二次开发项目。</p>
+]]></content:encoded>
+<pubDate>2024-04-28T01:19:35Z</pubDate>
+<pubDate>2024-04-28T01:17:35Z</pubDate>
+</item>
+<item>
+<title>[生活] 办手机卡这么坑的么？</title>
+<link>https://www.v2ex.com/t/1036259</link>
+<guid>https://www.v2ex.com/t/1036259</guid>
+<content:encoded><![CDATA[
+
+<h1>概述</h1>
+<p>年初，因为一些原因需要办理一张自己身份的手机卡（一直用的是副卡来着），随便选择了移动电话卡，结果现在最低套餐都是 59 的档，没办法须要也只能办。</p>
+<p>最近，因为不需要了，想起给手机卡销户，结果居然告知无法销户，电话打过来说有套餐到 2026 年，如果想销户需要先付违约金，真的无语，非说办理套餐的时候告知，这种情况有没有兄弟遇到过，怎么才能销掉，这辈子不想碰移动。</p>
+]]></content:encoded>
+<pubDate>2024-04-28T01:19:24Z</pubDate>
+<pubDate>2024-04-28T01:17:24Z</pubDate>
+</item>
+<item>
+<title>[微信] 为什么总是接通语音消息后手机还在震动响铃</title>
+<link>https://www.v2ex.com/t/1036258</link>
+<guid>https://www.v2ex.com/t/1036258</guid>
+<content:encoded><![CDATA[
+
+<p>大佬们，为什么我的 iphone14 pro 微信经常来语音通话，接通后手机还在震动响铃，并且听不到对方说话，实际对方已经接通了，所以只能经常改成打电话...</p>
+]]></content:encoded>
+<pubDate>2024-04-28T01:17:29Z</pubDate>
+<pubDate>2024-04-28T01:17:29Z</pubDate>
+</item>
+<item>
+<title>[上海] 群租房有朋友举报过吗</title>
+<link>https://www.v2ex.com/t/1036257</link>
+<guid>https://www.v2ex.com/t/1036257</guid>
+<content:encoded><![CDATA[
+
+<p>刚换房子，之前住的是群租房，群组房租房签合同时且合同上没有写和退租时不说明一些情况，导致退租人走了，房管去查看房子，说房间卫生不合格要扣保洁费用啥的。
+当时租房时是另一个人（说自己是房管）说入住前和入住后送一次保洁，所以退租时卫生我就没怎么打扫，结果退房的方管说谁告诉我送的找谁去，他说告诉我送保洁的那人是中介，然后我找我租房时那个人，他说这个房东就爱搞这种事情，扯不清。我给房东和这个房管说保洁的事合同上没写且也没事前告知，结果两人都不回应我这个问题，奈何押金在人家手里，只能认栽让退了扣后的费用，虽说只扣了一百保洁费用，但是搞心态，越想越气，想投诉群租房情况（原始应该是三室的房型，改的里面住六户），有上海的朋友投诉过群租房情况吗？</p>
+]]></content:encoded>
+<pubDate>2024-04-28T01:16:37Z</pubDate>
+<pubDate>2024-04-28T01:20:12Z</pubDate>
+</item>
+<item>
+<title>[分享发现] instagram 推广广告正在推荐游戏黑悟空邀请封测钓鱼网站</title>
+<link>https://www.v2ex.com/t/1036255</link>
+<guid>https://www.v2ex.com/t/1036255</guid>
+<content:encoded><![CDATA[
+
+钓鱼网站域名 https://geforce#events/accessblackmyth/<br />内嵌 steam 官方解除密保页面<br /><br />[Imgur]( <a href="https://imgur.com/7Hd6gMw" rel="nofollow noopener" target="_blank">https://imgur.com/7Hd6gMw</a>)<br /><br />[Imgur]( <a href="https://imgur.com/7qZr2Mr" rel="nofollow noopener" target="_blank">https://imgur.com/7qZr2Mr</a>)<br /><br />[Imgur]( <a href="https://imgur.com/aJrP329" rel="nofollow noopener" target="_blank">https://imgur.com/aJrP329</a>)
+]]></content:encoded>
+<pubDate>2024-04-28T01:06:44Z</pubDate>
+<pubDate>2024-04-28T01:17:21Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 用 Frp 内穿家里的 AList，压力还在是网盘吧</title>
+<link>https://www.v2ex.com/t/1036254</link>
+<guid>https://www.v2ex.com/t/1036254</guid>
+<content:encoded><![CDATA[
+
+虽然一直没有玩 AList ，最近想看电视剧，挂了 2 网盘。在家看是够的，用 Frp 内穿了一下，用手机看，就是拉信息有点慢，点播的时候还行。alist 就是一个代理而已吧
+]]></content:encoded>
+<pubDate>2024-04-28T01:06:28Z</pubDate>
+<pubDate>2024-04-28T01:17:07Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 今天星期一，明天星期一，五一归来还是星期一，但是我想问的是 tg 是如何做到精准封锁+86 手机账号的？</title>
+<link>https://www.v2ex.com/t/1036253</link>
+<guid>https://www.v2ex.com/t/1036253</guid>
+<content:encoded><![CDATA[
+
+难道是直接用了+86 手机号检测到 vpn 连接之后直接不允许登录？
+]]></content:encoded>
+<pubDate>2024-04-28T01:01:47Z</pubDate>
+<pubDate>2024-04-24T01:01:47Z</pubDate>
+</item>
+<item>
+<title>[Telegram] Telegram iOS 客户端 经常加载不出评论</title>
+<link>https://www.v2ex.com/t/1036252</link>
+<guid>https://www.v2ex.com/t/1036252</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，困扰了一年多的问题了，TG 其他使用皆正常，<strong>但频道的评论点进去之后经常转圈加载不出来</strong>，目前唯一能找到的解决办法是杀进程重进。</p>
+<p>大概率不是网络问题，因为我之前出差过几次，在国外依旧能遇到，也在 Reddit 以及 V2EX 看到有人遇到过。</p>
+<p>真的是很困扰…大家有没有什么好的办法呢，或者有没有第三方客户端推荐呢？</p>
+<p>万分感谢。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://v2ex.com/t/1036151#reply25" rel="nofollow">V2EX 的某个回复</a></li>
+<li><a href="https://www.v2ex.com/t/930442" rel="nofollow">V2EX 反馈相同问题的帖子</a></li>
+<li><a href="https://www.reddit.com/r/Telegram/comments/119sbj2/for_the_past_week_comments_refuse_to_load_most_of/" rel="nofollow">Reddit 帖子</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-28T00:54:05Z</pubDate>
+<pubDate>2024-04-26T00:54:05Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求推荐一款调试代码时，可以方便记录代码执行流程、模块调用关系的笔记工具。</title>
+<link>https://www.v2ex.com/t/1036251</link>
+<guid>https://www.v2ex.com/t/1036251</guid>
+<content:encoded><![CDATA[
+
+<p>有时候调试代码，碰到执行流程比较复杂的，就想记录一下关键的函数、执行流程等，便于梳理出来代码执行的逻辑，模块之间的调用关系，方便 debug 。</p>
+<p>刚开始是在 A4 纸上，将关键的函数、代码位置写下来，执行的流程、模块调用关系画个箭头-&gt;指过去。缺点是纸上没办法 Ctrl+F 搜索关键字，另外纸有边界，很容易把纸写到边上了，但是代码逻辑还没梳理完。</p>
+<p>然后开始用 vs code ，虽然 vs code 对代码很友好，但是没办法用箭头-&gt;指来指去，表示各个模块之间的调用关系。</p>
+<p>可能 PPT 或者 Visio 能达到效果，但是感觉他俩太过复杂、笨重，会把精力放在不必要的排版上。</p>
+<p>所以想寻求一款能在调试代码时，方便记录代码执行流程、模块调用关系的笔记工具。</p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:50:36Z</pubDate>
+<pubDate>2024-04-28T01:12:07Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 江苏移动内置了吗？</title>
+<link>https://www.v2ex.com/t/1036250</link>
+<guid>https://www.v2ex.com/t/1036250</guid>
+<content:encoded><![CDATA[
+
+![]( <a href="https://www.v2ex.com/i/tY37s680.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 tY37s680.png"><img class="embedded_image" src="https://i.v2ex.co/tY37s680.png" /></a>)这怎么破，只不过想上 s 搜书吧
+]]></content:encoded>
+<pubDate>2024-04-28T00:50:07Z</pubDate>
+<pubDate>2024-04-28T01:08:55Z</pubDate>
+</item>
+<item>
+<title>[Android] 炼妖壶 工作区的资料如何传到个人区或者电脑？</title>
+<link>https://www.v2ex.com/t/1036249</link>
+<guid>https://www.v2ex.com/t/1036249</guid>
+<content:encoded><![CDATA[
+
+<p>朋友们，安卓工作区的图片文件，要弄到个人区域，大家是怎么实现的？
+接电脑，找不到工作区的文件？</p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:40:46Z</pubDate>
+<pubDate>2024-04-28T01:14:24Z</pubDate>
+</item>
+<item>
+<title>[汇丰银行] 汇丰香港信用卡在国内也可以自己申请，已申请坐等收卡中</title>
+<link>https://www.v2ex.com/t/1036248</link>
+<guid>https://www.v2ex.com/t/1036248</guid>
+<content:encoded><![CDATA[
+
+<p>前几天，我在汇丰香港 App 申请了双币信用卡，并且收到了成功短信，目前等待收卡中，不知道平邮能不能顺利寄到，今天分享一下申请过程。
+如果你在香港去开户的时候忘记申请信用卡，那回国之后可以自己申请吗？
+答案是肯定的，但是为了保证申请成功，在你的汇丰香港 one 账户或者卓越账户，至少保持你的账户最低余额为$10,000 港币,这样才能够申请成功。
+申请方法也非常简单，打开 HSBC HK 手机 App ，找到信用卡，看图一。
+（原文链接： <a href="https://mp.weixin.qq.com/s/rB1et81wyRZNzFeNXYCGag" rel="nofollow">https://mp.weixin.qq.com/s/rB1et81wyRZNzFeNXYCGag</a> ）
+点进去之后，选择发掘更多信用卡，没错就是第一个，然后去选择你要申请的信用卡，提交申请就可以了。
+申请之后，一般会在 7-10 个工作日内以短信和邮件形式通知你申请结果。
+额度的话根据你的账户余额以及开户资料的年收入有关。如果你不知道选择哪个信用卡，可以看我之前的分享。
+来微信公众号支持一下吧。<a href="https://mp.weixin.qq.com/s/rB1et81wyRZNzFeNXYCGag" rel="nofollow">https://mp.weixin.qq.com/s/rB1et81wyRZNzFeNXYCGag</a></p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:38:32Z</pubDate>
+<pubDate>2024-04-28T01:05:17Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] MacBookPro M1 M2 M3 怎么选</title>
+<link>https://www.v2ex.com/t/1036247</link>
+<guid>https://www.v2ex.com/t/1036247</guid>
+<content:encoded><![CDATA[
+
+<p>19 款 16 寸 MBP 用户，目前 32G+512G ，想更新设备，持币 3w 以内，够用就行。
+主要用于写代码，需要外接两台显示器，几乎没有携带和移动办公的需求，不知道 M 系列怎么选，有说 M3 不行，有说 M2 不如 M1 ，又有说 M1 是几年前的产品，哎，难顶。</p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:19:18Z</pubDate>
+<pubDate>2024-04-28T01:19:09Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 兄弟姐妹们，来来来，创建你的专属 avatar 吧</title>
+<link>https://www.v2ex.com/t/1036244</link>
+<guid>https://www.v2ex.com/t/1036244</guid>
+<content:encoded><![CDATA[
+
+<p>我刚刚完成了新玩具-生成数字头像.</p>
+<p>下面是几个具体的例子，感觉还挺传神？</p>
+<p>有兴趣的朋友留个言放自己照片，</p>
+<p>我回复你生成的数字头像（ avatar ）</p>
+<p>传送门： <a href="https://twitter.com/seclink/status/1784130942941921760" rel="nofollow">https://twitter.com/seclink/status/1784130942941921760</a></p>
+<p><img alt="A" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GMKBDDIaAAAXcLj?format=jpg&amp;name=large" />
+<img alt="B" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GMKBVwOb0AAvXHv?format=jpg&amp;name=4096x4096" />
+<img alt="C" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GMKBZStawAAdmN4?format=jpg&amp;name=4096x4096" />
+<img alt="C" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GMKBcbDbUAAGNE8?format=jpg&amp;name=4096x4096" /></p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:09:26Z</pubDate>
+<pubDate>2024-04-27T08:09:26Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPhone 更新到 17.4.1 后手机网络不稳定，经常出现无网络的情况</title>
+<link>https://www.v2ex.com/t/1036243</link>
+<guid>https://www.v2ex.com/t/1036243</guid>
+<content:encoded><![CDATA[
+
+大家有这种情况吗？<br />怎么解决 。
+]]></content:encoded>
+<pubDate>2024-04-28T00:05:34Z</pubDate>
+<pubDate>2024-04-28T01:21:42Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 来自大厂员工的创业故事，我的第一款产品——机霸 App，发布公测</title>
+<link>https://www.v2ex.com/t/1036242</link>
+<guid>https://www.v2ex.com/t/1036242</guid>
+<content:encoded><![CDATA[
+
+<p>这是一款为主机电脑打造的专业社区 App ，话不多说先上图，V2 不能发视频所以麻烦跳转查看</p>
+<p><a href="https://cdn.jiba201.com/video/1.mp4" rel="nofollow">https://cdn.jiba201.com/video/1.mp4</a></p>
+<p><a href="https://cdn.jiba201.com/video/2.mp4" rel="nofollow">https://cdn.jiba201.com/video/2.mp4</a></p>
+<p>下载地址（目前上架审核中，<a href="https://www.jiba201.com" rel="nofollow">资质齐全</a>，放心食用）：</p>
+<table>
+<thead>
+<tr>
+<th>Android</th>
+<th>IOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img class="embedded_image" rel="noreferrer" src="https://cdn.jiba201.com/qrcode/android.png" /><br />扫码下载</td>
+<td><img class="embedded_image" rel="noreferrer" src="https://cdn.jiba201.com/qrcode/ios.png" /><br />扫码下载</td>
+</tr>
+<tr>
+<td><a href="https://www.pgyer.com/4rZCvh" rel="nofollow">下载地址 1</a> <a href="https://cdn.jiba201.com/apks/shanji.apk" rel="nofollow">下载地址 2</a></td>
+<td><a href="https://www.pgyer.com/L160CD" rel="nofollow">下载地址</a></td>
+</tr>
+</tbody></table><p>上述信息可访问 <a href="https://github.com/ji-ba-app/ji-ba-cdn" rel="nofollow">github 存储库</a>查看 -&gt; <a href="https://github.com/ji-ba-app/ji-ba-cdn" rel="nofollow">https://github.com/ji-ba-app/ji-ba-cdn</a></p>
+<h2>为什么要开发这款 App</h2>
+<p>想法源自几件真实的案例：</p>
+<ol>
+<li>电脑城修电脑，当时修的时候不懂，换个显存+256G 固态花了 2k ，被坑惨</li>
+<li>自己配电脑，在京东上买的配件自己装的，结果买回来用了不到两个月，显卡直接花屏，怀疑是矿卡，找售后退换了；本以为没问题了，没想到内存条又坏了，蓝屏死机，找商家退还了，还好是京东，不然退都退不了</li>
+</ol>
+<p>从此之后慢慢开始接触装机圈，发现小白很容易被无良商家骗，而且发现目前没有主机的专业社区解决这些问题</p>
+<p>为了消除信息差，更好的服务爱好者们，我花了两个多月做了这么一款 App</p>
+<h2>功能</h2>
+<p>最好用的功能是 <strong>用户可以通过将京东链接转换成配置清单并以图片形式分享</strong>，并且购物链接永久有效</p>
+<p>至于其他功能，作为开发者，我希望的是大家自行下载并体验，在这里留点悬念</p>
+<h2>我们的愿景</h2>
+<p><strong>Slogn：你的 DIY 装机指南</strong></p>
+<ol>
+<li>我们希望帮助每一位游戏玩家 DIY 属于自己的主机，并体验到装机的乐趣</li>
+<li>消除目前线上/线下数码店的信息差，防止更多的人被骗（超级小杰事件仍历历在目）</li>
+</ol>
+<h2>写在最后</h2>
+<p>这个产品历时 2 个多月，期间经历了很多困难，包括团队多次原地解散、办理各种资质，曾经我自己都一度想放弃，创业是一件很难的事情，你拼尽全力去做的事情也许并不会得到认可，我也不知道这个产品能活多久，我能坚持多久，因为从创业的角度看这个产品是存在逻辑上的问题的，只能说走一步看一步</p>
+<p>很感谢团队内的其他几位大佬：</p>
+<ol>
+<li>柳 ———— 负责 3D 模型建设（没错你看到的模型是这位大佬手搓出来的）</li>
+<li>Nam ———— Web AR 大佬</li>
+<li>刘 ———— 后端工程师</li>
+</ol>
+<p>如果你想支持我们的话，请下载并登录（无需注册），截止 <strong>2024.04.30 晚 12 点</strong>我们会抽取 10 位满足以下条件的用户 <strong>100 元人民币</strong>的奖励，以感谢对我们产品的支持：</p>
+<ol>
+<li>下载并登录（无需注册）</li>
+<li>通过机霸认证（首次登录会弹出，或通过我的——编辑资料——机霸认证进入），通过后头像旁会有标识 “霸”</li>
+<li>发布一条或以上任意与主机相关的内容贴，并附上自己主机的图片（通过首页右上角相机标识进入）</li>
+</ol>
+<p>再次感谢大家的支持，并附上一个可能并不专业的配置清单：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.jiba201.com/img/demo.jpg" /></p>
+]]></content:encoded>
+<pubDate>2024-04-28T00:00:03Z</pubDate>
+<pubDate>2024-04-28T04:03:21Z</pubDate>
+</item>
+<item>
+<title>[生活] 今天早上刚发生的一起交通小事故，结局是两败俱伤！</title>
+<link>https://www.v2ex.com/t/1036241</link>
+<guid>https://www.v2ex.com/t/1036241</guid>
+<content:encoded><![CDATA[
+
+<p>双车道，我在外道行驶，一俩白车在我右侧，打了灯就硬变道，我不让他，他还要变，然后我俩后视镜刮到了，打双闪靠边停车，我下来看了一眼，蹭了点灰，连漆都没掉，有点小划痕，没啥大问题，本来都想走了，上去说了他两句，意思就是不是你打灯就能变，还要看旁边有没有车，结果他倒打一耙，说自己打着灯都停下来了，是我撞上去的，我当时就气了，那报警吧，警察来处理，警察来了以后，听了我俩的复述，最后给我判了个（上海）外环以内禁止鸣笛，扣 1 分罚两百，那吊人判了个变道影响他人行驶，然后他行驶证还没带，叔叔本来已经打算放过他的，我在旁边都没说话，他还在那挣，说他没问题，叔叔直接怒了，直接把车给扣了，严格按照法规执行，车上还拉着个乘客，那人今年已经扣过 6 分了，两败俱伤！然后警察给我开了罚单，没我啥事我先走了。<br />你说明明是吃马路饭的人，怎么这么拎不清。扣分+罚款+扣车，几天报废了。</p>
+]]></content:encoded>
+<pubDate>2024-04-27T23:45:45Z</pubDate>
+<pubDate>2024-04-28T00:55:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] Google 翻译为何如此垃圾</title>
+<link>https://www.v2ex.com/t/1036240</link>
+<guid>https://www.v2ex.com/t/1036240</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://translate.google.com/?sl=auto&amp;tl=zh-CN&amp;text=don%27t%20cook%20up&amp;op=translate" rel="nofollow">https://translate.google.com/?sl=auto&amp;tl=zh-CN&amp;text=don%27t%20cook%20up&amp;op=translate</a></p>
+<p>请看！</p>
+<p>百度翻译都没这种问题</p>
+]]></content:encoded>
+<pubDate>2024-04-27T23:13:50Z</pubDate>
+<pubDate>2024-04-28T01:22:35Z</pubDate>
+</item>
+
+<item>
 <title>[宽带症候群] 端口转发应用如何确定转发后的流量在服务器使用的端口</title>
 <link>https://www.v2ex.com/t/1036237</link>
 <guid>https://www.v2ex.com/t/1036237</guid>
 <content:encoded><![CDATA[
-
 <p>我用过许多端口转发程序，如 gost 、udp2raw 、ss+任意门，但它们都有一点困扰着我：转发后的流量在服务器端使用的端口无法确定，也没有查到有什么机制能够创建固定的端口映射关系，我想要使用的一些东西需要双方具有固定的地址和端口组合（ fou 、vxlan 、l2tpv3 等）。</p>
 <pre><code>---------
 ClientApp       (TX: 127.0.0.1:16385)
@@ -42,14 +341,12 @@ ServerApp       (TX: 127.0.0.1:randomPort)
 </ol>
 ]]></content:encoded>
 <pubDate>2024-04-27T21:17:52Z</pubDate>
-<pubDate>2024-04-27T21:17:52Z</pubDate>
 </item>
 <item>
 <title>[虚拟现实] Meta Quest 3 上面有什么类似 Google Earth VR 或者 BirdlyVR 这样的游戏吗？</title>
 <link>https://www.v2ex.com/t/1036236</link>
 <guid>https://www.v2ex.com/t/1036236</guid>
 <content:encoded><![CDATA[
-
 <p>主视角、高自由度、较高质感的画面的翱翔类 VR 在工作之余放松是特别舒服。</p>
 <p>经典的比如：
 Google Earth VR ，
@@ -57,7 +354,6 @@ Birdly （ <a href="https://birdlyvr.com/" rel="nofollow">https://birdlyvr.com/<
 <p>但好像都不支持 Quest 3 ，
 不知是否有类似的推荐，感谢！</p>
 ]]></content:encoded>
-<pubDate>2024-04-27T20:54:13Z</pubDate>
 <pubDate>2024-04-27T20:53:13Z</pubDate>
 </item>
 <item>
@@ -65,11 +361,9 @@ Birdly （ <a href="https://birdlyvr.com/" rel="nofollow">https://birdlyvr.com/<
 <link>https://www.v2ex.com/t/1036235</link>
 <guid>https://www.v2ex.com/t/1036235</guid>
 <content:encoded><![CDATA[
-
 <p>换了几次手机,发现相册中很多重复图片和视频, 默认的去重过几次之后, 仍然还有大量的重复的图片和视频, 而且相册中去重按钮不再出现, 意味着苹果自身所带检测重复照片/视频功能已经无法检测出来这些重复.</p>
 <p>请问有什么更好的方法进行更彻底的去重?</p>
 ]]></content:encoded>
-<pubDate>2024-04-27T20:23:49Z</pubDate>
 <pubDate>2024-04-27T16:23:49Z</pubDate>
 </item>
 <item>
@@ -77,16 +371,13 @@ Birdly （ <a href="https://birdlyvr.com/" rel="nofollow">https://birdlyvr.com/<
 <link>https://www.v2ex.com/t/1036234</link>
 <guid>https://www.v2ex.com/t/1036234</guid>
 <content:encoded><![CDATA[
-
 <p>看起来这家老板之前是极路由的老板，属于二次创业了</p>
 <p>目前想有一个可以刷 OP 的 5G CPE 设备放在办公室，好像目前只有鲲鹏的这个能刷，但是网上搜了一下发现这个设备的资料很少，几乎没人分享用户体验。</p>
 <p>偶尔能看到说是温度比较高，高负载下都有 80°C 左右，这还是加了风扇底座的情况下，那夏天不得起飞了？</p>
 <p>请问有没有实际使用过这个设备的呢？体验如何？温度高会经常断网吗？</p>
 ]]></content:encoded>
-<pubDate>2024-04-27T20:23:46Z</pubDate>
 <pubDate>2024-04-27T20:22:46Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 如何应对某电商平台限制下单“活动太火爆了！请稍后再试！”的弹窗封号举措?</title>
 <link>https://www.v2ex.com/t/1036233</link>
@@ -15189,66 +15480,6 @@ Email： <a href="mailto:fqymtu@gmail.com">fqymtu@gmail.com</a></p>
 </code></pre>
 ]]></content:encoded>
 <pubDate>2024-04-23T09:42:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] 出试卷，最近给学校出试卷， latex 排版发现 mac 本地和 overleaf 上结果不一样，该如何解决</title>
-<link>https://www.v2ex.com/t/1035007</link>
-<guid>https://www.v2ex.com/t/1035007</guid>
-<content:encoded><![CDATA[
-<p>平时使用 ctex 宏包里面的 beamer 做幻灯片讲课用，轮到出试卷了，用了 exam-zh 这个试卷格式，蛮好用的。但上午反映我出的试卷中文问号？有问题，显示了一种略微变形的问号样式。  我在 ctexbeamer 文档类下面编译正确无误（中文问号）
-这个 exam-zh 基于 ctexart 开发的，本以为是 exam-zh 的问题，结果我用 ctexart 文档类本机（ Mactex ）编译测试，仍然有问题，但 ctexbeamer 文档类中文问号无异常。</p>
-<p>测试代码如下：
-第二个为中文问号，编译出来很奇怪。但是同样的代码在 overleaf 执行没有问题。</p>
-<p>问题在哪儿，该如何处理呢？ MacOS14.4.1
-tlmgr revision 70671 (2024-03-17 02:10:09 +0100)
-tlmgr using installation: /usr/local/texlive/2024
-TeX Live ( <a href="https://tug.org/texlive" rel="nofollow">https://tug.org/texlive</a>) version 2024</p>
-<p>\documentclass[utf-8]{ctexart}</p>
-<p>\begin{document}
-?？
-\end{document}</p>
-]]></content:encoded>
-<pubDate>2024-04-23T09:58:14Z</pubDate>
-</item>
-<item>
-<title>[上海] [找室友]8 号线芦恒路 ，士韵家园二期 朝南带阳台的房间， 2300 元</title>
-<link>https://www.v2ex.com/t/1035006</link>
-<guid>https://www.v2ex.com/t/1035006</guid>
-<content:encoded><![CDATA[
-<p>随时看房 微信号 eG5lMTEw 中介免扰</p>
-<p>房子是我整租下来的，已经要到第五个年头了，原先的合租的室友因工作原因老要出差就没租了，现在房子已经空出来了。</p>
-<p>本人是夫妻两人，朝九晚七不加班，不抽烟，生活简单，诚招室友，男女不限。</p>
-<p>房子位于芦恒路地铁站 800 米左右，骑车差不多五六分钟，周边超市，买菜的集市都有，你可以百度地图瞅瞅看，该有的都有，还有小区人蛮多的。</p>
-<p>房东原自住房，装修略显老，介意者请跳过，家具齐全，房东人很好说话 ，有事情联系很方便。</p>
-<p>天然气可做饭，民水民电，客厅不大，卧室面积话还好。</p>
-<p>无中介费，押一付三，一年合同，不满期可以帮忙一起转租，无实际房租损失不扣押金。</p>
-<p>希望你：</p>
-<p>1.善良好相处，工作稳定，社会关系简单，安静爱干净，可接受轮流打扫公区卫生（经常打扫很容易完成，也不费力 ），我希望给你一个家的感觉，也希望你能爱护这个家。</p>
-<p>2.作息规律，无影响到他人的生活习惯和嗜好，不抽烟，不养宠物。</p>
-<p>户型图如下：
-<img alt="Image text" class="embedded_image" rel="noreferrer" src="https://pic3.ajkimg.com/ajk/b2a684765fd46b58096141d3603f4ab9/900x900.webp" /></p>
-<p>图片：晚上回去补</p>
-]]></content:encoded>
-<pubDate>2024-04-23T05:02:53Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请问有没有好用的 Go MQTT Broker</title>
-<link>https://www.v2ex.com/t/1035005</link>
-<guid>https://www.v2ex.com/t/1035005</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-04-23T09:20:49Z</pubDate>
-</item>
-<item>
-<title>[推广] 招商银行闪电贷 3.0% 的年化利率 , 现在有活动</title>
-<link>https://www.v2ex.com/t/1035004</link>
-<guid>https://www.v2ex.com/t/1035004</guid>
-<content:encoded><![CDATA[
-<p>快来参加闪电贷推荐有礼活动＆ <a href="https://cmbt.cn/app/A54Ys9Vkp" rel="nofollow">https://cmbt.cn/app/A54Ys9Vkp</a> ＆ 点击链接打开；或复制这条信息后打开招商银行 APP 。</p>
-<p>邀请一个人 , 减 0.2%的利率 , 有需要的可以点我邀请链接, 或复制上面信息后打开招商银行 APP ,谢谢</p>
-]]></content:encoded>
-<pubDate>2024-04-23T08:54:53Z</pubDate>
 </item>
 </channel>
 </rss>
