@@ -5,14 +5,627 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Go 编程语言] golang 的 defer 真是个好设计</title>
+<link>https://www.v2ex.com/t/1036972</link>
+<guid>https://www.v2ex.com/t/1036972</guid>
+<content:encoded><![CDATA[
+
+<p>我们开发的时候使用了 sync.Pool ，所以需要考虑资源释放问题。</p>
+<p>例如下面这样一段代码：</p>
+<pre><code class="language-go">// bearerAuth is a function that performs bearer token authentication and authorization based on the provided access token and values.
+func bearerAuth(c *web.Ctx, vals ...int64) error {
+
+	accessToken := c.BearerToken()
+
+	if accessToken == "" {
+		return web.ErrUnauthorized
+	}
+
+	cat, err := proxy.GetAuthByAccessToken(accessToken)
+
+	if err != nil {
+		return err
+	}
+
+	c.Init(cat.UserID, cat.UserRight)
+
+	if !utils.CheckVals(cat.UserRight, vals...) {
+		cat.Release()
+		return web.ErrForbidden
+	}
+
+	cat.Release()
+
+	return nil
+}
+</code></pre>
+<p>我们得在所有退出路径上调用 cat.Release()，有了 defer ，我们只需要这样就解决问题了</p>
+<pre><code class="language-go">func bearerAuth(c *web.Ctx, vals ...int64) error {
+
+	accessToken := c.BearerToken()
+
+	if accessToken == "" {
+		return web.ErrUnauthorized
+	}
+
+	cat, err := proxy.GetAuthByAccessToken(accessToken)
+
+	if err != nil {
+		return err
+	}
+
+	defer cat.Release()
+
+	c.Init(cat.UserID, cat.UserRight)
+
+	if !utils.CheckVals(cat.UserRight, vals...) {
+		return web.ErrForbidden
+	}
+
+	return nil
+}
+</code></pre>
+<p>如果是自己建对象，就更方便了：</p>
+<p>user := model.CreateUser()
+defer user.Release()</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:24:24Z</pubDate>
+<pubDate>2024-04-30T02:24:24Z</pubDate>
+</item>
+<item>
+<title>[游戏] 大佬们，求推荐安卓模拟经营类游戏</title>
+<link>https://www.v2ex.com/t/1036971</link>
+<guid>https://www.v2ex.com/t/1036971</guid>
+<content:encoded><![CDATA[
+
+大佬们都玩过什么好玩的模拟经营类游戏<br />需要安卓的，电脑上就没兴趣玩了<br />不是很喜欢像素风的，没错，说的就是开罗。<br />最好是不联网，无广告的单机游戏。<br />联网也不要任何带有社交属性的。
+]]></content:encoded>
+<pubDate>2024-04-30T02:24:21Z</pubDate>
+<pubDate>2024-04-30T02:24:21Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 面临人生的重大抉择，征求一些外部意见。</title>
+<link>https://www.v2ex.com/t/1036970</link>
+<guid>https://www.v2ex.com/t/1036970</guid>
+<content:encoded><![CDATA[
+
+<p>背景介绍：我本科毕业于 985 院校，在一线城市漂泊工作多年，主要做大数据开发。22 年中在大厂被毕业，因为求职环境恶劣，决定离开一线城市，在 23 年初入职了家乡的一家国有控股子公司，仍然负责数据开发。在工作一年半之后决定离职，已经在走离职流程了，预计 5 月底离开，具体原因这里就不多谈了，只能说非常遗憾，我当初是放弃了一家私企高出近 50%的待遇和管理岗来的，就因为这家国企的背景，希望能用我的知识为整个省作出贡献，但最终残酷的现实浇灭了我的热情。</p>
+<p>往事已矣，现在想要向前看，这里主要是想就未来的选择来征求一些意见。</p>
+<p>当前待遇：本地软件开发平均工资的 2 倍，虽然比不了大厂，在本地算是收入较高的了。</p>
+<p>选择 1: 手上有两个其它国企的 offer ，待遇比当前的还要高一些。我也会作为研发经理掌控项目全局。但是国企的问题是思想僵化，审批复杂，我在当前工作的公司已经体会过了。具体表现：项目管理一团糟，前后端加班也干不完活，而数据侧只有我一人却闲得发慌。集群计算资源不足，想要申请资金加配置难于登天，根本无法像互联网公司那样随时根据需求增减。</p>
+<p>选择 2: 一个私企，在本地是难得的互联网风格。他们在做一个新的数据项目，与 Web3 有关，但不涉及币交易，没有法律风险。项目有着充分的挑战，但从目前沟通的情况来看，我的能力足够解决。他们给出的待遇，低于我当前的薪资，但在本地仍有竞争力。老板承诺我在这个项目中担任核心角色，我将有机会充分发挥自己的各方面才能。老板也是从一线大厂回来的，从他的谈吐来看，值得信任。</p>
+<p>我的想法：
+我今年 33 岁了，距离中年危机一步之遥，但工作多年至今，仍然未能有一个令人自豪的，拿得出手的项目。虽然我多次作为项目负责人或者核心开发完成了许多项目，但仍然感觉很空虚。
+如果从未来的生活保障来看，选择 1 ，就职国企显然是最为稳妥的选择，但是，可能会遭遇和当前一样的困境，我担心自己的工作热情被磨灭，而且在当下的环境里，恐怕也没人能保证在国企就不会被毕业，如果到了那个时候，我因为工作热情磨灭而不再精进技术，丢到求职市场上将会无比艰难。
+反之，选择 2 令我心动的地方就在于此。不可否认，这个岗位会有很大的工作强度，而薪资却更低，还会损失巨大的机会成本。但是，如果我能在这上面作出成绩，那我就有了一个让我非常自豪的项目，这对我来说非常重要。我本身是有些理想主义的，相比于收入，我更在意的是工作的意义，这也是我为什么在一年前放弃薪资更高的私企 offer ，选择入职国企的原因。从另一个角度来说，这个项目有利于逼迫我去学习掌握新知识，如果 Web3 有着光明的未来，那么我也可以凭借这个项目的成功经验找一个全球远程岗位，继续发挥价值。
+总的来说，我个人倾向于选择 2 ，但是我也有一些担忧，希望能征求一些意见。</p>
+<p>我希望征求的意见：</p>
+<ol>
+<li>对于国企的担忧，大家觉得是否正确？其实工作热情啥的都在其次，我最担心的就是躺平之后被毕业，特别是那种直接关掉整条业务线或子公司的情况。即使不躺平，受制度影响，想要大显身手也很困难，被动躺平的结果也是一样的。</li>
+<li>Web3 是光明的未来吗？换句话说，我对这个项目的乐观预期是否正确？我应该如何验证我的预期。我很后悔在这些年的时间里没有好好学习了解这一方面的知识，业余时间都拿去打游戏或者钻研编程技术了，对于业务的了解和思考真的偏少。注意这里说的是 Web3 ，而不是币交易。我也会从现在开始收集 Web3 的资料，但光凭公开资料，可能很难得出有用的结论</li>
+<li>如果要征求专业人士的意见，我应该去哪找人了解？（付费咨询）主要是两方面，一个是职业规划，另一个是 Web3 。</li>
+<li>我对选择 2 项目失败后果的预期是否过于理想化？（可凭借经验寻找全球远程工作）</li>
+<li>我已经加了这个私企的 HR 和面试官的微信，可以进一步沟通了解信息，我还可以询问哪些问题了解公司、项目是否靠谱？（我已经初步沟通了解了项目的盈利模式和客户群体，这方面我确信是可靠的，也会进一步收集资料验证）</li>
+<li>在这两个选择之外，还有其它我没有想到的路吗？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-04-30T02:23:42Z</pubDate>
+<pubDate>2024-04-30T02:23:42Z</pubDate>
+</item>
+<item>
+<title>[互联网] 最强数字银行 iFast 介绍及开户攻略</title>
+<link>https://www.v2ex.com/t/1036969</link>
+<guid>https://www.v2ex.com/t/1036969</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.monlor.com/2024/4/27/SCR-20240427-twct.jpeg" /></p>
+<p>iFAST Corporation Ltd （奕丰集团），总部设在新加坡的互联网券商，自 2014 年 12 月在新加坡交易所上市以来，一直致力于提供创新的金融服务。iFAST Global Bank ，作为其在英国的数字银行分支，展示了集团在数字银行领域的强大实力。</p>
+<h3>⚽️ 优点</h3>
+<p>✅ <strong>存款保障</strong>：作为一家受到全面监管的英国数字银行，合资格存款受金融服务补偿计划 (FSCS) 保护</p>
+<p>✅ <strong>简化的开户流程</strong>：开户过程取消了人工视频通话，改为录制视频回答三个问题，简化了传统银行的繁琐流程</p>
+<p>✅ <strong>无额外费用</strong>：无年费、管理费，且没有最低存款要求</p>
+<p>✅ <strong>多币种账户支持</strong>：支持 GBP 、USD 、EUR 、HKD 、SGD 、CNY 等多种货币账户，<strong>有个人英镑银行账户</strong></p>
+<p>✅ <strong>全球免费转账</strong>：支持 iFAST 集团内的全球免费转账到香港，新加坡和马来西亚，支持英国内英镑免费转账，<strong>免费入金 Wise 英镑账户</strong></p>
+<p>✅ <strong>全球电汇免手续费</strong>：电汇非英镑免手续费，汇款欧盟，新加坡，香港，美国等免手续费，<a href="https://www.ifastgb.com/en/transfer/international-payment" rel="nofollow">具体手续费汇率看这里</a></p>
+<p>✅ <strong>存款利息好</strong>：英镑 4.25%的活期年利率，最高 4.6%的定期年利率</p>
+<p>✅ <strong>即将推出的借记卡</strong>：增强用户的支付便利性</p>
+<h3>📚 开户流程</h3>
+<p>1️⃣ <strong>访问官网</strong>：欢迎使用我的<a href="https://www.ifastgb.com/tellafriend/qianjung5909%20" rel="nofollow">邀请链接</a>，你可以获得 5 英镑的开户奖励</p>
+<p>2️⃣ <strong>提交必要文件</strong>：需要提供护照、邮箱、手机号和银行账单地址证明</p>
+<p>3️⃣ <strong>录制验证视频</strong>：根据指引录制一个简短的视频回答三个问题</p>
+<p>4️⃣ <strong>等待审核</strong>：提交申请后，银行将进行审核，审核通过后即可使用账户</p>
+<h3>⚠️ 注意事项</h3>
+<p>👉 <strong>初次入金需同名</strong>：首次入金需要账户名称与入金账户名称一致，可能会给某些用户带来不便</p>
+<p>👉 <strong>视频验证可能需要预约</strong>：虽然取消了人工视频通话，但在某些情况下可能需要预约视频通话进行验证</p>
+<h3>🔗 FSMONE 与 iFAST 的关联性</h3>
+<p>FSMONE 作为 iFAST 集团旗下的产品，提供了与 iFAST Global Bank 相类似的服务，如全球转账服务和多币种账户。用户可以在 FSMONE 的 APP 上轻松切换不同地区（香港、新加坡、马来西亚），并使用同一套资料在不同地区开户，实现资金的快速流转。</p>
+<p>✅ iFast 入金 FSMONE 秒到免费，支持入金 FSMONE HK ，FSMONE SG ，FSMONE MY ，<strong>入金 FSMONE SG 后可免费入金 OCBC SG</strong></p>
+<p>✅ FSMONE HK/SG/MY 可免费入金 iFast ，不过 FSMONE 不同地区之间不支持免费转账</p>
+<p>✅ FSMONE HK/SG/MY 可在线开户，但 FSMONE HK 必须线下进行身份认证</p>
+<p>⭐️ 欢迎关注我的频道或公众号，获取更多信息！</p>
+<p>💬 公众号：monlor</p>
+<p>🔔 TG 频道: <a href="https://t.me/digitlife_chan" rel="nofollow">https://t.me/digitlife_chan</a></p>
+<p>🏠 个人主页： <a href="https://link.monlor.com" rel="nofollow">https://link.monlor.com</a></p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:21:39Z</pubDate>
+<pubDate>2024-04-02T02:21:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 截图或者复制的高清图在微信里面编辑就会变很糊</title>
+<link>https://www.v2ex.com/t/1036968</link>
+<guid>https://www.v2ex.com/t/1036968</guid>
+<content:encoded><![CDATA[
+
+<p>mac 微信，win 微信好像没这个问题</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:18:09Z</pubDate>
+<pubDate>2024-04-30T02:17:09Z</pubDate>
+</item>
+<item>
+<title>[问与答] 微信小程序如何使用一次性订阅模板 来多次推送消息？</title>
+<link>https://www.v2ex.com/t/1036967</link>
+<guid>https://www.v2ex.com/t/1036967</guid>
+<content:encoded><![CDATA[
+
+<p>目前小程序使用的是一次性订阅模板，所以用户在订阅后，只能向用户推送一次消息，想多次推送还得要用户多次点击才行，有没有什么骚操作能够在用户只点击一次授权，就能发送多条消息的</p>
+<p>ps： 长期订阅模板资质难申请，所以只能用小程序一次订阅模板，不考虑服务号的形式</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:15:27Z</pubDate>
+<pubDate>2024-04-30T02:15:27Z</pubDate>
+</item>
+<item>
+<title>[Java] 分享一个 Java 中非常糟糕的 API 设计</title>
+<link>https://www.v2ex.com/t/1036966</link>
+<guid>https://www.v2ex.com/t/1036966</guid>
+<content:encoded><![CDATA[
+
+<p>python 代码如下：</p>
+<pre><code class="language-python">hashlib.pbkdf2_hmac('sha1', bytes.fromhex('******'), bytes.fromhex('00000000000000000000000000000000'), 64000, 32)
+</code></pre>
+<p>需要用 Java 实现一版，但是发现 java 的 password 参数要传 char[]，然后底层转 bytes ，代码如下：</p>
+<pre><code class="language-java">// com.sun.crypto.provider.PBKDF2KeyImpl#getPasswordBytes
+private static byte[] getPasswordBytes(char[] passwd) {
+    CharBuffer cb = CharBuffer.wrap(passwd);
+    ByteBuffer bb = UTF_8.encode(cb);
+
+    int len = bb.limit();
+    byte[] passwdBytes = new byte[len];
+    bb.get(passwdBytes, 0, len);
+    bb.clear().put(new byte[len]);
+
+    return passwdBytes;
+}
+</code></pre>
+<p>真无语了，这么写相当于密码只能用字符串转 char[]了，不能用二进制的 password ，如果 password 是非法字符序列就个屁了。</p>
+<pre><code class="language-java">/**
+ * hashlib.pbkdf2_hmac('sha1', password, salt, iterations, key_length)
+ */
+private static byte[] generateKey(byte[] password, byte[] salt, int iterationCount, int keyLength) throws Exception {
+    // 由于 password 非字符序列导致 new String 后数据失真，底层无法还原会原始 bytes 。
+    char[] encoded = new String(password, StandardCharsets.UTF_8).toCharArray();
+
+    // 创建密钥规范
+    KeySpec spec = new PBEKeySpec(encoded, salt, iterationCount, keyLength * 8);
+
+
+    // 使用 PBKDF2WithHmacSHA1 算法创建密钥工厂
+    SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+
+    // 生成密钥
+    SecretKey secretKey = factory.generateSecret(spec);
+    return secretKey.getEncoded();
+}
+</code></pre>
+<p>这是一个微信聊天记录数据库算法。。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:15:10Z</pubDate>
+<pubDate>2024-04-30T02:24:35Z</pubDate>
+</item>
+<item>
+<title>[程序员] 这芋道源码太恶心了吧？</title>
+<link>https://www.v2ex.com/t/1036965</link>
+<guid>https://www.v2ex.com/t/1036965</guid>
+<content:encoded><![CDATA[
+
+<p>一个打着开源名义的项目，你去看演示站，让你关注公众号获取验证码，好不容易进入后台，去查看文档，又是只有知识星球 VIP 可见。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:15:07Z</pubDate>
+<pubDate>2024-04-30T02:25:12Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] [记流水账] 有丶惨，前天升级的 1000M 宽带忽然只有 300M 了，然后疯狂排查</title>
+<link>https://www.v2ex.com/t/1036964</link>
+<guid>https://www.v2ex.com/t/1036964</guid>
+<content:encoded><![CDATA[
+
+<p>我家的拓扑是这样的：光猫-路由-设备 然后路由上有个旁路由，旁路由是 r4s 。一直是路由在拨号，光猫桥接。</p>
+<p>事情是这样的，在装宽带的那天，一切正常，也能跑到 1000M 以上，当时我还很兴奋的发了个贴</p>
+<p><a href="https://fast.v2ex.com/t/1036322" rel="nofollow">真攒劲啊，刚刚升级成 1000M 宽带</a></p>
+<p>然而在昨天下载东西的时候，我发现宽带怎么跑都只有 300M 不到，还没有以前的高，奇了怪了，我开始排查。</p>
+<p>首先我用旁路由测试了内网的网速，上下行能跑到 1.2Gbps ，证明了路由连接到电脑没有问题</p>
+<p>然后我怀疑是家里埋的网线出了问题，心中默念不可能啊，房子是前年装修的，怎么可能现在坏。随即拿了一根新的备用网线测试，还是只有 300M ，毕竟新的和旧线的都跑不满 1000M ，合理推测光猫连接到路由器的网线理论上没问题，后面也有证明</p>
+<p>然后我就懵逼了，不对啊，1000M 的宽带你给我爽三天就给我限制了？然后打电话给我的宽带师傅，这个师傅我加了微信，认识，他说联通虽然扣，但不可能吃了吐，答应了 1000M 的肯定有</p>
+<p>关键来了，他要我电脑直连光猫，设置固定 ip ，连接光猫后台，然后给我后台密码教我把光猫从桥接切换为路由之后，要我测速，诶，这就 1000M 了。</p>
+<p>师傅哈哈一笑，我就说我联通不得扣你的宽带吧，你自己研究吧。</p>
+<p>得，自己开始研究，我开始纳闷，这这这，这是为什么啊？</p>
+<p>我还是不服，我家什么设备还有带不起的说法？而且装宽带当天也能跑上 1000 ，然后光猫继续拨号，路由切换成桥接模式，电脑从光猫换到路由上，用埋在墙里面的线一跑，1100M 。</p>
+<p>我懵了，不对啊，这就可以 1000M ，那就是家里的网线没有问题，设备都没问题，就是路由器拨号后速度上不去。</p>
+<p>是不是路由器坏了？于是我把 r4s 拿出来，一顿折腾，把光猫切换为桥接，r4s 切换为拨号模式，测速，250M 。看来也不是路由器的问题。</p>
+<p>我就又给联通师傅的打电话，我说你们光猫拨号就能 1000M ，但是我两个路由器拨号都跑不满甚至只有四分之一的速度。联通师傅说你就先光猫拨号，没问题的，先用着，明天去问问同事。
+然后我一看时间，晚上 10 点了，也不折腾了，然后设置光猫 DHCP 的网域到 2 网段，把路由器改成桥接，r4s 重新设置为旁路由模式。</p>
+<p>在 10 点半，终于设置完了全部的路由器，恢复了 WiFi ，整理好了布线，然后又洗了个澡。在我家整宽带真是个体力活，台式机在阳台，路由在书房，光猫在客厅，跑来跑去。</p>
+<p>听着外面淅淅沥沥的雨声，我躺在舒适的床上，手中轻握着手机。微弱的光芒从屏幕上洒落，照亮了我平静的面容，仿佛繁星点点的光芒照向大地。我注视着手机屏幕上显示的 1000M 的测速速度，仿佛是平静夜晚中的一轮明月，仿佛是沙漠中的一眼清泉，看着这个熟悉的数字，我慢慢地陷入梦乡。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:10:08Z</pubDate>
+<pubDate>2024-04-30T02:25:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 继“文科研究生编程语言推荐”的后续</title>
+<link>https://www.v2ex.com/t/1036963</link>
+<guid>https://www.v2ex.com/t/1036963</guid>
+<content:encoded><![CDATA[
+
+<p>关于前情请看<a href="https://www.v2ex.com/t/1031166" rel="nofollow">这里</a>，时隔这么长时间我想写一写后续的情况。</p>
+<p>我目前正在学什么语言：Python ，正在理顺基础部分，后续具体什么方向仍然不确定，至于不确定具体方向的原因，我对于自己本身就认知不清，同时我也不知道我以后能做什么工作。借用<a href="https://www.v2ex.com/t/1031166?p=2#r_14569714" rel="nofollow">这条评论</a>中的话"作为文科生你自认为你的长处是什么（包括性格，经历，专业，思维能力等等）"。说来惭愧，当我看到这条问题的时候，我一时想不到一个很好的答案，而且我一度陷入了自我怀疑与自我否定，因为我"自认为"的长处他人不一定认可(或者说达不到他人认可的水平)，他人需要的长处我不一定有。</p>
+<p>说起自我怀疑与自我否定，这种自我怀疑与自我否定以及带来的不自信、讨好型人格一直伴随我的研究生生涯。我不知道自己能做好什么事情，我不知道自己做什么事情能得到他人认可......我很想告别这一切。</p>
+<p>后续写的有点像发癫了😂，如果有其他的东西我会补充。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:09:43Z</pubDate>
+<pubDate>2024-04-29T22:09:43Z</pubDate>
+</item>
+<item>
+<title>[机械键盘] 青轴和红轴，就像两个不同类型的女朋友。</title>
+<link>https://www.v2ex.com/t/1036961</link>
+<guid>https://www.v2ex.com/t/1036961</guid>
+<content:encoded><![CDATA[
+
+青轴噼里啪啦的声音，我以为自己会喜欢一辈子。结果这几天摸了一下樱桃红轴(白茶)，一下子被轻柔的触感所触动。<br /><br />现在小青陪我一星期，下星期换小红，简直完美。
+]]></content:encoded>
+<pubDate>2024-04-30T02:08:47Z</pubDate>
+<pubDate>2024-04-29T22:08:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求一个北洋园邀请</title>
+<link>https://www.v2ex.com/t/1036960</link>
+<guid>https://www.v2ex.com/t/1036960</guid>
+<content:encoded><![CDATA[
+
+目前有馒头和 pttime<br /><br />上传量都是 10t 以上<br />下载量几百 g<br />都已过新手期<br /><br />求一个北洋园的，找学习资料用<br />215253072@qq.com<br />感谢
+]]></content:encoded>
+<pubDate>2024-04-30T02:08:27Z</pubDate>
+<pubDate>2024-04-30T02:07:27Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2024 年了， v 友有什么电子阅读器推荐的吗？</title>
+<link>https://www.v2ex.com/t/1036959</link>
+<guid>https://www.v2ex.com/t/1036959</guid>
+<content:encoded><![CDATA[
+
+<p>现在买 kindle 还值得吗？</p>
+<p>电子阅读器要求，</p>
+<ol>
+<li>可以自由安装 微信读书/起点/书旗等 APP</li>
+<li>可以方便上传 epub pdf 等格式的电子书</li>
+<li>笔记功能强大</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-04-30T02:06:25Z</pubDate>
+<pubDate>2024-04-30T02:26:29Z</pubDate>
+</item>
+<item>
+<title>[Linux] Linux Wayland 下的钉钉</title>
+<link>https://www.v2ex.com/t/1036958</link>
+<guid>https://www.v2ex.com/t/1036958</guid>
+<content:encoded><![CDATA[
+
+<p>请问，现在 linux 的钉钉可以工作在纯 Wayland 模式下嘛？</p>
+]]></content:encoded>
+<pubDate>2024-04-30T02:04:32Z</pubDate>
+<pubDate>2024-04-30T02:03:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何计算程序执行路径的相似度</title>
+<link>https://www.v2ex.com/t/1036957</link>
+<guid>https://www.v2ex.com/t/1036957</guid>
+<content:encoded><![CDATA[
+
+接上一个问题：关于 Java 的如何进行单体应用 tracing 的问题 <a href="https://www.v2ex.com/t/1028385" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1028385</a><br />现在可以获取程序执行时候走过的函数序列信息，但是如何快速比较两条执行路径之间的相似性？<br /><br />假设现在我有了一个程序中定义的目标点 T ，可以执行到 T 的函数序列的集合是 S ，当前执行的序列是 P<br />我理解需要完成以下：<br /><br />1. 首先需要找一个合适的数据结构，存储这个执行路径信息。<br />比如说记录走过了 funcA -&gt; funcB -&gt; funcC ，可以使用线性数据结构，也可以使用树或者图，但是考虑到快速判断两个序列的相似性，最好是给每个 func 一个编码，最终执行完之后得到一个编码序列，直接比较 P 的编码序列和 S 集合中所有序列的相似性。<br /><br />2. 定义什么样的指标，证明路径 P1 比路径 P 更优，这个指标通过 P/P1 和 S 做运算计算出来的。<br />如果两条路径 P 和 P1 都可以走到目标点 T ，那么他们的分数都是最优的，也就是距离目标点 T 的距离为 0 。<br />如果都走不到，这两者也是应该有一个分数的，基于这个分数可以判断出 P 和 P1 谁更优。如果可以走到 T ，那还好；但是如果走不到 T ，P 和 P1 是需要和集合 S 中的所有路径都计算一遍，得到自己的分数的，这个时间复杂度可能有点高，所以这个指标和计算方式其实是依赖于上面定义的数据结构的。<br /><br />如果大佬们有思路，可以评论，咱们多多交流🫡🫡🫡
+]]></content:encoded>
+<pubDate>2024-04-30T02:02:16Z</pubDate>
+<pubDate>2024-04-30T01:59:16Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 怎么面对工作中的“致郁系”同事？</title>
+<link>https://www.v2ex.com/t/1036956</link>
+<guid>https://www.v2ex.com/t/1036956</guid>
+<content:encoded><![CDATA[
+
+看了这篇帖子 <a href="https://www.v2ex.com/t/1036671" rel="nofollow noopener" target="_blank">/t/1036671</a> 那个趾高气扬的研发副总的言论，心中一股愤怒和忧伤交织的复杂情绪。这样的上司，想必谁摊上了都难免心中产生愤怒和怨恨。可能因为运气比较好，我遇到的上司都还挺好的。他们尊重技术，关心下属，相比之下，他们自己对技术有多少了解反而是没那么重要。反而是一些同事“掌握了沟通交流的语言”后，让我感到非常厌恶。<br /><br />这个人，整天在工作群里艾特这个艾特那个的，指责这个谁这里做得不对，那个谁这里可以改进，一会这个东西要学习、一会那个东西要反思。还非要按照自己的想法去“改善”工作流程，要是谁没跟着她，他就跑到工作群里艾特所有人，扯一些“我们是一个团队，大家要共同进步，不能因为什么什么影响了什么什么……”言之无物的长篇大论。<br /><br />同时还非常善于甩锅。比如出了什么问题，她直接在客户群里说：“非常抱歉 xxx ，本次出现这个问题是因为我们的某位同事 xxx 的 xxx 操作导致的，今后我们会改进优化 xxx”……她不说自己的问题，总挑别人的毛病。弄完这一套又去同事群里艾特那个她认为应该负责的同事，又是一顿长篇大论的“教育”，然后说“因为本次损失 xxx ，某某同事应该反省，所以应该拿出 200 块钱请大家喝下午茶”……当然，最后那位同事没搭理他，还是上司自掏腰包给大家点了饮料，算是平息了这些小风波。<br /><br />还有很多时候，其他人在群里发过的信息，她非要用自己的话再复述一遍，意思好像是别人的话看不懂，要她的话才能看懂一样。<br /><br />她还特别爱自作主张，对别人指指点点的，要求这个要求那个的。真的是心累。<br /><br />虽然这些都是非常小的小事，说出来可能都会让人觉得我是小肚鸡肠，但是这样的人就是让人感到烦躁，但也不能怎么样啊，工作还得继续。甚至可以说，工作中 40%的情绪劳动都是这个人导致的。<br /><br />大家在工作中有遇到过让自己反感的同事吗，又是怎么应对的呢？节前最后一个工作日了，把不愉快都说出来，然后趁五一好好调整放松一下吧~
+]]></content:encoded>
+<pubDate>2024-04-30T02:01:02Z</pubDate>
+<pubDate>2024-04-30T02:24:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2024 年中买什么平板好</title>
+<link>https://www.v2ex.com/t/1036955</link>
+<guid>https://www.v2ex.com/t/1036955</guid>
+<content:encoded><![CDATA[
+
+重点指标：<br />便携<br />续航<br />手写<br /><br />使用场景：<br />做笔记<br />看文档、多媒体<br /><br />现在 Surface 、iPad 、还有安卓平板哪个能打
+]]></content:encoded>
+<pubDate>2024-04-30T01:59:32Z</pubDate>
+<pubDate>2024-04-30T02:25:57Z</pubDate>
+</item>
+<item>
+<title>[Apple] AW 长距离跑步时中间偶尔会不显示心率</title>
+<link>https://www.v2ex.com/t/1036954</link>
+<guid>https://www.v2ex.com/t/1036954</guid>
+<content:encoded><![CDATA[
+
+<p>最近用 s9 跑步时，早晨 7-10 度，跑了 10km+后，手臂有点轻微出汗，偶尔会发生心率变成深灰色不显示的情况，过一两公里又显示了，这种情况不是经常发生，我是按照心率区间有氧减脂慢跑，遇到这种情况也挺烦人的
+不知是不是个别情况，不知如何避免，大家探讨下</p>
+<p>ps：佳明和松拓的表我也用过，相对苹果的，除了用心率带，对比苹果的心率还是很准确的，基本也没有什么搜星的过程，之前用佳明到新的地点偶尔还会有几分钟的搜星时间。后来用苹果也是为了和日常的睡眠，站立等数据结合得好点。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:57:27Z</pubDate>
+<pubDate>2024-04-30T02:25:07Z</pubDate>
+</item>
+<item>
+<title>[北京] 求教，初到北京，西二旗那边上班租房哪里合适？</title>
+<link>https://www.v2ex.com/t/1036952</link>
+<guid>https://www.v2ex.com/t/1036952</guid>
+<content:encoded><![CDATA[
+
+<p>目前计划是就在西二旗或者西北旺附近租房，走路上下班，避免挤地铁，有合适的小区推荐吗？整租的。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:51:44Z</pubDate>
+<pubDate>2024-04-30T02:23:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 你们的 Twitter 用什么运营商的手机号绑定? 有没有什么推荐的</title>
+<link>https://www.v2ex.com/t/1036951</link>
+<guid>https://www.v2ex.com/t/1036951</guid>
+<content:encoded><![CDATA[
+
+<p>1 、现状：我现在的账户用国内电信的号码绑定的。但是我前两天换了一台 ipad ，在登入账户时提示要验证手机号，在填入手机号后，下一步报错。 虽然现在手机和电脑上可以用，但是考虑到未来某一天如果登录时需要验证手机号，我将会没办法验证，账号就没办法用了。 所以现在想换绑手机。</p>
+<p>2 、换绑情况：我手上还有一个菲律宾的 globe 卡。我昨天 Twitter 换绑 globe 卡时，发现也报错，说不支持该运营商。换绑失败</p>
+<p>3 、有没有什么推荐的海外可以绑推特的电话卡? 希望越便宜越好。 因为我没有上网的需求，唯一的用途就是可以接收验证码。因此，我希望能够尽可能节省成本。这也是我选择用 Globe 卡的原因。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:51:24Z</pubDate>
+<pubDate>2024-04-30T01:58:27Z</pubDate>
+</item>
+<item>
+<title>[Android] 请问小米手机如何远程协助呢</title>
+<link>https://www.v2ex.com/t/1036950</link>
+<guid>https://www.v2ex.com/t/1036950</guid>
+<content:encoded><![CDATA[
+
+<p>就是方便家里老人，老人有时候不知道怎么操作，就可以远程控制协助下；
+另请问小米手机如何更改底部导航栏的大小啊，老人操作底部导航栏一点都不方便</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:50:19Z</pubDate>
+<pubDate>2024-04-30T02:23:37Z</pubDate>
+</item>
+<item>
+<title>[小米] 小米运动健康内的睡眠数据同步到苹果健康是故意简化掉的嘛？</title>
+<link>https://www.v2ex.com/t/1036949</link>
+<guid>https://www.v2ex.com/t/1036949</guid>
+<content:encoded><![CDATA[
+
+<p>睡眠监测数据会有一些 REM （快速动眼期）、深睡时长、浅睡时长等数据，到苹果健康里面就只剩一个总时长了，这是有意而为之还是单纯没适配好？</p>
+<p>如果是适配的问题，那是 xiaomi 的问题还是 apple 的问题？</p>
+<p>设备是小米手环 8 pro ，为什么不用 apple watch ， 贵 + 续航太低。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:49:38Z</pubDate>
+<pubDate>2024-04-30T02:25:05Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 如何起昵称，可以利用到搜索引擎的分词规则，进而避免在搜索引擎中被搜索到？</title>
+<link>https://www.v2ex.com/t/1036948</link>
+<guid>https://www.v2ex.com/t/1036948</guid>
+<content:encoded><![CDATA[
+
+<p>最近了解了下人肉搜索相关的东西，发现通过搜索引擎搜索一个人的昵称，可以把它的各种账号都给找出来。</p>
+<p>我记得搜索引擎是有所谓的分词规则的，能不能在取昵称的时候利用到分词规则，如取名为“我和动物”，这样搜索引擎就会把这个昵称分为“我”、“和”、“动物”，并主动把“和”这个单词丢掉。</p>
+<p>请问这样是否可行？还有没有其他办法可以防止搜索引擎收录自己的各平台信息？</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:40:24Z</pubDate>
+<pubDate>2024-04-30T02:21:22Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [浙江-湖州] 急招测试工程师</title>
+<link>https://www.v2ex.com/t/1036947</link>
+<guid>https://www.v2ex.com/t/1036947</guid>
+<content:encoded><![CDATA[
+
+[工作地点、时间]<br />--------------------------<br />地点：湖州市区<br />工作时间：8:20-5:30 ，周末双休，工作不卷<br />薪资：5~8k<br /><br />[测试工程师]<br />-------------------<br />岗位要求：专科及以上学历，熟悉服务器端接口测试、性能测试、自动化测试经验；至少熟悉一种主流测试工具（ QTP 、Selenium 、LoadRunner 、Jmeter ）；<br />岗位职责：<br />1 、负责公司产品 web 、app 、小程序等功能测试及上线工作；<br />2 、参加需求评审、开发设计评审、测试用例评审并提出疑问及补充点；<br />3 、制定测试方案、测试计划、分析需求并提炼测试用例， 编写测试报告；<br />4 、准备测试数据，按照评审过的测试用例执行测试用例、bug 跟踪定位及回归测试；<br />5 、协助需求部门解决问题，协助开发排查线上问题；<br /><br />简历投递 boss 直聘或 vx T2N0Q0M3Ng==<br /><a href="https://i.imgur.com/trjunbD.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/trjunbD.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-04-30T01:36:23Z</pubDate>
+<pubDate>2024-04-30T02:21:43Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 有没有推荐的家用智能屏或方案</title>
+<link>https://www.v2ex.com/t/1036946</link>
+<guid>https://www.v2ex.com/t/1036946</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>小度 pass ，有一个，太卡，各种视频软件需要会员，而且需要经常手动登录。而且被爆过偷跑 PCDN 。<a href="https://www.163.com/dy/article/IKHULHR305319YKA.html" rel="nofollow">https://www.163.com/dy/article/IKHULHR305319YKA.html</a></li>
+<li>有基于 ios 系统（ ipad 、iphone ）改造的方案更好。对基于 Android 的智能屏都不放心（小度流），也不省心。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-04-30T01:35:28Z</pubDate>
+<pubDate>2024-04-29T21:35:28Z</pubDate>
+</item>
+<item>
+<title>[投资] 如何财富自由</title>
+<link>https://www.v2ex.com/t/1036945</link>
+<guid>https://www.v2ex.com/t/1036945</guid>
+<content:encoded><![CDATA[
+
+<p>如题:普通人（限制现金流 10w 内）如何合法的实现财富自由，1-2 年时间实现。虽然这个问题看起来不靠谱，但是我觉得还是会有这样的大佬</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:33:44Z</pubDate>
+<pubDate>2024-04-30T02:25:42Z</pubDate>
+</item>
+<item>
+<title>[Chrome] Chrome 插件 v3 如何获取源站指定网络请求的响应内容？</title>
+<link>https://www.v2ex.com/t/1036944</link>
+<guid>https://www.v2ex.com/t/1036944</guid>
+<content:encoded><![CDATA[
+
+<p>查到的几乎都是使用 webRequest ，但是这个在 v3 中好像已弃用：<br /><br />chrome.webRequest.onCompleted.addListener(<br />    function(details) {<br />        console.log("Request completed: ", details);<br />    },<br />    {urls: ["&lt;all_urls&gt;"]}<br />);<br /><br />目的是不用通过 dom 抓取内容，通过请求的响应内容能直接获取到更完善的数据，DOM 也是通过响应内容渲染的。<br /><br />用到了号称插件界的 nextjs 脚手架： <a href="https://github.com/PlasmoHQ/plasmo" rel="nofollow">https://github.com/PlasmoHQ/plasmo</a></p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:33:14Z</pubDate>
+<pubDate>2024-04-30T02:15:36Z</pubDate>
+</item>
+<item>
+<title>[程序员] 看到前端被 PUA，后端有哪么难吗？</title>
+<link>https://www.v2ex.com/t/1036943</link>
+<guid>https://www.v2ex.com/t/1036943</guid>
+<content:encoded><![CDATA[
+
+<p>最近有个帖子
+《对接后端接口被挑战能力不行（吐槽贴，不会因为这个问题去挑战什么）》
+<a href="https://www.v2ex.com/t/1036619#reply165" rel="nofollow">https://www.v2ex.com/t/1036619#reply165</a></p>
+<p>当看到</p>
+<blockquote>
+<h2>比如之前获取图片，因为他们的图片是两张表，一张是图片 id ，一张是 id 对应的图片地址。我只能先获取 id ，再用 id 去请求接口。</h2>
+</blockquote>
+<p>这后端真是懒到家了，你要经常查询图片地址，会先写一段 SQL 查询一下 ID ；再写一段 SQL 查询图片地址吗？</p>
+<p>所以，己所不欲，勿施于人</p>
+<h3>我试着 5 分钟内将本地多表 join 查询，快速转换为 API ，并且发布到互联网，供小程序、web 应用、App 调用</h3>
+<p>（以下是软文部分，不喜请关闭）</p>
+<p>5 分钟倒计时，开始！</p>
+<h2>先登陆： <a href="https://open.apisql.cn" rel="nofollow">https://open.apisql.cn</a></h2>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/btlDdArx1PeO3iS.png" /></p>
+<p>API 接口，在物流接口组，下新建 1 个接口
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/GFbo4StDjWPNryB.png" /></p>
+<p>1 分钟过去了</p>
+<p>复制粘贴 SQL 查询
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/vQh3tLpE75FBerc.png" /></p>
+<p>运行 SQL ，看到是我们要想的结果。</p>
+<p>如数据行多启用分页功能， [分页] 打勾即可。</p>
+<pre><code>SELECT
+    p.name AS province,
+    c.name AS city,
+    co.name AS country,
+    t.name AS town
+FROM
+    province p
+JOIN    city c ON p.province_id = c.province_id
+JOIN    country co ON c.city_id = co.city_id
+JOIN    town t ON co.country_id = t.country_id
+where   c.name  =  :city
+
+-- 我们还多写 where   c.name  =  :city
+-- 解释一下:city 是参数，示例：深圳市 开发测试
+</code></pre>
+<p>2 分钟过去了</p>
+<p>我们给物流这个接口组分配权限，让使用 API key 访问
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/nHKXG1DAhBrIdLJ.png" /></p>
+<p>复制 Secret Key
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/bGqh4dfiv6orV3J.png" /></p>
+<p>发布上线
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/qUjeabhNKzncw1H.png" /></p>
+<p>3 分钟过去了，我们再花 1 分钟作个接口调试</p>
+<p>粘贴上 Secret Key ，发送请求
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/oID3j15OzNhZAU7.png" /></p>
+<p>我们复制一种自己常用示例代码
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/oHdZ2MQp7LguYOv.png" /></p>
+<p>本地测试一下
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/04/30/rGgFuJAs7YZBpaO.png" /></p>
+<h2>完美！在 5 分钟内，就完成这个 API 的开发。</h2>
+<p>后端有哪么难吗？不就是 5 分钟的事吗？</p>
+<p>对于微信小程序对请求的接口有三个基本要求：</p>
+<ul>
+<li>必须是有备案的域名。</li>
+<li>必须是有 SSL 证书（ https ）。</li>
+<li>域名不得带端口号。</li>
+</ul>
+<p>这三项我们都满足，我们还忘记安全还配置</p>
+<ul>
+<li>使用 API Key 认证</li>
+<li>使用参数</li>
+</ul>
+<h2>软件持续更新中，会越来越好</h2>
+<p>项目文档手册软件地址：<a href="https://www.apisql.cn" rel="nofollow">https://www.apisql.cn</a></p>
+<p>V 友们临时开发个 API 、作个测试啥的，都可以拿来使用，反正每月有 5 万次免费 API 的请求。</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:32:03Z</pubDate>
+<pubDate>2024-04-30T02:25:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想看看大家 [精选后的信息&amp;知识源] ，也分享下我的收藏。</title>
+<link>https://www.v2ex.com/t/1036942</link>
+<guid>https://www.v2ex.com/t/1036942</guid>
+<content:encoded><![CDATA[
+
+<p>如果想要成为知晓领域内、各种新技术的这类人。需要关注一些书籍以外的新闻源，科技发展趋势，聊各行业来龙去脉等等。但信息实在太多，比如关注开源库的 Release 、业界新闻、Twitter 、订阅 RSS 、公众号、NewsLetter 、大佬群聊等。</p>
+<p>到处都在收割你的注意力，而时间是有限的。需要时刻决定看什么和不看什么，输入决定输出。所以想看看大家有没有一些值得推荐的信息源，tips 一下：不要范围太宽比如只说什么平台 知乎啥的，这种没有意义，最次也要推荐到知乎的具体某作者的程度。</p>
+<h2>也分享一下我认为比较优质信息源：</h2>
+<pre><code>V2EX - 每日最热主题
+少数派 - 本周值得看
+Github Trending （热门项目，代表了技术发展的一种风向）
+HelloGitHub 月刊 （因为我是程序员，所以会看这个）
+36 氪 - 8 点 1 氪（互联网资讯早报）
+远川研究所（独立财经智库）
+晚点 LatePost （提供可靠的商业信息与商业故事）
+各种大平台的年度报告
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-04-30T01:31:02Z</pubDate>
+<pubDate>2024-04-30T01:41:21Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 自己搞了个免费 EMBY 服务器（有 R18），已有 700 用户，明天开放注册</title>
+<link>https://www.v2ex.com/t/1036941</link>
+<guid>https://www.v2ex.com/t/1036941</guid>
+<content:encoded><![CDATA[
+
+<p>五一晚上五点开放注册</p>
+<p>TG 群： <a href="https://t.me/feiyueemby" rel="nofollow">https://t.me/feiyueemby</a></p>
+<p>联通电信大部分地区可以直连，移动自觉富强</p>
+<p>免费，不收费</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:27:14Z</pubDate>
+<pubDate>2024-04-29T09:25:14Z</pubDate>
+</item>
+<item>
+<title>[Android] 关于 iPhone 和安卓的争论对我这个技术者来说毫无意义！</title>
+<link>https://www.v2ex.com/t/1036940</link>
+<guid>https://www.v2ex.com/t/1036940</guid>
+<content:encoded><![CDATA[
+
+<p>不用争论，我是技术者，
+iphone 和安卓我都需要，
+所以我两个都买了，都在用＾_＾。</p>
+<p>即使不是技术者的，也建议两个都办，
+他们是这个时代最重要的两个手机操作系统。
+都值得使用和仔细品味。
+不至于办不起两个电话吧 =_=</p>
+]]></content:encoded>
+<pubDate>2024-04-30T01:21:54Z</pubDate>
+<pubDate>2024-04-30T02:18:45Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 有个想法，有付费解决 bug 的网站不。5-10 块， 5-10 分钟。</title>
+<link>https://www.v2ex.com/t/1036938</link>
+<guid>https://www.v2ex.com/t/1036938</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-04-30T01:20:52Z</pubDate>
+<pubDate>2024-04-28T23:01:38Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 今天 ublacklist 导致 chrome 任何网站都访问不了</title>
 <link>https://www.v2ex.com/t/1036937</link>
 <guid>https://www.v2ex.com/t/1036937</guid>
 <content:encoded><![CDATA[
-
 <p>早上来 chrome 什么网站都打不开，以为是梯子，但是 safari 却可以。卸载 chrome 重装也不行，删掉 ublacklist 后好了</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T01:15:28Z</pubDate>
 <pubDate>2024-04-30T01:16:57Z</pubDate>
 </item>
 <item>
@@ -20,10 +633,8 @@
 <link>https://www.v2ex.com/t/1036936</link>
 <guid>https://www.v2ex.com/t/1036936</guid>
 <content:encoded><![CDATA[
-
 前几天有个同事跟我说家里有事要早点回家，我就跟他说反正也没啥事现在就走吧，咱们这也没人管，没事就走吧不用等到下午。到了晚上俺 TL 跟我打电话说他离职了，就感觉很诧异。<br />这个同事还没过试用期刚来两月，人很老实，就是技术水平比较菜。我也是从他身上看到了自己当初的样子,搁那坐着也不敢摸鱼玩手机,问题解决不了就在那硬坐一天。所以我一般有空都会去问问他有啥问题没有，但是昨天想了想可能我可能有些做法确实不合适。有时候我没有直接告诉他怎么解决 而是让他去百度或者看文档，可能对于现阶段还是直接告诉他原因和解决办法比较好。此外，有时候可能语气确实有点不耐烦，有些东西可能确实没有讲清楚，事后想了很久他离职会不会和我这些所作所为有关系。
 ]]></content:encoded>
-<pubDate>2024-04-30T01:15:12Z</pubDate>
 <pubDate>2024-04-29T21:14:12Z</pubDate>
 </item>
 <item>
@@ -31,10 +642,8 @@
 <link>https://www.v2ex.com/t/1036935</link>
 <guid>https://www.v2ex.com/t/1036935</guid>
 <content:encoded><![CDATA[
-
 <p>支付宝里的我的快递里有一个 19 天待取的快递，但是丰巢小程序里又说没有，这两家的信息源不是同一处吗。（收件都是写到丰巢智能柜里的）</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T01:14:11Z</pubDate>
 <pubDate>2024-04-30T01:11:11Z</pubDate>
 </item>
 <item>
@@ -42,10 +651,8 @@
 <link>https://www.v2ex.com/t/1036933</link>
 <guid>https://www.v2ex.com/t/1036933</guid>
 <content:encoded><![CDATA[
-
 <p>这是受了啥刺激啊？</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T01:13:10Z</pubDate>
 <pubDate>2024-04-30T01:17:42Z</pubDate>
 </item>
 <item>
@@ -53,7 +660,6 @@
 <link>https://www.v2ex.com/t/1036932</link>
 <guid>https://www.v2ex.com/t/1036932</guid>
 <content:encoded><![CDATA[
-
 <p>查了些资料就怕以下几个：</p>
 <ul>
 <li>监管机</li>
@@ -62,7 +668,6 @@
 </ul>
 <p>外观有点划痕倒是没什么影响，闲鱼看到的大部分都是几乎全新😅</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T01:01:08Z</pubDate>
 <pubDate>2024-04-30T01:14:01Z</pubDate>
 </item>
 <item>
@@ -70,10 +675,8 @@
 <link>https://www.v2ex.com/t/1036931</link>
 <guid>https://www.v2ex.com/t/1036931</guid>
 <content:encoded><![CDATA[
-
 人在日本，日元疯狂贬值中。<br /><br />今天早上，在便利店 ATM 取了 10 万日元，实际消费人民币 4597.95 元；<br /><br />算了下汇率：1 RMB ≈ 21.77 JPY 。看了下日元兑人民币汇率曲线，已经到了 5 年间的最低点。<br /><br />与很多人的恐慌不同，我觉得现在是购入日元资产的最佳时期。<br /><br />我想问问大家，基于日元疯狂贬值，该如何进行消费投资？
 ]]></content:encoded>
-<pubDate>2024-04-30T00:58:37Z</pubDate>
 <pubDate>2024-04-30T01:16:08Z</pubDate>
 </item>
 <item>
@@ -81,10 +684,8 @@
 <link>https://www.v2ex.com/t/1036929</link>
 <guid>https://www.v2ex.com/t/1036929</guid>
 <content:encoded><![CDATA[
-
 nuxt 部署在 cf Page 上 想用 env 里的环境变量<br /><br />或者这样说 cf 里的环境变量 如何在 nuxt 里获取<br /><br />菜鸟搞了 2 天没成功
 ]]></content:encoded>
-<pubDate>2024-04-30T00:49:48Z</pubDate>
 <pubDate>2024-04-30T00:46:48Z</pubDate>
 </item>
 <item>
@@ -92,12 +693,10 @@ nuxt 部署在 cf Page 上 想用 env 里的环境变量<br /><br />或者这样
 <link>https://www.v2ex.com/t/1036928</link>
 <guid>https://www.v2ex.com/t/1036928</guid>
 <content:encoded><![CDATA[
-
 <p>流程审批，各种表单的填报</p>
 <p>找了几个低代码平台，开源版本基本没有 OA ，商业版没预算（😢）</p>
 <p>技术栈后端无所谓，前端最好是 VUE</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T00:47:02Z</pubDate>
 <pubDate>2024-04-30T01:11:44Z</pubDate>
 </item>
 <item>
@@ -105,10 +704,8 @@ nuxt 部署在 cf Page 上 想用 env 里的环境变量<br /><br />或者这样
 <link>https://www.v2ex.com/t/1036926</link>
 <guid>https://www.v2ex.com/t/1036926</guid>
 <content:encoded><![CDATA[
-
 FYI
 ]]></content:encoded>
-<pubDate>2024-04-30T00:30:30Z</pubDate>
 <pubDate>2024-04-30T01:17:14Z</pubDate>
 </item>
 <item>
@@ -116,13 +713,11 @@ FYI
 <link>https://www.v2ex.com/t/1036925</link>
 <guid>https://www.v2ex.com/t/1036925</guid>
 <content:encoded><![CDATA[
-
 <p>影响你赚钱了吗？
 影响你吃饭了吗？</p>
 <p>都没有啊，关心能力圈之外的干嘛？</p>
 <p>有人能分享一下关于‘为什么’吗？</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T00:30:20Z</pubDate>
 <pubDate>2024-04-29T08:30:20Z</pubDate>
 </item>
 <item>
@@ -130,7 +725,6 @@ FYI
 <link>https://www.v2ex.com/t/1036924</link>
 <guid>https://www.v2ex.com/t/1036924</guid>
 <content:encoded><![CDATA[
-
 <p>前两年学做自媒体搞视频，写了个<a href="https://jy.mzh.ren/" rel="nofollow">剪映字幕在线工具 </a>，对字幕有了点了解。想着字幕是个简单的文本文件，一些简单的操作，可以在浏览器上操作完事。就写了这个在线的小网站——字幕工具箱。</p>
 <p>网站地址： <a href="https://zm.i8k.tv/" rel="nofollow">https://zm.i8k.tv/</a></p>
 <p>备用地址： <a href="https://zm.mzh.ren/" rel="nofollow">https://zm.mzh.ren/</a></p>
@@ -138,18 +732,15 @@ FYI
 <p>视频介绍： <a href="https://www.bilibili.com/video/BV1TE421j7QV/" rel="nofollow">https://www.bilibili.com/video/BV1TE421j7QV/</a></p>
 ]]></content:encoded>
 <pubDate>2024-04-30T00:22:03Z</pubDate>
-<pubDate>2024-04-30T00:22:03Z</pubDate>
 </item>
 <item>
 <title>[问与答] FSD 在国内即将落地，鲶鱼来了吗？</title>
 <link>https://www.v2ex.com/t/1036923</link>
 <guid>https://www.v2ex.com/t/1036923</guid>
 <content:encoded><![CDATA[
-
 <p>在国内一众厂商都还在使用激光雷达作为硬件外挂的情况下？为什么特斯拉不在头顶加上一个小凸起？摄像头加毫米波雷达真的已经够用了吗？<br />
 另外这是否意味着国内在 AI 自动驾驶领域的研究落后于漂亮国？</p>
 ]]></content:encoded>
-<pubDate>2024-04-30T00:13:56Z</pubDate>
 <pubDate>2024-04-30T01:15:17Z</pubDate>
 </item>
 <item>
@@ -157,7 +748,6 @@ FYI
 <link>https://www.v2ex.com/t/1036922</link>
 <guid>https://www.v2ex.com/t/1036922</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 裸辞了，计划先找个地方躺平个一年半载，有两个原因。<ul>
@@ -168,7 +758,6 @@ FYI
 <li>大伙儿觉得去哪里躺平好，想躺平专职搞程序，做自己想做的事。</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-04-29T23:39:39Z</pubDate>
 <pubDate>2024-04-28T23:39:39Z</pubDate>
 </item>
 <item>
@@ -176,11 +765,9 @@ FYI
 <link>https://www.v2ex.com/t/1036921</link>
 <guid>https://www.v2ex.com/t/1036921</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/cHI6g7j.png" /> </p>
 <p>🤔还是能继续使用，一直没扣钱</p>
 ]]></content:encoded>
-<pubDate>2024-04-29T23:34:32Z</pubDate>
 <pubDate>2024-04-29T23:33:32Z</pubDate>
 </item>
 <item>
@@ -188,7 +775,6 @@ FYI
 <link>https://www.v2ex.com/t/1036919</link>
 <guid>https://www.v2ex.com/t/1036919</guid>
 <content:encoded><![CDATA[
-
 <p>我一亲戚 家庭年收入 10w 左右
 最近他丈夫跟她坦白自己在外面借了网贷 目前累计欠款 40w+
 各个平台月分期额总量达到 6w
@@ -196,7 +782,6 @@ FYI
 有一套房产</p>
 <p>只谈解决网贷这一问题本身的话，如何处置才能还掉这些钱呢？目前月还款数额明显难以承担？</p>
 ]]></content:encoded>
-<pubDate>2024-04-29T23:21:53Z</pubDate>
 <pubDate>2024-04-30T01:15:49Z</pubDate>
 </item>
 <item>
@@ -204,10 +789,8 @@ FYI
 <link>https://www.v2ex.com/t/1036917</link>
 <guid>https://www.v2ex.com/t/1036917</guid>
 <content:encoded><![CDATA[
-
 启动系统信息报了错，按指示检查 smart 信息，卡在 90%下不去，前面倒是挺快的。正常吗？西数红盘
 ]]></content:encoded>
-<pubDate>2024-04-29T22:35:16Z</pubDate>
 <pubDate>2024-04-29T23:41:16Z</pubDate>
 </item>
 <item>
@@ -215,13 +798,10 @@ FYI
 <link>https://www.v2ex.com/t/1035694</link>
 <guid>https://www.v2ex.com/t/1035694</guid>
 <content:encoded><![CDATA[
-
 做富文本编辑器 4~5 年了，现在在百度，之前在印象笔记，再之前是美团，再再之前是什么值得买。<br /><br />31 岁了，没成功学会管理，部门不做文档业务了，裁了一波人，PM 设计 服务端，前端，我是前端编辑器之一。<br /><br />现在心态：给钱就干，我要还房贷，薪资可以聊，都好说，离家近的，工资可以低点，都能接受。<br /><br />英语属于日常交流水平，不知道面试行不行，加微信：WGhlbGRvbkNhbw==  给简历。<br /><br />翻译了目前质量最好的 Prosemirror 文档： <a href="https://prosemirror.xheldon.com" rel="nofollow noopener" target="_blank">https://prosemirror.xheldon.com</a><br /><br />写了个方便使用 Notion 写博客的插件 Notion Flow： <a href="https://notion-flow.xheldon.com" rel="nofollow noopener" target="_blank">https://notion-flow.xheldon.com</a><br /><br />即将发布一个图片处理的 Electron 开发的桌面工具，解决一个 AE 转序列帧的小痛点<br /><br />注意：我真的没有带薪摸鱼做这些，都是下班搞的、、、没办法，不学管理，不琢磨人心，心思都在码上啦<br />推特： <a href="https://twitter.com/_Xheldon" rel="nofollow noopener" target="_blank">https://twitter.com/_Xheldon</a>
 ]]></content:encoded>
-<pubDate>2024-04-25T10:04:32Z</pubDate>
 <pubDate>2024-04-28T05:41:21Z</pubDate>
 </item>
-
 <item>
 <title>准备买个二手 Apple Watch， Ultra1 还是 Ultra2</title>
 <link>https://www.v2ex.com/t/1035691</link>
@@ -15566,224 +16146,6 @@ GitHub: <a href="https://github.com/imlinhanchao/vsc-vue-i18n" rel="nofollow">ht
 准确说 chromium 系 124 版本（ chrome edge ）都不能访问，直接提示连接意外终止；<br /><br />同一台电脑 Firefox 和 edge 123 都可以访问，另外手机端的 edge124 也可以访问<br /><br />不知道问题出在哪，各位大佬有啥排查方向吗（ Nginx 看了没啥异常日志）
 ]]></content:encoded>
 <pubDate>2024-04-25T13:35:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] macbook air m1 上的 todesk 最新版无网络连接</title>
-<link>https://www.v2ex.com/t/1035739</link>
-<guid>https://www.v2ex.com/t/1035739</guid>
-<content:encoded><![CDATA[
-不知道为什么，没有设置代理，当前最新版，彻底重装过，重装完前几天是可以的，后面又不行了。
-]]></content:encoded>
-<pubDate>2024-04-23T13:26:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 这是社工吗？还是诈骗？</title>
-<link>https://www.v2ex.com/t/1035738</link>
-<guid>https://www.v2ex.com/t/1035738</guid>
-<content:encoded><![CDATA[
-<p>在家看游戏直播看着看着，QQ 突然弹个好友验证，直接爆出了我的姓名，挂着个网红女头像，等级半颗星。搁平时这种小号来加我的从来没有爆出过我的姓名，这次这个我有点好奇是什么情况。难道是在贴吧骂了一个搞南通的 CD ，给我开盒了？</p>
-]]></content:encoded>
-<pubDate>2024-04-25T13:19:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 网上买近视眼镜框如何知道什么框适合自己</title>
-<link>https://www.v2ex.com/t/1035736</link>
-<guid>https://www.v2ex.com/t/1035736</guid>
-<content:encoded><![CDATA[
-我之前看到有人说试戴，但这个也太麻烦了。万一不合适，还得寄回去，来来回回耽误不少时间
-]]></content:encoded>
-<pubDate>2024-04-21T13:06:26Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 华中科大的计算机技术的在职硕士，职场认可度如何？</title>
-<link>https://www.v2ex.com/t/1035735</link>
-<guid>https://www.v2ex.com/t/1035735</guid>
-<content:encoded><![CDATA[
-<p>RT
-第一学历是土木大专，17 年自学转码，自考了某 985 的本科学历</p>
-<p>网上搜了一圈
-1 。计算机相关专业，2 。周末上课，家境贫寒无法脱产上全职，3 。离江苏比较近，因为大概率无法去上课城市找到合适的工作</p>
-<p>符合这三个的，只有武汉的华中科大的“计算机技术”，我去武汉高铁 2 个多小时，周五晚上做高铁去，周日晚上回来，在可接受的范围内，学费 7.5W 也能承受</p>
-<p>做了一下真题，英语没问题。数学很多都忘了，但复习下也没问题，主要需要背下毛概，马原和专业课，如果现在开始全力复习，下半年报名，年底考试，个人有信心考过</p>
-<p>主要是如果考上了，备考+复试+上课的时间估计 4-5 年，这期间基本上不能干其他的事情了，并且有一定的风险</p>
-<p>风险主要是现在的工作是周末 100%不上班，所以上课时间不是问题，但考虑到裁员，无法找到有周末上课时间的工作等问题，可能导致学业无法继续</p>
-<p>我经济上可以有脱产 2 年的冗余，再多可能扛不住</p>
-<p>自身情况是本人没房，没车，没老婆，没孩子。</p>
-<p>我向问下，这个华中科大的计算机技术的在职硕士，对比我现在 985 的自考本科，对职场有没有比较大的提升？</p>
-]]></content:encoded>
-<pubDate>2024-04-25T14:09:52Z</pubDate>
-</item>
-<item>
-<title>[Android] App 上架 Google play 被二次签名</title>
-<link>https://www.v2ex.com/t/1035734</link>
-<guid>https://www.v2ex.com/t/1035734</guid>
-<content:encoded><![CDATA[
-<p>搞个了 App ，接了飞书授权登录（用的本地签名 A ），一开始没上 Google Play （使用 apk 分发） ，后来要求要上，上去后用户反馈飞书授权用不了，研究发现签名被 Google Play 二签变成 B ，所以飞书应用验证不通过。</p>
-<p>然后我们把本地签名 A 上传到 Google Play ，重新提审下载下来还是老的签名 B ，问 Google Play 官方说，大致意思是签名使用了轮换机制，存量用户会执行此机制使用旧签名。</p>
-<blockquote>
-<p>对于使用低于 AndroidN 版本的用户仍将继续使用您的旧版本进行签名钥匙。
-对于 AndroidN+版本的用户,他们将使用您的旧密钥进行签名,但会生成标牌中包含的密钥轮换证明(以实现您之前的密钥 A 与新密钥 B 之间的信任), 以便信任新密钥一旦他们完全升级到 AndroidT(API 级别 33)版本及更高版本,您就注册了密钥,此时将完全强制执行新密钥。</p>
-</blockquote>
-<p>请教下广大原生大佬，有没有什么方法能够统一使用签名 A ，并且立即生效。</p>
-]]></content:encoded>
-<pubDate>2024-04-25T13:15:03Z</pubDate>
-</item>
-<item>
-<title>[视频技术] 推荐几个在用的视频下载工具</title>
-<link>https://www.v2ex.com/t/1035733</link>
-<guid>https://www.v2ex.com/t/1035733</guid>
-<content:encoded><![CDATA[
-<h1>在线视频下载器-XXVID</h1>
-<p>免费，可以下载高清、全高清及 4K+视频，部分站点还支持无水印下载，自称覆盖 1000+网站，海外几个热门站点确实可用，懂得都懂，但是不支持 YouTube ！</p>
-<p>网站地址👉 <a href="https://xxvid.download?utm_source=v2ex" rel="nofollow">XXVID</a></p>
-<p><img alt="在线视频下载器｜ XXVID" class="embedded_image" rel="noreferrer" src="https://cdn.twiclips.com/xxvid/xxvid.jpg" title="XXVID" /></p>
-<p><img alt="在线视频下载器｜ XXVID" class="embedded_image" rel="noreferrer" src="https://cdn.twiclips.com/xxvid/xxvid-demo.jpg" title="XXVID" /></p>
-<h1>YouTube 视频下载器-DMSAVE</h1>
-<p>免费，可以选择不同分辨率，包括音频、视频，也支持其他站点下载，但是亲测 YouTube 效果最好。</p>
-<p>网站地址👉 <a href="https://dmsave.top?utm_source=v2ex" rel="nofollow">DMSAVE</a></p>
-<p><img alt="YouTube 视频下载器｜ DMSAVE" class="embedded_image" rel="noreferrer" src="https://mrpa-video.oss-us-west-1.aliyuncs.com/xxvid/dmsave.jpg" title="DMSAVE" /></p>
-<h3>还有哪些大家一直在用的视频下载站点，欢迎评论分享，传播正能量😎</h3>
-]]></content:encoded>
-<pubDate>2024-04-25T12:47:48Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] 有没有玩 PVE 的大佬啊，咨询一个 openwrt 搭建的问题</title>
-<link>https://www.v2ex.com/t/1035732</link>
-<guid>https://www.v2ex.com/t/1035732</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZRCt3YT.jpeg" /> </p>
-<p>首先，这是我 PVE 的网卡情况，一共 3 个网口。目前登录 PVE 用的 vmbr0 口。</p>
-<p>vmbr1 口我准备桥接给 openwrt 当 lan 口，</p>
-<p>vmbr2 口我准备桥接给 openwrt 当 wan 口。</p>
-<p>于是做了如下设置：
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XDLrgMB.jpeg" />
-这个是 openwrt 虚拟机硬件，桥接了 1 、2 两个网口</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/godzjFi.jpeg" />
-这个是 openwrt 启动以后的网络信息</p>
-<p>按照我的理解，这个时候我再建一个 windows 虚拟机，然后把 win 网卡桥接到 vmbr1 上面，那我 win 机器应该能使用 192.168.11.1 访问 OpenWrt 吧？可是为什么我访问不通呢？是我理解有问题吗？</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/hnhGajo.jpeg" /> </p>
-<p>win 机器配置。</p>
-<p>先感谢指点，无论有无帮助，先磕三头致谢。 [𠳐𠳐𠳐]</p>
-]]></content:encoded>
-<pubDate>2024-04-25T13:02:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 公司电脑限制了向日葵，有什么办法吗？</title>
-<link>https://www.v2ex.com/t/1035730</link>
-<guid>https://www.v2ex.com/t/1035730</guid>
-<content:encoded><![CDATA[
-<p>想通过向日葵访问家里电脑，有时拷个什么东西也方向，请问大家有什么办法吗？</p>
-]]></content:encoded>
-<pubDate>2024-04-25T14:11:34Z</pubDate>
-</item>
-<item>
-<title>[生活] 京东自营买到豆腐脑一样的安佳牛奶</title>
-<link>https://www.v2ex.com/t/1035729</link>
-<guid>https://www.v2ex.com/t/1035729</guid>
-<content:encoded><![CDATA[
-<p>老人在老家体检查出来血脂偏高,为了健康医生让以后都喝脱脂牛奶,但是老家很少能在超市里面买到脱脂牛奶,
-于是我就在京东自营上面买了两箱安佳的脱脂牛奶(相对来说挺贵的,但我也没过多在意)</p>
-<p>喝了三四盒之后一天早上突然接到老人电话,说今天喝到的牛奶不对,味道很奇怪,有一种类似潲水的馊味,我让把牛奶倒在碗里发个图片给我,看到图片的一瞬间我就炸了</p>
-<p><img alt="京东买的安佳牛奶" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/04/25/40d7d59cf526f93f81f4f7311f539c93.jpeg" /></p>
-<p>我联系京东的售后,说自营由品牌方自己负责售后,之后安佳的客服联系到我,说一大堆没用的,最后给到解决方案是回收两箱牛奶然后全额退款,这谁能忍,我问客服这种东西喝进去之后出了问题谁负责(老人 60 多了)? 客服开始诡辩,声称 <code>目前为止,研究表明,没有任何案例证明牛奶会对人体有害</code>, 一开始我还没反应过来,后来醒悟了她在偷换概念之后就追问她意思是不是说上面图片这样的牛奶喝了之后对人体无害?她又重复说牛奶本身的话不会对人体造成危害,但是上面那张图片的牛奶她不发表意见</p>
-<p>我彻底被这种糊弄一个是一个的态度惹到了,开始直接打北京的 12315 投诉京东,打上海的 12315 投诉投诉安佳,按照食品安全法主张十倍赔偿</p>
-<blockquote>
-<p>生产不符合食品安全标准的食品或者经营明知是不符合食品安全标准的食品，消费者除要求赔偿损失外，还可以向生产者或者经营者要求支付价款十倍或者损失三倍的赔偿金</p>
-</blockquote>
-<p>虽然 12315 受理了,但实际效果并不明显, 京东和安佳给出的方案都是类似退一赔一,退货退款同时给 300 元补偿之类的,其中京东的售后最为搞笑, 说我的图片上面的牛奶是打开过的, 要求我从剩下的牛奶中, 一镜到底的剪开一袋全新牛奶倒入碗中, 如果能找到这样的牛奶, 就按照法律标准赔付,买了这么多年 plus 会员,这一刻我简直心寒</p>
-<p>最后我翻了下该产品的评价,专门看了下差评,发现一个普遍问题, 这个牛奶写的保质期一年,但是最近发的货,几乎都是已经生产半年的</p>
-<p><img alt="评价" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/04/25/a646037cdd7455cb97ff4f9b423cff30.jpeg" /></p>
-<p>目前也不准备再多和他们纠缠了,实在太耗费精力了, 奉劝大家不要再买安佳的牛奶, 哪怕是京东自营</p>
-]]></content:encoded>
-<pubDate>2024-04-25T13:57:22Z</pubDate>
-</item>
-<item>
-<title>[Kubernetes] 如何劝领导不要搭建备用 k8s 集群</title>
-<link>https://www.v2ex.com/t/1035728</link>
-<guid>https://www.v2ex.com/t/1035728</guid>
-<content:encoded><![CDATA[
-<p>业务要容器化上 k8s ，部门领导非要搞两套，一主一备，如何劝他不要搭建备用的一套。他还要两个集群同时都用，类似于数据库双主</p>
-]]></content:encoded>
-<pubDate>2024-04-25T12:53:55Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 喜欢的女同事总和旁边男同事打闹</title>
-<link>https://www.v2ex.com/t/1035727</link>
-<guid>https://www.v2ex.com/t/1035727</guid>
-<content:encoded><![CDATA[
-<p>女同事性格活泼，旁边男同事已婚，因为有好感经常性关注她，但感觉她边界感不强。今天和男同事讨论问题，她在旁边逗男同事，男同事没理她，她没停止，男同事直接抢她鼠标，她直接把手放到男同事手上。看到后心里觉得很难受，决定放下了，我该怎么克服自己的好感，经常忍不住想她</p>
-]]></content:encoded>
-<pubDate>2024-04-25T14:11:16Z</pubDate>
-</item>
-<item>
-<title>[反馈] 由于发了个正常关于蓝犀牛的搬家体验被认为打广告降权请问什么时候能够解除降权？</title>
-<link>https://www.v2ex.com/t/1035726</link>
-<guid>https://www.v2ex.com/t/1035726</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.v2ex.com/t/1019872#reply38" rel="nofollow">https://www.v2ex.com/t/1019872#reply38</a> @livid</p>
-]]></content:encoded>
-<pubDate>2024-04-25T08:35:10Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [广州外企内推] 前后端/ Java / Python /测试/Devops/SRE/BA 十三薪 年终奖 房补 十天年假十四天病假起 WLB 岗位多 反馈快 面试指导</title>
-<link>https://www.v2ex.com/t/1035725</link>
-<guid>https://www.v2ex.com/t/1035725</guid>
-<content:encoded><![CDATA[
-恩士迅 NCS 广州 2024 热招来袭，WLB ，弹性上下班<br /><br />新开的研发中心，福利多多，机会多多，大量招人中，岗位如题，详细如下，亦可到猎聘/BOSS 搜索查看<br />i.https://<a href="http://imgur.com/4Fq1cdY.jpeg" rel="nofollow noopener" target="_blank">imgur.com/4Fq1cdY.jpeg</a> <br /><br />简历内推地址：MjUxNjA4MTIzQHFxLmNvbQ==
-]]></content:encoded>
-<pubDate>2024-04-25T13:56:50Z</pubDate>
-</item>
-<item>
-<title>[程序员] 小程序业务插件库上线啦🔥做小程序 uniapp 的小伙伴看过来~</title>
-<link>https://www.v2ex.com/t/1035722</link>
-<guid>https://www.v2ex.com/t/1035722</guid>
-<content:encoded><![CDATA[
-<p>我用 uniapp 开发也好几年了，前段时间把高频功能整理了一个插件合集，方便后续使用，起了一个名字 叫做 uboxui ，已开源发布到插件市场啦</p>
-<p>已开发完成功能：</p>
-<ol>
-<li>微信登录</li>
-<li>微信支付</li>
-<li>微信订阅消息推送</li>
-<li>授权手机号</li>
-<li>自定义底部菜单栏</li>
-</ol>
-<p>插件地址 →<a href="https://ext.dcloud.net.cn/plugin?id=17178" rel="nofollow">https://ext.dcloud.net.cn/plugin?id=17178</a></p>
-]]></content:encoded>
-<pubDate>2024-04-25T08:13:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 500M 的宽带，为什么只能跑到 100M？求解。</title>
-<link>https://www.v2ex.com/t/1035721</link>
-<guid>https://www.v2ex.com/t/1035721</guid>
-<content:encoded><![CDATA[
-<p>宽带是移动的 500M ，路由器是小米的 AX1500 ，按道理跑个 300M 是没问题的，可是怎么 z 测试都是只有 100M 的样子，两台手机+电脑 c 都是这个结果。</p>
-<p>请问可以怎么排查？</p>
-]]></content:encoded>
-<pubDate>2024-04-25T12:22:29Z</pubDate>
-</item>
-<item>
-<title>[Cloudflare] 1.1.1.1 app 无法登录 cloudflare zero trust</title>
-<link>https://www.v2ex.com/t/1035720</link>
-<guid>https://www.v2ex.com/t/1035720</guid>
-<content:encoded><![CDATA[
-<p>报错提示 Enrollment request is invalid<br />
-手机是 iPhone 13 Pro Max iOS16.5<br />
-这个问题要怎么解决哇<br />
-<img alt="截图" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/eeX2rpc.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-04-25T12:04:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 下半年打算在广州置业，有什么要注意/提前准备/不要做的事吗？</title>
-<link>https://www.v2ex.com/t/1035719</link>
-<guid>https://www.v2ex.com/t/1035719</guid>
-<content:encoded><![CDATA[
-<p>打算在广州置业了，打算买个 300 多万，100 平左右的房子。</p>
-<p>想问问老哥们，买房前有什么要注意的事么？</p>
-<p>之前听说有的朋友会在买房前囤插座😂  感觉这种操作挺骚的，想问问大家还有啥骚操作不</p>
-<p>跪谢啦!!!</p>
-]]></content:encoded>
-<pubDate>2024-04-25T12:10:33Z</pubDate>
 </item>
 </channel>
 </rss>
