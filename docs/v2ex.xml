@@ -5,11 +5,610 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[酷工作] 一些大家可能需要学习的技术（转行推荐）</title>
+<link>https://www.v2ex.com/t/1041441</link>
+<guid>https://www.v2ex.com/t/1041441</guid>
+<content:encoded><![CDATA[
+
+通下水道<br /><br />修理各种家具和家用电器<br /><br />维修房屋的基础设施<br /><br />开锁<br /><br />这些都是套路行业，开锁一分钟费用好几百，这个亏我亲自吃过，通下水道的过来一报价一千多，啥都没干要上门费<br /><br />冰箱空调坏了打厂商 400 过来维修从勉强能用修到完全不能用，要修就是上千的费用<br /><br />房屋补洞刷墙补地砖同样费用昂贵<br /><br />如果大家有转行的需要，这些工作是推荐的，论学习难度肯定没有学一门编程语言复杂
+]]></content:encoded>
+<pubDate>2024-05-16T12:27:18Z</pubDate>
+<pubDate>2024-05-16T12:27:18Z</pubDate>
+</item>
+<item>
+<title>[C++] C++新手，求教为啥程序跑起来的内存越用越多</title>
+<link>https://www.v2ex.com/t/1041440</link>
+<guid>https://www.v2ex.com/t/1041440</guid>
+<content:encoded><![CDATA[
+
+<p>感觉好像是哪个变量申请了内存没有释放，然后越用越多，大概 20-30 来个请求增加 0.1G 的内存，我没有 delete 一些指针的话，增加的更快。</p>
+<p>程序主要是通过 socket 通信，用 c++进行目标检测的这段代码。</p>
+<p>op 只学过 c++的基本语法，平时做深度学习 python 用的比较多，所以 c++这边可能会欠缺一点，只能说把一些 bug 修复了能跑起来的水平。其实也是拿着官方 demo 改的，参数直接构造了一个 fake command ，见笑了</p>
+<pre><code class="language-cpp">
+#include "jetson-utils/videoSource.h"
+#include "jetson-utils/videoOutput.h"
+#include "jetson-utils/imageLoader.h"
+#include "jetson-inference/detectNet.h"
+#include "jetson-inference/objectTracker.h"
+#include "cJSON.h"
+#include "jetson-utils/Socket.h"
+#include &lt;signal.h&gt;
+#include &lt;vector&gt;
+using namespace std;
+
+struct PredObj
+{
+	float x1;
+	float y1;
+	float x2;
+	float y2;
+	float score;
+	int classID;
+	float width;
+	float height;
+	const char *classDesc;
+};
+
+bool signal_recieved = false;
+
+void sig_handler(int signo)
+{
+	if (signo == SIGINT)
+	{
+		LogVerbose("received SIGINT\n");
+		signal_recieved = true;
+	}
+}
+
+int usage()
+{
+	printf("usage: detectnet [--help] [--network=NETWORK] [--threshold=THRESHOLD] ...\n");
+	printf("                 input [output]\n\n");
+	printf("Locate objects in a video/image stream using an object detection DNN.\n");
+	printf("See below for additional arguments that may not be shown above.\n\n");
+	printf("positional arguments:\n");
+	printf("    input           resource URI of input stream  (see videoSource below)\n");
+	printf("    output          resource URI of output stream (see videoOutput below)\n\n");
+
+	printf("%s", detectNet::Usage());
+	printf("%s", objectTracker::Usage());
+	printf("%s", videoSource::Usage());
+	printf("%s", videoOutput::Usage());
+	printf("%s", Log::Usage());
+
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+
+	/*
+	 * parse command line
+	 */
+	commandLine cmdLine(argc, argv);
+
+	if (cmdLine.GetFlag("help"))
+		return usage();
+
+	/*
+	 * create detection network
+	 */
+	detectNet *net = detectNet::Create(cmdLine);
+
+	if (!net)
+	{
+		LogError("detectnet:  failed to load detectNet model\n");
+		return 1;
+	}
+
+	// parse overlay flags
+	const uint32_t overlayFlags = detectNet::OverlayFlagsFromStr(cmdLine.GetString("overlay", "box,labels,conf"));
+
+	Socket *socket = Socket::Create(SOCKET_TCP);
+	if (!socket)
+	{
+		printf("failed to create socket\n");
+		return 0;
+	}
+
+	// bind the socket to a local port
+	if (!socket-&gt;Bind("0.0.0.0", 8899))
+	{
+		printf("failed to bind socket\n");
+		return 0;
+	}
+
+	if (!socket-&gt;Accept(0))
+	{
+		printf("failed to accept socket\n");
+		return 0;
+	}
+	printf("server is running\n");
+
+	if (cmdLine.GetFlag("help"))
+		return usage();
+
+	/*
+	 * attach signal handler
+	 */
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+		LogError("can't catch SIGINT\n");
+
+	/*
+	 * create input stream
+	 */
+
+	while (true)
+	{
+		// receive a message
+		uint8_t buffer[1024];
+		uint32_t remoteIP;
+		uint16_t remotePort;
+		size_t bytes = socket-&gt;Recieve(buffer, sizeof(buffer), &amp;remoteIP, &amp;remotePort);
+		if (bytes == 0)
+		{
+			printf("close client\n");
+			return 0;
+		}
+		else
+		{
+			const char *receiveData = NULL;
+			printf("received message: %s\n", buffer);
+			cJSON *cjson_receive = cJSON_Parse((char *)buffer);
+			receiveData = cJSON_Print(cjson_receive);
+			printf("%s\n", receiveData);
+			SAFE_DELETE(receiveData);
+
+			// cJSON *fStickLat = cJSON_GetObjectItem(cjson_receive, "fStickLat");
+			// double m_fStickLat = cJSON_GetNumberValue(fStickLat);
+			// printf("%.10f\n", m_fStickLat);
+			// printf("m_fStickLat: %.10f\n", m_fStickLat);
+			cJSON *fpath = cJSON_GetObjectItem(cjson_receive, "fpath");
+			char *m_fpath = cJSON_GetStringValue(fpath);
+			printf("m_fpath: %s\n", m_fpath);
+
+			// 检测到 socket 等于 shutdown ，关闭 socket
+			if (strcmp((char *)buffer, "shutdown") == 0)
+			{
+				printf("shutting down\n");
+				break;
+			}
+			char av1[] = "detectnet";
+			char av2[] = "--network=ssd-mobilenet-v2";
+			char av3[] = "./socket_example/test1.jpg";
+			int len = strlen(m_fpath);
+			char av3_2[len];
+			strcpy(av3_2, m_fpath);
+			// char *fake_argv[3] = {av1, av2, m_fpath};
+			char *fake_argv[3] = {av1, av2, av3_2};
+			commandLine cmdLine(3, fake_argv);
+			printf("t1\n");
+			cJSON_Delete(cjson_receive);
+			// cJSON_Delete(fpath);
+
+			// SAFE_DELETE(m_fpath);
+			printf("t2\n");
+
+			/*
+			 * create input stream
+			 */
+
+			videoSource *input = videoSource::Create(cmdLine, ARG_POSITION(0));
+
+			if (!input)
+			{
+				LogError("detectnet:  failed to create input stream\n");
+				// return 1;
+				continue;
+			}
+
+			/*
+			 * create output stream
+			 */
+			videoOutput *output = videoOutput::Create(cmdLine, ARG_POSITION(1));
+
+			if (!output)
+			{
+				LogError("detectnet:  failed to create output stream\n");
+				// return 1;
+				continue;
+			}
+			/*
+			 * processing loop
+			 */
+			// while( !signal_recieved )
+			//{
+			//  capture next image
+			uchar3 *image = NULL;
+			int status = 0;
+
+			input-&gt;Capture(&amp;image, &amp;status);
+
+			// if (!input-&gt;Capture(&amp;image, &amp;status))
+			// {
+			// 	// if( status == videoSource::TIMEOUT )
+			// 	// continue;
+
+			// 	// break; // EOS
+			// }
+
+			// detect objects in the frame
+			detectNet::Detection *detections = NULL;
+
+			const int numDetections = net-&gt;Detect(image, input-&gt;GetWidth(), input-&gt;GetHeight(), &amp;detections, overlayFlags);
+			vector&lt;PredObj&gt; predObjList;
+
+			if (numDetections &gt; 0)
+			{
+				LogVerbose("%i objects detected\n", numDetections);
+
+				for (int n = 0; n &lt; numDetections; n++)
+				{
+					LogVerbose("\ndetected obj %i  class #%u (%s)  confidence=%f\n", n, detections[n].ClassID, net-&gt;GetClassDesc(detections[n].ClassID), detections[n].Confidence);
+					LogVerbose("bounding box %i  (%.2f, %.2f)  (%.2f, %.2f)  w=%.2f  h=%.2f\n", n, detections[n].Left, detections[n].Top, detections[n].Right, detections[n].Bottom, detections[n].Width(), detections[n].Height());
+
+					if (detections[n].TrackID &gt;= 0) // is this a tracked object?
+						LogVerbose("tracking  ID %i  status=%i  frames=%i  lost=%i\n", detections[n].TrackID, detections[n].TrackStatus, detections[n].TrackFrames, detections[n].TrackLost);
+
+					PredObj predObj;
+					predObj.x1 = detections[n].Left;
+					predObj.y1 = detections[n].Top;
+					predObj.x2 = detections[n].Right;
+					predObj.y2 = detections[n].Bottom;
+					predObj.score = detections[n].Confidence;
+					predObj.classID = detections[n].ClassID;
+					predObj.width = detections[n].Width();
+					predObj.height = detections[n].Height();
+					predObj.classDesc = net-&gt;GetClassDesc(detections[n].ClassID);
+					predObjList.push_back(predObj);
+				}
+			}
+
+			// predObjList to json
+			cJSON *cjson_send = cJSON_CreateObject();
+			cJSON *cjson_array = cJSON_CreateArray();
+			for (int i = 0; i &lt; predObjList.size(); i++)
+			{
+				cJSON *cjson_obj = cJSON_CreateObject();
+				cJSON_AddNumberToObject(cjson_obj, "x1", predObjList[i].x1);
+				cJSON_AddNumberToObject(cjson_obj, "y1", predObjList[i].y1);
+				cJSON_AddNumberToObject(cjson_obj, "x2", predObjList[i].x2);
+				cJSON_AddNumberToObject(cjson_obj, "y2", predObjList[i].y2);
+				cJSON_AddNumberToObject(cjson_obj, "score", predObjList[i].score);
+				cJSON_AddNumberToObject(cjson_obj, "classID", predObjList[i].classID);
+				cJSON_AddNumberToObject(cjson_obj, "width", predObjList[i].width);
+				cJSON_AddNumberToObject(cjson_obj, "height", predObjList[i].height);
+				cJSON_AddStringToObject(cjson_obj, "classDesc", predObjList[i].classDesc);
+				cJSON_AddItemToArray(cjson_array, cjson_obj);
+			}
+			cJSON_AddItemToObject(cjson_send, "predObjList", cjson_array);
+			char *json_str = cJSON_Print(cjson_send);
+
+			if (!socket-&gt;Send((void *)json_str, strlen(json_str), remoteIP, remotePort))
+			{
+				// printf("failed to send message\n");
+				printf("client is disconnected\n");
+				break;
+			}
+			printf("t3\n");
+			//cJSON_Delete(cjson_send);
+			cJSON_Delete(cjson_array);
+			SAFE_DELETE(json_str);
+
+			// render outputs
+			if (false &amp;&amp; output != NULL)
+			{
+				output-&gt;Render(image, input-&gt;GetWidth(), input-&gt;GetHeight());
+
+				// update the status bar
+				char str[256];
+				sprintf(str, "TensorRT %i.%i.%i | %s | Network %.0f FPS", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, precisionTypeToStr(net-&gt;GetPrecision()), net-&gt;GetNetworkFPS());
+				output-&gt;SetStatus(str);
+
+				// check if the user quit
+				// if( !output-&gt;IsStreaming() )
+				// break;
+			}
+
+			// print out timing info
+			net-&gt;PrintProfilerTimes();
+			printf("t4\n");
+
+			SAFE_DELETE(input);
+			SAFE_DELETE(output);
+			// SAFE_DELETE(image);
+
+			//}
+		}
+	}
+	/*
+	 * destroy resources
+	 */
+	LogVerbose("detectnet:  shutting down...\n");
+
+	SAFE_DELETE(net);
+
+	LogVerbose("detectnet:  shutdown complete.\n");
+	return 0;
+}
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-05-16T12:25:07Z</pubDate>
+<pubDate>2024-05-16T12:34:41Z</pubDate>
+</item>
+<item>
+<title>[iPad] 新 iPad pro 音质真的很差</title>
+<link>https://www.v2ex.com/t/1041439</link>
+<guid>https://www.v2ex.com/t/1041439</guid>
+<content:encoded><![CDATA[
+
+<p>不知道是不是变薄了的原因，低音根本不能听，还不如 100 块的桌面音响，比 macbook 差远了，在意音质建议别买。</p>
+]]></content:encoded>
+<pubDate>2024-05-16T12:23:53Z</pubDate>
+<pubDate>2024-05-16T12:34:58Z</pubDate>
+</item>
+<item>
+<title>[问与答] 每日必经之路的公司楼道是吸烟区，这合理吗</title>
+<link>https://www.v2ex.com/t/1041438</link>
+<guid>https://www.v2ex.com/t/1041438</guid>
+<content:encoded><![CDATA[
+
+<p>公司在十几楼，办公楼一共 30 层左右，电梯只有两台，中午和晚餐时间是电梯使用高峰期，等不到电梯。</p>
+<p>为了中午完成健身+吃饭+回办公室午休这 3 件事，只能走楼梯快速下楼。</p>
+<p>因为楼道是吸烟区，总有人在楼道里面吸烟，也有一屁股坐着三分之二楼梯吸烟的。楼道里虽然有窗，但开不大；虽然有通风口，但几乎没风；整个楼道非常不通风，烟味都闷在里面很难散去，每天吸二手烟感觉很难受</p>
+<p>想问问大家，在这种环境设立吸烟区合理吗，有没有办法投诉？</p>
+<p>根据广州市控制吸烟条例，设置吸烟室或者划定吸烟区，应当遵守下列规定：</p>
+<p>（一）符合消防安全要求；</p>
+<p>（二）设置明显的标志；</p>
+<p>（三）与非吸烟室、非吸烟区有效分隔；</p>
+<p>（四）远离人员密集区域和行人必经的主要通道；</p>
+<p>（五）安装独立有效的通风换气装置；</p>
+<p>（六）配置烟灰缸(盒)并放置“吸烟有害健康”的标牌。</p>
+<p><a href="https://www.gd.gov.cn/zwgk/wjk/zcfgk/content/post_2531839.html" rel="nofollow">广州市控制吸烟条例</a></p>
+<p>按照这 6 条规定，其他 4 条是满足的，除了以下两条：</p>
+<p>第四条，有电梯，但高峰期不满足使用需要的情况下，楼道能否判定为行人必经的主要通道？</p>
+<p>第五条，有换气装置，但效果极差，或者为了省电故意开的很小？</p>
+]]></content:encoded>
+<pubDate>2024-05-16T12:21:51Z</pubDate>
+<pubDate>2024-05-16T12:20:51Z</pubDate>
+</item>
+<item>
+<title>[硬件] 小米米家打印机 1S 在 Win7 下无法安装驱动</title>
+<link>https://www.v2ex.com/t/1041437</link>
+<guid>https://www.v2ex.com/t/1041437</guid>
+<content:encoded><![CDATA[
+
+<p>在 Win7 下，下载安装了官方的驱动，显示安装完成，控制面板也能够搜到设备，但是添加设备时显示失败，但是控制面板的设备列表里出现了打印机。利用系统自带的图片打印，又找不到该打印机。检查设备驱动，显示正常工作，但是没有选择正确的驱动，手动设置驱动，但是没有找到官方的驱动（应该是 Hannto ），问了官方客服，就说升级到 win10 ，但是设备和一些软件的问题，不能升级系统。有没有遇到类似情况的，该怎么解决。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ImYr33w.png" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fssLJAm.png" /></p>
+]]></content:encoded>
+<pubDate>2024-05-16T12:18:16Z</pubDate>
+<pubDate>2024-05-16T12:16:16Z</pubDate>
+</item>
+<item>
+<title>[互联网] 通义千问 活动奖品 到了🎁</title>
+<link>https://www.v2ex.com/t/1041436</link>
+<guid>https://www.v2ex.com/t/1041436</guid>
+<content:encoded><![CDATA[
+
+喏，没啥意思<br />![1715861579297.JPG]( <a href="https://utools-filebed.oss-cn-shenzhen.aliyuncs.com/1715861579297.JPG" rel="nofollow noopener" target="_blank">https://utools-filebed.oss-cn-shenzhen.aliyuncs.com/1715861579297.JPG</a>)
+]]></content:encoded>
+<pubDate>2024-05-16T12:10:02Z</pubDate>
+<pubDate>2024-05-16T12:21:42Z</pubDate>
+</item>
+<item>
+<title>[程序员] rust 写工具也太 tm 难用了，还是老实用 go</title>
+<link>https://www.v2ex.com/t/1041435</link>
+<guid>https://www.v2ex.com/t/1041435</guid>
+<content:encoded><![CDATA[
+
+本来想用 rs 写一个 ssh 的隧道转发，给不会代码的小白用户使用，结果用 rs 搞了半天没搞定，感觉是我能力不行，对我来说太难了，用 go ，加上几个库，傻瓜式的几行代码搞定，go 啥时候这么脚本精灵了？
+]]></content:encoded>
+<pubDate>2024-05-16T12:06:26Z</pubDate>
+<pubDate>2024-05-15T20:06:26Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 长沙失业程序员互助群</title>
+<link>https://www.v2ex.com/t/1041431</link>
+<guid>https://www.v2ex.com/t/1041431</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4481364132a843bdab190d87d73ead19%7Etplv-k3u1fbpfcp-jj-mark:600:0:0:0:q75.avis#?w=930&amp;h=1497&amp;s=279357&amp;e=jpg&amp;b=fefefe" rel="nofollow">https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4481364132a843bdab190d87d73ead19~tplv-k3u1fbpfcp-jj-mark:600:0:0:0:q75.avis#?w=930&amp;h=1497&amp;s=279357&amp;e=jpg&amp;b=fefefe</a></p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:59:16Z</pubDate>
+<pubDate>2024-05-16T11:56:16Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 创建了一个 Apple music 协助播放列表</title>
+<link>https://www.v2ex.com/t/1041430</link>
+<guid>https://www.v2ex.com/t/1041430</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://music.apple.com/us/playlist/pl.u-DdANgZBu0LkKpv8?a=join&amp;it=lV1Xl83F3Knp7EMSQOjkX&amp;l=zh" rel="nofollow">https://music.apple.com/us/playlist/pl.u-DdANgZBu0LkKpv8?a=join&amp;it=lV1Xl83F3Knp7EMSQOjkX&amp;l=zh</a></p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:54:58Z</pubDate>
+<pubDate>2024-05-16T07:53:58Z</pubDate>
+</item>
+<item>
+<title>[分享创造] AI 段落生成器，做的第一个 ai 工具站！ https://www.paragraph-generator.xyz/</title>
+<link>https://www.v2ex.com/t/1041429</link>
+<guid>https://www.v2ex.com/t/1041429</guid>
+<content:encoded><![CDATA[
+
+<h1>直接点击👉： <a href="https://www.paragraph-generator.xyz/" rel="nofollow">https://www.paragraph-generator.xyz/</a></h1>
+<p>你可以输入一句话、一个话题，也可以补充语气、语言等信息，最后点击“生成”。等待几秒后就能得到生成的段落。此外，还能统计字数、直接编辑、点击按钮复制到剪贴板！</p>
+<p>经常听说 ai+工具网站的优点，ai 话题度高有流量、细分化的场景可以吸引垂直人群、用户付费意愿更高等等。但还没有真正地上线过一个 ai 工具站的产品。</p>
+<p>于是趁着五一假期的时间参加了开发者们自发组建的五一开发群，做了一些调研，想着先从逻辑比较简单，市场又还可以的角度切入。在那几天的时间里做出了这个 ai 段落生成器的最初版本。在过去的一个星期的时间里慢慢完善到了现在的样子。</p>
+<p>期间也有了不少收获，nextjs 下 api 构建、获取大模型 api 、构建表单、实践 react 下的 ux……感觉已经可以慢慢驾驭 api+前端工具站的网站形式了。加油再找三个主题，整够三个 ai 工具站出来巩固一下。</p>
+<p>最后，欢迎各位使用！（再贴一下链接： <a href="https://www.paragraph-generator.xyz/%EF%BC%89" rel="nofollow">https://www.paragraph-generator.xyz/）</a></p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:47:31Z</pubDate>
+<pubDate>2024-05-16T11:44:31Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 帮朋友发一个加密钱包招聘信息，看哪位兄弟感兴趣</title>
+<link>https://www.v2ex.com/t/1041428</link>
+<guid>https://www.v2ex.com/t/1041428</guid>
+<content:encoded><![CDATA[
+
+<p>以下是给到我的职位介绍，朋友是我多年好友有多次成功创业经历，以下是工作介绍。
+我们是一家出海金融科技公司，目前招募一位加密钱包产品负责人，希望候选人热爱加密行业，是钱包产品用户，喜欢研究 C 端产品喜欢思考如何提高用户体验，熟悉使用常用产品设计工具比如 axure,figma,，感兴趣请联系微信 aidenwithu</p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:38:59Z</pubDate>
+<pubDate>2024-05-16T11:38:59Z</pubDate>
+</item>
+<item>
+<title>[程序员] Google Chrome 125.0.6422.61 还原老 UI 遇到的问题</title>
+<link>https://www.v2ex.com/t/1041427</link>
+<guid>https://www.v2ex.com/t/1041427</guid>
+<content:encoded><![CDATA[
+
+<p>之前所有的方法均已失效
+来个高手给个解决方案</p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:30:34Z</pubDate>
+<pubDate>2024-05-16T12:16:43Z</pubDate>
+</item>
+<item>
+<title>[问与答] 回收电池生意怎么样？ 有了解的 v 友吗 来聊聊</title>
+<link>https://www.v2ex.com/t/1041424</link>
+<guid>https://www.v2ex.com/t/1041424</guid>
+<content:encoded><![CDATA[
+
+<p>新能源电动车是不可逆趋势，会有很多电池需要回收，修复等服务。
+做这个有哪些门槛？普通人可以做点什么抓住趋势？</p>
+]]></content:encoded>
+<pubDate>2024-05-16T11:09:04Z</pubDate>
+<pubDate>2024-05-16T11:09:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] 小票热敏打印机</title>
+<link>https://www.v2ex.com/t/1041423</link>
+<guid>https://www.v2ex.com/t/1041423</guid>
+<content:encoded><![CDATA[
+
+最近想和兄弟在国外创业做点餐系统<br />这个小票打印机大家有知道的吗？<br />有没有现成的连 wifi 我后台 http post 打印机接口 就打印的呢？
+]]></content:encoded>
+<pubDate>2024-05-16T11:06:59Z</pubDate>
+<pubDate>2024-05-16T11:57:19Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] GPT-4o 还是没有 GPT-4 聪明的，一个问题问倒 GPT-4o</title>
+<link>https://www.v2ex.com/t/1041422</link>
+<guid>https://www.v2ex.com/t/1041422</guid>
+<content:encoded><![CDATA[
+
+问题：π 的最后 10 位数字是什么？<br /><br /><a href="https://i.imgur.com/LcEvgc6.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/LcEvgc6.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-05-16T11:01:26Z</pubDate>
+<pubDate>2024-05-16T11:49:54Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 看到一个专搞「伪官网」的公司，唯一股东是坚果云</title>
+<link>https://www.v2ex.com/t/1041421</link>
+<guid>https://www.v2ex.com/t/1041421</guid>
+<content:encoded><![CDATA[
+
+<p>今天下午搜索 Listary 不知道怎么点进了这个网站：bGlzdGFyeXByby5jb20=</p>
+<p>看上去很像官网，大部分文字和图片（及图片链接）都是官网的，甚至连下载按钮都指向了真官网——这与司马杰克丁有着本质区别——只是页尾有一堆奇怪的外链。</p>
+<p>看到「沪 ICP 备 2020036959 号」后的「-3 」，就去搜索了一下……这个「上海逆像网络科技有限公司」有 20 多个备案：OneDrive 、Sketch 、Slack 、Dropbox 、Notability 、IDM 、Typora 、Documents 、Keepass 、Everything 、Fences 、Googledrive 、Bandizip 、Snipaste 、PotPlayer……</p>
+<p>在天眼查「<a href="https://www.tianyancha.com/company/3471707527" rel="nofollow">上海逆像网络科技有限公司</a>」的唯一股东是「上海亦净网络科技有限公司」，即「坚果云」。</p>
+<hr />
+<p>怎么说呢，内容农场这个东西它不违规也不违法（可能）……</p>
+<p>就是不太厚道……</p>
+<p>而且，怎么没有百度网盘，瞧不起谁呢？！🐶</p>
+]]></content:encoded>
+<pubDate>2024-05-16T10:59:02Z</pubDate>
+<pubDate>2024-05-16T10:59:02Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 公司的宽带给了 5 个公网 ip，需要怎么接线？</title>
+<link>https://www.v2ex.com/t/1041420</link>
+<guid>https://www.v2ex.com/t/1041420</guid>
+<content:encoded><![CDATA[
+
+<p>如题，子网掩码:255.255.255.248 。</p>
+<p>请教各位佬，希望 1 个 IP 用来办公，剩下 4 个 IP 给服务器。</p>
+<p>目前有路由器和即插即用的交换机，如何接线？还需要什么设备吗？</p>
+]]></content:encoded>
+<pubDate>2024-05-16T10:50:46Z</pubDate>
+<pubDate>2024-05-16T11:18:39Z</pubDate>
+</item>
+<item>
+<title>[iDev] 提交了 app 审核开始几个小时就出结果,改了一个版本怎么一天都没反应了</title>
+<link>https://www.v2ex.com/t/1041419</link>
+<guid>https://www.v2ex.com/t/1041419</guid>
+<content:encoded><![CDATA[
+
+<p>一般多久开始审核.</p>
+]]></content:encoded>
+<pubDate>2024-05-16T10:45:22Z</pubDate>
+<pubDate>2024-05-16T11:13:56Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 各位 v 友们,对于 GPT4o 我有个赛道</title>
+<link>https://www.v2ex.com/t/1041418</link>
+<guid>https://www.v2ex.com/t/1041418</guid>
+<content:encoded><![CDATA[
+
+找个娃娃工厂合作一下<br />把娃娃接入 GPT4o<br />然后 GPT4o 会根据情绪来回答<br />然后你懂吧<br />你越快,娃娃的情绪就越高<br />简直就是逼近真人<br />平时还能跟你对话<br /><br />我就用特斯拉的销售模式<br />娃娃成本价卖<br />然后各种情绪以及对话按小时收费<br />哈哈哈,想想就有搞头<br /><br />各位 V 友,求打击我这个想法,真找不出弊端
+]]></content:encoded>
+<pubDate>2024-05-16T10:42:20Z</pubDate>
+<pubDate>2024-05-16T12:09:48Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有没有类似 UpNote(或者苹果备忘录)，但是同步数据不需要翻墙的笔记软件</title>
+<link>https://www.v2ex.com/t/1041416</link>
+<guid>https://www.v2ex.com/t/1041416</guid>
+<content:encoded><![CDATA[
+
+最好能满足下面的要求<br /><br />1.同步数据不需要翻墙<br /><br />2.简洁好看，可以离线编辑<br /><br />3.数据导出成通用的格式，便于后续迁移<br /><br />4.windows 、android 、mac 、ios 同步<br /><br />有用过 Joplin 一段时间，但是软件的主题确实有点朴实，而且富文本支持得不好<br /><br />UpNote 如果能不翻墙同步数据 或者 苹果备忘录支持非苹果设备 的话其实比较能满足我的需求
+]]></content:encoded>
+<pubDate>2024-05-16T10:32:36Z</pubDate>
+<pubDate>2024-05-16T12:10:45Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [数字货币钱包]招一位产品负责人</title>
+<link>https://www.v2ex.com/t/1041415</link>
+<guid>https://www.v2ex.com/t/1041415</guid>
+<content:encoded><![CDATA[
+
+帮友人发一则招聘信息，以下是给到我的职位介绍，朋友是我多年好友有多次成功创业经历，以下是工作介绍。<br />我们是一家出海金融科技公司，目前招募一位加密钱包产品负责人，希望候选人热爱加密行业，是钱包产品用户，喜欢研究 C 端产品喜欢思考如何提高用户体验，熟悉使用常用产品设计工具比如 axure,figma,，感兴趣请联系微信 aidenwithu
+]]></content:encoded>
+<pubDate>2024-05-16T10:31:13Z</pubDate>
+<pubDate>2024-05-16T10:31:13Z</pubDate>
+</item>
+<item>
+<title>[Ubuntu] 对 ubuntu gnome 喜欢不起来，难受啊</title>
+<link>https://www.v2ex.com/t/1041412</link>
+<guid>https://www.v2ex.com/t/1041412</guid>
+<content:encoded><![CDATA[
+
+<p>一直停留在 ubuntu unity 20.04 ，<a href="https://ubuntuunity.org/" rel="nofollow">https://ubuntuunity.org/</a> 这里的。</p>
+<p>一直想用新版，但是用来用去，还是觉得 ubuntu unity 20.04 是 yyds 的版本。</p>
+<p>大佬们有没有啥好用的发行版推荐呀。。debain 系的都行。。。20.04 都用了 4 年了，想更新一下版本。。。。</p>
+]]></content:encoded>
+<pubDate>2024-05-16T10:23:24Z</pubDate>
+<pubDate>2024-05-16T08:23:24Z</pubDate>
+</item>
+<item>
+<title>留下你的 json 格式化查看工具吧, 看看那个更好用</title>
+<link>https://www.v2ex.com/t/1040158</link>
+<guid>https://www.v2ex.com/t/1040158</guid>
+<content:encoded><![CDATA[
+
+由于经常有 格式化查看 json 的需求, <br /><br />我的工作流是: 复制 -&gt; 开浏览器 -&gt; 打开 <a href="http://json.cn" rel="nofollow noopener" target="_blank">json.cn</a> -&gt; 黏贴看内容<br /><br />用多了就觉得这个链路太长, 所以想 有没有自动化的一些工具, 没有找到<br /><br />所以做了这个小应用, 基于 tauri2 + react, <br /><br />特性是: 当你复制了 json 数据后, 可以自动展示格式化后的数据<br /><br />口号是: Json 美化, 只需一步!<br /><br />现在已经支持了 json/sql 的自动美化, 后续考虑增加 xml/curl 等<br /><br /><a href="https://github.com/daodao97/quick-view" rel="nofollow noopener" target="_blank">https://github.com/daodao97/quick-view</a><br /><br /><div class="embedded_video_wrapper"></div>
+]]></content:encoded>
+<pubDate>2024-05-13T02:24:32Z</pubDate>
+<pubDate>2024-05-15T02:38:33Z</pubDate>
+</item>
+
+<item>
 <title>[加密货币] 如果一定要放一点钱投资数字货币，该怎么配置？</title>
 <link>https://www.v2ex.com/t/1041411</link>
 <guid>https://www.v2ex.com/t/1041411</guid>
 <content:encoded><![CDATA[
-
 <p>如果一定要放一点钱投资数字货币（ 5k-20k ，朋友提供，就要求让我自己拿去玩数字货币），该如何配置？</p>
 <p>直接买比特币？自己理解是两个方案</p>
 <p>1 比如买大的币例如比特币/以太坊，就静静等着涨跌？</p>
@@ -21,14 +620,12 @@
 <p>是真心求问，请不要打趣回复，诸如不如把钱给我，反正也是亏（核心咨询的问题是，这点钱，该怎么折腾，而不是要不要折腾，谢谢）</p>
 ]]></content:encoded>
 <pubDate>2024-05-16T10:14:21Z</pubDate>
-<pubDate>2024-05-16T10:14:21Z</pubDate>
 </item>
 <item>
 <title>[问与答] 如何下载推特的视频？</title>
 <link>https://www.v2ex.com/t/1041410</link>
 <guid>https://www.v2ex.com/t/1041410</guid>
 <content:encoded><![CDATA[
-
 <p>最近经常逛推特，有些视频真的很不错，就想着自己做一个工具快速的保存下来。</p>
 <p>我用了开源库 yt-dlp ，它下载普通的视频没有问题。</p>
 <p>但是下载某些被标记了<code>NSFW</code>的视频就不行了，提示：
@@ -44,7 +641,6 @@
 </ol>
 <p>有没有大佬开发过类似的项目，能帮忙解惑，非常感谢~</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T10:03:32Z</pubDate>
 <pubDate>2024-05-16T10:16:11Z</pubDate>
 </item>
 <item>
@@ -52,7 +648,6 @@
 <link>https://www.v2ex.com/t/1041407</link>
 <guid>https://www.v2ex.com/t/1041407</guid>
 <content:encoded><![CDATA[
-
 <p>出差中，那个员工坐我斜后方，甲方经理好像在巡场还是路过，看到他在用手机聊天还是在干什么私事，我也没看清。
 把那个员工吊的飞起，说他不是第一次了，员工上级也吊了一顿。
 然后通知人事，把那个人辞退了，全程看戏。ORZ..</p>
@@ -62,7 +657,6 @@
 3.吃午饭要打卡</p>
 <p>题外话，项目有点难推，要这要那。O(∩_∩)O</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T10:01:13Z</pubDate>
 <pubDate>2024-05-08T22:05:45Z</pubDate>
 </item>
 <item>
@@ -70,10 +664,8 @@
 <link>https://www.v2ex.com/t/1041406</link>
 <guid>https://www.v2ex.com/t/1041406</guid>
 <content:encoded><![CDATA[
-
 基本没看到什么达到预期的应用？<br />比如远程手术、云端应用等等等等<br />好像从前任工信部长下马之后，5G 就跟着越来越凉<br />有没有懂行的朋友来评价
 ]]></content:encoded>
-<pubDate>2024-05-16T09:59:39Z</pubDate>
 <pubDate>2024-05-16T10:14:46Z</pubDate>
 </item>
 <item>
@@ -81,11 +673,9 @@
 <link>https://www.v2ex.com/t/1041405</link>
 <guid>https://www.v2ex.com/t/1041405</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://cdn.v2ex.com/gravatar/88465c16b1712e64bbf3e8de10283495?s=48&amp;d=retro" rel="nofollow">https://cdn.v2ex.com/gravatar/88465c16b1712e64bbf3e8de10283495?s=48&amp;d=retro</a>
 <img alt="gravatar" class="embedded_image" rel="noreferrer" src="https://cdn.v2ex.com/gravatar/88465c16b1712e64bbf3e8de10283495?s=48&amp;d=retro" /></p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:54:08Z</pubDate>
 <pubDate>2024-05-16T09:55:18Z</pubDate>
 </item>
 <item>
@@ -93,10 +683,8 @@
 <link>https://www.v2ex.com/t/1041404</link>
 <guid>https://www.v2ex.com/t/1041404</guid>
 <content:encoded><![CDATA[
-
 内容有点长，麻烦大家了<br /><br /><a href="https://i.imgur.com/nMbibrD.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/nMbibrD.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:52:39Z</pubDate>
 <pubDate>2024-05-16T10:17:10Z</pubDate>
 </item>
 <item>
@@ -104,7 +692,6 @@
 <link>https://www.v2ex.com/t/1041403</link>
 <guid>https://www.v2ex.com/t/1041403</guid>
 <content:encoded><![CDATA[
-
 <p>今天看到了一个项目，是这么授权的：</p>
 <blockquote>
 <p>licensed under GPLv3 for non-commercial project. For commercial use, please purchase a commercial license.</p>
@@ -119,7 +706,6 @@
 </blockquote>
 <p>一个类似的例子是 qt 的 GPL/商业协议双授权，商业公司买商业协议是为了避免被 GPL 传染而需要开源，不是因为 GPL 不能商用。</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:49:46Z</pubDate>
 <pubDate>2024-05-16T10:01:20Z</pubDate>
 </item>
 <item>
@@ -127,10 +713,8 @@
 <link>https://www.v2ex.com/t/1041402</link>
 <guid>https://www.v2ex.com/t/1041402</guid>
 <content:encoded><![CDATA[
-
 刚看了发帖记录，200 多天前还来这儿咨询 offer 的选择呢，没想到这么快就出幺蛾子了。<br />这个工作有点类似于外包的样子，干着一个接一个的项目，但是也有可能接不上。<br />以前呢，接不上的这段时间就按照公司给的技能表自己学一些东西。那有没有项目其实也无所谓啦，顶多绩效考核拿得低点。<br />但现在居然要让我们休年假，休到参与项目为止，要是年假休完还没进项目，那就继续休一个叫“XX 假”的东西，拿着 3k+的工作回家玩儿。
 ]]></content:encoded>
-<pubDate>2024-05-16T09:33:53Z</pubDate>
 <pubDate>2024-05-16T09:54:45Z</pubDate>
 </item>
 <item>
@@ -138,10 +722,8 @@
 <link>https://www.v2ex.com/t/1041401</link>
 <guid>https://www.v2ex.com/t/1041401</guid>
 <content:encoded><![CDATA[
-
 用到了 CSS Aspect Ratio ，所以会需要比较新的浏览器。<br /><br />如果显示器支持 HDR （比如 MBP ），那么还可以看到 HDR 的效果。<br /><br /><video controls="controls" loop="" preload=""><source src="https://olivida.eth.sucks/feature-update-1/By%20the%20sea.mp4" type="video/mp4" /></video>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:31:30Z</pubDate>
 <pubDate>2024-05-16T10:11:05Z</pubDate>
 </item>
 <item>
@@ -149,10 +731,8 @@
 <link>https://www.v2ex.com/t/1041400</link>
 <guid>https://www.v2ex.com/t/1041400</guid>
 <content:encoded><![CDATA[
-
 elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，每 60s 热加载一次。  <br />我的词库文件是提交在 GitHub private repository 里的，尝试了两种方法：  <br /><br />1. 用 GitHub 的 classic PAT(personal access token) 形式提供一个 URL 鉴权，形式： https://x-access-token:TOKEN@raw.githubusercontent.com/&lt;user or organization&gt;/&lt;repo name&gt;/&lt;branch&gt;/&lt;path to file&gt;/&lt;file_name&gt;  <br />发现 cURL 还支持这种 URL ，但现代浏览器（ Chrome 、Safari ）都不再支持这种形式，elasticsearch-analysis-ik 也不支持。 <br />这种方法最简单优雅，可惜没跑通。<br />2. Nginx 监听一个 localhost 下的端口，作为文件服务器。词库文件指向 Git 目录，该目录以固定频率去 pull 代码。  <br /><br />请问大家有更优雅的实现么？谢谢大家。
 ]]></content:encoded>
-<pubDate>2024-05-16T09:30:47Z</pubDate>
 <pubDate>2024-05-16T05:30:47Z</pubDate>
 </item>
 <item>
@@ -160,7 +740,6 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 <link>https://www.v2ex.com/t/1041396</link>
 <guid>https://www.v2ex.com/t/1041396</guid>
 <content:encoded><![CDATA[
-
 <p>抖音店铺：</p>
 <p>6U:/J- <a href="mailto:O@x.fB">O@x.fB</a> 11/07  []
 有很多很赞的宝贝，快来看看吧！
@@ -170,7 +749,6 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 <p>产品质量是我自己一个个严挑细选的</p>
 <p>非常感谢各位 V 友的支持！找我客服，发 V 友，我发优惠券</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:20:05Z</pubDate>
 <pubDate>2024-05-16T09:27:04Z</pubDate>
 </item>
 <item>
@@ -178,11 +756,9 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 <link>https://www.v2ex.com/t/1041395</link>
 <guid>https://www.v2ex.com/t/1041395</guid>
 <content:encoded><![CDATA[
-
 <p>如题,可以试试弄一个 alist (docker 容器里可以搞), 然后 alist 挂载阿里云盘,夸克,
 然后在 alist 里下载  速度挺快的~~~~</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:19:18Z</pubDate>
 <pubDate>2024-05-16T09:56:09Z</pubDate>
 </item>
 <item>
@@ -190,10 +766,8 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 <link>https://www.v2ex.com/t/1041394</link>
 <guid>https://www.v2ex.com/t/1041394</guid>
 <content:encoded><![CDATA[
-
 我都有点把持不住了，这力度。<br /><a href="https://imgur.com/a/QP2b16l" rel="nofollow noopener" target="_blank">https://imgur.com/a/QP2b16l</a>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:14:30Z</pubDate>
 <pubDate>2024-05-16T09:15:09Z</pubDate>
 </item>
 <item>
@@ -201,7 +775,6 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 <link>https://www.v2ex.com/t/1041392</link>
 <guid>https://www.v2ex.com/t/1041392</guid>
 <content:encoded><![CDATA[
-
 <p>阿里云国际 75 折充值，200U 起充。
 腾讯云返佣 25%
 阿里云新拓客户返佣 25%
@@ -209,7 +782,6 @@ elasticsearch-analysis-ik 支持以 URL 形式提供一个远程扩展词典，�
 微信：1152107599
 TG：@dameizi1993</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:03:59Z</pubDate>
 <pubDate>2024-05-16T05:02:59Z</pubDate>
 </item>
 <item>
@@ -217,7 +789,6 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041391</link>
 <guid>https://www.v2ex.com/t/1041391</guid>
 <content:encoded><![CDATA[
-
 <h3>微信小游戏上线过程</h3>
 <p>去年 12 月份注册了微信小游戏，然后提交了游戏内容介绍审核，这一步微信后台提升审核 20 个工作日，结果一直卡在”管局审核中“，知道今年 5 月 1 日才通过（没错，正是劳动节那天通过的！）</p>
 <p>这一步通过后，再进行备案和微信认证就能上线了。 备案很简单，3 天就通过了，微信认证几个小时就通关了。</p>
@@ -231,7 +802,6 @@ TG：@dameizi1993</p>
 <p><img alt="我能言出法随" class="embedded_image" rel="noreferrer" src="https://img2.imgtp.com/2024/05/16/DhpQVQQf.jpg" /></p>
 <p>如果想直接搞到元婴期，可以改下昵称后，在这告诉我昵称，后台直接给你们升级，嘻嘻</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:02:58Z</pubDate>
 <pubDate>2024-05-16T10:17:48Z</pubDate>
 </item>
 <item>
@@ -239,10 +809,8 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041390</link>
 <guid>https://www.v2ex.com/t/1041390</guid>
 <content:encoded><![CDATA[
-
 <p>专做简单白金游戏怎么样，这个世界上有一群热衷于打奖杯的玩家，并且有些工作室就是专门做这种游戏的制作和发行的，一个游戏卖 5 刀，作为独立游戏开发者能不能分一杯羹？</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T09:00:27Z</pubDate>
 <pubDate>2024-05-16T10:17:27Z</pubDate>
 </item>
 <item>
@@ -250,7 +818,6 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041389</link>
 <guid>https://www.v2ex.com/t/1041389</guid>
 <content:encoded><![CDATA[
-
 <h1>迟来的官网</h1>
 <p>开发了一年，阅牍官网迟迟没有上线，最近开发 App 有点 burn out 了，就换了个事情做，所以把官网提上了日程。之前没有 Web 开发网站的经验，所以尽量采用静态网站的方法，最终选用的是 Vitepress 开发和 Cloudflare 部署。很顺利，几天就上线了。</p>
 <p><a href="https://www.v2ex.com/readary.top" rel="nofollow">官网地址</a></p>
@@ -270,7 +837,6 @@ TG：@dameizi1993</p>
 <li><a href="https://www.v2ex.com/t/1037284#reply7" rel="nofollow">阅牍产品故事 11-iCloud 同步，苹果生态完善</a></li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:57:45Z</pubDate>
 <pubDate>2024-05-16T08:55:45Z</pubDate>
 </item>
 <item>
@@ -278,10 +844,8 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041387</link>
 <guid>https://www.v2ex.com/t/1041387</guid>
 <content:encoded><![CDATA[
-
 我经常用某个字体几个星期之后就会看腻，然后就会换一个字体或者去找找有没有新的等宽字体。
 ]]></content:encoded>
-<pubDate>2024-05-16T08:54:47Z</pubDate>
 <pubDate>2024-05-16T10:16:40Z</pubDate>
 </item>
 <item>
@@ -289,12 +853,10 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041386</link>
 <guid>https://www.v2ex.com/t/1041386</guid>
 <content:encoded><![CDATA[
-
 <p>投简历都是没音信，找了将近半年了，感觉很多公司的职位都是常年挂着，根本不怎么想招人，可能是现在经济下行严重+供大大多于求？</p>
 <p>再来这里试试吧！深圳前端老鸟求捞，主 Vue 生态+Node.js,最好是能找到靠谱外企远程，要的不多
 实在不行，来个短期兼职过渡下也行啊</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:52:20Z</pubDate>
 <pubDate>2024-05-16T10:04:00Z</pubDate>
 </item>
 <item>
@@ -302,13 +864,11 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041385</link>
 <guid>https://www.v2ex.com/t/1041385</guid>
 <content:encoded><![CDATA[
-
 <p>给你分享一个 AI 编码助手 —— 百度 Comate ！扫码参与抽红包活动，520 宠粉！送京东卡！
 新用户可以试用领积分 (你我各获得 100 积分) <a href="https://comate.baidu.com/zh/shopping?inviteCode=0d3i18xg" rel="nofollow">https://comate.baidu.com/zh/shopping?inviteCode=0d3i18xg</a>
 这个是不带邀请码的地址 <a href="http://comate.baidu.com/" rel="nofollow">comate.baidu.com/</a></p>
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://cdn.learnku.com/uploads/images/202405/16/36146/uqFJWgij0a.png%21large" /></p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:48:43Z</pubDate>
 <pubDate>2024-05-16T08:45:43Z</pubDate>
 </item>
 <item>
@@ -316,12 +876,10 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041384</link>
 <guid>https://www.v2ex.com/t/1041384</guid>
 <content:encoded><![CDATA[
-
 <p>现在我已经饿了，但是 6 点才能去吃饭。</p>
 <p>平常没有吃零食的习惯，因为会长胖，所以办公室没有备零食。</p>
 <p>各位下午会饿吗？是吃什么过渡的？</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:46:07Z</pubDate>
 <pubDate>2024-05-16T10:08:56Z</pubDate>
 </item>
 <item>
@@ -330,9 +888,7 @@ TG：@dameizi1993</p>
 <guid>https://www.v2ex.com/t/1041383</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-05-16T08:40:43Z</pubDate>
 <pubDate>2024-05-16T10:18:47Z</pubDate>
 </item>
 <item>
@@ -340,11 +896,9 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041382</link>
 <guid>https://www.v2ex.com/t/1041382</guid>
 <content:encoded><![CDATA[
-
 <p>做是做出来了，可惜识别率很低，要手机前后移动一下才能识别到，低配点的手机可能也是被不出来😭</p>
 <p><img alt="https://imgur.com/a/nMhxK5i" class="embedded_image" rel="noreferrer" src="https://www.v2ex.com/" /></p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:39:33Z</pubDate>
 <pubDate>2024-05-16T10:07:59Z</pubDate>
 </item>
 <item>
@@ -352,7 +906,6 @@ TG：@dameizi1993</p>
 <link>https://www.v2ex.com/t/1041381</link>
 <guid>https://www.v2ex.com/t/1041381</guid>
 <content:encoded><![CDATA[
-
 <h1>经过</h1>
 <p>昨天领导让我看一个前端项目，项目直接在我的 Windows 11 电脑上面执行此命令即可打开：<code>npm run start</code>。今天早上不知道咋了，我想看下 Linux ，然后一顿折腾后在电脑上安装了 WSL ，WSL 的版本信息如下：</p>
 <pre><code class="language-bash">WSL 版本：2.1.5.0
@@ -368,7 +921,6 @@ Windows 版本：10.0.22631.3593
 <pre><code class="language-bash">11: exec: node: not found
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:36:48Z</pubDate>
 <pubDate>2024-05-16T09:41:40Z</pubDate>
 </item>
 <item>
@@ -376,10 +928,8 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041379</link>
 <guid>https://www.v2ex.com/t/1041379</guid>
 <content:encoded><![CDATA[
-
 尝试过 app 来背单词，但是发现隔几天不复习就容易忘，而且复习起来效率低下。现在通过阅读英文小说，类似小王子、怦然心动，或者 bbc 新闻、电视剧台词，比如老友记，反复的阅读，遇到生词用 app 查询，添加到生词本，这种学习方式是否算是高效
 ]]></content:encoded>
-<pubDate>2024-05-16T08:34:17Z</pubDate>
 <pubDate>2024-05-16T09:47:23Z</pubDate>
 </item>
 <item>
@@ -387,10 +937,8 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041378</link>
 <guid>https://www.v2ex.com/t/1041378</guid>
 <content:encoded><![CDATA[
-
 <p>动态语言不用 type 的基础上，如何优雅的解决 type 、参数类型的问题？</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:31:47Z</pubDate>
 <pubDate>2024-05-16T08:31:47Z</pubDate>
 </item>
 <item>
@@ -398,7 +946,6 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041377</link>
 <guid>https://www.v2ex.com/t/1041377</guid>
 <content:encoded><![CDATA[
-
 <p>本人和女友互联网电商行业，众所周知的大环境原因，现在很不景气。</p>
 <p>公司裁员一年好几波，运气好苟且到现在，但终究逃不过被刀的命运。</p>
 <p>现在跟身边人聊天，十个人有九个都想搞副业谋后路。</p>
@@ -408,7 +955,6 @@ Windows 版本：10.0.22631.3593
 亦或
 你是因为什么放弃的</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:31:45Z</pubDate>
 <pubDate>2024-05-16T10:10:39Z</pubDate>
 </item>
 <item>
@@ -416,10 +962,8 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041376</link>
 <guid>https://www.v2ex.com/t/1041376</guid>
 <content:encoded><![CDATA[
-
 <p>我有一个朋友，他想学习一下。</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:23:09Z</pubDate>
 <pubDate>2024-05-15T16:20:09Z</pubDate>
 </item>
 <item>
@@ -427,14 +971,12 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041374</link>
 <guid>https://www.v2ex.com/t/1041374</guid>
 <content:encoded><![CDATA[
-
 <p>邀请一人各得 100 积分，开红包 200 积分，刚好能换 30E 卡</p>
 <p>这是我的邀请链接
 <a href="https://comate.baidu.com/zh/shopping?inviteCode=0d3mm9sl" rel="nofollow">https://comate.baidu.com/zh/shopping?inviteCode=0d3mm9sl</a></p>
 <p>不想走邀请的这里：
 <a href="https://comate.baidu.com/zh/shopping" rel="nofollow">https://comate.baidu.com/zh/shopping</a></p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:22:54Z</pubDate>
 <pubDate>2024-05-14T08:22:54Z</pubDate>
 </item>
 <item>
@@ -442,11 +984,9 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041373</link>
 <guid>https://www.v2ex.com/t/1041373</guid>
 <content:encoded><![CDATA[
-
 <p>邀请一个人双方各得 100 积分，300 积分就能换 30 的卡😏</p>
 <p><a href="https://comate.baidu.com/zh/shopping?inviteCode=4y6y3zk0" rel="nofollow">https://comate.baidu.com/zh/shopping?inviteCode=4y6y3zk0</a></p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:20:30Z</pubDate>
 <pubDate>2024-05-16T09:59:13Z</pubDate>
 </item>
 <item>
@@ -454,10 +994,8 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041372</link>
 <guid>https://www.v2ex.com/t/1041372</guid>
 <content:encoded><![CDATA[
-
 <p>请问大家，和 unifi 兼容的不间断电源除了他们自己家的 power backup 还有其他选项吗？</p>
 ]]></content:encoded>
-<pubDate>2024-05-16T08:19:37Z</pubDate>
 <pubDate>2024-05-16T08:19:37Z</pubDate>
 </item>
 <item>
@@ -465,13 +1003,10 @@ Windows 版本：10.0.22631.3593
 <link>https://www.v2ex.com/t/1041375</link>
 <guid>https://www.v2ex.com/t/1041375</guid>
 <content:encoded><![CDATA[
-
 <p>本公司承接各类 ERP,MES,WMS 等管理项目开发及实施，有意者关注公众号"leanleap 领跃"，或者加 v:chenghua1129,电报: <a href="https://t.me/hhc_chh" rel="nofollow">https://t.me/hhc_chh</a></p>
 ]]></content:encoded>
 <pubDate>2024-05-16T08:23:03Z</pubDate>
-<pubDate>2024-05-16T08:23:03Z</pubDate>
 </item>
-
 <item>
 <title>[OpenAI] 通义千问 2.5“客串”ChatGPT4，来试试能不能分出谁是谁</title>
 <link>https://www.v2ex.com/t/1041371</link>
@@ -15126,562 +15661,6 @@ Node.js 服务端开发
 <p>篇幅较长，剩余部分在<a href="https://zshnb.com/2024-05-13-dongbei-travel.html#%E6%B2%88%E9%98%B3" rel="nofollow">这里</a></p>
 ]]></content:encoded>
 <pubDate>2024-05-13T04:00:40Z</pubDate>
-</item>
-<item>
-<title>[问与答] 不考虑电费，上行带宽一百兆，怎么用闲置电脑或者其他什么设备赚点小钱？</title>
-<link>https://www.v2ex.com/t/1040184</link>
-<guid>https://www.v2ex.com/t/1040184</guid>
-<content:encoded><![CDATA[
-像之前优酷路由宝、迅雷赚钱宝、流量矿石或者京东云什么的还有价值吗？或者有什么其他项目吗？
-]]></content:encoded>
-<pubDate>2024-05-13T03:34:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] Chrome 上面有没有网页翻译的插件，同时显示原文，免费付费都可以</title>
-<link>https://www.v2ex.com/t/1040183</link>
-<guid>https://www.v2ex.com/t/1040183</guid>
-<content:encoded><![CDATA[
-就是一个很普通的需求，希望网站上面同时显示原文和中文的翻译。
-]]></content:encoded>
-<pubDate>2024-05-13T03:32:09Z</pubDate>
-</item>
-<item>
-<title>[创业组队] 创业 3 年，虽然还是没赚钱，但是我们的产品已经不缺用户了</title>
-<link>https://www.v2ex.com/t/1040182</link>
-<guid>https://www.v2ex.com/t/1040182</guid>
-<content:encoded><![CDATA[
-刚开始创业的时候，凭着一个临时起意就规划开发产品，产品开发出来，上线商业模式等问题都解决不了，最后产品不了了之。后来有创意后会再去了解行业和市场。这样打造的产品符合市场需求，但是面临运营和推广上的难题，高昂的推广成本和需要大量人力资源也是一个大问题。现在我们在做项目之前会把用户渠道和转化渠道准备好。现在每个项目都能引流很多用户，时不时也能挣一些。但是还是需要更精细的运营和，和操作项目思路上的优化。有好的想法可以我们一起交流呢
-]]></content:encoded>
-<pubDate>2024-05-13T00:05:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 后端大家是怎么处理金额分后面的小数的</title>
-<link>https://www.v2ex.com/t/1040181</link>
-<guid>https://www.v2ex.com/t/1040181</guid>
-<content:encoded><![CDATA[
-<p>是直接扔掉还是四舍五入</p>
-]]></content:encoded>
-<pubDate>2024-05-13T04:14:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么可以免费总结 pdf 的在线 AI 工具</title>
-<link>https://www.v2ex.com/t/1040180</link>
-<guid>https://www.v2ex.com/t/1040180</guid>
-<content:encoded><![CDATA[
-chatgpt 类的工具之前看到一些有免费可以总结 pdf 文档的吗在线工具.
-]]></content:encoded>
-<pubDate>2024-05-13T04:02:07Z</pubDate>
-</item>
-<item>
-<title>[程序员] 拼多多招聘 2024 届校招服务端研发工程师</title>
-<link>https://www.v2ex.com/t/1040179</link>
-<guid>https://www.v2ex.com/t/1040179</guid>
-<content:encoded><![CDATA[
-岗位职责<br />1. 负责拼多多基础和业务的架构设计和研发工作，解决各类有技术挑战的问题，为产品和业务的发展提供最强有力的技术支撑；<br />2. 按照软件开发流程，根据产品和项目计划，完成所负责模块的架构设计、编码、测试和文档编写的全流程工作；<br />3. 持续优化系统架构，提高系统在高并发、高流量和分布式环境下的容灾容错能力，保证系统的高可用性、高可靠性和高扩展性；<br />4. 承担新技术预研和方案选型，参与关键技术点的攻坚工作，帮助团队内的技术推广。<br />任职要求<br />1. 2024 年应届毕业生，本科及以上学历，喜爱计算机以及互联网技术；<br />2. 扎实的数据结构和算法能力，熟悉常用的数据库技术；<br />3. 精通至少一种开发语言，并能熟练应用解决具体问题；<br />4. 有较强的学习能力，有强烈的责任心和自我驱动力；<br />5. 能及时关注并学习业界最新技术，具备良好的沟通能力和团队合作精神。<br /><br />报名链接： <a href="https://careers.pinduoduo.com/campus/grad/detail?t=iceFCjlT2X" rel="nofollow noopener" target="_blank">https://careers.pinduoduo.com/campus/grad/detail?t=iceFCjlT2X</a> ，内推码：iceFCjlT2X 。<br /><br />期待你的加入！我们一起，无拼不青春！（通过此链接投递计入内推，内推简历优先筛选~）
-]]></content:encoded>
-<pubDate>2024-05-13T04:06:21Z</pubDate>
-</item>
-<item>
-<title>[V2EX] v 站有没有可能推出一个投票功能？</title>
-<link>https://www.v2ex.com/t/1040178</link>
-<guid>https://www.v2ex.com/t/1040178</guid>
-<content:encoded><![CDATA[
-看帖子的时候时常会发现那种问问题、出主意、选择题的帖子，个人感觉如果有一个投票功能会比较好。围观群众和参与者也方便看大家的想法。
-]]></content:encoded>
-<pubDate>2024-05-13T03:44:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 10w 以内 求推荐 老登代步车</title>
-<link>https://www.v2ex.com/t/1040177</link>
-<guid>https://www.v2ex.com/t/1040177</guid>
-<content:encoded><![CDATA[
-<p>由于自己真的不懂车 所有来请教一下各位老哥
-背景呢是 我老爸现在一个人 在镇子上医院上班 但是由于他变成一个人的原因 所以车子没了....
-我日常是不在家里的 大概也就是一年回去两三次的水平吧</p>
-<p>所以现在想给他买辆代步车 方便他自己出去去市里面溜达
-我自己是真的不懂车 加上我老爸也不懂 直接去买二手车又怕被骗
-油车电车没啥倾向 太智能老年人用不来 预算大概 10w 以内吧</p>
-<p>来请 V 站老哥帮忙出出主意</p>
-]]></content:encoded>
-<pubDate>2024-05-13T04:11:28Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 一个不知名的开源项目可以带来多少收入 —— NocoBase 3 年总结分享</title>
-<link>https://www.v2ex.com/t/1040176</link>
-<guid>https://www.v2ex.com/t/1040176</guid>
-<content:encoded><![CDATA[
-<h2>起源</h2>
-<p>2020 年新冠疫情开始蔓延，当时我在同时经营 3 个不同的公司。除了其中的体育赛事平台因为疫情关门大吉之外，另外两个公司并没有受影响，营收和利润反而都持续增加。但是连续几个月不能出远门，也不能随便见朋友和客户，这让我很抑郁。</p>
-<p>有一天，我跟我老婆说，我不想就此与世界失联，我希望每天都能听到新鲜的故事，我要开始做一个会让我长期兴奋的产品。</p>
-<p>于是，我马上联系了 Chenlin 。他当时在我们的另一个团队里，负责体育赛事平台的开发。实际上，我们俩从 2018 年开始就断断续续在聊这个产品。经过几个星期的碰撞，我们将目标场景、设计原则、产品形态、技术架构等关键因素都确定下来，我又从另一个团队里拉来一位同事，最初的团队就形成了。</p>
-<p>直到几个月后，我们才从几个备选名字中确定了这个产品的最终名称：<a href="https://cn.nocobase.com/" rel="nofollow" title="NocoBase">NocoBase</a>。它是为开发者准备的无代码开发平台，它是开发团队的基础设施。它的设计原则是：80% 的需求通过无代码实现，另外 20% 的部分通过扩展开发实现。它被设计为微内核、插件化的架构，一切功能都以插件的形式扩展。</p>
-<p>同时，我们还确定了 3 件事：</p>
-<ul>
-<li><strong>开源</strong>。这个产品的代码将是开源的。只有开源、开放，才能 a 最大化发挥出它的扩展性优势。而且，开源将帮助我们无需在市场、销售方面投入太多资源，就可以触达全世界的用户。</li>
-<li><strong>6 年</strong>。不要过早判断这件事情是否正确，至少先做够 6 年再下结论。第一个 2 年，做出 MVP ，表达出我们的核心理念；第二个 2 年，将产品投入到生产环境中实际使用，不断验证和完善；第三个 2 年，向更多企业介绍我们的产品，并投入到开源社区的建设。我们会根据收支情况来逐步扩充团队，做好发展速度和风险的平衡。</li>
-<li><strong>20%</strong> 。一旦我们开始盈利，将每年利润的 20%（目前已经增加至 30%） 分配给核心团队。核心团队在共同创立一份事业，共同创作一件让自己自豪的作品，而不是从事一份普通的工作。
-事情就这样开始了。</li>
-</ul>
-<h2>现状</h2>
-<p>从 2021 年 3 月 29 日第一次在 GitHub 和 Gitee 提交代码，到现在过去 3 年多一点，也就是我们的第二个 2 年计划正在进行中。</p>
-<p>在这 3 年多的时间里，我们在 Reddit 、Dev 、V2ex 、Oschina 等社区发过少量关于 NocoBase 的帖子，除此之外，没有做过更多的宣传和推广活动。原因是 NocoBase 作为企业产品，作为基础设施，它还远不够完善。我们在文档首页和 GitHub Readme 开头强调：NocoBase 处于早期开发阶段，请谨慎用于生产环境。</p>
-<p>另外，来自多个国家的用户在自己的博客和社交媒体中介绍过 NocoBase ，为 NocoBase 带来很多新用户。有数十位贡献者为 NocoBase 贡献过代码。在此向你们表示感谢。</p>
-<p>下面是我们目前的一些数据。从这些数据可以看出来，作为一个开源项目，NocoBase 并没有被太多人知道和使用，它还是一个不知名的项目。</p>
-<table>
-<thead>
-<tr>
-<th>Item</th>
-<th>data</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>GitHub Star</td>
-<td>5.7k</td>
-</tr>
-<tr>
-<td>Gitee Star</td>
-<td>1.8k</td>
-</tr>
-<tr>
-<td>Contributors</td>
-<td>57</td>
-</tr>
-<tr>
-<td>Google results</td>
-<td>11.2k</td>
-</tr>
-<tr>
-<td>Npm package downloads</td>
-<td>37k</td>
-</tr>
-<tr>
-<td>Docker image pulls</td>
-<td>50k</td>
-</tr>
-<tr>
-<td>Git cloners</td>
-<td>50/day</td>
-</tr>
-</tbody></table><p><img alt="star-history" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/star-history.png" />
-<img alt="google" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/google.png" /></p>
-<p>值得庆祝的是，我们在 2 个星期前，4 月最后一天，将根版本号从 0 升级到了 1 ，正式发布了 1.0-alpha 版本。同时也在各个社交平台开通了 NocoBase 的官方账号。我们开始准备向更多人介绍 NocoBase ，也准备开启我们的商业化之旅。</p>
-<h2>过去 12 个月的收入</h2>
-<p>虽然我们刚刚发布 1.0-alpha ，还未公开提供标准的商业许可证和商业插件，但在 2022 年 10 月我们就收到了第一笔大额的收入。在过去的 12 个月里（ 2023 年 5 月 至 2024 年 4 月），我们的收入共计人民币 226 万元（外币全部兑换成人民币）。</p>
-<p><img alt="income-2024-05-11-10-55-47" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/income-2024-05-11-10-55-47.jpeg" /></p>
-<p>这些收入主要来自：</p>
-<ul>
-<li>中国</li>
-<li>美国</li>
-<li>印度</li>
-<li>欧洲</li>
-<li>巴西</li>
-</ul>
-<p>收入的类型主要有：</p>
-<ul>
-<li>用户付费让我们优先开发所需的插件（非定制）</li>
-<li>商业许可证</li>
-<li>商业插件</li>
-<li>衍生产品的收入分成</li>
-</ul>
-<p>对于一个做了 3 年的产品来说，这个收入普普通通。但这超出了我们的预期。</p>
-<h2>更重要的收获</h2>
-<p><img alt="sun-2-2024-05-11-11-04-09" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/sun-2-2024-05-11-11-04-09.jpg" /></p>
-<p>2 个月前的一天，我正开车走在高速路上，Todd 联系到我。于是我停在路边，我们畅聊了 1 个多小时，聊完之后已经是傍晚。我继续上路，看着后视镜中红火热烈的夕阳，越发感觉心潮澎湃，仿佛在与整个世界一起跳动脉搏。</p>
-<p>Todd 所在的公司叫做 <a href="https://www.plaud.ai/" rel="nofollow" title="PLAUD">PLAUD</a>，他们的产品叫做 PLAUD NOTE ，是一个由 ChatGPT 驱动的录音笔。当时他们刚完成了数百万美元的众筹，几个月后的今天，他们的销售额已经超过 1000 万美元。他们有强大专业的技术团队来研发全球最优秀的产品，但是并没有太多精力投入到业务支撑系统的研发，导致市场、售后等团队的工作效率远远跟不上业务增长的速度。</p>
-<p>看过 PLAUD NOTE 的产品介绍之后，我觉得它太酷了，它背后的团队也很酷，我情不自禁的将它介绍给了周围很多朋友。Todd 的团队觉得 NocoBase 也很酷，我们一拍即合。他们的开发团队用了几天时间就基于 NocoBase 开发出了业务支撑系统，大幅提高了团队的工作效率。</p>
-<p>在这个过程中，NocoBase 团队仿佛也亲身参与了 PLAUD 的飞速增长。</p>
-<p><img alt="plaud-2024-05-11-11-06-30" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/plaud-2024-05-11-11-06-30.png" /></p>
-<p>Ke 从 2 年前就活跃于 NocoBase 开源社区，并成为贡献者。他就职于中石化第五建设有限公司，是中国最早从事石油化工建设的大型施工企业，也是石化工程系统最早做信息化、数字化的施工单位。同很多传统行业面临的问题一样，软件开发公司不懂他们的行业，他们的行业内又很缺乏专业的开发人员。</p>
-<p>NocoBase 给他们的开发模式带来了巨大的改变。他们打通了原有的数据库，接入了很多硬件设备，业务专家基于 NocoBase 所见即所得的无代码开发方式，一步一步探索整个行业的数字化变革。</p>
-<p>在与 Ke 的日常交流中，我们了解到沙特项目，了解到科威特项目，聆听了从不曾想象过的故事。不得不感慨，中国的建设能力非常令人钦佩和自豪。</p>
-<p><img alt="shihua-2024-05-11-11-06-48" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/shihua-2024-05-11-11-06-48.jpeg" /></p>
-<p>800 年，8000 公里，你能想象在某个清晨，打开邮箱，就能跨越时空与如此遥远的另一个人就像老朋友一样交谈、合作？</p>
-<p>锡耶纳大学成立于 1240 年，是全球历史最悠久的学术机构之一。它坐落在意大利托斯卡纳一座中世纪小镇的中心，拥有悠久的学术和创新历史。上一次距离意大利和 1240 年这么近，还是在我上中学的时候，在历史课本中学习罗马帝国、文艺复兴的故事。而今天，在这所 8000 公里以外的、创建于 800 年前的大学里，有一支由技术专家、培训专家、电子学习支持部门共同组成的团队，正在使用 NocoBase 作为他们的基础设施，来整合从行政系统到在线教育系统再到工单系统等广泛的、庞大的流程。</p>
-<p>传奇故事并没有停下，就在昨天，这个团队里的 Fabrizio 发给我一条关于温州大学与锡耶纳大学<a href="https://www.wzu.edu.cn/info/1505/46432.htm" rel="nofollow" title="NocoBase">互相访问和合作的新闻</a>。8000 公里瞬间变的近在咫尺，因为温州大学就在我们的身边，而 Fabrizio 告诉我，新闻照片里这栋楼，就是他的办公室所在地。</p>
-<p><img alt="siena-2024-05-11-11-24-43" class="embedded_image" rel="noreferrer" src="https://static-docs.nocobase.com/siena-2024-05-11-11-24-43.jpg" /></p>
-<p>我们从来没做过像 PLAUD NOTE 这么酷的硬件产品，从没接触过石油化工建设，甚至从没去过意大利。如果没有 NocoBase ，它们或许将永远不会出现在我们的视野和生活中。</p>
-<p>但现在，我们做到了。我们做出了 NocoBase ，它被世界上的一些人发现了。这些人正在认真地用数字技术改善生活，改善工作，甚至改善整个行业。在他们认真改善世界的旅途中，NocoBase 成为了他们的得力助手。</p>
-<p>而对我们来说，NocoBase 成为了我们与世界的连接器。它连接我们没做过的事，没见过的人，没去过的地方。我们的生活半径不再是几公里，我们的工作范围不再是几行代码。我们每天都可以进入到崭新的故事中。</p>
-<p>这样的回报，又岂是金钱可以衡量的呢？</p>
-<h2>我们是如何做的</h2>
-<h4>1. 找到合适的方向</h4>
-<p>找到合适的方向，这可能是所有的创业课程里都会首先谈到的话题，主流观点是去寻找用户痛点、计算市场规模。</p>
-<p>对于这个话题，我有不一样的想法。过去这些年，我自己经营过几家公司，也投资过几家公司，它们当中有些已经关张了，有些还在稳步发展，源源不断地创造利润。当我去评价 NocoBase 这样的产品机会，首先关注的并不是用户需求，更不是市场规模。我更想关注它是否适合我。我对自己的性格有最深入的了解，知道自己想要什么，擅长什么，不适合什么。决定做 NocoBase 的时候，我重点考虑了以下几个问题：</p>
-<ul>
-<li>它是否会为我补充精神能量，而不是消耗我的能量</li>
-<li>它是否是一件值得投入十年以上的事情，而且时间越久，积累越多</li>
-<li>它是否有一条细分的、少有人选择的路径</li>
-<li>它是否能创造利润，而不需要依赖融资</li>
-<li>它是否是一个标准化的产品，通过授权产生收入，而不是通过项目实施</li>
-</ul>
-<p>当这些问题都得到肯定的答案后，我们就开始了。</p>
-<h4>2. 放低预期，顺其自然</h4>
-<p>几乎所有的创业教程中都会强调增长、甚至指数级增长的重要性。我很佩服那些可以快速增长的企业。可是我们做不了这样的事，一方面能力有限，另一方面并不想让自己和团队被数字牵着鼻子走。我希望我们做的事情能为平稳的生活带来积极的影响，而不是竭尽全力追逐数字。</p>
-<p>因此，我们从开始就设置了很低的预期，并且不会过多的关注增长速度，也不设置收入目标。</p>
-<h4>3. 接受不足，长期投入</h4>
-<p>我们团队中没有来自世界顶尖大学的辍学生，也没有被媒体光环环绕的明星创业者。大家都是普通人，都是情绪稳定、责任心强、接受过良好的教育、有丰富经验的普通人。我们在开发 NocoBase 的过程中，经常会遇到很难解决的问题，经常要花费比预期多的多的时间，经常会发现 NocoBase 某个地方被做的很难用。我们用了 3 年时间才将版本号升级到 1.0 ，而且还是 1.0-alpha 。我们坦然接受这些状况，不为它们焦虑。</p>
-<p>在过去的 1000 天里，我们几乎每天都有新的 Commit ，每天的 NocoBase 都比前一天更好。</p>
-<h4>4. 把握节奏，控制风险</h4>
-<p>我们不融资，需要健康的利润来保证正常发展。利润= 收入 - 支出，因此我们前期要控制支出不会比收入多太多，并尽快实现收入大于支出。</p>
-<p>在开工的第一天，我们做的最坏打算是 6 年没有收入，我准备好 6 年的资金，确保我们在极端情况下也可以生存下来，大家可以安心创造产品而无需担心失业。</p>
-<p>对于 NocoBase 这样的团队，主要的支出就是工资，因此我们从 3 个人开始，持续了 10 几个月的时间，将每个月的成本控制在几万元。当离产生收入越来越近时，才逐步扩大团队规模，直到最近才增加到 10 个人。</p>
-<p>实际上，我们现在已经实现了盈利，并且收入结构越来越健康。</p>
-<h4>5. 工作的理想是为了理想的生活</h4>
-<p>NocoBase 是一个远程工作的团队，大家居住在不同的城市，有各自不同的生活习惯。我们每周有一次固定的周会，除此之外再没有其他约束。没有工作量统计，没有工时记录，有事无需请假。每个人都是某一方面的负责人，每个人都为结果负责。</p>
-<p>如开头所说，我们每年将 30% 的利润分配给核心团队。大家为 NocoBase 负责，实际上就是为自己的事业负责。</p>
-<p>当我写下这段文字的时候，大家正在为两个星期后的团队集体聚会、度假做准备。</p>
-<h4>6. 帮助用户成功</h4>
-<p>我们没有销售团队，未来很长时间应该也不会有。我们希望通过产品本身吸引用户，与用户建立连接，然后再通过产品来帮助用户达成他们的目标。我们不向用户兜售商业许可证，我们建议用户尽可能使用开源许可证达成目标，或者至少在自己的业务场景中经过几个月的实际测试。NocoBase 切实帮助用户赚到更多钱，或者降低更多成本，这是用户愿意向我们付费的基础。</p>
-<h2>接下来做什么</h2>
-<p>我们其实没有非常详细的时间表，也没有增长计划。但至少可以确定的是，我们的 6 年计划刚过半，在接下来的 1000 天里，我们仍然会几乎每天都有 Commit ，每一天的 NocoBase 依然会比前一天更好。</p>
-<p>当然，我们也很期待能连接到更多精彩的故事，期待能紧密地与精彩故事共舞。如果你的公司正在使用或者准备尝试 NocoBase ，或者你对于参与 NocoBase 的开发很感兴趣，欢迎与我们<a href="https://cn.nocobase.com/contact-cn.html" rel="nofollow" title="NocoBase">取得联系</a>。</p>
-]]></content:encoded>
-<pubDate>2024-05-13T03:28:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想问下大家对国内性压抑的看法</title>
-<link>https://www.v2ex.com/t/1040175</link>
-<guid>https://www.v2ex.com/t/1040175</guid>
-<content:encoded><![CDATA[
-<p>这是我在群聊看到的文章
-<img alt="avatar" class="embedded_image" rel="noreferrer" src="http://mmbiz.qpic.cn/sz_mmbiz_jpg/CCNSjHRIFicdEoOkaIiaOibBUae5k0dSI8eqxKdWshpN0vI27aQslMadpxpic8F56KFhDCX2Q40zr5dpoex4V06pibQ/0" /></p>
-]]></content:encoded>
-<pubDate>2024-05-13T04:19:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么什么可以部署在本地的服务，可以上传几千张照片并识别出里面所出现的人物并提示创建对应这个人的相册，类似 apple 相册的人物与宠物</title>
-<link>https://www.v2ex.com/t/1040174</link>
-<guid>https://www.v2ex.com/t/1040174</guid>
-<content:encoded><![CDATA[
-最好是 windows 或者是群晖或者 ubuntu 可以部署的，谢谢大佬们
-]]></content:encoded>
-<pubDate>2024-05-13T03:37:26Z</pubDate>
-</item>
-<item>
-<title>[程序员] 做一个 Java 、 Python 、rust 版本的 新 swagger-ui 包会有人用吗</title>
-<link>https://www.v2ex.com/t/1040171</link>
-<guid>https://www.v2ex.com/t/1040171</guid>
-<content:encoded><![CDATA[
-<p>已经做了前端 CDN 、React 、vue 版本，后端 golang 版本，正在做 后端 nodejs 版本，代码仓库地址如下，欢迎 fork, pr ， 谢谢各位大佬：
-<a href="https://github.com/openapi-ui/go-openapi-ui" rel="nofollow">golang 版本仓库</a>
-<a href="https://github.com/rookie-luochao/openapi-ui" rel="nofollow">openapi-ui 基础仓库</a></p>
-<p>如果有人愿意往 openapi-ui 组织下提供 java 、python 、rust 版本的 swagger-ui 包(基于 openapi-ui 基础仓库，我将持续维护和迭代这个基础 UI)，那将不胜感激</p>
-]]></content:encoded>
-<pubDate>2024-05-13T04:09:48Z</pubDate>
-</item>
-<item>
-<title>[Windows] windows 11 ，如何把 115 浏览器最小化到系统栏？</title>
-<link>https://www.v2ex.com/t/1040169</link>
-<guid>https://www.v2ex.com/t/1040169</guid>
-<content:encoded><![CDATA[
-<p>如题，之前的操作系统都可以的。windows 11 的版本，找不到设置了，只能停留在任务栏。求指导。</p>
-]]></content:encoded>
-<pubDate>2024-05-12T22:41:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想给孩子买保险，也想了解一下保险的相关渠道， V 友有做保险的吗？</title>
-<link>https://www.v2ex.com/t/1040168</link>
-<guid>https://www.v2ex.com/t/1040168</guid>
-<content:encoded><![CDATA[
-<p>最近准备给孩子配齐保险，想趁此机会看看这个行业有没有什么搞钱机会</p>
-<p>V 友有了解保险行业的吗？可以推荐或者交流一下行业经验</p>
-<p>之前了解过明亚保险，但是其中互联网产品还是比较少，而且佣金也比较低，想了解一下其他渠道</p>
-<p>对了，还有一个问题，关于门诊医疗险，已经有一个可以报销 50%的，想把其他 50%覆盖最合适的方案是什么？</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:39:01Z</pubDate>
-</item>
-<item>
-<title>[生活] Google pixel 6a 电池不行了</title>
-<link>https://www.v2ex.com/t/1040167</link>
-<guid>https://www.v2ex.com/t/1040167</guid>
-<content:encoded><![CDATA[
-用了将近两年（还差 3 个月）也不是重度用户，以前充满电可以用两天妥妥的，现在一天不到就要充电了……
-]]></content:encoded>
-<pubDate>2024-05-11T02:39:08Z</pubDate>
-</item>
-<item>
-<title>[问与答] websocket 如何投递消息到 http</title>
-<link>https://www.v2ex.com/t/1040165</link>
-<guid>https://www.v2ex.com/t/1040165</guid>
-<content:encoded><![CDATA[
-<p>我在构思微服务下如何通过 websocket 作为交互。</p>
-<h1>运行流程</h1>
-<p>client =&gt; http =&gt; server  =&gt; ws/tcp  =&gt;   server2 收到	 =&gt;  server2 通过 unixsocket 投递消息到 work 处理完成后 =&gt;	通过 ws 写消息回去  =&gt; server 的 ws 收到消息 </p>
-<p>这个时候 如果正常处理  加工收到的消息， 写入消息到 client 的 fd,close 掉 client 连接 应该是可行的。</p>
-<h2>平常业务代码</h2>
-<p>client =&gt; server(伪代码）=&gt; return </p>
-<pre><code class="language-php">&lt;?php
-
-func add(){
-	$get= $_REQUEST_PARAMS;
-	return success("code=&gt;200,data=$get,msg=''");
-}
-
-</code></pre>
-<h2>如果换成上面通过 websocket 交互</h2>
-<p>都不需要返回了, server 收到 server2 结果后 fwrite($client_fd,$data);  close($client_fd);</p>
-<pre><code class="language-php">&lt;?php
-
-func add(){
-	$get= $_REQUEST_PARAMS;
-    (new Ws)-&gt;send($get);
-}
-
-</code></pre>
-<p>上面写好奇怪的样子。。   我想实现下面的写法有办法吗(代码直观看着舒服)，比如</p>
-<pre><code class="language-php">&lt;?php
-
-func add(){
-	$get= $_REQUEST_PARAMS;
-    $res = (new Ws)-&gt;send($get);
-
-    return success("code=&gt;200,data=$res,msg=''");
-}
-</code></pre>
-<p>如果想实现上面这样子，需要在加一个队列(起到 while true 阻塞效果？)。</p>
-<p>开辟 1 片内存 $arr[$client_fd] =&gt; $data; 数据回来后写入。然后 pop 消息。  </p>
-<p>这样子就好像成 select 了。。 无时无刻在遍历，有数据在返回，性能问题很大。。  </p>
-<p>然后好像为了解决问题又引入新的问题。 </p>
-<p>大佬们给点思路呢</p>
-]]></content:encoded>
-<pubDate>2024-05-13T03:20:04Z</pubDate>
-</item>
-<item>
-<title>10 人规模技术团队寻出路寻项目</title>
-<link>https://www.v2ex.com/t/1040166</link>
-<guid>https://www.v2ex.com/t/1040166</guid>
-<content:encoded><![CDATA[
-有没有需要人力比较多的项目推荐，国内国外项目都能做。我们技术人员都是资深和架构级别的，寻老板和项目呀
-]]></content:encoded>
-<pubDate>2024-05-13T04:19:17Z</pubDate>
-</item>
-<item>
-<title>[生活] 戒糖喝什么饮料？</title>
-<link>https://www.v2ex.com/t/1040164</link>
-<guid>https://www.v2ex.com/t/1040164</guid>
-<content:encoded><![CDATA[
-<p>我会喝无糖汽水，NFC 果汁（听医生说不算健康要少喝），东方树叶，红豆薏仁水，大家有什么推荐吗？</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:32:07Z</pubDate>
-</item>
-<item>
-<title>[macOS] mac 迁移工具,命令行环境如何删除</title>
-<link>https://www.v2ex.com/t/1040163</link>
-<guid>https://www.v2ex.com/t/1040163</guid>
-<content:encoded><![CDATA[
-<p>我使用 mac 迁移工具把 mac mini 的内容迁移到了 mbp 上,全量迁移
-但是现在遇到了一个问题,由于个人的操作问题,mac mini 的一些使用命令行的开发环境的配置有一些问题,比如 git clone 会链接超时,oh-my-zsh 会更新失败等等,mini 上又问题没有进行修改,现在迁移之后导致我 mbp 上也有问题了,请问有没有什么方法可以让这部分配置恢复出厂的一个状态,我重新再配置,而迁移工具迁移的其他文件图片之类的继续留存</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:26:28Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 一个用了 1 年捣鼓出来的影视站点 "不可思议" bukesiyi.app</title>
-<link>https://www.v2ex.com/t/1040161</link>
-<guid>https://www.v2ex.com/t/1040161</guid>
-<content:encoded><![CDATA[
-<p>先，链接：不可思议 <a href="https://bukesiyi.app" rel="nofollow">https://bukesiyi.app</a></p>
-<p>是个 PWA 的（但 iOS 可能没法有好的 PWA 体验，它对 PWA 割了 PIP 功能，而且媒体控制接口有 Bug ，点这个 PWA 正在播放的内容它会打开另一个风马牛不相及的 PWA ），不过程序本体没有真正的离线化，因为内容是线上的，离线程序意义不大（但处理更新却会比较麻烦）。</p>
-<p>（呃，是站点，不是要开源代码什么的（至少目前）。这个板块应该是这个意思吧。）</p>
-<hr />
-<p>一个 2014 、2015 想做但没做成的项。然后最近用了 1 年折腾出来，不过完成度还是不高。</p>
-<p>上线后 SEO 捣鼓了 2 个月，一开始兴奋的期待！然后现在不兴奋了。(￣ε(#￣) Σ 一点都木有用啊！由于一直没有社交网络账户的习惯，而且大陆也没法发这些东西（手机绑定人身。瑟瑟发抖）。阿，还好有 V2 这样的社区，于是。</p>
-<p>功能上只做了最基础的部分，跟大家访问别的站差不多，播放之外就观看记录。</p>
-<p>两个比较致命的地方：</p>
-<p>1 是：本地开发的时候没有注意网络问题。结果上线后比正常网速整体慢 3 倍的网络让程序各处不友好的停顿，对此进行了，将 cf cdn 二次经过 dns 转接，和各种内容缩小与代码捆绑减少文件，最终是比正常网速整体慢 2 倍。由于代码打包在一起，http 瞬发问题减少，程序本体不再那么反应迟钝，算是能用了！不过，正常情况初始化程序是要 8 秒左右，而大陆网络还是要 18 秒左右（这里有个开发上的失误，应该将渲染拆分为三部分：后端、前端增量混合、纯前端。否则首次加载很灾难。）。 —— "<strong>服务器一定是烂的，网速一定是慢的，用户一定是邪恶的</strong>"</p>
-<p>2 是：在开始之前，想了个后来来看很蠢的设计，我尝试把"清单"和"菜单"整在同一个显示部分，这导致交互要不断的伸缩浮动区域，之所以最初这么想是想可以同时显示正文和操作清单…… 通常的设计是：菜单 + ( 清单 + 正文 )。(￣ε(#￣) Σ 然后由于代码质量不太好很难修改，要放到之后的版本里改正了（应该按照 youtube 和 apple 播客那样的设计，清单还是在底部，但需要同屏工作的正文可以悬浮在菜单上放。这个之前也知道，但就是落实了现在这个）。</p>
-<hr />
-<p>开发体验：<strong>魔鬼是细节太多</strong>。（个人自身不是专业技术领域，只是野生的程序员。1 年用时好像有点长）</p>
-<p>运营体验：终于还是有营销渠道问题。 —— <strong>产品 VS 营销</strong></p>
-<hr />
-<p>站点程序本身的功能与内容：</p>
-<p>有做比较复杂的过滤器（非完全版！），不过结果来看，用处不是特别大，但比多数站点的过滤功能强一点，主要是为了可以承载大量线路内容。</p>
-<p>线路。目前动漫部分有 bt 品质的内容（不过只有几个测试用的 4K ，大部分是高品质 1080 ），不过它数量还不是很多。其余的线路也有做描述和排序，可以在过滤器线路面板看。在播放时，会按照分组优先级自动选择可连接上的线路。</p>
-<hr />
-<p>末尾。早年是有某种，这类开始做，然后慢慢的可能转正的想法的。不过，大陆的趋势不是变得更开放，而是变得更垄断了。但由于人们的薪资水平还是那样，内容的马赛克与裁剪规则还是那么激进，以及审核导致延迟一周什么的，于是影视站还是雨后春笋一样，长城 dns 黑名单加一群又会长出新的一群也是必然的，哀（个人觉得，最好的方式还是对企业不要那么紧，对媒体内容不要那么严，企业可以得到正常的收益，然后提供给用户正常的服务，用户就自然的不需要这类野生内容了，而且反盗版有反盗版自己的商业流程，同时正常脑回路的工作者也会多起来。然而他们只是在不断的往另一个方向打补丁）。大致已经不会想这方面了，看叔叔的 bili （做梦就做大点），整这样也没意思。</p>
-<p>域名黑名单失效问题。大概是会发生的，我会想些办法的。</p>
-<p>至此。←  ← so 10 年前想做的，算是做了个简陋版，之后这个会持续演进一些变化。但主要还是往别的方向思考了。</p>
-<p>新的版本大概至少要半年后，届时它作为一个更大整体概念的一个子部分存在。现有发现的问题都会做修正，并补充用户功能和一些常见的功能，以及可能的特色功能。</p>
-<p><strong>阿，有看动漫或电影类需求的，可以用用 =-=，感觉还行的话，也传播传播链接（拜托啦）。</strong></p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:31:51Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 大龄程序员的迷茫</title>
-<link>https://www.v2ex.com/t/1040160</link>
-<guid>https://www.v2ex.com/t/1040160</guid>
-<content:encoded><![CDATA[
-<p>说一下我的概况：
-1.坐标成都，马上 35 ，985 硕，主要用的是 java 语言，golang 为辅。
-2.年前主动离职（原因是公司裁员力度大，人人自危，由于感觉到没有未来，焦虑到影响身体状态，所以主动申请了一个礼包），GAP 了快半年了。
-3.上个月开始找工作，面试了四家吧，其中一家给了 OFFER,但是待遇砍了之前的一半，所以没有去。其它家面试基本上都是在基础技术题上面挂的。
-4.最近一两年的工作都是技术偏管理了，很少写代码，GAP 的时间也基本上没有复习过各种 java 经典面试题之类的，所以面试基础原理性问题的时候答得都不好，毕竟实际工作中确实接触得少了。
-5.招聘网站上发现岗位真的很少很少，最频繁的是华为 OD ，开始变得焦虑了。</p>
-<p>焦虑+迷茫：跟朋友也聊过，感觉我这个阶段很尴尬，如果要继续技术岗，那就要沉下心来好好补足各种八股知识点，并且要接受薪资大砍的心理准备。但是从内心上又很难去接受。之前有想过去当个讲师之类的，但没有实际行动。创业？做什么都不知道。家里是搞一个小的培训机构的，行情也越来越差。</p>
-<p>请教 V 友们，人生的这个阶段应该如何考虑下一站？</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:26:51Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 面向 V2EX 开发，「休息日」1.1.0 重磅更新</title>
-<link>https://www.v2ex.com/t/1040159</link>
-<guid>https://www.v2ex.com/t/1040159</guid>
-<content:encoded><![CDATA[
-<h3>前情提要</h3>
-<p><a href="https://v2ex.com/t/1038080" rel="nofollow">https://v2ex.com/t/1038080</a></p>
-<p>上一次发布还是一周前（ 5/6 周一），这一次给大家带来了全新的「休息日」 1.1.0 版本。</p>
-<p>1.0.0 和 1.1.0 之间总共发了 8 个版本。</p>
-<h3>关于限免</h3>
-<p>之前因为限免期间被别人推荐了，为了避免别人看到信息结果我就调价了，所以今天（ 5/13 ）应该是限免最后一天了，以后应该也会限免，比如发 ProductHunt 的时候……不过可能也不会发。</p>
-<p>其实就算不设闹钟，也可以通过 App 的快捷指令来实现节假日哨兵，放假信息获取等功能。</p>
-<h3>具体新增的内容有：</h3>
-<ol>
-<li>
-<p>除了可以查看每个公共假期模板的节日详情之外，用户现在可以从头开始自定义的「公共假期模板」，或者将内置公共假期模板作为模板新建自己的模板（在每个模板的详情页右上角），还支持用户导入导出 json 文件。</p>
-</li>
-<li>
-<p>更丰富的「基础日历」设置，用户可以设置固定休息日，也可以设置多周循环和多天循环，实现大小周、轮班等特殊工作日安排</p>
-</li>
-<li>
-<p>增加了「冲突日」和「一天的详情」的快捷指令，让你可以通过快捷指令获取 App 内部数据，从而使用在其他地方。</p>
-</li>
-<li>
-<p>新的帮助中心（其实就是飞书在线文档啦）。</p>
-</li>
-<li>
-<p>新的今日标记/可选的基础休息日颜色，可选的假期调班颜色。</p>
-</li>
-</ol>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/R31GwgEF.jpeg" /></p>
-<h3>新的快捷指令地址：</h3>
-<ol>
-<li>
-<p>有公共假期吗？： <a href="https://www.icloud.com/shortcuts/44d58deaa63f4fefb64bdd505f17afca" rel="nofollow">https://www.icloud.com/shortcuts/44d58deaa63f4fefb64bdd505f17afca</a></p>
-</li>
-<li>
-<p>放假调班哨兵： <a href="https://www.icloud.com/shortcuts/19f93bd1667940b9a83e276c5d0b3662" rel="nofollow">https://www.icloud.com/shortcuts/19f93bd1667940b9a83e276c5d0b3662</a></p>
-</li>
-</ol>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/5AaXMoks.jpeg" /></p>
-<h3>未来版本安排</h3>
-<p>桌面小组件：</p>
-<ol>
-<li>显示下一个「休息日」</li>
-<li>显示下一个「公共假日」</li>
-<li>显示这一月的「休息日」</li>
-</ol>
-<h2>用户反馈</h2>
-<p>大家可以通过小红书 @<a href="https://www.v2ex.com/member/App">App</a> 君 和邮箱或者直接在这里进行反馈。</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:35:10Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 留下你的 json 格式化查看工具吧, 看看那个更好用</title>
-<link>https://www.v2ex.com/t/1040158</link>
-<guid>https://www.v2ex.com/t/1040158</guid>
-<content:encoded><![CDATA[
-由于经常有 格式化查看 json 的需求, <br /><br />我的工作流是: 复制 -&gt; 开浏览器 -&gt; 打开 <a href="http://json.cn" rel="nofollow noopener" target="_blank">json.cn</a> -&gt; 黏贴看内容<br /><br />用多了就觉得这个链路太长, 所以想 有没有自动化的一些工具, 没有找到<br /><br />所以做了这个小应用, 基于 tauri2 + react, <br /><br />特性是: 当你复制了 json 数据后, 可以自动展示格式化后的数据<br /><br />口号是: Json 美化, 只需一步!<br /><br />现在已经支持了 json/sql 的自动美化, 后续考虑增加 xml/curl 等<br /><br /><a href="https://github.com/daodao97/quick-view" rel="nofollow noopener" target="_blank">https://github.com/daodao97/quick-view</a><br /><br /><div class="embedded_video_wrapper"></div>
-]]></content:encoded>
-<pubDate>2024-05-13T02:30:25Z</pubDate>
-</item>
-<item>
-<title>[前端开发] 求助：依赖的组件使用了 @emotion/css，开启 csp 后组件的样式丢失了，怎么办？</title>
-<link>https://www.v2ex.com/t/1040157</link>
-<guid>https://www.v2ex.com/t/1040157</guid>
-<content:encoded><![CDATA[
-主要问题是组件内没有设置 nonce ，我也无法传给组件 nonce ，有没有办法在外部处理或者绕过这部分呢？
-]]></content:encoded>
-<pubDate>2024-05-13T02:22:26Z</pubDate>
-</item>
-<item>
-<title>[生活] 海报贴墙上，既要贴的牢，又要撕下来不留痕迹，有什么方法吗？</title>
-<link>https://www.v2ex.com/t/1040156</link>
-<guid>https://www.v2ex.com/t/1040156</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-05-13T02:23:32Z</pubDate>
-</item>
-<item>
-<title>[Apple] 安装一个 2 年前老版本的微信。iphone13 体验大增。十分后悔升级 ios 版本</title>
-<link>https://www.v2ex.com/t/1040155</link>
-<guid>https://www.v2ex.com/t/1040155</guid>
-<content:encoded><![CDATA[
-<p>以前差不多一天看十几次地球吧，只要随便开个程序微信就被杀。用爱思助手安装了个 3 年前的版本，结果闪退可能是不能兼容 ios17 ，又安装了了 2 年前目前没啥问题。又安装了美团。看了一下常用 app 就这两个占内存大了。b 站用的国际版虽然最新但是还能接受。覆盖安装聊天记录可以完美继承。</p>
-<p>现状就是几乎看不到地球了，就算被杀冷启动速度也从原来的 4 秒提升到了 2 秒左右，有点新机那点意思了。真后悔升级 ios 系统要不然还能更加流畅。无论 app 还是系统版本这三年的升级基本没啥感知的内容。手机想用的长，不要随意升级 app 版本。系统也别乱升。</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:29:03Z</pubDate>
-</item>
-<item>
-<title>[杭州] 杭州租房行情崩了？</title>
-<link>https://www.v2ex.com/t/1040154</link>
-<guid>https://www.v2ex.com/t/1040154</guid>
-<content:encoded><![CDATA[
-<p>突然发现朋友圈有挂同样的户型，大概 70 多方，位置在萧山北干那块，租金比我年初租续租的便宜了 700!
-真是血亏，因为第二季度已经交过了。剩下要是违约，那么一个月的违约金刚好也是 4200 。
-这波降价感觉是针对我，兄弟们近期要换房子的一定要多看多比啊！</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:12:14Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 上，用哪个 app 可以打开设置了解压密码的 winrar 压缩包？</title>
-<link>https://www.v2ex.com/t/1040153</link>
-<guid>https://www.v2ex.com/t/1040153</guid>
-<content:encoded><![CDATA[
-<p>压缩包是 rar 格式的</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:07:34Z</pubDate>
-</item>
-<item>
-<title>[Java] smart-doc 3.0.4 发布，优化对 JMeter 性能压测脚本生成支持</title>
-<link>https://www.v2ex.com/t/1040152</link>
-<guid>https://www.v2ex.com/t/1040152</guid>
-<content:encoded><![CDATA[
-<p>smart-doc 是一款同时支持 JAVA REST API 和 Apache Dubbo RPC 接口文档生成的工具，smart-doc 利用接口泛型和 javadoc 注释自动分析生成 api 接口文档，不采用任何注解侵入到业务代码中。只需要在项目中引入 smart-doc 提供的 maven 或者是 gradle 插件，然后按照规范写好 javadoc 注释即可生成 api 文档。同时 smart-doc 也支持生成 openapi 和 postman 这些规范的文档，生成后可以直接导入相关工具做测试。</p>
-<p>目前在国内已被小米、科大讯飞、同程旅行、快手、马蜂窝、顺丰等知名公司所使用。</p>
-<h1>仓库地址</h1>
-<p><a href="https://github.com/TongchengOpenSource/smart-doc" rel="nofollow">https://github.com/TongchengOpenSource/smart-doc</a></p>
-<h1>重要更新内容</h1>
-<ul>
-<li>优化扫描代码生成 JMeter 性能压测脚本添加 Prometheus 监听器
-更多更新内容请查看 <a href="https://github.com/TongchengOpenSource/smart-doc/releases/tag/3.0.4" rel="nofollow">https://github.com/TongchengOpenSource/smart-doc/releases/tag/3.0.4</a></li>
-</ul>
-<p>相关文章</p>
-<p><a href="https://my.oschina.net/u/1760791/blog/11050911" rel="nofollow">Smart-doc 赋能 JMeter 性能压测实践</a></p>
-<h1>社区贡献</h1>
-<p>smart-doc 作为同程旅行大力支持的开源项目，对于社区贡献的 committer ，我们将提供书籍、文化衫等礼品作为奖励，非常欢迎社区用户参与共建。后续社区也会逐步增加其他语言的支持。</p>
-<h1>未来计划</h1>
-<p>新增 GRPC 支持</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:04:36Z</pubDate>
-</item>
-<item>
-<title>[美酒与美食] 有经常打果蔬汁和绿拿铁的吗？</title>
-<link>https://www.v2ex.com/t/1040151</link>
-<guid>https://www.v2ex.com/t/1040151</guid>
-<content:encoded><![CDATA[
-一般是 2-3 种蔬菜，2-3 种水果，之前看到一个人打了几十种食材，最近在想加料
-]]></content:encoded>
-<pubDate>2024-05-13T02:00:47Z</pubDate>
-</item>
-<item>
-<title>[iDev] 创建一家使用自身资质帮助各类应用上架是否可行呢？</title>
-<link>https://www.v2ex.com/t/1040150</link>
-<guid>https://www.v2ex.com/t/1040150</guid>
-<content:encoded><![CDATA[
-<p>现在上架 app 和小程序都需要公司资质，个体无法上架，如果开办一家公司、使用自身资质帮个体上架 app 会有什么法律风险吗？以前有类似的公司做过吗？</p>
-]]></content:encoded>
-<pubDate>2024-05-13T02:20:44Z</pubDate>
-</item>
-<item>
-<title>[程序员] win11 CPU 占用好高啊</title>
-<link>https://www.v2ex.com/t/1040147</link>
-<guid>https://www.v2ex.com/t/1040147</guid>
-<content:encoded><![CDATA[
-<p>就是这个 System 的东西 有人遇到过嘛
-<img class="embedded_image" rel="noreferrer" src="https://images.ynwaspectre.cn/1715564496255.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-05-05T14:06:29Z</pubDate>
 </item>
 </channel>
 </rss>
