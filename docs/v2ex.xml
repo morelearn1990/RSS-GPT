@@ -5,11 +5,521 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[iPhone] 美版 iPhone15 Pro 故障，境内直营店能受理嘛？</title>
+<link>https://www.v2ex.com/t/1045552</link>
+<guid>https://www.v2ex.com/t/1045552</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-05-30T18:03:45Z</pubDate>
+<pubDate>2024-05-30T18:15:56Z</pubDate>
+</item>
+<item>
+<title>[Go 编程语言] 管中窥 Go: Generic</title>
+<link>https://www.v2ex.com/t/1045551</link>
+<guid>https://www.v2ex.com/t/1045551</guid>
+<content:encoded><![CDATA[
+
+<p>多态(polymorphism)或者泛型(generics)在此指的是让一个函数可以服务多种不同的类型.</p>
+<h2>实现</h2>
+<p><a href="https://research.swtch.com/generic" rel="nofollow">The Generic Dilemma</a> 指出了实现泛型(generic)的两种主流方式.
+一是以 C++ 为代表的 monomorphization 方案. 由编译器针对实际使用到每一类情况生成具体的代码.
+代价是编译缓慢且执行文件臃肿.  另一种是以 Java 为代表的 boxing.
+对象被分配在堆上, 函数之间仅传递指针. 运行根据具体的类型推导出具体的方法.
+这种方案的代价是拖慢了运行效率.</p>
+<p>Go 在 1.18 引入的方案, 官方名称是
+<a href="https://go.googlesource.com/proposal/+/refs/heads/master/design/generics-implementation-gcshape.md" rel="nofollow">GCShape Stenciling with Dictionaries</a>,
+简单理解就是 monoorphinzation 和 boxing 一起用.
+是不是有点自己面向 OKR 做技术优化的感觉了.</p>
+<p>Go 的这套方案可以简单的理解为:</p>
+<ul>
+<li>对于不同 gcshape, 采用 C++ 方案, 由编译器创建多份代码, 即 stenciling</li>
+<li>对于同一 gcshape, 采用 Java 方案, 在运行时根据路由表, 即 dicitionaries, 确定具体的方法</li>
+<li>
+gcshape 的定义: two concrete types are in the same gcshape grouping if and only if they have the same underlying type or they are both pointer types<ul>
+<li>即要么有完全相同的底层实现, 如 <code>int</code>, <code>type MyInt int</code></li>
+<li>或者是指针, 所有指针共享属于同一个 gcshape</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-shell">➜  go-generic git:(main) ✗ cat -n main.go
+     1  package main
+     2
+     3  //go:noinline
+     4  func Sum[T interface{ ~int | ~int32 | ~int64 }](nums []T) (s T) {
+     5          if len(nums) == 0 {
+     6                  return
+     7          }
+     8          for _, n := range nums {
+     9                  s += n
+    10          }
+    11          return
+    12  }
+    13
+    14  func main() {
+    15          Sum([]int{1, 2, 3})
+    16  }
+➜  go-generic git:(main) ✗ cat -n objdump  | grep "Sum(\[]int{1, 2, 3})" -A 10
+112037          Sum([]int{1, 2, 3})
+112038    0x4577ee              440f117c2420            MOVUPS X15, 0x20(SP)
+112039    0x4577f4              440f117c2428            MOVUPS X15, 0x28(SP)
+112040    0x4577fa              48c744242001000000      MOVQ $0x1, 0x20(SP)
+112041    0x457803              48c744242802000000      MOVQ $0x2, 0x28(SP)
+112042    0x45780c              48c744243003000000      MOVQ $0x3, 0x30(SP)
+112043    0x457815              488d05b4690200          LEAQ main..dict.Sum[int](SB), AX
+112044    0x45781c              488d5c2420              LEAQ 0x20(SP), BX
+112045    0x457821              b903000000              MOVL $0x3, CX
+112046    0x457826              4889cf                  MOVQ CX, DI
+112047    0x457829              e812000000              CALL main.Sum[go.shape.int](SB)
+</code></pre>
+<p>在上述的例子中:</p>
+<ul>
+<li>L112047 显示编译时创建了针对特定 gcshape 的函数 main.Sum[<a href="http://go.shape.int" rel="nofollow">go.shape.int</a>]</li>
+<li>L112043 是在调用 Sum 前, 将路由表 main..dict.Sum[int] 作为第一个参数加载到寄存器 AX</li>
+<li>L112044~46 代表了实际参数, 一个 int 数组, 占用三个寄存器</li>
+</ul>
+<p>泛型的主要处理逻辑在编译器, stenciling 和 dict 的主要内容都是编译器生产的.
+由于对整个编译模块都不熟悉, 我们就不去代码里面扣逻辑了.
+但是在 <a href="https://go.googlesource.com/proposal/+/refs/heads/master/design/generics-implementation-dictionaries.md#generics-implementation-dictionaries" rel="nofollow">Generics implementation - Dictionaries</a> 的基础上,
+结合汇编结果, 我们依然可以去理解&amp;&amp;验证这部分的逻辑.</p>
+<p>我们首先针对相同的逻辑构造泛型和无泛型的实现, 然后通过比较, 了解泛型带来的一些改变.</p>
+<pre><code class="language-go">package main
+
+//go:noinline
+func Say[T interface{ Name() string }](v T) string {
+    return v.Name() + " say hello"
+}
+
+type Foo struct{}
+
+//go:noinline
+func (Foo) Name() string { return "foo" }
+
+type Bar struct{}
+
+//go:noinline
+func (Bar) Name() string { return "bar" }
+
+//go:noinline
+func FooSay(v Foo) string {
+    return v.Name() + " say hello"
+}
+
+func main() {
+    foo, bar := Foo{}, Bar{}
+
+    Say(foo)
+    FooSay(foo)
+
+    Say(bar)
+}
+</code></pre>
+<pre><code class="language-shell">➜  go-generic git:(main) ✗ GOOS=linux GOARCH=amd64 go tool objdump -S main | cat -n - | grep -E "TEXT main.(Say|FooSay)" -A 16
+112042  TEXT main.FooSay(SB) /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-generic/main.go
+112043  func FooSay(v Foo) string {
+...
+112049          return v.Name() + " say hello"
+112050    0x45782e              e8adffffff              CALL main.Foo.Name(SB)
+112051    0x457833              4889d9                  MOVQ BX, CX
+112052    0x457836              488d3d8af40000          LEAQ 0xf48a(IP), DI
+112053    0x45783d              be0a000000              MOVL $0xa, SI
+112054    0x457842              4889c3                  MOVQ AX, BX
+112055    0x457845              31c0                    XORL AX, AX
+112056    0x457847              e854e1feff              CALL runtime.concatstring2(SB)
+112057    0x45784c              4883c428                ADDQ $0x28, SP
+112058    0x457850              5d                      POPQ BP
+--
+112087  TEXT main.Say[go.shape.struct {}](SB) /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-generic/main.go
+112088  func Say[T interface{ Name() string }](v T) string {
+...
+112094          return v.Name() + " say hello"
+112095    0x4578ae              488b08                  MOVQ 0(AX), CX
+112096    0x4578b1              4889c2                  MOVQ AX, DX
+112097    0x4578b4              ffd1                    CALL CX
+112098    0x4578b6              4889d9                  MOVQ BX, CX
+112099    0x4578b9              488d3d07f40000          LEAQ 0xf407(IP), DI
+112100    0x4578c0              be0a000000              MOVL $0xa, SI
+112101    0x4578c5              4889c3                  MOVQ AX, BX
+112102    0x4578c8              31c0                    XORL AX, AX
+112103    0x4578ca              e8d1e0feff              CALL runtime.concatstring2(SB)
+</code></pre>
+<p>FooSay 的逻辑是很好理解的:</p>
+<ul>
+<li>L112050 调用 <a href="http://Foo.Name" rel="nofollow">Foo.Name</a>, 返回保存在寄存器 AX&amp;BX 上, string 需要占用两个寄存器, 一个保存指针, 一个保存长度</li>
+<li>接下来的几行都是为了调用 <a href="https://github.com/golang/go/blob/go1.21.8/src/runtime/string.go#L59" rel="nofollow">func concatstring2(buf *tmpBuf, a0, a1 string) string</a></li>
+<li>L112051, 112054 将 <a href="http://Foo.Name" rel="nofollow">Foo.Name</a> 的返回转移到寄存器 BX 和 CX</li>
+<li>L112052, 112053 将 " say hello" 加载到寄存器 DI, SI</li>
+<li>L112055 清空寄存器 AX</li>
+</ul>
+<p>对比之下, 我们可以发现 main.Say[go.shape.struct {}] 中的主要变化是调用 <a href="http://Foo.Name" rel="nofollow">Foo.Name</a> 的逻辑:</p>
+<ul>
+<li>此时的调用参数变为两个 AX 保存了 dict, BX 保存了 foo</li>
+<li>
+L112095 中 0(AX) 是将 dict 的第一个字段转移到了 CX,<ul>
+<li>从后面的 CALL CX, 我们可以推测这个字段存储 <a href="http://Foo.Name" rel="nofollow">Foo.Name</a></li>
+</ul>
+</li>
+<li>L112096 将 dict 暂存到了 DX, 为 L112097 的 CALL CX 做准备</li>
+<li>后续的逻辑和 FooSay 一致</li>
+</ul>
+<h2>代价</h2>
+<p><a href="https://planetscale.com/blog/generics-can-make-your-go-code-slower" rel="nofollow">Generics can make your Go code slower</a>
+深入而详细的讲述了 generic 带来的性能损失, 包括:</p>
+<ul>
+<li>当使用指针作为参数时, 泛型相比 interface{} 多一次 deference</li>
+<li>当使用不同于 type parameter 的 interface{} 作为参数时, 泛型函数会调用 runtime.assertI2I</li>
+</ul>
+<p>这篇文章发表于 2022-03-30, 使用 go1.18,
+在今日 2024-05-31, 使用 go1.21.8,
+基本都无法复现, 大概率是已经被优化掉, 小概率是我菜, 没复现对.
+但无论如何都不影响这是一篇写的很好的文章.</p>
+<p>我们需要修改下之前的示例代码, 添上一些我们需要的场景.</p>
+<ul>
+<li>L35&amp;L36 是用于区分指针调用, 在泛型函数中的逻辑.</li>
+<li>L39 是用于探索多包一层 interface{} 的影响.</li>
+</ul>
+<pre><code class="language-go">     1  package main
+     2
+     3  type Sayer interface {
+     4          Name() string
+     5  }
+     6
+     7  type SayerWithLastName interface {
+     8          Name() string
+     9          LastName() string
+    10  }
+    11
+    12  //go:noinline
+    13  func Say[T Sayer](v T) string {
+    14          return v.Name() + " say hello"
+    15  }
+    16
+    17  type User struct {
+    18          name     string
+    19          lastName string
+    20  }
+    21
+    22  func (v *User) LastName() string { return v.lastName }
+    23
+    24  //go:noinline
+    25  func (v *User) Name() string { return v.name }
+    26
+    27  //go:noinline
+    28  func SayerSay(v Sayer) string {
+    29          return v.Name() + " say hello"
+    30  }
+    31
+    32  func main() {
+    33          foo := &amp;User{name: "foo", lastName: "unknown"}
+    34
+    35          SayerSay(foo)
+    36          Say(foo)
+    37
+    38          i := SayerWithLastName(foo)
+    39          Say(i)
+    40
+    41          Say(&amp;Anonymous{})
+    42  }
+    43
+    44  type Anonymous struct{}
+    45
+    46  func (v *Anonymous) Name() string { return "unknown" }
+</code></pre>
+<p>调用者的汇编如下:</p>
+<ul>
+<li>Say(i) 添加的额外参数比较多, 第一个是 dict, 第二个是 itab(用于 interface{} 的路由转发)</li>
+</ul>
+<pre><code class="language-shell">➜  go-generic git:(main) ✗ GOOS=linux GOARCH=amd64 go tool objdump -S main | cat -n - | grep "SayerSay(foo)" -A 12
+112085          SayerSay(foo)
+112086    0x4578a8              4889c3                  MOVQ AX, BX
+112087    0x4578ab              488d05f66c0200          LEAQ go:itab.*main.User,main.Sayer(SB), AX
+112088    0x4578b2              e849ffffff              CALL main.SayerSay(SB)
+112089          Say(foo)
+112090    0x4578b7              488d05926b0200          LEAQ main..dict.Say[*main.User](SB), AX
+112091    0x4578be              488b5c2418              MOVQ 0x18(SP), BX
+112092    0x4578c3              e898010000              CALL main.Say[go.shape.*uint8](SB)
+112093          Say(i)
+112094    0x4578c8              488d05916b0200          LEAQ main..dict.Say[main.SayerWithLastName](SB), AX
+112095    0x4578cf              488d1d126d0200          LEAQ go:itab.*main.User,main.SayerWithLastName(SB), BX
+112096    0x4578d6              488b4c2418              MOVQ 0x18(SP), CX
+112097    0x4578db              0f1f440000              NOPL 0(AX)(AX*1)
+</code></pre>
+<p>我们可以看到 SayerSay(&amp;foo) 和 Say(&amp;foo) 基本没有区别, 都只有一次动态调用.
+泛型函数中因为将 dict 作为第一个参数, 所以需要在 L112204 和 L112205 切换下寄存器.</p>
+<pre><code class="language-shell">➜  go-generic git:(main) ✗ GOOS=linux GOARCH=amd64 go tool objdump -S main | cat -n - | grep -E "TEXT main.SayerSay|TEXT main.Say\[go.shape.*uint8\]" -A 20
+112037  TEXT main.SayerSay(SB) /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-generic/main.go
+112038  func SayerSay(v Sayer) string {
+...
+112046          return v.Name() + " say hello"
+112047    0x457818              488b4818                MOVQ 0x18(AX), CX
+112048    0x45781c              4889d8                  MOVQ BX, AX
+112049    0x45781f              90                      NOPL
+112050    0x457820              ffd1                    CALL CX
+112051    0x457822              4889d9                  MOVQ BX, CX
+112052    0x457825              488d3d78f60000          LEAQ 0xf678(IP), DI
+112053    0x45782c              be0a000000              MOVL $0xa, SI
+112054    0x457831              4889c3                  MOVQ AX, BX
+112055    0x457834              31c0                    XORL AX, AX
+112056    0x457836              e865e1feff              CALL runtime.concatstring2(SB)
+112057    0x45783b              4883c428                ADDQ $0x28, SP
+--
+112195  TEXT main.Say[go.shape.*uint8](SB) /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-generic/main.go
+112196  func Say[T Sayer](v T) string {
+...
+112202          return v.Name() + " say hello"
+112203    0x457a6e              488b08                  MOVQ 0(AX), CX
+112204    0x457a71              4889c2                  MOVQ AX, DX
+112205    0x457a74              4889d8                  MOVQ BX, AX
+112206    0x457a77              ffd1                    CALL CX
+112207    0x457a79              4889d9                  MOVQ BX, CX
+112208    0x457a7c              488d3d21f40000          LEAQ 0xf421(IP), DI
+112209    0x457a83              be0a000000              MOVL $0xa, SI
+112210    0x457a88              4889c3                  MOVQ AX, BX
+112211    0x457a8b              31c0                    XORL AX, AX
+112212    0x457a8d              e80edffeff              CALL runtime.concatstring2(SB)
+112213    0x457a92              4883c428                ADDQ $0x28, SP
+112214    0x457a96              5d                      POPQ BP
+112215    0x457a97              c3                      RET
+</code></pre>
+<p>Say(i) 是有点意思的:</p>
+<ul>
+<li>L112098 的调用显示 AX 是 dict, BX 是 itab, CX 才是 foo</li>
+<li>那么 L112171 和 L112175 是针对泛型的一次方法路由, 调用的是 interface SayerWithLastname 的 Name 方法</li>
+<li>L112236 和 112238 是针对 interface{} 的一次方法路由
+我们可以看到, 相比直接使用指针, 多一次方法路由, 但 runtime.assertI2I 已经不再需要了.
+多的一次方法路由是因为 L112095 以 SayerWithLastName 作为 key 来从 dict 中获取信息.</li>
+</ul>
+<pre><code class="language-shell">➜  go-generic git:(main) ✗ GOOS=linux GOARCH=amd64 go tool objdump -S main | cat -n - | grep -E "Say\(i|TEXT main.Say\[go.shape.interface|TEXT main.SayerWithLastName" -A 20
+112093          Say(i)
+112094    0x4578c8              488d05916b0200          LEAQ main..dict.Say[main.SayerWithLastName](SB), AX
+112095    0x4578cf              488d1d126d0200          LEAQ go:itab.*main.User,main.SayerWithLastName(SB), BX
+112096    0x4578d6              488b4c2418              MOVQ 0x18(SP), CX
+112097    0x4578db              0f1f440000              NOPL 0(AX)(AX*1)
+112098    0x4578e0              e8fb000000              CALL main.Say[go.shape.interface { LastName() string; Name() string }](SB)
+--
+112161  TEXT main.Say[go.shape.interface { LastName() string; Name() string }](SB) /Users/j2gg0s/go/src/github.com/j2gg0s/j2gg0s/examples/go-generic/main.go
+112162  func Say[T Sayer](v T) string {
+...
+112170          return v.Name() + " say hello"
+112171    0x4579f8              488b30                  MOVQ 0(AX), SI
+112172    0x4579fb              4889c2                  MOVQ AX, DX
+112173    0x4579fe              4889d8                  MOVQ BX, AX
+112174    0x457a01              4889cb                  MOVQ CX, BX
+112175    0x457a04              ffd6                    CALL SI
+112176    0x457a06              4889d9                  MOVQ BX, CX
+112177    0x457a09              488d3d94f40000          LEAQ 0xf494(IP), DI
+112178    0x457a10              be0a000000              MOVL $0xa, SI
+112179    0x457a15              4889c3                  MOVQ AX, BX
+112180    0x457a18              31c0                    XORL AX, AX
+112181    0x457a1a              e881dffeff              CALL runtime.concatstring2(SB)
+--
+112224  TEXT main.SayerWithLastName.Name(SB) &lt;autogenerated&gt;
+112225
+...
+112234    0x457ad7              4889442418              MOVQ AX, 0x18(SP)
+112235    0x457adc              48895c2420              MOVQ BX, 0x20(SP)
+112236    0x457ae1              488b4820                MOVQ 0x20(AX), CX
+112237    0x457ae5              4889d8                  MOVQ BX, AX
+112238    0x457ae8              ffd1                    CALL CX
+112239    0x457aea              4883c408                ADDQ $0x8, SP
+112240    0x457aee              5d                      POPQ BP
+112241    0x457aef              c3                      RET
+112242    0x457af0              4889442408              MOVQ AX, 0x8(SP)
+112243    0x457af5              48895c2410              MOVQ BX, 0x10(SP)
+112244    0x457afa              e841ccffff              CALL runtime.morestack_noctxt.abi0(SB)
+</code></pre>
+<p>Link: <a href="https://github.com/j2gg0s/j2gg0s" rel="nofollow">https://github.com/j2gg0s/j2gg0s</a></p>
+]]></content:encoded>
+<pubDate>2024-05-30T17:25:10Z</pubDate>
+<pubDate>2024-05-30T17:24:10Z</pubDate>
+</item>
+<item>
+<title>[Apple] 支付宝里的 pockyt shop 购买 apple app store 礼品卡好像出问题了</title>
+<link>https://www.v2ex.com/t/1045550</link>
+<guid>https://www.v2ex.com/t/1045550</guid>
+<content:encoded><![CDATA[
+
+<p>第三次购买了，前几次都没问题。通过支付宝付款充值了 50 刀到 pockyt shop 的账户余额，用余额支付购买 apple app store 礼品卡时，弹出提示“Balance is temporarily unavailable.余额暂不可用”，已经发邮件给 pockyt 的客服了，等等等等看对方如何回复。</p>
+]]></content:encoded>
+<pubDate>2024-05-30T17:17:06Z</pubDate>
+<pubDate>2024-05-30T17:17:06Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] Apple Watch 消息延迟严重</title>
+<link>https://www.v2ex.com/t/1045549</link>
+<guid>https://www.v2ex.com/t/1045549</guid>
+<content:encoded><![CDATA[
+
+最近Watch （ Series 8 ）消息推送延迟，基本上在 2-5 秒左右。<br />本以为是我自己的 Watch 的问题，没想到问了几个朋友（使用机型包括 Ultra 1 和 Series 9 ），最近都有相同的问题。
+]]></content:encoded>
+<pubDate>2024-05-30T17:00:29Z</pubDate>
+<pubDate>2024-05-30T17:00:29Z</pubDate>
+</item>
+<item>
+<title>[分享创造] VV 表情包</title>
+<link>https://www.v2ex.com/t/1045548</link>
+<guid>https://www.v2ex.com/t/1045548</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://nano-exp.com/vv" rel="nofollow">https://nano-exp.com/vv</a></p>
+]]></content:encoded>
+<pubDate>2024-05-30T16:51:58Z</pubDate>
+<pubDate>2024-05-30T00:51:58Z</pubDate>
+</item>
+<item>
+<title>[哔哩哔哩] 哔哩哔哩 favicon 报 404，有没有同样问题的</title>
+<link>https://www.v2ex.com/t/1045547</link>
+<guid>https://www.v2ex.com/t/1045547</guid>
+<content:encoded><![CDATA[
+
+<p>请求的是 <a href="https://www.bilibili.com/favicon.ico" rel="nofollow">https://www.bilibili.com/favicon.ico</a> ，报错 404 ，标签 favicon 显示异常。很神奇的是 <a href="https://www.bilibili.com/favicon.ico" rel="nofollow">https://www.bilibili.com/favicon.ico</a> 这个网页的 favicon 正常展示，貌似这个页面发送了一个请求 <a href="https://static.hdslb.com/images/favicon.ico" rel="nofollow">https://static.hdslb.com/images/favicon.ico</a> 能够获取到 favicon 。</p>
+]]></content:encoded>
+<pubDate>2024-05-30T16:47:58Z</pubDate>
+<pubDate>2024-05-30T17:44:52Z</pubDate>
+</item>
+<item>
+<title>[Apple] app store 美区怎么最低限度地添加付款方式？</title>
+<link>https://www.v2ex.com/t/1045546</link>
+<guid>https://www.v2ex.com/t/1045546</guid>
+<content:encoded><![CDATA[
+
+<p>我被补偿了一个软件的试用期，然而非常不巧的是，这个软件，我当初是在美区购买的——也就是说，我想试用就必须添加一个付款方式，但是我试了种种方法，才意识到想添加一种付款方式有多难。
+所以我想知道如何最低难度地添加一种付款方式？我也不需要用它来真的付款——我平时都用礼品卡</p>
+]]></content:encoded>
+<pubDate>2024-05-30T16:47:26Z</pubDate>
+<pubDate>2024-05-30T18:17:51Z</pubDate>
+</item>
+<item>
+<title>[路由器] Linksys 京东天猫关店了？</title>
+<link>https://www.v2ex.com/t/1045545</link>
+<guid>https://www.v2ex.com/t/1045545</guid>
+<content:encoded><![CDATA[
+
+是想 618 看下换一个的，为啥关了？
+]]></content:encoded>
+<pubDate>2024-05-30T16:36:23Z</pubDate>
+<pubDate>2024-05-30T17:07:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 基于 LLM 的那些本地知识库，到了真可以提高效率的程度了么？</title>
+<link>https://www.v2ex.com/t/1045544</link>
+<guid>https://www.v2ex.com/t/1045544</guid>
+<content:encoded><![CDATA[
+
+有可以真提高工作/学习效率的了么？<br /><br />或者仍然是搭起来跑一下就再也不用了？
+]]></content:encoded>
+<pubDate>2024-05-30T16:34:10Z</pubDate>
+<pubDate>2024-05-30T18:19:36Z</pubDate>
+</item>
+<item>
+<title>[求职] 成都，十年， Android 资深/Flutter 熟练/react 能写，求个兼职</title>
+<link>https://www.v2ex.com/t/1045542</link>
+<guid>https://www.v2ex.com/t/1045542</guid>
+<content:encoded><![CDATA[
+
+<p>十年大前端开发经验，目前就职于大厂环路公司，base 成都</p>
+<p>求个偏长期的兼职，每周 20-25 工时投入，remote/成都皆可</p>
+<p>flutter 流行网络库 dio 贡献者
+几年前写过一个 300+ star Android 项目</p>
+<p>欢迎微信详聊：sunhapper</p>
+]]></content:encoded>
+<pubDate>2024-05-30T16:27:03Z</pubDate>
+<pubDate>2024-05-30T16:27:03Z</pubDate>
+</item>
+<item>
+<title>🔬 [试验] Time4Value - 一种对独立开发者友好的收费方式</title>
+<link>https://www.v2ex.com/t/1044339</link>
+<guid>https://www.v2ex.com/t/1044339</guid>
+<content:encoded><![CDATA[
+
+<p>最近有机会 Gap 一阵，计划寻找一件长期可持续的事情来琢磨。</p>
+<p>对 Bitcoin 社区提出的 <a href="https://vv.meme/" rel="nofollow">Value4Value</a> 概念一直很感兴趣，这个概念实际上提倡的是微支付（<a href="https://nakamotoinstitute.org/static/docs/micropayments-and-mental-transaction-costs.pdf" rel="nofollow">Micropayment</a>），也就是说任何有价值的事物都值得以相应的价值来支付与衡量。比如 <a href="https://github.com/lightninglabs/L402" rel="nofollow">L402</a>、<a href="https://docs.cashu.space/" rel="nofollow">Cashu</a> 以及 <a href="https://stacker.news/story" rel="nofollow">Stakernews</a> 等案例，或者是 Ethereum 社区的 <a href="https://stacker.news/story" rel="nofollow">Friendtech</a> 和 <a href="https://www.farcaster.xyz/" rel="nofollow">Farcaster</a> 等社交试验。</p>
+<p>所以我计划未来 12 个月，每月尝试发布一个 “Value4Value” 主题相关的智能合约试验。</p>
+<hr />
+<p><a href="https://github.com/value4value/time4value" rel="nofollow">Time4Value</a> 作为第一个试验，基于 Bonding Curve （定价 / 流动性）+ Yield Farming （利息策略）来作为支付方式，这种方式的特点以抵押为主，基于联合曲线定价，并通过出售加密货币的时间价值（也即利息），以及交易手续费作为收入来源。</p>
+<blockquote>
+<p><em>Time4Value</em> - 出售你的加密货币时间，购买有价值的服务。</p>
+</blockquote>
+<p><img alt="Time4Value's Bonding Curve Demo" class="embedded_image" rel="noreferrer" src="https://github.com/value4value/time4value/raw/main/images/curve.gif" /></p>
+<h3>Time4Value 的来源</h3>
+<p>这想法来自一次与朋友闲聊，他提到我们能否利用加密货币 Staking 机制购买服务，通过出让加密货币的时间价值（也即利息），而不是一次性支付，这样交易决策成本低，也允许随时退出 / 转让，最大化区块链的优势，因为这是传统支付无法实现的能力。</p>
+<p>仅仅如此，还是不足以落地的，因为利息是需要伴随资金和时间才会产生价值。你需要一套机制实现定价与博弈，才能进一步吸引流动性，直到 Friendtech 利用 Bonding  Curve （三次幂和公式 <code>i(i+1)(2i+1)/6</code>）来定价（简单，且巧妙），我认为这将有点可能可行。</p>
+<p>所以 Time4Value 的结构设计是一个骨架</p>
+<ul>
+<li>上层是任意 Bonding Curve 定价策略</li>
+<li>底层是任意 Yield Farming 利息策略</li>
+<li>你可以实现简单 Friendtech ，也能实现任意复杂支付策略。</li>
+</ul>
+<p>设想 Time4Value 重新制作一遍以下场景？</p>
+<ul>
+<li>Buymeacoffee</li>
+<li>Github Sponsor</li>
+<li>SaaS Subscription</li>
+<li>…</li>
+</ul>
+<h3><strong>为什么这想法有点意思？</strong></h3>
+<p><strong>TL;DR</strong></p>
+<ol>
+<li>初期阶段，正反馈激励，远比收入规模重要；</li>
+<li>利率市场是天然的可持续收入来源，也是一种双赢策略；</li>
+<li>低交易决策成本，多博弈因素，将可能制造出有多样趣的玩法。</li>
+</ol>
+<p><strong>初期友好</strong>
+未来会有越来越多的独立工作者和开发者，但并不是每一位个体在初期都拥有成熟的产品与商业模式。在这种情况下，传统的订阅模式难以适用。然而，通过采用 Bonding Curve （ Sigmoid ）实现供需定价，用户可以在早期以低成本获得服务（即早鸟价），同时不断给予创作者正反馈（重要重要重要）。当创作者的产品或服务达到 PMF 后，随着供需平衡，价格将逐渐达到合理的市场水平。</p>
+<p><strong>随时退出</strong>
+这种付费方式以抵押为主，所以用户可以选择随时抵押 / 退出。当曲线是线性稳定的，那么这将是一种无损抵押，如果曲线是 S 型风格，那起初将会快速增长，中后期平缓，当然你也可以自定义不同类型的曲线以满足要求。</p>
+<p>抵押加上曲线定价是一把双刃剑。随时退出的特性降低了交易决策成本，如同于 7 天无理由退货，但引入了动态曲线，也增加了其博弈成分，成为有人盈利，有人亏损的支付方式。</p>
+<p><strong>长期收入</strong>
+区块链缺乏「预支信用」的基础，导致难以模拟传统订阅支付（即信用卡每月付费），所以加密货币支付往往采用按年 / 按次支付方式为主。与其模拟流式支付，不如利用自由、开放的利率市场，利息本身是按时间流逝的收益，将其剥离作为创作者可持续收入的一部分。</p>
+<hr />
+<h3>Notes</h3>
+<p>如果你对这想法感兴趣，也许 2 周后，我将会制作一个简单的客户端界面以便使用。当然你也可以考虑 fork 进一步修改满足自己的需求。</p>
+<p>如果你对智能合约感兴趣，这里有一个简单的 Bug Bounty</p>
+<ul>
+<li><em>Repo：<a href="https://github.com/value4value/time4value" rel="nofollow">Time4Value</a></em></li>
+<li>发现 <a href="https://docs.sherlock.xyz/audits/judging/judging#iv.-how-to-identify-a-high-issue" rel="nofollow">High / Medium</a> 问题 - $1200 / 问题（没有限制）</li>
+<li>补充 / 优化测试用例 - $100 / PR （限 5 个 PR ，主观不纳入划水 PR ）</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-05-27T06:54:28Z</pubDate>
+<pubDate>2024-05-29T01:53:00Z</pubDate>
+</item>
+<item>
+<title>混阅，浏览器插件版本来了</title>
+<link>https://www.v2ex.com/t/1044333</link>
+<guid>https://www.v2ex.com/t/1044333</guid>
+<content:encoded><![CDATA[
+
+<p>混阅，一个中英混合阅读工具，将中文内容使用 AI 大语言模型转换为中英混合的形式，使用充足的中文 context 实现英语词汇的增长</p>
+<h2>效果</h2>
+<p><img alt="code-mixing" class="embedded_image" rel="noreferrer" src="https://ishare20.net/files/images/code_mixing_1.png" /></p>
+<h2>插件安装</h2>
+<p><a href="https://chromewebstore.google.com/detail/%E6%B7%B7%E9%98%85/ffcpgnhhjmbjghlkhgbpdijabeobilef?hl=zh-CN&amp;authuser=0" rel="nofollow">https://chromewebstore.google.com/detail/%E6%B7%B7%E9%98%85/ffcpgnhhjmbjghlkhgbpdijabeobilef?hl=zh-CN&amp;authuser=0</a></p>
+<p><strong>插件安装后需要在<a href="https://mixread.blemon.net/" rel="nofollow">混阅官网</a>获取 Key</strong>，配置一下 Key 即可开箱使用</p>
+<p><a href="https://mixread.blemon.net/docs/install.html" rel="nofollow">详细安装配置教程</a></p>
+<h2>常见问题</h2>
+<ul>
+<li>转换基于大语言模型技术，可能一小部分句子有不预期结果</li>
+<li>AI 大模型对长文本转行比较慢，所以插件默认设置了段落超过 200 字后不翻译，这个字数限制可自定义修改</li>
+<li>插件保留了自定义翻译接口，可自定义自己的接口</li>
+<li>目前只适配了部分网站，后续会继续适配，在订阅规则更新就可以了</li>
+<li>插件技巧，快捷键 Alt+Q 快速切换原文和译文</li>
+</ul>
+<h2>历史讨论</h2>
+<p>感谢 V 友们的质疑和讨论</p>
+<p><a href="https://www.v2ex.com/t/1040475#reply43" rel="nofollow">https://www.v2ex.com/t/1040475#reply43</a></p>
+<p><a href="https://www.v2ex.com/t/1037780#reply28" rel="nofollow">https://www.v2ex.com/t/1037780#reply28</a></p>
+]]></content:encoded>
+<pubDate>2024-05-27T06:50:26Z</pubDate>
+<pubDate>2024-05-28T05:41:08Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 前端字体自适应</title>
 <link>https://www.v2ex.com/t/1045540</link>
 <guid>https://www.v2ex.com/t/1045540</guid>
 <content:encoded><![CDATA[
-
 <p>我想请教个问题，在做响应式页面的时候，字体的响应式要如何处理，才能最优。我现在使用过的几种办法</p>
 <p>1 、直接 px 然后媒体查询，这个肯定不是最优，第一是代码太多，每个断点都得单独写代码，而且你不可能完全适配到的所有设备</p>
 <p>2 、rem ，其实和 px 差不多，也是根据媒体查询不断的去调整根节点的字体大小，来达到 rem 的大小变化。问题同 1</p>
@@ -17,7 +527,6 @@
 <p>所以综上所述，各位常用的最丝滑的响应式方案，尤其是针对字体，有哪些建议呢？
 感谢</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T16:16:02Z</pubDate>
 <pubDate>2024-05-30T16:13:02Z</pubDate>
 </item>
 <item>
@@ -25,10 +534,8 @@
 <link>https://www.v2ex.com/t/1045539</link>
 <guid>https://www.v2ex.com/t/1045539</guid>
 <content:encoded><![CDATA[
-
 短期兼职项目 3-5 天,项目干完现结.<br />费用面谈,需要确定技术能力.签外包服务合同<br />只接受上门修改，深圳南山百度大厦,地铁:后海，科苑，深大南<br /><br />一:用户端公众号.小程序 双端)uniapp ，TS+VUE3<br />1:前端 uniapp 下 H5 样式已经确认.转小程序样式的控制 调整 有调整的明细<br />2:水印（公众号/小程序端特定页面加水印.跟内容融合的水印) 有 UI<br />3:api 接口前端 非对称解密<br />4:js VMP 混淆.(前端做了 token+动态文本+时间戳 ，公钥.需要用混淆掩盖算法) <br />5:小程序埋点.数据回传到后端<br />二:管理后台 ElementPlus 基于芋道.若依开源二次开发<br />样式调整<br />少量接口对接<br />接口的调整
 ]]></content:encoded>
-<pubDate>2024-05-30T16:15:36Z</pubDate>
 <pubDate>2024-05-30T16:15:36Z</pubDate>
 </item>
 <item>
@@ -36,10 +543,8 @@
 <link>https://www.v2ex.com/t/1045538</link>
 <guid>https://www.v2ex.com/t/1045538</guid>
 <content:encoded><![CDATA[
-
 如题，希望能给我点建议，如果想 ddos 练手可以随时练，可以拿 ddos 的日志来加强 waf 防火墙的规则。<br /><br /><a href="http://blog.xpdbk.com" rel="nofollow noopener" target="_blank">blog.xpdbk.com</a><br /><br />我博客的文章质量都很一般，这里的大佬多，想必大家都有博客吧。
 ]]></content:encoded>
-<pubDate>2024-05-30T16:08:35Z</pubDate>
 <pubDate>2024-05-30T16:13:46Z</pubDate>
 </item>
 <item>
@@ -47,10 +552,8 @@
 <link>https://www.v2ex.com/t/1045537</link>
 <guid>https://www.v2ex.com/t/1045537</guid>
 <content:encoded><![CDATA[
-
 <p>Ubuntu 带了 snap ，我要远离 Ubuntu 。Deb 系 Linux 没有 snap 的发行版有哪些？或者推荐推荐 Deb 系以外其他系，稳定好用安装不麻烦的 Linux</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T16:04:53Z</pubDate>
 <pubDate>2024-05-30T16:08:09Z</pubDate>
 </item>
 <item>
@@ -58,10 +561,8 @@
 <link>https://www.v2ex.com/t/1045536</link>
 <guid>https://www.v2ex.com/t/1045536</guid>
 <content:encoded><![CDATA[
-
 缺点知道一项，有些设备无法登录<br /><br />那有没有优点呢
 ]]></content:encoded>
-<pubDate>2024-05-30T15:59:18Z</pubDate>
 <pubDate>2024-05-30T15:56:18Z</pubDate>
 </item>
 <item>
@@ -69,7 +570,6 @@
 <link>https://www.v2ex.com/t/1045535</link>
 <guid>https://www.v2ex.com/t/1045535</guid>
 <content:encoded><![CDATA[
-
 <p>我的主机不关机, 所以顺带就做了黑群晖在上面, 主要用来同步相机的图片, 做个文件共享这样子.</p>
 <p>目前的主机配置是:
 cpu: 13700kf, gpu: 4070, 内存: 64g</p>
@@ -85,7 +585,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <p>目前的改进:
 用 gpu 做人脸识别, 视频编解码</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T15:53:14Z</pubDate>
 <pubDate>2024-05-30T15:56:50Z</pubDate>
 </item>
 <item>
@@ -93,7 +592,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045534</link>
 <guid>https://www.v2ex.com/t/1045534</guid>
 <content:encoded><![CDATA[
-
 <h1>背景</h1>
 <p>昨晚打高德回家，到家发现备用机不见了，快 10 点了也没多想以为落在公司了，压根没想到手机丢了。
 今早 10 点到公司，看到不在公司。想着手机上挂着 zerotier 就远程 scpcry 访问了备用机，用备用机上的微信发了当下的定位和手机前置相机拍到的照片（还在车的后排）。用主手机通过平台联系司机问有没有看到，他说刚起床等会去看下，然后就发现手机被关机了。</p>
@@ -119,7 +617,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 </ul>
 <p>此贴作为经验教训，祝大家不丢东西，也被世界温柔对待。</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T15:45:05Z</pubDate>
 <pubDate>2024-05-30T15:57:21Z</pubDate>
 </item>
 <item>
@@ -127,12 +624,10 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045533</link>
 <guid>https://www.v2ex.com/t/1045533</guid>
 <content:encoded><![CDATA[
-
 <p>一加七 pro 变砖了没法开机<br />
 杭州这边的百脑汇修不了<br />
 想看看网上有没有大神😭😭😭</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T15:28:33Z</pubDate>
 <pubDate>2024-05-30T15:28:33Z</pubDate>
 </item>
 <item>
@@ -140,7 +635,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045532</link>
 <guid>https://www.v2ex.com/t/1045532</guid>
 <content:encoded><![CDATA[
-
 <p>书接上文 <a href="https://v2ex.com/t/1044137" rel="nofollow">成功将 Hugo 博客迁移到 Next.js,很清爽的一个博客主题</a></p>
 <p>尽情参观:<a href="https://blog.taoluyuan.com/blog/hugo-to-nextjs" rel="nofollow">https://blog.taoluyuan.com/</a></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://blog.taoluyuan.com/static/blog/nextblog/6.png" /></p>
@@ -170,17 +664,14 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <p>尽情参观:<a href="https://blog.taoluyuan.com/blog/hugo-to-nextjs" rel="nofollow">https://blog.taoluyuan.com/</a></p>
 ]]></content:encoded>
 <pubDate>2024-05-30T15:25:13Z</pubDate>
-<pubDate>2024-05-30T15:25:13Z</pubDate>
 </item>
 <item>
 <title>[生活] 这两天隔壁邻居的行为让我有些膈应，有没有合适的反制手段？</title>
 <link>https://www.v2ex.com/t/1045531</link>
 <guid>https://www.v2ex.com/t/1045531</guid>
 <content:encoded><![CDATA[
-
 先说一下背景，我们这栋楼是两梯四户，我跟这户邻居都是中间户，两家入户门隔着一条连廊，其实距离不算近。<br /><br />前两天下班比较早，回来的时候发现这户邻居在我家门口的空地上组装一个新柜子，看样子是网购的，而且好像刚开始弄，地上都是一块一块的木板，以及纸箱垫子什么的。可能他们家里没这么大空地方，他们家门口我也见过，摆放了不少小孩玩具和婴儿车什么的，估计也放不下。本来我也不介意，临时利用我家门口的空地组装一下柜子，弄完把东西收拾走就行。<br /><br />结果第二天出门，我发现我家门口正对着的楼梯间里放着一张组装好的新柜子，看到柜子的瞬间我就明白怎么回事了。这是放在那晾着散甲醛呢。关键是他们家门口正对面也是楼梯间，那里面没放什么东西，结果居然还把柜子放我家门口正对面晾着。<br /><br />虽然我家平时都关着门，我不觉得能有多少甲醛进入到我家里，可是这两天出门时看着这柜子真感觉有些膈应。但是也想不出什么反制手段，大家给出个主意呗。
 ]]></content:encoded>
-<pubDate>2024-05-30T15:23:21Z</pubDate>
 <pubDate>2024-05-30T11:23:21Z</pubDate>
 </item>
 <item>
@@ -189,9 +680,7 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <guid>https://www.v2ex.com/t/1045530</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-05-30T15:22:26Z</pubDate>
 <pubDate>2024-05-30T15:51:54Z</pubDate>
 </item>
 <item>
@@ -199,7 +688,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045529</link>
 <guid>https://www.v2ex.com/t/1045529</guid>
 <content:encoded><![CDATA[
-
 <p>搬到这个地方后总是烧电源或主板，第一次同时坏掉 4 块机械硬盘（红盘）我以为是搬动难免磕碰了或者红盘质量一般或是用久了并没有太在意，</p>
 <p>过了一阵子，WD 移动硬盘坏掉无法读写，因为数据比较重要找了 b 站老哥修理，怀疑是 mac 供电问题，从那开始接了后备式 ups ，</p>
 <p>又过了几个月，游戏本电源突然烧掉，电视突然花屏，同时发现跑步机蓝屏显示字体也很虚，这期间开始伴随着跳闸，找电工查后说是办公区存在着电压不稳和漏电的问题需要换掉老化的线路。。。</p>
@@ -207,7 +695,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <p>很明显这些凑一起坏掉不是巧合了，但是几个维修师傅一致认为这是概率问题与电关系不大。。</p>
 <p>我现在也很懵，ups 是完全无用么？？有无解决办法？</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T15:19:32Z</pubDate>
 <pubDate>2024-05-30T15:45:05Z</pubDate>
 </item>
 <item>
@@ -215,10 +702,8 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045528</link>
 <guid>https://www.v2ex.com/t/1045528</guid>
 <content:encoded><![CDATA[
-
 <p>有些疑惑，当有三个应用上岛的时候，顶部如何进行这三个应用的切换？似乎并不是单纯的左右滑动切换。</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:59:31Z</pubDate>
 <pubDate>2024-05-30T14:56:31Z</pubDate>
 </item>
 <item>
@@ -227,9 +712,7 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <guid>https://www.v2ex.com/t/1045527</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-05-30T14:53:53Z</pubDate>
 <pubDate>2024-05-30T14:53:53Z</pubDate>
 </item>
 <item>
@@ -237,7 +720,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045526</link>
 <guid>https://www.v2ex.com/t/1045526</guid>
 <content:encoded><![CDATA[
-
 <p>晚上看面试题和各种场景解决方案的时候，突然间开始了奇思妙想：</p>
 <hr />
 <p>第一层：现在别说爪哇的春天这套了，就是 go 和 python 的 web 后端框架也都已经成熟，小公司常见的 2C 业务场景基本上就是花式地 “中间件 + 非关系型数据库 + 内存缓存 + 拆分服务”。</p>
@@ -255,7 +737,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <hr />
 <p>脑子抽了的突发奇想，各位大佬轻喷（</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:51:43Z</pubDate>
 <pubDate>2024-05-30T15:21:35Z</pubDate>
 </item>
 <item>
@@ -263,7 +744,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045525</link>
 <guid>https://www.v2ex.com/t/1045525</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>有时候熄火后底盘有水滴滴在铁皮上的吱吱的声音？查了下说是三元催化在冷却，这个需要去检查维修么</li>
 <li>我是否可以按时保养，在没有明显感到异常和没有故障灯的情况下就不需要关心例如刹车片、变速箱油这些平时摸不着的东西？</li>
@@ -271,7 +751,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 </ol>
 <p>谢谢。</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:48:58Z</pubDate>
 <pubDate>2024-05-30T16:24:02Z</pubDate>
 </item>
 <item>
@@ -279,7 +758,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045524</link>
 <guid>https://www.v2ex.com/t/1045524</guid>
 <content:encoded><![CDATA[
-
 <p>开发了一个博客网站，记录收藏了一些平时认为比较好听的歌曲名字，想这专门搞一个网页，可以在线播放这些歌曲。
 我为什么要费那劲呢，为啥不直接用网易云之类的音乐听？
 1 、平常工作是环境不让登录其他平台账号，可以上百度查资料，但是不让登录 github ，csdn ，知乎等平台账号。
@@ -297,7 +775,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <p>在网上找了 2 天了，没找到合适的，感觉挺不好找的。v2 上面大佬多，所以发帖求助下，如果确实不能搞的话，我就不在这上面浪费时间了。</p>
 <p>博客地址： <a href="https://blog.share888.top/note/music/%E6%88%91%E5%96%9C%E6%AC%A2%E7%9A%84%E9%9F%B3%E4%B9%90.html" rel="nofollow">https://blog.share888.top/note/music/%E6%88%91%E5%96%9C%E6%AC%A2%E7%9A%84%E9%9F%B3%E4%B9%90.html</a></p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:46:07Z</pubDate>
 <pubDate>2024-05-30T15:48:25Z</pubDate>
 </item>
 <item>
@@ -305,10 +782,8 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045523</link>
 <guid>https://www.v2ex.com/t/1045523</guid>
 <content:encoded><![CDATA[
-
 分享一个最近解决的 shell (zsh) 上的小 bug<br />更新 iTerm3.5 后发现输入某些命令时第一个字符会重复显示，而且无法删除。（ brew 的 b 删不掉啊什么的）<br />排错后发现是 zsh-autosuggestions 和命令提示符的兼容性导致的。<br /><br />在这里看到解决方法：<br /><a href="https://unix.stackexchange.com/questions/90772/first-characters-of-the-command-repeated-in-the-display-when-completing?newreg=86b46ada169242b98dd693f95898d64b" rel="nofollow noopener" target="_blank">https://unix.stackexchange.com/questions/90772/first-characters-of-the-command-repeated-in-the-display-when-completing?newreg=86b46ada169242b98dd693f95898d64b</a><br /><br />简单来说就是用类似`%12{…%}`的方式把所有没包进去的提示符包进去，手动提示提示符的宽度为 12 位（你得自己数）
 ]]></content:encoded>
-<pubDate>2024-05-30T14:45:40Z</pubDate>
 <pubDate>2024-05-30T14:45:40Z</pubDate>
 </item>
 <item>
@@ -316,7 +791,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045522</link>
 <guid>https://www.v2ex.com/t/1045522</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>3 室 2 厅 南 北</li>
 <li>09 年小区，对小区中庭，套三双卫，主卧南北有窗户</li>
@@ -324,7 +798,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 </ul>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://ke-image.ljcdn.com/hdic-frame/standard_6e2211ed-21f0-4a35-a092-7a847ea451c3.png%21m_fill,w_1000,h_750,l_bk,f_jpg,ls_50?from=ke.com" /></p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:45:18Z</pubDate>
 <pubDate>2024-05-30T14:42:18Z</pubDate>
 </item>
 <item>
@@ -332,10 +805,8 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045521</link>
 <guid>https://www.v2ex.com/t/1045521</guid>
 <content:encoded><![CDATA[
-
 前辈们可以开源您正在使用的抄 github 方法吗？<br /><br />  想学一个合适的抄 github 方法，我现在的做法是：得把这两个项目所有文件看懂，才能开始抄。感觉好慢<br /><br /><br /><br /><br /><br /><br /><br /><br /><br />例：<br /><br />怎么把天气 APP 项目 1  的内容，抄进 空白导航栏项目 2<br /><br /><br /><br /><br /><br />具体内容：<br /><br />想做一个天气 APP ，项目 3：<br /><br />  导航栏界面的天气 APP ，下方导航栏切换：今天天气、7 天天气预报、今日建议。<br /><br /><br /><br />（一）已有：<br /><br />1.项目 1- <a href="https://github.com/Xiaodoubi2333/WeatherAPP" rel="nofollow noopener" target="_blank">https://github.com/Xiaodoubi2333/WeatherAPP</a> （ scoll 主界面做的（不是导航栏）天气 app ）<br /><br />描述：scoll 一个滚动界面展示了所有媒体内容，太杂糅了（天气预报、今日建议等）<br /><br /><br /><br />2.项目 2-<br /><br /><a href="https://github.com/Xiaodoubi2333/fragmentWeatherAPP" rel="nofollow noopener" target="_blank">https://github.com/Xiaodoubi2333/fragmentWeatherAPP</a><br /><br />（导航栏空白项目）<br /><br />3.注意：<br /><br />项目 1 使用最后一个 commit“第六次提交...”  项目 2 使用第二个 commit“First Commkt submission”<br /><br /><br /><br />（二）运行环境：<br /><br />Andoird studio：3.5.2<br /><br />gradle：2.2.0<br /><br />gradle 插件：2.14.1
 ]]></content:encoded>
-<pubDate>2024-05-30T14:40:53Z</pubDate>
 <pubDate>2024-05-30T14:37:53Z</pubDate>
 </item>
 <item>
@@ -343,7 +814,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045520</link>
 <guid>https://www.v2ex.com/t/1045520</guid>
 <content:encoded><![CDATA[
-
 <h2>本人情况</h2>
 <p>4 年多经验辣鸡前端，之前在广州工资是 18 ，2 月的时候被裁员后一直找工作到现在，技术普通，学历普通，找了几个月只能找到下面两个给 offer 的。</p>
 <h2>offer 情况</h2>
@@ -358,7 +828,6 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <h2>个人感觉</h2>
 <p>现在这种垃圾环境，我是比较追求稳定的，苟过这段垃圾环境后再说。个人感觉 1 是比较好的，但是外包这层身份，怕不稳定，后面跳槽也不好找。另外本人会比较喜欢广州（深圳住的贵，吃的又贵又难吃）现在就有点纠结，希望有大佬可以打醒我，给点建议参考。</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:39:52Z</pubDate>
 <pubDate>2024-05-30T15:43:58Z</pubDate>
 </item>
 <item>
@@ -366,10 +835,8 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045519</link>
 <guid>https://www.v2ex.com/t/1045519</guid>
 <content:encoded><![CDATA[
-
 <p>本人手头有一些资金，想投资项目。 各位 V 友，有没有缺少资金的项目。 大家可以一起交流一下，我出钱你出项目。 合作共赢！ 联系我 <a href="https://t.me/jiguang9" rel="nofollow">https://t.me/jiguang9</a></p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:32:59Z</pubDate>
 <pubDate>2024-05-30T14:29:59Z</pubDate>
 </item>
 <item>
@@ -377,16 +844,13 @@ win11 开 wsl2, 用 docker 安装, mount 了一个 4t 的 nvme 固态到 wsl, �
 <link>https://www.v2ex.com/t/1045518</link>
 <guid>https://www.v2ex.com/t/1045518</guid>
 <content:encoded><![CDATA[
-
 <p>需求：
 有一些联系人对我来说是很重要的，比如说同学，发小，以前打游戏认识的朋友，还有一些老师和前辈
 如果有一个 app 能帮我整理这些重要的人际关系，然后统计出我的过去联系记录，以及联系频率，最还好有提醒功能就很棒了</p>
 <p>有没有现成的 app ？我现在都是手动在便签上记录一下，还是希望能把数据存下来</p>
 ]]></content:encoded>
-<pubDate>2024-05-30T14:20:09Z</pubDate>
 <pubDate>2024-05-30T14:30:46Z</pubDate>
 </item>
-
 <item>
 <title>[分享发现] 分享一下被骗经历</title>
 <link>https://www.v2ex.com/t/1045517</link>
@@ -14995,348 +15459,6 @@ mosdns 在前的话到了 openclash 里就会变成纯 ip 的，那么 openclash
 是这样的，很多年以前我用 ipadpro 在土豆视频 app 里缓存了 40g 的视频<br /><br />现在换了新 ipad ，但是这个版本的土豆视频 app 早就下架了，土豆把所有上传的视频都给删除了，现在全网估计都找不到<br /><br />请问下我缓存的这些视频有没有办法导出保留？满满都是回忆啊<br /><br />ipadpro 是 2018 款的，升级 17.5 系统了，现在换了 24 款的 pro
 ]]></content:encoded>
 <pubDate>2024-05-27T08:18:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] 电脑抓包 APP 的请求失败</title>
-<link>https://www.v2ex.com/t/1044346</link>
-<guid>https://www.v2ex.com/t/1044346</guid>
-<content:encoded><![CDATA[
-<h4>场景</h4>
-<p>电脑使用 Proxyman 或 Charles 抓包手机 招商银行 APP 指定金价页面的网络请求。</p>
-<p>APP 页面的金价每隔几秒会更新一次，抓包工具中域名和请求列表中无新增内容。</p>
-<p>电脑和手机均安装证书，可在抓包工具中查看到请求的响应信息。</p>
-<p><a href="https://imgur.com/a/LmJ6HIM" rel="nofollow">https://imgur.com/a/LmJ6HIM</a></p>
-<h4>问题</h4>
-<p>抓包工具无法抓取所有的网络请求吗，还是因为该 APP 有特殊之处。</p>
-<br />
-<p>望路过大佬不吝赐教，感谢。</p>
-]]></content:encoded>
-<pubDate>2024-05-27T07:46:45Z</pubDate>
-</item>
-<item>
-<title>[健康] 每天都很容易疲劳怎么办（患有鼻炎、焦虑症）</title>
-<link>https://www.v2ex.com/t/1044345</link>
-<guid>https://www.v2ex.com/t/1044345</guid>
-<content:encoded><![CDATA[
-本人有 9 年鼻甲肥大，4 年慢性胃炎，以及焦虑症，其中焦虑症主要反映在紧张就胃不舒服、每天固定下午五点胃胀+困+晕+全身无力。<br />如果晚上半夜 1 点入睡，我能睡到 11 点自然醒，醒来后还是头昏昏的，吃完午饭后头昏症状还会加重，如果接下来喝一杯咖啡，我下午五点的焦虑症躯体化症状会更加严重。<br />从高三犯胃炎开始到现在，我每天都很劳累，对比相同睡眠时间的舍友，我真的很容易困，且睡眠时间会长很多。我这些病都是难以治愈的慢性病，长期这样折磨，我都快崩溃了。
-]]></content:encoded>
-<pubDate>2024-05-27T07:59:36Z</pubDate>
-</item>
-<item>
-<title>[推广] 失业很久了，为了能接到 10w+的外包活，我做了一个小程序 Demo（含 4000+Midjourney 原创模板）</title>
-<link>https://www.v2ex.com/t/1044344</link>
-<guid>https://www.v2ex.com/t/1044344</guid>
-<content:encoded><![CDATA[
-<p>失业很久了，小孩今年 4 岁了，想着让他多接触大自然，目前已经搬家到农村去生活，暂不打算找工作，一边自己做点小程序，一边接点外包项目补贴家用。</p>
-<p>想当年，经常有朋友问我做不做项目，我都是推掉了，再想想现在，到处找项目做，哎~</p>
-<p>V 站目前最火的帖子莫过于失业、找不到工作、降薪、发不出工资了，我想愿意把自己的感受拿出来和大家聊的人肯定是少数，肯定还有大量失业人群只是默默的观望着，每看见一篇说自己快要吃不上饭的帖子，就好像那个帖子是自己发的一样。</p>
-<p>再看看那些甲方发的帖子，一篇帖子下面会有上百人联系甲方，有人不收押金，有人承诺先做出来，能给多少给多少，原本几万的项目，现在几千块钱一堆人抢，真的，大家都不容易。</p>
-<p>我呢，做事情比较喜欢长远打算，做这个小程序，三分之一是觉得好玩，三分之一是为了练手，三分之一是为了向甲方展示 Demo 。</p>
-<p>原本今年过完春节后就能做完的，不过中途接了一些外包项目，就先去做外包了，最近终于是把它做完了，放个二维码先：</p>
-<p><img alt="draw.jpg" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/yoQMuHqfb.jpeg" /></p>
-<p>这一是个 AI 画图的助手，小程序目前不支持画图功能，只是专注于 Midjourney 的提示词生成，你需要配合 Midjourney 软件使用。</p>
-<p>小程序主要分为两大功能，<strong>一是不需要学习 Midjourney ，简单设置就能生成想要的绘画提示词，二是我原创了 4000 多个 Midjourney 的绘图模板，方便用户画出想要的风格。</strong></p>
-<p>我最近正在寻找外包项目做，加了一些群，发现很多单子都是几百块钱、几千块钱的，很少有 1w 以上的，研究下来，一两百块钱的多半是大学生的作业，几千块钱的多半是套个模板交差。</p>
-<p>像我这样一上来就说“10 万以下不接”的应该很难找到项目吧？ 不过定制开发的话 10w+并不高，慢慢找吧，我一个人可以搞定所有事情（这个小程序的所有工作都是我一个人做的），包括产品、设计、开发、维护。</p>
-<p>我接项目的话，一般做一个小程序 2-3 个月就可以上线（我一个人做），总开发费用在 10w 以上。如果你觉得预算能接受，想要找个靠谱、稳定、不扯皮的人，可以联系我。</p>
-<p>下面是这个小程序的截图，如果你正在使用 Midjourney 画图，这个应该对你有用：</p>
-<table>
-<thead>
-<tr>
-<th>首页</th>
-<th>调整 MJ 参数</th>
-<th>选择风格</th>
-<th>选择模板</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><img alt="IMG_9548.PNG" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/79Qecrn1l.png" /></td>
-<td><img alt="IMG_9548.PNG" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/bY4opEXQl.png" /></td>
-<td><img alt="IMG_9548.PNG" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/UNOKhXLHl.png" /></td>
-<td><img alt="IMG_9548.PNG" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/pkem0696l.png" /></td>
-</tr>
-</tbody></table><p>补充一下，我发现接外包主要就两条路，一个是朋友推荐，另一个就是能拿出东西证明自己（那种外包公司低价抢客户再通过其他手段赚钱的非常规方法就不考虑了）。</p>
-<p>因此我决定到网上找项目之前先做几个 Demo 小程序出来，这是我给自己做着玩的第一个小程序。</p>
-<p><strong>备注，我接外包只接微信小程序开发，其他项目不接</strong></p>
-]]></content:encoded>
-<pubDate>2024-05-27T08:22:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] Windows 如何作为 HTTP 协议打印机服务器</title>
-<link>https://www.v2ex.com/t/1044343</link>
-<guid>https://www.v2ex.com/t/1044343</guid>
-<content:encoded><![CDATA[
-显而易见的问题是，办公室不可避免的会使用办公电脑做打印机服务器，但从古至今，局域网共享用到的协议都谈不上稳定，共享打印机异常必然要重启电脑影响工作，甚至在前两年偶尔因为更新出 bug 。<br /><br />所以不使用是最好的，但是我们使用自带网络的打印机，却非常稳定。<br /><br />所以我想问问如何用 Windows 通过 http 协议或者其他网络打印机协议来共享，是有第三方软件吗？如果使用 第三方软件，也方便重启服务端，而不需要重启电脑。
-]]></content:encoded>
-<pubDate>2024-05-26T07:10:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有了 ChatGPT 是不是意味着技术博客已死？感觉每次跟 GPT 的对话都可以整成一篇高质量技术博客发出来。</title>
-<link>https://www.v2ex.com/t/1044342</link>
-<guid>https://www.v2ex.com/t/1044342</guid>
-<content:encoded><![CDATA[
-放以前分分钟发一篇技术分享出来。然而现在这种内容还值不值得整成博客发出来呢？
-]]></content:encoded>
-<pubDate>2024-05-27T08:15:48Z</pubDate>
-</item>
-<item>
-<title>[问与答] 这种简单的图形验证码，有什么好用的开源库识别吗？</title>
-<link>https://www.v2ex.com/t/1044341</link>
-<guid>https://www.v2ex.com/t/1044341</guid>
-<content:encoded><![CDATA[
-<a href="https://i.imgur.com/WNUoAKn.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WNUoAKn.png" /></a> <br /><br />* 就这种，只会出现数字和英文<br /><br />最好是支持 js cdn 的。<br /><br />目前用的是 `tesseract.min.js` 识别率只有 20%左右。。。
-]]></content:encoded>
-<pubDate>2024-05-27T07:15:28Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 🔬 [试验] Time4Value - 一种对独立开发者友好的收费方式</title>
-<link>https://www.v2ex.com/t/1044339</link>
-<guid>https://www.v2ex.com/t/1044339</guid>
-<content:encoded><![CDATA[
-<p>最近有机会 Gap 一阵，计划寻找一件长期可持续的事情来琢磨。</p>
-<p>对 Bitcoin 社区提出的 <a href="https://vv.meme/" rel="nofollow">Value4Value</a> 概念一直很感兴趣，这个概念实际上提倡的是微支付（<a href="https://nakamotoinstitute.org/static/docs/micropayments-and-mental-transaction-costs.pdf" rel="nofollow">Micropayment</a>），也就是说任何有价值的事物都值得以相应的价值来支付与衡量。比如 <a href="https://github.com/lightninglabs/L402" rel="nofollow">L402</a>、<a href="https://docs.cashu.space/" rel="nofollow">Cashu</a> 以及 <a href="https://stacker.news/story" rel="nofollow">Stakernews</a> 等案例，或者是 Ethereum 社区的 <a href="https://stacker.news/story" rel="nofollow">Friendtech</a> 和 <a href="https://www.farcaster.xyz/" rel="nofollow">Farcaster</a> 等社交试验。</p>
-<p>所以我计划未来 12 个月，每月尝试发布一个 “Value4Value” 主题相关的智能合约试验。</p>
-<hr />
-<p><a href="https://github.com/value4value/time4value" rel="nofollow">Time4Value</a> 作为第一个试验，基于 Bonding Curve （定价 / 流动性）+ Yield Farming （利息策略）来作为支付方式，这种方式的特点以抵押为主，基于联合曲线定价，并通过出售加密货币的时间价值（也即利息），以及交易手续费作为收入来源。</p>
-<blockquote>
-<p><em>Time4Value</em> - 出售你的加密货币时间，购买有价值的服务。</p>
-</blockquote>
-<p><img alt="Time4Value's Bonding Curve Demo" class="embedded_image" rel="noreferrer" src="https://github.com/value4value/time4value/raw/main/images/curve.gif" /></p>
-<h3>Time4Value 的来源</h3>
-<p>这想法来自一次与朋友闲聊，他提到我们能否利用加密货币 Staking 机制购买服务，通过出让加密货币的时间价值（也即利息），而不是一次性支付，这样交易决策成本低，也允许随时退出 / 转让，最大化区块链的优势，因为这是传统支付无法实现的能力。</p>
-<p>仅仅如此，还是不足以落地的，因为利息是需要伴随资金和时间才会产生价值。你需要一套机制实现定价与博弈，才能进一步吸引流动性，直到 Friendtech 利用 Bonding  Curve （三次幂和公式 <code>i(i+1)(2i+1)/6</code>）来定价（简单，且巧妙），我认为这将有点可能可行。</p>
-<p>所以 Time4Value 的结构设计是一个骨架</p>
-<ul>
-<li>上层是任意 Bonding Curve 定价策略</li>
-<li>底层是任意 Yield Farming 利息策略</li>
-<li>你可以实现简单 Friendtech ，也能实现任意复杂支付策略。</li>
-</ul>
-<p>设想 Time4Value 重新制作一遍以下场景？</p>
-<ul>
-<li>Buymeacoffee</li>
-<li>Github Sponsor</li>
-<li>SaaS Subscription</li>
-<li>…</li>
-</ul>
-<h3><strong>为什么这想法有点意思？</strong></h3>
-<p><strong>TL;DR</strong></p>
-<ol>
-<li>初期阶段，正反馈激励，远比收入规模重要；</li>
-<li>利率市场是天然的可持续收入来源，也是一种双赢策略；</li>
-<li>低交易决策成本，多博弈因素，将可能制造出有多样趣的玩法。</li>
-</ol>
-<p><strong>初期友好</strong>
-未来会有越来越多的独立工作者和开发者，但并不是每一位个体在初期都拥有成熟的产品与商业模式。在这种情况下，传统的订阅模式难以适用。然而，通过采用 Bonding Curve （ Sigmoid ）实现供需定价，用户可以在早期以低成本获得服务（即早鸟价），同时不断给予创作者正反馈（重要重要重要）。当创作者的产品或服务达到 PMF 后，随着供需平衡，价格将逐渐达到合理的市场水平。</p>
-<p><strong>随时退出</strong>
-这种付费方式以抵押为主，所以用户可以选择随时抵押 / 退出。当曲线是线性稳定的，那么这将是一种无损抵押，如果曲线是 S 型风格，那起初将会快速增长，中后期平缓，当然你也可以自定义不同类型的曲线以满足要求。</p>
-<p>抵押加上曲线定价是一把双刃剑。随时退出的特性降低了交易决策成本，如同于 7 天无理由退货，但引入了动态曲线，也增加了其博弈成分，成为有人盈利，有人亏损的支付方式。</p>
-<p><strong>长期收入</strong>
-区块链缺乏「预支信用」的基础，导致难以模拟传统订阅支付（即信用卡每月付费），所以加密货币支付往往采用按年 / 按次支付方式为主。与其模拟流式支付，不如利用自由、开放的利率市场，利息本身是按时间流逝的收益，将其剥离作为创作者可持续收入的一部分。</p>
-<hr />
-<h3>Notes</h3>
-<p>如果你对这想法感兴趣，也许 2 周后，我将会制作一个简单的客户端界面以便使用。当然你也可以考虑 fork 进一步修改满足自己的需求。</p>
-<p>如果你对智能合约感兴趣，这里有一个简单的 Bug Bounty</p>
-<ul>
-<li><em>Repo：<a href="https://github.com/value4value/time4value" rel="nofollow">Time4Value</a></em></li>
-<li>发现 <a href="https://docs.sherlock.xyz/audits/judging/judging#iv.-how-to-identify-a-high-issue" rel="nofollow">High / Medium</a> 问题 - $1200 / 问题（没有限制）</li>
-<li>补充 / 优化测试用例 - $100 / PR （限 5 个 PR ，主观不纳入划水 PR ）</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-05-27T06:54:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 麻烦大家推荐一个和 apple tv 搭配起来用的电视机</title>
-<link>https://www.v2ex.com/t/1044338</link>
-<guid>https://www.v2ex.com/t/1044338</guid>
-<content:encoded><![CDATA[
-最好不自带垃圾操作系统，和一些不必要的功能，花里胡哨的不需要
-]]></content:encoded>
-<pubDate>2024-05-25T19:05:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何买雪糕/冰淇淋便宜？</title>
-<link>https://www.v2ex.com/t/1044337</link>
-<guid>https://www.v2ex.com/t/1044337</guid>
-<content:encoded><![CDATA[
-夏天到了，想吃雪糕冰淇淋了，看了狗东猫超，好贵，四支装几十块钱<br />兄弟们有什么便宜又可靠的渠道吗
-]]></content:encoded>
-<pubDate>2024-05-27T08:22:38Z</pubDate>
-</item>
-<item>
-<title>[Apple TV] 关于 nas 和家庭影音</title>
-<link>https://www.v2ex.com/t/1044336</link>
-<guid>https://www.v2ex.com/t/1044336</guid>
-<content:encoded><![CDATA[
-最近在折腾 apple tv 的 infuse ，目前家里用 m1 的 mac mini 挂一个 500g 的硬盘，有用 mac 上相片备份的习惯，然后剩下的空间用 smb 看电视剧和电影。最近觉得容量是在太小，需要换更大的硬盘了，想买个大硬盘搭硬盘盒再挂 smb 。这种情况直接换 nas 会有更好的体验吗…<br /><br />总结需求<br />1.相片需要备份<br />2.家庭影音功能（因为阿里云权益包出现就觉得很烦，nas 真的可以所有平台都远程下载好回家看吗？）<br />3.设备需要备份（只是还没时间研究怎么迁移备份路径到硬盘上）
-]]></content:encoded>
-<pubDate>2024-05-27T07:54:58Z</pubDate>
-</item>
-<item>
-<title>[Pixel] p8, 网上下的 apk 闪退是什么原因</title>
-<link>https://www.v2ex.com/t/1044335</link>
-<guid>https://www.v2ex.com/t/1044335</guid>
-<content:encoded><![CDATA[
-<p>哪里能设置一下吗</p>
-]]></content:encoded>
-<pubDate>2024-05-27T06:50:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 今天 onedrive 突然只有 5GB 容量了咋回事？</title>
-<link>https://www.v2ex.com/t/1044334</link>
-<guid>https://www.v2ex.com/t/1044334</guid>
-<content:encoded><![CDATA[
-<p>之前有 15GB 容量的，用了 8GB 多，现在显示使用了 175%？  大家有遇到这种情况吗？上 onedrive 的网页上看又还是 15GB ，现在两台电脑上都显示超额没法同步了</p>
-]]></content:encoded>
-<pubDate>2024-05-27T08:06:45Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 混阅，浏览器插件版本来了</title>
-<link>https://www.v2ex.com/t/1044333</link>
-<guid>https://www.v2ex.com/t/1044333</guid>
-<content:encoded><![CDATA[
-<p>混阅，一个中英混合阅读工具，将中文内容使用 AI 大语言模型转换为中英混合的形式，使用充足的中文 context 实现英语词汇的增长</p>
-<h2>效果</h2>
-<p><img alt="code-mixing" class="embedded_image" rel="noreferrer" src="https://ishare20.net/files/images/code_mixing_1.png" /></p>
-<h2>插件安装</h2>
-<p><a href="https://chromewebstore.google.com/detail/%E6%B7%B7%E9%98%85/ffcpgnhhjmbjghlkhgbpdijabeobilef?hl=zh-CN&amp;authuser=0" rel="nofollow">https://chromewebstore.google.com/detail/%E6%B7%B7%E9%98%85/ffcpgnhhjmbjghlkhgbpdijabeobilef?hl=zh-CN&amp;authuser=0</a></p>
-<p><strong>插件安装后需要在<a href="https://mixread.blemon.net/" rel="nofollow">混阅官网</a>获取 Key</strong>，配置一下 Key 即可开箱使用</p>
-<p><a href="https://mixread.blemon.net/docs/install.html" rel="nofollow">详细安装配置教程</a></p>
-<h2>常见问题</h2>
-<ul>
-<li>转换基于大语言模型技术，可能一小部分句子有不预期结果</li>
-<li>AI 大模型对长文本转行比较慢，所以插件默认设置了段落超过 200 字后不翻译，这个字数限制可自定义修改</li>
-<li>插件保留了自定义翻译接口，可自定义自己的接口</li>
-<li>目前只适配了部分网站，后续会继续适配，在订阅规则更新就可以了</li>
-<li>插件技巧，快捷键 Alt+Q 快速切换原文和译文</li>
-</ul>
-<h2>历史讨论</h2>
-<p>感谢 V 友们的质疑和讨论</p>
-<p><a href="https://www.v2ex.com/t/1040475#reply43" rel="nofollow">https://www.v2ex.com/t/1040475#reply43</a></p>
-<p><a href="https://www.v2ex.com/t/1037780#reply28" rel="nofollow">https://www.v2ex.com/t/1037780#reply28</a></p>
-]]></content:encoded>
-<pubDate>2024-05-27T07:23:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请留下你的年龄、最焦虑纠结的问题</title>
-<link>https://www.v2ex.com/t/1044332</link>
-<guid>https://www.v2ex.com/t/1044332</guid>
-<content:encoded><![CDATA[
-<p>每人最多一个哈，看看不同年龄程序员都在关心/焦虑/纠结什么</p>
-]]></content:encoded>
-<pubDate>2024-05-27T08:19:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] Windows 版的 Arc 浏览器 Bug 好多</title>
-<link>https://www.v2ex.com/t/1044331</link>
-<guid>https://www.v2ex.com/t/1044331</guid>
-<content:encoded><![CDATA[
-<p>每次打开浏览器都得挂梯子</p>
-<p>新建 TAB 对中文的支持不是很友好，收藏夹改名对中文也不是很友好</p>
-<p>CTRL+T 的快捷搜索功能没反应。。。</p>
-<p>估计还得后续很多个版本的优化</p>
-]]></content:encoded>
-<pubDate>2024-05-27T06:50:00Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] Perplexity Pro $10 优惠码</title>
-<link>https://www.v2ex.com/t/1044330</link>
-<guid>https://www.v2ex.com/t/1044330</guid>
-<content:encoded><![CDATA[
-<p>最近使用 Perplexity 觉得很不错，于是就有了开通会员试一试的想法。刚好在开通界面注意到“<strong>促销码</strong>”三个大字，寻思着这下可以省 10 美元体验 Pro 了。</p>
-<p>这里分享一下这个促销码，需要的伙伴自取。</p>
-<p>促销码链接： <a href="https://perplexity.ai/pro?referral_code=6RWGI4HC" rel="nofollow">https://perplexity.ai/pro?referral_code=6RWGI4HC</a></p>
-<p>促销码： <code>6RWGI4HC</code></p>
-<p><img alt="Perplexity Pro $10 优惠码" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/4RLojLOn.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-05-27T06:40:07Z</pubDate>
-</item>
-<item>
-<title>[杭州] 下沙江滨附近有无房出租？</title>
-<link>https://www.v2ex.com/t/1044328</link>
-<guid>https://www.v2ex.com/t/1044328</guid>
-<content:encoded><![CDATA[
-一个人住  需要独卫
-]]></content:encoded>
-<pubDate>2024-05-27T06:37:06Z</pubDate>
-</item>
-<item>
-<title>[程序员] Mojo 文档和 Mojo 社区 得到了 Modular 官方推荐</title>
-<link>https://www.v2ex.com/t/1044327</link>
-<guid>https://www.v2ex.com/t/1044327</guid>
-<content:encoded><![CDATA[
-<h1>Modular 的推荐</h1>
-<p>Modular 在最近的第 35 期 <a href="https://www.modular.com/newsletters/modverse-weekly-35" rel="nofollow">Modverse Weekly</a> 中推荐了 <a href="https://mojocn.org" rel="nofollow">Mojo 文档</a> 和 <a href="https://mojoo.org" rel="nofollow">Mojo 社区</a>。<br />
-<img alt="Modverse Weekly 推荐 Mojocn.org" class="embedded_image" rel="noreferrer" src="https://tgstate.ikun123.com/d/BQACAgUAAx0EcyK3ugACE0BmVCWA9MAarFGsb-_iLPEfpoy2nQACKQ0AAn2EoVYW2gPj5J2dVzUE" /></p>
-<h1>项目背景</h1>
-<p>之前我也发过帖子讨论<a href="https://mojocn.org" rel="nofollow">Mojo 文档</a>相关，后来也因为无相关人员运营 准备放弃<a href="https://mojoo.org" rel="nofollow">Mojo 社区</a></p>
-<p>不过群里很多小伙伴呼吁 需要有一个社区，哪怕就挂着不管也行。  </p>
-<p>很显挂着不管肯定不是我的风格，要么不做，要么就好好做。  </p>
-<p>通过邮件和 discord 联系了 Modular 官方，并询问了对方的意见。也就有了这一期的<a href="https://www.modular.com/newsletters/modverse-weekly-35" rel="nofollow">Modverse Weekly</a>中推荐了我们非官方文档和社区。<br />
-这也让我们更加有信心运营下去了。</p>
-<h1>彩蛋？</h1>
-<p>最后分享个有意思的事情：由于搜索词带有中文，所以出现的结果就是第一名是我们，第二名才是 modular 官方。
-<img alt="谷歌搜索 Mojo 官网" class="embedded_image" rel="noreferrer" src="https://tgstate.ikun123.com/d/BQACAgUAAx0EcyK3ugACE0FmVCfxitgd5O57haW4DVIocDIDSAACLg0AAn2EoVZji2C73rEBNDUE" /> </p>
-<blockquote>
-<h3>参考：</h3>
-<p>Modverse Weekly：<a href="http://www.modular.com/newsletters/modverse-weekly-35" rel="nofollow">www.modular.com/newsletters/modverse-weekly-35</a><br />
-Mojo 中文网：<a href="http://mojocn.org" rel="nofollow">mojocn.org</a><br />
-Mojo Dev 社区：<a href="http://mojoo.org" rel="nofollow">mojoo.org</a><br />
-谷歌搜索：<a href="http://www.google.com.hk/search?q=mojo%E5%AE%98%E7%BD%91" rel="nofollow">www.google.com.hk/search?q=mojo%E5%AE%98%E7%BD%91</a></p>
-</blockquote>
-]]></content:encoded>
-<pubDate>2024-05-27T06:36:20Z</pubDate>
-</item>
-<item>
-<title>[深圳] 房子即将到期，科兴科学园附近合租单间帮房东招租</title>
-<link>https://www.v2ex.com/t/1044326</link>
-<guid>https://www.v2ex.com/t/1044326</guid>
-<content:encoded><![CDATA[
-<p>房子位于粤海街道科技园五十八区，是一个环境还不错的老小区，小区走到南山科兴科学园大概 10-15 分钟，同方信息港 10 分钟，高新园地铁站 20 分钟，虽然是老小区，但是外立面在周边算很新的，招租的是次卧，大概 11 平，4 楼步梯，只租给单身男性，尽量不做饭，这个小区一层楼就两户，居民老人和带小孩上学的家长居多，房间虽小，五脏俱全，房间有一个整墙的大衣柜，一个 1 米多宽多书桌（可以放很多东西），还有一个铁柜子，储物空间多，室友一个是房东自己（老阿姨，人挺不错，房子租到后就会去外地，12 月份回来），一个腾讯上班的室友（每周住四天），人都挺好，上班过程中不存在挤厕所等情况，房租大概 2500 左右，除了冷气费外，其他例如水、物业、燃气、网费全包，房东不在家的时候每个月会安排阿姨过来打扫卫生。</p>
-<p>附上房东的豆瓣招租链接，有需要的直接联系房东即可： <a href="https://www.douban.com/people/181083920/status/4618138665/?_i=16791757a14f3fc" rel="nofollow">https://www.douban.com/people/181083920/status/4618138665/?_i=16791757a14f3fc</a></p>
-]]></content:encoded>
-<pubDate>2024-05-27T06:34:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有聊天的 AI 推荐？</title>
-<link>https://www.v2ex.com/t/1044325</link>
-<guid>https://www.v2ex.com/t/1044325</guid>
-<content:encoded><![CDATA[
-现在的 AI 好像都是回答问题、改代码、查错的<br />有没有专门聊天的。周一上班被弄得一肚子火，想找人吐槽吐槽，现实中没朋友。
-]]></content:encoded>
-<pubDate>2024-05-27T07:36:55Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 在腾讯云注册域名命名审查不通过被退款</title>
-<link>https://www.v2ex.com/t/1044324</link>
-<guid>https://www.v2ex.com/t/1044324</guid>
-<content:encoded><![CDATA[
-<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://i.111666.best/image/MVVFF7OnoSJvIvHRlsDyK9.jpg" />
-兴致勃勃注册个域名准备备案部署一些私人工具的，付了钱等半天一开始显示正在注册后面一刷新订单直接无了。我从费用里看了一下发现被退款了😂
-网上搜了一下，发现了原因，貌似有个 h 网跟我要注册的域名撞名了，我注册的是小众后缀，他的是 com 。说实话有点不爽，服务器都买好了。</p>
-]]></content:encoded>
-<pubDate>2024-05-27T06:31:42Z</pubDate>
-</item>
-<item>
-<title>[Google] 安卓谷歌 [门]</title>
-<link>https://www.v2ex.com/t/1044322</link>
-<guid>https://www.v2ex.com/t/1044322</guid>
-<content:encoded><![CDATA[
-<p>忽然发现在谷歌搜索的时候， [门] 字的显示不对，还以为自己打错了字，反复确认后输入是无误的，其他搜索引擎不会出现这种情况。在搜索框重新复制出来也是正常的 [门] 字。</p>
-<p><a href="https://imgur.com/a/googlemen-YBgyq2X" rel="nofollow">图片</a></p>
-<p>想的的原因可能是自己的梯子被定为日本用户，所以用了日本相关字体？  但是底下的搜索结果里面有的又是正常显示的。 用 usb debug 把搜索框 font-family 换成和正常显示的一致，还是无法显示正常的 [门] 字。</p>
-<p>这到底是为啥？</p>
-]]></content:encoded>
-<pubDate>2024-05-27T07:06:45Z</pubDate>
-</item>
-<item>
-<title>我做了一个插件，让你远离窃取 Chrome 明文密码的恶意软件</title>
-<link>https://www.v2ex.com/t/1043094</link>
-<guid>https://www.v2ex.com/t/1043094</guid>
-<content:encoded><![CDATA[
-Chrome 保存的密码并不安全，非常容易被恶意软件窃取。已经是一个老生常谈的话题。<br /><br />我给自己做了一个插件，防止我的密码在我不知情的情况下全部泄露。<br /><br /><br />原理很简单，点击密码输入框时，会弹出一个二维码。用 iPhone 扫描，在 Safari 中打开二维码网址即可通过手机输入密码。<br /><br /><a href="https://i.imgur.com/KvpoyO3.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KvpoyO3.png" /></a><br /><br /><br />这样，所有的密码都可以随机生成后保存在世界上最安全的系统 iOS 上。<br />iCloud 也有 Windows App, 但是从我的角度，我觉得这个 App 比 Chrome 更不安全。如果系统环境本身不安全，客户端的所有加密都是徒劳，在 Windows 上用 iCloud 相当于把所有重要数据全部暴露在恶意软件面前。<br /><br />安装方法: tampermonkey 安装脚本 <a href="https://github.com/SuperSafeMessage/PasswordFromPhone/raw/main/PasswordFromPhone.user.js" rel="nofollow noopener" target="_blank">https://github.com/SuperSafeMessage/PasswordFromPhone/raw/main/PasswordFromPhone.user.js</a><br /><br />代码仓库： <a href="https://github.com/SuperSafeMessage/PasswordFromPhone" rel="nofollow noopener" target="_blank">https://github.com/SuperSafeMessage/PasswordFromPhone</a><br /><br /><br />注意：<br />恶意软件依然可以在输入的时候窃取密码，依然可以在登陆后窃取 cookie 。<br />重要的操作还是在世界上最安全的 iOS 系统上用世界上最安全的 Safari 浏览器吧
-]]></content:encoded>
-<pubDate>2024-05-24T22:01:59Z</pubDate>
 </item>
 </channel>
 </rss>
