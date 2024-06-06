@@ -5,15 +5,663 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[VPS] 一段/23 的 JPNIC 原生日本 IP 地址 出租</title>
+<link>https://www.v2ex.com/t/1047506</link>
+<guid>https://www.v2ex.com/t/1047506</guid>
+<content:encoded><![CDATA[
+
+<p>由于业务需要多申请了一段/23 的 JPNIC 原生日本 IP 地址，不知道这里有没有有兴趣的可以出租出去。</p>
+]]></content:encoded>
+<pubDate>2024-06-06T14:14:05Z</pubDate>
+<pubDate>2024-06-06T14:14:05Z</pubDate>
+</item>
+<item>
+<title>[Python] 是我太菜了，还是 pandans 就是这么慢</title>
+<link>https://www.v2ex.com/t/1047504</link>
+<guid>https://www.v2ex.com/t/1047504</guid>
+<content:encoded><![CDATA[
+
+<p>thinkpad T14 的机器，i7 的 cup ，32G 内存。
+我有两个 excel ，一个 4 千行，6 列  名字叫 tb4k ，一个 6 千行，10 列，名字叫 tb6k 。
+都用 pandas 接成 df 对象，然后循环两个 df 。最后保存成 excel 。</p>
+<p>伪代码
+遍历 tb4k 的每一行，取前三列的内容:
+遍历 tb6k:
+tb6k 的前三列一致:        	
+将 tb6k 的后面第 5,8,10 行的内容赋值给 tb4k 的后三列
+停止遍历 tb6k
+保存 tb4k 到原 excel</p>
+<p>我执行段代码。tb4k 遍历每一行大概需要 1s 左右(包含 tb6k 的遍历)。导致我运行这段程序要接近 1 小时。
+这速度也太慢了吧。还是我水平太菜了，没有用好 pandas ？</p>
+]]></content:encoded>
+<pubDate>2024-06-06T14:00:36Z</pubDate>
+<pubDate>2024-06-06T10:00:36Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 快点符号——收集一些常用的 emoji 和特殊符号</title>
+<link>https://www.v2ex.com/t/1047503</link>
+<guid>https://www.v2ex.com/t/1047503</guid>
+<content:encoded><![CDATA[
+
+<p>快点符号
+探索😆emoji 表情库，👆点击即可复制！查找你喜欢的 emoji 表情符号，尽情享受🎉表情的乐趣和创造力🎨。
+<a href="https://emoji.quickso.cn/" rel="nofollow">https://emoji.quickso.cn/</a></p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:57:26Z</pubDate>
+<pubDate>2024-06-06T11:57:26Z</pubDate>
+</item>
+<item>
+<title>[Android] 记录一次失败需求的经历， hack 终究是不归路。</title>
+<link>https://www.v2ex.com/t/1047502</link>
+<guid>https://www.v2ex.com/t/1047502</guid>
+<content:encoded><![CDATA[
+
+<p>首先我们有个需求， 就是能够在 WebView 中适配控制 media 的播放控制， 但是查看 api 发现，webview 根本没有暴露 mediasssion 这方面的 api. 怎么办？ 只能去看看源码。</p>
+<p>通过搜索， 发现 chromium 项目中有 MediaSession 这个接口，然后找到了这个类的实现 org.chromium.content.browser.MediaSessionImpl</p>
+<p>,发现这个类有一个静态方法。 </p>
+<pre><code>@CalledByNative private static MediaSessionImpl create(long nativeMediaSession)，  这个时候肯定是 native 调用了 java 的代码。
+</code></pre>
+<p>那么继续搜索 MediaSessionImpl_create 在 chromium 源码中， 继续搜索</p>
+<pre><code>➜  src git:(123.0.6312.121) ✗ grep -rn "MediaSessionImpl" --include="*.cc"  |grep create
+content/browser/media/session/media_session_android.cc:38:      Java_MediaSessionImpl_create(env, reinterpret_cast&lt;intptr_t&gt;(this));
+
+</code></pre>
+<p>继续往下面看</p>
+<pre><code>MediaSessionAndroid::MediaSessionAndroid(MediaSessionImpl* session)
+    : media_session_(session) {
+  DCHECK(media_session_);
+
+  JNIEnv* env = base::android::AttachCurrentThread();
+  ScopedJavaLocalRef&lt;jobject&gt; j_media_session =
+      Java_MediaSessionImpl_create(env, reinterpret_cast&lt;intptr_t&gt;(this));
+  j_media_session_ = JavaObjectWeakGlobalRef(env, j_media_session);
+
+  WebContentsImpl* contents =
+      static_cast&lt;WebContentsImpl*&gt;(media_session_-&gt;web_contents());
+  if (contents) {
+    web_contents_android_ = contents-&gt;GetWebContentsAndroid();
+    DCHECK(web_contents_android_);
+    web_contents_android_-&gt;SetMediaSession(j_media_session);
+  }
+
+  session-&gt;AddObserver(observer_receiver_.BindNewPipeAndPassRemote());
+}
+</code></pre>
+<p>发现了 mediaSession 被设置到 WebContents, 通过搜索发现 WebContents 是一个接口， 继续找到该类的子类 WebContentsImpl.java ， 发现里面有一行代码</p>
+<pre><code>    @CalledByNative
+    private final void setMediaSession(MediaSessionImpl mediaSession) {
+        mMediaSession = mediaSession;
+    }
+
+</code></pre>
+<p>, 哈哈惊喜过度， 对象 mediaSession 竟然还在。 那还不简单， 直接通过反射去拿这个对象？ </p>
+<p>这里直接反射的过程简单说一下， 首先我们通过 WebView 的 classloader 拿到 WebView 的 Class 对象 ，再反射拿到 WebView 类里面的 mProvider 对象， 这个 mProdiver 其实就是 WebViewChromium.java, 在通过 WebViewChromium.java 对象里面的 AwContents 拿到对象 WebContens ，找到 WebContens 对象后， 就能反射拿到 mediaSession 了， 这个里面有很多坑，反射通过字段很多拿不到,名字和类名被混淆了，所以需要写很多 hack 代码。 </p>
+<p>这个时候直接反射出了 mMediaSession ， 但是发现这个字段怎么都不存在， 惊呆了我的下巴， 继续测试，发现 setMediaSession 这个方法存在的。 这是怎么回事儿了？ 二进制和源代码不一致？
+这个时候不得不使用一些反编译工具了， 反编译出 MediaSessionImpl.java 文件，发现 mMediaSession 字段不存在， 并且 mMediaSession = mediaSession; 代码也消失了。 </p>
+<p>这这这这这？ 心里一万个草泥马。  经过多次测试，发现这段代码被编译器忽略掉了。 </p>
+<p>认真分析 <a href="http://media_session_android.cc" rel="nofollow">media_session_android.cc</a> ， 发现 setMediaSession 这个方法肯定是调用了的。 这个时候又去查询了一些资料，发现 native 方法的调用的原理是反射， 这个时候就只能去修改 classloader 里面的 class 文件内容了， 奇奇怪怪的折腾。</p>
+<p>未完待续， 后面会继续分析。</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:56:45Z</pubDate>
+<pubDate>2024-06-06T13:56:45Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 使用 GPT 合作编程时一个强烈的需求</title>
+<link>https://www.v2ex.com/t/1047501</link>
+<guid>https://www.v2ex.com/t/1047501</guid>
+<content:encoded><![CDATA[
+
+<p>我希望有一个面板，能够让我上传当前项目的文件，也不是很多，可能就十来个代码文件</p>
+<p>然后所有的对话都基于面板里面的文件进行</p>
+<p>这样做的好处：</p>
+<ol>
+<li>消除 LLM 的幻觉，避免产生乱七八糟的代码</li>
+<li>基于最新的代码进行讨论，更有效率</li>
+<li>不用重复的输入某些前提或者背景</li>
+</ol>
+<p>大家有类似的需求吗？
+或者市面上有任何类似的应用吗？</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:54:21Z</pubDate>
+<pubDate>2024-06-06T13:57:50Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [大疆][社招] 急需 Flutter 开发</title>
+<link>https://www.v2ex.com/t/1047500</link>
+<guid>https://www.v2ex.com/t/1047500</guid>
+<content:encoded><![CDATA[
+
+<h2>高级客户端开发工程师（ Flutter ）</h2>
+<h3>职位描述</h3>
+<ol>
+<li>使用 Flutter 开发消费级创新产品的配套
+App ，与团队协作制定技术方案，实现高质
+量功能交付；</li>
+<li>负责规划功能集任务、技术演进，确保代
+码高可维护性，参与下一代跨平台前沿技术
+预研；</li>
+<li>开发和维护 Flutter 基础组件及相关工具
+链，承担性能优化相关工作。</li>
+</ol>
+<h3>任职要求</h3>
+<ol>
+<li>本科以上学历，深入实践过 Fluter 且有
+FlutterApp 上架经验，同时具备 2 年以上的
+Android/ios 原生开发经验，能熟练运用原
+生 API 和第三方框架；</li>
+<li>精通 Dart 语言，熟悉 FIutter 框架，能
+够完成 Android/iOS 双端跨平台开发以及发
+布；</li>
+<li>熟悉 Flutter 常用组件实现原理，有
+Flutter 组件开发、性能优化经验者优先；</li>
+<li>深刻理解 C++混合编程/跨平台技术
+（ React Native/Weex/Flutter 等）者优
+先；</li>
+<li>具备良好的编程习惯，注重代码质量。有
+责任与担当，对工作有热情，具备问题分析
+解决、沟通协作能力。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-06-06T13:50:40Z</pubDate>
+<pubDate>2024-06-06T13:50:40Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 简易 AI 图片 prompt 查看器 Stable Diffusion Prompt Reader v1.3.5</title>
+<link>https://www.v2ex.com/t/1047499</link>
+<guid>https://www.v2ex.com/t/1047499</guid>
+<content:encoded><![CDATA[
+
+<div>
+<h1>Stable Diffusion Prompt Reader v1.3.5</h1>
+<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/releases/latest" rel="nofollow">
+<img alt="GitHub releases" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/downloads/receyuki/stable-diffusion-prompt-reader/total" /></a>
+<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/LICENSE" rel="nofollow">
+<img alt="GitHub" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/license/receyuki/stable-diffusion-prompt-reader" /></a>
+<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/releases/latest" rel="nofollow">
+<img alt="GitHub release (latest by date)" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/v/release/receyuki/stable-diffusion-prompt-reader" /></a>
+<a href="https://pypi.org/project/sd-prompt-reader/" rel="nofollow">
+<img alt="PyPI" class="embedded_image" rel="noreferrer" src="https://img.shields.io/pypi/v/sd-prompt-reader" /></a>
+<img alt="platform" class="embedded_image" rel="noreferrer" src="https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey" />
+<a href="https://github.com/receyuki/stable-diffusion-prompt-reader" rel="nofollow">
+<img alt="GitHub star" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/stars/receyuki/stable-diffusion-prompt-reader" /></a>
+<br /><br />
+</div>
+一个独立的简易 AI 图片 prompt 查看器，用于在不依赖 webui 的情况下提取由 Stable Diffusion 生成图片内包含的 prompt  
+<p>不需要任何额外环境 /命令行 /浏览器，双击 app 把图片拖入即可  </p>
+<p>有任何建议或者使用问题请告诉我</p>
+<p><a href="https://github.com/receyuki/stable-diffusion-prompt-reader" rel="nofollow">Github Repo</a> | <a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/README.zh-Hans.md" rel="nofollow">简体中文</a></p>
+<h2>一些题外话</h2>
+<p>前一段时间有许多内容创作者主动用不同语言撰写和制作介绍和推广相关的文章和视频，说真的我很震撼。最近主 repo 的 stars 也快 1k 了，十分感谢大家的支持。    </p>
+<p>我其实很好奇国内的正经 Stable Diffusion 社区究竟在哪儿，感觉我能找到的那些全都非常封闭，更新也不太及时。基本就是把外面东西搬运一下做个整合包写个教程之类的。而且材料也都是 A1111 相关的，很少有 ComfyUI 这些的相关的东西。如果有群或者社区平台请务必告诉我，非常感谢。  </p>
+<p>前几个版本都没有在 V2EX 发主要是因为中文用户比较少，加上没有添加特别重要的新功能。具体的 changelog 可以看<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/releases" rel="nofollow">release</a> <del>（虽然没写中文版）</del> </p>
+<p>另外，大家可能不太相信，但这个 GUI 确实是 Tkinter 写的，为了能做到这个美观度我真的废了好大的劲。主要用了 CustomTkinter ，部分模块自己魔改了一下。配色用的是苹果的 guideline ，功能图标是谷歌的 Material Symbols ，app 图标是用 SD 生成的。至于为什么不用 Qt 写，qml 在我的 Mac 上会有迷之 bug ，而且几个打包工具作者对 PySide 的支持比较迟缓 <del>（提的 issue 等我用 Tkinter 写完之后全修复了..感觉自己像个怨种）</del>。有兴趣的话可以看一下代码，但是个人强烈建议千万别用 Tkinter 写任何东西，里面全是坑。</p>
+<p><img alt="Stable Diffusion Prompt Reader" class="embedded_image" rel="noreferrer" src="https://github.com/receyuki/stable-diffusion-prompt-reader/raw/master/images/screenshot_v134.png" /></p>
+<h2>重要更新</h2>
+<ul>
+<li>SD Prompt Reader 现在可作为 ComfyUI 节点使用。查看  <a href="https://github.com/receyuki/comfyui-prompt-reader-node" rel="nofollow">ComfyUI Prompt Reader Node</a> 了解更多信息。</li>
+<li>从 v1.3.5 开始，每个平台都添加了命令行工具，具体可以看<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/README.zh-Hans.md#%E5%91%BD%E4%BB%A4%E8%A1%8C" rel="nofollow">命令行介绍</a></li>
+</ul>
+<h2>功能</h2>
+<ul>
+<li>支持 macOS 、Windows 和 Linux</li>
+<li>提供图形界面和命令行两种交互方式</li>
+<li>简单的拖放交互</li>
+<li>复制 prompt 到剪贴板</li>
+<li>去除图片中的 prompt</li>
+<li>导出 prompt 到 txt 文件</li>
+<li>编辑或导入 prompt 到图片</li>
+<li>竖排显示以及根据字母排序</li>
+<li>检测生成工具</li>
+<li>支持多种格式</li>
+<li>支持系统深色和浅色模式</li>
+</ul>
+<h2>支持格式</h2>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>PNG</th>
+<th>JPEG</th>
+<th>WEBP</th>
+<th>TXT*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui" rel="nofollow">A1111's webUI</a></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><a href="https://github.com/easydiffusion/easydiffusion" rel="nofollow">Easy Diffusion</a></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Stability-AI/StableSwarmUI" rel="nofollow">StableSwarmUI</a>*</td>
+<td>✅</td>
+<td>✅</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Stability-AI/StableSwarmUI" rel="nofollow">StableSwarmUI (0.5.8-alpha 之前的版本)</a>*</td>
+<td>✅</td>
+<td>✅</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/MoonRide303/Fooocus-MRE" rel="nofollow">Fooocus-MRE</a>*</td>
+<td>✅</td>
+<td>✅</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://novelai.net/" rel="nofollow">NovelAI (stealth pnginfo)</a></td>
+<td>✅</td>
+<td></td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://novelai.net/" rel="nofollow">NovelAI (旧版)</a></td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/invoke-ai/InvokeAI" rel="nofollow">InvokeAI</a></td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/invoke-ai/InvokeAI" rel="nofollow">InvokeAI (2.3.5-post.2 之前的版本)</a></td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/invoke-ai/InvokeAI" rel="nofollow">InvokeAI (1.15 之前的版本)</a></td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/comfyanonymous/ComfyUI" rel="nofollow">ComfyUI</a>*</td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://drawthings.ai/" rel="nofollow">Draw Things</a></td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Naifu(4chan)</td>
+<td>✅</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table><p>* 见<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/README.zh-Hans.md#%E6%A0%BC%E5%BC%8F%E9%99%90%E5%88%B6" rel="nofollow">格式限制</a>.</p>
+<blockquote>
+<p>如果你使用的工具或格式不在这个列表中, 请帮助我支持你的格式: 将你的工具生成的原始图片文件上传到 issues, 谢谢.</p>
+</blockquote>
+<blockquote>
+<p>对于 ComfyUI 用户，SD Prompt Reader 现在可作为 ComfyUI 节点使用。
+<a href="https://github.com/receyuki/comfyui-prompt-reader-node" rel="nofollow">ComfyUI Prompt Reader Node</a> 是本项目的一个子项目，建议在你的工作流程中嵌入其中的 <a href="https://github.com/receyuki/comfyui-prompt-reader-node#prompt-saver-node--parameter-generator-node" rel="nofollow">Prompt Saver node</a> 以确保最大的兼容性。</p>
+</blockquote>
+<h2>下载</h2>
+<h3>Windows 用户</h3>
+<p>从 <a href="https://github.com/receyuki/stable-diffusion-prompt-reader/releases/latest" rel="nofollow">GitHub Releases</a> 下载可执行文件</p>
+<h3>macOS 用户</h3>
+<p>从 <a href="https://github.com/receyuki/stable-diffusion-prompt-reader/releases/latest" rel="nofollow">GitHub Releases</a> 下载可执行文件</p>
+<h4>通过 Homebrew Cask 安装</h4>
+<p>你也可以通过 <a href="http://brew.sh/" rel="nofollow">Homebrew</a> cask 安装 SD Prompt Reader.  </p>
+<pre><code class="language-bash">brew install --no-quarantine receyuki/sd-prompt-reader/sd-prompt-reader
+</code></pre>
+<p>使用 <code>--no-quarantine</code> 参数是因为目前 SD Prompt Reader 并未签名, 具体原因请查看<a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/README.zh-Hans.md#sd-prompt-readerapp-%E5%B7%B2%E6%8D%9F%E5%9D%8F%E6%97%A0%E6%B3%95%E6%89%93%E5%BC%80%E6%82%A8%E5%BA%94%E8%AF%A5%E5%B0%86%E5%AE%83%E7%A7%BB%E5%88%B0%E5%BA%9F%E7%BA%B8%E7%AF%93" rel="nofollow">这里</a></p>
+<h3><a href="https://github.com/receyuki/stable-diffusion-prompt-reader/blob/master/README.zh-Hans.md#linux-%E7%94%A8%E6%88%B7-%E4%B8%8D%E5%AE%9A%E6%9C%9F%E6%B5%8B%E8%AF%95" rel="nofollow">Linux 用户 (不定期测试)</a></h3>
+<h2>ComfyUI Prompt Reader Node</h2>
+<div>
+<a href="https://github.com/receyuki/comfyui-prompt-reader-node/blob/master/LICENSE" rel="nofollow">
+<img alt="GitHub" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/license/receyuki/comfyui-prompt-reader-node" /></a>
+<img alt="GitHub tag (with filter)" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/v/tag/receyuki/comfyui-prompt-reader-node?label=node" />
+<a href="https://github.com/receyuki/stable-diffusion-prompt-reader" rel="nofollow">
+<img alt="GitHub tag (with filter)" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/v/tag/receyuki/stable-diffusion-prompt-reader?label=core" /></a>
+<a href="https://github.com/psf/black" rel="nofollow">
+<img alt="Code style: black" class="embedded_image" rel="noreferrer" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
+<a href="https://github.com/receyuki/comfyui-prompt-reader-node" rel="nofollow">
+<img alt="GitHub" class="embedded_image" rel="noreferrer" src="https://img.shields.io/github/stars/receyuki/comfyui-prompt-reader-node" /></a>
+<br />
+</div>
+<p>这是 SD Prompt Reader 的一个子项目。它帮助你从 SD Prompt Reader 支持的任何格式的图像中提取元数据，并保存带有额外元数据的图像，以确保与 Civitai 等网站上的元数据检测兼容。</p>
+<p><a href="https://github.com/receyuki/comfyui-prompt-reader-node" rel="nofollow">Github Repo</a></p>
+<p><img alt="Prompt Reader Node" class="embedded_image" rel="noreferrer" src="https://github.com/receyuki/comfyui-prompt-reader-node/raw/main/images/screenshot_v130.png" /></p>
+<h3>安装说明</h3>
+<h4>通过 <a href="https://github.com/ltdrdata/ComfyUI-Manager" rel="nofollow">ComfyUI Manager</a> 安装和更新（推荐）</h4>
+<p>在 ComfyUI Manager 中搜索 <code>SD Prompt Reader</code> 并安装。</p>
+<h4>手动安装</h4>
+<p>请确保在安装主库的同时安装子模块。</p>
+<ol>
+<li><code>cd</code> 到 <code>custom_node</code> 文件夹</li>
+<li>
+Clone 这个 repo<pre><code class="language-shell">git clone --recursive https://github.com/receyuki/comfyui-prompt-reader-node.git
+</code></pre>
+</li>
+<li>
+安装依赖<pre><code class="language-shell">cd comfyui-prompt-reader-node
+pip install -r requirements.txt
+</code></pre>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-06-06T13:45:06Z</pubDate>
+<pubDate>2024-06-06T13:45:06Z</pubDate>
+</item>
+<item>
+<title>[程序员] 遇到一个局域网 win10 无法跑满千兆上传的问题</title>
+<link>https://www.v2ex.com/t/1047498</link>
+<guid>https://www.v2ex.com/t/1047498</guid>
+<content:encoded><![CDATA[
+
+<p>一台 win10,一台 mac,交换机(不分配 ip,ip 是上层路由分发的)+网线都是千兆
+公司最近搬工位,在原来的工位上 win10 提供了很多数据服务,这些服务都可以跑满千兆,搬了工位之后就只能跑满百兆了,因为是做服务端业务,百兆网速启动服务太慢,要崩溃了</p>
+<p>用 iperf3 测了一下:
+mac 作为服务端 二者交互可以千兆
+win10 作为服务端 只有百兆
+win10 上开了一台 linux 虚拟机,也是可以跑满千兆(这点超出我的理解范围了)</p>
+<p>win10 上也确认网卡设置的 1.0Gbps 模式,traceroute 调试发现流量也只走了我自己的千兆交换机,找了一天原因也没有思路,麻烦有经验的大佬帮忙指点一下</p>
+<p>win10 ip:10.1.3.162 </p>
+<p>traceroute to 10.1.3.162 (10.1.3.162), 64 hops max, 52 byte packets
+1  10.1.3.162 (10.1.3.162)  0.623 ms *  0.553 ms</p>
+<p>iperf3 -c 10.1.3.162 -t 60 -R               21:25:03
+Connecting to host 10.1.3.162, port 5201
+Reverse mode, remote host 10.1.3.162 is sending
+[  5] local 10.1.3.187 port 50908 connected to 10.1.3.162 port 5201
+[ ID] Interval           Transfer     Bitrate
+[  5]   0.00-1.00   sec  11.3 MBytes  94.7 Mbits/sec
+[  5]   1.00-2.00   sec  11.3 MBytes  94.7 Mbits/sec
+[  5]   2.00-3.00   sec  11.2 MBytes  94.2 Mbits/sec</p>
+<p>这里是对 win10 虚拟机测试,是可以达到千兆的
+Reverse mode, remote host 10.1.3.201 is sending
+[  5] local 10.1.3.187 port 65372 connected to 10.1.3.201 port 5201
+[ ID] Interval           Transfer     Bitrate
+[  5]   0.00-1.00   sec   109 MBytes   913 Mbits/sec
+[  5]   1.00-2.00   sec   111 MBytes   935 Mbits/sec
+[  5]   2.00-3.00   sec   111 MBytes   934 Mbits/sec
+[  5]   3.00-4.00   sec   111 MBytes   934 Mbits/sec</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:38:01Z</pubDate>
+<pubDate>2024-06-06T13:52:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在买房首选小区位置还是小区环境</title>
+<link>https://www.v2ex.com/t/1047497</link>
+<guid>https://www.v2ex.com/t/1047497</guid>
+<content:encoded><![CDATA[
+
+<p>小区位置好的物业很烂，包括环境，户型，
+另外一个小区的环境和物业比较好，属于中高端小区 但是位置比较偏，商超周围没有，位置好的小区出门就是商场</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:35:23Z</pubDate>
+<pubDate>2024-06-06T14:18:47Z</pubDate>
+</item>
+<item>
+<title>[生活] 家庭环境能对小孩影响多大❓</title>
+<link>https://www.v2ex.com/t/1047496</link>
+<guid>https://www.v2ex.com/t/1047496</guid>
+<content:encoded><![CDATA[
+
+<p>下班路上，拖着疲惫的身躯，看到健身房，餐馆里悠亚精致人，突然想到</p>
+<p>假设父母都是普通老百姓，也都在努力工作生活，只是一个在农村，一个在城市，他们这一生，还有小孩的一生能影响多大？</p>
+<p>我在农村长大，你要问我们那儿有啥好吃，小众好玩的地儿在哪儿，我不知道，因为我前几十年一放假就回老家了，市区去的很少，也不怪以前有人说我对自己的家乡怎么啥都不知道。</p>
+<p>我妈辛苦种了一辈子田还是靠后来在县城上班存了点钱，我能考上大学应该幸亏我爸读过初中，小学用磁带一遍遍教我英语，虽然我的英语还是很差，但是家里起码有了点学习的氛围。</p>
+<p>他们当时有机会到城里来，结果还是在老家盖了房子，守着自己的一亩三分地。小的时候我也不知道，现在他们这个选择我会记一辈子。</p>
+<p>我从 16 年毕业开始深漂，3 年后北漂，到现在快 8 年了，也奔三了。</p>
+<p>年轻的时候没意识到钱，时间的重要性，下班周末就是玩。</p>
+<p>来到北京后有点后知后觉，慢慢的开始搞副业，现在白天上班，晚上周末做副业，几乎没有任何娱乐，就周末旁边公园散下步。很辛苦但是不得不做，毕竟互联网中年危机。</p>
+<p>我认为自己算是个积极上进的人，相信只要我够努力就能改命，但是现在越来越觉得，如果没有特别大的转折，是不是命从出身那一刻，就写好了。</p>
+<p>所以才有了开头的问题，一开始就出身在城市里的人，是不是不用这么累？</p>
+<p>等我漂不动了，应该会回到老家小县城，也算是个城里人了，我未来的小孩也会成为城里的孩子。</p>
+<p>不知道他的一生，会不会像我一样，还要四处奔波，累的时候产生类似的疑问。希望我做的几个重大决定，目光能看远点，对我自己，对他都少点后悔。</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:35:20Z</pubDate>
+<pubDate>2024-06-06T14:15:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 局域网 ping 路由器有点问题</title>
+<link>https://www.v2ex.com/t/1047495</link>
+<guid>https://www.v2ex.com/t/1047495</guid>
+<content:encoded><![CDATA[
+
+<p>局域网光猫桥接，路由器拨号，电脑有线接路由器 LAN 口，我用 A 电脑 ping 路由器 ip ，time 值在&lt;1 到 3ms 跳，
+但是用另一台 B 电脑 ping 路由器 ip 100 次都是&lt;1ms 。
+是同一根网线，同一个路由器 lan 口，
+中间也没有交换机什么的。A 电脑是 2.5g 网口，B 电脑是千兆网口，测试时接的都是路由器的 2.5gLAN 口
+系统都是 Windows11 。
+有没有懂的帮我分析下，这是什么原因，谢谢</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:34:31Z</pubDate>
+<pubDate>2024-06-06T13:34:31Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求助, 如何在 windows 上实时收集浏览器发送的通知?</title>
+<link>https://www.v2ex.com/t/1047494</link>
+<guid>https://www.v2ex.com/t/1047494</guid>
+<content:encoded><![CDATA[
+
+<p>我折腾了好多天, 都没搞出来, 以下是我的尝试</p>
+<ol>
+<li>
+<p>python 使用 winsdk 模块 去实时监听 windows 的 notification
+结果和下面的 链接一样, 报错找不到元素
+<a href="https://stackoverflow.com/questions/74124560/tried-to-listen-to-windows-notification-but-got-element-not-found-error" rel="nofollow">https://stackoverflow.com/questions/74124560/tried-to-listen-to-windows-notification-but-got-element-not-found-error</a></p>
+</li>
+<li>
+<p>直接使用 winsdk, 照着微软的文档 尝试用 C#去完成, 但是这部分方法的命名空间是 windows.ui, 好像是 uwp 专用的, <a href="http://我好像用的是普通的.net" rel="nofollow">我好像用的是普通的.net</a>, 用不了哪些方法, 也不想去了解 uwp, 于是直接放弃了
+<a href="https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/notification-listener" rel="nofollow">https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/notification-listener</a></p>
+</li>
+<li>
+<p>打算编写 chrome 插件去捕获 网页的 notification.onCreated 信号 (询问 chatgpt 得来的), 但是最新的 chromne 好像不支持这个信号了, 好像是 google 在限制插件的权限, 不让这样操作了
+<a href="https://developer.chrome.com/docs/extensions/reference/api/notifications?hl=zh-cn" rel="nofollow">https://developer.chrome.com/docs/extensions/reference/api/notifications?hl=zh-cn</a></p>
+</li>
+<li>
+<p>尝试了下 puppeteer 工具去监视 chrome 的 notification, 我不太会用, 也不知道它是不是真的有这个功能?</p>
+</li>
+<li>
+<p>或许我不需要编写代码? 本地会保存 notification 的历史?
+<a href="https://superuser.com/questions/1035042/is-there-any-way-to-view-chrome-browser-notifications-history" rel="nofollow">https://superuser.com/questions/1035042/is-there-any-way-to-view-chrome-browser-notifications-history</a>
+chrome 的保存路径在 <code>%LocalAppData%\Google\Chrome\User Data\Default\Platform Notifications</code>
+但我进去看了下 通知不是完整的, 我需要的那个网站的通知不在这里
+而 windows 会把通知保存在 <code>C:\Users\usrname\AppData\Local\Microsoft\Windows\Notifications</code>, 我也同样没找到</p>
+</li>
+</ol>
+<p>所以求助下大家我到底应该怎么做? 实在没有办法的话 我就转到 ubuntu 上去做了, linux 上处理这个问题应该是有方法的?</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:33:18Z</pubDate>
+<pubDate>2024-06-06T13:33:18Z</pubDate>
+</item>
+<item>
+<title>[FFmpeg] 关于我在 fcp 导入视频时出现的无法解决的问题，请求各位 ffmpeg 大佬的帮忙</title>
+<link>https://www.v2ex.com/t/1047493</link>
+<guid>https://www.v2ex.com/t/1047493</guid>
+<content:encoded><![CDATA[
+
+<p>（虽然说是 fcp 的问题，但归根到底还是视频编码的问题，熟悉 ffmpeg 的朋友做熟悉不过视频编码了）</p>
+<p>本人在用系统 macos sonama 14.5 fcp 版本为 10.6.5
+已知 fcp 支持导入 hevc 视频，图证 <a href="https://imgse.com/i/pkY4h9S" rel="nofollow">https://imgse.com/i/pkY4h9S</a>
+使用了两个相同内容的素材，分别为两位压制者进行的压制，其中上图可以正常导入 fcp ，下图并不可以
+<a href="https://imgse.com/i/pkY47Bn" rel="nofollow">https://imgse.com/i/pkY47Bn</a>
+<a href="https://imgse.com/i/pkY45cQ" rel="nofollow">https://imgse.com/i/pkY45cQ</a>
+本人琢磨了半天也不明白，感觉应该和 hevc 问题不大，可能是其他项的问题
+我又拿了一个完全不一样的视频进行了证明，该视频可正常导入 fcp ，mediainfo 如图 <a href="https://imgse.com/i/pkY5pu9" rel="nofollow">https://imgse.com/i/pkY5pu9</a></p>
+<p>如果您有头绪，麻烦请告诉我，我感激不谢！</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:30:59Z</pubDate>
+<pubDate>2024-06-06T13:39:09Z</pubDate>
+</item>
+<item>
+<title>[问与答] 挑战：通过一个问题，测试是不是 GPT4</title>
+<link>https://www.v2ex.com/t/1047492</link>
+<guid>https://www.v2ex.com/t/1047492</guid>
+<content:encoded><![CDATA[
+
+有很多场景，需要通过测试问题，推测模型。<br /><br />之前有朋友说，可以问：树上有 9 只鸟，猎人开枪打死一只，树上还剩下多少只鸟？<br /><br />但是我试了 5 次，GPT 3.5 才答错一次。<br /><br />你还知道什么其他的问题可以测试？
+]]></content:encoded>
+<pubDate>2024-06-06T13:28:38Z</pubDate>
+<pubDate>2024-06-06T13:35:07Z</pubDate>
+</item>
+<item>
+<title>[健身] 请问如何开始健身以及培养健身/运动的习惯？</title>
+<link>https://www.v2ex.com/t/1047491</link>
+<guid>https://www.v2ex.com/t/1047491</guid>
+<content:encoded><![CDATA[
+
+<p>平时不喜欢运动，报了个健身教练，目标增肌，练了快一年，没有肉眼可见的明显变化，体重也变化不大，只是自己感觉有些动作更有力气了些。
+目前比较迷惘还怎么练下去，感觉没什么动力了...</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:26:56Z</pubDate>
+<pubDate>2024-06-06T13:26:56Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 大家最近 GitHub copilot 正常吗？ 小伙伴反映只有 代码补全能用</title>
+<link>https://www.v2ex.com/t/1047489</link>
+<guid>https://www.v2ex.com/t/1047489</guid>
+<content:encoded><![CDATA[
+
+<p>聊天功能一直无响应。</p>
+<p>代码补全正常，但感觉速度也慢了</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:04:47Z</pubDate>
+<pubDate>2024-06-06T13:04:47Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [送码] 多背单词上线安卓版，支持全平台</title>
+<link>https://www.v2ex.com/t/1047488</link>
+<guid>https://www.v2ex.com/t/1047488</guid>
+<content:encoded><![CDATA[
+
+<p>终于调试好了安卓的版本！</p>
+<p>目前 iOS 、Android 、MacOs 、Windows 都支持了。</p>
+<p>pc 版是一个非常小巧的电脑插件，非常好用！</p>
+<p>软件没有任何的套路，不会背单背到一半突然收费😁😭</p>
+<p>如果你正好在学习英语可以试试我开发的软件！</p>
+<hr />
+<p>app 的兑奖码,进入 app 首页-兑换中心-使用兑奖码</p>
+<p>glrns4q92lgi</p>
+<p>vz8l3g111eth</p>
+<p>z7ax585e5xb5</p>
+<p>we8g9b0a8888</p>
+<p>k0mpjeqr09eu</p>
+<p>khg2wl3f18iy</p>
+<p>jwwp8q3htuxs</p>
+<p>2wsdkj3kcyb7</p>
+<p>zh5qf73x97rc</p>
+<p>bc7uvt81hfud</p>
+<p>pc 端兑奖码，在升级页面使用</p>
+<p>hn0brczaqxus</p>
+<p>at2euo7zcitm</p>
+<p>mm86eaz8r0wy</p>
+<p>m38x4x5s4494</p>
+<p>kafo4whk47kf</p>
+<p>g1ew6h80yd89</p>
+<p>5ramvthcb86b</p>
+<p>pqse0gtnbcxl</p>
+]]></content:encoded>
+<pubDate>2024-06-06T13:02:12Z</pubDate>
+<pubDate>2024-06-06T14:13:09Z</pubDate>
+</item>
+<item>
+<title>[问与答] ChatGPT 官方客户端图片下载难的问题有解决办法吗？</title>
+<link>https://www.v2ex.com/t/1047487</link>
+<guid>https://www.v2ex.com/t/1047487</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.v2ex.com/i/SnVhQCShl.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 SnVhQCShl.png"><img class="embedded_image" src="https://i.v2ex.co/SnVhQCShl.png" /></a><br /><br />OpenAI 官方最新版本的客户端，生成的图片要么点击无响应，要么就是如图显示“No items selected”，很难得的情况下才能正常展示。本地环境 macOS 14.5 最新版本，尝试过将系统语言切换成英文，问题依旧。<br /><br />目前已探索出来的解决办法就是让 GPT 生一个图片下载链接。<br /><br />PS：我就是想知道这是不是官方客户端的 BUG...
+]]></content:encoded>
+<pubDate>2024-06-06T13:00:08Z</pubDate>
+<pubDate>2024-06-06T13:00:08Z</pubDate>
+</item>
+<item>
+<title>[Apple] 此 iPhone 上已激活了最大数目的免费账户。</title>
+<link>https://www.v2ex.com/t/1047486</link>
+<guid>https://www.v2ex.com/t/1047486</guid>
+<content:encoded><![CDATA[
+
+购买了一个新的苹果账号，登录的时候出现了这样的提示“此 iPhone 上已激活了最大数目的免费账户。”我在想 y 如果通过 Xcode 模拟的 ios 设备是否可以帮我激活这个 iCloudID 呢？
+]]></content:encoded>
+<pubDate>2024-06-06T12:58:37Z</pubDate>
+<pubDate>2024-06-06T14:17:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求多端应用推荐：想问下大家有没有什么应用能同时接受微信， qq ，电报之类社交 app 并回复的消息的应用，记得以前 Linux 上有个能接收小蓝鸟的 app</title>
+<link>https://www.v2ex.com/t/1047485</link>
+<guid>https://www.v2ex.com/t/1047485</guid>
+<content:encoded><![CDATA[
+
+<p>想问下大家有没有什么应用能同时接受微信，qq ，电报之类社交 app 并回复的消息的应用，记得以前 Linux 上有个能接收小蓝鸟的 app ，谢谢各位大佬！</p>
+]]></content:encoded>
+<pubDate>2024-06-06T12:54:14Z</pubDate>
+<pubDate>2024-06-06T12:51:14Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 擅长前端 JS 的兄弟，一个关于三方人机验证结果提交的小活</title>
+<link>https://www.v2ex.com/t/1047484</link>
+<guid>https://www.v2ex.com/t/1047484</guid>
+<content:encoded><![CDATA[
+
+付费小活，大概内容：<br />1 调用一个三方付费服务的 API 来获取网站网页上人机验证的结果<br />2 对页面进行分析，构造请求来（或者触发原有页面代码）提交三方服务的计算结果，从而模拟手工做人机验证的效果<br /><br />简言之，不用实现破人机验证的代码，核心工作量是分析页面上原来的 JS 逻辑，写个 POST 提交人机的结果<br /><br />诚意付费合作。我在 V2EX 上的合作信用记录良好，可查询我的历史帖子<br />谈妥后才开始做，绝不会不给钱就要求方案/思路/代码等等<br /><br />PS. <br />1 我们的技术栈是 python ，希望你也能懂一点点 python ，方便沟通和把工作结果合并到我们现有的工程里<br />2 这个活比较小，更希望的是借由这个小活找能长期合作的兄弟。前面有工程师一直合作良好，直到对方自身原因没空余时间了<br />3 出于长期合作的目的，所以会问一些基本情况，物理位置/现状这些，对隐私非常介意的兄弟请注意<br /><br /><br />vx：microawareness （较忙，若回复不及时见谅）
+]]></content:encoded>
+<pubDate>2024-06-06T12:52:09Z</pubDate>
+<pubDate>2024-06-06T12:52:09Z</pubDate>
+</item>
+<item>
+<title>[macOS] 桌面边栏显示已打开应用的 app 有哪些推荐</title>
+<link>https://www.v2ex.com/t/1047483</link>
+<guid>https://www.v2ex.com/t/1047483</guid>
+<content:encoded><![CDATA[
+
+请问桌面边栏显示已打开应用的 app 有哪些，谢谢<br /><br />台前调度：适应不来，且占用太多空间<br />Contexts：有这个功能，其实不错。但是感觉有 bug ，某个已打开窗口偶尔自己动，且作者更新滞后
+]]></content:encoded>
+<pubDate>2024-06-06T12:51:42Z</pubDate>
+<pubDate>2024-06-06T12:49:42Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 招安卓逆向，容器开发</title>
+<link>https://www.v2ex.com/t/1047481</link>
+<guid>https://www.v2ex.com/t/1047481</guid>
+<content:encoded><![CDATA[
+
+能在 blackbox 基础上二开最好，有意联系 tg afo996
+]]></content:encoded>
+<pubDate>2024-06-06T12:46:44Z</pubDate>
+<pubDate>2024-06-06T12:43:44Z</pubDate>
+</item>
+
+<item>
 <title>[酷工作] [深圳] 急招后端，中型厂子，要求高开</title>
 <link>https://www.v2ex.com/t/1047480</link>
 <guid>https://www.v2ex.com/t/1047480</guid>
 <content:encoded><![CDATA[
-
 <p>有电商、支付相关业务背景优先，java 和 go 都可
 Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 ]]></content:encoded>
-<pubDate>2024-06-06T12:33:01Z</pubDate>
 <pubDate>2024-06-06T12:32:01Z</pubDate>
 </item>
 <item>
@@ -21,10 +669,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047479</link>
 <guid>https://www.v2ex.com/t/1047479</guid>
 <content:encoded><![CDATA[
-
 如题，有玩分体键盘的么？不分体也行但是键位要斜着的，腱鞘炎有点严重希望这样可以改善，有没有兄弟可以推荐下
 ]]></content:encoded>
-<pubDate>2024-06-06T12:30:49Z</pubDate>
 <pubDate>2024-06-06T12:30:49Z</pubDate>
 </item>
 <item>
@@ -32,10 +678,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047478</link>
 <guid>https://www.v2ex.com/t/1047478</guid>
 <content:encoded><![CDATA[
-
 七年前买的笔记本用的 win10 ，除了后续更换系统盘用了硬盘对刻，就没再动过。前段时间心血来潮玩了下 ai 绘图等等一些好玩的东西，系统盘装了太多东西 500G 的空间也塞满了。然后用卸载工具卸载清理残留的时候貌似删除了不得了的东西，系统开始无法更新还出现一些小错误。<br /><br />本想重置下系统保留配置，然而不知道是不是删除了什么东西，一直无法重置，折腾几天放弃了准备重装。花了几天备份软件配置，然后分分钟重装了。重装完麻烦来了，常用的软件导入配置后都正常使用，然而有些不常用的软件忘记备份配置，现在使用起来超级不顺手，装一个修改一个配置，几天下来还没达到重装前的顺手程度。<br /><br />看来备份还是要在日常中做，不能重装了才临时起意备份，毕竟总会漏那么几个。另外不要迷信什么硬盘不用分区，你要是两块硬盘不分区没事，要是只有一块硬盘不分区，在碰到系统无法重置的情况下重装系统更折腾。<br /><br />最后 chrome 浏览器同步有点牛掰啊，除了几个下架的扩展没了其他都同步成功了，图标位置都没变，而且部分扩展的配置都还在。<br /><br />系统无法重置信息<br />[img]<a href="https://i.imgur.com/GL82TiD.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/GL82TiD.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/tB5FnpM.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/tB5FnpM.png" /></a>[/img]
 ]]></content:encoded>
-<pubDate>2024-06-06T12:24:54Z</pubDate>
 <pubDate>2024-06-06T12:24:54Z</pubDate>
 </item>
 <item>
@@ -43,10 +687,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047477</link>
 <guid>https://www.v2ex.com/t/1047477</guid>
 <content:encoded><![CDATA[
-
 最近在研究 EKS 的成本优化，包括 right size 、spot 实例等，目前有一些心得，也实践了下，EC2 成本大概节省了一大半，有对此感兴趣的同学可以一起交流下，看看怎么降本增效<br /><br />我的微信：francisday1
 ]]></content:encoded>
-<pubDate>2024-06-06T12:16:34Z</pubDate>
 <pubDate>2024-06-06T12:16:34Z</pubDate>
 </item>
 <item>
@@ -54,10 +696,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047476</link>
 <guid>https://www.v2ex.com/t/1047476</guid>
 <content:encoded><![CDATA[
-
 我今年初种了一块地，离我比较远，开车要 2 个小时才能到，虽然有人帮我打理，但我还是挺好奇的想看看，不过那个地方是真正的农田，所以没有无线网，也没有电源，而且在路边，晚上真有人偷走了我也没办法，所以有没有什么硬件，或者我自己做一个什么东西，可以定时发照片给我呢？或者有没有什么实现的思路没？
 ]]></content:encoded>
-<pubDate>2024-06-06T12:14:25Z</pubDate>
 <pubDate>2024-05-29T12:14:25Z</pubDate>
 </item>
 <item>
@@ -65,10 +705,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047475</link>
 <guid>https://www.v2ex.com/t/1047475</guid>
 <content:encoded><![CDATA[
-
 商店里基本上 App 都是 iOS12 起步，有些支持 iOS10 ，却不兼容。
 ]]></content:encoded>
-<pubDate>2024-06-06T12:13:40Z</pubDate>
 <pubDate>2024-06-06T12:34:35Z</pubDate>
 </item>
 <item>
@@ -76,7 +714,6 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047473</link>
 <guid>https://www.v2ex.com/t/1047473</guid>
 <content:encoded><![CDATA[
-
 <h2>项目地址</h2>
 <p><a href="https://github.com/OXeu/Rin" rel="nofollow">https://github.com/OXeu/Rin</a></p>
 <h2>简介</h2>
@@ -113,7 +750,6 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <p>因此后面才打算自己搓一个博客出来，项目最开始也是中规中矩的一个普通的带前后端的全栈项目，后端托管在自己的服务器上，后面发现自己用的后端框架可以迁移到 Cloudflare Workers 上面，于是花了几天时间把后端代码基本全部翻新了一遍，再之后就是索性全扔 Cloudflare 上面了，使用 D1 替代之前的 sqlite ，R2 替代 S3 用来存储图片。</p>
 <p>好处就是 Cloudflare 提供的免费资源完全足够托管个人博客，不需要掏一分钱；坏处就是国内访问可能比较慢，目前的解决方案是针对前端国内再接一个 CDN ，将国内的流量全部重定向到国内的 CDN 上，能够一定程度改善访问速度。同时国内的 CDN 做区域白名单只允许大陆访问，减少被打爆的风险。</p>
 ]]></content:encoded>
-<pubDate>2024-06-06T11:54:09Z</pubDate>
 <pubDate>2024-06-06T12:23:18Z</pubDate>
 </item>
 <item>
@@ -121,12 +757,10 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047472</link>
 <guid>https://www.v2ex.com/t/1047472</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/tJb4wf7X.jpeg" /></p>
 <p>预感今晚的发射会成功</p>
 <p>直播地址： <a href="https://www.spacex.com/launches/mission/?missionId=starship-flight-4" rel="nofollow">https://www.spacex.com/launches/mission/?missionId=starship-flight-4</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-06T11:49:38Z</pubDate>
 <pubDate>2024-06-06T11:49:38Z</pubDate>
 </item>
 <item>
@@ -134,10 +768,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047471</link>
 <guid>https://www.v2ex.com/t/1047471</guid>
 <content:encoded><![CDATA[
-
 如题, 求个馒头的💊<br /><br />目前在 hdfans, hdmayi 活跃 <br /><br />分享率: 2.638 等级为 Crazy User. <br /><br />设备 群晖 ds420+, 会一直开机 不会影响发💊人.<br /><br />邮箱(base64)  :  bGl1bmFpamllMTk5NkBnbWFpbC5jb20=<br /><br /><br />特此先感谢🙏大佬的邀
 ]]></content:encoded>
-<pubDate>2024-06-06T11:43:16Z</pubDate>
 <pubDate>2024-06-06T11:43:16Z</pubDate>
 </item>
 <item>
@@ -145,7 +777,6 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047470</link>
 <guid>https://www.v2ex.com/t/1047470</guid>
 <content:encoded><![CDATA[
-
 <p>本次 3.11.4 更新亮点为：系统镜像引入社区镜像，用户可以一键导入各主流开源操作系统镜像，方便用户上手使用。持续迭代共享 LVM ，支持快照，主备机等特性，修复迁移删除镜像缓存等 BUG 。</p>
 <h1>功能优化</h1>
 <ul>
@@ -202,7 +833,6 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <p><img alt="关于 Cloudpods" class="embedded_image" rel="noreferrer" src="https://pic4.zhimg.com/80/v2-e030f09d17c77e25de198552e8baf6df_720w.webp" /></p>
 <p><img alt="Cloudpods 部分落地客户" class="embedded_image" rel="noreferrer" src="https://pic1.zhimg.com/80/v2-cfd8e541a135a9bb8474560c26db17d4_720w.webp" /></p>
 ]]></content:encoded>
-<pubDate>2024-06-06T11:27:29Z</pubDate>
 <pubDate>2024-06-05T19:26:29Z</pubDate>
 </item>
 <item>
@@ -210,10 +840,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047469</link>
 <guid>https://www.v2ex.com/t/1047469</guid>
 <content:encoded><![CDATA[
-
 手上有一台 OPPO A92s ，每年我都会尝试 ROOT 这台手机，但没有一次成功的，说一下我的尝试，希望有大佬了解我还不知道的信息。<br />最开始是想利用 21 年 3 月的联发科漏洞，可以获取到临时 ROOT ，但要求系统版本在 21 年 3 月以前。尝试了一下降级，发现 Rec 有验证，没办法刷等级更低的包，后来手机半夜自动更新了一次系统，把 Rec 模式里面选择本地刷机包的功能给砍了，这条路就彻底没了。<br />官方有发布降级工具，但是我的型号用不了。<br /><br />然后再底层一点，就是 fastboot 模式，这个模式我从手机买来的那一天起，就没成功进入过，adb 命令进入 fastboot 以后会显示一串英文：the serial is not match,fastboot verfity failed.<br />提前输入 fastboot 命令，会提示 Remote not support HAL 还是什么的，反正就是用不了。<br /><br />最后只能把希望寄托在 bootrom 模式上，网上说的是天玑 1200 以下的芯片都可以用 mtkclient 解锁，我的天玑 800 理论上是可以的，也有跟我相同 cpu ，但是别的型号的手机成功解锁，但是我的这台手机不行。<br />驱动是完美安装的，版本是最新的，但 mtkclient 还会提示握手失败。<br />我去看了一下 mtkclient 的源码，握手阶段会通过串口向手机发送四个字节，得到回复以后就可以执行各种命令，通过漏洞覆盖掉特定内存区域的值。<br />我手动用串口工具模拟了这个握手的过程，发现根本没卵用，手机依旧不停发送 Ready ，然后关机。<br />我是做安卓开发的，嵌入式这一块儿确实不太懂，到底怎么才能握手通过，可能只有 OPPO 的工程师知道了.....<br /><br />然后我还尝试了直接用 SP Flash Tool 线刷，好不容易把官方给的 ofp 格式的包转成了线刷包，验证文件跟 scatter 也都正常识别了，最后还是报了一样的错，握手失败......要不就是 DA 发送失败。<br />也试过一些 bypass 工具，无一例外都是报错。<br /><br />然后就想着找一下 MTK 官方的文档，官网找不到，搜索引擎搜不到，ChatGPT 也不知道，基本没有资料......<br /><br />最后的尝试是去逆向官方的降级工具，因为只有这个工具处理过的刷机包，才能在手机端通过设置卡刷，但是折腾了半天也没用，官方工具就只是生成了一个签名，然后把卡刷包跟签名放在同一个 zip 文件里，但是哪怕我用相同的算法给网上找的官方 ROM 生成签名并打包，手机端依旧显示认证不通过，反正就是不给降级......<br /><br />到这里我真的已经没辙了，我的想法是硬件上的漏洞应该是没办法在软件层面修复的，而且还是 bootrom 这种只读存储器上的漏洞，希望有嵌入式大佬能赐教一二......
 ]]></content:encoded>
-<pubDate>2024-06-06T11:11:20Z</pubDate>
 <pubDate>2024-06-06T12:30:38Z</pubDate>
 </item>
 <item>
@@ -221,10 +849,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047468</link>
 <guid>https://www.v2ex.com/t/1047468</guid>
 <content:encoded><![CDATA[
-
 不知不觉这个功能已经发布两年了，大家会在自己的装置上开启台去调度吗？<br />好用吗？方便吗？有没有遇到什么问题
 ]]></content:encoded>
-<pubDate>2024-06-06T11:07:24Z</pubDate>
 <pubDate>2024-06-06T12:06:37Z</pubDate>
 </item>
 <item>
@@ -233,9 +859,7 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <guid>https://www.v2ex.com/t/1047467</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-06T11:06:15Z</pubDate>
 <pubDate>2024-06-06T11:06:15Z</pubDate>
 </item>
 <item>
@@ -243,10 +867,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047466</link>
 <guid>https://www.v2ex.com/t/1047466</guid>
 <content:encoded><![CDATA[
-
 这个手势和超级右键 iCloud 目录冲突了
 ]]></content:encoded>
-<pubDate>2024-06-06T10:58:34Z</pubDate>
 <pubDate>2024-06-06T10:58:34Z</pubDate>
 </item>
 <item>
@@ -254,10 +876,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047465</link>
 <guid>https://www.v2ex.com/t/1047465</guid>
 <content:encoded><![CDATA[
-
 有公网 ip ，有 nas 挂机，有稳定上传，电信网络<br /><br />这次要搞个 nastool 自动签到了，被 ban 了麻烦
 ]]></content:encoded>
-<pubDate>2024-06-06T10:53:26Z</pubDate>
 <pubDate>2024-06-06T07:53:26Z</pubDate>
 </item>
 <item>
@@ -265,10 +885,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047464</link>
 <guid>https://www.v2ex.com/t/1047464</guid>
 <content:encoded><![CDATA[
-
 如题，我 5 月 21 买的，好气啊，刚买就出新款，还退不了。<br /><br />新款说是散热减小，风扇都不用了，还升级了接口。
 ]]></content:encoded>
-<pubDate>2024-06-06T10:44:15Z</pubDate>
 <pubDate>2024-06-06T10:44:15Z</pubDate>
 </item>
 <item>
@@ -276,10 +894,8 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047463</link>
 <guid>https://www.v2ex.com/t/1047463</guid>
 <content:encoded><![CDATA[
-
 <p>steam 地址: <a href="https://store.steampowered.com/app/2746910/_/" rel="nofollow">https://store.steampowered.com/app/2746910/_/</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-06T10:32:11Z</pubDate>
 <pubDate>2024-06-06T11:32:26Z</pubDate>
 </item>
 <item>
@@ -287,11 +903,9 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1047462</link>
 <guid>https://www.v2ex.com/t/1047462</guid>
 <content:encoded><![CDATA[
-
 <p>目前使用 JWT 做鉴权，使用 Cloudflare 做安全。
 开发 APP 需要做额外的安全防护吗，Cloudflare 提供的人机安全验证等是不是不能用了，要自己开发吗</p>
 ]]></content:encoded>
-<pubDate>2024-06-06T10:30:05Z</pubDate>
 <pubDate>2024-06-06T10:27:05Z</pubDate>
 </item>
 <item>
@@ -300,9 +914,7 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <guid>https://www.v2ex.com/t/1047461</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-06T10:26:57Z</pubDate>
 <pubDate>2024-06-06T10:23:57Z</pubDate>
 </item>
 <item>
@@ -310,11 +922,9 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1046262</link>
 <guid>https://www.v2ex.com/t/1046262</guid>
 <content:encoded><![CDATA[
-
 <p>Top.tools 是我长期维护的一个项目，最近更新了一下，我把最新提交的产品在首页展示了，之前是把人气最高的产品展示在首页，导致每次打开都是相同的内容，用户体验不太好。然后 ui 做了一些调整。作为一个工具整合网站，最重要的是内容，欢迎大家提交新工具、好工具，免费提交，免费收录，谢谢支持！</p>
 <p>网址： <a href="https://top.tools/" rel="nofollow">https://top.tools/</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-03T02:28:31Z</pubDate>
 <pubDate>2024-06-03T19:16:27Z</pubDate>
 </item>
 <item>
@@ -322,7 +932,6 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <link>https://www.v2ex.com/t/1046263</link>
 <guid>https://www.v2ex.com/t/1046263</guid>
 <content:encoded><![CDATA[
-
 <p>JS 人测 Benchmark 的多吗？我是挺爱写这玩意的。考虑到现有的库功能都不太够于是自己搞了一个。</p>
 <p><a href="https://github.com/ESBenchmark/ESBench" rel="nofollow">https://github.com/ESBenchmark/ESBench</a></p>
 <p><a href="https://blog.kaciras.com/article/37/build-a-js-benchmarking-tool-esbench" rel="nofollow">开发思路</a></p>
@@ -335,9 +944,7 @@ Y3Q5NTEwMzU2NTJAc2luYS5jb20=</p>
 <p>其实测一下性能也能发现一些有趣的事情，比如<a href="https://esbench.vercel.app/playground?demo=es%2Farray-sort.js" rel="nofollow">原生的 Array.sort 性能不如自己写的快排</a></p>
 ]]></content:encoded>
 <pubDate>2024-06-03T02:30:19Z</pubDate>
-<pubDate>2024-06-03T02:30:19Z</pubDate>
 </item>
-
 <item>
 <title>[宽带症候群] SDN 有应用在家庭网络中的可行性吗？</title>
 <link>https://www.v2ex.com/t/1047459</link>
@@ -14864,274 +15471,6 @@ Surge 5 for Mac (3 Devices)</p>
 YouTube 视频：<br /><br /><div class="embedded_video_wrapper"></div>
 ]]></content:encoded>
 <pubDate>2024-06-03T04:15:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 哈啰单车太离谱了，每个月都会用各种私人号码打我十几次电话，问我是否贷款，去注销账号了还继续打过来。有什么办法可以让他不再打过来了？</title>
-<link>https://www.v2ex.com/t/1046317</link>
-<guid>https://www.v2ex.com/t/1046317</guid>
-<content:encoded><![CDATA[
-搜了一下相关文章，哈啰单车就是这么离谱，连退定这些骚扰电话的方法都没有，而且还是伪装成个人号码那种打过来，注销账号了都没办法防止被骚扰。
-]]></content:encoded>
-<pubDate>2024-06-03T04:10:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 国内现在有支持 MacOS 的云服务器吗</title>
-<link>https://www.v2ex.com/t/1046316</link>
-<guid>https://www.v2ex.com/t/1046316</guid>
-<content:encoded><![CDATA[
-rt ，想试试 在云服务器上编译 ios 程序的感觉，是不是能跑的通，日常用能不能接受。<br /><br />搜了半天，国内主流云服务厂商好像都不提供 mac 服务器啊。有靠谱的球推荐？<br /><br />国外倒是有，但是延迟太高的话肯定不实用啊。难免会用到远程桌面。
-]]></content:encoded>
-<pubDate>2024-06-03T00:04:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 平板上装的人人视频的 App 还能用，但找不到下载地址</title>
-<link>https://www.v2ex.com/t/1046315</link>
-<guid>https://www.v2ex.com/t/1046315</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>如题，App 能用说明服务器还在跑，但搜不到下载地址 —— 想在其他手机也装一个</li>
-<li>人人视频蛮好用的，一些资源搜一下都能看到，不用特意科学上网在网页端看了。</li>
-<li>（我有点分不清人人视频和人人影视，也有可能是人人影视的 APP</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-06-03T03:57:51Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 哪些网站值得大家主动关闭广告屏蔽器？</title>
-<link>https://www.v2ex.com/t/1046314</link>
-<guid>https://www.v2ex.com/t/1046314</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-05-26T03:56:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 装修过的老哥，来评下墙布 VS 乳胶漆</title>
-<link>https://www.v2ex.com/t/1046313</link>
-<guid>https://www.v2ex.com/t/1046313</guid>
-<content:encoded><![CDATA[
-<p>小弟精装房即将交付，开发商刷的乳胶漆那真是一坨，准备换</p>
-<p>方案一：全部铲掉，重新刷乳胶漆</p>
-<p>方案二：上墙布</p>
-<p>看了一圈价格方案二明显比方案一贵啊，133 方大概是￥ 8000 和￥ 5000 的差别，搜了一圈墙布并没有比乳胶漆好多少</p>
-]]></content:encoded>
-<pubDate>2024-06-03T04:18:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 10 年 Ubuntu 桌面老用户开始转向 Win，请问我该怎么入门 WSL 和 Win 终端？</title>
-<link>https://www.v2ex.com/t/1046312</link>
-<guid>https://www.v2ex.com/t/1046312</guid>
-<content:encoded><![CDATA[
-如题，从 Ubuntu 11.04 开始到现在的 Ubuntu 16.04 ，一直坚持使用 Unity 桌面的 Ubuntu 不动摇，但奈何陪伴多年的 ThinkPad E480 近两年频繁无故花屏、死机，一狠心一跺脚入手了最新的 Thinkbook 14+ 2024 AMD 。<br /><br />但是问题来了，新的笔记本太新了，导致即使最新的 Ubuntu 24.04 也不能完全支持。<br /><br />后来我开始“反思”自己，是否太过于执着 Linux ，是否陷入到另外一个极端，于是开始着手使用 Windows 来替换之后的工作流。<br /><br />目前遇到的几个痛点：<br /><br />• Win 下面的“WSL1”，“WSL2”，“终端”等太混乱了，我应该怎么入门？<br />  我就单纯想有个 Linux 终端环境，而且这几天看新闻说好像微软要改进 WSL ，不晓得会改变什么？<br /><br />• Windows Defender 怎么关闭，搜了下好像无法关闭，只能用其他“管家”替换；<br />  那我是否该保留还是替换呢？替换成什么“管家”好呢，目前有自带的“联想管家”。<br /><br />• 习惯了 APT/YUM ，我不太信任第三方软件，因为我不确定它们会在我的文件系统哪里遗留一些东西，注册表、服务、开机启动做一些小动作（可能 Win 应用商店使用沙盒能好一些），我该怎么避免这种“洁癖”，或者有什么工具能够辅助我？<br /><br />总的来说，原来的 Linux 系统每一个包、每个文件、每个进程的作用、权限、位置、资源利用率我都一清二楚，不信任的软件直接用 docker 来运行，避免污染主系统，转到 Windows 后有些迷茫，不该如何自处了。
-]]></content:encoded>
-<pubDate>2024-06-03T04:24:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 朋友公司招牌兼职新媒体运营 [居家办公] ，有时间的朋友可以来看看</title>
-<link>https://www.v2ex.com/t/1046311</link>
-<guid>https://www.v2ex.com/t/1046311</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ipXExpQ.jpeg" /> </p>
-<p>本招聘有效时间截止 2024.6.30 日</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:38:58Z</pubDate>
-</item>
-<item>
-<title>[程序员] 发现有趣创意和免费工具-独立产品灵感周刊 DecoHack #060</title>
-<link>https://www.v2ex.com/t/1046310</link>
-<guid>https://www.v2ex.com/t/1046310</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<p>本周刊记录有趣好玩的独立产品设计开发相关内容，每周发布，往期内容同样精彩，感兴趣的伙伴可以<a href="https://decohack.zhubai.love/" rel="nofollow">点击订阅</a>我的周刊。为保证每期都能收到，建议邮件订阅。欢迎通过 <a href="https://twitter.com/decohack" rel="nofollow">Twitter </a>私信推荐或投稿。</p>
-</blockquote>
-<h1>💻 产品推荐</h1>
-<h2>1. <a href="https://hostrider.com/" rel="nofollow">Coding kitty</a></h2>
-<p>这个网站是一个猫咪白噪音网站，打开网站就是一个编程猫，很有意思，还会有一些交互，看看作者的 <a href="https://hostrider.com/credits.html" rel="nofollow">Credits and Attributions</a> 页面，非常有意思，详细列了这个网站是怎么做的，用了哪些开源的代码和音乐，不得不说是真的很可爱，确实很喜欢写代码。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/438ac9b2e9c94b6d8129141f824dd06b%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1024&amp;h=560&amp;s=364985&amp;e=png&amp;b=1b1e2d" /></p>
-<h2>2. <a href="https://cantsleepreads.com/" rel="nofollow">Can't Sleep Reads</a></h2>
-<p>这个网站可以随机打开一个短篇小说故事，看域名就知道作者是希望想让失眠的人看书睡觉，故事内容都是来自一些公共资源没有版权问题，还挺有意思。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f8dd438bf8074eac96967c7135473f73%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1176&amp;h=616&amp;s=95812&amp;e=png&amp;b=f7eed9" /></p>
-<h2>3. <a href="https://www.justfree.io/" rel="nofollow">🧰 Just Free</a></h2>
-<p>这个网站整理了很多免费的创业者/创作者的工具和资源。其中包括截图生成器、AI 图标生成器、广告模拟生成器、广告文案生成器、Lead Magnet 生成器、文本转图像生成器、创意和文案模板、产品模型生成器、浏览器模拟生成器、幻灯片制作指南、Instagram 模板和 Favicon 生成器等。</p>
-<h2>4. <a href="https://upsidedowntext.top/" rel="nofollow">Upside Down Text Generator</a></h2>
-<p>这是一个用来翻转文本的工具，输入文本内容，会使用不同的 Unicode 字符将其翻转成酷炫的倒置文本。例如：Good Morning 的倒置形式是⅁oop ꟽoɹuᴉuɓ</p>
-<h2>5. <a href="https://hitornot.replit.app/" rel="nofollow">TweetViral: Will Your Tweet Go Viral?</a></h2>
-<p>这个网站可以告诉你你的推文会不会成为热门话题，测试了一下，输入你的推文内容和你的粉丝数量，网站会给你返回可能的点赞数量，看上去娱乐为主，感觉最多是问一下 ChatGPT 这种形式。不过想法挺有意思的。</p>
-<h2>6. <a href="https://apps.apple.com/us/app/landing-on/id6476870857?platform=iphone" rel="nofollow">Landing On</a></h2>
-<p>这个 APP 是用来实时显示 iPhone 网络速度、FPS 、内存等。有意思的是看上去作者可能是通过视频的形式可以做成悬浮窗，技术很有创意。付费软件，作者在 <a href="https://www.reddit.com/r/iosapps/comments/1d5oel8/landing_on_ios_network_speed_monitoring_app_is/" rel="nofollow">Reddit</a> 上发兑换码，已经冲到付费分类榜单 Top10 了，这种发码的形式还是挺实在。</p>
-<h2>7. <a href="https://www.inbeat.co/ad-mockup-generator/tiktok/" rel="nofollow">TikTok Ad Mockup Generator</a></h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c9794fe455754b47826028a54f6d56a8%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1176&amp;h=666&amp;s=36659&amp;e=png&amp;b=fefefe" /></p>
-<h2>8. <a href="https://translate.simplifyai.cn/?ur=4d33e9" rel="nofollow">SimplifyAI 文档翻译</a></h2>
-<p>基于大语言模型的文档翻译服务，翻译是收费的，但小文档可能有免费预览额度。可以翻译多种格式的文档，包括 PDF 、Word 、Excel 等。翻译时间取决于文档的文字数量，翻译结果由最好的大语言模型生成，但不保证质量。翻译后的 PDF 文档会保持原有的布局。翻译的文档会被保存在服务器上，但用户可以随时删除。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/26801b98978d47cd996b9780e99d546c%7Etplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1176&amp;h=616&amp;s=77889&amp;e=png&amp;b=ffffff" /></p>
-<h1>👨🏻‍💻 开源项目</h1>
-<h2>1. <a href="https://github.com/atlassian/pragmatic-drag-and-drop" rel="nofollow">pragmatic-drag-and-drop</a></h2>
-<p>这个仓库是一个拖拽组建，可以实现在任何技术栈上进行快速拖拽的效果。很多种多拽场景。不受技术栈的限制。可以兼容 React 、Svelte 、Vue 、Angular 等。</p>
-<h2>2. <a href="https://github.com/cooderl/wewe-rss" rel="nofollow">wewe-rss</a></h2>
-<p>这个项目提供了一种更优雅的微信公众号订阅方式，具有稳定的接口和自动更新功能。它支持生成微信公众号的 RSS ，并支持全文内容输出。可以通过一键部署来部署该项目。也可以使用 Docker 进行部署。还提供了本地部署和钉钉通知的功能。其他人整理的微信订阅源：<a href="https://github.com/ginobefun/BestBlogs/blob/main/WeWeRSS.opml" rel="nofollow">WeWeRSS.opml</a></p>
-<h2>3. <a href="https://gchq.github.io/CyberChef/" rel="nofollow">CyberChef</a></h2>
-<p>CyberChef 是一个用于加密、编码、压缩和数据分析的在线工具集合，旨在让技术和非技术分析师能够轻松地处理复杂数据，无需复杂的工具或算法。26k+的 Star 了，开发者必备。</p>
-<h2>4. <a href="https://codepen.io/jh3y/pen/QWYPaax" rel="nofollow">Proximity Glow Cards</a></h2>
-<p>一个特别好看的卡片效果代码</p>
-<h2>5. <a href="https://codepen.io/jh3y/pen/oNVmQZB" rel="nofollow">Bear Powered CSS Pricing Page w/ :has() 🤙</a></h2>
-<p>一个动画很可爱的价格页面</p>
-<h2>6. <a href="https://primevue.org/" rel="nofollow">PrimeVue</a></h2>
-<p>这是一个全面的 Vue.js UI 组件库，提供 80+个可定制的组件，支持多种主题和自定义，符合可访问性规范，提供企业级支持，支持 Typescript ，并包含 400+个预设计的 UI 块和应用程序模板。</p>
-<h2>7. <a href="https://github.com/gkd-kit/gkd" rel="nofollow">gkd</a></h2>
-<p>这是一个自定义屏幕点击 APP ，但是大多数用户用来跳过开屏广告，以及更新提示等烦人的弹窗，它可以根据屏幕上下文信息自定义点击目标控件，并可以通过添加本地规则或找到别人写好的规则订阅链接。可以在 <a href="https://github.com/topics/gkd-subscription" rel="nofollow">gkd-subscription</a>查看第三方订阅列表。安卓的装机必备 APP 了。</p>
-<h2>8. <a href="https://chattts.com/" rel="nofollow">ChatTTS - 用于对话场景的文本转语音</a></h2>
-<p>ChatTTS 最近非常火，的确效果很不错，这是一个专为对话场景设计的语音生成模型，支持中文和英文，通过训练大约 100,000 小时的数据来实现高质量和自然的语音合成。它适用于大型语言模型助手的对话任务，以及对话式音频和视频介绍等应用。也可以用其他人开发的本地部署 Web UI：<a href="https://github.com/jianchang512/ChatTTS-ui" rel="nofollow">ChatTTS-ui</a></p>
-<h2>9. <a href="https://free-for.dev/#/" rel="nofollow">free-for.dev</a></h2>
-<p>开发者和开源作者现在有许多提供免费的服务，但要找到它们需要花费很多时间。这是一个软件（ SaaS 、PaaS 、IaaS 等）和其他提供免费开发者套餐的列表。这个列表通过 1100 多人的贡献完成。</p>
-<h2>10. <a href="https://github.com/Justin3go/FAV0" rel="nofollow">FAV0 Weekly</a></h2>
-<p>作者<a href="https://x.com/Justin1024go" rel="nofollow">@Justin1024go</a>，这个周刊的内容主要关注前端、人工智能和与计算机相关的内容。基于 vitepress 和 markdown 的开源周刊项目，可以自己一键部署开始写周刊。也提供了浅色和深色模式切换，支持中英双语界面，提供 RSS 订阅功能，集成了 Giscus 评论系统，支持高清图片预览，允许自定义字体设置，并进行了 SEO 优化。</p>
-<h2>11. <a href="https://github.com/bitjson/qr-code" rel="nofollow">qr-code</a></h2>
-<p>这是一个基于 SVG 的 qr-code Web 组件。无框架、无依赖、可定制、还可以做成动画。开源的，可以通过自定义动画来设计自己的 QR 码。可以在用户交互中进行动画，比如 URL 点击或检测到的支付，并在 QR 码交互完成后进行动画。</p>
-<h1>💌 随便看看</h1>
-<h2>1. <a href="https://linktr.ee/happydazenews" rel="nofollow">Happy Daze</a></h2>
-<p>这个作者好认真啊，整理了 300 多篇文章，认真做成了网站和 APP ，满满的热爱没有广告没有盈利模式只接收捐赠。下面是作者对自己内容的一个介绍：Happy Daze 的宗旨是聚焦世界上所有美好之处，以此启发并激励大家。我们精选并分享各种令人振奋的新闻报道、科技突破以及富有灵感的点子，致力于打造一个充满正能量与希望气息的环境。我们期待能够抵消那些通常偏向负面甚至过度煽动情绪化表达方式所塑造出来不实际现象，并倡导一种更为均衡乐观地看待这个世界及其无限可能性。</p>
-<h2>2. <a href="https://www.youtube.com/watch?v=GnWGMPtrreI" rel="nofollow">How To <em>ACTUALLY</em> Block Adult Websites PERMANENTLY On iPhone | Screen Timely</a></h2>
-<p>这个视频教你如何在 iPhone 上永久屏蔽成人网站（非常严肃认真）。视频中介绍了两种方法，第一种是使用屏幕时间功能，但这种方法容易被绕过。第二种方法是使用一个应用程序来强制实施屏幕时间设置，以防止绕过限制。该应用程序可以帮助你永久屏蔽成人内容，解决色情成瘾问题。兄弟们美好生活从戒色开始。下面介绍几个插件和工具来屏蔽黄推。插件一：<a href="https://chromewebstore.google.com/detail/puretwitter/nflidllhiamnebgbgoemadhhfdpbbpbi" rel="nofollow">PureTwitter</a>，插件二：<a href="https://greasyfork.org/zh-CN/scripts/473865-twitter-tweets-x-posts-blocker-filter" rel="nofollow">Twitter 推特推文（ X 帖子）屏蔽器&amp;过滤器</a>，插件三：<a href="https://chromewebstore.google.com/detail/%E9%BB%84%E6%8E%A8%E6%9D%80%E6%89%8B/knegnipgnnomgophnojppjepfmegcjca" rel="nofollow">黄推杀手</a>。</p>
-<h2>3. <a href="https://www.woshipm.com/evaluating/6063175.html" rel="nofollow">Poppo 产品观察 (一)</a></h2>
-<p>Poppo live 是一款面向海外的直播语音房产品，由上海白兔网络科技公司推出。该产品的总下载量已达到 1300 万次，每日活跃用户数稳定在 80 万，日均收入高达 100+万美元。Poppo 的核心营收主要来自于菲律宾、印巴孟和中东三个地区的用户消费。该产品采用币商充值机制，币商以低价购买货币并转卖给其他用户，从中赚取利润。此外，Poppo 还通过邀请激励和主播底薪等政策来增加主播数量，以及通过代理分成和游戏奖励等政策来增加收入。</p>
-<h2>4. <a href="https://mp.weixin.qq.com/s?__biz=Mzg2ODQ1OTExOA==&amp;mid=2247505860&amp;idx=1&amp;sn=38cea5166580c7ffe9954e0c13ec3e51&amp;scene=21#wechat_redirect" rel="nofollow">全网独家-万字长文入门前端全球化</a></h2>
-<h2>5. <a href="https://mp.weixin.qq.com/s/206rlM6UGGQAUoXC6dGcFA" rel="nofollow">字节的 AI 助手豆包，已经在污染互联网了</a></h2>
-<p>上周掘金关于用 AI 生成 SEO 内容的内容，已经下线道歉了，上周的时候看豆包的 SEO 内容有 1700 万条，还看其他人说豆包 SEO 的内容还有用户对话的信息，这就很过分了。掘金跟豆包都是字节的产品，掘金可能碍于社区还是有些用户的，怕有舆论风险主动下线骚操作，但是豆包就不一样了，这波操作实属太没有节操了</p>
-<h2>6. <a href="https://dev.to/falselight/300-free-apis-every-developer-needs-to-know-3j76" rel="nofollow">300+ FREE APIs Every Developer Needs to Know</a></h2>
-<p>这篇内容主要介绍了各种类型的 API 接口，包括天气、汇率、加密货币、占位图像、随机生成器、新闻、地图和地理位置、搜索、机器学习、屏幕截图和图片、SEO 、购物、开发者、旅行和交通、通信、支付和金融、分析和监控、自然语言处理、实用工具、政府和开放数据等。每个 API 接口都有简要的描述、免费使用限制和认证方式。</p>
-<h2>7. <a href="https://learn.gitlab.com/allremote/remote-playbook" rel="nofollow">2023 The Remote Playbook</a></h2>
-<p>远程工作手册，可以在推上看推友的<a href="https://x.com/ezshine/status/1797248003536990413" rel="nofollow">翻译版本。</a></p>
-<blockquote>
-<p>更多内容可以订阅我的周刊：<a href="https://decohack.zhubai.love/" rel="nofollow">竹白订阅</a>｜<a href="https://www.decohack.com/" rel="nofollow">官网</a>｜<a href="https://www.decohack.com/feed" rel="nofollow">RSS 订阅</a> ｜<a href="https://t.me/decohack" rel="nofollow">Telegram 频道</a>｜<a href="https://twitter.com/decohack" rel="nofollow">Twitter</a></p>
-</blockquote>
-<p>另外，往期推荐的产品基本没有时效性，感兴趣的伙伴可以去看看我整理的往期<a href="https://decohack.zhubai.love/membership" rel="nofollow">产品数据库</a>，可以筛选/分类/标签/搜索我推荐过的所有软件，更多介绍请看 <a href="https://decohack.zhubai.love/membership" rel="nofollow">会员计划</a>。</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:38:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] win11 中 microsoft teams 不断弹窗,求救</title>
-<link>https://www.v2ex.com/t/1046308</link>
-<guid>https://www.v2ex.com/t/1046308</guid>
-<content:encoded><![CDATA[
-<p>teams 的弹窗会在以下情况不间断地弹出：</p>
-<p>在任何软件（浏览器等）中选中一段文字/在任何软件或界面下双击鼠标</p>
-<p>已尝试停止任务管理器中所有带 teams 的进程，重启电脑，卸载 teams ，均无效！！！</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:36:16Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 和队友代码风格有差异，顺着队友的风格写还是？</title>
-<link>https://www.v2ex.com/t/1046307</link>
-<guid>https://www.v2ex.com/t/1046307</guid>
-<content:encoded><![CDATA[
-如题，我自己的页面，被注释的是我习惯的写法。<br /><br />感觉我的写法偏向解构流(只 set 接口返回的 data ，剩下的解构出来用)，它的写法偏向 setState 流(url ，image 什么都要 set)😂😂<br /><br /><a href="http://imgur.com/a/vFaFJBu" rel="nofollow noopener" target="_blank">imgur.com/a/vFaFJBu</a>
-]]></content:encoded>
-<pubDate>2024-06-03T04:15:46Z</pubDate>
-</item>
-<item>
-<title>[Android] 小米 14pro， 16+512， 4699，一加 12， 16+512， 3974，入手那个比较好？</title>
-<link>https://www.v2ex.com/t/1046305</link>
-<guid>https://www.v2ex.com/t/1046305</guid>
-<content:encoded><![CDATA[
-<p>小米 14pro ，16+512 ，4699 ，一加 12 ，16+512 ，3974 ，入手那个比较好？<br />一加 12 要等 10 天，小米 14pro 在实体店马上有货，但是考虑 BootLoader ，小米比较难受😔</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:37:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] 同问，如何限制 LLM 响应结构</title>
-<link>https://www.v2ex.com/t/1046304</link>
-<guid>https://www.v2ex.com/t/1046304</guid>
-<content:encoded><![CDATA[
-其实即便不是 JSON 这种复杂的结构化数据，即使我在 prompt 中限定 “不要返回任何其他解释文字”，再一定概率上仍然会返回解释文字内容，<br /><br />例如我只是想实现一个 auto suggestion 的需求，返回给我一个[]数组即可，测试中用 gpt-4o 也无法避免会返回解释文字<br /><br />Prompt:<br />You need to summarize my previous chat and give 6 similar [questions] that users may ask. Please answer in the array format of ["answer","answer"...], and the [answer] is limited to 20 characters.<br /><br />Response:<br />An astrolabe is an ancient tool used by astronomers and navigators to measure the altitude of celestial bodies and calculate their positions in the sky.<br /><br />["What is a sextant?","How does a compass work?","What is a sundial?","Explain an armillary sphere.","Define an orrery.","What is a quadrant?"]<br /><br />这种情况可能我直接手动处理一下就好了，<br /><br />但是同样如果我想要实现复杂的需求，例如我想让 gpt 生成 echarts 的 js 代码，用于直接渲染图表，这种成本就很高了，如果我在 prompt 中写大量的限制可能也没有预期效果并且很浪费 token
-]]></content:encoded>
-<pubDate>2024-06-03T04:14:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] [netflix]奈非 web 强制画质，日区字幕问题</title>
-<link>https://www.v2ex.com/t/1046302</link>
-<guid>https://www.v2ex.com/t/1046302</guid>
-<content:encoded><![CDATA[
-<p>之前一直在用 sg 的 netflix ，后来发现 jp 的资源更多，只是日区资源好多都没有中文字幕，有什么办法可以解决么？</p>
-<p>还有一件事，chrome 有强制油管分辨率的插件，奈非官方不提供这个功能，但为什么都没有插件做这个呢？可能技术限制做不到？我不太懂这方面，但很好奇。</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:19:19Z</pubDate>
-</item>
-<item>
-<title>[汽车] 2018 年 4 月 30 日前上牌的电车可以领报废补贴了「续：电车成本疑问」</title>
-<link>https://www.v2ex.com/t/1046301</link>
-<guid>https://www.v2ex.com/t/1046301</guid>
-<content:encoded><![CDATA[
-汽车以旧换新补贴实施细则<br /><br />第一章 补贴范围和标准<br /><br />第一条 自本细则印发之日至 2024 年 12 月 31 日期间，对个人消费者报废国三及以下排放标准燃油乘用车或 2018 年 4 月 30 日前（含当日，下同）注册登记的新能源乘用车，并购买纳入工业和信息化部《减免车辆购置税的新能源汽车车型目录》的新能源乘用车或 2.0 升及以下排量燃油乘用车，给予一次性定额补贴。其中，对报废上述两类旧车并购买新能源乘用车的，补贴 1 万元；对报废国三及以下排放标准燃油乘用车并购买 2.0 升及以下排量燃油乘用车的，补贴 7000 元。<br /><br /><a href="https://www.gov.cn/zhengce/zhengceku/202404/content_6947864.htm" rel="nofollow noopener" target="_blank">https://www.gov.cn/zhengce/zhengceku/202404/content_6947864.htm</a><br /><br /><a href="http://www.dpxq.gov.cn/gkmlpt/content/11/11286/post_11286449.html" rel="nofollow noopener" target="_blank">http://www.dpxq.gov.cn/gkmlpt/content/11/11286/post_11286449.html</a><br /><br /><br /><br />电车成本疑问<br /><a href="https://www.v2ex.com/t/1036081" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1036081</a>
-]]></content:encoded>
-<pubDate>2024-06-03T03:14:30Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [日本 IT]更新下最近现场案件信息，即将赴日或者在日转职的来~可移民永驻，高度人才签证+20 分</title>
-<link>https://www.v2ex.com/t/1046300</link>
-<guid>https://www.v2ex.com/t/1046300</guid>
-<content:encoded><![CDATA[
-日本 IT 最近现场案件信息<br /><br />1.ウォーターフォール開発 PHP WEB 開発案件 要件定義フェーズ<br /> [案件概要] ：既存のWEBアプリサービスの環境リプレイス作業が決まりました。 要件定義から入れる要員を探しております。<br /> [作業内容] ：要件定義/外部設計/内部設計/製造/単体試験/結合試験/システムテスト PHP(Laravel)/Bootstrap(CSSフレームワーク)/javascript<br /> [開始日付] ：6 月<br /> [作業場所] ：新宿<br /> [必須スキル] ：・WEBあるいは基幹システムにおける要件定義の経験 3か月以上 ・ PHP/Laravel 環境下での経験 3 年以上 ・リーダー、サブリーダー経験 ・基本的なSQL 知識<br /> [尚可スキル] ：・PHPユニットテストコード開発経験 ・AWS 経験<br /><br /><br /><br />2.Vue 開発案件<br /> [案件概要] ：請求データ管理サービスをリニューアルおよび今後事業拡大を見据えたプラットフォーム構築<br /> [作業内容] ：SPAで開発を行っておりフロント側の開発要員を募集 製造、試験、バグ修正<br /> [開始日付] ：7 月<br /> [作業場所] ：渋谷（週 4 ）・リモート（週 1 ）<br /> [必須スキル] ：Vueの経験<br /> [尚可スキル] ：Tyescript 、Reactの経験, Nuxt.js 、Next.jsの経験<br /><br /><br /><br />3.救急隊向けアプリケーション(Web)に関する開発<br /> [対応工程] ：設計～<br /> [開始日付] ：6 月<br /> [期間] ：中長期<br /> [作業場所] ：フルリモート<br /> [必須スキル] ：Python 3 　 5 年以上、AWS(lambda / dynamoDB / RDS など)<br /> [尚可スキル] ：AWS CDK 、医療やベンチャーの経験や興味<br /><br /><br /><br />4.データ移行<br />●必须スキル：<br />・データ移行経験<br />・Javaツール設計、開発経験<br />・DBはOracle<br />●工程：設計～結合テスト<br />●時期：7 月中旬/8 月から～ 2026 年 12 月<br />●人数：2 名（ PL1 名、SE1 名）<br />●場所：大阪<br />●日本語：流畅<br /><br /><br /><br />5.情報クラウド基盤/構築作業<br /> [案件概要] ：Kubernetes 上でのクラスタの構築作業 Dockerfile 作成や管理、AWSの構築。<br /> [開始日付] ：6 月<br /> [作業場所] ：東京駅 ※基本リモート<br /> [必須スキル] ：Kubernetes 上でのクラスタの構築経験、Dockerfile 作成/管理経験、AWSの構築経験（ EKS,Fargate ） CloudFormationの経験<br /> [尚可スキル] ：コミュニケーション能力 Sitecore 等 CMSの導入経験 Helmチャートの作成/管理経験<br /><br /><br /><br />另外，东京人事担当招聘中！月収：25 万円~40 万円不等<br />仕事内容：<br />・人员录用及管理，离职办理<br />・宣传视频及广告制作。<br />・营业协助<br />要求：<br />・人事经验一年以上<br />・小红书运营经验<br />・日语流畅<br />・开朗善于沟通<br />・有进取心及责任感<br />・熟练操作 office 办公软件<br /><br /><br />其他 c#/python/sap/INFORMATICA/AWS/PAD/IOS/安卓等技术方向多数案件募集中，以上所有招聘信息，均需要日语能力！！！<br />大家投递简历前请注意哈！！慎投~<br /><br />本社高度人才+20 分，可移民实现永驻！年収 500 万円-1000 万円（具体薪水根据技术能力及日语能力而定）<br />勤務時間：9:00-18:00<br />（ 140-180H/150-190H/160-200H ）<br />（具体時間は現場によって異なります。）<br />※勤務地により変動あり<br />休日休暇：完全週休 2 日制(土日)；祝日；年末年始休暇；有給休暇 <br />各种社会保险、厚生年金等福利待遇完备<br />会社地址：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801<br /><br /><br />応募方法： [提出書類] 履歴書＋職務経歴書<br />連絡先：base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t<br /><br />最后，说点语重心长的话~我们是位于日本东京的一家 IT 公司，下面是我们的一些建议：<br />如果您在国内有更高的薪资报酬，那不建议您去日本工作生活，想追求高薪，日本满足不了，毕竟日本的内卷程度和生活跟国内还是不一样的，更趋于稳定，适合养老。<br /><br />日本的生活和工作内卷程度和国内一线有很大差距，您如果当前在国内一线城市有更高的薪水，那不建议你去，您要是想换个环境，躺平生活一下，可以试试哈，毕竟日本的红日子还是蛮多的。<br /><br />大家可以在网上自行查阅下相关信息，日本的医疗保障及子女教育等福利待遇确实是在全世界都能排在前面的国家。当然，选择在异乡生活肯定有诸多不习惯的地方，不用担心，我们会社很多华人，大家在一块开开心心的办公，周末再开开心心的放松~<br /><br />实话实说，现在大环境大家肯定也都清楚，国内疯狂内卷降薪裁员，而我们会社给出的待遇是真的诚心想吸纳各种人才加入我们，共同成长；当然如果您觉得薪资待遇跟您期待的不一样，您可以不选择我们哈~~<br /><br />最后，衷心的祝愿大家，都能找到满意的工作，快快乐乐的生活！
-]]></content:encoded>
-<pubDate>2024-06-03T03:12:03Z</pubDate>
-</item>
-<item>
-<title>[生活] 昨天撞了一个老头乐。</title>
-<link>https://www.v2ex.com/t/1046299</link>
-<guid>https://www.v2ex.com/t/1046299</guid>
-<content:encoded><![CDATA[
-<p>昨天媳妇加班，晚上去接他，等红灯，我就低头玩手机，红灯我停下的时候是没有车的，我看了一眼车机变绿灯了，一脚油门，不知道啥时候我前边一个老头乐也在等红灯，我没看到，怼上了，我车没啥事，就是车牌子弯了刮花了，老头乐后边瘪了，下车给了老头 100 块钱，老头走了。我是认我全责的，给老头 100 老头还挺高兴，不知道他是不是以为他没赔钱还赚钱了。</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:43:12Z</pubDate>
-</item>
-<item>
-<title>[程序员] 最讨厌把手机号作为唯一账号的网站或 app 了</title>
-<link>https://www.v2ex.com/t/1046298</link>
-<guid>https://www.v2ex.com/t/1046298</guid>
-<content:encoded><![CDATA[
-<p>把手机号作为唯一账号的网站或应用是真的蠢。<br />
-改都改不了，一换手机号麻烦死。<br />
-邮箱才是用一辈子的东西，手机号换个地方可能就换了。</p>
-<p>SB <a href="http://500px.com.cn" rel="nofollow">500px.com.cn</a></p>
-<p><img alt="SB500px" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/srDtxML.png" /></p>
-]]></content:encoded>
-<pubDate>2024-06-03T04:12:40Z</pubDate>
-</item>
-<item>
-<title>[程序员] 求推荐稳定不晃动的显示器</title>
-<link>https://www.v2ex.com/t/1046297</link>
-<guid>https://www.v2ex.com/t/1046297</guid>
-<content:encoded><![CDATA[
-<p>图便宜买了一块 aoc 的 U2790pqu 显示器，显示效果还不错，但做工真的就一言难尽，稍微一打字显示器就开始晃动。一开始以为是显示器直接不牢固，后面仔细看了一下发现是显示器背板塑料极其的松垮，很容易产生形变，所以容易晃动。</p>
-<p>办公室用的经典 Dell s2319hs ，感觉很牢固一点不会晃动。最近看了 dell 的 U2723QE ，不知道会不会晃动？</p>
-]]></content:encoded>
-<pubDate>2024-06-03T03:56:56Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 有感 618 活动之复杂（个人京东用的多点），穷人为了节约点就只能折腾</title>
-<link>https://www.v2ex.com/t/1046294</link>
-<guid>https://www.v2ex.com/t/1046294</guid>
-<content:encoded><![CDATA[
-各种优惠券可以叠加，不能叠加，需要跨店，需要提前领，需要抢券，各种店铺购物金，各种凑单。<br /><br />一件商品例如一双跑步鞋，叠加各种优惠券后的价格是 250 左右，直接买的价格是 450 元。。。。<br /><br />牛逼，头都大了
-]]></content:encoded>
-<pubDate>2024-06-03T04:00:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在做自媒体哪个平台最好</title>
-<link>https://www.v2ex.com/t/1046293</link>
-<guid>https://www.v2ex.com/t/1046293</guid>
-<content:encoded><![CDATA[
-<p>打工太难了，哪怕你做得再好，也很难得到领导的表扬，而且总能从结果里挑出毛病，太内耗了。想业余时间做做自媒体，请教 V 友们，现在做自媒体什么平台最好，公众号还值得做吗？商业知识类博主一般靠什么变现？有什么样的达人博主值得关注的？</p>
-]]></content:encoded>
-<pubDate>2024-06-02T23:10:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位大佬有没有好的本地 tts 方案</title>
-<link>https://www.v2ex.com/t/1046292</link>
-<guid>https://www.v2ex.com/t/1046292</guid>
-<content:encoded><![CDATA[
-希望资源不能太高 6Ggpu 能跑就好  速度别太慢 ，语音连贯差不多有辨识度就行
-]]></content:encoded>
-<pubDate>2024-06-02T11:05:34Z</pubDate>
 </item>
 </channel>
 </rss>
