@@ -5,14 +5,492 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 请问 tauri 怎么用 rustrover Dubug?</title>
+<link>https://www.v2ex.com/t/1049380</link>
+<guid>https://www.v2ex.com/t/1049380</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-06-13T16:19:38Z</pubDate>
+<pubDate>2024-06-13T16:16:38Z</pubDate>
+</item>
+<item>
+<title>[Docker] 总结目前国内加速拉取 docker 镜像的几种方法</title>
+<link>https://www.v2ex.com/t/1049379</link>
+<guid>https://www.v2ex.com/t/1049379</guid>
+<content:encoded><![CDATA[
+
+<p>更好的阅读体验：<a href="https://blog.csun.site/2024/06/13/%E6%80%BB%E7%BB%93%E7%9B%AE%E5%89%8D%E5%9B%BD%E5%86%85%E5%8A%A0%E9%80%9F%E6%8B%89%E5%8F%96%20docker%20%E9%95%9C%E5%83%8F%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E6%B3%95/" rel="nofollow">总结目前国内加速拉取 docker 镜像的几种方法 - Sun Blog</a></p>
+<h2>目前仍可用的镜像(随时可能失效)</h2>
+<pre><code class="language-sh">sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json &lt;&lt;-'EOF'
+{
+    "registry-mirrors": [
+        "https://docker.m.daocloud.io",
+        "https://huecker.io",
+        "https://dockerhub.timeweb.cloud",
+        "https://noohub.ru"
+    ]
+}
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+</code></pre>
+<h2>使用 Nginx</h2>
+<p>需要有一台国外服务器, 按下面添加 Nginx 配置即可:</p>
+<pre><code>server {
+            listen 443 ssl;
+            server_name 域名;
+
+            ssl_certificate 证书地址;
+            ssl_certificate_key 密钥地址;
+
+            proxy_ssl_server_name on; # 启用 SNI
+
+            ssl_session_timeout 24h;
+            ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+            ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+
+            location / {
+                    proxy_pass https://registry-1.docker.io;  # Docker Hub 的官方镜像仓库
+
+                    proxy_set_header Host registry-1.docker.io;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+
+                    # 关闭缓存
+                    proxy_buffering off;
+
+                    # 转发认证相关的头部
+                    proxy_set_header Authorization $http_authorization;
+                    proxy_pass_header  Authorization;
+
+                    # 对 upstream 状态码检查，实现 error_page 错误重定向
+                    proxy_intercept_errors on;
+                    # error_page 指令默认只检查了第一次后端返回的状态码，开启后可以跟随多次重定向。
+                    recursive_error_pages on;
+                    # 根据状态码执行对应操作，以下为 301 、302 、307 状态码都会触发
+                    #error_page 301 302 307 = @handle_redirect;
+
+                    error_page 429 = @handle_too_many_requests;
+            }
+            #处理重定向
+            location @handle_redirect {
+                    resolver 1.1.1.1;
+                    set $saved_redirect_location '$upstream_http_location';
+                    proxy_pass $saved_redirect_location;
+            }
+            # 处理 429 错误
+            location @handle_too_many_requests {
+                    proxy_set_header Host 替换为在 CloudFlare Worker 设置的域名;  # 替换为另一个服务器的地址
+                    proxy_pass http://替换为在 CloudFlare Worker 设置的域名;
+                    proxy_set_header Host $http_host;
+            }
+    }
+
+
+</code></pre>
+<h2>使用代理</h2>
+<p>主要是设置让服务器的 docker 走代理</p>
+<p>首先新建目录和文件</p>
+<pre><code class="language-sh">mkdir -p /etc/systemd/system/docker.service.d
+vim /etc/systemd/system/docker.service.d/http-proxy.conf
+</code></pre>
+<p>然后在文件中粘贴以下内容, 注意代理地址需要换成你自己服务器的内网 ip 和代理端口</p>
+<pre><code class="language-sh">[Service]
+Environment="HTTP_PROXY=http://192.168.8.125:10819"
+Environment="HTTPS_PROXY=http://192.168.8.125:10819"
+Environment="NO_PROXY=your-registry.com,10.10.10.10,*.example.com"
+</code></pre>
+<p>重启 docker</p>
+<pre><code class="language-sh">systemctl daemon-reload
+systemctl restart docker
+</code></pre>
+<p>检查环境变量是否生效</p>
+<pre><code class="language-sh">systemctl show --property=Environment docker
+</code></pre>
+<h2>使用 Cloudflare 反向代理</h2>
+<p>登录到<a href="https://dash.cloudflare.com/" rel="nofollow">Cloudflare</a>控制台, 新建 worker, 在 worker.js 文件中输入以下代码, 注意需要自行修改代码中的域名</p>
+<pre><code class="language-js">'use strict'
+
+const hub_host = 'registry-1.docker.io'
+const auth_url = 'https://auth.docker.io'
+const workers_url = 'https://你的域名'
+const workers_host = '你的域名'
+const home_page_url = 'https://qninq.cn/file/html/dockerproxy.html'
+
+/** @type {RequestInit} */
+const PREFLIGHT_INIT = {
+    status: 204,
+    headers: new Headers({
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'GET,POST,PUT,PATCH,TRACE,DELETE,HEAD,OPTIONS',
+        'access-control-max-age': '1728000',
+    }),
+}
+
+/**
+ * @param {any} body
+ * @param {number} status
+ * @param {Object&lt;string, string&gt;} headers
+ */
+function makeRes(body, status = 200, headers = {}) {
+    headers['access-control-allow-origin'] = '*'
+    return new Response(body, {status, headers})
+}
+
+
+/**
+ * @param {string} urlStr
+ */
+function newUrl(urlStr) {
+    try {
+        return new URL(urlStr)
+    } catch (err) {
+        return null
+    }
+}
+
+
+addEventListener('fetch', e =&gt; {
+    const ret = fetchHandler(e)
+        .catch(err =&gt; makeRes('cfworker error:\n' + err.stack, 502))
+    e.respondWith(ret)
+})
+
+
+/**
+ * @param {FetchEvent} e
+ */
+async function fetchHandler(e) {
+    const getReqHeader = (key) =&gt; e.request.headers.get(key);
+
+    let url = new URL(e.request.url);
+
+    if (url.pathname === '/') {
+        // Fetch and return the home page HTML content with replacement
+        let response = await fetch(home_page_url);
+        let text = await response.text();
+        text = text.replace(/{workers_host}/g, workers_host);
+        return new Response(text, {
+            status: response.status,
+            headers: response.headers
+        });
+    }
+
+    if (url.pathname === '/token') {
+        let token_parameter = {
+            headers: {
+                'Host': 'auth.docker.io',
+                'User-Agent': getReqHeader("User-Agent"),
+                'Accept': getReqHeader("Accept"),
+                'Accept-Language': getReqHeader("Accept-Language"),
+                'Accept-Encoding': getReqHeader("Accept-Encoding"),
+                'Connection': 'keep-alive',
+                'Cache-Control': 'max-age=0'
+            }
+        };
+        let token_url = auth_url + url.pathname + url.search
+        return fetch(new Request(token_url, e.request), token_parameter)
+    }
+
+    url.hostname = hub_host;
+
+    let parameter = {
+        headers: {
+            'Host': hub_host,
+            'User-Agent': getReqHeader("User-Agent"),
+            'Accept': getReqHeader("Accept"),
+            'Accept-Language': getReqHeader("Accept-Language"),
+            'Accept-Encoding': getReqHeader("Accept-Encoding"),
+            'Connection': 'keep-alive',
+            'Cache-Control': 'max-age=0'
+        },
+        cacheTtl: 3600
+    };
+
+    if (e.request.headers.has("Authorization")) {
+        parameter.headers.Authorization = getReqHeader("Authorization");
+    }
+
+    let original_response = await fetch(new Request(url, e.request), parameter)
+    let original_response_clone = original_response.clone();
+    let original_text = original_response_clone.body;
+    let response_headers = original_response.headers;
+    let new_response_headers = new Headers(response_headers);
+    let status = original_response.status;
+
+    if (new_response_headers.get("Www-Authenticate")) {
+        let auth = new_response_headers.get("Www-Authenticate");
+        let re = new RegExp(auth_url, 'g');
+        new_response_headers.set("Www-Authenticate", response_headers.get("Www-Authenticate").replace(re, workers_url));
+    }
+
+    if (new_response_headers.get("Location")) {
+        return httpHandler(e.request, new_response_headers.get("Location"))
+    }
+
+    let response = new Response(original_text, {
+        status,
+        headers: new_response_headers
+    })
+    return response;
+
+}
+
+
+/**
+ * @param {Request} req
+ * @param {string} pathname
+ */
+function httpHandler(req, pathname) {
+    const reqHdrRaw = req.headers
+
+    // preflight
+    if (req.method === 'OPTIONS' &amp;&amp;
+        reqHdrRaw.has('access-control-request-headers')
+    ) {
+        return new Response(null, PREFLIGHT_INIT)
+    }
+
+    let rawLen = ''
+
+    const reqHdrNew = new Headers(reqHdrRaw)
+
+    const refer = reqHdrNew.get('referer')
+
+    let urlStr = pathname
+
+    const urlObj = newUrl(urlStr)
+
+    /** @type {RequestInit} */
+    const reqInit = {
+        method: req.method,
+        headers: reqHdrNew,
+        redirect: 'follow',
+        body: req.body
+    }
+    return proxy(urlObj, reqInit, rawLen, 0)
+}
+
+
+/**
+ *
+ * @param {URL} urlObj
+ * @param {RequestInit} reqInit
+ */
+async function proxy(urlObj, reqInit, rawLen) {
+    const res = await fetch(urlObj.href, reqInit)
+    const resHdrOld = res.headers
+    const resHdrNew = new Headers(resHdrOld)
+
+    // verify
+    if (rawLen) {
+        const newLen = resHdrOld.get('content-length') || ''
+        const badLen = (rawLen !== newLen)
+
+        if (badLen) {
+            return makeRes(res.body, 400, {
+                '--error': `bad len: ${newLen}, except: ${rawLen}`,
+                'access-control-expose-headers': '--error',
+            })
+        }
+    }
+    const status = res.status
+    resHdrNew.set('access-control-expose-headers', '*')
+    resHdrNew.set('access-control-allow-origin', '*')
+    resHdrNew.set('Cache-Control', 'max-age=1500')
+
+    resHdrNew.delete('content-security-policy')
+    resHdrNew.delete('content-security-policy-report-only')
+    resHdrNew.delete('clear-site-data')
+
+    return new Response(res.body, {
+        status,
+        headers: resHdrNew
+    })
+}
+</code></pre>
+<p>部署完成后，点击设置-&gt;触发器-&gt;添加自定义域，绑定自己的域名即可</p>
+<p><img alt="undefined" class="embedded_image" rel="noreferrer" src="https://p0.meituan.net/csc/a3719b4893c57a0bde64412a04baf3c73415492.png" /></p>
+<h2>使用 Github Action + 阿里云私有仓库</h2>
+<p>使用 Github Action 将国外的 Docker 镜像转存到阿里云私有仓库，供国内服务器使用</p>
+<p>项目地址：<a href="https://github.com/tech-shrimp/docker_image_pusher" rel="nofollow">tech-shrimp/docker_image_pusher: 使用 Github Action 将国外的 Docker 镜像转存到阿里云私有仓库，供国内服务器使用，免费易用</a></p>
+<p>项目的文档写的很详细，不再赘述</p>
+<h2>参考</h2>
+<p><a href="https://blog.lty520.faith/%E5%8D%9A%E6%96%87/%E8%87%AA%E5%BB%BAdocker-hub%E5%8A%A0%E9%80%9F%E9%95%9C%E5%83%8F/" rel="nofollow">自建 Docker Hub 加速镜像 (lty520.faith)</a></p>
+<p><a href="https://github.com/tech-shrimp/docker_image_pusher" rel="nofollow">tech-shrimp/docker_image_pusher: 使用 Github Action 将国外的 Docker 镜像转存到阿里云私有仓库，供国内服务器使用，免费易用</a></p>
+<p><a href="https://linux.do/t/topic/107726" rel="nofollow">都在蹭 CF 搭建 dockerhub 镜像代理，基于论坛看到的一个代码糊了个前端 - 软件分享 - LINUX DO</a></p>
+]]></content:encoded>
+<pubDate>2024-06-13T16:19:21Z</pubDate>
+<pubDate>2024-06-13T16:16:21Z</pubDate>
+</item>
+<item>
+<title>[问与答] 23 岁，感觉生活要望到头了，想转码行吗</title>
+<link>https://www.v2ex.com/t/1049378</link>
+<guid>https://www.v2ex.com/t/1049378</guid>
+<content:encoded><![CDATA[
+
+今年 23 岁，现在在湖南一个小县城当中学数学老师，不想一直待在小县城，也不喜欢教师工作，想考研转码，大家有什么建议吗
+]]></content:encoded>
+<pubDate>2024-06-13T15:54:19Z</pubDate>
+<pubDate>2024-06-13T16:21:26Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] OpenWRT 自己编译的固件，后续如何安装源中的软件</title>
+<link>https://www.v2ex.com/t/1049377</link>
+<guid>https://www.v2ex.com/t/1049377</guid>
+<content:encoded><![CDATA[
+
+<p>自己编译的固件，如何方便的使用源安装一些软件，因为会报 kernel 和 dependecy 版本不一致，无法安装。需要自己维护一个源？</p>
+<p>当然可以选择自己在编译固件的时候一起编译，但是有些软件是后来才有的需求，所以自己编译的固件有没有办法方便的从源中安装新软件？</p>
+]]></content:encoded>
+<pubDate>2024-06-13T15:33:06Z</pubDate>
+<pubDate>2024-06-12T23:30:06Z</pubDate>
+</item>
+<item>
+<title>[问与答] 深圳两年工作经验，测试工程师要多少合适？</title>
+<link>https://www.v2ex.com/t/1049376</link>
+<guid>https://www.v2ex.com/t/1049376</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-06-13T15:28:09Z</pubDate>
+<pubDate>2024-06-13T15:27:09Z</pubDate>
+</item>
+<item>
+<title>[Blogger] 有没有 hexo 的极简主题推荐</title>
+<link>https://www.v2ex.com/t/1049375</link>
+<guid>https://www.v2ex.com/t/1049375</guid>
+<content:encoded><![CDATA[
+
+<p>有没有类似这种类型的 hexo 主题
+挺喜欢这种极简风格的
+<a href="https://taoshu.in" rel="nofollow">https://taoshu.in</a></p>
+]]></content:encoded>
+<pubDate>2024-06-13T15:27:29Z</pubDate>
+<pubDate>2024-06-13T15:27:29Z</pubDate>
+</item>
+<item>
+<title>[Windows] 怎么干掉 win11 的无效右键一级菜单</title>
+<link>https://www.v2ex.com/t/1049374</link>
+<guid>https://www.v2ex.com/t/1049374</guid>
+<content:encoded><![CDATA[
+
+<p>honeyview 卸载之后，这个项目还保留在一级菜单里，怎么删掉它
+用 revo bulk 卸载结果这玩意儿还是在</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/06/13/Xel365wfTpiDxgP.png" /></p>
+]]></content:encoded>
+<pubDate>2024-06-13T15:19:36Z</pubDate>
+<pubDate>2024-06-13T16:01:05Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 找 google search/ads 兼职</title>
+<link>https://www.v2ex.com/t/1049373</link>
+<guid>https://www.v2ex.com/t/1049373</guid>
+<content:encoded><![CDATA[
+
+招上海愿意兼职做 google seo 的人<br />1. 必须要求对 Google SEO 工作机制熟悉, 可以提升网站的排名<br />2. 对 GA/GTM 熟悉, 可以设置埋点信息, 然后提交给开发埋点实施<br />3. 对 google search console 平台和机制熟悉.<br />4. 熟悉 google ads 投放<br />5. 英文要熟练, 可以和国外同事对接.<br />6. 必须是上海地区的, 每周固定时间到上海办公室对接, 远程兼职的请勿扰.
+]]></content:encoded>
+<pubDate>2024-06-13T15:15:25Z</pubDate>
+<pubDate>2024-06-13T15:15:25Z</pubDate>
+</item>
+<item>
+<title>[Android] 求推荐一个安卓手机，要求能 root 和刷机，性能不差，价格不要太高，性价比越高越好，屏幕不要太差就行，有高频 pwa 最好</title>
+<link>https://www.v2ex.com/t/1049372</link>
+<guid>https://www.v2ex.com/t/1049372</guid>
+<content:encoded><![CDATA[
+
+<p>预算 二手价格在 1000-3000 左右都可以</p>
+<p>二手机就行</p>
+]]></content:encoded>
+<pubDate>2024-06-13T15:06:20Z</pubDate>
+<pubDate>2024-06-13T15:03:20Z</pubDate>
+</item>
+<item>
+<title>[Kubernetes] 产品部署客户环境的 K8S 的 yaml 文件如何管理呀？</title>
+<link>https://www.v2ex.com/t/1049371</link>
+<guid>https://www.v2ex.com/t/1049371</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-06-13T15:00:50Z</pubDate>
+<pubDate>2024-06-13T14:58:50Z</pubDate>
+</item>
+<item>
+<title>[硬件] 为什么手机平板领域没有高制程性能 soc</title>
+<link>https://www.v2ex.com/t/1049370</link>
+<guid>https://www.v2ex.com/t/1049370</guid>
+<content:encoded><![CDATA[
+
+类似 660 ，710 这种终端高续航经济性能的口碑都不错。但是为何没有用最先进制程呢？中低性能长续航的设备吗市场不足以支撑相关综合成本吗？
+]]></content:encoded>
+<pubDate>2024-06-13T14:59:07Z</pubDate>
+<pubDate>2024-06-13T15:37:17Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 调试编译 openwrt 固件，每次只是变化了./files 里面的预置内容，请问如何加快编译，链接出固件文件的速度？</title>
+<link>https://www.v2ex.com/t/1049368</link>
+<guid>https://www.v2ex.com/t/1049368</guid>
+<content:encoded><![CDATA[
+
+<p>./files 是预置自定义文件的目录，每次调试，只是变化了这个目录里内置的一些文件内容，<br />
+用 make -j8 编译，还是要花上 10 来 20 分钟，<br />
+没做过 make clean ，<br />
+应该可以跳过很多检查吧？<br />
+请教各位，有何妙计？</p>
+]]></content:encoded>
+<pubDate>2024-06-13T14:37:11Z</pubDate>
+<pubDate>2024-06-13T15:35:05Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 软路由+手机客户端同时 FQ 会有什么问题？</title>
+<link>https://www.v2ex.com/t/1049367</link>
+<guid>https://www.v2ex.com/t/1049367</guid>
+<content:encoded><![CDATA[
+
+<p>我就是不想每次出门都要开关一下手机上的代理，代理就一直打开状态，家里需要 KDE Connect 还有电视投屏所以得连 WIFI ，然后家里软路由上又有个小猫咪，和手机上的是同一个订阅（可能节点不同），小猫咪上游 DNS 是 adguardhome 也想让手机蹭蹭去广告，这种两层代理的情况下手机的网络会有问题吗？我记得以前这样搞碰到过无法科学，但是今天试了试网络好像正常，不知道会不会有隐患</p>
+]]></content:encoded>
+<pubDate>2024-06-13T14:35:33Z</pubDate>
+<pubDate>2024-06-13T14:39:32Z</pubDate>
+</item>
+<item>
+<title>[Docker] Docker 源挂了 大家都是怎么办的</title>
+<link>https://www.v2ex.com/t/1049366</link>
+<guid>https://www.v2ex.com/t/1049366</guid>
+<content:encoded><![CDATA[
+
+<p>最近 docker 无法正常拉取了，我在阿里云上面的 ecs 用的是阿里云给的镜像加速器，没想到很多比较冷门的镜像版本太老了（ doge</p>
+<p>之后问了实验室的老师，他表明实验室有镜像源，但是不公开，只能在实验室内网用</p>
+<p>那么现在问题来了，除了科学的方法，还有什么办法？如果我想给其他人用搭建镜像站的话有没有什么成熟的方案（已经了解过清华镜像站的开源项目了</p>
+<p>先谢谢各位了</p>
+]]></content:encoded>
+<pubDate>2024-06-13T14:35:22Z</pubDate>
+<pubDate>2024-06-13T15:10:51Z</pubDate>
+</item>
+<item>
+<title>[iOS] iOS 18 控制中心右上角的关机键太恼人了</title>
+<link>https://www.v2ex.com/t/1049365</link>
+<guid>https://www.v2ex.com/t/1049365</guid>
+<content:encoded><![CDATA[
+
+经常点开控制中心后又会随手点击右上角的空白处关闭，现在在右上角设置了一个关机按钮，好几次都误触然后弹出关机界面…<br /><a href="https://s2.loli.net/2024/06/13/gQkT3i4FroPVpZ2.jpg" rel="nofollow noopener" target="_blank">https://s2.loli.net/2024/06/13/gQkT3i4FroPVpZ2.jpg</a>
+]]></content:encoded>
+<pubDate>2024-06-13T14:33:16Z</pubDate>
+<pubDate>2024-06-13T15:11:19Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] IOS18 都出来了还是没有 carplay2.0 的消息吗</title>
 <link>https://www.v2ex.com/t/1049364</link>
 <guid>https://www.v2ex.com/t/1049364</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-13T14:01:04Z</pubDate>
 <pubDate>2024-06-13T14:07:50Z</pubDate>
 </item>
 <item>
@@ -20,12 +498,10 @@
 <link>https://www.v2ex.com/t/1049363</link>
 <guid>https://www.v2ex.com/t/1049363</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://res.craft.do/user/full/79e0469a-44f5-03e7-1ea7-a23a23a36052/doc/014EE343-717D-4AE5-9A94-EB40F4844192/96470EC6-2F94-4342-90E3-3CEA4638A36B_2/u6JNwpBjj7hKI6bPV149yWBxImPkCDNBWZBSs40DgGoz/Image.png" /></p>
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://res.craft.do/user/full/79e0469a-44f5-03e7-1ea7-a23a23a36052/doc/014EE343-717D-4AE5-9A94-EB40F4844192/F04FB8AF-1F53-4A7F-A4EE-D62F7077173E_2/xMGJgsQwAyY5hTnihDVuu4pzik0nY5gV4rv7RRtFHNQz/Image.png" /></p>
 <p>网站地址：<a href="http://www.aifly.app" rel="nofollow">www.aifly.app</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-13T13:52:39Z</pubDate>
 <pubDate>2024-06-13T13:49:39Z</pubDate>
 </item>
 <item>
@@ -33,10 +509,8 @@
 <link>https://www.v2ex.com/t/1049362</link>
 <guid>https://www.v2ex.com/t/1049362</guid>
 <content:encoded><![CDATA[
-
 不知道 win 上有没有我想要的 PDF 阅读器：<br />1 、无广告<br />2 、支持英语单词翻译，提供标准发音最好<br />3 、可以做批注、修改
 ]]></content:encoded>
-<pubDate>2024-06-13T13:47:20Z</pubDate>
 <pubDate>2024-06-13T14:17:50Z</pubDate>
 </item>
 <item>
@@ -44,10 +518,8 @@
 <link>https://www.v2ex.com/t/1049361</link>
 <guid>https://www.v2ex.com/t/1049361</guid>
 <content:encoded><![CDATA[
-
 撸了一个 ai girl generator 练手，后台调用 <a href="http://stability.ai" rel="nofollow noopener" target="_blank">stability.ai</a> 的 API 来生成图像，生成速度还可以，界面稍微有点粗糙，站点是付费模式，注册即送试用点数，希望各位老司机多提提意见，网址是： <a href="https://girl-generator.ai" rel="nofollow noopener" target="_blank">https://girl-generator.ai</a>
 ]]></content:encoded>
-<pubDate>2024-06-13T13:44:17Z</pubDate>
 <pubDate>2024-06-13T09:44:17Z</pubDate>
 </item>
 <item>
@@ -55,10 +527,8 @@
 <link>https://www.v2ex.com/t/1049359</link>
 <guid>https://www.v2ex.com/t/1049359</guid>
 <content:encoded><![CDATA[
-
 自家树上结，家里吃的。最好吃的那种水蜜桃，小时候味道。<br />桃树种在山清水秀地。<br />不打农药，不包纸，虫子爱吃的那种。所以桃子不是那种碗口大，不是那种白色的，不是那种看上去完美无暇的。<br />小时候院子里桃树长的大小的那种，阳光雨露充分滋润整个呈深红色的那种，偶尔有虫子有疤痕的不美的那种。<br />2 元每斤，这个价主要为了交朋友，所以运费要自己来了。<br />桃尖流汁，放一段时间整个桃子流汁我更喜欢吃。<br />不是专业卖桃子的，包装可能比较简陋。不好上图。如果哪里违规请删除
 ]]></content:encoded>
-<pubDate>2024-06-13T13:42:48Z</pubDate>
 <pubDate>2024-06-13T13:40:48Z</pubDate>
 </item>
 <item>
@@ -66,7 +536,6 @@
 <link>https://www.v2ex.com/t/1049358</link>
 <guid>https://www.v2ex.com/t/1049358</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="Snipaste_2024-06-13_21-24-58.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/06/13/JRnh9xamweTF4VP.png" /></p>
 <p><img alt="_20240613213041.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/06/13/NCyWdEQef9cKGiL.jpg" /></p>
 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
@@ -157,7 +626,6 @@
 <p>这是现在的效果：</p>
 <p><img alt="_20240613213231.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/06/13/lxeAmOzrFQwXu5b.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2024-06-13T13:31:19Z</pubDate>
 <pubDate>2024-06-13T14:14:31Z</pubDate>
 </item>
 <item>
@@ -165,7 +633,6 @@
 <link>https://www.v2ex.com/t/1049357</link>
 <guid>https://www.v2ex.com/t/1049357</guid>
 <content:encoded><![CDATA[
-
 <pre><code>ffmpeg -device /dev/dri/card0 -f kmsgrab -i - -vf 'hwmap=derive_device=vaapi,scale_vaapi=w=1920:h=1080:format=nv12' -c:v h264_vaapi -y  output.mkv
 </code></pre>
 <p>我在本地运行都是正常的，每次都是正常的，没有问题<br />
@@ -176,7 +643,6 @@ Error opening input file -.
 Error opening input files: Invalid argument
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-06-13T13:30:09Z</pubDate>
 <pubDate>2024-06-13T09:30:09Z</pubDate>
 </item>
 <item>
@@ -184,7 +650,6 @@ Error opening input files: Invalid argument
 <link>https://www.v2ex.com/t/1049354</link>
 <guid>https://www.v2ex.com/t/1049354</guid>
 <content:encoded><![CDATA[
-
 <p>部门直招，效率非常高，欢迎大家投递建立，也可帮忙指导简历修改。</p>
 <h3>联系方式:</h3>
 <p>邮箱: ZWR3YXJkLmNoZW5AZGppLmNvbQ==</p>
@@ -227,17 +692,14 @@ Error opening input files: Invalid argument
 </ol>
 ]]></content:encoded>
 <pubDate>2024-06-13T13:13:04Z</pubDate>
-<pubDate>2024-06-13T13:13:04Z</pubDate>
 </item>
 <item>
 <title>[程序员] 关于<脱了裤子放屁>之<重放攻击></title>
 <link>https://www.v2ex.com/t/1049353</link>
 <guid>https://www.v2ex.com/t/1049353</guid>
 <content:encoded><![CDATA[
-
 上一个帖子是因为看到了《脱了裤子放屁》那篇帖子写的，但不仅仅是因为这篇，印象中之前也看到过类似的，记不清了，也可能是无中生记了。<br /><br />我也说说我的看法，不一定对，欢迎拍砖指正，只要说得对，骂一骂也没关系。（我这篇也是来秀无知的)<br /><br />++++++++++++++++++++++++++<br /><br />首先明确的是，重放攻击的重点在于：如果有第三方拿到一个网络请求，在不解包的情况下，重复发送该请求，会造成服务出现"安全问题"。<br /><br /><br />第一，攻击者不需要解包，因为它的假设是，攻击者(不需要/不能)从请求中抓取有用信息，也(不需要/不能)篡改请求。<br /><br /><br />第二，跟幂等的关系。幂等的意思是 n 次操作的结果等同于一次操作，是允许多次操作的，而防重放供给是不允许重复请求的，这会造成"安全隐患"。不过对于某些场景某些实现的"幂等"是可以起到防重的作用的。比如某些幂等的实现是只有第一次请求是真的在操作，后续重复请求实际上是"没有操作"的。<br /><br />举个不恰当的例子：假如你有一个登录接口在登录成功后返回用户信息，内部实现也支持了幂等，即：同一个用户多次登录和一次登录的效果是等效的,session 只有一个，但是却没有考虑重放攻击的问题。再假设攻击者拦截到该登录请求，是不是攻击者在不修改请求的情况下，也可以登录系统？<br /><br /><br />第三，限流是限流，重放攻击是重放攻击。限流强调频次，重放攻击的重点不在于频次，它可能只需要一次就可以攻击成功。我们需要明确自己需要的是限流还是防重放攻击还是都需要？<br /><br /><br />第四，请求需要被加密保护或者有私钥签名是基本条件，因为如果请求不加密，也没有私钥签名/加密，一定能被攻击者构造。但是跟 https 协议本身有没有防重放攻击的支持没有关系，这两个不在同一层面。<br />api 请求可以是像 web 端被 https 加密保护，也可以是给第三方使用被一个"私钥"保护。<br /><br />第五， 我认为这是容易造成混乱边界范围不清晰的一个点。即："重复一个请求"指的是重复用户"发出的请求"，还是说，攻击者也可以根据客户端泄露的代码等信息"构造出一条参数一摸一样的请求"。我认为是前者，<br />因为攻击者如果是通过查阅客户端代码构造出请求，它可以构造出任何请求。这种情况应该不在"重放攻击"范围内，重放攻击本身也是属于中间人攻击。<br /><br /><br />第六，原帖提到"token 的生成规则"，说"攻击者也可以完全模拟这个 token 的生成规则，来绕过服务端"。攻击者当然可以拿到生成规则，包括生成签名的公钥。<br />	1. 作者的方案，是客户端生成 token ，假定了攻击者能够拿到客户端的规则、可能还包括了生成签名的公钥。所以攻击者可以构造一个攻击请求。但是这不是"重放攻击"的讨论范围，这不是"拦截到请求进行重放"，而是构造了一个新的请求，该请求的参数可以由攻击者任意指定。<br />	<br />	2. 对于客户端生成 token ，因为含有：随机数、时间戳，所以服务端可以在一次处理完成之后记忆下来，在近 n 分钟内不再处理含有相同随机数、时间戳的请求。中间人自然无法重放攻击。中间人即便拦截到请求，也无法篡改其随机数、时间戳，可能是因为整个请求是加密的、也可能是因为请求含有私钥签名。<br /><br /><br /><br />最后，原作者说："sync ，lock ，多线程等，工作中根本用不到"，作者给出的代码，很明显有一个地方因为没有用锁或者 redis 的原子操作，会导致这个代码防重失效。<br />且看原作者代码：<br /><br />```<br />		String s = redisService.opsForValue().get(timestamp);<br />		if (StringUtils.isNotEmpty(s)) {<br />			return false;<br />		} else {<br />			redisService.opsForValue().set(timestamp, timestamp, NONCE_DURATION, TimeUnit.MILLISECONDS);<br />		}<br />```
 ]]></content:encoded>
-<pubDate>2024-06-13T13:08:32Z</pubDate>
 <pubDate>2024-06-13T13:07:32Z</pubDate>
 </item>
 <item>
@@ -245,7 +707,6 @@ Error opening input files: Invalid argument
 <link>https://www.v2ex.com/t/1049352</link>
 <guid>https://www.v2ex.com/t/1049352</guid>
 <content:encoded><![CDATA[
-
 <h4>我是一家远程团队的 HR ，公司的客户又又有招聘需求啦！</h4>
 <p>虽然上次的 [前端开发] 岗位不是我给招到的😂，但是客户公司 CEO 这次还是给到了我一个新岗位需求</p>
 <h4>同样也是急招岗位，流程推进会比较高效，感兴趣的伙伴可以联系我</h4>
@@ -282,7 +743,6 @@ Error opening input files: Invalid argument
 <p>欢迎自荐或推荐，推荐的小伙伴如果成功入职，可获得推荐奖励红包🧧
 详细咨询请直接联系我(vx：Yi_aoyao)</p>
 ]]></content:encoded>
-<pubDate>2024-06-13T13:08:32Z</pubDate>
 <pubDate>2024-06-11T13:08:32Z</pubDate>
 </item>
 <item>
@@ -290,13 +750,10 @@ Error opening input files: Invalid argument
 <link>https://www.v2ex.com/t/1048148</link>
 <guid>https://www.v2ex.com/t/1048148</guid>
 <content:encoded><![CDATA[
-
 这是我老婆对我说的话<br /><br />有时挺难的，有压力，说话语气都比较冲<br /><br />换工作肯定不是解决之道，毕竟哪里都有压力<br /><br />你们怎么调节压力？
 ]]></content:encoded>
-<pubDate>2024-06-09T13:12:49Z</pubDate>
 <pubDate>2024-06-12T14:50:06Z</pubDate>
 </item>
-
 <item>
 <title>[Telegram] ios 更新 tg 提示已被开发者下架</title>
 <link>https://www.v2ex.com/t/1049351</link>
@@ -14739,123 +15196,6 @@ bing 搜了一些方法没能解决，在此请教一下各位技术老哥。
 就是出名到只要是看美剧的都会看过/听说过的那种(不是被嘲笑的那种 hh)，想看比较经典的
 ]]></content:encoded>
 <pubDate>2024-06-09T15:32:06Z</pubDate>
-</item>
-<item>
-<title>[VXNA] Go 如何实现 Clickhouse 查询缓存</title>
-<link>https://www.v2ex.com/t/1048166</link>
-<guid>https://www.v2ex.com/t/1048166</guid>
-<content:encoded><![CDATA[
-<p><a href="https://night1008.github.io/post/Go%20-ru-he-shi-xian-%20Clickhouse%20-cha-xun-huan-cun.html" rel="nofollow">https://night1008.github.io/post/Go%20-ru-he-shi-xian-%20Clickhouse%20-cha-xun-huan-cun.html</a></p>
-]]></content:encoded>
-<pubDate>2024-06-09T15:15:40Z</pubDate>
-</item>
-<item>
-<title>[问与答] 使用双目相机，两个 video 输入，传入自己训练的 yolo 模型，然后对比判定识别结果，这样的创新点可以发文章吗？双非硕士用来毕业够不够呀。</title>
-<link>https://www.v2ex.com/t/1048165</link>
-<guid>https://www.v2ex.com/t/1048165</guid>
-<content:encoded><![CDATA[
-<p>自己训练了一个识别模型，准确度大概 97 的样子，也挺满意的。</p>
-<p>如果在这个基础上，使用双目摄像头，同时识别一个物体，然后对比两个结果，选取概率大的得出最终结果。</p>
-<p>准确率过低的，把图像抓取后切分上传到百度云服务识别，再作为最终的结果，也就是云边协同的方案。</p>
-<p>这样的文章用来毕业，工作量够吗，感谢大家指导</p>
-]]></content:encoded>
-<pubDate>2024-06-09T15:33:13Z</pubDate>
-</item>
-<item>
-<title>[推广] Claude3 ChatGPT GPT-4o GPT-4 合租拼车</title>
-<link>https://www.v2ex.com/t/1048164</link>
-<guid>https://www.v2ex.com/t/1048164</guid>
-<content:encoded><![CDATA[
-<p>无需自己搭建，登录即可用，国内直连访问，无需科学上网，更方便，一个平台聚合多家最强大模型，随意选择使用。</p>
-<ul>
-<li>支持 OpenAI 最新 GPT-4o ，获得快速高质量的对话，保证可用配额。</li>
-<li>支持多种大模型，GPT-4o ，Claude-3 ，Llama3 等最强模型。</li>
-<li>AskInternet 联网搜索用于替代传统搜索，更高效。</li>
-<li>支持 GPT-3.5/Kimi/DeepSeek 等模型无限制使用。</li>
-<li>支持画图生图。</li>
-<li>多设备同步，支持移动端 PWA 。</li>
-</ul>
-<p>基础订阅 20 元/月。</p>
-]]></content:encoded>
-<pubDate>2024-06-09T16:02:13Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 抖音网页版验证码长度错误</title>
-<link>https://www.v2ex.com/t/1048163</link>
-<guid>https://www.v2ex.com/t/1048163</guid>
-<content:encoded><![CDATA[
-网页限制输入 4 位验证码，但是短信收到的是 6 位验证码<br /><a href="https://i.imgur.com/7DtZT9R.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7DtZT9R.png" /></a><br /><a href="https://i.imgur.com/tA7tSX2.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/tA7tSX2.png" /></a>
-]]></content:encoded>
-<pubDate>2024-06-09T14:41:04Z</pubDate>
-</item>
-<item>
-<title>[程序员] 整了一个 tiktok 视频下载站，大家给点建议</title>
-<link>https://www.v2ex.com/t/1048162</link>
-<guid>https://www.v2ex.com/t/1048162</guid>
-<content:encoded><![CDATA[
-<p>利用空闲时间整了一个 tiktok 视频下载的工具站，
-大家体验下，顺便给点建议</p>
-<p>站点：<strong><a>ttvideodownloader</a></strong></p>
-<p>案例 tiktok 链接： <a href="https://www.tiktok.com/@newjeans_official/video/7372751827336547601?is_from_webapp=1&amp;web_id=7347333778824234527" rel="nofollow">https://www.tiktok.com/@newjeans_official/video/7372751827336547601?is_from_webapp=1&amp;web_id=7347333778824234527</a></p>
-]]></content:encoded>
-<pubDate>2024-06-09T15:28:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 路过的朋友，帮我选个房</title>
-<link>https://www.v2ex.com/t/1048160</link>
-<guid>https://www.v2ex.com/t/1048160</guid>
-<content:encoded><![CDATA[
-虽然只是租房，但租来的也是生活<br />之前踩雷太多了，所以想谨慎点选<br />看了一大波，最后二选一，实在太纠结了，求帮选<br /><br />这两个都是带阳台的主卧<br /><br />左边这个是二改三，缺点是阳台对着一个小学，而且阳台和卧室间没有玻璃隔离，怕被早上校园广播扰了清梦<br />右边这个是三改五，我这个主卧的阳台和隔壁客厅隔断的阳台是连着的，中间只有一个铁栅栏，虽然我俩的阳台和卧室间都有推拉玻璃，隔壁打电话时对方如果没拉玻璃，即便我拉着玻璃，我还是比较能听到隔壁的声音<br /><br /><br />[img]<a href="https://i.imgur.com/CTMVrXA.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/CTMVrXA.png" /></a>[/img]
-]]></content:encoded>
-<pubDate>2024-06-09T10:30:39Z</pubDate>
-</item>
-<item>
-<title>[程序员] 不知有没有对 [微信机器人] 有研究的，我们项目合作方提了个需求，微信群内的那种机器人，今天试了几个方案均不太好使，有搞通的朋友，可以付费咨询。一番尝试后 倾向于 wxhelper-docker 方案，但是也无法用</title>
-<link>https://www.v2ex.com/t/1048159</link>
-<guid>https://www.v2ex.com/t/1048159</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-06-09T15:57:15Z</pubDate>
-</item>
-<item>
-<title>[Linux] 请问 Linux server（ubunut20.04 server）下有什么工具可以查看运行程序的网络访问流量和对外访问的 ip 地址</title>
-<link>https://www.v2ex.com/t/1048158</link>
-<guid>https://www.v2ex.com/t/1048158</guid>
-<content:encoded><![CDATA[
-<p>请问 linux server （ ubunut20.04 server ）下有什么工具可以查看运行程序的网络访问流量和对外访问的 ip 地址，谢谢。</p>
-]]></content:encoded>
-<pubDate>2024-06-09T14:12:36Z</pubDate>
-</item>
-<item>
-<title>[NAS] 求助，黑群晖 webdav 手机网络无法连接</title>
-<link>https://www.v2ex.com/t/1048157</link>
-<guid>https://www.v2ex.com/t/1048157</guid>
-<content:encoded><![CDATA[
-<p>家里的黑群晖开了 webdav 服务，最近忽然无法通过手机网络访问了。</p>
-<p>目前测试发现手机连家里的 wifi 可以访问，但是如果用移动网络就无法访问。家里通过 ikuai 开了 ddns ，手机客户端是猫头鹰文件。</p>
-<p>请问有人知道怎么解决吗</p>
-]]></content:encoded>
-<pubDate>2024-06-09T14:09:05Z</pubDate>
-</item>
-<item>
-<title>[程序员] 用了参数化查询，还是被 SQL 注入了，上线 3 天几十个用户反馈账号被盗余额被刷完，求助怎么解决？</title>
-<link>https://www.v2ex.com/t/1048156</link>
-<guid>https://www.v2ex.com/t/1048156</guid>
-<content:encoded><![CDATA[
-<p>Python+MongoDB 写的一个简单（虽然业务都很简单但是有九百多个接口，选型用 Python+MongoDB 就是为了往上面堆各种奇怪格式的简单接口方便）网站，拉日志排查发现有人提交了类似这种 Payload <code>{"password":{"$ne":"111"}}</code>，登录接口好解决，直接 str 转换一下字段，剩下九百多个接口过一遍工作量太大了还容易有漏，有人了解如果我加一个中间件遍历提交的 JSON 把 <code>$</code> 开头的 key 全部过滤掉就安全了吗？</p>
-<p>每次用新技术必被坑，上次是被 Tauri 浪费了一整天</p>
-]]></content:encoded>
-<pubDate>2024-06-09T14:06:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] Macbook pro m1 2020 有啥好用的外接拓展坞</title>
-<link>https://www.v2ex.com/t/1048155</link>
-<guid>https://www.v2ex.com/t/1048155</guid>
-<content:encoded><![CDATA[
-<p>2020 款的 macbook pro m1 只有 2 个 type-c 接口。之前用绿联的拓展口用了几年。最近也不知道这个旧的用的时间太长了，还是本身有点问题，连接手机进行调试，总是莫名其妙地断掉，连接也不是特别好。现在想外接一个硬盘，硬盘想直接通过 type-c 数据线连接到电脑上面，那么就只剩下一个 type-c 。我想找个 type-c 拓展坞，可以外接显示器、还可以支持 usb 以及 type-c ，看到可以将充电线通过拓展坞给电脑充电的，不知道这样是否可以。有没有哪款传输速度比较快的？</p>
-]]></content:encoded>
-<pubDate>2024-06-09T14:17:24Z</pubDate>
 </item>
 </channel>
 </rss>
