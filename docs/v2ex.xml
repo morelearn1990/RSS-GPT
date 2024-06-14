@@ -5,11 +5,256 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 手里安卓机和老 iPhoneX 的性能相比，也差一大截！</title>
+<link>https://www.v2ex.com/t/1049642</link>
+<guid>https://www.v2ex.com/t/1049642</guid>
+<content:encoded><![CDATA[
+
+我测了一些应该是中低端安卓机吧，我也不知道，<br /><br />性能上来说，和手里 iPhoneX 差一大截的样子，是怎么回事？<br /><br />谁推荐一台性能上(CPU 内存和图形)至少可以和 iPhoneX 相媲美的高端安卓机
+]]></content:encoded>
+<pubDate>2024-06-14T12:20:50Z</pubDate>
+<pubDate>2024-06-14T12:17:50Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求解, 今日热榜数据是怎么批量爬取的?动态网页用 Puppeteer 不仅性能慢还超时报错</title>
+<link>https://www.v2ex.com/t/1049638</link>
+<guid>https://www.v2ex.com/t/1049638</guid>
+<content:encoded><![CDATA[
+
+<h2>问题</h2>
+<p>各位老哥求解, 如能帮忙解决问题, 口令红包私人感谢.</p>
+<ul>
+<li>单独解决 私发:￥ 8.88 ￥ 16.88</li>
+<li>多人解决 群发:￥ 20</li>
+<li>感谢方式: 支付宝口令红包</li>
+</ul>
+<p>谢谢各位.</p>
+<h3>1. 今日热榜数据是怎么批量爬取的</h3>
+<p>好奇<a href="https://tophub.today/" rel="nofollow">今日热榜</a>这些热榜站是如何进行批量爬取的</p>
+<h3>2. 怎么爬取动态网页</h3>
+<p>cheerio 抓取静态网页, Puppeteer 批量爬取, 性能好慢, 频繁超时报错找不到原因</p>
+<p>page.goto 设置多长时间都超时, 30s 60s 90s</p>
+<p>本地 windows 运行又没有问题, 远程服务器 vps 小鸡动不动报超时</p>
+<h4>报错</h4>
+<pre><code>数据处理过程错误: TimeoutError: Navigation timeout of 30000 ms exceeded
+    at new Deferred (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:59:34)
+    at Deferred.create (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:21:16)
+    at new LifecycleWatcher (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/LifecycleWatcher.js:66:60)
+    at CdpFrame.goto (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Frame.js:143:29)
+    at CdpFrame.&lt;anonymous&gt; (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:98:27)
+    at CdpPage.goto (/usr/local/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:588:43)
+    at fetchData (file:///usr/local/script/%E8%B4%A2%E7%BB%8F%E7%83%AD%E6%A6%9C.js:51:18)
+    at async executeProcess (file:///usr/local/script/%E8%B4%A2%E7%BB%8F%E7%83%AD%E6%A6%9C.js:108:24)
+</code></pre>
+<h4>代码逻辑</h4>
+<pre><code>async function fetchData(page, name, url, hrefSelector) {
+  const maxRetries = 3; // Maximum number of attempts
+  let attempts = 0;
+
+  while (attempts &lt; maxRetries) {
+    try {
+      attempts++;
+      await page.goto(url, { timeout: 1000 * 30 });
+      await page.waitForSelector(hrefSelector, { timeout: 1000 * 30 });
+
+      const results = await page.$$eval(hrefSelector, anchors =&gt;
+        anchors.map(anchor =&gt; ({ href: anchor.href, text: anchor.textContent.trim() }))
+      );
+
+      const trade_date = getCurrentDateTime();
+
+      return { name, news: results, trade_date };
+    } catch (error) {
+      if (attempts &lt; maxRetries) {
+        console.warn(`获取数据报错 ${url}. Retry attempt ${attempts}...`);
+        await delay(2000); // Wait for 2 seconds before retrying
+      } else {
+        console.error(`获取数据报错 ${url} after ${attempts} attempts:`, error);
+        throw error;
+      }
+    }
+  }
+}
+</code></pre>
+<h4>使用插件</h4>
+<ul>
+<li>xvfb</li>
+<li>puppeteer-extra</li>
+<li>puppeteer-extra-plugin-stealth</li>
+<li>puppeteer-extra-plugin-anonymize-ua</li>
+</ul>
+<pre><code>import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import AnonymizeUaPlugin from 'puppeteer-extra-plugin-anonymize-ua'
+puppeteer.use(StealthPlugin());
+puppeteer.use(AnonymizeUaPlugin());
+</code></pre>
+<h4>puppeteer 启动参数</h4>
+<pre><code>// 启动浏览器和页面
+    const browser = await puppeteer.launch({
+      args: [
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--disable-gpu",
+        "--no-first-run",
+        "--disable-dev-shm-usage",
+        "--single-process"
+      ],
+      headless: true
+    });
+    console.log('启动浏览器 √');
+    const page = await browser.newPage();
+
+    // 设置拦截请求，屏蔽不必要的资源请求
+    await page.setRequestInterception(true);
+    page.on('request', (request) =&gt; {
+      const resourceType = request.resourceType();
+      if (['image', 'stylesheet', 'font'].includes(resourceType)) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
+    // 抓取数据
+    const allContents = [];
+    for (const data of config) {
+      const contents = await fetchData(page, data.name, data.url, data.hrefSelector);
+      allContents.push(contents);
+    }
+</code></pre>
+<h3>爬取易报错的网站</h3>
+<pre><code>{
+    name: '第一财经',
+    url: 'https://www.yicai.com/news/',
+    hrefSelector: '#newsRank div:nth-child(1) &gt; ul &gt; li a'
+},
+{
+    name: '金融界',
+    url: 'https://stock.jrj.com.cn/',
+    hrefSelector: 'ul.opportunity-list &gt; li a'
+},
+{
+  	name: '八阕',
+	url: 'https://news.popyard.space/cgi-mod/threads.cgi?lan=cn&amp;r=0&amp;cid=11&amp;t=all',
+	hrefSelector: 'div#page_1 &gt; table b &gt; a'
+}
+</code></pre>
+<p>本地 Windows 爬取第一财经也报错..</p>
+<h3>系统</h3>
+<pre><code>Extra IPv4None
+RAM2.5 GB RAM (Included)
+CPU Cores2 CPU Cores (Included)
+Operating SystemDebian 12 64 Bit (Recommended Min. 2 GB RAM)
+LocationSan Jose, CA (Test IP: 192.210.207.88)
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-06-14T11:23:19Z</pubDate>
+<pubDate>2024-06-14T11:49:43Z</pubDate>
+</item>
+<item>
+<title>[机器学习] 7 月 6 日在中国科学院计算技术研究所有一场关于 AI 编译器的线下聚会</title>
+<link>https://www.v2ex.com/t/1049637</link>
+<guid>https://www.v2ex.com/t/1049637</guid>
+<content:encoded><![CDATA[
+
+<p>目前是有上海交大、中科院计算所和微软的大佬来分享</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://p.ipic.vip/kyvtqy.png" /></p>
+<p>有没有北京的小伙伴一起呀？</p>
+<p>报名：<a href="https://mp.weixin.qq.com/s/fDlyOX89ENENP1U8aZYHYQ" rel="nofollow">活动预告 | 2024 Meet AI Compiler 北京首聚定档 7 月 6 日！</a></p>
+]]></content:encoded>
+<pubDate>2024-06-14T11:14:39Z</pubDate>
+<pubDate>2024-06-14T11:12:39Z</pubDate>
+</item>
+<item>
+<title>[程序员] OLED 显示器适合办公吗？</title>
+<link>https://www.v2ex.com/t/1049636</link>
+<guid>https://www.v2ex.com/t/1049636</guid>
+<content:encoded><![CDATA[
+
+<p>原计划买来玩游戏，但带鱼屏有黑边受不了，想带去公司办公网。</p>
+<p>型号是 S34BG852SC ，三星 34 寸 OLED 曲面屏显示器，现已无法退货。</p>
+<p>用途是程序开发，主要是：浏览网页、回复 IM 、使用 IDEA 编程。</p>
+<p>我担心 OLED 办公会烧屏，不知道是否用得住？</p>
+]]></content:encoded>
+<pubDate>2024-06-14T11:08:00Z</pubDate>
+<pubDate>2024-06-14T08:08:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求推荐品质好的键帽</title>
+<link>https://www.v2ex.com/t/1049635</link>
+<guid>https://www.v2ex.com/t/1049635</guid>
+<content:encoded><![CDATA[
+
+<p>求推荐品质好的键帽</p>
+<p>键盘 Filco 圣手二代，原厂配色键帽买不到想要的</p>
+]]></content:encoded>
+<pubDate>2024-06-14T10:59:33Z</pubDate>
+<pubDate>2024-06-14T11:52:49Z</pubDate>
+</item>
+<item>
+<title>[生活] V 友们里面有没有懂一点电工的朋友呀</title>
+<link>https://www.v2ex.com/t/1049634</link>
+<guid>https://www.v2ex.com/t/1049634</guid>
+<content:encoded><![CDATA[
+
+前不久小弟大学毕业后租了一个新房子，可是我发现，我的笔记本电脑在接入房间插座的时候，其金属外壳用手背来回触摸的话会有一种毛毛的感觉，而用手掌触摸则不会。并且在学校图书馆或者其他地方插电也不会有这种问题，所以我担心是不是房间的插座没有连接地线导致的。<br />	在网上查找资源的时候刚好看到了[城阳电工电路]UP 主的相关视频，刚好手头有万用表，我就进行了一下测量。<br />在单独对笔记本的三角充电器进行测量的时候，火线和地线 以及火线和零线之间都没有电压，所以我判定为笔记本内部没有发生漏电。<br />	然后我用万用表测量了房间的三角插座，测得火线和地线之间是 230V,零线和地线之间是 0V ，所以我认为这个插座也是没有问题的。<br />	抱着再确定一下的心情，我在把总闸拉掉的情况下，把插座拆开看了一下结构，虽然接线的颜色有问题，但是内部地线端也是有接线的。我主要想知道的是为什么会有这种毛毛的感觉呢？是不是需要专门请电工师傅进行一下检修呀？感谢大伙的回答，给大伙磕头了<br />    <br />注：我的电脑是几个月前买的 R9000P ，有没有其他哥们也有这种情况呢？
+]]></content:encoded>
+<pubDate>2024-06-14T10:59:18Z</pubDate>
+<pubDate>2024-06-14T12:26:09Z</pubDate>
+</item>
+<item>
+<title>🥳送码，一个好友管理,名片制作 App；</title>
+<link>https://www.v2ex.com/t/1048412</link>
+<guid>https://www.v2ex.com/t/1048412</guid>
+<content:encoded><![CDATA[
+
+<h2>介绍</h2>
+<p>优化了一下数字名片 App ，让它可以在地图，看到好友位置；管理与好友相关的事件和提醒；</p>
+<p>另外核心功能，锁屏名片和 NFC 名片也得到了加强；</p>
+<p>会员兑换码在最后，欢迎大家体验建议；</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8dd5e6d1bfa05d8d9b7.webp" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c848.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c8b6.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c8ee.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c86e.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a9025e6d1bfa05d8fa21.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a9155e6d1bfa05d9067b.png" /></p>
+<h2>NFC 功能视频教程</h2>
+<p>教程 1： <a href="https://www.bilibili.com/video/BV1Wx4y1b7nx/?spm_id_from=333.999.0.0&amp;vd_source=c6b1ab4807a01822ae77bb1ee2efa8c8" rel="nofollow">几毛钱一个的 nfc 贴纸，也能玩出花样来</a>。</p>
+<p>教程 2： <a href="https://www.bilibili.com/video/BV1ZC4y1z76R/?spm_id_from=333.999.0.0&amp;vd_source=c6b1ab4807a01822ae77bb1ee2efa8c8" rel="nofollow">个人数字名片制作</a>。</p>
+<h2>会员兑换码</h2>
+<p>永久会员</p>
+<ul>
+<li>WMYT73J6JRWP</li>
+<li>4YLRYLPP3M6X</li>
+<li>7A4NPYEWJETN</li>
+<li>KWR6NKEE77FA</li>
+<li>73E7T9RY669J</li>
+</ul>
+<p>一年会员</p>
+<ul>
+<li>LW46R7LH94FP</li>
+<li>NXMXAHHH9RPR</li>
+<li>MXJ3744LPP3N</li>
+<li>EH37NW3HP7MT</li>
+<li>NY4WFRR3K6YK</li>
+<li>6JLKAMEKXYXN</li>
+<li>E94XHF3WJEKX</li>
+<li>PL7Y37MYXJAT</li>
+<li>AMFKXJR4EWWJ</li>
+<li>L9K3JNAKPJ4X</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-06-11T01:55:43Z</pubDate>
+<pubDate>2024-06-11T21:25:36Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 有没有考虑自建服务器而不购买云服务器的？</title>
 <link>https://www.v2ex.com/t/1049630</link>
 <guid>https://www.v2ex.com/t/1049630</guid>
 <content:encoded><![CDATA[
-
 <p>618 快到了，看着各大云平台的服务器价格，还不是特别满意，再加上轻量服务器似乎经常超售，时不时就 cpu 100%，我在考虑要不要服务器从云服务器下云转移到线下自己配</p>
 <h1>适用于</h1>
 <ol>
@@ -34,17 +279,14 @@
 <p>再者说现在分布式这么普遍了，把一些机器弄进来，算下来也比云服务器便宜又有性价比，不知道大家怎么看？有没有已经这么做的老哥呢？</p>
 ]]></content:encoded>
 <pubDate>2024-06-14T10:19:38Z</pubDate>
-<pubDate>2024-06-14T10:19:38Z</pubDate>
 </item>
 <item>
 <title>[程序员] 关于苹果应用买断转订阅的疑惑</title>
 <link>https://www.v2ex.com/t/1049629</link>
 <guid>https://www.v2ex.com/t/1049629</guid>
 <content:encoded><![CDATA[
-
 <p>我现在的 app 是买断，我先转成免费+订阅的，然后之前买断的用户终生免费，但是我的 app 没有用户系统，有什么方法可以知道 app 是之前买的呢？</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T10:15:33Z</pubDate>
 <pubDate>2024-06-14T10:18:32Z</pubDate>
 </item>
 <item>
@@ -52,12 +294,10 @@
 <link>https://www.v2ex.com/t/1049628</link>
 <guid>https://www.v2ex.com/t/1049628</guid>
 <content:encoded><![CDATA[
-
 <p>网易的 MuMu 模拟器可以在 Mac 上稳定运行，但每个月收费 25 元。</p>
 <p>其它 Mac 平台上的模拟器都只支持 Intel 芯片，不支持 M 芯片。</p>
 <p>有免费的、支持 M 芯片的、Mac 平台上的安卓模拟器吗？</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T10:15:10Z</pubDate>
 <pubDate>2024-06-14T06:15:10Z</pubDate>
 </item>
 <item>
@@ -65,7 +305,6 @@
 <link>https://www.v2ex.com/t/1049626</link>
 <guid>https://www.v2ex.com/t/1049626</guid>
 <content:encoded><![CDATA[
-
 <p>最近有一个 App 项目，朋友在的公司，介绍给我的，下周六会和朋友的老板谈细节。</p>
 <p>因为个人没有对接过和公司的 app 项目开发，所以不知道有哪些坑？
 目前想到的，一个是合同打款问题、一个是需求沟通不清晰问题，还有是研发成本</p>
@@ -96,7 +335,6 @@ app 的用户主流程，核心场景，解决什么问题
 </ol>
 <p>欢迎大家的畅所欲言，先感谢大家的每一条宝贵的意见！</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:54:05Z</pubDate>
 <pubDate>2024-06-14T09:51:05Z</pubDate>
 </item>
 <item>
@@ -104,10 +342,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049625</link>
 <guid>https://www.v2ex.com/t/1049625</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/kmBl5OS.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:53:39Z</pubDate>
 <pubDate>2024-06-14T10:10:30Z</pubDate>
 </item>
 <item>
@@ -115,7 +351,6 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049624</link>
 <guid>https://www.v2ex.com/t/1049624</guid>
 <content:encoded><![CDATA[
-
 <p>投递方式：base64 emhhb3l1bmRvbmcxQGpkLmNvbQ==</p>
 <p>统招本科以上，5 年两段、10 年三段工作经历，有大厂技术背景优先</p>
 <p>岗位职责：
@@ -129,18 +364,15 @@ app 的用户主流程，核心场景，解决什么问题
 4 、本科学历及以上，相关 LBS 工作经验优先；有较强的抗压能力，熟练的沟通技巧，执行力强，具有优秀的团队合作精神优先。</p>
 ]]></content:encoded>
 <pubDate>2024-06-14T09:50:32Z</pubDate>
-<pubDate>2024-06-14T09:50:32Z</pubDate>
 </item>
 <item>
 <title>[问与答] 现在微信返利机器人还能搞不</title>
 <link>https://www.v2ex.com/t/1049623</link>
 <guid>https://www.v2ex.com/t/1049623</guid>
 <content:encoded><![CDATA[
-
 <p>如果要搞的话各位大佬有没有什么坑可以分享下？<br />
 谢谢大佬们</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:47:25Z</pubDate>
 <pubDate>2024-06-14T09:47:25Z</pubDate>
 </item>
 <item>
@@ -148,14 +380,12 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049621</link>
 <guid>https://www.v2ex.com/t/1049621</guid>
 <content:encoded><![CDATA[
-
 <p>公司要求全员装飞连，否则不让连网。
 据说是为了抓大家的把柄，以后开人不给赔偿。
 无论是公司电脑，还是个人自带电脑，都被迫装了飞连。</p>
 <p>飞连能够监控微信聊天内容，从而找到大家的把柄。
 我想请教：如何规避飞连对微信的监控呢？飞连的监控原理？</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:42:13Z</pubDate>
 <pubDate>2024-06-14T10:20:28Z</pubDate>
 </item>
 <item>
@@ -163,7 +393,6 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049619</link>
 <guid>https://www.v2ex.com/t/1049619</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://paste.666666.click/upload/bear-horse-frog" rel="nofollow">镜像源链接</a></p>
 <h2>源使用说明</h2>
 <p>镜像源使用了 Docker Hub 上的 registry 镜像，添加了 TLS 和 Cloudflare 反代。</p>
@@ -197,7 +426,6 @@ app 的用户主流程，核心场景，解决什么问题
 <pre><code>sudo systemctl restart docker
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:38:25Z</pubDate>
 <pubDate>2024-06-14T10:18:30Z</pubDate>
 </item>
 <item>
@@ -205,12 +433,10 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049617</link>
 <guid>https://www.v2ex.com/t/1049617</guid>
 <content:encoded><![CDATA[
-
 <p>1 、新 offer 保底涨幅 30%,额外还有奖金 1-4 个月，看项目营收。工作强度大，995
 2 、现公司涨幅 15%挽留，工作强度低，965.
 不知道该怎么选择了。新 offer 的奖金听说不错，其它福利待遇也好，及时强度大，工作时间长。</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:37:34Z</pubDate>
 <pubDate>2024-06-14T10:18:05Z</pubDate>
 </item>
 <item>
@@ -218,13 +444,11 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049615</link>
 <guid>https://www.v2ex.com/t/1049615</guid>
 <content:encoded><![CDATA[
-
 <p>我现在经常有一些文本或者小文件需要快速共享给局域网的场景，比如 vpn 的订阅连接，某个 json 文件 yml 配置文件，临时分享个密码或者截图等等，我现在只能通过 onedrive 来进行或者往某个 smb 共享盘里丢，太不优雅了</p>
 <p>如果是苹果单生态还好，但是我现在除了苹果生态还有其它设备，迫切需要一个非常简单的局域网数据分享的 docker 服务</p>
 <p>就是一个 web 页面，打开可以往里面丢一些文本和文件，不需要认证和权限，最多只需要一个简单的密码就可以直接进入的那种，任何进入的人都可以新增删除修改文本内容，文件也是可以任意删除和下载</p>
 <p>如果没有我打算周末自己写个了</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:13:59Z</pubDate>
 <pubDate>2024-06-14T10:19:56Z</pubDate>
 </item>
 <item>
@@ -232,10 +456,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049614</link>
 <guid>https://www.v2ex.com/t/1049614</guid>
 <content:encoded><![CDATA[
-
 我租的服务器一月合 80 元，<br /><br />租很多年了。除了有时服务器公司维护，关了几小时外，从来没挂过。<br /><br />近年来，成为我项目的关键，好的项目一定离不开服务器的。
 ]]></content:encoded>
-<pubDate>2024-06-14T09:13:51Z</pubDate>
 <pubDate>2024-06-14T10:13:34Z</pubDate>
 </item>
 <item>
@@ -243,12 +465,10 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049613</link>
 <guid>https://www.v2ex.com/t/1049613</guid>
 <content:encoded><![CDATA[
-
 <p>主路由器 LAN 分配的网段为 192.168.0.0/24, 群晖自身被分配了固定 IP (192.168.0.100).
 目前为部分 Docker 容器分配 192.168.0.128 及其之后的地址 (这些容器连接到单独的网络, 网段为 192.168.0.0/25, 网关地址为 192.168.0.127). 然而容器越来越多, 这种分配方法在以后可能不够用.
 现在设想把 192.168.3.0/24 给 Docker 容器专用, 并且分配到这些地址的容器需要能与群晖自身及路由器互访. 求具体实施流程.</p>
 ]]></content:encoded>
-<pubDate>2024-06-14T09:11:51Z</pubDate>
 <pubDate>2024-06-14T09:55:49Z</pubDate>
 </item>
 <item>
@@ -256,10 +476,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049612</link>
 <guid>https://www.v2ex.com/t/1049612</guid>
 <content:encoded><![CDATA[
-
 我使用的是 MPC-HC 2.3.0 和 MPC Video Renderer 0.8.3.2255<br /><br />如果在设置中通过使用 D3D11 缩放来开启超分辨率，把窗口缩小时，画面会出现严重的锯齿<br /><a href="https://i.imgur.com/LB6aNQw.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/LB6aNQw.png" /></a><br /><br />关闭超分辨率时画质正常<br /><a href="https://i.imgur.com/czWg5QS.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/czWg5QS.png" /></a><br /><br /><br />VideoRenderer 的 issue 上说是 nvidia 的锅<br /><a href="https://github.com/Aleksoid1978/VideoRenderer/issues/122" rel="nofollow noopener" target="_blank">https://github.com/Aleksoid1978/VideoRenderer/issues/122</a><br /><a href="https://github.com/Aleksoid1978/VideoRenderer/issues/120" rel="nofollow noopener" target="_blank">https://github.com/Aleksoid1978/VideoRenderer/issues/120</a><br /><br />目前只能手动切换这个开关，想问问有没有成功解决这个问题的朋友
 ]]></content:encoded>
-<pubDate>2024-06-14T09:10:03Z</pubDate>
 <pubDate>2024-06-14T09:10:03Z</pubDate>
 </item>
 <item>
@@ -267,7 +485,6 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049611</link>
 <guid>https://www.v2ex.com/t/1049611</guid>
 <content:encoded><![CDATA[
-
 <p>投递方式：base64 c2t5d2Fsa2VybGVlQG91dGxvb2suY29t </p>
 <p>职位名称：大模型安全算法策略工程师</p>
 <p>职位概述：</p>
@@ -298,17 +515,14 @@ app 的用户主流程，核心场景，解决什么问题
 5 、具备大模型平台、大模型应用相关领域的工作经验者优先考虑，能够快速适应并掌握新技术。</p>
 ]]></content:encoded>
 <pubDate>2024-06-14T09:07:55Z</pubDate>
-<pubDate>2024-06-14T09:07:55Z</pubDate>
 </item>
 <item>
 <title>[问与答] 大佬们有什么小众 app 是不能删又很常用的？</title>
 <link>https://www.v2ex.com/t/1049607</link>
 <guid>https://www.v2ex.com/t/1049607</guid>
 <content:encoded><![CDATA[
-
 舍不得删，使用很频繁，还能丰富生活
 ]]></content:encoded>
-<pubDate>2024-06-14T08:52:16Z</pubDate>
 <pubDate>2024-06-14T10:19:27Z</pubDate>
 </item>
 <item>
@@ -316,10 +530,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049606</link>
 <guid>https://www.v2ex.com/t/1049606</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/tU09o9l.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-06-14T08:46:31Z</pubDate>
 <pubDate>2024-06-14T04:43:31Z</pubDate>
 </item>
 <item>
@@ -327,10 +539,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049605</link>
 <guid>https://www.v2ex.com/t/1049605</guid>
 <content:encoded><![CDATA[
-
 一直是单身狗，这几年想死（仅仅是单纯想想而已，思想的巨人，行动的矮子🐶），念头一直有<br />为了这个一直不开心，为啥会这么消极呢<br />明明一个人其实过得也挺舒服，玩游戏，看书，看电影，看黄片<br /><br />最近自己有点算是想 ‘通’ 了<br />基因的目的是传播<br />生物是基因的载体<br />生物大部分只能通过繁衍这一手段 实现基因传播 这一目的<br /><br />人是群居动物<br />我可能占有某些资源，能生产资源，也能消耗资源<br /><br />如果我有下一代，会把 占有的这些资源 过让给他们，<br />当我生产的消耗的资源 &gt; 生产的资源，不利于下一代基因传播<br /><br />如果我没有下一代<br />我的兄弟姐妹都有我的部份基因<br />他们的下一代也有我的部份基因<br /><br />我已经无望拥有下一代<br />为了基因的传播，我越早死，对于 兄弟姐妹 基因传播更有利<br />他们的基因能传播更广<br /><br />所以按照上面的链条，单身早死的基因更有利传播，也传播更广<br /><br />结论：我在三十五六岁，单身想死 至少有部份 是基因（天性）起作用<br />每次再出现想死的念头，就知道是基因在作祟（自我安慰满分🐶）<br /><br />不知道对其他人有用么，遂分享一下，哈哈哈<br /><br /><br />注：<br />这些不是我自己想的，是东拼西凑形成的整合怪<br />肯定是不对滴，只是我想当然耳<br />欢迎友好讨论
 ]]></content:encoded>
-<pubDate>2024-06-14T08:43:30Z</pubDate>
 <pubDate>2024-06-14T10:11:20Z</pubDate>
 </item>
 <item>
@@ -338,10 +548,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049604</link>
 <guid>https://www.v2ex.com/t/1049604</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://bbs.nga.cn/read.php?tid=40478929&amp;_fu=40431971,1&amp;rand=649" rel="nofollow">https://bbs.nga.cn/read.php?tid=40478929&amp;_fu=40431971,1&amp;rand=649</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-14T08:37:37Z</pubDate>
 <pubDate>2024-06-14T09:38:08Z</pubDate>
 </item>
 <item>
@@ -349,10 +557,8 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049603</link>
 <guid>https://www.v2ex.com/t/1049603</guid>
 <content:encoded><![CDATA[
-
 我没有资源，就像看个结果。
 ]]></content:encoded>
-<pubDate>2024-06-14T08:37:25Z</pubDate>
 <pubDate>2024-06-14T08:37:25Z</pubDate>
 </item>
 <item>
@@ -360,7 +566,6 @@ app 的用户主流程，核心场景，解决什么问题
 <link>https://www.v2ex.com/t/1049602</link>
 <guid>https://www.v2ex.com/t/1049602</guid>
 <content:encoded><![CDATA[
-
 <p>目前我做测试想做一个特殊的转发，A 代码运行在公网监听两个端口，一个是用户请求；另一个是 B 代码的请求连接。A 接受到请求后将用户的请求转发到 B ，目前表象一直卡在了 B 回传回去的问题上(没有对 B 请求成功是否验证)，请问各位大佬，这个如何操作</p>
 <p>A 代码如下</p>
 <pre><code class="language-go">package main
@@ -659,7 +864,6 @@ func main() {
 }
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-06-14T08:37:18Z</pubDate>
 <pubDate>2024-06-14T10:04:32Z</pubDate>
 </item>
 <item>
@@ -667,10 +871,8 @@ func main() {
 <link>https://www.v2ex.com/t/1049599</link>
 <guid>https://www.v2ex.com/t/1049599</guid>
 <content:encoded><![CDATA[
-
 iPhone15Pro ，电信号码，区域一直是 us ，之前是简中，今天中午切了英语，下午来个好几个骚扰电话没接，电话 app 的 voicemail 标签出现了角标 4 ，居然能用 voicemail 了。<br />在电话设置里多了一个 live voicemail 选项，想问问有没有懂的哥们儿，这功能收费吗？
 ]]></content:encoded>
-<pubDate>2024-06-14T08:26:13Z</pubDate>
 <pubDate>2024-06-14T08:42:28Z</pubDate>
 </item>
 <item>
@@ -678,10 +880,8 @@ iPhone15Pro ，电信号码，区域一直是 us ，之前是简中，今天中�
 <link>https://www.v2ex.com/t/1048364</link>
 <guid>https://www.v2ex.com/t/1048364</guid>
 <content:encoded><![CDATA[
-
 基础界面<br /><a href="https://i.imgur.com/slW1N7f.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/slW1N7f.jpg" /></a><br /><br /><br /><br />批量选择后操作<br /><a href="https://i.imgur.com/phuaUFm.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/phuaUFm.jpg" /></a><br /><br /><br /><br />支持自定义标签<br /><a href="https://i.imgur.com/7ilc9S1.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7ilc9S1.jpg" /></a><br /><br /><br /><br />选词时可以打开词典<br /><a href="https://i.imgur.com/Wc3uipK.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Wc3uipK.jpg" /></a><br /><br /><br />单列展示<br /><a href="https://i.imgur.com/IHshAdS.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/IHshAdS.jpg" /></a><br /><br /><br /><br /><br /><br />访问地址是 <a href="https://h5.langwego.com/app/word-market" rel="nofollow noopener" target="_blank">https://h5.langwego.com/app/word-market</a><br /><br />应用目的是为了更高效、方便的进行单词的管理和批量操作。<br /><br />虽然是作为 LangWeGo 沉浸式英语学习系统的子模块开发的，但没有任何限制，无需登陆就能体验完整的功能：）欢迎加入收藏夹吃灰。有任何意见也可加群反馈。<br /><br />补充一个比较有意思的点，词汇标签里的“StackOverflow 词频数据”，是爬了 StackOverflow 近 50w 条提问，提取出的词频，可以认为这 5000 词是开发必备，开发者可以优先关注这项。以及“程序员发音易错词”取得是忘了哪个开源项目的数据。<br /><br />后续还会继续补充更多的系统标签，用来做聚合检索。
 ]]></content:encoded>
-<pubDate>2024-06-10T21:43:03Z</pubDate>
 <pubDate>2024-06-11T13:03:05Z</pubDate>
 </item>
 <item>
@@ -689,11 +889,9 @@ iPhone15Pro ，电信号码，区域一直是 us ，之前是简中，今天中�
 <link>https://www.v2ex.com/t/1048384</link>
 <guid>https://www.v2ex.com/t/1048384</guid>
 <content:encoded><![CDATA[
-
 <p>不知道这个东西的使用场景是什么，大部份时间 Mac 都是用鼠标的</p>
 <p>用鼠标控制屏幕不会是一件很奇怪的事？为什么不直接拿手机？想不到对应的应用场景</p>
 ]]></content:encoded>
-<pubDate>2024-06-11T01:04:55Z</pubDate>
 <pubDate>2024-06-13T11:56:29Z</pubDate>
 </item>
 <item>
@@ -701,14 +899,11 @@ iPhone15Pro ，电信号码，区域一直是 us ，之前是简中，今天中�
 <link>https://www.v2ex.com/t/1048383</link>
 <guid>https://www.v2ex.com/t/1048383</guid>
 <content:encoded><![CDATA[
-
 <p>现阶段来看，手机上除了 iPhone 15 pro 和 max 能用，其他都不支持 ai 。</p>
 <p>不支持的还有入门款的 ipad ，英特尔处理器的 mac ，好像还有 Vision Pro 。</p>
 ]]></content:encoded>
-<pubDate>2024-06-11T01:04:47Z</pubDate>
 <pubDate>2024-06-13T07:58:11Z</pubDate>
 </item>
-
 <item>
 <title>[NAS] 在搭建 MP 时发现要 IYUU 验证才行。求一个 IYUU 认证站点的药</title>
 <link>https://www.v2ex.com/t/1049596</link>
@@ -15235,457 +15430,6 @@ Clash：Clash.Meta(mihomo)
 <p><a href="https://1u9u.com" rel="nofollow">地址</a></p>
 ]]></content:encoded>
 <pubDate>2024-06-11T02:33:53Z</pubDate>
-</item>
-<item>
-<title>[北京][前端][T6-T7]京东零售居家事业部招聘</title>
-<link>https://www.v2ex.com/t/1048438</link>
-<guid>https://www.v2ex.com/t/1048438</guid>
-<content:encoded><![CDATA[
-<h2>WEB 前端工程师岗 T6 - T7</h2>
-<h2>薪资待遇</h2>
-<p>根据职级不同，(25k - 45k) * 16</p>
-<h2>工作地点</h2>
-<p>北京市亦庄经济开发区科创十一街 18 号院（经海路地铁站）</p>
-<h1>简历投递邮箱</h1>
-<p><a href="mailto:zhanghua326@jd.com">zhanghua326@jd.com</a>
-公司邮箱可能会过滤外部邮件，可同时发送给下面这个个人邮箱
-<a href="mailto:zh1326@qq.com">zh1326@qq.com</a></p>
-<h3>岗位职责</h3>
-<ul>
-<li>负责家部各个业务线的前端开发工作，在保障项目高质量交付的同时，提升系统整体性能和用户体验。</li>
-<li>协同部门落地技术架构规划和建设，优化前端整体框架和设计方案，努力提高前端开发的整体效率和质量。</li>
-<li>协同团队制定技术成长目标，并落实到项目，提升整体的技术水平。</li>
-</ul>
-<h3>任职资格</h3>
-<ul>
-<li>熟练掌握 JavaScript ，Node 等前端技术，能独立完成系统架构设计，有平台级项目架构的经验。</li>
-<li>熟练掌握 React ，Vue 等前端 MV*框架中的一种或多种，了解业界最佳实践。</li>
-<li>具备跨端研发能力，熟悉各种浏览器平台特性，能够很好地解决跨平台问题。</li>
-<li>积极乐观，认真负责，乐于协作，有良好的编码品味，热爱写代码，能产出高质量代码。</li>
-<li>本科以上学历，有 5 年以上互联网 C 端应用研发经验。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-06-10T20:35:29Z</pubDate>
-</item>
-<item>
-<title>[加密货币] 从 kraken 到支付宝，加密资产出金经验分享</title>
-<link>https://www.v2ex.com/t/1048437</link>
-<guid>https://www.v2ex.com/t/1048437</guid>
-<content:encoded><![CDATA[
-<p>在 v 站和其他地方看到一些合法的加密资产出金路径，但都没有描述详细的过程，自己踩坑走了一遍，分享一下过程</p>
-<br />
-一句话总结：去除一次性支出外 3000usdc 实际兑得 21496rmb ，按今日汇率 7.25 算总损耗约为 1.12%
-<p>使用的平台</p>
-<p>kraken ，身份证 kyc ，耗时 1 小时</p>
-<p>ifast 虚拟银行，身份证 kyc ，信用卡账单（地址证明），耗时约 5 天</p>
-<p>wise ，护照 kyc ，找好友或者淘宝入金激活，耗时 1 小时</p>
-<p>一次性支出</p>
-<p>护照工本费 120+快递 22 ，耗时 7 天</p>
-<p>wise 激活 50 （淘宝）</p>
-<p>首次使用 ifast 时，需要同名账户转入，使用 wise 转入 1 英镑，手续费 5 元，耗时 1 个工作日</p>
-<p>共 197rmb</p>
-<p>操作流程</p>
-<p>kraken 3000usdc 兑得 2352 英镑，手续费 0.2%，4.7 英镑</p>
-<p>转出英镑到 ifast ，选择 FPS 路径，手续费 1.95 英镑，耗时 2 小时（有些人的经验是秒到</p>
-<p>ifast FPS 转出英镑到 wise ，手续费 0 ，秒到</p>
-<p>wise 转出英镑到支付宝，手续费 20.77 英镑，到账 21496.41rmb ，秒到</p>
-<p>总手续费 27.42 英镑  254rmb</p>
-<p>从 kraken 充值到支付宝到账总消耗小于 3 小时</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/06/11/Th2pd9R8PntEUfH.jpg" /></p>
-<p>虽然平时有固定的 u 商，汇率比自己走一圈要高，但总担心收到黑钱，相比起来这个路线至少资金是安全的</p>
-<p>以下是两个 aff</p>
-<p>ifast</p>
-<p><a href="https://www.ifastgb.com/tellafriend/haoj6633" rel="nofollow">https://www.ifastgb.com/tellafriend/haoj6633</a> </p>
-<p>wise</p>
-<p><a href="https://wise.com/invite/ihpc/0e8uhcn" rel="nofollow">https://wise.com/invite/ihpc/0e8uhcn</a></p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:33:42Z</pubDate>
-</item>
-<item>
-<title>[Java] SpringDataJpa 如何实现行级数据权限控制？</title>
-<link>https://www.v2ex.com/t/1048436</link>
-<guid>https://www.v2ex.com/t/1048436</guid>
-<content:encoded><![CDATA[
-<p>在网上搜索了很多资料也没发现特别有用的，MybatisPlus 有一个数据权限插件 一键启用 再配置一个 SQL 拼接器就可以了，感觉还是比较方便，jpa 这边没发现有对应的东西，听说老外用 jpa 用的比较多 为什么没有看到相关的讨论了，搜索了一下都是很多年前的回答了，有说用数据库的 ACL 原生实现的，这是主流做法吗?</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:30:27Z</pubDate>
-</item>
-<item>
-<title>[Java] smart-doc 3.0.5 发布，支持普通 Java 类文档的生成</title>
-<link>https://www.v2ex.com/t/1048434</link>
-<guid>https://www.v2ex.com/t/1048434</guid>
-<content:encoded><![CDATA[
-<p>smart-doc 是一款同时支持 JAVA REST API 和 Apache Dubbo RPC 接口文档生成的工具，smart-doc 利用接口泛型和 javadoc 注释自动分析生成 api 接口文档，不采用任何注解侵入到业务代码中。只需要在项目中引入 smart-doc 提供的 maven 或者是 gradle 插件，然后按照规范写好 javadoc 注释即可生成 api 文档。同时 smart-doc 也支持生成 openapi 和 postman 这些规范的文档，生成后可以直接导入相关工具做测试。</p>
-<p>目前在国内已被小米、科大讯飞、同程旅行、快手、马蜂窝、顺丰等知名公司所使用。</p>
-<h1>仓库地址</h1>
-<p><a href="https://github.com/TongchengOpenSource/smart-doc" rel="nofollow">https://github.com/TongchengOpenSource/smart-doc</a></p>
-<h1>重要更新内容</h1>
-<ul>
-<li>新增 @javadoc 标签支持普通 java 类文档的生成（ ps: smart-doc 生成 javadoc 文档）</li>
-<li>修复使用 @order 标签时序列号排序不正确的问题，本次修复后用户可以完全自由设置接口类的 order 编号</li>
-<li>修复 post 接口 content-type 为 form-data 和 urlencoded 时生成 OpenAPI 或者 Postman 导入工具变为 GET 方式的参数填充的 bug.</li>
-<li>支持扫描 SpringBoot ControllerAdvice 全局异常 Handler 生成 OpenAPI HTTP 错误状态（如 404 、500 等）的描述</li>
-</ul>
-<p>本次版本迭代后经过测试，在 Springboot 3.0.0 + 版本下，smart-doc 的 OpenAPI 生成能力甚至优于 springdoc-openapi ，在测试中发现 OpenAPI UI 对于一些接口生成的结构定义存在 bug 。</p>
-<h1>社区贡献</h1>
-<p>smart-doc 作为同程旅行大力支持的开源项目，对于社区贡献的 committer ，我们将提供书籍、文化衫等礼品作为奖励，非常欢迎社区用户参与共建。后续社区也会逐步增加其他语言的支持。</p>
-<h1>未来计划</h1>
-<p>新增 GRPC 支持（欢迎开发者加入参与社区共建）</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:31:09Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教 web3 开发相关事情</title>
-<link>https://www.v2ex.com/t/1048431</link>
-<guid>https://www.v2ex.com/t/1048431</guid>
-<content:encoded><![CDATA[
-<p>本人超大龄开发，目前还在职，但目测公司坚持不了多久了，然后最近刷自媒体视频，发现有不少人在做 web3 的相关线上培训，费用 3000-15000 这中间，提供入门 实际项目开发 mock interview 简历优化等服务，请问这个靠谱吗，现在的 web3 远程工作有这么多吗，我了解后，据他们说 web3 现在有点像移动互联网刚兴起的那时候，工作多，薪资高，请行内人士的指点；主要是本人想要找一条可以持续做开发的路</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:24:14Z</pubDate>
-</item>
-<item>
-<title>[RSS] 推一个 web 版的阅读器： rss-reader，无登录，跳源网页阅读</title>
-<link>https://www.v2ex.com/t/1048430</link>
-<guid>https://www.v2ex.com/t/1048430</guid>
-<content:encoded><![CDATA[
-<h2><strong>介绍</strong></h2>
-<p>介绍与源码请看原项目：<a href="https://github.com/srcrs/rss-reader" rel="nofollow">rss-reader</a></p>
-<p>在原项目（ 23 年 9 月版本）基础上（我修改的）：</p>
-<ul>
-<li>自定义标题和描述</li>
-<li>列表高度</li>
-<li>一点样式</li>
-</ul>
-<h2><strong>预览</strong></h2>
-<p><img alt="light" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/06/04/c72a23cc848d0110.jpg" />
-<img alt="dark" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/06/04/42af8d377ea6f618.jpg" /></p>
-<h2><strong>搭建</strong></h2>
-<p><strong>准备</strong>：服务器安装好 docker</p>
-<p><strong>开始</strong>：
-一、 创建文件夹，如“rrx”</p>
-<p><code>mkdir rrx</code></p>
-<p>二、进入文件夹</p>
-<p><code>cd rrx/</code></p>
-<p>三、创建文件：config.json （"values"改成自己的 rss 地址,“listHeight”控制列表高度，源多可以试试 300 ）</p>
-<pre><code>{
-    "values": [
-        "https://linux.do/latest.rss",
-        "https://www.v2ex.com/feed/vps.xml"
-    ],
-    "refresh": 6,
-    "autoUpdatePush": 7,
-    "listHeight": "600",
-    "webTitle": "Hello",
-    "webDes":"My station"
-}
-</code></pre>
-<p>四、创建文件：docker-compose.yml</p>
-<pre><code>version: "3"
-
-services:
-  server:
-    image: topang/rss-reader-mix:latest
-    container_name: rss-reader-mix
-    restart: always
-    ports:
-      - "8880:8080"
-    volumes:
-      - "$PWD/config.json:/app/config.json"
-
-</code></pre>
-<p>五、启动！</p>
-<p><code>docker-compose up -d</code></p>
-<p>访问 8880 端口（ ip:8880 ）</p>
-<p>六、添加反代（ Nginx 配置文件添加在 server{...}里面）</p>
-<pre><code> location ^~ /{
-    proxy_pass http://127.0.0.1:8880;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header REMOTE-HOST $remote_addr;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_http_version 1.1;
-    # proxy_hide_header Upgrade;
-
-    add_header X-Cache $upstream_cache_status;
-
-    #Set Nginx Cache
-    
-    
-    set $static_fileHXsgUAWW 0;
-    if ( $uri ~* "\.(gif|png|jpg|css|js|woff|woff2)$" )
-    {
-    	set $static_fileHXsgUAWW 1;
-    	expires 1m;
-        }
-    if ( $static_fileHXsgUAWW = 0 )
-    {
-    add_header Cache-Control no-cache;
-    }
-}
-</code></pre>
-<p>搭好：<a href="https://lp.wiki/" rel="nofollow">DEMO</a></p>
-<h2><strong>一些 RSS 资源</strong></h2>
-<p><a href="https://docs.rsshub.app/zh/routes/popular" rel="nofollow">rsshub</a> 、  <a href="https://github.com/cooderl/wewe-rss" rel="nofollow">公众号转 RSS：wewe-rss</a>  、  <a href="https://github.com/okhanyu/rss-reader" rel="nofollow">二开 rss-reader 推送版</a></p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:24:42Z</pubDate>
-</item>
-<item>
-<title>[.NET] 英语好的.net 同学看过来了</title>
-<link>https://www.v2ex.com/t/1048429</link>
-<guid>https://www.v2ex.com/t/1048429</guid>
-<content:encoded><![CDATA[
-<p>我司经典问题：  在 .NET Compact Framework 中如何管理内存？
-<a href="http://如果你对自己的英语和.net" rel="nofollow">如果你对自己的英语和.net</a> 自信的话，请联系我
-base 上海 （可选居家办公）
-要求：24-35 岁，英语能开口
-薪资 40 万-80 万（可谈）
-2 轮面试，出结论快</p>
-]]></content:encoded>
-<pubDate>2024-06-10T22:22:46Z</pubDate>
-</item>
-<item>
-<title>[程序员] 震惊，刚老家一警察打电话来说我加入了一个电报群组</title>
-<link>https://www.v2ex.com/t/1048428</link>
-<guid>https://www.v2ex.com/t/1048428</guid>
-<content:encoded><![CDATA[
-<p>----电话过来直接自报老家公安的，问是不是加入了一个群组，我啊了一声什么，说境外的电报群，再问有没有在里面发过言，我说你都能打电话过来你不知道我发没发过？</p>
-<p>----最后拉扯了一番让我退出去，关键我搞 it 加了一堆，技术的擦边的时政的。</p>
-<p>----所以反推一下其实老大哥一直在看着你们每一个人，不论粉红中性批评派，不管你今天立了多大功，哪天你在他们看来姿势不对就会找到你。</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:35:13Z</pubDate>
-</item>
-<item>
-<title>[游戏] 如何推广独立开发游戏</title>
-<link>https://www.v2ex.com/t/1048427</link>
-<guid>https://www.v2ex.com/t/1048427</guid>
-<content:encoded><![CDATA[
-<p>就像标题一样，我自己开发一个小游戏上架了 ios ，
-请教一下大家有没有好的推广思路。</p>
-<ul>
-<li>不想花钱找渠道推广，因为游戏本身的投入不大。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-06-11T02:26:05Z</pubDate>
-</item>
-<item>
-<title>[计算机] 大家有没有对计算机四件套学不下去的感觉（计组，操作系统，计网，数构），怎么能学下去呢</title>
-<link>https://www.v2ex.com/t/1048426</link>
-<guid>https://www.v2ex.com/t/1048426</guid>
-<content:encoded><![CDATA[
-<p>从应用到原理应该能更引起我的兴趣一些，有什么可以参照的实操好办法吗</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:24:46Z</pubDate>
-</item>
-<item>
-<title>[生活] 楼上经常噪音打扰休息，有什么妙招</title>
-<link>https://www.v2ex.com/t/1048425</link>
-<guid>https://www.v2ex.com/t/1048425</guid>
-<content:encoded><![CDATA[
-<p>OP 目前是和对象一起租房，是一个 17 年的安置小区，小套二，座标四川。</p>
-<p>房子上下隔音差，OP 是 17 楼次顶层，楼上 18 楼是顶层。因为小房间会暖和点，冬天住的次卧，从今年入春开始搬到主卧后，楼上在早晚时间段有明显噪音如下：</p>
-<ol>
-<li>晚上 23 点后，楼上貌似在打游戏，时常哈哈大笑或愤怒叫唤，并在 0 点之后达到顶峰（因为准备睡了周遭很安静，只有他的声音回荡）。</li>
-<li>最近发生的：早上 7 点后楼上开始咚咚的震动，像是有人在跑步或者锤地板。</li>
-<li>第 2 点偶尔也会在非休息时段发生，例如傍晚，且持续时间最少 10min 。</li>
-</ol>
-<p>OP 目前做过的努力如下：</p>
-<ol>
-<li>去物业投诉，随后跟随保安师傅一同前去提醒，开门的是一个高个微胖男子，也算面善吧。在提醒之后，对方态度也还可以，表示知道了会注意，随后我们也就撤退了。</li>
-<li>可能过了几天，某天晚上再次重现，于是找房东沟通（因为安置小区，大部分都是一个村或者邻村的，可能会认识）。房东表示之前听说楼上房子出租，所以楼上也应该是租房的，但是不认识他的房东。房东表示会再去找物业勾兑，后面貌似又好了几天。</li>
-<li>然后就发生了上面的第 2 点，早上 OP 和对象同时被吵醒，穿好衣服直接上去砸门，本来准备了一肚子骂娘的话，但是开门之后那男的依旧态度端正，说自己早上在运动，但是垫了瑜伽垫，并表示不知道这房子隔音这么差。随后骂娘的话咽了回去，还是耐心给他沟通，表示晚上 0 点之后，早上 8 点之前，请保持安静，其余时间自便。</li>
-</ol>
-<p>然后今早 7 点过又开始了，于是有了这篇帖子😅朋友建议可以报警，但是不知道这种算不算民事纠纷，能不能给那男的留个案底，甚至能不能震慑到他，我都不确定，所以也一直没有给叔叔打电话。今早 OP 一肚子火，想再次上楼去砸门，但是那男的每次态度很端正，甚至有一种应付了事的感觉。哪怕当面骂他娘，人家转头回去，该打游戏该运动，狗改不了吃屎。</p>
-<p>之前本以为他会有室友，想着某次要是找到他室友了，可以多问点东西。但几次交涉下来，每次开门的都是他，也没在他的屋子里瞟到任何一个室友，不排除是自己单独租房。</p>
-<p>实在是没点子了，本来想这两年会买房，希望这会是最后一次租房。东西也很多，不愿意搬来搬去的。并且 OP 对象表示，大家都是租房的，凭什么我们走而不是他走？以暴制暴的方案想了想也不好实现，要是每天殚精竭虑的等他休息的时候去搔扰他，有点无趣了，所以震楼器诸如此类可以 pass 掉。</p>
-<p>感谢万能的 V 友！</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:33:18Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 承接 网站 DSL 语法定义与实现，欢迎有需要的老板联系</title>
-<link>https://www.v2ex.com/t/1048424</link>
-<guid>https://www.v2ex.com/t/1048424</guid>
-<content:encoded><![CDATA[
-参考<br /><a href="https://formdsl.com/work/dsl" rel="nofollow noopener" target="_blank">https://formdsl.com/work/dsl</a><br /><br />wechat：c2FpbGVpMQ==
-]]></content:encoded>
-<pubDate>2024-06-11T02:14:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家是怎么渡过人生最难的时间呢</title>
-<link>https://www.v2ex.com/t/1048422</link>
-<guid>https://www.v2ex.com/t/1048422</guid>
-<content:encoded><![CDATA[
-今年三月姥姥走了<br />五月老妈确诊胶质瘤<br />上周通知裁员<br />生活啊生活
-]]></content:encoded>
-<pubDate>2024-06-11T02:30:19Z</pubDate>
-</item>
-<item>
-<title>[Apple] 请教苹果电脑间如何迁移数据？</title>
-<link>https://www.v2ex.com/t/1048421</link>
-<guid>https://www.v2ex.com/t/1048421</guid>
-<content:encoded><![CDATA[
-<p>公司的一台老 mbp1 ，一直在用，但越发觉得卡顿，打算换成自己的 mbp2 。
-但是 mbp2 并不是全新的状态，自己在家也一直在用。
-我想是合并数据，将 mbp1 的数据传输到 mbp2 上，同时 mbp2 的原始数据也保留。</p>
-<p>我理解 mac 系统自带的迁移助理，只适用于迁移到全新的电脑上吧？
-所以请教各位大佬有什么办法解决吗？</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:08:55Z</pubDate>
-</item>
-<item>
-<title>[信息安全] 一个非常严重的漏洞 Windows 下使用 PHP 的注意</title>
-<link>https://www.v2ex.com/t/1048418</link>
-<guid>https://www.v2ex.com/t/1048418</guid>
-<content:encoded><![CDATA[
-<p>放假一回来 客户就打电话来反馈网站无法访问 文件都被加上了.locked 的后缀还有<code>READ_ME9.html</code>的比特币勒索信息<br />
-后来查了下是 PHP 爆了严重漏洞 CVE-2024-4577<br />
-可以远程执行任意代码影响 Windows 下所有 PHP 版本<br />
-建议即时修补漏洞和备份服务器<br />
-参考链接 <a href="https://www.bleepingcomputer.com/news/security/php-fixes-critical-rce-flaw-impacting-all-versions-for-windows/" rel="nofollow">https://www.bleepingcomputer.com/news/security/php-fixes-critical-rce-flaw-impacting-all-versions-for-windows/</a></p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:04:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位大佬帮小弟想想办法吧,mongo 同步线上数据库到本地 mongo</title>
-<link>https://www.v2ex.com/t/1048417</link>
-<guid>https://www.v2ex.com/t/1048417</guid>
-<content:encoded><![CDATA[
-<p>目前是阿里上面的 mongo 集群，领导想把数据从线上数据库增量同步到线下做数据分析，但是线下的 mongo 数据库加入不了到阿里云 mongo 的副本集合（阿里删除了 rs.add()命令），领导让我拿方案，目前想到的是解析 oplog ，问下大佬这是不是最优解呀。</p>
-<p>感谢大佬了。</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:23:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 直播教你 IOS 签名安装软件的套路</title>
-<link>https://www.v2ex.com/t/1048416</link>
-<guid>https://www.v2ex.com/t/1048416</guid>
-<content:encoded><![CDATA[
-最近看了一些直播，里面教你怎么去弄 p12 正式，然后安装签证软件啥的，发了一堆的教程，进群后全群禁止发言，这种有什么套路啊？
-]]></content:encoded>
-<pubDate>2024-06-09T02:04:24Z</pubDate>
-</item>
-<item>
-<title>[Apple] 今天突然频繁出现“连接请求来自： iPhone ”</title>
-<link>https://www.v2ex.com/t/1048415</link>
-<guid>https://www.v2ex.com/t/1048415</guid>
-<content:encoded><![CDATA[
-m1 的 mba ，macOS14.5(23F79)，电脑和手机都没有手动更新过系统，而且手机也名字也不叫 iPhone<br />这是我手机抽疯了，还是确实附近有一个设备在骚扰我<br />唯一的区别是今天来了教学区上课<br /><a href="https://i.imgur.com/wrnmaKO.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/wrnmaKO.png" /></a>
-]]></content:encoded>
-<pubDate>2024-06-11T02:29:39Z</pubDate>
-</item>
-<item>
-<title>[Python] 吐槽一下国产银河麒麟系统</title>
-<link>https://www.v2ex.com/t/1048414</link>
-<guid>https://www.v2ex.com/t/1048414</guid>
-<content:encoded><![CDATA[
-<h1>海光的 CPU ，装的银河麒麟桌面系统 V10 （ SP1 ）</h1>
-<ul>
-<li>简单的 python 项目，pyinstaller 打包成可执行程序后，打开后巨慢，等一分钟多出现主窗口。</li>
-<li>即使测试最简单 tkinter 的一个主窗口，打包后再打开也是巨慢。</li>
-<li>慢也就罢了，应用程序拿到另外一台同样配置的机器上，很多元素都不能正常显示。</li>
-</ul>
-<p>一堆吐槽的地方</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:32:03Z</pubDate>
-</item>
-<item>
-<title>[教育] 高考结束了，你在高中时期做过印象最深的事情是什么？</title>
-<link>https://www.v2ex.com/t/1048413</link>
-<guid>https://www.v2ex.com/t/1048413</guid>
-<content:encoded><![CDATA[
-<p>我高中有一件糗事，印象深刻，现在还经常想起.</p>
-<p>高二时部分优秀同学（大约 60 人）要上提高班，那一天是周五下午，在大教室上课。不同于一般教室门口位置在讲台前面，大教室是在中间位置，而我正好坐在那里。</p>
-<p>上的是物理，临近下课，年级组长老师（我的英语老师）从教室外递给我一个小纸条，没说什么就匆匆走了。我打开一开，上面写着：明天（周六）上午辅导取消。</p>
-<p>那时候的我还很内向，到下课了都没把纸条给上课的物理老师。</p>
-<p>下课后跟年级组长老实交代没有让物理老师通知大家。知道她要生气，没等她开口，紧接着我就主动说愿意挨个班级去通知。</p>
-<p>那时临近放学，我只能硬着头皮挨个跑去各个班级通知周六不用上课，十个班级跑了一遍，累瘫...</p>
-<p>后悔死了当时没把纸条给上课的物理老师，过去那么多年了，还经常想起这件糗事。</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:17:44Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 🥳送码，一个好友管理,名片制作 App；</title>
-<link>https://www.v2ex.com/t/1048412</link>
-<guid>https://www.v2ex.com/t/1048412</guid>
-<content:encoded><![CDATA[
-<h2>介绍</h2>
-<p>优化了一下数字名片 App ，让它可以在地图，看到好友位置；管理与好友相关的事件和提醒；</p>
-<p>另外核心功能，锁屏名片和 NFC 名片也得到了加强；</p>
-<p>会员兑换码在最后，欢迎大家体验建议；</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8dd5e6d1bfa05d8d9b7.webp" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c848.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c8b6.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c8ee.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a8c85e6d1bfa05d8c86e.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a9025e6d1bfa05d8fa21.png" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6667a9155e6d1bfa05d9067b.png" /></p>
-<h2>NFC 功能视频教程</h2>
-<p>教程 1： <a href="https://www.bilibili.com/video/BV1Wx4y1b7nx/?spm_id_from=333.999.0.0&amp;vd_source=c6b1ab4807a01822ae77bb1ee2efa8c8" rel="nofollow">几毛钱一个的 nfc 贴纸，也能玩出花样来</a>。</p>
-<p>教程 2： <a href="https://www.bilibili.com/video/BV1ZC4y1z76R/?spm_id_from=333.999.0.0&amp;vd_source=c6b1ab4807a01822ae77bb1ee2efa8c8" rel="nofollow">个人数字名片制作</a>。</p>
-<h2>会员兑换码</h2>
-<p>永久会员</p>
-<ul>
-<li>WMYT73J6JRWP</li>
-<li>4YLRYLPP3M6X</li>
-<li>7A4NPYEWJETN</li>
-<li>KWR6NKEE77FA</li>
-<li>73E7T9RY669J</li>
-</ul>
-<p>一年会员</p>
-<ul>
-<li>LW46R7LH94FP</li>
-<li>NXMXAHHH9RPR</li>
-<li>MXJ3744LPP3N</li>
-<li>EH37NW3HP7MT</li>
-<li>NY4WFRR3K6YK</li>
-<li>6JLKAMEKXYXN</li>
-<li>E94XHF3WJEKX</li>
-<li>PL7Y37MYXJAT</li>
-<li>AMFKXJR4EWWJ</li>
-<li>L9K3JNAKPJ4X</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-06-11T02:32:45Z</pubDate>
-</item>
-<item>
-<title>[路由器] 如何判断某个请求被 passwall 代理了？</title>
-<link>https://www.v2ex.com/t/1048408</link>
-<guid>https://www.v2ex.com/t/1048408</guid>
-<content:encoded><![CDATA[
-<p>最近在网关部署 mosdns 用于 dns 分流，期望域名 <a href="http://google.com" rel="nofollow">google.com</a> 请求 8.8.8.8 ，<a href="http://baidu.com" rel="nofollow">baidu.com</a> 请求 alidns 。但是现在执行 dig <a href="http://google.com" rel="nofollow">google.com</a> 总是返回 SERVFAIL 结果。</p>
-<p>同时，该网关也部署了 passwall ，请问该如何验证 mosdns 请求 8.8.8.8 的时候是通过 passwall 正确代理了，而不是直接去请求了 8.8.8.8 ？是否有什么日志或者命令能辅助 debug ？</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:09:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求 mac 上 iterm 的平替推荐</title>
-<link>https://www.v2ex.com/t/1048407</link>
-<guid>https://www.v2ex.com/t/1048407</guid>
-<content:encoded><![CDATA[
-<p>iterm 用的时间长了有时候会有点卡，有推荐的吗</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:20:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] centos7 系统中存在大量 tcp6 TIME_WAIT 的连接</title>
-<link>https://www.v2ex.com/t/1048406</link>
-<guid>https://www.v2ex.com/t/1048406</guid>
-<content:encoded><![CDATA[
-<p>如何排查原因，如何修复呢</p>
-<p><img alt="time_wait" class="embedded_image" rel="noreferrer" src="https://img.picui.cn/free/2024/06/11/6667aba47b765.png" /></p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:11:08Z</pubDate>
-</item>
-<item>
-<title>[Apple] 有没有感觉 iOS 18 的 AI 还没有三星的 Galaxy AI 实用？</title>
-<link>https://www.v2ex.com/t/1048405</link>
-<guid>https://www.v2ex.com/t/1048405</guid>
-<content:encoded><![CDATA[
-<p>对一般的用户来说，照片消除路人，即圈即搜这些不才是使用频率最高的么</p>
-]]></content:encoded>
-<pubDate>2024-06-11T02:26:47Z</pubDate>
 </item>
 </channel>
 </rss>
