@@ -5,11 +5,851 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] xbox live 后台太牛逼了。</title>
+<link>https://www.v2ex.com/t/1050329</link>
+<guid>https://www.v2ex.com/t/1050329</guid>
+<content:encoded><![CDATA[
+
+刚才看到系统监控，下载速度 40mb/s ，再看我也没开迅雷啊。<br />然后用火绒的流量监控，看到是 clash 带来的，点开 clash ，看 connections 那项，发现是 xbox live 。<br />估计在更新游戏。<br />吓人
+]]></content:encoded>
+<pubDate>2024-06-17T12:34:11Z</pubDate>
+<pubDate>2024-06-15T12:34:11Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求教国内网络 UDP 对音视频通话的友好程度</title>
+<link>https://www.v2ex.com/t/1050328</link>
+<guid>https://www.v2ex.com/t/1050328</guid>
+<content:encoded><![CDATA[
+
+<p>本人是做 WebRTC 音视频聊天开发，音视频走的都是 UDP 协议。在模拟环境对比腾讯会议和微信，我们做的程序在抗丢包，带宽拥塞控制方面都不比腾讯差多少。</p>
+<p>但是在线上环境总有不少用户反馈，使用我们的产品视频通话就卡，使用腾讯会议就没问题。通过统计数据看，用户卡的时候，UDP 通信带宽非常低，基本在 100kbps 以下了。</p>
+<p>最近看了 V 站上有讨论国内运营商对 UDP 有限制，所以想弄明白，运营商事对国外到国内的 UDP 有限制，还是境内内部的 UDP 也有限制。为什么相同条件下腾讯会议表现不卡，我们的卡？难道运营商对腾讯会议这些用户量大的软件有白名单？</p>
+]]></content:encoded>
+<pubDate>2024-06-17T12:31:07Z</pubDate>
+<pubDate>2024-06-17T12:35:23Z</pubDate>
+</item>
+<item>
+<title>[C++] 请教大家一个 C++线程池的问题</title>
+<link>https://www.v2ex.com/t/1050327</link>
+<guid>https://www.v2ex.com/t/1050327</guid>
+<content:encoded><![CDATA[
+
+<p>最近在找一个简单的 C++11 线程池实现，发现网上有很多相关的代码，在 CSDN 网上看到一个比较简洁的。但是总感觉是不是实现错了。</p>
+<ol>
+<li>Any 类 noncopyable 的，仅仅支持移动语义，</li>
+<li>Result 类使用了 Any 实例作为成员变量，那么 Result 类应该也是 noncopyable 的， </li>
+<li><code>Result SubmitTask(std::shared_ptr&lt;Task&gt; taskPtr);</code>直接使用了复制语义，应该是有问题吧，可是代码能够被 vs2022 正常编译。</li>
+</ol>
+<p>threadpool.h</p>
+<pre><code class="language-C++">#pragma once
+#include &lt;vector&gt;
+#include &lt;cstdint&gt;
+#include &lt;queue&gt;
+#include &lt;memory&gt;
+#include &lt;atomic&gt;
+#include &lt;mutex&gt;
+#include &lt;thread&gt;
+#include &lt;condition_variable&gt;
+#include &lt;functional&gt;
+#include &lt;sstream&gt;
+#include &lt;unordered_map&gt;
+
+
+// Any 类型：可以接收任意数据的类型
+// 任意其他类型 template
+// 能让一个类型指向其他类型，基类指针可以指向子类
+class Any
+{
+public:
+	Any() = default;
+	~Any() = default;
+	Any(const Any&amp;) = delete;
+	Any&amp; operator=(const Any&amp;) = delete;
+	Any(Any&amp;&amp;) = default;
+	Any&amp; operator=(Any&amp;&amp;) = default;
+
+	template&lt;typename T&gt;
+	Any(T data) : m_base(std::make_unique&lt;Derive&lt;T&gt;&gt;(data)) {}
+
+	template&lt;typename T&gt;
+	T cast_()
+	{
+		Derive&lt;T&gt;* pd = dynamic_cast&lt;Derive&lt;T&gt;*&gt;(m_base.get());
+
+		if (pd == nullptr) {
+			throw "type is unmath!!";
+		}
+
+		return pd-&gt;m_data;
+	}
+
+private:
+	// 基类
+	class Base
+	{
+	public:
+		virtual ~Base() = default;
+	};
+
+	// 派生类
+	template&lt;typename T&gt;
+	class Derive : public Base
+	{
+	public:
+		Derive(T data) : m_data(data) {}
+	public:
+		T m_data;
+	};
+
+private:
+	std::unique_ptr&lt;Base&gt; m_base;
+};
+
+
+// 实现一个信号量类
+class Semaphore
+{
+public:
+	Semaphore(int limit = 0) : m_resLimit(limit)
+	{}
+
+	~Semaphore() = default;
+
+	// 获取一个信号量资源
+	void wait()
+	{
+		std::unique_lock&lt;std::mutex&gt; lock(m_mtx);
+		// 如果没有资源，阻塞线程
+		while (m_resLimit &lt; 1) {
+			m_cond.wait(lock);
+		}
+
+		m_resLimit--;
+	}
+
+	// 增加一个信号量资源
+	void post()
+	{
+		std::unique_lock&lt;std::mutex&gt; lock(m_mtx);
+		m_resLimit++;
+		m_cond.notify_all();
+
+	}
+private:
+	int m_resLimit;  // 资源量
+	std::mutex m_mtx;
+	std::condition_variable m_cond;
+};
+
+
+// Task 类型前置声明
+class Task;
+
+// 实现接收提交到线程池的 task 任务执行完成后的返回值类型
+class Result
+{
+public:
+	Result(std::shared_ptr&lt;Task&gt; task, bool isValid = true);
+	~Result() = default;
+
+	// setVal
+	void setVal(Any result);
+
+	// get 方法，用户调用这个方法获取 task 的返回值
+	Any get();
+private:
+	Any m_any;
+	Semaphore m_sem;
+	std::shared_ptr&lt;Task&gt; m_task;
+	std::atomic_bool m_isValid;
+};
+
+
+// 任务抽象基类
+class Task
+{
+public:
+	void exec();
+	void setResult(Result* res);
+	virtual Any run() = 0;
+
+private:
+	Result* m_result{ nullptr };  // 不要用智能指针，task 含有 Result  Result 含有 task ，可能导致问题
+};
+
+class MyTask : public Task
+{
+public:
+	MyTask(int start, int end) : m_start(start), m_end(end) {}
+
+	Any run()
+	{
+		std::ostringstream ostr;
+		ostr &lt;&lt; std::this_thread::get_id();
+		printf("thead %s, task start \n", ostr.str().c_str());
+
+		uint64_t sum = 0;
+
+		for (int i = m_start; i &lt;= m_end; i++) {
+			sum += i;
+		}
+
+		printf("sum %llu\n", sum);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+		printf("thread %s, task finish \n", ostr.str().c_str());
+
+		return sum;
+	}
+
+private:
+	int m_start;
+	int m_end;
+};
+
+enum ThreadPoolMode
+{
+	MODE_FIXED,  // 固定数量的线程
+	MODE_CACHED,  // 线程数量可以动态增长
+};
+
+class Thread
+{
+public:
+	using ThreadFunc = std::function&lt;void(int)&gt;;
+
+	Thread(ThreadFunc func);
+	~Thread();
+
+	void Start();
+	int GetId() { return m_threadId; }
+private:
+	ThreadFunc m_func;
+	static int generateId;
+	int m_threadId;
+};
+
+
+class ThreadPool
+{
+public:
+	ThreadPool();
+	~ThreadPool();
+
+	// 设置线程池工作模式
+	void SetMode(ThreadPoolMode mode);
+
+	// 设置任务数量上限
+	void SetTaskQueMaxThreshold(int value);
+
+	// 给线程池提交任务
+	Result SubmitTask(std::shared_ptr&lt;Task&gt; taskPtr);
+
+	// 开启线程池
+	void Start(int initThreadSize = std::thread::hardware_concurrency());
+
+private:
+	ThreadPool(const ThreadPool&amp;) = delete;
+	ThreadPool&amp; operator=(const ThreadPool&amp;) = delete;
+
+	// 定义线程函数
+	void ThreadFunc(int threadId);
+	bool CheckRunningState() const;
+
+private:
+	std::unordered_map&lt;int, std::unique_ptr&lt;Thread&gt;&gt; m_threadMap;  // 线程列表
+	int m_initThreadSize;  // 初始的线程数量
+	std::atomic_int m_curThreadSize;  // 当前线程数量
+
+	std::queue&lt;std::shared_ptr&lt;Task&gt;&gt; m_taskQue;  // 任务队列
+	std::atomic_int m_taskSize;  // 任务的数量
+	int m_taskQueMaxThreshold;  // 任务队列的数量上限
+
+	std::mutex m_taskQueMtx;  // 保证任务队列的线程安全
+	std::condition_variable m_taskQueNotFullCv;  // 表示任务队列不满
+	std::condition_variable m_taskQueNotEmptyCv;  // 表示任务队列不空
+	std::condition_variable m_exitCv;  // 退出线程池
+
+	ThreadPoolMode m_poolMode;  // 当前线程池的工作模式
+	std::atomic_bool m_isPoolRuning;  // 当前线程工作状态
+};
+</code></pre>
+<p>threadpool.cpp</p>
+<pre><code class="language-C++">#include "threadpool.h"
+#include &lt;functional&gt;
+#include &lt;iostream&gt;
+
+constexpr int TASK_MAX_THRESHOLD = 1024;
+
+ThreadPool::ThreadPool() : m_initThreadSize(4), m_taskSize(0),
+m_taskQueMaxThreshold(TASK_MAX_THRESHOLD),
+m_poolMode(ThreadPoolMode::MODE_FIXED)
+{
+}
+
+ThreadPool::~ThreadPool()
+{
+	m_isPoolRuning = false;
+	std::unique_lock&lt;std::mutex&gt; lock(m_taskQueMtx);
+
+	// 线程 要么在阻塞中 要么在工作中
+	while (m_threadMap.size() &gt; 0) {
+		m_taskQueNotEmptyCv.notify_all();  // 唤醒等待的工作线程
+		m_exitCv.wait(lock);
+	}
+}
+
+void ThreadPool::SetMode(ThreadPoolMode mode)
+{
+	if (m_isPoolRuning) { return; }  // 线程池启动后，不允许设置线程池一些参数
+
+	m_poolMode = mode;
+}
+
+void ThreadPool::SetTaskQueMaxThreshold(int value)
+{
+	if (m_isPoolRuning) { return; }
+
+	m_taskQueMaxThreshold = value;
+}
+
+Result ThreadPool::SubmitTask(std::shared_ptr&lt;Task&gt; taskPtr)
+{
+	// 获取锁
+	std::unique_lock&lt;std::mutex&gt; lock(m_taskQueMtx);
+
+	// 线程通信，检查任务队列是否有空余
+	while (m_taskQue.size() &gt;= m_taskQueMaxThreshold) {
+
+		// 用于提交任务，不能阻塞太长时间，如果超过 1s ，给用户返回提交失败
+		if (m_taskQueNotFullCv.wait_for(lock, std::chrono::seconds(1)) == std::cv_status::timeout) {
+			return Result(taskPtr, false);
+		}
+	}
+
+	// 如果有空余，把任务提交到任务队列中
+	m_taskQue.emplace(taskPtr);
+	m_taskSize++;
+
+	// 因为新放了任务，任务队列肯定不为空了，在 m_taskQueNotEmptyCv 进行通知，赶快分配线程执行这个任务
+	m_taskQueNotEmptyCv.notify_all();
+
+	return Result(taskPtr);
+}
+
+void ThreadPool::Start(int initThreadSize)
+{
+	m_initThreadSize = initThreadSize;
+	m_curThreadSize = initThreadSize;
+    m_isPoolRuning = true;
+
+	// 创建线程对象
+	for (int i = 0; i &lt; m_initThreadSize; i++) {
+		auto ptr = std::make_unique&lt;Thread&gt;(std::bind(&amp;ThreadPool::ThreadFunc, this, std::placeholders::_1));
+		int threadId = ptr-&gt;GetId();
+		m_threadMap.emplace(threadId, std::move(ptr));
+	}
+
+	// 启动所有线程
+	for (auto iter = m_threadMap.cbegin(); iter != m_threadMap.end(); iter++) {
+		iter-&gt;second-&gt;Start();
+	}
+}
+
+void ThreadPool::ThreadFunc(int threadId)
+{
+	while (true) {
+
+		// 获取锁
+		std::unique_lock&lt;std::mutex&gt; lock(m_taskQueMtx);
+
+		std::ostringstream ostr;
+		ostr &lt;&lt; std::this_thread::get_id();
+		printf("thead %s, To Get task \n", ostr.str().c_str());
+
+		// 判断任务队列是否为空
+		while (m_taskQue.empty()) {
+			if (!m_isPoolRuning) {
+				m_threadMap.erase(threadId);
+				m_exitCv.notify_all();
+
+				printf("deconstructor thread exit, id = %d\n", threadId);
+				return;
+			}
+            
+			m_taskQueNotEmptyCv.wait(lock);
+
+		}
+
+		printf("thead %s, Getted task \n", ostr.str().c_str());
+		// 不为空，获取任务
+		auto taskPtr = m_taskQue.front();  // front()返回引用，auto 忽略引用属性，正好满足需要
+		m_taskQue.pop();
+		m_taskSize--;
+
+		lock.unlock();  // 释放锁；
+
+		// 如果任务队列还有任务，通知其他线程执行任务
+		if (m_taskQue.size() &gt; 0) {
+			m_taskQueNotEmptyCv.notify_all();
+		}
+
+		// 通知队列已经不满
+		m_taskQueNotFullCv.notify_all();
+
+		taskPtr-&gt;exec();
+
+		if (!m_isPoolRuning) {
+			m_threadMap.erase(threadId);
+			m_exitCv.notify_all();
+
+			printf("deconstructor thread exit, id = %d\n", threadId);
+			return;
+		}
+
+	}
+}
+
+bool ThreadPool::CheckRunningState() const
+{
+	if (m_isPoolRuning) {
+		return true;
+	}
+
+	return false;
+}
+
+// 线程方法
+int Thread::generateId = 0;
+
+Thread::Thread(ThreadFunc func) : m_func(func),
+								m_threadId(generateId++)
+{
+}
+
+Thread::~Thread()
+{
+}
+
+void Thread::Start()
+{
+	std::thread t(m_func, m_threadId);
+	t.detach();
+}
+
+Result::Result(std::shared_ptr&lt;Task&gt; task, bool isValid) : m_task(task), m_isValid(isValid)
+{
+	m_task-&gt;setResult(this);
+}
+
+void Result::setVal(Any result)
+{
+	m_any = std::move(result);
+	m_sem.post();  // 通知已经获得结果
+}
+
+Any Result::get()
+{
+	if (!m_isValid) {
+		return "";
+	}
+
+	m_sem.wait();  // 等待结果
+	return std::move(m_any);
+}
+
+
+void Task::exec()
+{
+	if (m_result != nullptr) {
+		Any result = run();  // 这里发生多态调用
+
+		m_result-&gt;setVal(std::move(result));
+	}
+}
+
+void Task::setResult(Result* res)
+{
+	m_result = res;
+}
+
+</code></pre>
+<p>main.cpp</p>
+<pre><code class="language-C++">#include "threadpool.h"
+
+#include &lt;chrono&gt;
+#include &lt;iostream&gt;
+
+using std::cout;
+using std::endl;
+
+
+int main(int argc, char* argv[])
+{
+	{
+		ThreadPool pool;
+		pool.Start(4);
+
+		Result res1 = pool.SubmitTask(std::make_shared&lt;MyTask&gt;(1, 100000000));
+		Result res2 = pool.SubmitTask(std::make_shared&lt;MyTask&gt;(100000001, 200000000));
+		Result res3 = pool.SubmitTask(std::make_shared&lt;MyTask&gt;(200000001, 300000000));
+
+		//uint64_t sum1 = res1.get().cast_&lt;uint64_t&gt;();
+		//uint64_t sum2 = res2.get().cast_&lt;uint64_t&gt;();
+		//uint64_t sum3 = res3.get().cast_&lt;uint64_t&gt;();
+
+		//cout &lt;&lt; (sum1 + sum2 + sum3) &lt;&lt; endl;
+	}
+
+	cout &lt;&lt; "main over" &lt;&lt; endl;
+
+	getchar();
+	return 0;
+}
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-06-17T12:25:57Z</pubDate>
+<pubDate>2024-06-17T12:25:57Z</pubDate>
+</item>
+<item>
+<title>[问与答] 腾讯文档协作空间怎么转移所有者</title>
+<link>https://www.v2ex.com/t/1050326</link>
+<guid>https://www.v2ex.com/t/1050326</guid>
+<content:encoded><![CDATA[
+
+<p>我创建了一个协作空间，所有者是我自己，我希望将所有权完全转移给另外一个人，然后我退出，应该怎么操作</p>
+<p>我研究了下应该无法转移 [协作空间] 的所有权，也无法转移文件夹的所有权，难不成只能转移文档？很不合理啊，而且即便转移文档好像也无法把空间给他，他在这个空间里依然没有权限</p>
+<p>或者批量导出，然后再导入新的文件夹下，创建新的 [协作空间] ，这样应该能解决问题，有没有更简单的方式</p>
+]]></content:encoded>
+<pubDate>2024-06-17T12:23:47Z</pubDate>
+<pubDate>2024-06-17T12:22:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] 今日热议主题只剩下 5 个了，有一半进了水深火热？</title>
+<link>https://www.v2ex.com/t/1050325</link>
+<guid>https://www.v2ex.com/t/1050325</guid>
+<content:encoded><![CDATA[
+
+可见国内的（经济）形势有多差了。
+]]></content:encoded>
+<pubDate>2024-06-17T12:23:02Z</pubDate>
+<pubDate>2024-06-17T12:23:02Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 如果年纪大了实在找不到工作可不可以去 Apple 当店员</title>
+<link>https://www.v2ex.com/t/1050324</link>
+<guid>https://www.v2ex.com/t/1050324</guid>
+<content:encoded><![CDATA[
+
+看静安 Apple 重新开业新闻有个退休老太太店员 突发奇想似乎这也是个出路 有 Apple Store 员工来现身说法一下么
+]]></content:encoded>
+<pubDate>2024-06-17T12:19:11Z</pubDate>
+<pubDate>2024-06-17T12:19:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] 学习笔记，最终还是选择了群晖 note！（Synology Note Station YYDS！）</title>
+<link>https://www.v2ex.com/t/1050323</link>
+<guid>https://www.v2ex.com/t/1050323</guid>
+<content:encoded><![CDATA[
+
+<p>先来说说我的需求：
+数据可导出冷备份/可自建隐私化（最大的需求，自己的内容怎么也不想让任何第三方窥探）
+强大的编辑器（文字格式样式傻瓜式调整、像语雀会员一样可以插入图片视频附件）</p>
+<p>我不是很习惯用 markdown 编辑，换来换去，换成了编辑器最强大的群晖 note ！</p>
+<p>之前用过 Joplin ，使用的 onedrive 同步，同步挺 6 的，然后电脑版和手机版 APP 都有</p>
+<p>有道云笔记主力使用了十年+，后来泄露过一次隐私（有道云笔记的员工可以轻松看到你里面的内容，这个有时间细讲，简单说就是有一次我的同步出问题，找客服过程中，客服不小心说漏嘴了）还有有道云笔记目前免费版限制设备，这个就很逆天！</p>
+<p>黑曜石也用过，虽然可以使用插件 webdav 同步，但没有时间和精力逐渐去习惯</p>
+<p>印象笔记用过，现在妥妥的广告象！吃相很难看！而且免费版限制多！</p>
+<p>语雀的编辑器倒是很合我胃口，但它的设计又不是单纯的笔记，数据还是全权给阿里托管...</p>
+<p>思源啦什么的都用过，不尽人意...</p>
+<p>最后说说目前群晖 Note 的一个不足吧：
+不能创建导图，只能把导图导图贴图</p>
+]]></content:encoded>
+<pubDate>2024-06-17T12:10:27Z</pubDate>
+<pubDate>2024-06-17T12:10:27Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 上海联通，坐标浦东， 200m 上传又被上传限速了</title>
+<link>https://www.v2ex.com/t/1050322</link>
+<guid>https://www.v2ex.com/t/1050322</guid>
+<content:encoded><![CDATA[
+
+<p>几个月前联通运维时候上门拍照过，不玩 pcdn ，最近也控制了 nas pt 的上传速率，最近一两月上传了 1t-1.5t 上传。最近发现上传又被限速了，让联通师傅去查，又被怀疑是 pcdn 。反馈无果，联通让我自己把上传加速包取消，不给我恢复速率。求解</p>
+]]></content:encoded>
+<pubDate>2024-06-17T12:05:47Z</pubDate>
+<pubDate>2024-06-17T12:14:52Z</pubDate>
+</item>
+<item>
+<title>[软件] 有没有免费的听本地电子书的 语音音质好一点的 app 推荐</title>
+<link>https://www.v2ex.com/t/1050320</link>
+<guid>https://www.v2ex.com/t/1050320</guid>
+<content:encoded><![CDATA[
+
+<p>不太想付费, 偶尔听一下月付不划算</p>
+]]></content:encoded>
+<pubDate>2024-06-17T12:01:02Z</pubDate>
+<pubDate>2024-06-17T12:01:02Z</pubDate>
+</item>
+<item>
+<title>[分享创造] ✨ UniGPT：增强型一站式 AI 平台</title>
+<link>https://www.v2ex.com/t/1050318</link>
+<guid>https://www.v2ex.com/t/1050318</guid>
+<content:encoded><![CDATA[
+
+<p>集成 ChatGPT, Gemini, Claude 等顶级大语言模型，免费使用！</p>
+<p>🎁 感谢在 <a href="https://www.producthunt.com/posts/unigpt" rel="nofollow">https://www.producthunt.com/posts/unigpt</a> 投票，获取 20%折扣！</p>
+<p>⏰ 限时注册即送 10000 积分！</p>
+<p>👉 快来体验 <a href="https://unigpt.vip" rel="nofollow">https://unigpt.vip</a> 期待你们的反馈！</p>
+<p>#AI #UniGPT #ChatGPT #Gemini #Claude</p>
+]]></content:encoded>
+<pubDate>2024-06-17T11:47:38Z</pubDate>
+<pubDate>2024-06-17T11:45:38Z</pubDate>
+</item>
+<item>
+<title>[推广] AI Girl Generator 废弃了，新网站来了 Cute Coloring Pages，欢迎体验</title>
+<link>https://www.v2ex.com/t/1050317</link>
+<guid>https://www.v2ex.com/t/1050317</guid>
+<content:encoded><![CDATA[
+
+<p>我最近废弃了一个项目，名叫 AI Girl Generator 。这个域名容易让人联想到不适宜内容，而且从用户提示词来看，也有这种暗示。</p>
+<p>不过之前的投入并没有白费。原网站现在华丽变身成了 <a href="http://cute-coloringpages.com" rel="nofollow">cute-coloringpages.com</a> ，这是一个专门为小朋友设计的涂色页面网站。当然，也有不少成人喜欢这种创作方式，适合各个年龄层的用户。</p>
+]]></content:encoded>
+<pubDate>2024-06-17T11:46:36Z</pubDate>
+<pubDate>2024-06-17T11:46:36Z</pubDate>
+</item>
+<item>
+<title>[推广] 英国券商 Trading212 走邀请激活成功 送 giffgaff 一张</title>
+<link>https://www.v2ex.com/t/1050316</link>
+<guid>https://www.v2ex.com/t/1050316</guid>
+<content:encoded><![CDATA[
+
+<p>上一期开通的卡应该都用了 几本书 0 损耗 一张非常值得开通的卡</p>
+<p>激活账户随机送 10-100 英镑的股票
+支持申请虚拟卡和实体借记卡，全球 AMT 取现 400 英镑免费
+上车注意事项：</p>
+<p>需要英国手机号（不验证）
+需要国外扶墙
+国籍选中国，居住地址选英国
+需要英国地址证明（可用 WISE 账单）可以 ps : <a href="https://www.sejda.com/pdf-editor" rel="nofollow">https://www.sejda.com/pdf-editor</a>
+至少入金 1 英镑完成账户激活后可获得 10 英镑以上的股票（当然我也有 ）
+上车地址： <a href="https://www.trading212.com/invite/19A1QHIdTE" rel="nofollow">https://www.trading212.com/invite/19A1QHIdTE</a></p>
+<p>详情操作步骤； <a href="https://mora.app/planet/adngb-6aaaa-aaaan-qdfhq-cai/0PDY9V34T78GVNMCX7B8ZVBC7D" rel="nofollow">https://mora.app/planet/adngb-6aaaa-aaaan-qdfhq-cai/0PDY9V34T78GVNMCX7B8ZVBC7D</a></p>
+<p>giffgaff 包邮哦</p>
+]]></content:encoded>
+<pubDate>2024-06-17T11:42:31Z</pubDate>
+<pubDate>2024-06-17T11:41:31Z</pubDate>
+</item>
+<item>
+<title>[V2EX] "报告这个主题"是举报帖子吗</title>
+<link>https://www.v2ex.com/t/1050314</link>
+<guid>https://www.v2ex.com/t/1050314</guid>
+<content:encoded><![CDATA[
+
+刚才不小心点到这里了，立刻就报告完成了🤔️是不是举报给管理员……我点的帖子就是一个普通帖子
+]]></content:encoded>
+<pubDate>2024-06-17T11:22:53Z</pubDate>
+<pubDate>2024-06-17T11:22:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 百万豪车有哪些功能是普通车没有的</title>
+<link>https://www.v2ex.com/t/1050313</link>
+<guid>https://www.v2ex.com/t/1050313</guid>
+<content:encoded><![CDATA[
+
+如题，诚心发问，除了品牌溢价外有哪些功能是豪车独享的？什么品牌都可以
+]]></content:encoded>
+<pubDate>2024-06-17T11:20:11Z</pubDate>
+<pubDate>2024-06-17T12:36:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] Paddle 不支持大陆身份证了么？</title>
+<link>https://www.v2ex.com/t/1050312</link>
+<guid>https://www.v2ex.com/t/1050312</guid>
+<content:encoded><![CDATA[
+
+<p>经过几天的邮件来往，paddle 账号能正常使用了，之前的项目在验证阶段，上传了身份证和照片之后，告诉我，不支持这种类型的身份证，那看来是不支持大陆的身份证了？</p>
+<p>Verify your identity
+Thanks for providing your ID and selfie, but unfortunately we’ve been unable to verify your identity because the ID you provided is not supported.</p>
+<p>Click the button below to complete identity verification again through our trusted partner, Onfido. Here’s what you’ll need to do in Onfido.</p>
+<p>1 Fill your personal information</p>
+<p>2 Take a photo of your ID</p>
+<p>3 Take a video selfie</p>
+<p>Verify my identity
+Got a question? Check out our FAQs below.</p>
+<p>Here’s a few top tips from the Paddle team!
+Ensure your document is supported by Onfido, and make sure you take a photo of the original document.</p>
+<p>When taking your selfie, make sure to remove your glasses, move hair away from your face, remove hats or scarves and sit in front of a plain background in a well-lit room.</p>
+<p>Cheers,</p>
+<p>The Paddle team</p>
+]]></content:encoded>
+<pubDate>2024-06-17T11:12:22Z</pubDate>
+<pubDate>2024-06-17T11:09:22Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [北京][长亭科技]运维开发/SRE</title>
+<link>https://www.v2ex.com/t/1050310</link>
+<guid>https://www.v2ex.com/t/1050310</guid>
+<content:encoded><![CDATA[
+
+<h2>About the us</h2>
+<p><a href="https://www.chaitin.cn" rel="nofollow">长亭科技</a>是国内顶尖的网络信息安全公司之一，专注为企业级用户提供高质量的应用安全防护解决方案。公司现位于朝阳区国家会议中心。</p>
+<h2>About the role</h2>
+<p>薪资范围：20k-40k/月</p>
+<p>我们的工作包括以下方面，你可能会参与：</p>
+<ol>
+<li>日常运维：负责公司内外服务的发布，监控，保证服务的安全，稳定和可靠；</li>
+<li>系统开发：通过内部系统为公司内部的用户提供运维相关的自助服务，提高运维效率；</li>
+<li>资源管理：管理公司的云资源，包括权限分配，成本控制和应急响应，确保资源的有效、合理利用；</li>
+<li>安全合规：通过日常巡检和自动工具发现和解决公司内部的安全和合规问题，保证公司的信息安全；</li>
+<li>对内支持：在利用自己的专业知识和经验，向同事提供解决问题的方案和最佳实践。</li>
+</ol>
+<h2>About you</h2>
+<ol>
+<li>计算机科学或相关专业本科及以上学历，不限工作年限；</li>
+<li>熟悉以下至少两种编程语言：Python/Go/Ruby/Rust ；</li>
+<li>对 Linux 操作系统有深入理解，熟悉其内部原理；</li>
+<li>对计算机网络有深入了解，熟悉常见协议与标准；</li>
+<li>善于接受和使用新技术，愿意学习和掌握新的知识和技能；</li>
+<li>具有优秀的故障排查能力，善于使用外部工具，快速、准确地定位问题并寻找解决方案；</li>
+<li>具有计算机系统和网络安全的基础知识和良好的安全意识；</li>
+<li>能够无障碍地进行英语读写。</li>
+</ol>
+<h2>Preferred qualifications</h2>
+<ol>
+<li>有长期使用 Linux 作为日常工作环境的经验；</li>
+<li>活跃的 Linux 用户组(LUG)的成员，了解并参与开源社区的活动；</li>
+<li>有 Kubernetes 部署和运维经验，了解其内部原理；</li>
+<li>有 OpenStack 部署和运维经验，接触过虚拟化和分布式存储相关技术。</li>
+</ol>
+<h2>Contact us</h2>
+<p>请发送简历至以下邮箱</p>
+<p><code>RC4(Base64Decode("Td8PiTlaDx4+YOZeGC1/vJBvQc8PRA=="), "welcome_to_chaitin")</code></p>
+]]></content:encoded>
+<pubDate>2024-06-17T11:00:47Z</pubDate>
+<pubDate>2024-06-17T11:00:47Z</pubDate>
+</item>
+<item>
+<title>[旅行] 东南亚旅游 12 天
+新马泰 印尼 求建议~</title>
+<link>https://www.v2ex.com/t/1050309</link>
+<guid>https://www.v2ex.com/t/1050309</guid>
+<content:encoded><![CDATA[
+
+自由行<br />7 月中下旬出发
+]]></content:encoded>
+<pubDate>2024-06-17T10:55:58Z</pubDate>
+<pubDate>2024-06-17T10:54:58Z</pubDate>
+</item>
+<item>
+<title>[程序员] 本周 MoonBit 语法支持添加错误处理机制、Map 字面量语法</title>
+<link>https://www.v2ex.com/t/1050307</link>
+<guid>https://www.v2ex.com/t/1050307</guid>
+<content:encoded><![CDATA[
+
+<h2>MoonBit 更新</h2>
+<ul>
+<li><strong>支持了错误处理机制</strong></li>
+</ul>
+<ol>
+<li>函数返回值类型可以用 <code>Int!String</code> 来标识这个函数正常情况下返回 <code>Int</code> ，错误情况下会抛出类型为 <code>String</code> 的错误值，比如</li>
+</ol>
+<pre><code class="language-rust">fn div(x: Int, y: Int) -&gt; Int!String { .. }
+</code></pre>
+<ol>
+<li><code>raise</code> 关键字用于中断当前控制流，直接抛出错误，比如</li>
+</ol>
+<pre><code class="language-rust">fn div(x: Int, y: Int) -&gt; Int!String {
+  if y == 0 { raise "divide by 0" }
+  x / y
+}
+</code></pre>
+<ol>
+<li><code>try { expr0 } catch { pattern1 =&gt; expr1; pattern2 =&gt; expr2; .. }</code> 表达式可以用于捕获 <code>expr0</code> 中抛出的错误，并对其进行模式匹配来处理，比如下面这个函数调用上面的 <code>div</code> 函数，并在 <code>div</code> 函数抛出错误的时候将错误信息打印，并返回默认值</li>
+</ol>
+<pre><code class="language-rust">fn div_with_default(x: Int, y: Int, default: Int) -&gt; Int {
+  try {
+    div(x, y)!
+  } catch {
+    s =&gt; { println(s); default }
+  }
+}
+</code></pre>
+<ol>
+<li>此外，可以用后缀运算符 <code>!</code> 和 <code>!!</code> 进行错误处理，这些后缀运算符只能应用于函数调用，其中：
+<code>f(x)!</code> 将调用 <code>f</code> 的过程中发生的错误立即重新抛出，其等价于</li>
+</ol>
+<pre><code class="language-rust">try { f(x)! } catch { err =&gt; raise err }
+</code></pre>
+<p><code>f(x)!!</code> 则会在 <code>f</code> 发生错误的情况下直接 panic ，其等价于</p>
+<pre><code class="language-rust">try { f(x)! } catch { _ =&gt; panic() }
+</code></pre>
+<p>函数调用的形式包括方法调用，中缀运算符和管道运算符的调用，比如</p>
+<pre><code class="language-rust">fn init {
+  let _ = x.f()!!
+  let _ = (x + y)!!
+  let _ = (x |&gt; f)!!
+}
+</code></pre>
+<ol>
+<li>最后，对可能会抛出错误的函数如果没有使用上述任何错误处理，那么则会报 unhandled error 的错误</li>
+</ol>
+<ul>
+<li>支持 <code>Map</code> 字面量语法：</li>
+</ul>
+<pre><code class="language-rust">fn init {
+  // 键必须是字面量
+  let m1 : Map[String, Int] = { "x": 1, "y": 2 }
+  let m2 : Map[Int, String] = { 1: "x", 2: "y" }
+}
+</code></pre>
+<h2>IDE 更新</h2>
+<ul>
+<li>
+<p>修复了 IDE 在补全过程中 builtin package 中的方法会重复出现两次的 bug</p>
+</li>
+<li>
+<p>修复了 IDE 中缺少 Byte 相关的补全功能</p>
+</li>
+</ul>
+<h2>构建系统更新</h2>
+<ul>
+<li>
+<p>添加对 internal 包的支持，这些包被放在名为 <code>internal</code> 的目录中。internal 包只能被以 <code>internal</code> 的父目录为根的包导入。</p>
+<p>例如，如果有一个包的路径为 <code>username/hello/x/internal/a</code>，该 internal 包的父目录为 <code>username/hello/x</code>，那么只有包<code>username/hello/x</code> 或其子包（例如 <code>username/hello/x/a</code>）能够导入<code>username/hello/x/internal/a</code>，而<code>username/hello/y</code>则不能导入该包。</p>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-06-17T10:35:38Z</pubDate>
+<pubDate>2024-06-17T10:32:38Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 最近入职了一家小公司做 js 全栈，这种坑多吗？</title>
+<link>https://www.v2ex.com/t/1050306</link>
+<guid>https://www.v2ex.com/t/1050306</guid>
+<content:encoded><![CDATA[
+
+<p>公司规模大概就三十人左右，我现在心里有点坎坷</p>
+<p>但是让我没想到的是这公司居然发了太 MacBook Air 给我用</p>
+]]></content:encoded>
+<pubDate>2024-06-17T10:30:20Z</pubDate>
+<pubDate>2024-06-17T11:32:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教下关于小孩子近视的问题</title>
+<link>https://www.v2ex.com/t/1050305</link>
+<guid>https://www.v2ex.com/t/1050305</guid>
+<content:encoded><![CDATA[
+
+我小孩 5 岁多，最近幼儿园老师反馈说体检视力 0.8 ，打算周末去医院检查下。<br />平产看电子产品不多怀疑是看书姿势不规范，小孩比较喜欢看故事图书。<br />请问下，如果确定是 0.8 ，怎么处理比较好呢，不太想这么早戴眼镜。<br /><br />另外问下买小孩专用的学习桌行不行，是不是智商税。
+]]></content:encoded>
+<pubDate>2024-06-17T10:27:39Z</pubDate>
+<pubDate>2024-06-17T11:14:23Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 关于 BCM94360CS2 在黑苹果 macOS 14.5 上不能驱动导致无法开启 WIFI 问题</title>
 <link>https://www.v2ex.com/t/1050304</link>
 <guid>https://www.v2ex.com/t/1050304</guid>
 <content:encoded><![CDATA[
-
 <p>我使用的是 <strong>BCM94360CS2</strong> 这款拆机卡，升级到 <code>macOS 14.5</code> 后按照这个<a href="https://imacos.top/2024/01/21/1547-2/" rel="nofollow">教程</a>调整无线网卡驱动，但是最后都无法驱动成功。
 我的 <code>opencore</code> kext 配置如下图
 <img alt="" class="embedded_image" rel="noreferrer" src="https://img2.47lab.cn/uPic/kqASpY.png" /></p>
@@ -17,17 +857,14 @@
 想问问 v2 的大佬们，有用同样的卡在 <code>macOS 14</code> 上驱动成功的吗？我目前不知道怎么调整驱动，</p>
 ]]></content:encoded>
 <pubDate>2024-06-17T10:20:58Z</pubDate>
-<pubDate>2024-06-17T10:20:58Z</pubDate>
 </item>
 <item>
 <title>[计算机] 同样一块显示器，连 macOS 比连 Windows11 看起来舒服</title>
 <link>https://www.v2ex.com/t/1050303</link>
 <guid>https://www.v2ex.com/t/1050303</guid>
 <content:encoded><![CDATA[
-
 macOS 眼睛感觉没那么累，这玩意是心理作用吗？<br />公司提供的 windows 机器可以加比较高的内存，想用 windows 了。。。
 ]]></content:encoded>
-<pubDate>2024-06-17T10:19:16Z</pubDate>
 <pubDate>2024-06-17T10:19:16Z</pubDate>
 </item>
 <item>
@@ -35,10 +872,8 @@ macOS 眼睛感觉没那么累，这玩意是心理作用吗？<br />公司提�
 <link>https://www.v2ex.com/t/1050302</link>
 <guid>https://www.v2ex.com/t/1050302</guid>
 <content:encoded><![CDATA[
-
 原始表<br />id  a1  a2  a3  b1  b2 <br />001 1   2   3   4   5   <br />002 6   7   8   9   10  <br />003 11  12  13  14  15  <br /><br />期望输出<br />id    a     b<br />001   6     9 <br />002   21    19<br />003   36    29<br /><br />其中 6=1+2+3 ，9=4+5<br /><br />数据转换逻辑：<br />数据表 5000+字段，100w+行，<br />新字段名 = 老字段名去除数字，<br />新字段名的内容 = sum(老字段名的内容)<br /><br /><br />不知道有没有简单的方法解决这个问题，<br />感谢感谢~
 ]]></content:encoded>
-<pubDate>2024-06-17T10:14:16Z</pubDate>
 <pubDate>2024-06-17T10:22:12Z</pubDate>
 </item>
 <item>
@@ -46,10 +881,8 @@ macOS 眼睛感觉没那么累，这玩意是心理作用吗？<br />公司提�
 <link>https://www.v2ex.com/t/1050301</link>
 <guid>https://www.v2ex.com/t/1050301</guid>
 <content:encoded><![CDATA[
-
 电脑主机放行李箱里，带上飞机，以及在路上拖来拖去。<br /><br />现在开机到登录画面就死机，进安全模式删掉显示驱动就可以正常使用，显卡是 RTX3050 ，重新装上驱动一装完就死机。<br />一般是什么问题？是显示挂了还是主板的 PCIE 槽坏了，由于主板只有一条槽还无法判断是不是槽问题。
 ]]></content:encoded>
-<pubDate>2024-06-17T10:13:23Z</pubDate>
 <pubDate>2024-06-17T10:18:11Z</pubDate>
 </item>
 <item>
@@ -57,10 +890,8 @@ macOS 眼睛感觉没那么累，这玩意是心理作用吗？<br />公司提�
 <link>https://www.v2ex.com/t/1050300</link>
 <guid>https://www.v2ex.com/t/1050300</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/fqJvdfY.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fqJvdfY.png" /></a><br />还是女程序员……
 ]]></content:encoded>
-<pubDate>2024-06-17T10:06:40Z</pubDate>
 <pubDate>2024-06-17T10:22:50Z</pubDate>
 </item>
 <item>
@@ -68,14 +899,12 @@ macOS 眼睛感觉没那么累，这玩意是心理作用吗？<br />公司提�
 <link>https://www.v2ex.com/t/1050299</link>
 <guid>https://www.v2ex.com/t/1050299</guid>
 <content:encoded><![CDATA[
-
 <p>因为它们都是 oppo 家的，系统也是同一个，但是我目前没有找到它们共有的属性字段，因为怕 oppo 又开一个子品牌，导致业务不能及时适配的问题，所以想过来问一下。</p>
 <pre><code>Build.MANUFACTURER 
 Build.BRAND 
 </code></pre>
 <p>这两个字段是不可靠的，它们各自为政，都不一样</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T10:06:38Z</pubDate>
 <pubDate>2024-06-17T10:22:05Z</pubDate>
 </item>
 <item>
@@ -84,9 +913,7 @@ Build.BRAND
 <guid>https://www.v2ex.com/t/1050298</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-17T10:01:20Z</pubDate>
 <pubDate>2024-06-17T09:58:20Z</pubDate>
 </item>
 <item>
@@ -94,7 +921,6 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050297</link>
 <guid>https://www.v2ex.com/t/1050297</guid>
 <content:encoded><![CDATA[
-
 <p>宿舍和学校系楼工位各有一个路由器：</p>
 <ul>
 <li>宿舍的是 A ，NAT 网段 192.168.66.x ，WAN 网段 172.26.x.x </li>
@@ -103,7 +929,6 @@ Build.BRAND
 <p>两个路由器都是 ac2100 ，都刷了 openwrt ，可以通过 172.26.x.x 网段互通。</p>
 <p>现在的问题是，工位的网络出口是联通，质量很好，ipv4 好像都能有对等千兆。宿舍的网络出口是鹏博士，到了晚上十点之后拥塞很严重。想让宿舍路由器 A 的所有非 NAT 路由都先经过工位路由 B 。具体应该是怎样的思路？</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:57:02Z</pubDate>
 <pubDate>2024-06-17T10:21:14Z</pubDate>
 </item>
 <item>
@@ -111,10 +936,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050296</link>
 <guid>https://www.v2ex.com/t/1050296</guid>
 <content:encoded><![CDATA[
-
 <p>阿里云有 root 权限的 AccessKey 泄露了，要做哪些措施亡羊补牢。请求指点指点</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:55:57Z</pubDate>
 <pubDate>2024-06-17T10:14:30Z</pubDate>
 </item>
 <item>
@@ -122,12 +945,10 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050295</link>
 <guid>https://www.v2ex.com/t/1050295</guid>
 <content:encoded><![CDATA[
-
 <p>追番追的比较多 目前手上就一个馒头，二次元资源不是很多，希望有大佬能发个 U2 的邀</p>
 <p>klklcyy2008@gmail.com</p>
 <p>感谢</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:46:45Z</pubDate>
 <pubDate>2024-06-17T09:51:26Z</pubDate>
 </item>
 <item>
@@ -135,10 +956,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050294</link>
 <guid>https://www.v2ex.com/t/1050294</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://linuxsuren.github.io/api-testing/zh/latest/releases/release-note-v0.0.17/" rel="nofollow">https://linuxsuren.github.io/api-testing/zh/latest/releases/release-note-v0.0.17/</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:46:11Z</pubDate>
 <pubDate>2024-06-16T17:45:11Z</pubDate>
 </item>
 <item>
@@ -146,10 +965,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050293</link>
 <guid>https://www.v2ex.com/t/1050293</guid>
 <content:encoded><![CDATA[
-
 目前有在看数据库内核方向的同学，想要找暑期实习的同学欢迎联系，语言上主要是 C++ 和 Rust ，主要还是面向 25 届的同学，如果实习期间表现不错，也有转正的机会，非常 Open ，地点限于成都。邮箱： <a href="http://shasha.li" rel="nofollow noopener" target="_blank">shasha.li</a>@datalayers.io
 ]]></content:encoded>
-<pubDate>2024-06-17T09:43:44Z</pubDate>
 <pubDate>2024-06-17T09:41:44Z</pubDate>
 </item>
 <item>
@@ -157,14 +974,12 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050292</link>
 <guid>https://www.v2ex.com/t/1050292</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>同网络设备可自动发现，支持 Peer2Peer 传输，参考的 <a href="https://snapdrop.net/" rel="nofollow">Snapdrop</a></li>
 <li>不同网络分配公开的剪贴板空间，支持文字、图片和文件直接复制粘贴，用于临时保存和分享</li>
 </ul>
 <p><a href="https://board.880508.xyz/" rel="nofollow">https://board.880508.xyz/</a></p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:42:28Z</pubDate>
 <pubDate>2024-06-17T05:42:28Z</pubDate>
 </item>
 <item>
@@ -172,11 +987,9 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050290</link>
 <guid>https://www.v2ex.com/t/1050290</guid>
 <content:encoded><![CDATA[
-
 <p>amd 官方旗舰店的搭配，7960x+华硕 pro ws trx50 服务器主板，</p>
 <p>amd 他们买 54861 元，想 diy 完全参考他的配置，算下来 51455 ，差价 3406 元，保修麻烦点，4090 只能选海外自营。质保 1 年，主板+u 也不是自营，也不是旗舰，具体配置看 2 楼，麻烦大家看看，谢谢</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:37:44Z</pubDate>
 <pubDate>2024-06-17T10:09:59Z</pubDate>
 </item>
 <item>
@@ -184,10 +997,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050289</link>
 <guid>https://www.v2ex.com/t/1050289</guid>
 <content:encoded><![CDATA[
-
 <p>6.18 了，PDD15 最低多少可以入</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:36:07Z</pubDate>
 <pubDate>2024-06-17T09:48:35Z</pubDate>
 </item>
 <item>
@@ -195,13 +1006,11 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050288</link>
 <guid>https://www.v2ex.com/t/1050288</guid>
 <content:encoded><![CDATA[
-
 <h1>搞不懂国内互联网为什么上班晚下班晚呀？</h1>
 <p>我在北京呆过的 2 个互联网都这样，不知道北京是否有 下班早的互联网公司；也不清楚其他城市的互联网是否也这样</p>
 <p>为什么不能早上班早下班？</p>
 <p>我自己想了一下：可能即使改成早上班，也会有卷王晚下班，慢慢地演变成<strong>早上班晚下班</strong>了</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:31:34Z</pubDate>
 <pubDate>2024-06-17T10:21:41Z</pubDate>
 </item>
 <item>
@@ -209,7 +1018,6 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050287</link>
 <guid>https://www.v2ex.com/t/1050287</guid>
 <content:encoded><![CDATA[
-
 <p>我们在做一个面向海外的 AI 产品，叫做 <a href="https://www.pagefuns.com" rel="nofollow">PageFuns</a>。</p>
 <p>这个产品的形态是浏览器插件，简单解释这个产品就是，<strong>能够在你刷 Instagram 的时候右边出现很多 AI 小人（我们叫 PagePal ）锐评你当前在看的帖子，并且你可以自己创建新的 AI 小人</strong>。（插件目前只能在电脑上使用，手机还没法支持）</p>
 <p><img alt="image-1" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/gDg4qwZ7l.png" />
@@ -238,7 +1046,6 @@ Build.BRAND
 <p>感兴趣的联系公司 CEO ，Julian.
 微信：WXVhYWFuRGluZw==（ base64 ）</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:26:54Z</pubDate>
 <pubDate>2024-06-17T09:23:54Z</pubDate>
 </item>
 <item>
@@ -246,10 +1053,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050286</link>
 <guid>https://www.v2ex.com/t/1050286</guid>
 <content:encoded><![CDATA[
-
 有没有现成的工具或者产品, 有组分类之类功能<br />	1. 默认组 包含所有服务器，设置 iptables 规则<br />    2. a 组 包含特定服务器 设置独立规则<br />    3. b 组 分组功能<br /><br />可以在一个 web 或者工具上，直接管理多台 linux 防火墙配置<br />我能想到的几个方法<br />1. ansible 控制，使用 python+在线 excel 管理规则<br />2. 使用配置管理工具之类+python 分组，然后在 linux 服务器上设置定时脚本，比较后增删防护墙规则
 ]]></content:encoded>
-<pubDate>2024-06-17T09:25:36Z</pubDate>
 <pubDate>2024-06-17T10:03:24Z</pubDate>
 </item>
 <item>
@@ -257,11 +1062,9 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050285</link>
 <guid>https://www.v2ex.com/t/1050285</guid>
 <content:encoded><![CDATA[
-
 <p>他自己的介绍是：该功能可以使 iOS5.0~iOS17 的设备直接跳过“地区，语言，Wi - Fi ，定位，AppleID ， 指纹，面容，Apple Pay”等设置，跳过后设备将直接进入主界面， 您也可以根据实际需要进入设置菜单进行相应的设置。</p>
 <p>当然我知道 libimobiledevice ，pymobiledevice3 这种库，也查看了相关的功能和相关的 issues 仍然没有得到答案，目前我只完成了设置语言这一步，后面其他的设置和跳过下一步之类的我应该如何用代码操作呢？</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:25:13Z</pubDate>
 <pubDate>2024-06-17T09:25:13Z</pubDate>
 </item>
 <item>
@@ -269,10 +1072,8 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050284</link>
 <guid>https://www.v2ex.com/t/1050284</guid>
 <content:encoded><![CDATA[
-
 在纯前端实现的 PGP 加解密（ firefox 115.12 测试通过）<br /><br />代码中引用的 openpgp.min.js 是 openpgpjs 在这里发布的项目： <a href="https://unpkg.com/openpgp/dist/" rel="nofollow noopener" target="_blank">https://unpkg.com/openpgp/dist/</a><br /><br />直接下载此 js 文件： <a href="https://unpkg.com/openpgp@5.11.1/dist/openpgp.min.js" rel="nofollow noopener" target="_blank">https://unpkg.com/openpgp@5.11.1/dist/openpgp.min.js</a><br /><br />将以下代码保存成 .html 文件即可<br /><br />&lt;!DOCTYPE html&gt;<br />&lt;html lang="en"&gt;<br /><br />&lt;head&gt;<br />    &lt;meta charset="UTF-8"&gt;<br />    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;<br />    &lt;title&gt;OpenPGP.js Demo&lt;/title&gt;<br />    &lt;script src="openpgp.min.js"&gt;&lt;/script&gt;<br />    &lt;script&gt;<br />        function clearTextarea() {<br /><br />            switch (<a href="http://event.target.id" rel="nofollow noopener" target="_blank">event.target.id</a>) {<br />                case "btnClearPubKey2":<br />                    var text = document.getElementById("publicKey2").value = "";<br />                    break;<br />                case "btnClearPgpMsg2":<br />                    var text = document.getElementById("pgpmsg2").value = "";<br />                    break;<br />            }<br />        }<br /><br />        function copyToClipboard() {<br /><br />            switch (<a href="http://event.target.id" rel="nofollow noopener" target="_blank">event.target.id</a>) {<br />                case "btnCopyPubKey":<br />                    var text = document.getElementById("publicKey").value;<br />                    break;<br />                case "btnCopyPgpMsg":<br />                    var text = document.getElementById("encrypttext").value;<br />                    break;<br />            }<br /><br />            // Create a temporary textarea element<br />            var tempTextarea = document.createElement("textarea");<br />            tempTextarea.value = text;<br />            document.body.appendChild(tempTextarea);<br /><br />            // Select the text in the textarea element<br />            tempTextarea.select();<br />            tempTextarea.setSelectionRange(0, 99999); /*For mobile devices*/<br /><br />            // Copy the selected text<br />            document.execCommand("copy");<br /><br />            // Remove the temporary textarea element<br />            document.body.removeChild(tempTextarea);<br /><br />            // Optionally, provide feedback to the user<br />            //alert("Copied the text: " + text);<br />        }<br /><br />        async function pgpencrypt() {<br /><br />            // privateKey sign<br /><br />            var privateKeyArmored = document.getElementById("privateKey").value;<br /><br />            const passphrase = document.getElementById("passphrase").value;<br /><br />            const privateKey = await openpgp.decryptKey({<br />                privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),<br />                passphrase<br />            });<br /><br />            // The other party's public key is used for encryption<br /><br />            var publicKeyArmored2 = document.getElementById("publicKey2").value;<br /><br />            var plaintext = document.getElementById("plaintext").value;<br /><br />            const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored2 });<br /><br />            const encrypted = await openpgp.encrypt({<br />                message: await openpgp.createMessage({ text: plaintext }), // input as Message object<br />                encryptionKeys: publicKey,<br />                signingKeys: privateKey // optional<br />            });<br /><br />            document.getElementById('encrypttext').value = encrypted;<br />            //console.log(encrypted); // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'<br /><br />        }<br /><br />        async function pgpdecrypt() {<br /><br />            // Verify digital signature with the opponent's public key<br /><br />            var publicKeyArmored2 = document.getElementById("publicKey2").value;<br /><br />            const publicKey2 = await openpgp.readKey({ armoredKey: publicKeyArmored2 });<br /><br />            // decryption<br /><br />            var privateKeyArmored = document.getElementById("privateKey").value;<br /><br />            var encrypted = document.getElementById("pgpmsg2").value;<br /><br />            const passphrase = document.getElementById("passphrase").value; // what the private key is encrypted with<br /><br />            const privateKey = await openpgp.decryptKey({<br />                privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),<br />                passphrase<br />            });<br /><br />            const message = await openpgp.readMessage({<br />                armoredMessage: encrypted // parse armored message<br />            });<br /><br />            const { data: decrypted, signatures } = await openpgp.decrypt({<br />                message,<br />                verificationKeys: publicKey2, // optional<br />                decryptionKeys: privateKey<br />            });<br /><br />            document.getElementById('decryptedtext').value = decrypted<br />            //console.log(decrypted); // 'Hello, World!'<br />            // check signature validity (signed messages only)<br /><br />            try {<br />                await signatures[0].verified; // throws on invalid signature<br />                console.log('Signature is valid');<br />            } catch (e) {<br />                throw new Error('Signature could not be verified: ' + e.message);<br />            }<br /><br />        }<br /><br />        async function buildpair() {<br />            const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({<br />                type: 'ecc', // Type of the key, defaults to ECC<br />                curve: 'curve25519', // ECC curve name, defaults to curve25519<br />                userIDs: [{ name: 'Jon Smith', email: 'jon@example.com' }], // you can pass multiple user IDs<br />                passphrase: document.getElementById("passphrase").value, // protects the private key<br />                format: 'armored' // output key format, defaults to 'armored' (other options: 'binary' or 'object')<br />            });<br /><br />            document.getElementById('privateKey').value = privateKey;     // '-----BEGIN PGP PRIVATE KEY BLOCK ... '<br />            document.getElementById('publicKey').value = publicKey;      // '-----BEGIN PGP PUBLIC KEY BLOCK ... '<br />            //console.log(revocationCertificate); // '-----BEGIN PGP PUBLIC KEY BLOCK ... '<br />        }<br /><br />        (async () =&gt; {<br />            const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({<br />                type: 'ecc', // Type of the key, defaults to ECC<br />                curve: 'curve25519', // ECC curve name, defaults to curve25519<br />                userIDs: [{ name: 'Jon Smith', email: 'jon@example.com' }], // you can pass multiple user IDs<br />                passphrase: 'password', // protects the private key<br />                format: 'armored' // output key format, defaults to 'armored' (other options: 'binary' or 'object')<br />            });<br /><br />            document.getElementById('privateKey').value = privateKey;     // '-----BEGIN PGP PRIVATE KEY BLOCK ... '<br />            document.getElementById('publicKey').value = publicKey;      // '-----BEGIN PGP PUBLIC KEY BLOCK ... '<br />            //console.log(revocationCertificate); // '-----BEGIN PGP PUBLIC KEY BLOCK ... '<br />        })();<br />    &lt;/script&gt;<br />&lt;/head&gt;<br /><br />&lt;body&gt;<br />    &lt;h1&gt;OpenPGP.js Demo&lt;/h1&gt;<br />    &lt;hr /&gt;<br />    &lt;h3&gt;My temporary PGP key pair&lt;/h3&gt;<br />    &lt;p&gt;<br />        Private key protects passwords&lt;br /&gt;<br />        &lt;input id="passphrase" type="password" value="password" /&gt;<br />        &lt;button id="btnBuildPair"&gt;Build pair&lt;/button&gt;<br />    &lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="privateKey" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="publicKey" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnCopyPubKey"&gt;Copy Public Key&lt;/button&gt;&lt;/p&gt;<br />    &lt;hr /&gt;<br />    &lt;h3&gt;Encrypt Message&lt;/h3&gt;<br />    &lt;p&gt;The PGP public key of the other party&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnClearPubKey2"&gt;Clear&lt;/button&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="publicKey2" rows="5" cols="70"&gt;&lt;/textarea&gt; &lt;/p&gt;<br />    &lt;p&gt;Plain Text&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="plaintext" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnPgpSignEncrypt"&gt;Signature &amp; Encrypt&lt;/button&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="encrypttext" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnCopyPgpMsg"&gt;Copy PGP Message&lt;/button&gt;&lt;/p&gt;<br />    &lt;hr /&gt;<br />    &lt;h3&gt;Decrypt Message&lt;/h3&gt;<br />    &lt;p&gt;PGP Message&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnClearPgpMsg2"&gt;Clear&lt;/button&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="pgpmsg2" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;p&gt;&lt;button id="btnPgpDecryptVerifySign"&gt;Decrypt &amp; Verify Signature&lt;/button&gt;&lt;/p&gt;<br />    &lt;p&gt;Plain Text&lt;/p&gt;<br />    &lt;p&gt;&lt;textarea id="decryptedtext" rows="5" cols="70"&gt;&lt;/textarea&gt;&lt;/p&gt;<br />    &lt;script&gt;<br /><br />        document.getElementById("btnBuildPair").addEventListener("click", buildpair);<br /><br />        document.getElementById("btnPgpSignEncrypt").addEventListener("click", pgpencrypt);<br /><br />        document.getElementById("btnPgpDecryptVerifySign").addEventListener("click", pgpdecrypt);<br /><br />        document.getElementById("btnCopyPubKey").addEventListener("click", copyToClipboard);<br /><br />        document.getElementById("btnCopyPgpMsg").addEventListener("click", copyToClipboard);<br /><br />        document.getElementById("btnClearPubKey2").addEventListener("click", clearTextarea);<br /><br />        document.getElementById("btnClearPgpMsg2").addEventListener("click", clearTextarea);<br /><br />    &lt;/script&gt;<br />&lt;/body&gt;<br /><br />&lt;/html&gt;
 ]]></content:encoded>
-<pubDate>2024-06-17T09:24:28Z</pubDate>
 <pubDate>2024-06-17T01:23:28Z</pubDate>
 </item>
 <item>
@@ -280,7 +1081,6 @@ Build.BRAND
 <link>https://www.v2ex.com/t/1050283</link>
 <guid>https://www.v2ex.com/t/1050283</guid>
 <content:encoded><![CDATA[
-
 <p>工作和学习的时候经常容易在浏览器里走神，很难专注，所以开发了个小插件，让大模型监督自己，只要告诉大模型现在专注的事，当走神的时候，就会弹出一句专注相关的诗词警句提醒自己，提示的样式支持全屏或右下角悬浮，可以自由设置，模型只需要配置大厂免费模型就可以无限使用。</p>
 <p>下载地址:</p>
 <ul>
@@ -292,14 +1092,12 @@ Build.BRAND
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PWxyUmZ.png" /></p>
 ]]></content:encoded>
 <pubDate>2024-06-17T09:23:29Z</pubDate>
-<pubDate>2024-06-17T09:23:29Z</pubDate>
 </item>
 <item>
 <title>[日本] 真人真事，在考虑在日本找工作，发展的话，请一读。</title>
 <link>https://www.v2ex.com/t/1050282</link>
 <guid>https://www.v2ex.com/t/1050282</guid>
 <content:encoded><![CDATA[
-
 <p>我们, <a href="https://jellyfish-g.co.jp" rel="nofollow">日本水母</a>是位于东京的专业中介猎头公司。</p>
 <p>一直以来帮助过不少的中国工程师寻找日本工作。
 想在这里跟在考虑在日本找工作的朋友们分享一下 Z 桑的故事。<br />
@@ -341,7 +1139,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <p>上述任意经验+日语/英语 OK ，欢迎直接投递简历～ 有兴趣想了解详细的话，请联系我们：
 有意者私聊：<a href="https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4" rel="nofollow">https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4</a>（请务必准备好日语/英语简历，感恩的心）</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:22:56Z</pubDate>
 <pubDate>2024-06-17T09:19:56Z</pubDate>
 </item>
 <item>
@@ -349,10 +1146,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050281</link>
 <guid>https://www.v2ex.com/t/1050281</guid>
 <content:encoded><![CDATA[
-
 <p>Mx keys 系列键帽掉漆严重，本人使用的是 mx keys mini 白色版，常用的结果键掉漆太严重了，想换键帽，不知道大家有无可选方案？</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:22:01Z</pubDate>
 <pubDate>2024-06-17T09:47:12Z</pubDate>
 </item>
 <item>
@@ -360,12 +1155,10 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050280</link>
 <guid>https://www.v2ex.com/t/1050280</guid>
 <content:encoded><![CDATA[
-
 <p>我目前正在尝试使用 nextra + nextui 写网站，因为我需要自定义页面样式，又想要使用 nextra 那种 mdx 写法，</p>
 <p>但是发现 nextra 不支持 app router 方式，导致 nextra 的页面必须和 app 的 jsx 页面分离，但是我看到 nextui 和 nextjs 官网的页面的 docs 和网站首页都是一体的，并且有 nextra 那样的左测目录导航，</p>
 <p>请问是怎么实现的呀</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:21:23Z</pubDate>
 <pubDate>2024-06-17T09:59:04Z</pubDate>
 </item>
 <item>
@@ -374,9 +1167,7 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <guid>https://www.v2ex.com/t/1050279</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-17T09:21:04Z</pubDate>
 <pubDate>2024-06-17T10:12:57Z</pubDate>
 </item>
 <item>
@@ -384,12 +1175,10 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050277</link>
 <guid>https://www.v2ex.com/t/1050277</guid>
 <content:encoded><![CDATA[
-
 <p>618 准备入手致钛 7100,现在纠结硬盘盒,有推荐的吗???</p>
 <p>电脑是:m1 pro</p>
 <p>用途:跑 windows 虚拟机(定期短暂需要),存放一些备份资料等.</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:20:20Z</pubDate>
 <pubDate>2024-06-17T09:45:58Z</pubDate>
 </item>
 <item>
@@ -397,10 +1186,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050274</link>
 <guid>https://www.v2ex.com/t/1050274</guid>
 <content:encoded><![CDATA[
-
 在 iPhone 开发模式下安装的 iOS 18 Beta 版本，在使用面部识别应用锁和隐藏应用的功能时发现一个情况。我测试过程中我将 iPhone 中的 9 款应用程序进行“隐藏+应用锁”和 4 款应用只进行了应用锁没有使用隐藏功能。<br /><br />在进行了这些操作之后，我的 iPhone 就会经常出现跳出让我进行面部解锁的提示。无论是拿在手上，静置在桌面上，都会 30 分钟左右会跳一次(不是很有规律)。当我没有去主动对着面部解锁时就会出现如下图所示的情况。<br /><br />（ V2 上我不知道如何上传截图，原文中有提示的截图）<br /><br />查看原文： <a href="https://topstip.com/ios-18-beta-version-facial-recognition-app-lock-abnormal-prompt-unlock-bug/" rel="nofollow noopener" target="_blank">https://topstip.com/ios-18-beta-version-facial-recognition-app-lock-abnormal-prompt-unlock-bug/</a>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:16:18Z</pubDate>
 <pubDate>2024-06-17T09:13:18Z</pubDate>
 </item>
 <item>
@@ -409,9 +1196,7 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <guid>https://www.v2ex.com/t/1050273</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-17T09:14:15Z</pubDate>
 <pubDate>2024-06-17T09:42:28Z</pubDate>
 </item>
 <item>
@@ -419,10 +1204,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050271</link>
 <guid>https://www.v2ex.com/t/1050271</guid>
 <content:encoded><![CDATA[
-
 <p>两房一厅，预算 6000 内，哪个小区划算？</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:06:46Z</pubDate>
 <pubDate>2024-06-17T05:05:46Z</pubDate>
 </item>
 <item>
@@ -430,7 +1213,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050269</link>
 <guid>https://www.v2ex.com/t/1050269</guid>
 <content:encoded><![CDATA[
-
 <p><strong>我们还在热情招聘中，职位梳理如下：🔥🔥</strong></p>
 <p>1 ，UI-Engineering Manager ，Cloud 产品 Konnect 前端设计，工程团队管理，现有团队，新设岗位，要求 Hands-on ，英语好，base 上海</p>
 <p>2 ， 高级后端开发工程师，1 个 HC ，主要做 Cloud 产品 Konnect 后端开发，Go 语言，英语好，优先上海，其次北京</p>
@@ -445,7 +1227,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/5b6136c2-b394-4901-8496-fc2c71ec42ca.jpg" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/ac1f8049-b59b-4bf0-bc35-49c0431bc722.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:04:30Z</pubDate>
 <pubDate>2024-06-17T09:14:20Z</pubDate>
 </item>
 <item>
@@ -453,13 +1234,11 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050268</link>
 <guid>https://www.v2ex.com/t/1050268</guid>
 <content:encoded><![CDATA[
-
 <p>整租套二，新搬的房租比原来多了三分之一，半年一交，跟原来租金有较大落差心在滴血，租房也伤不起啊。</p>
 <p>成年人的无力感倍增。</p>
 <p>搬家属实难受憋屈甚至恐惧，每次搬家都下定决心这绝对是最后一次搬家，下次就是往自己家新房搬了):</p>
 <p>来自底层人（买不起房的无奈）随笔。</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:03:29Z</pubDate>
 <pubDate>2024-06-09T21:20:46Z</pubDate>
 </item>
 <item>
@@ -467,7 +1246,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050267</link>
 <guid>https://www.v2ex.com/t/1050267</guid>
 <content:encoded><![CDATA[
-
 <p>  看到 V2 有好多个 V 友都在分享自己全职或者兼职或者体验送外卖 op 跑腿的帖子，今儿我也来分享一下我这几年送外卖的经历。</p>
 <h1>开门见山</h1>
 <p>  先把 5 月份的收入端上来，31 天，跑了 24 天，收入一共 2147 ，一天平均大概 90 块钱，时薪大概 30 左右，节假日会高一些，但平常（周一到周四）相对会少一些，所以估摸 30 元/每小时是合理的，至于 5 月份当中有 7 天是缺勤的，有几天是陪儿子睡觉，然后起不来了，有几天是因为各种事情耽搁了，所以一般我正常都会出去跑，风雨无阻，除非台风天，所以，如果一整个月的正常出勤的话，保底 2500+是有的。
@@ -500,7 +1278,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <p>  那么，我们下期再见。</p>
 <p>  Ps.或许你会在<a href="http://flowertower.cc" rel="nofollow">http://flowertower.cc</a>这个站点看到后续的 vol.2 以及更多，只是或许。</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:02:16Z</pubDate>
 <pubDate>2024-06-17T10:20:16Z</pubDate>
 </item>
 <item>
@@ -508,7 +1285,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050266</link>
 <guid>https://www.v2ex.com/t/1050266</guid>
 <content:encoded><![CDATA[
-
 <p>因为项目网络开通的问题，现在需要使用 nginx 代理一下。</p>
 <p>服务器 A 有 nginx
 服务器 B 有 nginx
@@ -516,7 +1292,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 现在 get 请求能访问，但是 post 请求访问，后端服务返回结果。但是前端接收不到。
 这是为什么呢</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:00:46Z</pubDate>
 <pubDate>2024-06-17T09:48:43Z</pubDate>
 </item>
 <item>
@@ -524,10 +1299,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050265</link>
 <guid>https://www.v2ex.com/t/1050265</guid>
 <content:encoded><![CDATA[
-
 <p>工作 Java 后端，今天摸鱼上手用了会 Kotlin ，感觉开发效率很高，有点想学习 Kotlin 了，想请教下有没有什么好的资源。</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T09:00:15Z</pubDate>
 <pubDate>2024-06-17T09:37:43Z</pubDate>
 </item>
 <item>
@@ -535,10 +1308,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050264</link>
 <guid>https://www.v2ex.com/t/1050264</guid>
 <content:encoded><![CDATA[
-
 双方现状：<br />1. 本人毕业后一直在这家公司，外包、驻场项目不算特别稳定，隔几年换一个城市。收入一般，工作压力尚可，偶尔加班大部分时间早 9 晚 6<br />2. 女友大学毕业后，考研没过线，找工作不太满意嫌弃收入太低，gap 一年考雅思 去 hk 读研 （非港三）。毕业后 找了个 hk 四大的实习，说是有 return offer 但是等到现在也没信，估计也悬了。<br />事情经过：<br />昨天，女友说他家里有亲戚让她考注册安全工程师，说考完证后进厂一年收入能有十几万，后期可以四五十万，如是就心动了，然后就拉着我，想让我陪他一起考。<br />我不太愿意，虽然我工作不加班，但是下班后吃完饭，洗洗澡，有时候白天写代码遇到不懂的东西，晚上回来补补课之类的（原谅卤煮技术很菜），我就说我没时间，工作也很累之类的～<br />最后我表达出了我不愿意的意愿，女友就说了一大堆，说我对未来没有规划、安于现状之类的
 ]]></content:encoded>
-<pubDate>2024-06-17T08:49:41Z</pubDate>
 <pubDate>2024-06-15T21:00:17Z</pubDate>
 </item>
 <item>
@@ -546,10 +1317,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050263</link>
 <guid>https://www.v2ex.com/t/1050263</guid>
 <content:encoded><![CDATA[
-
 “先生 ipad pro 他不仅可以结合 apple pencil 记笔记、画画，如果您有出门便携需求，iPad 可以像一台笔记本电脑一样帮助你随时办公，甚至更强和更轻”<br /><br />“可是我已经有了一台 macbook air ，那这台 ipad pro m4 有什么功能我可以用上么”<br /><br />4 秒钟的尴尬沉默后，销售说“那得看您具体看中哪一方面了，比如触摸屏的体验，这边其实您可以购买先，不满意可以 14 天退货的”<br /><br />🤔
 ]]></content:encoded>
-<pubDate>2024-06-17T08:45:50Z</pubDate>
 <pubDate>2024-06-17T10:18:27Z</pubDate>
 </item>
 <item>
@@ -557,10 +1326,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050262</link>
 <guid>https://www.v2ex.com/t/1050262</guid>
 <content:encoded><![CDATA[
-
 <p>我这边后台，需要同步 BI 这边的表，比如 Doris ，HIVE ，等等数据源，有没有那种可视化配置的 ETL 同步工具，支持插入更新。</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T08:44:32Z</pubDate>
 <pubDate>2024-06-17T08:52:25Z</pubDate>
 </item>
 <item>
@@ -568,10 +1335,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050260</link>
 <guid>https://www.v2ex.com/t/1050260</guid>
 <content:encoded><![CDATA[
-
 这个网站底部栏的实时数据刷新是怎么做的？ <a href="https://www.jin10.com/" rel="nofollow noopener" target="_blank">https://www.jin10.com/</a><br /><br />看网络请求 没有实时 http 请求，也没有 websocket 请求，下边的金价数据是怎么实现更新的？我看了它几个 http 请求也没有 SSE event-stream 那种协议，有点神奇呀？
 ]]></content:encoded>
-<pubDate>2024-06-17T08:40:48Z</pubDate>
 <pubDate>2024-06-17T04:40:48Z</pubDate>
 </item>
 <item>
@@ -579,7 +1344,6 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050259</link>
 <guid>https://www.v2ex.com/t/1050259</guid>
 <content:encoded><![CDATA[
-
 <p>我正在开发的一个 iOS 17 Widget ，它可以为用户的 Thing 对象进行打卡。</p>
 <p>当我同时创建多个 Widget 实例时，无论点击哪个 Widget 实例进行打卡，它们更新的都是第一个 Thing ，看起来多个 Widget 都重复指向了同一个 Thing 。</p>
 <p>我后面经过排查，发现是我的 AppIntent 中，Parameter 并不起作用，用户无论选择哪个 thing,perform 中的 thing 都是 EntityQuery 中的 defaultResult 的返回值</p>
@@ -617,17 +1381,14 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <p>哪位大佬知道怎么解决吗？修了两天了，文档、视频、教程看了一遍，都没发现解决办法。。真的很痛苦 T_T</p>
 ]]></content:encoded>
 <pubDate>2024-06-17T08:37:17Z</pubDate>
-<pubDate>2024-06-17T08:37:17Z</pubDate>
 </item>
 <item>
 <title>[分享发现] vivo 更新支持应用通话录音了</title>
 <link>https://www.v2ex.com/t/1050258</link>
 <guid>https://www.v2ex.com/t/1050258</guid>
 <content:encoded><![CDATA[
-
 版本：PD2309D A 14.0.23.20.W10.V000L1<br /><br /><a href="https://gateway.ipfsscan.io/ipfs/QmZQKKTXYE9y15tvHDtorX5YebGebnYwAhfqZrmWBuFa1J?filename=%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20240617162651.jpg" rel="nofollow noopener" target="_blank">https://gateway.ipfsscan.io/ipfs/QmZQKKTXYE9y15tvHDtorX5YebGebnYwAhfqZrmWBuFa1J?filename=%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20240617162651.jpg</a>
 ]]></content:encoded>
-<pubDate>2024-06-17T08:33:03Z</pubDate>
 <pubDate>2024-06-17T08:33:03Z</pubDate>
 </item>
 <item>
@@ -636,9 +1397,7 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <guid>https://www.v2ex.com/t/1050257</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-06-17T08:32:23Z</pubDate>
 <pubDate>2024-06-17T08:53:10Z</pubDate>
 </item>
 <item>
@@ -646,10 +1405,8 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050256</link>
 <guid>https://www.v2ex.com/t/1050256</guid>
 <content:encoded><![CDATA[
-
 有土壤传感器和 4G 的 DTU 不知道怎么将设备配置好。<br />微信号发到邮箱我联系您：eHlhc2Z0QGdtYWlsLmNvbQ==
 ]]></content:encoded>
-<pubDate>2024-06-17T08:26:56Z</pubDate>
 <pubDate>2024-06-17T08:26:56Z</pubDate>
 </item>
 <item>
@@ -657,15 +1414,12 @@ CAD: AutoCAD, Solidworks, CATIA, NX, Creo etc.
 <link>https://www.v2ex.com/t/1050255</link>
 <guid>https://www.v2ex.com/t/1050255</guid>
 <content:encoded><![CDATA[
-
 <p>之前 3 年买的腾讯云快过期了，鉴于现在的云服务器越来越贵，然后利用率也低，也就挂了些 Memos 、Bitwarden 、Bark 、Gotify 等这些自用的小工具，打算不再折腾境外 vps 了。</p>
 <p>家里的 NAS 平时 24 小时开机，一年下来也没怎么离线过，可用性还算高，刚刚试了 cloudflare tunnel 貌似访问速度也还行，就是不知道会不会断断续续的不可用。</p>
 <p>当然家里有公网 IP ，Bitwarden 这种不过 cf ，直接用端口访问也不是不行。</p>
 ]]></content:encoded>
-<pubDate>2024-06-17T08:26:52Z</pubDate>
 <pubDate>2024-06-17T10:01:14Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 一类卡到期，银行的骚操作</title>
 <link>https://www.v2ex.com/t/1050254</link>
@@ -15649,703 +16403,6 @@ GitHub： <a href="https://github.com/x007xyz/fly-cut" rel="nofollow">https://gi
 <a href="https://github.com/hanxi/xiaomusic" rel="nofollow noopener" target="_blank">https://github.com/hanxi/xiaomusic</a><br /><br />刚提交初版，勉强能用，很多接口是用的 xiaogpt 项目。<br /><br />根据提示语执行接口，播放音乐支持本地音乐，本地没找到就会搜索下载到本地再播放。
 ]]></content:encoded>
 <pubDate>2024-06-13T00:48:08Z</pubDate>
-</item>
-<item>
-<title>肝了五一假期： iOS 平台的假期调休闹钟「休息日」，限时免费，没有内购</title>
-<link>https://www.v2ex.com/t/1038080</link>
-<guid>https://www.v2ex.com/t/1038080</guid>
-<content:encoded><![CDATA[
-<h2>这次 App 的起因是这样</h2>
-<p>看到论坛上有人吐槽 iOS 的节假日闹钟（ <a href="https://v2ex.com/t/1037232" rel="nofollow">https://v2ex.com/t/1037232</a> ），然后里面有个来自 sspai 的教程（ <a href="https://sspai.com/prime/story/shortcuts-holiday-alarm" rel="nofollow">https://sspai.com/prime/story/shortcuts-holiday-alarm</a> ），大概就是订阅节假日的日历订阅，然后通过快捷指令（ Shortcuts ）判断日历里的事件名，来判断是假期还是调班。</p>
-<p>但是通过日历的事件名来判断，逻辑有点繁琐，灵活程度不够。所以我觉得是一个做 App 的切入点。</p>
-<h2>App 信息</h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/36vJezK2s.png" /></p>
-<p>名称：休息日（英文名 Off Day ）</p>
-<p>下载地址： <a href="https://apps.apple.com/app/id6501973975" rel="nofollow">https://apps.apple.com/app/id6501973975</a></p>
-<h2>特色</h2>
-<ul>
-<li>
-<p>内置多种公共假期模板，甚至包含自治区的方案</p>
-</li>
-<li>
-<p>找不到自己所在地区的模板？没关系，可以自行标注哪一天工作日，哪一天休息日，不管你是大小周还是轮休，用户标注的日期类型优先级是最高的</p>
-</li>
-<li>
-<p>支持 Siri Shortcuts ，自带教程</p>
-</li>
-</ul>
-<h2>截图</h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/daNCZPX7b.png" /> <img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/P524tC82b.png" /></p>
-<h2>限免说明</h2>
-<p>这是一个没有内购的应用，因为算是从 V2EX 上收集的需求做的 App ，所以限免，限免从今天（ 5 月 6 日）到 5 月 8 日。</p>
-<p>如果你那边价格有显示，先不要购买，可能 App Store 不同节点的价格更新是有不同的。</p>
-<h2>其他</h2>
-<p>欢迎大家使用，测试，吐槽。</p>
-]]></content:encoded>
-<pubDate>2024-06-10T01:15:37Z</pubDate>
-</item>
-<item>
-<title>[UNITY] 为什么 Unity 自带的资源加密功能是中国版特供的？</title>
-<link>https://www.v2ex.com/t/1049079</link>
-<guid>https://www.v2ex.com/t/1049079</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-06-12T20:36:45Z</pubDate>
-</item>
-<item>
-<title>[Linux] 求 Ubuntu 免驱 PCIe（USB）的 1/2.5/10G 以太网卡推荐</title>
-<link>https://www.v2ex.com/t/1049078</link>
-<guid>https://www.v2ex.com/t/1049078</guid>
-<content:encoded><![CDATA[
-rt ，起因是本人 NAS （ H81 平台自建的 Ubuntu ）主板板载网卡坏了（可能是刷 pt 刷太多导致的），希望有 V 友能推荐个免驱以太网卡，最好是 PCIe 。（听说某 USB2.5G 网卡比较吃 CPU ）
-]]></content:encoded>
-<pubDate>2024-06-12T20:28:45Z</pubDate>
-</item>
-<item>
-<title>[Twitter] Twitter 广告声音不能默认关闭是什么时候开始的逆天设计？把视频自动播放关了都不行，以前记得可以的</title>
-<link>https://www.v2ex.com/t/1049077</link>
-<guid>https://www.v2ex.com/t/1049077</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-06-12T18:40:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 分手了算账吗？彼此间转账红包礼物过节烟酒礼品补品？以后注意点什么？有坑？</title>
-<link>https://www.v2ex.com/t/1049076</link>
-<guid>https://www.v2ex.com/t/1049076</guid>
-<content:encoded><![CDATA[
-跟人撕了，原因：D 日子不顺天天喝酒撒酒疯倒垃圾<br />对方开始算账，一个饺子八分钱那种<br /><br />综合算下来差额也就两年不到 3W<br />清了<br />以后耍朋友还得长心眼了<br />斤斤计较体现的淋漓尽致了
-]]></content:encoded>
-<pubDate>2024-06-04T18:10:18Z</pubDate>
-</item>
-<item>
-<title>[Apple] 关于 imessage， facetime， homekit 等服务部分地区无法使用的原因</title>
-<link>https://www.v2ex.com/t/1049075</link>
-<guid>https://www.v2ex.com/t/1049075</guid>
-<content:encoded><![CDATA[
-破案了<br />问题的根源在于湖北电信和安徽电信屏蔽了 <a href="http://identity.ess.apple.com" rel="nofollow noopener" target="_blank">identity.ess.apple.com</a> 这个域名<br />这个域名应该跟验证 appleid 有关<br />运营商以为这个是 ft 的域名，直接一刀切了<br /><br />另外多说几句<br />苹果目前很多服务域名，比如<br /><a href="http://init.ess.apple.com" rel="nofollow noopener" target="_blank">init.ess.apple.com</a><br /><a href="http://music.apple.com" rel="nofollow noopener" target="_blank">music.apple.com</a><br /><a href="http://itunes.apple.com" rel="nofollow noopener" target="_blank">itunes.apple.com</a><br />这些域名在国内都会解析到一个国内的 ip 地址<br />这些地址都和所在地区运营商有关<br />比如说如果你用电信，你访问 apple music 就会解析一个电信的 ip<br />唯独 <a href="http://identity.ess.apple.com" rel="nofollow noopener" target="_blank">identity.ess.apple.com</a> 这个域名走的是苹果的美国服务器
-]]></content:encoded>
-<pubDate>2024-06-12T17:44:43Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一款刚刚对外开放的在线的免费 Stable Diffusion 3 生图工具产品</title>
-<link>https://www.v2ex.com/t/1049074</link>
-<guid>https://www.v2ex.com/t/1049074</guid>
-<content:encoded><![CDATA[
-<h1>Free Stable Diffusion 3 Online 工具介绍</h1>
-<p>各位好，晚上睡前刚好看到有群友分享了一个 Hugginface 搭建的 Stable Diffusion 3 的在线体验工具，而且推荐采用 iframe 的方式，让大家可以快速上线 Stable Diffusion 3 的免费体验产品。所以灵机一动，马上注册了域名：stable-diffusion-3.online, 完成了一个免费的在线 Stable Diffusion 3 体验工具：<a href="https://stable-diffusion-3.online" rel="nofollow">Free Stable Diffusion 3 Online</a>, 欢迎大家免费体验使用。</p>
-<h2>介绍下 Stable Diffusion 3 的一些特征</h2>
-<h3>1. 高级图像生成</h3>
-<p>Free Stable Diffusion 3 Online 基于最新的 Stable Diffusion 3 模型，能够从文本提示生成高质量的图像。无论是复杂的空间关系、构图元素、动作还是风格，它都能准确理解并生成符合要求的图像。</p>
-<h3>2. 照片级真实感</h3>
-<p>该工具克服了手部和面部常见的伪影问题，生成高质量的图像，无需复杂的工作流程。</p>
-<h3>3. 文本生成</h3>
-<p>借助我们的 Diffusion Transformer 架构，Free Stable Diffusion 3 Online 在生成文本时达到了前所未有的效果，没有伪影和拼写错误。</p>
-<h3>4. 资源高效</h3>
-<p>由于其低显存占用，Free Stable Diffusion 3 Online 非常适合在标准消费者 GPU 上运行而不会性能下降。</p>
-<h3>5. 精细调整</h3>
-<p>它能够从小数据集中吸收细微的细节，非常适合定制化需求。</p>
-<h2>使用方法</h2>
-<ol>
-<li>访问 <a href="https://stable-diffusion-3.online/" rel="nofollow">Free Stable Diffusion 3 Online</a> 网站。</li>
-<li>输入您的文本提示。</li>
-<li>生成并查看高质量的图像。</li>
-</ol>
-<h2>完全免费</h2>
-<p>Free Stable Diffusion 3 Online 完全免费使用。您可以随时访问我们的在线平台，体验最先进的文本生成图像技术。</p>
-<p>欢迎大家留言交流，希望这款产品可以给大家带来 Stable Diffusion 3 的乐趣。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T18:21:52Z</pubDate>
-</item>
-<item>
-<title>[分享发现] k8s 部署 dify，以 yaml 文件的方式</title>
-<link>https://www.v2ex.com/t/1049073</link>
-<guid>https://www.v2ex.com/t/1049073</guid>
-<content:encoded><![CDATA[
-<h2>写了份指南，实现了在 k8s 集群上使用 yaml 文件部署 dify</h2>
-<p>如果你还不知道 dify ，
-<a href="https://github.com/langgenius/dify" rel="nofollow">dify 官方 repo</a></p>
-<p>目前官方提供了两个使用 helm 部署的方式，我想 yaml 的方式也同样有人需要。</p>
-<p><a href="https://github.com/Winson-030/dify-kubernetes" rel="nofollow">dify-kubernetes</a></p>
-<p>一句命令即可部署 dify</p>
-<pre><code class="language-shell">
-
-kubectl apply -f https://raw.githubusercontent.com/Winson-030/dify-kubernetes/main/dify-deployment.yaml
-
-
-</code></pre>
-<p>欢迎各位 dify 用户分享使用经验，在 dify 上设计 workflow 和 agent 真的太有意思了！</p>
-]]></content:encoded>
-<pubDate>2024-06-12T17:12:31Z</pubDate>
-</item>
-<item>
-<title>[承接项目 ] UI 设计和静态样式前端合作--AI 数字人/web3/钱包/交易所---非正规项目请绕道</title>
-<link>https://www.v2ex.com/t/1049072</link>
-<guid>https://www.v2ex.com/t/1049072</guid>
-<content:encoded><![CDATA[
-<p>提供服务：</p>
-<p>UI 设计 、静态样式前端（ h5+div+css3+js ）</p>
-<p>擅长：</p>
-<p>pc 端的----商城、交互、门户、及其他大型平台、系统量身定制 UI 设计、h5 移动端界面设计 、app （ 只设计）</p>
-<p>技术：</p>
-<p>photo 、div+css(CSS 手写)，JS 特效、html 、Jquery 、d3.js</p>
-<p>联系方式：</p>
-<p>vx : 191400619</p>
-<p>telegram : @<a href="https://www.v2ex.com/member/Yisitie777">Yisitie777</a></p>
-<p>作品链接：</p>
-<p><a href="https://ludesala.blogspot.com/" rel="nofollow">https://ludesala.blogspot.com/</a> （ oversea 客户浏览） 有联系方式</p>
-<p><a href="https://www.zcool.com.cn/u/521379" rel="nofollow">https://www.zcool.com.cn/u/521379</a> （ mainland 的站酷平台晒得作品案例）</p>
-<p>上线案例：</p>
-<p><a href="http://www.zefeigc.com" rel="nofollow">http://www.zefeigc.com</a> 服务：UI 设计 +响应前端</p>
-<p><a href="https://www.aiznx.com" rel="nofollow">https://www.aiznx.com</a> 服务：UI 设计 +响应前端</p>
-<p><a href="https://payment.chainpaygo.com/" rel="nofollow">https://payment.chainpaygo.com/</a> 服务：UI 设计 +响应前端</p>
-<p><a href="https://transformer.knn3.xyz/homepage" rel="nofollow">https://transformer.knn3.xyz/homepage</a> 服务：UI 设计 +响应前端</p>
-]]></content:encoded>
-<pubDate>2024-06-12T16:31:32Z</pubDate>
-</item>
-<item>
-<title>[DNS] 高校里面自建的 DNS 服务器是怎么弄的</title>
-<link>https://www.v2ex.com/t/1049071</link>
-<guid>https://www.v2ex.com/t/1049071</guid>
-<content:encoded><![CDATA[
-<p>我自己所在高校有自建 DNS 服务器，平时延时很低，大概 1ms 不到。我很好奇这种服务器是不是采用缓存的方法，从上游 DNS 服务器获取 IP ，然后缓存到本地。那么高校搭建这种服务器有什么意义的，单纯为了延时短？或者 DNS 污染？</p>
-<p>有没有老哥有比较成熟的，自建 DNS 服务器的方案能给我指导一下，想自己搭建一个 DNS 服务器玩玩。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T16:22:57Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 阿里云的容器镜像香港地区是关了还是出故障了？</title>
-<link>https://www.v2ex.com/t/1049070</link>
-<guid>https://www.v2ex.com/t/1049070</guid>
-<content:encoded><![CDATA[
-<p><a href="http://registry.cn-hongkong.aliyuncs.com" rel="nofollow">registry.cn-hongkong.aliyuncs.com</a> 完全拉不动，我自己有些服务是通过 github actions 编译 docker 镜像之后推到香港的镜像仓库，然后在腾讯云的服务器上拿下来进行部署。前段时间都还是好好的，结果今天就完全拉不动了，扔站长之家去测速就是一大片红色（超时）
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/vynZP0e.png" /> </p>
-<p>我尝试了一下其他地区的容器镜像地址 <a href="http://registry.cn-guangzhou.aliyuncs.com" rel="nofollow">registry.cn-guangzhou.aliyuncs.com</a> ，也是全红的状态。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OmbYf1b.png" /> </p>
-<p>试了一下腾讯云的镜像仓库香港地区，访问正常
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KKxSWc3.png" /> </p>
-<p>这是要出啥事了吗？
-看来需要找时间给迁移到腾讯云了</p>
-]]></content:encoded>
-<pubDate>2024-05-23T15:52:53Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 尼日尼亚版本支付宝 palmpay 电子钱包,可以免手续费转奈拉</title>
-<link>https://www.v2ex.com/t/1049069</link>
-<guid>https://www.v2ex.com/t/1049069</guid>
-<content:encoded><![CDATA[
-<p>尼日尼亚的电子钱包 palmpay</p>
-<p>现在尼区各种低价,估计能薅羊毛的时间也不多了,越来越多尼区的 netflix spotify 谷歌 one 等等.</p>
-<p>价格是便宜,但是各种虚拟卡充值是麻烦事.</p>
-<p>如果是黄牛需要给别人充值,这个就有用处了.</p>
-<p>palmpay 现在可用免手续费转尼日尼亚奈拉到各种银行账号,或者虚拟卡充值例如 chipper,klasha,opay 等. </p>
-<p>经常用尼日尼亚奈拉的可以关注下.
-介绍 <a href="https://youtu.be/XIHdqmGWR5M" rel="nofollow">https://youtu.be/XIHdqmGWR5M</a></p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:47:05Z</pubDate>
-</item>
-<item>
-<title>[硬件] 更换了两个鼠标微动，首次操作</title>
-<link>https://www.v2ex.com/t/1049068</link>
-<guid>https://www.v2ex.com/t/1049068</guid>
-<content:encoded><![CDATA[
-<p>之前陆续有 3 个鼠标，都是左键双击了，两个罗技，一个杂牌。
-网上找了个维修的，一个鼠标 30 元手工费，微动另算，运费来回 20+元。
-突然想挑战一下，多年没有动手，想象电络铁应该不太难。
-15 块钱买个电烙铁，12 块钱一个微动，买了 4 对，怕弄坏了，多买了几个练手。
-第一个是杂牌无线鼠标，拆的比较麻烦，不太熟练，老的微动焊下来都废了半天劲。
-新的焊上去，不能用，反复拆卸了五六次，发现应该是中间阵脚没焊好。
-拆的时候太粗暴，把中间阵脚电路板上的锡弄掉了。
-在中间阵脚加了点锡，硬塞进去，背面焊一下固定，两头的阵脚正常焊。
-通电试了一下，OK 。</p>
-<p>第二个是罗技 MX518 ，有线的。
-想着第一个都差点弄坏，这个有点不敢动手了。
-出乎意料，罗技里面的布局很友好。
-轻松把左键焊掉，换了个新的微动，试试手感还可以，加锡焊上去。
-接电脑试了一下，没问题。上螺丝。
-装好了用测试网页试试，很顺畅。正在用 MX518 编辑帖子。</p>
-<p>准备拆第三个，罗技 MX Master 2S 。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:54:39Z</pubDate>
-</item>
-<item>
-<title>[新手求助] 想知道这是什么加密方式？</title>
-<link>https://www.v2ex.com/t/1049067</link>
-<guid>https://www.v2ex.com/t/1049067</guid>
-<content:encoded><![CDATA[
-<p>php 代码混淆加密，但是搜了好久，没搜到这是什么加密方式，加密后的代码都是</p>
-<p>if (!defined("A_AA_AAAAAA_AAA__"))</p>
-<h1>例如：if (!defined("这里不固定，但都是 A 和_随机组合的"))</h1>
-<p>加密代码示例：</p>
-<pre><code class="language-php">&lt;?php
-namespace app\api\controller\v6;
-  
-if (!defined("A_AA_AAAAAA_AAA__")) {
-    define("A_AA_AAAAAA_AAA__", "A_AA_AAAAAA_AAA_A");
-}
-$GLOBALS[A_AA_AAAAAA_AAA__] = explode("|E|`|k", "H*|E|`|k415F41415F4141414141415F5F4141415F");
-if (!defined("A_AA_AAAAAA_A___A")) {
-    define("A_AA_AAAAAA_A___A", "A_AA_AAAAAA_A__A_");
-}
-$GLOBALS[A_AA_AAAAAA_A___A] = explode("|r|y||", "H*|r|y||61706B2F7631362E706870|r|y||636F6465|r|y||6D7367|r|y||73756363657373|r|y||75726C");
-if (!defined(pack($GLOBALS[A_AA_AAAAAA_AAA__][0], $GLOBALS[A_AA_AAAAAA_AAA__][1]))) {
-    define(pack($GLOBALS[A_AA_AAAAAA_AAA__][0], $GLOBALS[A_AA_AAAAAA_AAA__][1]), ord(63));
-}
-$C3zBuEt1402 = array();
-$C3zBuEt1402[] = 16;
-$C3zBuEt1402[] = 8;
-$C3zBuEt1402[] = 9;
-$C3zBuEt1402[] = 10;
-$C3zBuEt1402[] = 17;
-class Update extends Base
-{
-    public function Index()
-    {
-        $C3zBuEt1403 = array();
-        $C3zBuEt1403[] = 4;
-        $C3zBuEt1403[] = 20;
-        $C3zBuEt1403[] = 3;
-        $C3zBuEt1403[] = 14;
-        $C3zBuEt1403[] = 11;
-        $A_AA_AAAAAA_A__AA = "pack";
-        $C3zeF8H = $A_AA_AAAAAA_A__AA($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][01]);
-        $C3z8H = (require_once $C3zeF8H);
-        unset($C3ztI8H);
-        $C3ztI8H = get_url_up();
-        $vsdata = $C3ztI8H;
-        $A_AA_AAAAAA_A_A__ = "pack";
-        $C3zeFvP8H = $A_AA_AAAAAA_A_A__($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][02]);
-        $A_AA_AAAAAA_A_A_A = "pack";
-        $C3zeFvPvP8I = $A_AA_AAAAAA_A_A_A($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][02]);
-        $A_AA_AAAAAA_A_AA_ = "pack";
-        $C3zeFvP8J = $A_AA_AAAAAA_A_AA_($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][3]);
-        $A_AA_AAAAAA_A_AAA = "pack";
-        $C3zeFvP8K = $A_AA_AAAAAA_A_AAA($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][4]);
-        $A_AA_AAAAAA_AA___ = "pack";
-        $C3zeFvP8L = $A_AA_AAAAAA_AA___($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][05]);
-        $A_AA_AAAAAA_AA__A = "pack";
-        $C3zeFvPvP8M = $A_AA_AAAAAA_AA__A($GLOBALS[A_AA_AAAAAA_A___A][00], $GLOBALS[A_AA_AAAAAA_A___A][05]);
-        $C3zzA8N = array();
-        $C3zzA8N[$C3zeFvP8H] = $vsdata[$C3zeFvPvP8I];
-        $C3zzA8N[$C3zeFvP8J] = $C3zeFvP8K;
-        $C3zzA8N[$C3zeFvP8L] = $vsdata[$C3zeFvPvP8M];
-        unset($C3ztI8H);
-        $C3ztI8H = $C3zzA8N;
-        $data = $C3ztI8H;
-        die(json_encode($data));
-    }
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-06-12T16:07:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] B 端产品都是如何设计新手指导的？</title>
-<link>https://www.v2ex.com/t/1049066</link>
-<guid>https://www.v2ex.com/t/1049066</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-06-12T15:40:58Z</pubDate>
-</item>
-<item>
-<title>[VPS] 一不小心买了三年的 VPS，好像没啥太大用处，部署了一个图床贡献给大家，无限制上传，提供 API</title>
-<link>https://www.v2ex.com/t/1049065</link>
-<guid>https://www.v2ex.com/t/1049065</guid>
-<content:encoded><![CDATA[
-<h1>自己懒得做了，所以使用了开源项目： <a href="https://github.com/helloxz/imgurl" rel="nofollow">https://github.com/helloxz/imgurl</a></h1>
-<h1>图床地址： <a href="https://img.maymay5.com/" rel="nofollow">https://img.maymay5.com/</a></h1>
-<h2>对 UI 进行了一些微调，去除了大部分没用的功能，只保留了纯粹的图床功能，图床该有的拖拽上传、粘贴上传、多图上传、以及各类代码生成都有</h2>
-<h2>有什么优势：如题，至少三年内这个网站不会下线哈哈</h2>
-<h2>名为 [只是图床]</h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PWI1fnE.png" /></p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:52:00Z</pubDate>
-</item>
-<item>
-<title>[JavaScript] 请教 JS 中有关 Promise 和回调函数的写法问题</title>
-<link>https://www.v2ex.com/t/1049064</link>
-<guid>https://www.v2ex.com/t/1049064</guid>
-<content:encoded><![CDATA[
-<p>在网上浏览的时候看到了下面的一种写法，可以通过新建一个 Promise 对象，在 Promise 对象中绑定回调函数，并获取回调结果，类似与下面这种：</p>
-<pre><code class="language-js">
-    const img = document.getElementById("bg");
-    
-    const message = () =&gt; {
-      return new Promise((resolve, reject) =&gt; {
-        img.onload = () =&gt; {
-          resolve("Image loaded successfully"); // 返回回调函数的结果
-        };
-      });
-    };
-
-    const AsyncTest = async () =&gt; {
-      try {
-        const msg = await message();
-        console.log(msg);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-
-</code></pre>
-<p>上面的代码确实能够将回调函数的返回值作为 Promise 的调用结果返回。</p>
-<p>随后突发奇想，用下面这种方式分别异步调用两次上面代码中的 AsyncTest 的函数：</p>
-<pre><code class="language-js">
-    // 连续两次调用 AsyncTest 函数
-    AsyncTest().then(() =&gt; {
-      console.log("Async function executed");
-    });
-    AsyncTest().then(() =&gt; {
-      console.log("Async function executed");
-    });
-    
-</code></pre>
-<p>结果发现虽然两次调用，但是只有一个调用有返回，个人的理解是：</p>
-<ul>
-<li>第一次调用 Promise ，给 onload 绑定回调函数，其中传入的 resolve 是第一个 Promise 的</li>
-<li>此时图片还没有加载完成</li>
-<li>第二次调用 Promise ，覆盖掉了 onload 的回调函数，其中的 resolve 变成了第二个 Promise 的</li>
-<li>图片加载完成，调用 onload 函数，其中调用的是第二个 Promise 的 resolve</li>
-</ul>
-<p>这样是否就意味着，第一次的 Promise 始终没有完成，保存在栈空间中，并在 EventLoop 中循环等待 resolve 的调用。 在图片加载完成后拍了堆快照，发现堆中确实留下了一个 Promise 的空间：</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9I2cnze.png" /></p>
-<p>请教一下，这是否意味着这块内存空间是否会始终被占用，以及利用 Promise 监听 onload 回调这种写法是否妥当？</p>
-]]></content:encoded>
-<pubDate>2024-06-12T16:21:23Z</pubDate>
-</item>
-<item>
-<title>[软件] 求推荐可以跨平台自动同步笔记的软件</title>
-<link>https://www.v2ex.com/t/1049063</link>
-<guid>https://www.v2ex.com/t/1049063</guid>
-<content:encoded><![CDATA[
-我有 windows+安卓 自动同步笔记的需求<br />我的筛选标准是：<br />1.云备份不要国内运营的，2.功能希望多一些，比如支持 markdown<br />我不太在乎的点是：<br />1.不在乎同步是否需要科学上网<br />2.不在乎是否需要付费，如果同步功能需要付费，有国内支付办法的更好<br />我目前在用 notion ，但 notion 在复制代码进去时总是会删除换行符，导致格式错乱有些烦，似乎没有什么解决办法<br />求合适的笔记推荐，或者说你有哪些好用的笔记呢，谢谢！
-]]></content:encoded>
-<pubDate>2024-06-12T16:11:28Z</pubDate>
-</item>
-<item>
-<title>[香港] za bank 在港区 app store 还收手续费？</title>
-<link>https://www.v2ex.com/t/1049061</link>
-<guid>https://www.v2ex.com/t/1049061</guid>
-<content:encoded><![CDATA[
-在港区 app store 绑定了 za ，试着充值了 10 港币，结果 za 显示 10.20 港币，被收了 1.95%跨境港币交易手续费，这也太坑了。
-]]></content:encoded>
-<pubDate>2024-06-12T15:18:21Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 谷歌开始置顶广告了？</title>
-<link>https://www.v2ex.com/t/1049060</link>
-<guid>https://www.v2ex.com/t/1049060</guid>
-<content:encoded><![CDATA[
-今天用谷歌搜了下 mac 相关的一些东西，发现搜索结果前五六个全是广告。。。并且没有任何广告标志，如图：<br /><a href="https://imgur.com/a/AmOQ856" rel="nofollow noopener" target="_blank">https://imgur.com/a/AmOQ856</a><br /><br />谷歌也堕落了？？？
-]]></content:encoded>
-<pubDate>2024-06-12T15:24:20Z</pubDate>
-</item>
-<item>
-<title>[.NET] 我使用 vscode，如何平稳的将.Net7.0 升级到.Net8.0?</title>
-<link>https://www.v2ex.com/t/1049059</link>
-<guid>https://www.v2ex.com/t/1049059</guid>
-<content:encoded><![CDATA[
-<p>我现在使用 vscode 进行 c#代码调试。<a href="http://我现在使用的是.net" rel="nofollow">我现在使用的是.net</a> core7.0 我想升级到 .net core8.0 。我找到如下微软的说明网页。但是网页内容有点疑问，不知道如何操作。</p>
-<p>1 、网页说：更新 global.json 文件。但是没有说这个文件在哪里？我在 CMD 中输入 dotnet --info 输出信息中提示</p>
-<p>Environment variables:
-Not set</p>
-<p>global.json file:
-Not found</p>
-<p>我问 gpt ，它说“如果项目根目录下没有 global.json 文件，你可以手动创建一个：”-------------问题是我有很多项目。难道每个项目下面都要新建一个 global.json 文件。那工作量可有点大！</p>
-<p>2 、网页上说：“更新目标框架将项目文件的目标框架名字对象 (TFM) 更新为 net8.0：”</p>
-<p>----我对这句话的理解是更新项目下的 project 文件。也就是.csproj 文件。可是每个项目下都有好多.csproj 文件。难道都要更新？</p>
-<pre><code>gpt 的回答是“确实，对于包含多个项目的解决方案，逐个手动更新每个项目的 .csproj 文件工作量较大。不过，可以通过编写脚本来批量更新这些文件，从而减少手动操作的工作量。以下是几种解决方案，可以帮助你简化这个过程：”
-</code></pre>
-<p>-----gpt 的回答不敢全信。以上升级过程存在很多疑问和不确定性。请问各位老师是否有具体的指导或者更简单升级方法。或者有相关详细升级步骤的视频分享么？如果我将当前的 7.0 彻底卸载，重新安装 8.0 是否会导致当前 build 的项目全都不可用，需要重新 build 。或者我还是要手动逐个更新 vscode 中的 solution 和 project 文件？</p>
-<p><a href="https://learn.microsoft.com/zh-cn/aspnet/core/migration/70-80?view=aspnetcore-8.0&amp;tabs=visual-studio-code#tabpanel_1_visual-studio-code" rel="nofollow">https://learn.microsoft.com/zh-cn/aspnet/core/migration/70-80?view=aspnetcore-8.0&amp;tabs=visual-studio-code#tabpanel_1_visual-studio-code</a></p>
-]]></content:encoded>
-<pubDate>2024-06-11T23:03:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 户外徒步、登山轨迹记录</title>
-<link>https://www.v2ex.com/t/1049058</link>
-<guid>https://www.v2ex.com/t/1049058</guid>
-<content:encoded><![CDATA[
-<p>有没有一个软件能实时记录徒步、登山的轨迹，并且以三维卫星地图的形式显示出来？我现在都是回到家导出 gpx 轨迹，导出到 google earth 中才能在 3d 视图中看到轨迹。</p>
-<p>户外徒步/登山经常要沿着别人的轨迹，或者记录自己的轨迹，常用的 app 有两步路、六只脚，但是这些 app 都没有谷歌地球的卫星地图。基本等于残废。<br />
-谷歌地球 app 不支持实时记录轨迹。<br />
-支持记录轨迹的 app 没有卫星地图。<br />
-支持轨迹记录的地图就算有卫星地图，或者想办法加载了 google 地球的卫星地图，也没有 3D 模式，爬山的时候 3D 模式还是很有用的，很容易知道自己是在坡度的哪个位置。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:11:53Z</pubDate>
-</item>
-<item>
-<title>[分享发现] Light room 软件破解失效，之前用的好好的</title>
-<link>https://www.v2ex.com/t/1049056</link>
-<guid>https://www.v2ex.com/t/1049056</guid>
-<content:encoded><![CDATA[
-<p>Light room 软件破解失效，之前用的好好的，六月 12 号，在使用的时候一次闪退，然后账号就退出了。LR 的使用必须要有账号，然后我去重新弄了两次，然后都是用过关闭软件之后，开启的时候就闪退，然后账号又没了。</p>
-<p>大家有遇到这样的问题吗，怎么解决呢</p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:28:18Z</pubDate>
-</item>
-<item>
-<title>[Android] Google play 无法自动更新？</title>
-<link>https://www.v2ex.com/t/1049055</link>
-<guid>https://www.v2ex.com/t/1049055</guid>
-<content:encoded><![CDATA[
-<p>以前用 miui 时下载的谷歌商店记得会自动更新，后来换 oppo 系后谷歌商店就一直没有自动更新了，点击软件版本查询还错误的提示时最新版，导致我一直以为用的最新版商店。直到最近下载 chatgpt app 一直无法联网，才知道是谷歌商店太老导致的。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T15:57:46Z</pubDate>
-</item>
-<item>
-<title>[VPS] 〔3X-UI 优化版〕跟原版 3X-UI 的区别？</title>
-<link>https://www.v2ex.com/t/1049053</link>
-<guid>https://www.v2ex.com/t/1049053</guid>
-<content:encoded><![CDATA[
-<p>〔 3X-UI 优化版〕项目地址： <a href="https://github.com/xeefei/3x-ui" rel="nofollow">https://github.com/xeefei/3x-ui</a></p>
-<p>大部分功能基于原版 3X-UI 进行汉化优化，主要的优化内容如下：</p>
-<p>1 、最大限度地汉化了面板项目，更适合中文宝宝体质，包括：
-①优化 VPS 中在进行〔脚本安装过程〕的汉化提示，增加相应的安装中文提示，让中文用户能明白清楚自己安装到了哪个环节？在细节方面，增加了安装成功之后的〔用户设置信息〕提示，在脚本中加入〔面板登录地址〕显示，
-②管理后台进行了相应的〔图标和按钮〕汉化，让中文宝宝能够读得懂，
-③安装成功后〔自动更改〕后台管理界面和电报机器人界面默认为〔中文〕；</p>
-<p>2 、优化了电报机器人响应〔按钮〕的名称和排序；</p>
-<p>3 、创建了〔 3X-UI 〕中文交流群，各位中文宝宝可以一起讨论交流；</p>
-<p>4 、管理后台中增加了〔实用导航〕页面，里面包含实用内容；</p>
-<p>5 、优化了后台〔二维码〕显示模式，点击打开会更加丝滑美观；</p>
-<p>6 、在创建 reality 协议时，更改 uTLS 指纹默认使用 chrome ；</p>
-<p>7 、更新 README 内容添加备份&amp;恢复操作说明，以及更多其他图文介绍；</p>
-<p>8 、管理后台中增加〔端口检测〕和〔网络测速〕，点击可以跳转直达；</p>
-<p>9 、添加了详细的项目〔安装配置教程〕，解决小白用户不懂配置的烦恼。</p>
-<p>PS：〔 3X-UI 〕中文交流群： <a href="https://t.me/XUI_CN" rel="nofollow">https://t.me/XUI_CN</a>   （若有需要可以进群）</p>
-]]></content:encoded>
-<pubDate>2024-06-12T14:33:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有不更新 HSTS Preload List 的浏览器呢？或者如何禁止更新 HSTS Preload List</title>
-<link>https://www.v2ex.com/t/1049051</link>
-<guid>https://www.v2ex.com/t/1049051</guid>
-<content:encoded><![CDATA[
-<p>有个很现实的问题，<a href="http://gov.cn" rel="nofollow">gov.cn</a> 整个域包含子域应该都进 HSTS Preload List ，然后重庆市政府的开办企业一网通 <a href="https://ywt.scjgj.cq.gov.cn/" rel="nofollow">https://ywt.scjgj.cq.gov.cn/</a> 从完全不支持 HTTPS 到现在支持 HTTPS 但是配置了一个错误证书，导致用现代浏览器根本无法访问。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T14:36:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有沒有在美國的好心人能幫我在亞馬遜上買個東西？</title>
-<link>https://www.v2ex.com/t/1049050</link>
-<guid>https://www.v2ex.com/t/1049050</guid>
-<content:encoded><![CDATA[
-我知道發這個節點不太對，不過二手交易節點有點冷，我有點急用。而且代購似乎發二手交易節點也不對。<br /><br />我想在亞馬遜上買 <a href="https://www.amazon.com/Mullvad-VPN-Devices-Protect-Security/dp/B092M55HJ2/" rel="nofollow noopener" target="_blank">https://www.amazon.com/Mullvad-VPN-Devices-Protect-Security/dp/B092M55HJ2/</a><br />但我把禮品卡充進亞馬遜後才發現這是實體卡而且還需要幫銀行卡驗證地址！<br />我沒有亞馬遜支援的銀行卡，而且也不想浪費 29 美元。<br />所以有沒有人可以用我這個帳號購買它。<br /><br />敏感資訊可以用此 gpg 密鑰加密。<br /><br />-----BEGIN PGP PUBLIC KEY BLOCK-----<br /><br />mDMEZml5PxYJKwYBBAHaRw8BAQdAp4VLrIWzFNx9CtewdHfrQCZvOyIbnRvidCnA<br />XSJ9Aum0B211bGx2YWSImQQTFgoAQRYhBBQ6mDYAQloUcJsAOih/DFnhW5sYBQJm<br />aXk/AhsDBQkFoz6BBQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJECh/DFnh<br />W5sYtmUBAMaxm4rWVYgq2c/93TSwPRKF4NixALnlFqzwYL1kcX/3AQDqjxDB9+jl<br />EBL4/P6/bKfCzDvVZeX6pi73J1bfDwwhBrg4BGZpeT8SCisGAQQBl1UBBQEBB0D5<br />J4Tl7SNzRGl4wxIi+FH/Yir4Hnd0VXu2VF0ByW5zVQMBCAeIfgQYFgoAJhYhBBQ6<br />mDYAQloUcJsAOih/DFnhW5sYBQJmaXk/AhsMBQkFoz6BAAoJECh/DFnhW5sYDdgA<br />/1AB+KcW54XYrInfKFjgUzGJMzDwJlMSBqP+t8Rfyj7JAQChQPHKR8WHqH2Hm1r6<br />np931c0OxoIRbq35k1Tev3wxCw==<br />=LCDs<br />-----END PGP PUBLIC KEY BLOCK-----
-]]></content:encoded>
-<pubDate>2024-06-12T14:11:13Z</pubDate>
-</item>
-<item>
-<title>[硬件] Apple M4 真的比 14900K 的单核性能还强，功耗还只有后者零头吗？</title>
-<link>https://www.v2ex.com/t/1049049</link>
-<guid>https://www.v2ex.com/t/1049049</guid>
-<content:encoded><![CDATA[
-<p>前一阵子看极客湾用 SPEC2017 跑分，测出来的结果让我非常难以置信：ARM 架构的 Apple M3/M4 单核性能跑出来比 x86 阵营还是桌面最强的 14900K 还强，但功耗却只有后者零头。</p>
-<p>（视频 BV 号 BV1NJ4m1w7zk ，11:55 那里）</p>
-<p>事实真的如此么？是不是说跑分负载不能涵盖现实里的真实使用场景？不然的话感觉都这差距了 x86 岂不是都该被淘汰了，一直都感觉很颠覆我认知，但又总觉得是不是哪里不对，也没敢多问。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T14:07:02Z</pubDate>
-</item>
-<item>
-<title>[Android] 我有个需求:我用 smartube 在手机上连蓝牙遥控器控制看油管，但是我想锁屏下也能用遥控器控制，有没有什么办法，小米的熄屏听剧试过，没用，实现方式比如，通过下拉通知栏开一个黑屏，只留一个小点开启屏幕，求教。</title>
-<link>https://www.v2ex.com/t/1049046</link>
-<guid>https://www.v2ex.com/t/1049046</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-06-11T21:41:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 推荐个无线音箱，并想自搭一套听音乐系统</title>
-<link>https://www.v2ex.com/t/1049045</link>
-<guid>https://www.v2ex.com/t/1049045</guid>
-<content:encoded><![CDATA[
-需求：想躺在床上随时听歌。<br />预算：2W 。<br /><br />硬件：2.1 音箱。<br />软件：支持手机/电脑/车机同时连接。<br />音质：高音甜，中音准，低音沉。一句话通透。<br /><br />可选项：<br />1. 最好无损音乐。<br />2. 手机主动连接，不用人跑过去打开音箱开关。<br />3. 最好能同步到我的车里，车载哈曼卡吨音箱，出去玩耍时听歌还不错。<br />4. 支持 U 盘歌曲，最好能推荐我喜欢的歌曲。
-]]></content:encoded>
-<pubDate>2024-06-12T13:39:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 你们有遇到过人生低谷吗？</title>
-<link>https://www.v2ex.com/t/1049044</link>
-<guid>https://www.v2ex.com/t/1049044</guid>
-<content:encoded><![CDATA[
-<p>怎么样才算？</p>
-]]></content:encoded>
-<pubDate>2024-06-12T14:07:09Z</pubDate>
-</item>
-<item>
-<title>[程序员] notion 这种情况如何处理</title>
-<link>https://www.v2ex.com/t/1049043</link>
-<guid>https://www.v2ex.com/t/1049043</guid>
-<content:encoded><![CDATA[
-<p>之前买 notion 余额，创建了收费的 workspace ，后面余额被回收了，我就切换到免费的 workspace ，但是还有账单没有支付，之前一直也能用就是提示还有未付账单，现在直接不能编辑了。</p>
-<p><img alt="4e3cded54ff89b862fdf203eab46054e.png" class="embedded_image" rel="noreferrer" src="https://i2.mjj.rip/2024/06/12/4e3cded54ff89b862fdf203eab46054e.png" /></p>
-]]></content:encoded>
-<pubDate>2024-06-12T13:32:49Z</pubDate>
-</item>
-<item>
-<title>[Android] 问下编译 Android 内核 clang 的选择</title>
-<link>https://www.v2ex.com/t/1049042</link>
-<guid>https://www.v2ex.com/t/1049042</guid>
-<content:encoded><![CDATA[
-<p>我看很多教程里用的都是这个 <a href="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/%EF%BC%8C%E8%BF%99%E4%B8%AA" rel="nofollow">https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/，这个</a> Google 官方的 Pre-built binary ，甚至还有给每个安卓版本的分支，比如我编译的是 android12 的内核最好是不是用 android12-gsi 这个分支的编译器？</p>
-<p>之前试了下，用 Ubuntu22.04 源里的 clang 10.0.0 似乎没有问题，编译的内核正常。但是后来换到另一台 debian 环境的机器，上面 PATH 里的 clang 是 16.0.5 的，编译出来的内核能 boot 到锁屏界面，但是不出几秒钟之后就死机，然后自动重启。</p>
-<p>反复编译测试了几次都是如此，确认所有 source ，defconfig ，脚本，流程等等都一模一样，就是环境&amp;编译的区别，编译过程也没有报错或报 warning 。看来编译器玄学/bug/来带 bug 是可能的。因此想问一下，最佳实践是用哪的编译器比较好，有没有一个“官方御用 clang binary”之类的东西？虽然 clang 10.0.0 或者那个 Google 的 git 里的也许看起来没问题，但是不知道会不会有其它隐性 bug....</p>
-]]></content:encoded>
-<pubDate>2024-06-12T09:07:17Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 求鼠标推荐</title>
-<link>https://www.v2ex.com/t/1049041</link>
-<guid>https://www.v2ex.com/t/1049041</guid>
-<content:encoded><![CDATA[
-大家有什么推荐的鼠标吗？多数情况下都是连 Macbook 使用，偶尔接 Windows 台式机使用，价格不超过 400 吧，不玩游戏，无线最好了，有线也不是不行。我用过的鼠标不多，目前是罗技的 MX Anywhere 3 （基本闲置……买回来就充过两次电，我个人不是很喜欢，总感觉按键按下去有点轻飘飘的，按键键程有点太长了，我倒是很喜欢小米 99 那款无线鼠标的按键手感，键程短，按下去很实在！就是有点不跟手）
-]]></content:encoded>
-<pubDate>2024-06-12T13:59:53Z</pubDate>
-</item>
-<item>
-<title>[生活] 各位老哥给个建议，我这可能算被诈骗？去公安局报案能有好结果么</title>
-<link>https://www.v2ex.com/t/1049040</link>
-<guid>https://www.v2ex.com/t/1049040</guid>
-<content:encoded><![CDATA[
-<p>base：上海</p>
-<p>22 年的时候在线下买了一部 iphone13 ，应该不是官方店，
-当时进店说了要买 13 ，然后被推荐了参加一个活动，预存 199 元 * 48 月的话费可以降挺多的，
-忘了具体多少了，256 的付了 6000
-还给送了的 AC 好像是两年还是三年忘了
-这个话费可以分给几个号来充值
-还给送了耳机（后来发现是华强北），壳膜之类的，说是可以随便来换都是免费的
-然后当时心动了，就付了</p>
-<p>转折开始
-当时是 22 年三月底，四月上海开始封了，话费就一直没到账，说是疫情影响，直到后来七月才开始
-然后还是经常会有比约定时间延时挺多天才到账，还是我去找店里的人去说才到账的</p>
-<p>直到 23 年好像是五月，那个月的一直没到账，我又去找店员
-他跟我说他不干了，给了我负责人的电话
-我找负责人，那边说店倒闭了！！！！
-我 22 年底好像就不在那边住了，我还真不知道
-然后跟我聊解决方案，他就是想给我一个学习机，我要那玩意干啥，没啥用况且也不够抵我剩下的话费的
-断断续续拖了好多天，他就说那不行就按月给我转 199
-暂时算解决了
-每个月我都找他要好多次才给到我，真是欠债的是大爷</p>
-<p>直到这个月，我继续找他要，打了两次电话没接，微信不回
-然后今天发现他应该是给我拉黑了，打电话一直通话中</p>
-<p>去年五月第一次中断的时候就在 12345 提过诉求，直到九月还是十月才给回访电话，大意就是他们也没办法然我找更有力的途径，当时已经开始每个月转我 199 了</p>
-<p>老哥们觉得我去公安局能有好结果么
-这个事情 12345 跟我说不止我一个人的，v 站应该没有我这么傻的人吧 哈哈哈哈</p>
-]]></content:encoded>
-<pubDate>2024-06-12T14:00:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 网上看到有 Ifast 封号的了，要怎么避免呢？</title>
-<link>https://www.v2ex.com/t/1049039</link>
-<guid>https://www.v2ex.com/t/1049039</guid>
-<content:encoded><![CDATA[
-<p><img alt="007c22aa1d834ac468716aba3a1b3bf.jpg" class="embedded_image" rel="noreferrer" src="https://img.picui.cn/free/2024/06/12/66699212c2b53.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-06-12T12:44:32Z</pubDate>
-</item>
-<item>
-<title>[北京] 北京地区请求推荐电话卡运营商</title>
-<link>https://www.v2ex.com/t/1049038</link>
-<guid>https://www.v2ex.com/t/1049038</guid>
-<content:encoded><![CDATA[
-<p>目前在用移动电话卡，但是用起来很不爽，遇到墙中墙、节点延迟极高、网络慢、不稳定等问题。
-请求推荐电话卡运营商，OP 想换电信或联通（或广电？），但也不太清楚优缺点。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T08:41:39Z</pubDate>
-</item>
-<item>
-<title>又一个提醒休息的 macOS app</title>
-<link>https://www.v2ex.com/t/1047816</link>
-<guid>https://www.v2ex.com/t/1047816</guid>
-<content:encoded><![CDATA[
-<p>提醒休息的软件 App Store 上面已经非常多了，用了其中的很大一部分，基本上都是定时的，不是很满足我个人的需求，比如工作 20 分钟休息 20 秒这种模式，我去趟卫生间 20 秒肯定不够，设置成休息 5 分钟我顺便再打个水什么的也是不适合，即使我没用电脑大部分的应用基本上都会继续计时或者说可以暂停但是回来后再继续累加，所以要么我得经常重置定时或者忽略提醒最后会演化到习惯性的忽略所有提醒.. </p>
-<p>我大概一年前开始弃用了上述类型的软件，虽然很清静但必要的提醒还是有用的，但是又不希望回到那种频繁的交互或者打扰中，所以一年前自己开发了 <a href="https://apps.apple.com/us/app/totalpause/id6482185943" rel="nofollow">TotalPause</a> 自用。</p>
-<p>TotalPause 会把我的活跃程度考虑进来，比如我不怎么用电脑的时候可能在思考或者看手机是潜在的提醒时机，或者我连续工作了 30 分钟之后强制提醒我，如果我经常隔 10 分钟就不在电脑前去搞个这搞个其实没有提醒的必要（目前 TotalPause 可能会提醒，不久前添加了自动关闭的功能回到电脑时提醒可以自己消失，也可以完全关闭这种类型的提醒），提醒的样式很简单，为了尽量避免分散注意力后续也大概不会考虑添加过于复杂的自定义样式功能。写了一篇文章详述了为什么 <a href="https://blog.damnever.com/en/2024/reminding-myself-to-take-a-break-the-hard-way.html" rel="nofollow">Reminding Myself to Take a Break - The Hard Way</a>，从零用英文写真的比开发还费精力，当然是润色过的。</p>
-<p>最后可能是大家最关心的，内购解锁所有功能，限时免费。</p>
-]]></content:encoded>
-<pubDate>2024-06-10T07:53:58Z</pubDate>
-</item>
-<item>
-<title>用 GPT4 翻译电子书的体验</title>
-<link>https://www.v2ex.com/t/1047838</link>
-<guid>https://www.v2ex.com/t/1047838</guid>
-<content:encoded><![CDATA[
-<p>继之前测试过用 GPT4O 阅读其他语种的漫画且效果还不错后，就考虑用 GPT4 进行英文电子书翻译了。为节约成本并提高可读性，使用网页版，也就是 3 小时限额 40 条的版本。之前没这么干是因为我经常要用 GPT4 改代码，不能消耗大量额度让自己要用的时候用不了，但既然 GPT4O 出来了且是分别计算额度的，就算 GPT4 额度用光也能暂时用 GPT4O 。</p>
-<p>目前翻译了两本悬疑小说，三本教程类书籍，一本学术类书籍，一本神话类书籍。</p>
-<p>流程是这样的：</p>
-<ol>
-<li>提取电子书中的 html 类文件。</li>
-<li>提取所有段落标签和标题标签。</li>
-<li>先用谷歌翻译做一遍机翻，方便出 bug 时排查问题。</li>
-<li>对提取的英文进行切分，保持每段切分在 2000 字符左右，总共会有 150 ～ 300 段切分。</li>
-<li>每 3 小时进行 40 次提问。</li>
-<li>完成提问并检查后打包成中文电子书。</li>
-</ol>
-<p>所以一本书大概要翻译一两天。</p>
-<p>目前遇到的问题：</p>
-<ol>
-<li>受限于网络状况，回答不时出错或中断，使得自动化脚本半失效，需要经常人工检查。</li>
-<li>审查很严重，连亲吻都会被屏蔽。这些部分需要手动处理。</li>
-<li>会出现一些奇怪的 bug ，比如把 1990 年翻译成 1980 年，我刷了 4 遍才出来正确的 1990 年。</li>
-<li>即便在同一对话中，人名也经常不能保持一致，且有时候人名会不翻译。</li>
-<li>GPT 有时候会把相邻的两段翻译成一段。</li>
-<li>对于超长段落，没翻译完就停止，刷新依然如此。</li>
-<li>有一些电子书里有大量的 a 标签，尤其是脚注多的书籍，很难处理。</li>
-<li>翻译后的文本可能会丢失一部分标签，比如 a 标签和 span 标签。</li>
-</ol>
-<p>我不想发布未经人工校对的电子书的下载版，避免错误越传越广，但在不同平台尝试发长图结果大部分都被屏蔽了。目前考虑将全书内容做成一个带目录的长网页，找个地方放，方便我自己修改和管理可读性，但这又要费一番功夫了。</p>
-<p>我自己感兴趣的书主要是侦探、科幻、各领域历史、计算机这些类别的，之前因为看英文书太累了，好多书虽然买了却只看了一部分。</p>
-]]></content:encoded>
-<pubDate>2024-06-10T04:36:32Z</pubDate>
-</item>
-<item>
-<title>[外汇交易] pp 国区美刀换 usdt 有人换吗？</title>
-<link>https://www.v2ex.com/t/1049037</link>
-<guid>https://www.v2ex.com/t/1049037</guid>
-<content:encoded><![CDATA[
-aff 利润，干净钱<br />想换成 usdt 或者 doge ，eos
-]]></content:encoded>
-<pubDate>2024-06-12T12:35:37Z</pubDate>
-</item>
-<item>
-<title>[职场话题] offers 选择求建议</title>
-<link>https://www.v2ex.com/t/1049035</link>
-<guid>https://www.v2ex.com/t/1049035</guid>
-<content:encoded><![CDATA[
-<p>背景：新年后开始准备跳槽，大概刷算法刷了 3 个月，八股背了一周，就开始投简历，到现在差不多一个月。之前一直在小公司呆着，已经步入中年，求建议。大厂朋友一直帮忙问，都没啥 HC ，他们领导说可以等到末位淘汰后腾出空位推我，我听起来不知道是好消息还是坏消息。</p>
-<p>目前有 4 个 潜在：</p>
-<ol>
-<li>某小公司，年包 n ，安排了 5 轮面试，我都惊呆了。HR 说是为了找资深的，最后 offer 给了 JD 的底薪给我，跟我对接的 HR 小姐姐混得蛮熟的，她也只是打工的，没有决策权，基本确定他们上面不想给。</li>
-<li>某小公司，2 轮面试，临场表现很好，两面都只谈了 10+ 分钟就确定了。年包 n + 8 ，二面 leader 想压价，我用其他 offers 成功堵住了他的问题。web3 相关的。主要做金融数据，社区等。</li>
-<li>某高潜外企创业公司，面试主要是手撕算法，AI 工程相关，年包 n + 22 。WLB ，年假 10+。</li>
-<li>某传统大外企，主要是金融开发相关，年包 n + 7 。WLB ，年假 10+。估计很稳定。</li>
-</ol>
-<p>其他大多一面或二面挂，比如富途/传音/某加密货币交易所等。</p>
-<p>目前我主要纠结 3 和 4 ，4 的猎头非常积极帮我打点了一切，公司突出一个稳定，就是收入麻麻地，也很难升。再过几年估计年龄大了，我也很难进去（那时候得面 leader 岗位了）。3 这边工资已经有大厂水平了，背景/技术都很强，我再存几年钱就回去躺着也不是不行。</p>
-<p>希望大家能给点意见，谢谢。</p>
-]]></content:encoded>
-<pubDate>2024-06-12T12:33:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 个人用途的远程控制软件， ToDesk 是最好的选择吗？</title>
-<link>https://www.v2ex.com/t/1049034</link>
-<guid>https://www.v2ex.com/t/1049034</guid>
-<content:encoded><![CDATA[
-用于指导远方亲戚操作电脑，合法用途且对方知情（对方能配合点击同意控制之类的）  <br />由 Mac 发起、Windows 被控，一对一  <br />如果 ToDesk 不是最佳选择的话，求推荐一下好用的远程控制软件，免费最佳，谢谢各位🙏  <br /><br />哦对了，如果能实时语音通话更好
-]]></content:encoded>
-<pubDate>2024-06-04T12:27:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 汽车异地提档不过户，退档了之后可以再次申请提档吗</title>
-<link>https://www.v2ex.com/t/1049033</link>
-<guid>https://www.v2ex.com/t/1049033</guid>
-<content:encoded><![CDATA[
-只要提档了就会发放临牌吗
-]]></content:encoded>
-<pubDate>2024-06-12T08:15:10Z</pubDate>
 </item>
 </channel>
 </rss>
