@@ -5,14 +5,348 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 有什么好办法规避信创费用吗？</title>
+<link>https://www.v2ex.com/t/1055359</link>
+<guid>https://www.v2ex.com/t/1055359</guid>
+<content:encoded><![CDATA[
+
+<p>各种好端端的开源软件不得不改信创，例如 tomcat 改宝兰德，MySQL 改达梦，CentOs 改银河麒麟，一个项目组花费百万级，一个公司血亏，有什么好办法能规避吗？</p>
+]]></content:encoded>
+<pubDate>2024-07-06T14:14:10Z</pubDate>
+<pubDate>2024-07-06T14:14:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] 从前后端分工的利弊谈起，聊聊这套分工的未来方向</title>
+<link>https://www.v2ex.com/t/1055357</link>
+<guid>https://www.v2ex.com/t/1055357</guid>
+<content:encoded><![CDATA[
+
+<p>以下的讨论范围局限于前端后端搭伙一起干功能的业务场景。（不涉及提供 public API 之类的场景） </p>
+<h2>简单到复杂</h2>
+<p>最初没有专职的前端， 页面的渲染都是后端的工作</p>
+<p>当浏览器功能复杂到一定程度，页面需求上升到一定程度，并且前端框架开始成熟， 独立的前端工种开始出现</p>
+<p>随之而来的变化， 是组织结构上，前后端的“分工”， 为了术业有专攻。</p>
+<p>但伴随而来的问题是， “沟通”和“迭代” 成本的上升。</p>
+<p>以前后端写页面的时候， 这也算是一种古老的全栈，一个人写节省了沟通成本。 并且通常会在 controller 中提前把需要的数据组装好再 render 到页面</p>
+<p>在分工的模式下， 一个功能，一个 story 需要至少两个人来一起完成。 一人负责提供 API ， 另一个人负责消费 API 来构建页面。这些人都要参加需求会议， 还要保持一致的理解。产品遇到问题的时候， 往往就是先问前端， 然后排除前端嫌疑后再问后端， 路径就比较曲折， 前端也不胜其扰。</p>
+<p>后端给 API 会有两种选择， 可复用的功能， 做成通用 API 。尚不清楚全貌的功能， 做特供的 API 。通用的 API 可能会在多个页面都有用到， 产生了多个依赖。</p>
+<p>但业务总是在迭代， 早前通用的 API 可能变得不通用， 导致的结果要么是后端对其做特殊的扩展， 要么是前端做多 API 的组合。</p>
+<p>（如果之前多个页面依赖了一个 API ， 则排查和调整的工作会更加复杂）</p>
+<p>因此出现了技术债，API 参数变得复杂，前端则混入了组合数据的”业务逻辑“。</p>
+<h2>局部最优 不代表 全局最优</h2>
+<p>引出了一个观点， 在前后端合作的项目上，<strong>不要去考虑”可复用的 API”， 应该考虑可复用的“服务”</strong>。 后端如果开始考虑 API 复用来减少自己的工作， 这可能往往就是麻烦的开始。</p>
+<p>API 只是一个和页面相关联的“管道”， 每个页面有自己独立的“管道”， 和后端“供应商”。这样后续的维护和迭代才能容易。每个页面严格扮演好后端对应服务的展示层（ presenter)。</p>
+<p>如果发生了需求改变，影响的范围就只会出现在纵向，不会出现之前“改个 API”， 结果某个其他页面报错的意外。</p>
+<p>前后端分工后的另一个趋势是， 前端开始插手数据的处理，换个说法是开始做业务层相关的事情。</p>
+<p>原因从可以从分工减少沟通的角度来解释，也可以从“充分利用”浏览器性能的角度来解释。 </p>
+<p>但这样做带来的后果就是一个完整的业务逻辑被分散到了前后两端，这对业务的完整理解就会有害，而且越是迭代频繁的项目，这样做的麻烦就越多。</p>
+<p>有一个概念叫做业务的本质复杂度，很多时候前后端分离模式下的代码的实现会在这层复杂度上增添厚厚的一层额外复杂度。</p>
+<p>马丁福勒在《企业应用架构模式》中说：</p>
+<blockquote>
+<p>处理领域逻辑时，其中一个最困难的部分就是区分什么是领域逻辑，什么是其他逻辑。我喜欢的一种不太正规的测试办法就是：假想向系统中增加一个完全不同的层，例如为 Web 应用增加一个命令行界面层。如果为了做到这一点，必须复制某些功能，则说明领域逻辑渗入了表示层。类似地，你也可以假想一下，将关系数据库更换成 XML 文件，看看情况又会如何？</p>
+</blockquote>
+<p>上述的这种情况在前后端分离模式下是很容易出现的。</p>
+<p>后端想着做通用接口， 前端想着做更多的事情， 两边的磨合的产物就是 BFF 。</p>
+<h2>BFF 模式的诞生 (其实算是个 controller 层)</h2>
+<p>BFF (backend for frontend) 出现的是引入了一个新的中间层，让后端专注在通用的的服务， 让前端专注在页面。 它来干中间的脏活， 构造特供的 API 。</p>
+<p>他的责任是从多个数据源聚合数据，然后将处理完整的数据提供给对应的前端， 从而避免不必要的前端业务处理和数据转换操作。</p>
+<p>如果后端 service 的封装良好， 可以让前端在一层理想的业务抽象之上开发功能。</p>
+<p>BFF 通常由前端来维护， 在 BFF 模式下，BFF + 前端 组成了一个轻量级的“全栈”开发模式。它区分了领域层和展示层(presenter)。</p>
+<p>这种分层在单体应用上对应的分层为 service, controller 和 presenter 三层。 约等于后端负责 service ， 前端负责 controller 和 presenter.</p>
+<ul>
+<li>service 提供业务逻辑封装</li>
+<li>controller 组合各种业务逻辑， 满足各种灵活多变的数据需求</li>
+<li>presenter 展示数据</li>
+</ul>
+<h2>主流方案的比较</h2>
+<p>当前主流的 BFF 方案有 graphql ，trpc 和基于 openapi 的 RESTFul 。</p>
+<ol>
+<li>
+<p>graphql 存在引入成本较高，前端需要书写查询的 i 问题， 还有其他 graphql 的特有国情。</p>
+</li>
+<li>
+<p>trpc 很好用，但限定了后端为 ts ， 约束了后端选型</p>
+</li>
+</ol>
+<p>综合来看，openapi 的 RESTFul 接口，配合 openapi-ts 这类方案是最友好的，兼顾了后端实现的自由度和向前端提供类型和 client 的便利。而且整个的引入成本也很小， 有不少的框架都支持自动生成 openapi 接口文档。 </p>
+<p>另外这个方案对功能迭代非常友好， <strong>后端如果修改了方法和返回结构， 只要重新生成 client ，前端 （如果是 ts ） 就能立刻感知类型和接口发生的变化。</strong></p>
+<p>在确定了 openapi 的方向之后，问题就简化成了，怎样才能方便地从多个数据源/数据库组合出来需要的数据？</p>
+<h2>组合， 扩展 schema ， 通过申明的方式来构造数据</h2>
+<p>利用 orm 是一种手段， 但这个局限于数据库关联数据查询， 如果是跨多个服务的数据拼接， 常见的手段依然是手动循环拼接。</p>
+<p>这个方面 graphql 做得很好，搭配 resolve 和 dataloader 可以轻松得组合出自己所需的数据结构。在 resolver 中， 数据源既可以是 orm 的返回值， 也可以是第三方接口调用的数据。</p>
+<p>schema 申明了数据结构（接口定义），resolver 为所申明的数据结构提供真实数据（具体实现）。</p>
+<p>dataloader 则提供了通用的解决 N+1 查询的方法。</p>
+<p>按照上述的逻辑， 以 FastAPI pydantic 为例, </p>
+<ol>
+<li>我们可以通过简单的继承来扩展已有的 schema ， 添加所需的关联数据</li>
+<li>让 resolver 来负责数据的具体加载</li>
+</ol>
+<pre><code class="language-python">class Sample1TeamDetail(tms.Team):
+    sprints: list[Sample1SprintDetail] = []
+    def resolve_sprints(self, loader=LoaderDepend(spl.team_to_sprint_loader)):
+        return loader.load(self.id)
+    
+    members: list[us.User] = []
+    def resolve_members(self, loader=LoaderDepend(ul.team_to_user_loader)):
+        return loader.load(self.id)
+
+class Sample1SprintDetail(sps.Sprint):
+    stories: list[Sample1StoryDetail] = []
+    def resolve_stories(self, loader=LoaderDepend(sl.sprint_to_story_loader)):
+        return loader.load(self.id)
+
+class Sample1StoryDetail(ss.Story):
+    tasks: list[Sample1TaskDetail] = []
+    def resolve_tasks(self, loader=LoaderDepend(tl.story_to_task_loader)):
+        return loader.load(self.id)
+
+    owner: Optional[us.User] = None
+    def resolve_owner(self, loader=LoaderDepend(ul.user_batch_loader)):
+        return loader.load(self.owner_id)
+
+class Sample1TaskDetail(ts.Task):
+    user: Optional[us.User] = None
+    def resolve_user(self, loader=LoaderDepend(ul.user_batch_loader)):
+        return loader.load(self.owner_id)
+</code></pre>
+<p>在定义完了期望的多层 schema 之后，我们只需要提供 root 数据， 既 Team 的数据， 其他 sprint, story, task 的数据都会在 resolve 的过程中自动获取到。
+借助 dataloader 这样的过程只会触发额外三次查询。</p>
+<pre><code class="language-python">@route.get('/teams-with-detail', response_model=List[Sample1TeamDetail])
+async def get_teams_with_detail(session: AsyncSession = Depends(db.get_session)):
+    teams = await tmq.get_teams(session)
+    teams = [Sample1TeamDetail.model_validate(t) for t in teams]
+    teams = await Resolver().resolve(teams)
+    return teams
+</code></pre>
+<p>在这样的模式下：</p>
+<ol>
+<li>service 层（后端）只需要提供 root 数据的查询， 和关联数据的 dataloader （ batch query)， 就能高枕无忧</li>
+<li>controller 层（ BFF ）则只要对 schema 做简单的扩展， 并且调用合适的 dataloader ， 就能轻松得组合出期望的数据</li>
+</ol>
+<p><a href="https://github.com/allmonday/composition-oriented-development-pattern/blob/master/readme-cn.md" rel="nofollow">https://github.com/allmonday/composition-oriented-development-pattern/blob/master/readme-cn.md</a>
+这个 demo 里面提供了多种组合模式的样例代码。</p>
+<h2>总结</h2>
+<ol>
+<li>为每个页面提供独立的 API ， 可以减少迭代中产生的问题。 也为接口优化提供了空间。 不复用 API ， 复用 service 。</li>
+<li>通过继承扩展 schema ， 结合 resolver 模式， 可以在数据组合的效率上和 graphql 相媲美， 为每个页面构造独立的 API</li>
+<li>RESTFul 配合 openapi-ts 之类的 client 生成工具， 可以将方法和类型信息无缝传递给前端。</li>
+</ol>
+<blockquote>
+<p>每个页面独立的 API, 概念类似每个页面有个独立的 render(page_name, data)</p>
+</blockquote>
+<h2>其他</h2>
+<p>这个想法的 python 实现：pydantic-resolve  <a href="https://github.com/allmonday/pydantic-resolve" rel="nofollow">https://github.com/allmonday/pydantic-resolve</a> 已经在我司 FastAPI 项目上稳定运行了一年多， 欢迎尝试。</p>
+<p>这个模式在全栈的开发模式下的效率非常高， 自己定义好的接口， 一行命令 generate 就能在前端直接使用，特别清爽。 对比 graphql 省去了前端敲 query 的麻烦。</p>
+<p>最近还在琢磨 typescript 下的实现，进度缓慢前进中。</p>
+]]></content:encoded>
+<pubDate>2024-07-06T14:05:04Z</pubDate>
+<pubDate>2024-07-06T14:05:04Z</pubDate>
+</item>
+<item>
+<title>[站长] 给想做论坛的站长一些建议</title>
+<link>https://www.v2ex.com/t/1055356</link>
+<guid>https://www.v2ex.com/t/1055356</guid>
+<content:encoded><![CDATA[
+
+<p>太多站长建完站就把论坛放在一边，变成死坛，很大原因是不会运营。下面是我的一点经验，列表形式展现，相当于一个检查单。若能遵循这些做法，应该是个不错的社区</p>
+<ul>
+<li>
+<p>一定要确定论坛的主要话题，不要做大而全。只专注一个领域。</p>
+</li>
+<li>
+<p>论坛刚起步先邀请制注册，种子用户决定了整个社区的氛围，对未来社区的发展起决定性作用。</p>
+</li>
+<li>
+<p>最好有一个活跃的个人博客或大平台账号，方便引流。引流文不要用 GPT 生成，尽量简短真诚。</p>
+</li>
+<li>
+<p>作为论坛站长要有编写内容的能力，初期的内容要靠站长编写。可以创建一些马甲号来促进活跃</p>
+</li>
+<li>
+<p>做简中论坛，最好不要被墙，除非你的目标群体是程序员，否则请做好备案和审查。网站被墙后会损失大量流量，这是致命的。</p>
+</li>
+<li>
+<p>做好心理准备吧，如果选择从邀请制转为开放注册，审查压力的巨大的。最痛苦的就是内容审核，很多有毒的东西。</p>
+</li>
+<li>
+<p>不要靠资源下载引流，侵犯版权的同时，带来的用户也是伸手党。</p>
+</li>
+<li>
+<p>定一个好规则，无需太长，能让用户有耐心完整阅读。可参考<a href="https://v2ex.com/help/assertive" rel="nofollow">好好说话</a></p>
+</li>
+<li>
+<p>大量有价值、对他人有帮助的帖子，是论坛壮大的关键，也可以给站长继续维护的信心。</p>
+</li>
+</ul>
+<p>最重要的是，要有足够的耐心。给社区至少两年的时间来发展，期间不断地打理它，才能壮大。然后盈利才是接下来该考虑的事，有流量就有一切。</p>
+<p>如果对运营论坛暂时没有信心，可以从群博写起，召集几个志同道合的作者，写博客。等到一定规模，自然地就可以转变成一个论坛。知乎就是从一个<a href="https://apple4us.com/" rel="nofollow">群体博客</a>开始的。</p>
+]]></content:encoded>
+<pubDate>2024-07-06T13:57:49Z</pubDate>
+<pubDate>2024-07-06T13:59:11Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 杭州电信，光猫超级用户，新增端口映射 不生效</title>
+<link>https://www.v2ex.com/t/1055355</link>
+<guid>https://www.v2ex.com/t/1055355</guid>
+<content:encoded><![CDATA[
+
+<h1>网络结构</h1>
+<p><strong>光猫拨号</strong>，作为 DHCP server 直接下发 ip ，下发 ip 段为（ 192.168.1.2-192.168.1.200 ）。光猫 ip：192.168.1.1</p>
+<p>路由器仅作为 AP 拓展无线。路由器 ip：192.168.1.4</p>
+<p>一台矿渣装了 debian+docker 常开。debian ip：192.168.1.201</p>
+<p>很简单的单层结构</p>
+<h1>谜之端口映射</h1>
+<p>原先用普通用户登陆光猫，增加端口映射，不生效；要到超级用户后，在维保页面增加端口映射，生效了。（外网端口 10001 ，映射 debian 的 22 端口）</p>
+<p>一段时间后。超级用户登陆光猫 增加一个端口映射，外网端口 10002 ，内网端口（ 192.168.1.100:3389 ）。 这个映射死活不通。</p>
+<p>删掉以前能够连通的端口后，再重新增加回这个端口，则这个端口也不通了。</p>
+<p>结果就是：最早前增加的端口映射 通的，最近这两天新增的端口映射 不通。</p>
+<p>已经重启过路由。</p>
+<h1>相关信息</h1>
+<p>运营商：杭州电信</p>
+<p>光猫型号：ZNHG600</p>
+<p>有公网 ipv4 ，且最早前增加的 10001 端口映射到 ssh 依然可联通。（现在就靠他用 ssh -L 转发= =）</p>
+]]></content:encoded>
+<pubDate>2024-07-06T13:56:40Z</pubDate>
+<pubDate>2024-07-06T14:14:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] Derp 自建也太复杂了吧。。。</title>
+<link>https://www.v2ex.com/t/1055354</link>
+<guid>https://www.v2ex.com/t/1055354</guid>
+<content:encoded><![CDATA[
+
+<p>现有阿里云深圳 ECS 主机一台，带公网 IPv4 IP ，准备自建 DERP 。</p>
+<p>按网上的教程一路配下来：</p>
+<ul>
+<li>域名搞定了，也实名了</li>
+<li>DNS 搞定了</li>
+<li>证书也搞定了（用 ACME+DNS API ）</li>
+<li>防火墙里该放行的端口都放行了</li>
+<li>该启动的也按教程启动了</li>
+</ul>
+<p>到最后检验阶段，就是传说中的 “在浏览器中进入 https://IP:PORT ，如果看到以下网页则说明成功”，人家教程都能显示 “DERP  This is a Tailscale DERP server” 的页面, 但我就显示“连接被拒绝”？？？？在路由器的 TailScale 里 netcheck 只能看到我的节点，但没有延时显示。</p>
+<p>请问：</p>
+<ul>
+<li>这是因为域名没有备案的原因吗？我 PORT 不走 443 走别的也不行。一脸懵逼。。。</li>
+<li>自建 FRP 是不是比这个鬼 DERP 搭建要简单？</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-07-06T13:38:40Z</pubDate>
+<pubDate>2024-07-06T14:14:31Z</pubDate>
+</item>
+<item>
+<title>[编程] 我想未来应该没有, 或者说没有必要使用编程语言了吧</title>
+<link>https://www.v2ex.com/t/1055352</link>
+<guid>https://www.v2ex.com/t/1055352</guid>
+<content:encoded><![CDATA[
+
+众所周知现在的趋势是面向 ai 编程了，本质上也就是人类已经可以用自然语言直接跟机器沟通了<br />看到有些大厂还在沉迷于研发新的编程语言，我觉得是有点陈腐了
+]]></content:encoded>
+<pubDate>2024-07-06T13:29:08Z</pubDate>
+<pubDate>2024-07-06T13:44:38Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 25 届找实习</title>
+<link>https://www.v2ex.com/t/1055351</link>
+<guid>https://www.v2ex.com/t/1055351</guid>
+<content:encoded><![CDATA[
+
+末流 211 ，java 选手<br /><br />自己做了两个项目，第一个类似 one api 的那种 ai 聚合的项目，第二个是 一个简单的 ai 消息过滤通知。<br /><br />投递准备得太晚了，6 月底才开始投的简历，截止目前面了 2 家，<br /><br />第一家是 boss 上投的，一面比较轻松，二面好多没有答上来，感觉希望不大。<br /><br />第二家是本地的公司，学校线下面的，问得比较基础，大部分能回答得上。 希望比上面一个大点，但不知道这种公司是不是单纯来完成考核的😮‍💨。<br /><br />总结就是八股不熟，算法没怎么练。<br /><br />最近牛客刷多了，感觉别人都要秋招了，我连实习都还没着落😭， 越来越焦虑了
+]]></content:encoded>
+<pubDate>2024-07-06T13:20:34Z</pubDate>
+<pubDate>2024-07-06T13:17:34Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何让自己动起来开始写小玩具？</title>
+<link>https://www.v2ex.com/t/1055350</link>
+<guid>https://www.v2ex.com/t/1055350</guid>
+<content:encoded><![CDATA[
+
+现在是晚上九点，还没吃饭，所以行文可能有点乱。<br />大学学了两年，啥也没学会，只有各种语言的语法和机制略懂一二：c 、Java 、前端三件套。但是从来没独立写过正经的项目，哪怕是小玩具。<br /><br />最近看到群里、站里很多人都喜欢给自己找需求写小玩具，但是我自己从来没想到写什么，可能是水平太差打从心底里害怕，从来都是：偶尔有一个想法-&gt;可能因为没有相关的知识储备一时想不到思路-&gt;放弃。<br /><br />举个例子：我跟着 ytb 写了一个 react+node 的前后端博客，富文本用的 quill.js ，似乎不支持 markdown 和图片上传，博文是放在线上 mongodb 仓库，图片存在 firebase 上。<br />因为访问速度太差，想过把图片和博文放到本地 mongodb ，最好用 docker 放起来。博文还好，但是图片完全不知道怎么存，查了一下似乎有相关库，但是最后还是懒得动手，怕把写好的东西弄乱。<br />markdown 支持也是如此，大概知道 react 有 markdown 这个 npm 包，但是一时之间不知道怎么和富文本那个包结合起来于是就懒得动了。docker 的挂载卷也不知道怎么弄，最后也没有动手。整个项目直接放弃了（虽然写简历上了）。<br /><br />今天看到站里有个台词图片生成器，觉得很有用也很好玩，很羡慕有动手能力。眼看着大三了周围的大佬大一大二就有实习/开源经历，感觉很没安全感。看过很多人的简历和面经都觉得很不可思议：哪里来的这么多有难点的项目和 idea ？<br />现在觉得至少能给自己写点小玩具也很好了，大家写小项目的时候是什么过程呢？怎么来的 idea 和后续思路呢？有什么前置学习？
+]]></content:encoded>
+<pubDate>2024-07-06T13:20:24Z</pubDate>
+<pubDate>2024-07-06T13:18:24Z</pubDate>
+</item>
+<item>
+<title>[编程] 2024 年 6 月份， Go 语言竟然进入编程语言排行榜第七</title>
+<link>https://www.v2ex.com/t/1055349</link>
+<guid>https://www.v2ex.com/t/1055349</guid>
+<content:encoded><![CDATA[
+
+<p>难以想象，Go 语言这么火了吗？</p>
+]]></content:encoded>
+<pubDate>2024-07-06T13:17:17Z</pubDate>
+<pubDate>2024-07-06T13:45:41Z</pubDate>
+</item>
+<item>
+<title>[Google] Google pixel 4a 插入英国的 esim 卡，无法开启谷歌地图的 Timeline</title>
+<link>https://www.v2ex.com/t/1055347</link>
+<guid>https://www.v2ex.com/t/1055347</guid>
+<content:encoded><![CDATA[
+
+<p>求组</p>
+<p>Google pixel 4a 插入英国的 esim 卡，无法开启谷歌地图的 Timeline
+原生系统
+开启 TW 的梯子
+插入英国的 esim 卡
+在手机上还是无法点击 Google 地图的那个 Timeline</p>
+]]></content:encoded>
+<pubDate>2024-07-06T12:53:55Z</pubDate>
+<pubDate>2024-07-06T12:52:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何看待 JD 上标注了职位薪资区间，实际面试后给出的薪资比区间最低值还低问题？</title>
+<link>https://www.v2ex.com/t/1055346</link>
+<guid>https://www.v2ex.com/t/1055346</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-07-06T12:40:55Z</pubDate>
+<pubDate>2024-07-06T13:08:36Z</pubDate>
+</item>
+<item>
+<title>[深圳] 请教一下从香港带多一些货，怎么过关方便？</title>
+<link>https://www.v2ex.com/t/1055345</link>
+<guid>https://www.v2ex.com/t/1055345</guid>
+<content:encoded><![CDATA[
+
+<p>我老婆卖的一款营养素保健品，在大陆没有销售，只能去香港买，也不能邮寄。</p>
+<p>每次去香港，只能人肉背回来大概 1 万块钱的货。最近卖出去了七八万块钱的，有没有办法一次性弄到深圳呢？请有经验的大佬指导一下哈</p>
+]]></content:encoded>
+<pubDate>2024-07-06T12:35:13Z</pubDate>
+<pubDate>2024-07-06T13:42:25Z</pubDate>
+</item>
+<item>
+<title>关于 apple watch 的睡眠监测</title>
+<link>https://www.v2ex.com/t/1054159</link>
+<guid>https://www.v2ex.com/t/1054159</guid>
+<content:encoded><![CDATA[
+
+最近入手了 apple watch ultra2 ，想用来检测一下睡眠情况，到手后连续时候 3 天，每天睡眠都是 3 个多小时，而且显示的卧床时间也是 3 个多小时，我都是 1 点到 2 点之间睡，8 点半起，这差的也太多了吧（我打开了睡眠模式）。<br />还有离谱的是，健身圆环里面不是有每天站立嘛，早上起床一看今天已经站立了 5 次了😂<br />之前没有表的时候，我设置了健身圆环的目标是 100 大卡，由于每天都是久坐，之前可能上一天班都完成不了，或者刚好完成。最近买了表之后早上打车到公司弹出来说已经完成今日目标了，下班都有消耗 400 大卡了。
+]]></content:encoded>
+<pubDate>2024-07-02T02:40:21Z</pubDate>
+<pubDate>2024-07-04T07:40:50Z</pubDate>
+</item>
+<item>
+<title>今天去体验了 Vision Pro</title>
+<link>https://www.v2ex.com/t/1054038</link>
+<guid>https://www.v2ex.com/t/1054038</guid>
+<content:encoded><![CDATA[
+
+说说自己感受，分享一下。 <br />部份说法可能是个人错觉或者主观结论。<br /><br /><br />好的部份：<br />1.苹果员工很热情<br />2.VisionOS 这个新事物挺有趣<br />3.照片、视频、恐龙、keynote 都挺不错<br /><br />吐槽部份：<br />1.不知道是尺寸匹配不对还是什么原因，鼻子这里完全没贴合，手指能伸进去，鼻子这里大漏光（不影响体验）。<br />2.眼睛看向左下、右下的时候也能看到奇怪的光，不知道是啥东西。<br />3.可视范围不大，如同戴着潜望镜看东西? （和 n 年前买了吃灰的 oculus 比，没啥提升）不及预期。<br />4.画面是清晰，亮度可以，但也没那么惊艳。可能环境因素吧，人来人往，吵杂。<br />5.透视模式看东西有略微抖动，没有眼睛平时看东西时画面那么稳定。<br />6.因为是坐在桌前体验的，面前的空间相对狭窄，让我感觉不自由。<br />7.佩戴舒适度一般般，体验结束过去十分钟面颊还是像喝醉酒那样红的。<br /><br /><br /><br />不买的原因主要是 3 、7 和穷吧。
+]]></content:encoded>
+<pubDate>2024-07-01T10:49:48Z</pubDate>
+<pubDate>2024-07-03T20:50:25Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 这种需要回顾过去数据的算法问题是不是回溯问题，如何优化速度？</title>
 <link>https://www.v2ex.com/t/1055344</link>
 <guid>https://www.v2ex.com/t/1055344</guid>
 <content:encoded><![CDATA[
-
 做外包，最近遇到个异想天开的甲方，想预测彩票数字。该甲方自称潜心研究彩票 30 年，一直手算，现在觉得数据量太大了，想用程序实现。<br />虽然这个甲方在我看来是异想天开，但是他提出的计算规则倒是没有漏洞，我本着反正只谁出钱谁上帝的原则，实现了出来，但是现在遇到了性能问题。<br /><br />他的算法并不复杂，首先，甲方提供了 75 个数字字符串，每个字符串都是 4 个数字，诸如 0123 3578 之类的。我在这里称其为样本数据。<br /><br />彩票的开奖数字，每期都是 5 位数字，它的算法里，把这 5 位数字拆开成 5 个，每个单独去和 75 个样本数据进行计算。<br /><br />一个样本字符串 + 开奖拆开的数字，会生成一系列值，这些值我接下来会有详述，这就是一行记录(每个生成的值是一列)。<br /><br />因为有 75 个字符串，所以就有 75 行，于是，一个被拆开的数字，会生成一张表格，这张表格有 75 行。<br />又因为每期开奖数字是 5 位，所以每期彩票的开奖数字最后都会有 5 张表。<br /><br />生成值（表格的列）有以下部分：<br />A1：找上一期的开奖数字，计算上一期的开奖数字是否在对应行样本数据中出现过。<br />A2：当前开奖数字是否在样本数据中出现过？无论出现还是没出现状态，都从当前这期往之前的开奖记录回溯，如果状态和目前这期一致，就累加数值，直到出现一期和当前这一期不一样的状态，就终止(我大致看了一下平均遍历次数在 5 左右)。<br />Q15B：从当前期倒退 61 期，然后从此为起点遍历 30 期，只要这 30 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效<br />Q15R：从当前期倒退 31 期，然后从此为起点遍历 30 期，只要这 30 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效<br />P15B：从当前期倒退 16 期，然后从此为起点遍历 15 期，要要这 15 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效。<br />P15R：从当前期倒退 31 期，然后从此为起点遍历 15 期，只要这 15 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效，<br /><br />P15X：把前面的 A1 ，A2 ，Q15B Q15R P15B P15R 以一个简单的排列规则后得到的分类数。<br />Q15X：就是上一期的 P15X （也就是把上一期的 P15X 算一遍出来，所以如果之前期数不够，那么这个数据算不出来<br />C618：这是性能罪魁祸首，先不在这里算，问题在下面讲，先跳过。<br /><br />就此你可以看到，这个过程从 A1 到 P15R 往前遍历了 1 + 5 + 30 +30 + 15 +15 = 96 次。然后为了算出 Q15X ，又来了一遍，所以遍历了 192 次。问题是，这仅仅是一行（因为是和一个样本字符串在对比），而这个表有 75 行，于是这个循环对比的过程执行了 75 x192 = 14400<br />然后我们每期开奖数字有 5 位，也就是说每期有 5 张这样的表，因此是 14400 x 5 = 72000 次。<br /><br />这个代码我用的语言是 Java 。循环 72000 次，每一次几乎都进行了对比运算和累加运算，对比运算很简单用的是字符串查找 indexOf 方法。根据我反复测试，程序在预热完毕完毕后，执行上述计算花费时间是 45-50 毫秒。<br /><br />45-50 毫秒也不算长啊。本来到这里还没太奇葩的，但是接下来甲方就有骚操作想法了。还记得前面写的那个 C618 吗？甲方的意思是，从目前的这期开奖记录开始，往前倒退 618 期，以此为起点，计算从此开始到当期为止（共 617 期）的从 A1 到 Q15X 的全部值。然后把这 617 的 A1 到 Q15X 和当前期的 A1 到 Q15X 按一定规则对比，比中了就累计值。<br /><br />于是上面那计算一次要 45-50 毫秒的操作，要算 617 次。。。算一次 30 秒就过去了。。。<br /><br />我想了很久，也没想到该怎么优化这个问题，这妥妥的是 CPU 密集型运算，但是它的算法规则不复杂，甚至可以说相当简单，除了向前追溯的次数太多了之外，整个运算过程几乎的规则就是对比和累计，对比的规则也就是要么查有没有，要么相等不相等。。。<br /><br />我一度想看看那个 72000 次花费 45-50 毫秒的过程有没有优化的空间，但是看来看去也不知道该优化哪里。<br />目前我暂时不想考虑换语言之类的手段。<br /><br />有没有算法大佬来聊聊这个场景该怎么办呢？
 ]]></content:encoded>
-<pubDate>2024-07-06T12:33:01Z</pubDate>
 <pubDate>2024-07-06T12:33:01Z</pubDate>
 </item>
 <item>
@@ -20,7 +354,6 @@
 <link>https://www.v2ex.com/t/1055343</link>
 <guid>https://www.v2ex.com/t/1055343</guid>
 <content:encoded><![CDATA[
-
 <p>去年的时候看到一张关于 2023 年全球平均气温图表，然后找了下
 这两年确实明显感觉到气温的不正常
 这是平均气温，还有一些包括海洋气温、海平面上升数据我还没找
@@ -28,7 +361,6 @@
 有没有比较熟知这方面的大佬，能分享下一些其他的数据源和解读
 <img alt="ec0723195e4f1d7895ebd4d3362afe18.png" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/07/06/ec0723195e4f1d7895ebd4d3362afe18.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-07-06T12:20:45Z</pubDate>
 <pubDate>2024-07-06T12:24:46Z</pubDate>
 </item>
 <item>
@@ -36,13 +368,11 @@
 <link>https://www.v2ex.com/t/1055341</link>
 <guid>https://www.v2ex.com/t/1055341</guid>
 <content:encoded><![CDATA[
-
 <p>各位师傅们好，我最近访问一些网站的时候发现很多的网站都貌似是出了 BUG 的状态  我想请教下为什么会有这种看起来是错误展示。</p>
 <p>比如这是我在访问的一个网站，我打开之后这哥网页只有一个花括号  这是什么原因呢？</p>
 <p><a href="https://github.com/BreakALegCml/try/blob/main/Snipaste_2024-07-06_18-31-19.png" rel="nofollow">https://github.com/BreakALegCml/try/blob/main/Snipaste_2024-07-06_18-31-19.png</a></p>
 <p>初次之外我还发现其他的一些网页是有其他的奇怪的显示，而不是正常的域名。为什么会有这种现象呢</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T12:03:22Z</pubDate>
 <pubDate>2024-07-06T12:05:43Z</pubDate>
 </item>
 <item>
@@ -50,11 +380,9 @@
 <link>https://www.v2ex.com/t/1055340</link>
 <guid>https://www.v2ex.com/t/1055340</guid>
 <content:encoded><![CDATA[
-
 <p>注册谷歌开发者企业账号，在填写付款资料的时候只让你输入企业的 duns 码，然后通过获取到的企业信息自动填充付款资料。最后想用自己的信用卡支付 25 美元的开发费用还不行。
 这咋搞，大佬们。</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:53:52Z</pubDate>
 <pubDate>2024-07-06T11:50:52Z</pubDate>
 </item>
 <item>
@@ -62,10 +390,8 @@
 <link>https://www.v2ex.com/t/1055339</link>
 <guid>https://www.v2ex.com/t/1055339</guid>
 <content:encoded><![CDATA[
-
 <p>如果一个红绿灯路口施工方还没有把项目移交给交警队，在这个红绿灯路口行人在红灯剩 3 秒的时候，机动车在黄灯的时候通过出现了交通事故，这个红绿灯具有法律效应吗？</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:53:04Z</pubDate>
 <pubDate>2024-07-06T11:51:04Z</pubDate>
 </item>
 <item>
@@ -73,7 +399,6 @@
 <link>https://www.v2ex.com/t/1055338</link>
 <guid>https://www.v2ex.com/t/1055338</guid>
 <content:encoded><![CDATA[
-
 <p>在当今中国，内卷已成为一种社会常态，各行各业都能感受到激烈的竞争。商业街上挤满了奶茶店，高中生每天只能睡四个小时，斯坦福等名校的毕业生甚至去应聘乡镇公务员。付出和产出越来越不成正比，内卷无处不在。尤其是网约车司机和外卖员，这些平台接单者的生存状况尤为惨烈。</p>
 <p>据一些媒体估计，近两年送外卖和开网约车的人数几乎翻了三倍，全国从业者总数超过四千万，而订单的增长远远赶不上从业者的增加，导致严重饱和，平台方利用这一点肆意压低单价，致使从业者赚不到什么钱。例如，很多城市跑网约车每公里到手才一块钱左右，每辆车平均一天接不到十单，司机每天要跑十个小时以上，勉强赚一百多块，这还不包括车辆折损、保养、保险等费用。而外卖员的处境更糟糕，普通城市跑一单外卖只能赚三块钱，平台活动时每单甚至不到两块。老手每天跑十二小时以上，勉强能跑四十单，新手一下午只赚三十元。这些人吃苦受累，却总是赚不到钱，被戏称为新时代的骆驼祥子。</p>
 <p>骆驼祥子这个名字来源于老舍的同名小说，讲述的是旧社会里一名人力车夫的故事，他努力工作却总是穷困潦倒，活得像牛马一样。虽然是小说，但素材明显来自现实生活，这是老舍对旧社会的讽刺。如今一百年过去了，时代进步了，科技发展了，但新时代的祥子们真的比当年的骆驼祥子要幸福吗？</p>
@@ -96,7 +421,6 @@
 <p>第三种典型的小农思想是见不得别人好，认为一门生意就是一个大饼，别人多吃一口，自己就少吃一口。缺乏共赢思维，合作往往一团糟。许多中国商人喜欢打价格战，宁可不赚钱也要逼死同行，结果是商业环境越来越差，消费者长期受损。价格战导致质量下降，工人工资被压榨，形成恶性循环，内需不足。</p>
 <p>要走出内卷，关键在于解放思想。我们需要抛弃小农思维，允许文化自由发展，提高底层收入，激发人的创造力和好奇心，而不是埋头于体力工作。不要幻想时间能改变一切，若继续现状，未来将更加困难。随着人工智能的发展，适合人类的体力工作会越来越少。无人驾驶电动车会取代人力车，精英阶层用短视频等麻痹底层，让他们无法专注和独立思考。因此，未来并不乐观，如果不学会改变，将难以在未来生存。</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:50:37Z</pubDate>
 <pubDate>2024-07-06T12:25:58Z</pubDate>
 </item>
 <item>
@@ -104,11 +428,9 @@
 <link>https://www.v2ex.com/t/1055337</link>
 <guid>https://www.v2ex.com/t/1055337</guid>
 <content:encoded><![CDATA[
-
 <p>op 家里是浙江联通宽带，无公网 ipv4 ，有公网 ipv6 ，想跑 pcdn ，有推荐不？上传大约 50mbps</p>
 <p>甜糖支持 ipv6 吗？</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:44:25Z</pubDate>
 <pubDate>2024-07-06T11:44:25Z</pubDate>
 </item>
 <item>
@@ -116,10 +438,8 @@
 <link>https://www.v2ex.com/t/1055336</link>
 <guid>https://www.v2ex.com/t/1055336</guid>
 <content:encoded><![CDATA[
-
 如题，能用就行，不打游戏，静音，求推荐，机械不机械无所谓。
 ]]></content:encoded>
-<pubDate>2024-07-06T11:33:24Z</pubDate>
 <pubDate>2024-07-06T12:30:15Z</pubDate>
 </item>
 <item>
@@ -128,9 +448,7 @@
 <guid>https://www.v2ex.com/t/1055335</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-07-06T11:32:14Z</pubDate>
 <pubDate>2024-07-05T19:31:14Z</pubDate>
 </item>
 <item>
@@ -138,11 +456,9 @@
 <link>https://www.v2ex.com/t/1055333</link>
 <guid>https://www.v2ex.com/t/1055333</guid>
 <content:encoded><![CDATA[
-
 <p>有谁会注册这种企业邮箱么？自己刚注册了 Google Workspace ，要 14 刀一个月还只有一个账号，想用来注册玩玩 ai ，现在买号的话全被关权限了，有解决方法吗？
 <a href="https://img.picui.cn/free/2024/07/06/6689266650779.png" rel="nofollow">link text</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:17:20Z</pubDate>
 <pubDate>2024-07-06T11:15:20Z</pubDate>
 </item>
 <item>
@@ -151,9 +467,7 @@
 <guid>https://www.v2ex.com/t/1055332</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-07-06T11:11:34Z</pubDate>
 <pubDate>2024-07-06T11:10:34Z</pubDate>
 </item>
 <item>
@@ -161,10 +475,8 @@
 <link>https://www.v2ex.com/t/1055331</link>
 <guid>https://www.v2ex.com/t/1055331</guid>
 <content:encoded><![CDATA[
-
 我 Google 搜了下电影名，好像只能买下某部电影，才能看这部电影。<br /><br />我想要那种订阅平台网站，这样就不需要一部一部买。请问大佬们有没有什么平台可以观看热门电影呢？
 ]]></content:encoded>
-<pubDate>2024-07-06T11:09:15Z</pubDate>
 <pubDate>2024-07-06T12:30:59Z</pubDate>
 </item>
 <item>
@@ -172,7 +484,6 @@
 <link>https://www.v2ex.com/t/1055330</link>
 <guid>https://www.v2ex.com/t/1055330</guid>
 <content:encoded><![CDATA[
-
 <p>情况说明
 使用的是笔记本（联想小新 14pro 2021 款）+显示器为红米 4k
 已安装 HEVC 插件，免费付费的都安装了
@@ -185,7 +496,6 @@ EDGE 显示
 <img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/66892622d9c307b7e9316e73.png" />
 请大神们帮检查检查，看看问题究竟处在哪？</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T11:02:26Z</pubDate>
 <pubDate>2024-07-06T11:11:44Z</pubDate>
 </item>
 <item>
@@ -193,10 +503,8 @@ EDGE 显示
 <link>https://www.v2ex.com/t/1055329</link>
 <guid>https://www.v2ex.com/t/1055329</guid>
 <content:encoded><![CDATA[
-
 react native 开发的 demo app ，在 expo go app 中运行正常，无论是 ios simulator 还是 iphone 真机.<br />但是无论是本地 xcode 打包还是通过 eas 打包后安装到打开开发者模式的真机上，部分功能不正常：如某些 css 不生效，部分网络请求无法发起，也不报错，点击图片放大屏幕卡死等，准确的说是 expo 中怎么都正常，独立打包 app 有些功能无法使用，应该如何排查问题？<br /><br />css 如下<br />const styles = StyleSheet.create({<br />  avatar: {<br />    width: 48,   // 12 * 4 (base size in Tailwind CSS is 4)<br />    height: 48,  // 12 * 4 (base size in Tailwind CSS is 4)<br />    borderRadius: 24,  // 50% of width/height to make it fully rounded<br />  },<br />});<br />应该是圆形，但是打包后显示是正方形
 ]]></content:encoded>
-<pubDate>2024-07-06T10:58:41Z</pubDate>
 <pubDate>2024-07-06T10:55:41Z</pubDate>
 </item>
 <item>
@@ -204,10 +512,8 @@ react native 开发的 demo app ，在 expo go app 中运行正常，无论是 i
 <link>https://www.v2ex.com/t/1055328</link>
 <guid>https://www.v2ex.com/t/1055328</guid>
 <content:encoded><![CDATA[
-
 <p>前阵子人在美国某免税州，看到 amazon $1699 拿下（+4%信用卡返现），回国没查，没阉割的同时还带全球保修，太香了。</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T10:41:50Z</pubDate>
 <pubDate>2024-07-06T12:02:35Z</pubDate>
 </item>
 <item>
@@ -215,10 +521,8 @@ react native 开发的 demo app ，在 expo go app 中运行正常，无论是 i
 <link>https://www.v2ex.com/t/1055327</link>
 <guid>https://www.v2ex.com/t/1055327</guid>
 <content:encoded><![CDATA[
-
 <p>经过的我的简单测试，hyper-v 稳定性最好，但是需要启动 win11 图形界面需要消耗一点额外的性能</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T10:38:26Z</pubDate>
 <pubDate>2024-07-06T12:26:46Z</pubDate>
 </item>
 <item>
@@ -226,13 +530,10 @@ react native 开发的 demo app ，在 expo go app 中运行正常，无论是 i
 <link>https://www.v2ex.com/t/1055326</link>
 <guid>https://www.v2ex.com/t/1055326</guid>
 <content:encoded><![CDATA[
-
 如果你是软件独立开发者，同时准备放弃内卷的中国市场，尝试拓展全球海外市场。那么一个好的 idea 固然很重要，但是如果你去咨询出海的前辈，他们一定会告诉你，最最重要是宣传，当你开发了一款产品之后，真正重要的是将产品展现在用户面前，让用户快速的了解你开发了一款什么样的产品，解决了什么样的问题。<br /><br />收藏此文，每天来这里找 2-3 个平台宣传你的产品，坚持宣传一个月，你的用户量比如增长！<br /><br />在宣传之前，一定要准备一份完整的宣传文案，包括图片、文字、视频等。然后在宣传中不断的去调整和完善这份宣传文案。<br /><br />新产品发布获得第一批 1000 个新用户非常重要，这不只代表着你的产品是否有用户市场需求。首批新用户也将成为产品问题反馈，让你能够从真实的用户需求中获得产品迭代改进的灵感来源。<br /><br />在开始一款新产品，请不要想着将产品的功能做全，而是要先实现核心功能，然后通过用户测试反馈，然后在进行产品迭代。而不是一开始就不断的开发功能，这样很容易陷入叠功能的现象。最终发布后会发现很多功能其实并不符合用户的实际需求场景。<br /><br />独立开发者开发逻辑：发现需求–&gt;开发简单实用的核心功能–&gt;找到对应的用户群体让他们使用–&gt;获得反馈进行产品快速迭代。这是一个正向顺利的过程，如果在整个流程中遇到问题，那么你可能就需要及时止损。<br /><br />这里整理了 300 多个产品宣传渠道，只要先制作好宣传文案，然后进行逐个分发宣传。同时积极这些平台中用户反馈的问题，那么一定能帮助你的产品在最短的时间内获得 1000 个核心用户。<br /><br /><a href="https://topstip.com/list-of-new-product-promotion-platforms/" rel="nofollow noopener" target="_blank">https://topstip.com/list-of-new-product-promotion-platforms/</a>
 ]]></content:encoded>
-<pubDate>2024-07-06T10:37:04Z</pubDate>
 <pubDate>2024-07-06T10:35:04Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] 写了一个纠正英语口语发音的脚本分享</title>
 <link>https://www.v2ex.com/t/1055324</link>
@@ -15899,223 +16200,6 @@ FaceLandmark mouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM);
 不知道为啥不运行了～<br /><br />之前一直关注的莆田鞋，一直没买过，直到后面朋友推荐的 <a href="http://putian.io" rel="nofollow noopener" target="_blank">putian.io</a> 和小程序，但今年想买试试看，但发现服务都不运行了。。。。虽然都是从得物买，但也不见得 得物 就都是真的，所以想试试看有与之相比的吗
 ]]></content:encoded>
 <pubDate>2024-07-02T03:19:33Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] 关于 apple watch 的睡眠监测</title>
-<link>https://www.v2ex.com/t/1054159</link>
-<guid>https://www.v2ex.com/t/1054159</guid>
-<content:encoded><![CDATA[
-最近入手了 apple watch ultra2 ，想用来检测一下睡眠情况，到手后连续时候 3 天，每天睡眠都是 3 个多小时，而且显示的卧床时间也是 3 个多小时，我都是 1 点到 2 点之间睡，8 点半起，这差的也太多了吧（我打开了睡眠模式）。<br />还有离谱的是，健身圆环里面不是有每天站立嘛，早上起床一看今天已经站立了 5 次了😂<br />之前没有表的时候，我设置了健身圆环的目标是 100 大卡，由于每天都是久坐，之前可能上一天班都完成不了，或者刚好完成。最近买了表之后早上打车到公司弹出来说已经完成今日目标了，下班都有消耗 400 大卡了。
-]]></content:encoded>
-<pubDate>2024-07-02T02:37:21Z</pubDate>
-</item>
-<item>
-<title>[Apple] 国产软件太狠了！</title>
-<link>https://www.v2ex.com/t/1054158</link>
-<guid>https://www.v2ex.com/t/1054158</guid>
-<content:encoded><![CDATA[
-[ iPhone 12 mini ，56G/64G ，电池健康 76%，iOS 18 beta 2] <br /><br />昨天晚上用手机共享屏幕和朋友一起点外卖，要支付的时候他突然说给我推一个微信公众号，可以领外卖优惠券，遂开始折腾。谁知道打开微信之后面对接连弹出的小程序，手机是再也顶不住了，开始发热卡顿，到后面美团甚至直接闪退了（不过表扬一下支付宝，这么极端的情况下打开 app 都没花超过 1 秒）。<br /><br />然后今天早上就开始反思（自适应）哪里做的不对，平时我都是用快捷指令长期打开低电量模式、关闭 5G 用的，但是手机依然是没有凉快下来过。于是思考了一会试着把 App 都装到 iPad Air 5 上，卸载掉手机上的看看效果（所有国产软件只保留了支付宝，鉴于它昨天晚上的优秀表现），顺便也关掉了快捷指令，打开了 5G 。<br /><br />结果就是写这个帖子之前拿起 iPad 用一下微信，能明显感觉到 iPad 的温热，相对的拿起 iPhone 体会到了久违的冰凉感，甚至看到了久违的满帧解锁动画，啊……
-]]></content:encoded>
-<pubDate>2024-07-02T04:23:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 补充医疗保险</title>
-<link>https://www.v2ex.com/t/1054157</link>
-<guid>https://www.v2ex.com/t/1054157</guid>
-<content:encoded><![CDATA[
-公司每年有补充医疗保险，门诊报销 1w ，这玩意可以有啥办法可以套现吗，有没有老哥懂的？
-]]></content:encoded>
-<pubDate>2024-07-02T03:39:14Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [润日] - 招聘机电工程师（有签证支援, N3 以上）</title>
-<link>https://www.v2ex.com/t/1054156</link>
-<guid>https://www.v2ex.com/t/1054156</guid>
-<content:encoded><![CDATA[
-<h3>机电系工程师:</h3>
-<ul>
-<li>工作地点：日本全国，或东京</li>
-<li>年薪制度：400 万至 900 万日元 (根据经验和日语能力)</li>
-<li>雇用保险、工伤保险、健康保险、厚生年金保险</li>
-<li>基本上没有加班。如果发生加班，将全额支付加班费</li>
-</ul>
-<h4>客户：</h4>
-<p>客户包括汽车行业、医疗设备、工业机械等制造商，以及勇于挑战先进技术的创业公司，主要在客户现场常驻，从事设计、开发、研究领域的所谓“机械设计业务”。</p>
-<p>作为在全球拥有超过 60 年历史的人力资源服务公司，在日本不论是日本企业还是外资企业，都拥有多样的客户网络。正因为如此，公司能够考虑到工程师自身的技能，以及他们的希望和倾向，将他们分配到合适的工作场所。</p>
-<h4>主要职责：</h4>
-<ul>
-<li>
-<p>机械设计：涉及乘用车、商用车、航空宇宙、工业机械、家电产品等领域，使用 CAD 进行概念设计、基本设计、详细设计、产品设计、分析评估等开发工作。</p>
-</li>
-<li>
-<p>电子设计：涉及乘用车、商用车、机器人、工业机械、家电产品等领域，进行电子硬件的概念设计、基本设计、详细设计、产品设计、实装评估、可靠性评估等开发工作。</p>
-</li>
-<li>
-<p>控制软件开发：涉及乘用车、商用车、机器人、家电产品等领域，进行需求定义、基本设计、详细设计、实装、调试、嵌入式软件开发等工作。</p>
-</li>
-<li>
-<p>性能及认证：涉及乘用车、商用车、船舶、农业・建设・工业机械、无人机等，从车辆、发动机、驱动系统、单元设备等的数据采集到评估、分析、对策实验、电动化开发等工作。</p>
-</li>
-</ul>
-<h4>应聘条件：</h4>
-<ul>
-<li>适合有日语口头交流水平的人士</li>
-<li>拥有 N3 以上的日语读解能力以及口语表达能力</li>
-<li>具有 1 年以上机械、电子设计经验，或者控制系统开发经验。 </li>
-</ul>
-<hr />
-<h4>选拔流程</h4>
-<ol>
-<li>简易的面谈</li>
-<li>文件筛选</li>
-<li>第一轮面试（在线）</li>
-<li>最终面试（面对面/在线）</li>
-</ol>
-<hr />
-<p>有兴趣想了解详细的话或询问其它机会的话，请联系我们:<br />
-<a href="https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4" rel="nofollow">https://form.run/@jellyfish-g-SCPO0TaSGSFMMHJToFD4</a><br />
-简历：希望日文或英文简历</p>
-<p>如果您有兴趣的话，不用犹豫，请留言，或参加我们的群组:</p>
-<ul>
-<li><a href="https://lin.ee/RxOUWEN" rel="nofollow">https://lin.ee/RxOUWEN</a></li>
-<li><a href="https://00m.in/zfMMJ" rel="nofollow">小红书(RED)</a></li>
-<li><a href="https://www.linkedin.com/company/jellyfish_japan/" rel="nofollow">LinkedIn</a></li>
-<li><a href="https://jellyfish-g.co.jp/techport_japan/" rel="nofollow">Jellyfish Blog - About Living in Japan</a></li>
-</ul>
-<p>我们, <a href="https://jellyfish-g.co.jp/" rel="nofollow">日本水母</a>是位于东京的专业中介猎头公司。
-一直以来帮助过不少的中国工程师寻找日本工作。 想在这里跟在考虑在日本找工作的朋友们分享一下 Z 桑的故事。<br />
-: <strong><a href="https://jellyfish-g.co.jp/techport_japan/2024/06/10/%e8%bb%a2%e8%81%b7%e6%88%90%e5%8a%9f%e8%80%85%e2%91%a0%e2%80%90z%e3%81%95%e3%82%93%ef%bc%88%e5%89%8d%e7%b7%a8%ef%bc%89/" rel="nofollow">兜兜转转终于回到日本工作的 Zさん的故事（第一部）</a></strong></p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:32:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] RUST 的未来在哪里？</title>
-<link>https://www.v2ex.com/t/1054155</link>
-<guid>https://www.v2ex.com/t/1054155</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>论性能，C/C++和 RUST 基本差不多</li>
-<li>论生态，新语言都很尴尬，包括 golang</li>
-<li>论场景，系统级开发绝对数量太少了</li>
-</ul>
-<p>RUST 样样都不落下风，可是样样都有成熟的平替。唯有在一些新兴产业上，因为没有“历史包袱”和“前人”，能发挥足够的效果，比如区块链和 Web3 等。<br />
-最能拿得出手的是安全性，可是这个东西对于“小程序”而言，并非什么不可名状的东西。<br />
-进一步而言，是否就导致了<strong>RUST 缺乏广泛的实际场景，进入出现了“重写一切”的趋势，希望从根本上重构目前的生态以发挥足够的能力。</strong></p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:29:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 深圳华强北解 mac 的 id 锁要多少钱啊</title>
-<link>https://www.v2ex.com/t/1054153</link>
-<guid>https://www.v2ex.com/t/1054153</guid>
-<content:encoded><![CDATA[
-<p>是一个 m2 16+256g 的 macbook pro 被人远程锁定了 需要输入 pin 码解锁 电脑盒子还在 但是没有发票 不知道零售店给处理不</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:33:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 阿里云又又挂了</title>
-<link>https://www.v2ex.com/t/1054152</link>
-<guid>https://www.v2ex.com/t/1054152</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-07-02T02:22:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 前端接私活如何报价？</title>
-<link>https://www.v2ex.com/t/1054151</link>
-<guid>https://www.v2ex.com/t/1054151</guid>
-<content:encoded><![CDATA[
-客户的需求很简单，做个官网，一个 PC 端，一个移动端<br />一期的功能就是可以留联系方式<br />二期加上登录注册<br />三期会有个预约试听课功能<br />对标网站<br /><a href="http://baobenjiaoyu.com/" rel="nofollow noopener" target="_blank">http://baobenjiaoyu.com/</a><br /><a href="http://www.hlgzgk.cn/" rel="nofollow noopener" target="_blank">http://www.hlgzgk.cn/</a><br /><br />想问下各位大佬怎么报价<br />服务器、域名、备案这些先不包含
-]]></content:encoded>
-<pubDate>2024-07-02T02:33:12Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 坐标江西电信宽带组网设置 IPV6 的问题</title>
-<link>https://www.v2ex.com/t/1054150</link>
-<guid>https://www.v2ex.com/t/1054150</guid>
-<content:encoded><![CDATA[
-小弟家里刚申请到 IPV6 ，然后让师傅把光猫设置了桥接，让主路由拨号上网，另外两台同型号路由器有线组网，刚设置好的前两天设备连接 wifi 都显示有 IPV6 ，第三天开始又变成了网络 ipv4 优先，除了有线连接的电脑可以从端口读出 ipv6 意外，其他有线、无线设备都是 ipv4 ，特别是 appletv ，无论怎么读取都是 ipv6 失败，请问有人知道怎么解决吗？
-]]></content:encoded>
-<pubDate>2024-07-02T02:17:38Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] B 站挂了</title>
-<link>https://www.v2ex.com/t/1054149</link>
-<guid>https://www.v2ex.com/t/1054149</guid>
-<content:encoded><![CDATA[
-<p><a href="http://api.bilibili.com" rel="nofollow">api.bilibili.com</a> 502</p>
-<p>评论、历史等界面无法访问</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:13:44Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] OpenWrt 使用 Fail2Ban 不生效</title>
-<link>https://www.v2ex.com/t/1054148</link>
-<guid>https://www.v2ex.com/t/1054148</guid>
-<content:encoded><![CDATA[
-<p>想使用 Fail2Ban 来防止 SSh 爆破，防火墙是 nftables ，使用 fail2ban-client 命令能看见有封禁的 IP ，但是没有效果，防火墙规则里也没有添加上。</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:15:30Z</pubDate>
-</item>
-<item>
-<title>[程序员] 公司 CentOS 服务器需更换系统，选择 Debian or Ubuntu？</title>
-<link>https://www.v2ex.com/t/1054147</link>
-<guid>https://www.v2ex.com/t/1054147</guid>
-<content:encoded><![CDATA[
-<p>公司服务器之前安装的 CentOS 7.3 ，现在下了通知，说 CentOS 7 官方停止维护了，要求升级或者更换系统。如果还用 CentOS 的话，Stream 版本好用么？软件库新不新？记得之前 CentOS 7 上要装一些常见的软件的话，官方源都没有，还得从别的源安装。</p>
-<p>Ubuntu 自己有一台小服务器装的是 2204 版本，用了几个月了，感觉还行，但是看到也有人推荐 Debian ，这俩区别大不？</p>
-<p>自己平时做的主要是开发工作，全干工程师兼做一点运维，就希望系统或者软件有漏洞需要打补丁或者升级内核什么的能轻松一点，运维方面让人省心一些。</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:35:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想要认真的训练一下英语口语</title>
-<link>https://www.v2ex.com/t/1054145</link>
-<guid>https://www.v2ex.com/t/1054145</guid>
-<content:encoded><![CDATA[
-<p>半年后可能要失业, 想了想自己的优势,可能英语是一个,但是口语这款有缺陷</p>
-<p>读了某乎很多教程, 最好的办法就是多练</p>
-<p>我想早上读半小时英语, 但是找不到合适的材料, 不知道大家有没有推荐的?</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:25:55Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有什么股票行情类 APP 是支持唤起到指定股票行情的</title>
-<link>https://www.v2ex.com/t/1054144</link>
-<guid>https://www.v2ex.com/t/1054144</guid>
-<content:encoded><![CDATA[
-<p>如题，有公共伪协议吗</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:26:11Z</pubDate>
-</item>
-<item>
-<title>[程序员] B 站部分功能出故障了</title>
-<link>https://www.v2ex.com/t/1054143</link>
-<guid>https://www.v2ex.com/t/1054143</guid>
-<content:encoded><![CDATA[
-<p>收藏、历史记录功能完全没法用，试了好一会，2-3 分钟前开始，看看要持续多久才好</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:32:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何减少 iPad 等镜面屏电子设备的反射</title>
-<link>https://www.v2ex.com/t/1054142</link>
-<guid>https://www.v2ex.com/t/1054142</guid>
-<content:encoded><![CDATA[
-<p>每次用 ipad 看剧的时候总能在屏幕中间看到自己的脑袋，非常影响观看体验。</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:08:28Z</pubDate>
-</item>
-<item>
-<title>[生活] 失业潮下真实青年生活现状</title>
-<link>https://www.v2ex.com/t/1054141</link>
-<guid>https://www.v2ex.com/t/1054141</guid>
-<content:encoded><![CDATA[
-1 、失业后人最容易被割。<br />2 、失业的人，为了生存，苦苦挣扎。
-]]></content:encoded>
-<pubDate>2024-07-01T10:08:20Z</pubDate>
 </item>
 </channel>
 </rss>
