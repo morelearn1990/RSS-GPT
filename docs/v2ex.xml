@@ -5,14 +5,241 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 这种需要回顾过去数据的算法问题是不是回溯问题，如何优化速度？</title>
+<link>https://www.v2ex.com/t/1055344</link>
+<guid>https://www.v2ex.com/t/1055344</guid>
+<content:encoded><![CDATA[
+
+做外包，最近遇到个异想天开的甲方，想预测彩票数字。该甲方自称潜心研究彩票 30 年，一直手算，现在觉得数据量太大了，想用程序实现。<br />虽然这个甲方在我看来是异想天开，但是他提出的计算规则倒是没有漏洞，我本着反正只谁出钱谁上帝的原则，实现了出来，但是现在遇到了性能问题。<br /><br />他的算法并不复杂，首先，甲方提供了 75 个数字字符串，每个字符串都是 4 个数字，诸如 0123 3578 之类的。我在这里称其为样本数据。<br /><br />彩票的开奖数字，每期都是 5 位数字，它的算法里，把这 5 位数字拆开成 5 个，每个单独去和 75 个样本数据进行计算。<br /><br />一个样本字符串 + 开奖拆开的数字，会生成一系列值，这些值我接下来会有详述，这就是一行记录(每个生成的值是一列)。<br /><br />因为有 75 个字符串，所以就有 75 行，于是，一个被拆开的数字，会生成一张表格，这张表格有 75 行。<br />又因为每期开奖数字是 5 位，所以每期彩票的开奖数字最后都会有 5 张表。<br /><br />生成值（表格的列）有以下部分：<br />A1：找上一期的开奖数字，计算上一期的开奖数字是否在对应行样本数据中出现过。<br />A2：当前开奖数字是否在样本数据中出现过？无论出现还是没出现状态，都从当前这期往之前的开奖记录回溯，如果状态和目前这期一致，就累加数值，直到出现一期和当前这一期不一样的状态，就终止(我大致看了一下平均遍历次数在 5 左右)。<br />Q15B：从当前期倒退 61 期，然后从此为起点遍历 30 期，只要这 30 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效<br />Q15R：从当前期倒退 31 期，然后从此为起点遍历 30 期，只要这 30 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效<br />P15B：从当前期倒退 16 期，然后从此为起点遍历 15 期，要要这 15 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效。<br />P15R：从当前期倒退 31 期，然后从此为起点遍历 15 期，只要这 15 期的开奖数字，命中了对应的样本数据，就+1 ，然后获得最终值。如果之前的期数不够，则该数据无效，<br /><br />P15X：把前面的 A1 ，A2 ，Q15B Q15R P15B P15R 以一个简单的排列规则后得到的分类数。<br />Q15X：就是上一期的 P15X （也就是把上一期的 P15X 算一遍出来，所以如果之前期数不够，那么这个数据算不出来<br />C618：这是性能罪魁祸首，先不在这里算，问题在下面讲，先跳过。<br /><br />就此你可以看到，这个过程从 A1 到 P15R 往前遍历了 1 + 5 + 30 +30 + 15 +15 = 96 次。然后为了算出 Q15X ，又来了一遍，所以遍历了 192 次。问题是，这仅仅是一行（因为是和一个样本字符串在对比），而这个表有 75 行，于是这个循环对比的过程执行了 75 x192 = 14400<br />然后我们每期开奖数字有 5 位，也就是说每期有 5 张这样的表，因此是 14400 x 5 = 72000 次。<br /><br />这个代码我用的语言是 Java 。循环 72000 次，每一次几乎都进行了对比运算和累加运算，对比运算很简单用的是字符串查找 indexOf 方法。根据我反复测试，程序在预热完毕完毕后，执行上述计算花费时间是 45-50 毫秒。<br /><br />45-50 毫秒也不算长啊。本来到这里还没太奇葩的，但是接下来甲方就有骚操作想法了。还记得前面写的那个 C618 吗？甲方的意思是，从目前的这期开奖记录开始，往前倒退 618 期，以此为起点，计算从此开始到当期为止（共 617 期）的从 A1 到 Q15X 的全部值。然后把这 617 的 A1 到 Q15X 和当前期的 A1 到 Q15X 按一定规则对比，比中了就累计值。<br /><br />于是上面那计算一次要 45-50 毫秒的操作，要算 617 次。。。算一次 30 秒就过去了。。。<br /><br />我想了很久，也没想到该怎么优化这个问题，这妥妥的是 CPU 密集型运算，但是它的算法规则不复杂，甚至可以说相当简单，除了向前追溯的次数太多了之外，整个运算过程几乎的规则就是对比和累计，对比的规则也就是要么查有没有，要么相等不相等。。。<br /><br />我一度想看看那个 72000 次花费 45-50 毫秒的过程有没有优化的空间，但是看来看去也不知道该优化哪里。<br />目前我暂时不想考虑换语言之类的手段。<br /><br />有没有算法大佬来聊聊这个场景该怎么办呢？
+]]></content:encoded>
+<pubDate>2024-07-06T12:33:01Z</pubDate>
+<pubDate>2024-07-06T12:33:01Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 全球气候</title>
+<link>https://www.v2ex.com/t/1055343</link>
+<guid>https://www.v2ex.com/t/1055343</guid>
+<content:encoded><![CDATA[
+
+<p>去年的时候看到一张关于 2023 年全球平均气温图表，然后找了下
+这两年确实明显感觉到气温的不正常
+这是平均气温，还有一些包括海洋气温、海平面上升数据我还没找
+按照这种趋势之前所有的推测是不是都要推翻，什么 100 年淹没东京之类的。
+有没有比较熟知这方面的大佬，能分享下一些其他的数据源和解读
+<img alt="ec0723195e4f1d7895ebd4d3362afe18.png" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/07/06/ec0723195e4f1d7895ebd4d3362afe18.png" /></p>
+]]></content:encoded>
+<pubDate>2024-07-06T12:20:45Z</pubDate>
+<pubDate>2024-07-06T12:24:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教网站的响应展示问题</title>
+<link>https://www.v2ex.com/t/1055341</link>
+<guid>https://www.v2ex.com/t/1055341</guid>
+<content:encoded><![CDATA[
+
+<p>各位师傅们好，我最近访问一些网站的时候发现很多的网站都貌似是出了 BUG 的状态  我想请教下为什么会有这种看起来是错误展示。</p>
+<p>比如这是我在访问的一个网站，我打开之后这哥网页只有一个花括号  这是什么原因呢？</p>
+<p><a href="https://github.com/BreakALegCml/try/blob/main/Snipaste_2024-07-06_18-31-19.png" rel="nofollow">https://github.com/BreakALegCml/try/blob/main/Snipaste_2024-07-06_18-31-19.png</a></p>
+<p>初次之外我还发现其他的一些网页是有其他的奇怪的显示，而不是正常的域名。为什么会有这种现象呢</p>
+]]></content:encoded>
+<pubDate>2024-07-06T12:03:22Z</pubDate>
+<pubDate>2024-07-06T12:05:43Z</pubDate>
+</item>
+<item>
+<title>[问与答] 注册支付国内的谷歌企业开发者账号必须要企业的信用卡吗？ 个人的信用卡支付还不行</title>
+<link>https://www.v2ex.com/t/1055340</link>
+<guid>https://www.v2ex.com/t/1055340</guid>
+<content:encoded><![CDATA[
+
+<p>注册谷歌开发者企业账号，在填写付款资料的时候只让你输入企业的 duns 码，然后通过获取到的企业信息自动填充付款资料。最后想用自己的信用卡支付 25 美元的开发费用还不行。
+这咋搞，大佬们。</p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:53:52Z</pubDate>
+<pubDate>2024-07-06T11:50:52Z</pubDate>
+</item>
+<item>
+<title>[生活] 关于红绿灯主权问题求助，懂的进。</title>
+<link>https://www.v2ex.com/t/1055339</link>
+<guid>https://www.v2ex.com/t/1055339</guid>
+<content:encoded><![CDATA[
+
+<p>如果一个红绿灯路口施工方还没有把项目移交给交警队，在这个红绿灯路口行人在红灯剩 3 秒的时候，机动车在黄灯的时候通过出现了交通事故，这个红绿灯具有法律效应吗？</p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:53:04Z</pubDate>
+<pubDate>2024-07-06T11:51:04Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 聊聊关于内卷时代一些问题看法，关于如何走出内卷的疑问</title>
+<link>https://www.v2ex.com/t/1055338</link>
+<guid>https://www.v2ex.com/t/1055338</guid>
+<content:encoded><![CDATA[
+
+<p>在当今中国，内卷已成为一种社会常态，各行各业都能感受到激烈的竞争。商业街上挤满了奶茶店，高中生每天只能睡四个小时，斯坦福等名校的毕业生甚至去应聘乡镇公务员。付出和产出越来越不成正比，内卷无处不在。尤其是网约车司机和外卖员，这些平台接单者的生存状况尤为惨烈。</p>
+<p>据一些媒体估计，近两年送外卖和开网约车的人数几乎翻了三倍，全国从业者总数超过四千万，而订单的增长远远赶不上从业者的增加，导致严重饱和，平台方利用这一点肆意压低单价，致使从业者赚不到什么钱。例如，很多城市跑网约车每公里到手才一块钱左右，每辆车平均一天接不到十单，司机每天要跑十个小时以上，勉强赚一百多块，这还不包括车辆折损、保养、保险等费用。而外卖员的处境更糟糕，普通城市跑一单外卖只能赚三块钱，平台活动时每单甚至不到两块。老手每天跑十二小时以上，勉强能跑四十单，新手一下午只赚三十元。这些人吃苦受累，却总是赚不到钱，被戏称为新时代的骆驼祥子。</p>
+<p>骆驼祥子这个名字来源于老舍的同名小说，讲述的是旧社会里一名人力车夫的故事，他努力工作却总是穷困潦倒，活得像牛马一样。虽然是小说，但素材明显来自现实生活，这是老舍对旧社会的讽刺。如今一百年过去了，时代进步了，科技发展了，但新时代的祥子们真的比当年的骆驼祥子要幸福吗？</p>
+<p>小说里的祥子生活在民国二十年代的北京城，当时政治动荡，祥子是个农村人，十八岁来到城里，既没有父母，也没受过教育，只懂得出卖苦力，几乎是地狱难度的开局。然而根据书中描述，祥子一天最少能拉六角到七角钱的生意，好的时候一天能赚一到两个大洋。也就是说，祥子一个月大概能赚二十个大洋，这在当时的北京城底层苦力中属于中上水平。
+我们再看这些钱的购买力，一块大洋大约能买五十斤大米，能下馆子吃一顿涮肉，二百大洋足够娶个老婆，几百块大洋就能在北京买套正经院子。鲁迅当年在北京城买了间超大的三进四合院，才花了三千多大洋，放到今天，这属于最顶级的豪宅。祥子没有什么不良嗜好，除去每天的吃饭钱和车份子的钱，一年下来能剩好几十个大洋，两年时间攒了一百块大洋，买了辆自己的人力车。如果他能用自己的车拉客，那他攒钱的速度会更快。
+祥子住的大杂院虽然简陋，但也能满足基本需求。按他的收入情况，如果不生病，他几年内就可以在北京买间正经的房子。再看看今天的祥子们，开网约车看似不用风吹日晒，但长期开车对身体的摧残也十分严重，很多时候堵在路上，连上厕所的机会都没有。长期下来，大概率会患上各种慢性病，如腰椎间盘突出和前列腺炎。而跑外卖的工作则更加没有尊严，承担的交通风险更大，可以说是拿命在赚钱。然而无论怎么拼命，平台都会用算法把他们每天的收入控制在一个饿不死、吃不饱的数字。</p>
+<p>这个数字在一般城市大概就是每天一百多块，一线城市会高一些，但一线城市的生活成本也高，算下来也多不了多少。每天两百块钱，如果按照购买力换算，甚至还赶不上当年骆驼祥子的一块大洋。虽然现在的生活水平和医疗条件比过去好，没有了兵荒马乱，人均寿命大幅增加，但如今的个人生活压力却比过去更大。很多年轻人每月负债累累，不敢娶妻生子，更别说在北京买房子。骆驼祥子如果生活在今天，也未必会更幸福。
+社会如此内卷，生活压力如此之大，本应该引起大家的关注。然而很多人对此不以为然，有些人甚至认为内卷是好事，比如有人说从内卷中活下来的人属于经过千锤百炼，内卷可以倒逼生产力提升，让社会进步，这是中国崛起的必要过程。有人认为中国的外卖、打车、快递服务如此便宜快捷，其他国家没有这种服务。这种言论带有浓厚的社会达尔文主义色彩。
+然而，事实是内卷不仅不会让社会进步，甚至可能导致文明的倒退。例如，在骆驼祥子拉人力车的年代，世界上已经有了汽车，马车更是早已有之。中国在春秋战国时期就有马车，民国时期人们既有马车，还有汽车，但依然选择坐人力车出行，为何要用人类拉车呢？即便没有汽车，也可以用牛马不是吗？这是因为用骆驼祥子拉车比用牛马还便宜，马车需要买马、雇马夫，每天要喂草，要清理粪便，而祥子不需要，召之即来挥之即去，马车需要宽阔平整的道路，祥子对道路要求不高，刮风下雨都能跑。</p>
+<p>从环保的角度看，祥子把两碗豆腐脑转换成肌肉能量，最后跑一百里地，绝对的绿色环保。我们再看看同时期的美国是怎么做的。1903 年，美国汽车工程师亨利·福特创建了福特汽车公司，他的创业目的是要造一台人人都能买得起的汽车，这款车就是福特 T 型车。</p>
+<p>要知道，汽车最早发明时，价格非常昂贵，因为生产一台车需要大量时间和手工组装。为了改变这种状况，福特发明了流水线，经过优化的流水装配线可以在极短时间内生产一部福特 T 型车，大大节省了人力成本，提高了生产效率，使汽车售价从几千美元降到三百多美元。福特的目标不是打价格战，也没有压低工人工资或降低汽车质量，实际上，福特 T 型车非常可靠耐用，福特还给予工人高薪，每天工作八小时，赚六美元。对当时的工人来说，这相当可观。六美元约等于二十个大洋，福特工人一天薪水比祥子拉车一个月的收入还多。福特的工人只要工作两三个月就可以买得起一辆自己生产的汽车，这极大地刺激了内需，于是福特汽车大获成功。1908 至 1927 年间，福特共卖出超过一千五百万台 T 型车，当时全世界九成的汽车都是由福特公司生产的。</p>
+<p>这是实实在在的生产力提升，是人类文明的进步，依靠的是创新精神和劳工保障，而不是内卷。同一时期，北京和上海的街道上还跑着人力车，直到解放后人力车才被淘汰。而中国人能买得起私家车还是在改革开放以后，我们的内卷让劳动力过于便宜，于是我们一直用廉价人力代替牲畜和机器，这对文明来说是一种倒退。</p>
+<p>既然内卷不是好事，那如何才能走出内卷呢？有人说，中国人口太多，资源有限，内卷是必然现象，但我们的人口密度远低于韩国、印度、荷兰、日本、英国。亚洲最富饶的土地在中国，人多并不是障碍。也有人说，欧洲有工会制度和健全的法律，但工会并不是天上掉下来的，在工业革命时期，英国政府也曾视工会为非法组织并镇压取缔，问题是他们的工会如何存活下来的呢？</p>
+<p>还有人说，西方人以前也内卷，今天能不卷是靠他们祖上四处掠夺和殖民留下的家底，才能让今天的西方人肆意挥霍。我们中国要走出内卷，就必须在全球经济上称霸，用武力征服世界，吸全世界的血。我们不说打仗对普通底层人有没有好处，西方人祖上的家底是不是真的厚道能挥霍几百年不垮，这个结论最大的问题是把因果搞错了。</p>
+<p>同样的封建社会，小农经济也内卷，但人家卷出了大航海、工业革命、资产阶级革命、宗教改革和工会运动，而我们几千年只是反复喊着“子曰诗云”，这为什么呢？实际上，不是因为内卷产生了大航海和工业革命，而是文艺复兴等文化运动让欧洲人的思想解放，重新激发了他们的好奇心和创造力，不想再做牛马，所以才有了大航海和工业革命。殖民主义和帝国主义是大航海和工业革命的副产品，不是走出内卷的原因。</p>
+<p>中国内卷的重要原因之一是长期的小农社会禁锢了人们的思想。尽管我们的生产力已经赶上了西方国家，但在文化方面仍显落后。中国历史上缺乏文艺复兴、科学革命、启蒙运动和社会契约论等思想变革。许多人的思维仍停留在中世纪，带有明显的小农社会思维特征。这导致大量中国人思维僵化，没有解放思想，单纯追求生产力的发展。即便已是世界第二大经济体，内卷现象依旧存在。</p>
+<p>典型的小农思想首先是讲究吃苦耐劳，喜欢凭力气挣钱，认为靠力气吃饭最光荣。媒体也喜欢宣传劳动者的艰辛，仿佛苦难是一种美德。这种思想不仅仅是资本家的问题，例如，“跳槽”一词原意是牲口离开槽头去别的槽头吃食，但我们却用它来形容换工作。这种思维方式让人们只重视体力劳动，忽视了人类的最大优势——脑容量、好奇心和创造力。若只会拼体力，人类没有任何优势，人类文明也无法发展到今天。</p>
+<p>现代教育应该增强人的好奇心和创造力，而我们的教育却在驯化“猴子”成为“牛马”。举例来说，人力车这种工具从日本传到中国并在中国大范围流行，而在欧美国家从未流行过，因为他们认为这种工具侮辱人格，劳动力宝贵。在中国，人力车却遍布大街小巷。若无人愿意当“牛马”，人力车自然不会流行。</p>
+<p>第二种典型的小农思想是线性思维，如同农业周期：播种、收割、结婚、生子、工作、退休。一切按部就班，缺乏冒险精神。小农生活违反人类天性，农业革命虽带来进步，但也禁锢了许多人，使他们的思维僵化，并代代相传。现代社会并非线性，每个人的人生都有起伏，不是简单的四季循环。然而，中国父母往往从孩子出生起就规划好一生，忽视了人生的无限可能。</p>
+<p>第三种典型的小农思想是见不得别人好，认为一门生意就是一个大饼，别人多吃一口，自己就少吃一口。缺乏共赢思维，合作往往一团糟。许多中国商人喜欢打价格战，宁可不赚钱也要逼死同行，结果是商业环境越来越差，消费者长期受损。价格战导致质量下降，工人工资被压榨，形成恶性循环，内需不足。</p>
+<p>要走出内卷，关键在于解放思想。我们需要抛弃小农思维，允许文化自由发展，提高底层收入，激发人的创造力和好奇心，而不是埋头于体力工作。不要幻想时间能改变一切，若继续现状，未来将更加困难。随着人工智能的发展，适合人类的体力工作会越来越少。无人驾驶电动车会取代人力车，精英阶层用短视频等麻痹底层，让他们无法专注和独立思考。因此，未来并不乐观，如果不学会改变，将难以在未来生存。</p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:50:37Z</pubDate>
+<pubDate>2024-07-06T12:25:58Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 甜糖支持 ipv6 吗？</title>
+<link>https://www.v2ex.com/t/1055337</link>
+<guid>https://www.v2ex.com/t/1055337</guid>
+<content:encoded><![CDATA[
+
+<p>op 家里是浙江联通宽带，无公网 ipv4 ，有公网 ipv6 ，想跑 pcdn ，有推荐不？上传大约 50mbps</p>
+<p>甜糖支持 ipv6 吗？</p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:44:25Z</pubDate>
+<pubDate>2024-07-06T11:44:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 百元级别有没有推荐的三模 87 键键盘？</title>
+<link>https://www.v2ex.com/t/1055336</link>
+<guid>https://www.v2ex.com/t/1055336</guid>
+<content:encoded><![CDATA[
+
+如题，能用就行，不打游戏，静音，求推荐，机械不机械无所谓。
+]]></content:encoded>
+<pubDate>2024-07-06T11:33:24Z</pubDate>
+<pubDate>2024-07-06T12:30:15Z</pubDate>
+</item>
+<item>
+<title>[V2EX] @Livid CodeLauncher 对于 Java 项目有何作用？</title>
+<link>https://www.v2ex.com/t/1055335</link>
+<guid>https://www.v2ex.com/t/1055335</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-07-06T11:32:14Z</pubDate>
+<pubDate>2024-07-05T19:31:14Z</pubDate>
+</item>
+<item>
+<title>[问与答] gmail 企业邮箱怎么撸？</title>
+<link>https://www.v2ex.com/t/1055333</link>
+<guid>https://www.v2ex.com/t/1055333</guid>
+<content:encoded><![CDATA[
+
+<p>有谁会注册这种企业邮箱么？自己刚注册了 Google Workspace ，要 14 刀一个月还只有一个账号，想用来注册玩玩 ai ，现在买号的话全被关权限了，有解决方法吗？
+<a href="https://img.picui.cn/free/2024/07/06/6689266650779.png" rel="nofollow">link text</a></p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:17:20Z</pubDate>
+<pubDate>2024-07-06T11:15:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何正确的选择一台适合自己的服务器</title>
+<link>https://www.v2ex.com/t/1055332</link>
+<guid>https://www.v2ex.com/t/1055332</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-07-06T11:11:34Z</pubDate>
+<pubDate>2024-07-06T11:10:34Z</pubDate>
+</item>
+<item>
+<title>[问与答] 订阅了 Netflix，但只能看少部分电影， IMDb 上的热门电影基本上都看不了，请问大佬们有没有什么平台可以观看热门电影呢？</title>
+<link>https://www.v2ex.com/t/1055331</link>
+<guid>https://www.v2ex.com/t/1055331</guid>
+<content:encoded><![CDATA[
+
+我 Google 搜了下电影名，好像只能买下某部电影，才能看这部电影。<br /><br />我想要那种订阅平台网站，这样就不需要一部一部买。请问大佬们有没有什么平台可以观看热门电影呢？
+]]></content:encoded>
+<pubDate>2024-07-06T11:09:15Z</pubDate>
+<pubDate>2024-07-06T12:30:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 硬件软件都满足，奈飞无法开启 4K 画质</title>
+<link>https://www.v2ex.com/t/1055330</link>
+<guid>https://www.v2ex.com/t/1055330</guid>
+<content:encoded><![CDATA[
+
+<p>情况说明
+使用的是笔记本（联想小新 14pro 2021 款）+显示器为红米 4k
+已安装 HEVC 插件，免费付费的都安装了
+但是最高画质只有 1080p</p>
+<p>奈飞订阅的套餐是最高级，网速也能达到要求
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6689256bd9c307b7e9304654.png" />
+使用 BD &amp; 3D Advisor 检测，显示支持 HDCP2.2
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/6689253cd9c307b7e92fee00.png" />
+EDGE 显示
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/66892622d9c307b7e9316e73.png" />
+请大神们帮检查检查，看看问题究竟处在哪？</p>
+]]></content:encoded>
+<pubDate>2024-07-06T11:02:26Z</pubDate>
+<pubDate>2024-07-06T11:11:44Z</pubDate>
+</item>
+<item>
+<title>[前端开发] expo 是好用，但是在 expo app 里运行和独立打包 app 很多细节表现不一致</title>
+<link>https://www.v2ex.com/t/1055329</link>
+<guid>https://www.v2ex.com/t/1055329</guid>
+<content:encoded><![CDATA[
+
+react native 开发的 demo app ，在 expo go app 中运行正常，无论是 ios simulator 还是 iphone 真机.<br />但是无论是本地 xcode 打包还是通过 eas 打包后安装到打开开发者模式的真机上，部分功能不正常：如某些 css 不生效，部分网络请求无法发起，也不报错，点击图片放大屏幕卡死等，准确的说是 expo 中怎么都正常，独立打包 app 有些功能无法使用，应该如何排查问题？<br /><br />css 如下<br />const styles = StyleSheet.create({<br />  avatar: {<br />    width: 48,   // 12 * 4 (base size in Tailwind CSS is 4)<br />    height: 48,  // 12 * 4 (base size in Tailwind CSS is 4)<br />    borderRadius: 24,  // 50% of width/height to make it fully rounded<br />  },<br />});<br />应该是圆形，但是打包后显示是正方形
+]]></content:encoded>
+<pubDate>2024-07-06T10:58:41Z</pubDate>
+<pubDate>2024-07-06T10:55:41Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 12000 的 M3 Pro 真香</title>
+<link>https://www.v2ex.com/t/1055328</link>
+<guid>https://www.v2ex.com/t/1055328</guid>
+<content:encoded><![CDATA[
+
+<p>前阵子人在美国某免税州，看到 amazon $1699 拿下（+4%信用卡返现），回国没查，没阉割的同时还带全球保修，太香了。</p>
+]]></content:encoded>
+<pubDate>2024-07-06T10:41:50Z</pubDate>
+<pubDate>2024-07-06T12:02:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] hyper-v、pve、esxi、 Linux 安装 kvm 哪个才是稳定性的王者</title>
+<link>https://www.v2ex.com/t/1055327</link>
+<guid>https://www.v2ex.com/t/1055327</guid>
+<content:encoded><![CDATA[
+
+<p>经过的我的简单测试，hyper-v 稳定性最好，但是需要启动 win11 图形界面需要消耗一点额外的性能</p>
+]]></content:encoded>
+<pubDate>2024-07-06T10:38:26Z</pubDate>
+<pubDate>2024-07-06T12:26:46Z</pubDate>
+</item>
+<item>
+<title>[商业模式] 整理了 程序员 独立开发者 产品出海积累 1000 新用户的宣传渠道/平台大全</title>
+<link>https://www.v2ex.com/t/1055326</link>
+<guid>https://www.v2ex.com/t/1055326</guid>
+<content:encoded><![CDATA[
+
+如果你是软件独立开发者，同时准备放弃内卷的中国市场，尝试拓展全球海外市场。那么一个好的 idea 固然很重要，但是如果你去咨询出海的前辈，他们一定会告诉你，最最重要是宣传，当你开发了一款产品之后，真正重要的是将产品展现在用户面前，让用户快速的了解你开发了一款什么样的产品，解决了什么样的问题。<br /><br />收藏此文，每天来这里找 2-3 个平台宣传你的产品，坚持宣传一个月，你的用户量比如增长！<br /><br />在宣传之前，一定要准备一份完整的宣传文案，包括图片、文字、视频等。然后在宣传中不断的去调整和完善这份宣传文案。<br /><br />新产品发布获得第一批 1000 个新用户非常重要，这不只代表着你的产品是否有用户市场需求。首批新用户也将成为产品问题反馈，让你能够从真实的用户需求中获得产品迭代改进的灵感来源。<br /><br />在开始一款新产品，请不要想着将产品的功能做全，而是要先实现核心功能，然后通过用户测试反馈，然后在进行产品迭代。而不是一开始就不断的开发功能，这样很容易陷入叠功能的现象。最终发布后会发现很多功能其实并不符合用户的实际需求场景。<br /><br />独立开发者开发逻辑：发现需求–&gt;开发简单实用的核心功能–&gt;找到对应的用户群体让他们使用–&gt;获得反馈进行产品快速迭代。这是一个正向顺利的过程，如果在整个流程中遇到问题，那么你可能就需要及时止损。<br /><br />这里整理了 300 多个产品宣传渠道，只要先制作好宣传文案，然后进行逐个分发宣传。同时积极这些平台中用户反馈的问题，那么一定能帮助你的产品在最短的时间内获得 1000 个核心用户。<br /><br /><a href="https://topstip.com/list-of-new-product-promotion-platforms/" rel="nofollow noopener" target="_blank">https://topstip.com/list-of-new-product-promotion-platforms/</a>
+]]></content:encoded>
+<pubDate>2024-07-06T10:37:04Z</pubDate>
+<pubDate>2024-07-06T10:35:04Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 写了一个纠正英语口语发音的脚本分享</title>
 <link>https://www.v2ex.com/t/1055324</link>
 <guid>https://www.v2ex.com/t/1055324</guid>
 <content:encoded><![CDATA[
-
 周末简单实现了一个脚本，地址在： <a href="https://github.com/YoiteShao/RecordingCorrection" rel="nofollow noopener" target="_blank">https://github.com/YoiteShao/RecordingCorrection</a><br />原帖： <a href="https://www.v2ex.com/t/1054965" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1054965</a><br /><br />使用到的库是：<br />ffmpeg,<br />whisper(OpenAI)<br />torch<br /><br />实现的功能如下：<br />1.剪切标准音频<br />2.录音你的朗读<br />3.比较标准音频和你朗读音频的区别，并且标注哪些地方你读错了。<br /><br />例如：<br />”Mary, I hope [you're -&gt; you/are] packed and ready to leave. [Yes,/I'm -&gt; Years/are] packed, but not quite ready. I can't find my passport. [Your -&gt; ]    -<br /> [ -&gt; You] passport? That's the one thing you [mustn't -&gt; must/not] leave behind. I know. I haven't lost it. I've packed [it,/but -&gt; it./But] I [can't -&gt; cannot] remember [which/bag. -&gt; what/it/is.]“<br /><br />中括号里的即为你念错的地方。<br /><br /><br />我的使用方法：<br />因为我日常都是去找四六级的听力去练习朗读，因此我下载了全套的历年四六级听力。（也因此需要剪切，每次用 ffmpeg 命令行也挺麻烦的）。<br />1.该脚本会先针对你剪好的标准音频进行语音识别，得到文本打印下来。<br />2.然后你只需要对着这个文本朗读即可。<br />3.最后分析出你哪些地方读错了，哪些地方读的是正确的。<br /><br />我的初衷是想做完整朗读中每个单词提供发音百分比置信度的功能，但是当我做到一半的时候，开始写什么 MFCC 音频提取、DTW 算法匹配的时候，才意识到我其实是把简单问题复杂化了。<br /><br />日常生活中，大部分人都是不敢说，以及熟悉的单词不会念，能开口实际上就赢了大半，不至于说要每个单词都非常标准发音，这样反而会很奇怪。于是我觉得只要能大声朗读出能让机器识别出来的句子，就能够实现我的目标。至于需要聚焦到更细节的每个单词的严苛发音，我觉得随便一个背单词的 app 就能做到。<br /><br />我之前用 chatGPT 对话练习过，但是后面发现很多时候我并不是缺乏对话，而是缺乏开口念英语的连贯性、自然性。我单词都念错了，AI 还能跟我继续唠嗑。读书的时候英语早读课过于注重单个单词的记忆而忽略了完整文章的朗读。如果仅仅是需要找个对话练习，用 chatGPT 就够了。我个人认为这个脚本解决的痛点也是在于：连贯对话的口语纠错。<br /><br /><br />本脚本也是为了抛砖引玉，肯定有体验更好的方案，希望有大佬如果有兴趣可以开发出来让我使用使用，我这个确实有点简陋。
 ]]></content:encoded>
-<pubDate>2024-07-06T10:07:47Z</pubDate>
 <pubDate>2024-07-06T10:04:47Z</pubDate>
 </item>
 <item>
@@ -20,10 +247,8 @@
 <link>https://www.v2ex.com/t/1055323</link>
 <guid>https://www.v2ex.com/t/1055323</guid>
 <content:encoded><![CDATA[
-
 设备是 Mac 和 iPhone
 ]]></content:encoded>
-<pubDate>2024-07-06T10:06:21Z</pubDate>
 <pubDate>2024-07-06T10:03:21Z</pubDate>
 </item>
 <item>
@@ -31,10 +256,8 @@
 <link>https://www.v2ex.com/t/1055322</link>
 <guid>https://www.v2ex.com/t/1055322</guid>
 <content:encoded><![CDATA[
-
 🤗TabAssist——标签页自动管理插件<br /><br />适合日常会打开一大堆标签页但又懒得整理直到爆内存的人<br /><br />主要功能：<br />1. 自动把同域名的标签页分组。<br />2. 自动限制标签页数量，超出数量关闭最先访问的标签页。<br /><br />👉地址: <a href="https://tabassist.pages.dev" rel="nofollow noopener" target="_blank">https://tabassist.pages.dev</a>
 ]]></content:encoded>
-<pubDate>2024-07-06T10:02:12Z</pubDate>
 <pubDate>2024-07-06T10:02:12Z</pubDate>
 </item>
 <item>
@@ -42,10 +265,8 @@
 <link>https://www.v2ex.com/t/1055321</link>
 <guid>https://www.v2ex.com/t/1055321</guid>
 <content:encoded><![CDATA[
-
 mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不到，抓不到的说是 app 内部设置了不走系统代理，那么通过 vpn 之类的软件把 vpn 代理到 charles 的代理地址是否可行，用 shadowrock 不行，选 http 连不上，配置改来改去怎么都连不到 charles 的代理上。<br />另一种方法是 mac 开热点给手机，手机全走 mac 这样就能抓到了，但是 mac 似乎不能连着 wifi 共享 wifi ，只能连着网线通过 wifi 共享出去？也就是 wifi 模块不能同时发送和接收，求大神解惑
 ]]></content:encoded>
-<pubDate>2024-07-06T09:59:14Z</pubDate>
 <pubDate>2024-07-06T09:56:14Z</pubDate>
 </item>
 <item>
@@ -53,10 +274,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055318</link>
 <guid>https://www.v2ex.com/t/1055318</guid>
 <content:encoded><![CDATA[
-
 <p>请教下各位大佬，如何捕获页面的所有请求（页面最开始就监听），并且在页面响应完成后再修改页面的内容？而且可以在之后的异步请求发出后依然可以捕获和感知？</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T09:37:15Z</pubDate>
 <pubDate>2024-07-06T01:37:15Z</pubDate>
 </item>
 <item>
@@ -64,10 +283,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055317</link>
 <guid>https://www.v2ex.com/t/1055317</guid>
 <content:encoded><![CDATA[
-
 有想法线下多认识一些有趣的灵魂、玩耍的搭子、创业的伙伴。有兴趣的请加我微信拉群讨论。+V：d3hfdXNlcl8xMTQyMDk3MzEwODUK （ BASE64 ）<br /><br />时间：7 月 7 日下午， 地点： 三环、绕城附近交通/地铁方便的场子。
 ]]></content:encoded>
-<pubDate>2024-07-06T09:30:29Z</pubDate>
 <pubDate>2024-07-06T09:29:29Z</pubDate>
 </item>
 <item>
@@ -75,10 +292,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055316</link>
 <guid>https://www.v2ex.com/t/1055316</guid>
 <content:encoded><![CDATA[
-
 <p>使用 rss 的人群最期望有什么功能呢？</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T09:16:28Z</pubDate>
 <pubDate>2024-07-06T10:18:30Z</pubDate>
 </item>
 <item>
@@ -86,10 +301,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055315</link>
 <guid>https://www.v2ex.com/t/1055315</guid>
 <content:encoded><![CDATA[
-
 <p>transmisstion 7*24 小时在线，上传带宽 50Mbps, 求一个下载 4k 影视和美剧的 PT 站邀请</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T09:14:26Z</pubDate>
 <pubDate>2024-07-06T09:14:26Z</pubDate>
 </item>
 <item>
@@ -97,10 +310,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055314</link>
 <guid>https://www.v2ex.com/t/1055314</guid>
 <content:encoded><![CDATA[
-
 司马 cook 教你用电脑。一个一两万的笔记本电脑，连个 USB-A 口都没有，接个鼠标应该也是很多人的普遍需求吧。现在好了，得挂个转接器。这几天鼠标一直飘忽不定，不知道是不是转接器烫手的原因。话说 type-c 都普及这么久了，为啥大牌的鼠标产家没一直有 type-c 接口的，如果说是开模的费用，这个模又不是一次性的，不应该是早开模早受益吗? 我在京东找了一圈，只发现有几个不知名品牌有 type-c 接口的鼠标
 ]]></content:encoded>
-<pubDate>2024-07-06T09:07:35Z</pubDate>
 <pubDate>2024-07-06T10:14:23Z</pubDate>
 </item>
 <item>
@@ -108,10 +319,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055313</link>
 <guid>https://www.v2ex.com/t/1055313</guid>
 <content:encoded><![CDATA[
-
 小设备容量满了，需要共享车，<br />+V：d3hfdXNlcl8xMTQyMDk3MzEwODUK
 ]]></content:encoded>
-<pubDate>2024-07-06T08:58:53Z</pubDate>
 <pubDate>2024-07-06T08:57:53Z</pubDate>
 </item>
 <item>
@@ -119,10 +328,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055312</link>
 <guid>https://www.v2ex.com/t/1055312</guid>
 <content:encoded><![CDATA[
-
 <p>我尝试用 c3 给顽皮龙 D12 重新做了一个控制板，其中电机和舵机占了 3 个 pwm 通道。还要 4 个 pwm 输出来控制 LED 灯，但是硬件资源就 6 个。精度要求不高想能不能用软件来模拟输出。听说能用定时器来做，但是苦于没找到资料。问问各位老哥该咋整。</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T08:58:31Z</pubDate>
 <pubDate>2024-07-06T09:24:23Z</pubDate>
 </item>
 <item>
@@ -130,11 +337,9 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055311</link>
 <guid>https://www.v2ex.com/t/1055311</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://photos.app.goo.gl/uASdsv8yrR45nAgk7" rel="nofollow">https://photos.app.goo.gl/uASdsv8yrR45nAgk7</a>
 。。。我快郁闷了 pixel7pro 这样自己旋转 pixel8pro 也一样自己旋转 它根本不受旋转关闭开关影响。。。。。我不知道是不是跟我解锁刷面具有关还是怎样...有人会处理这个 bug 吗？我快烦死了都</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T08:57:27Z</pubDate>
 <pubDate>2024-07-06T08:55:27Z</pubDate>
 </item>
 <item>
@@ -142,13 +347,11 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055310</link>
 <guid>https://www.v2ex.com/t/1055310</guid>
 <content:encoded><![CDATA[
-
 <p>如标题所述。</p>
 <p>如果你有一个中国特色问题，例如微信小程序，那么在中文环境下，屏蔽了 csdn ，你就丧失了一半搜索结果，而且 csdn 上也有很多有价值的内容。屏蔽它对你有什么好处呢？</p>
 <p>如果你想要高质量的技术问题搜索结果，那么你就应该 english in english out ，这种时候自然就不会有 csdn 了。而<strong>不应该用中文搜索，还企图得到优质结果</strong>。</p>
 <p>我已经见到了无数个什么屏蔽 csdn 的扩展，userjs ，广告屏蔽规则。我想说，别折腾了。你方向错了。这不是你想要的。你写的这些用来屏蔽 csdn 的东西，本质上和 csdn 本身没有区别，都是 shit 。</p>
 ]]></content:encoded>
-<pubDate>2024-07-06T08:57:15Z</pubDate>
 <pubDate>2024-07-06T09:42:24Z</pubDate>
 </item>
 <item>
@@ -156,10 +359,8 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1055309</link>
 <guid>https://www.v2ex.com/t/1055309</guid>
 <content:encoded><![CDATA[
-
 家里两台电脑，一台 win10 台式主机，一台 Mac mini ，同样都是非会员账号，Chrome 浏览器，adblock plus 插件，翻墙软件也都是 clash ，甚至流量节点也都是一样的。<br /><br />Mac 上这两天在油管上几乎就看不了视频了，只要开着 abp 插件所有视频都会被拦截，无论刷新多少次都不管用。<br /><br />但是 win10 主机就丝毫不受影响，所有视频的广告都可以被顺利跳过，完全没有任何异常。看了下站里最近的帖子，谷歌应该是加大了对广告拦截插件的反制力度，但是我这台 win10 主机一直不受影响。<br /><br />两台电脑近一年来都没有做过大的变动，两者在油管上的差异也说不出是什么原因。
 ]]></content:encoded>
-<pubDate>2024-07-06T08:34:27Z</pubDate>
 <pubDate>2024-07-06T05:34:27Z</pubDate>
 </item>
 <item>
@@ -167,7 +368,6 @@ mac 和 iphone 都安装了证书，有些 app 的请求能抓到，有些抓不
 <link>https://www.v2ex.com/t/1054101</link>
 <guid>https://www.v2ex.com/t/1054101</guid>
 <content:encoded><![CDATA[
-
 <h2>公司简介</h2>
 <p>ELESTYLE 株式会社，成立于 2014 年，是一家位于日本东京秋叶原的互联网创业公司。主营业务是聚合支付平台和企业 DX 化 SaaS 平台。</p>
 <p><img alt="办公室环境 1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZTNxozC.jpeg" /></p>
@@ -766,10 +966,8 @@ CEO</p>
 </ul>
 <p>感谢看到最后。我们在东京等你加入！</p>
 ]]></content:encoded>
-<pubDate>2024-07-01T16:59:40Z</pubDate>
 <pubDate>2024-07-04T09:52:05Z</pubDate>
 </item>
-
 <item>
 <title>[宽带症候群] 光猫已经改成桥接了，还需要开 telnet 修改连接数啥的吗？</title>
 <link>https://www.v2ex.com/t/1055308</link>
@@ -15918,157 +16116,6 @@ FaceLandmark mouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM);
 1 、失业后人最容易被割。<br />2 、失业的人，为了生存，苦苦挣扎。
 ]]></content:encoded>
 <pubDate>2024-07-01T10:08:20Z</pubDate>
-</item>
-<item>
-<title>[NAS] 最近想折腾一台 nas，是选择成品还是自己组装？</title>
-<link>https://www.v2ex.com/t/1054140</link>
-<guid>https://www.v2ex.com/t/1054140</guid>
-<content:encoded><![CDATA[
-<p>目前昨天申请了公网 ip</p>
-<p>我的需求就是存存想看的有声读物，电影动漫之类的，也想跑一跑好玩的 docker</p>
-<p>预算 2000 左右（不含盘）</p>
-<p>v2er 给点建议</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:35:27Z</pubDate>
-</item>
-<item>
-<title>[Vue.js] vue 官方认证考试马上要出翻译功能了</title>
-<link>https://www.v2ex.com/t/1054139</link>
-<guid>https://www.v2ex.com/t/1054139</guid>
-<content:encoded><![CDATA[
-<p>已经购买了的小伙伴，近期会投票优先推出什么语种。到时候记得投中文一票啊</p>
-<p>以下是工作人员的回复</p>
-<p>“You're welcome. Regarding the use of the translator during the exam, this will not be possible at this time. However, we have decided to gradually add native support for various languages at a later stage, but we will use our audience to help prioritize which languages come first. You can soon find a new FAQ on the website with a link to vote for the language you need.”</p>
-]]></content:encoded>
-<pubDate>2024-07-01T10:04:56Z</pubDate>
-</item>
-<item>
-<title>[程序员] 看仓颉编程语言文档，感觉是在看 Rust 中文手册</title>
-<link>https://www.v2ex.com/t/1054138</link>
-<guid>https://www.v2ex.com/t/1054138</guid>
-<content:encoded><![CDATA[
-<p>抄的这么彻底，这种东西只能在国内用用吧</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:35:36Z</pubDate>
-</item>
-<item>
-<title>[分享发现] SSH 的漏洞， CVE-2024-6387 有人关注吗？需要修复吗？</title>
-<link>https://www.v2ex.com/t/1054135</link>
-<guid>https://www.v2ex.com/t/1054135</guid>
-<content:encoded><![CDATA[
-到底要不要修？怎么修？<br />地址： <a href="https://github.com/zgimszhd61/cve-2024-6387-poc" rel="nofollow noopener" target="_blank">https://github.com/zgimszhd61/cve-2024-6387-poc</a>
-]]></content:encoded>
-<pubDate>2024-07-01T10:01:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] V 友们，借呗欠款越滚越多，有什么办法跳出这个死循环</title>
-<link>https://www.v2ex.com/t/1054134</link>
-<guid>https://www.v2ex.com/t/1054134</guid>
-<content:encoded><![CDATA[
-事情是这样的，我一个朋友几年前在借呗借了 4w+，加利息已经接近 5w 了，他之前是一直是找借呗借钱，然后又拿去还旧账，一直这样死循环，但是今天发现借呗不让借了，只能还，然后就 G 了，现在每个月要还 3-4000 ，确实还不起。<br /><br />说一下背景：<br />这 4w+是在结婚前借的，因为之前工资低，花销又多，之前就一直借，后面结婚了也就忘了这回事，当提醒要还款的时候，才反应过来，因为结了婚，又不想让他老婆知道这 4w+，他就一直借新钱还旧账<br /><br />现在他问我，我想了个办法，说申请信用卡然后套现，然后信用卡分期个 1-2 年，每个月的还款额即使加上利息肯定也达不到 3-4000 ，如果每个月只还几百一千的话，每个月自己扣点，也能挤一些钱来还<br /><br />但是让他看了下手上的信用卡，额度就 5000 ，他说那就多申请几张，我怕第一申请不下来，第二申请下来操作不当又滚起来了<br /><br />所以特来请教一下 V 友，还有没有什么办法能跳出这个循环，将每个月的还款额压一下还款时间延长一些。<br /><br />申请一下，确实是朋友，因为关系很好，本来我说我这边给他提供一点让他慢慢还我，但是我老婆肯定会知道，他就怕传到他老婆那去了，所以就想自己偷偷的每个月慢慢还
-]]></content:encoded>
-<pubDate>2024-07-01T12:50:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] deepin 版的 Linux 微信问题很多，弹框总是不显示界面，只有个框</title>
-<link>https://www.v2ex.com/t/1054133</link>
-<guid>https://www.v2ex.com/t/1054133</guid>
-<content:encoded><![CDATA[
-<p>比如进入微信的设置界面，只弹个透明的框出来，不显示界面，只有把微信聊天界面关了，这个设置界面才出来。这个问题大家是怎么解决的？</p>
-]]></content:encoded>
-<pubDate>2024-07-01T23:56:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 特发性震颤+普通高度近视是不是绝了以后进厂的路</title>
-<link>https://www.v2ex.com/t/1054131</link>
-<guid>https://www.v2ex.com/t/1054131</guid>
-<content:encoded><![CDATA[
-感觉不想学习的程序员就一青春饭。很怕以后失业了去扛麻袋，一个用力视网膜就爆了。进厂也干不了啥精细活
-]]></content:encoded>
-<pubDate>2024-06-30T01:49:46Z</pubDate>
-</item>
-<item>
-<title>[程序员] 开源浏览器插件「ETF 投资助手」</title>
-<link>https://www.v2ex.com/t/1054130</link>
-<guid>https://www.v2ex.com/t/1054130</guid>
-<content:encoded><![CDATA[
-<p>这个插件主要收集整理了 [ ETF 拯救世界] 发表的一些指数的关键点位。<br />
-他的投资策略我觉得还是比较适合普通人的。<br />
-插件也在 GitHub 开源。  </p>
-<p><a href="https://github.com/maxmeng93/hb-helper" rel="nofollow">GitHub</a></p>
-<p><a href="https://chromewebstore.google.com/detail/etf%E6%8A%95%E8%B5%84%E5%8A%A9%E6%89%8B/peeidnfboehmmandoghpbhgmadegikaf" rel="nofollow">Chrome 应用商店</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/maxmeng93/picee/master/etf/123.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:15:26Z</pubDate>
-</item>
-<item>
-<title>[武汉] [武汉汽车加油]有什么优惠政策么</title>
-<link>https://www.v2ex.com/t/1054129</link>
-<guid>https://www.v2ex.com/t/1054129</guid>
-<content:encoded><![CDATA[
-如题，
-]]></content:encoded>
-<pubDate>2024-07-02T01:45:21Z</pubDate>
-</item>
-<item>
-<title>[Linux] 大部分 Linux 发行版不使用滚动更新的原因是什么？</title>
-<link>https://www.v2ex.com/t/1054127</link>
-<guid>https://www.v2ex.com/t/1054127</guid>
-<content:encoded><![CDATA[
-<p>比如发布时内建的 openssh 是 v8.9 ，之后就只能保持 v8 而无法更新到 v9 。技术上存在不可克服的困难吗？</p>
-]]></content:encoded>
-<pubDate>2024-07-01T09:41:10Z</pubDate>
-</item>
-<item>
-<title>[程序员] 使用过 MacBook 蝴蝶键盘的美国用户即将获得赔付</title>
-<link>https://www.v2ex.com/t/1054126</link>
-<guid>https://www.v2ex.com/t/1054126</guid>
-<content:encoded><![CDATA[
-<p>英文地址： <a href="https://www.keyboardsettlement.com/" rel="nofollow">https://www.keyboardsettlement.com/</a></p>
-<p>UPDATE: The Court approved the Settlement on May 25, 2023, and the initial review of claims has been completed.  The Court issued a Payment Order on June 27, 2024. Payments will be issued for approved claims by August 2024.</p>
-<p>2024 年 6 月 27 日已签发了付款令，并将于 2024 年 8 月前为已批准的索赔付款。</p>
-<p>相关电子邮件已于 2022 年 12 月发送给有资格获得赔偿的 MacBook 用户。在购买 MacBook 四年内至少更换过两次顶盖的 MacBook 用户最多可获得 395 美元的赔偿，而更换过一次顶盖的用户最多可获得 125 美元的赔偿。更换过键帽的用户最多可获得 50 美元。</p>
-<p>受理截止到 2023 年 3 月 6 日，和解最终于 2023 年 5 月 25 日获得批准。至于为什么向客户付款的时间推迟了一年多，目前还没有任何消息。</p>
-]]></content:encoded>
-<pubDate>2024-07-02T02:14:35Z</pubDate>
-</item>
-<item>
-<title>[NAS] 群晖有没有办法让管理员看不到普通用户的内容</title>
-<link>https://www.v2ex.com/t/1054125</link>
-<guid>https://www.v2ex.com/t/1054125</guid>
-<content:encoded><![CDATA[
-<p>有没有什么加密方法，让管理员没法看见的。公司买了个群晖，我维护，但是有些文件我不想看，不想成为背锅侠，我该如何设置呢？</p>
-]]></content:encoded>
-<pubDate>2024-07-01T19:37:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位注重隐私的彦祖们，如果捡到一个手机号，用这个手机号来注册账号、网购等等，可以保护隐私吗？</title>
-<link>https://www.v2ex.com/t/1054124</link>
-<guid>https://www.v2ex.com/t/1054124</guid>
-<content:encoded><![CDATA[
-捡到一个号码可能不容易，那如果我和另一个人（可能是朋友、可能是亲戚）交换一个号码，双方各自拿着对方的手机号注册账号、网购、外卖等等行为呢？<br /><br />既然是交换号码，先假定对方不会拿去做违法犯罪的事，不讨论这个哈，只谈谈对隐私保护有没有作用，这样也约等于捡到一个号码了
-]]></content:encoded>
-<pubDate>2024-07-02T02:19:00Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教如何在国内服务器上接入 Google Oauth2</title>
-<link>https://www.v2ex.com/t/1054123</link>
-<guid>https://www.v2ex.com/t/1054123</guid>
-<content:encoded><![CDATA[
-<p>国内机房有台 100T 的储存服务器，因为钱的原因，暂时没能力在国外部署大容量储存的服务器</p>
-<p>可以考虑使用国外的 vps 来中转 google oauth2 端点</p>
-<p>有朋友做过类似的事情吗，怎么搞比较好</p>
-]]></content:encoded>
-<pubDate>2024-07-01T01:32:46Z</pubDate>
-</item>
-<item>
-<title>[智能家电] 家用摄像头是怎么泄露隐私的？</title>
-<link>https://www.v2ex.com/t/1054120</link>
-<guid>https://www.v2ex.com/t/1054120</guid>
-<content:encoded><![CDATA[
-家里买了萤石的摄像头，但总是不太敢用，经常小网站上看到家用泄密的，一般什么情况下可能泄密？我已经关闭了云盘，也做了视频加密，但是还是用 sd 卡做了备份，方便有事回查，安全了吗？
-]]></content:encoded>
-<pubDate>2024-07-02T02:33:44Z</pubDate>
 </item>
 </channel>
 </rss>
