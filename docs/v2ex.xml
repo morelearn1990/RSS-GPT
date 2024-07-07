@@ -5,17 +5,157 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 在电脑上看到好玩的梗图, 如何一键发送到微信/QQ?</title>
+<link>https://www.v2ex.com/t/1055498</link>
+<guid>https://www.v2ex.com/t/1055498</guid>
+<content:encoded><![CDATA[
+
+经常会有这样一种需求, 在电脑上看到好看的图片(png/gif), 想一键发送给微信/QQ 里的好基友.<br /><br />但是通过各种软件来中转实在是太复杂了.<br /><br />微信/QQ 里似乎能自动读到你相册里的最新一张保存的图片, 不知道是否可以实现我在电脑上一键发到手机的相册里, 然后微信/QQ 就自动读到并提示是否发送这张图片?<br /><br />是否有类似的浏览器插件或者工具呢? 求助各位大神.
+]]></content:encoded>
+<pubDate>2024-07-07T14:02:40Z</pubDate>
+<pubDate>2024-07-07T14:02:40Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] FreeBSD 的主副路由表（FIB, 多路由表）值得好好利用，指定应用走特定虚拟网卡十分方便</title>
+<link>https://www.v2ex.com/t/1055496</link>
+<guid>https://www.v2ex.com/t/1055496</guid>
+<content:encoded><![CDATA[
+
+<p>简单来说，就是选定的应用走特定的路由表，达到指定出口的效果，连防火墙规则都不用配置。简单到只需要几个字符的简短命令即可做到。</p>
+<p>比如，我可以在一台 FreeBSD 机器连接上 Cloudflare Warp ，连接时“改道”至副路由表（假设是<strong>1 号表</strong>）。连接完成后，WireGuard 会在副路由表中把默认路由指向 Cloudflare Warp 的 IP 。这样一来，其它程序都会不会受到影响，继续按照主路由表（即 0 号表）的规则通讯。</p>
+<p>如何使指定程序走 Cloudflare Warp 通道呢？我要 ping 命令走该通道，只需前面加一条 setfib 命令即可：</p>
+<pre><code>setfib 1 ping -c 10 8.8.8.8
+</code></pre>
+<p>就这么简单。现在 ping 程序就从 Cloudflare Warp 通道出去了。各种联网程序都可以这样做。</p>
+<p>对于开机自启的服务程序，也可以使它们走副路由表。只需要编辑 rc.conf ，给对应程序添加<code>_fib=1</code>后缀即可。就像这样：</p>
+<pre><code>somesocks_enable="YES"
+somesocks_fib=1
+</code></pre>
+<p>WireGuard 除外，需要编辑 wg*.conf 加一行 <code>Table = 1</code> 才可以。</p>
+<hr />
+<p>注意：<strong>需要先启用 FIB 。</strong></p>
+<p>默认情况下，FreeBSD 只会提供单个路由表，想要启用副路由表就必须自行启用。步骤很简单：</p>
+<p>打开 /boot/loader.conf ，加入一行：</p>
+<pre><code>net.fibs=2
+</code></pre>
+<p>重启系统。</p>
+<p>现在，0 号表就是默认路由表，我称之为主路由表。其它编号的就是副路由表。</p>
+<p>想要多少个路由表，数值就写多少。只要有需要，<code>net.fibs=100</code>都可以。</p>
+<hr />
+<p>我利用这个特点在 VPS 上连接了 Cloudflare Warp ，将*ray/ss 的流量改成走 Cloudflare Warp 通道，而自己的中转程序继续走默认路由表，达到入口 IP 和出口 IP 都不同的效果：<br />
+<a href="https://github.com/cnbatch/kcptube/wiki/%E5%88%A9%E7%94%A8FreeBSD%E4%B8%BB%E5%89%AF%E8%B7%AF%E7%94%B1%E8%A1%A8(FIB)%E5%9C%A8%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%BD%BF%E7%94%A8Cloudflare-Warp" rel="nofollow">利用 FreeBSD 主副路由表(FIB)在服务器使用 Cloudflare Warp</a></p>
+<p>在这个基础上可以延伸出更灵活的做法，比如同时连上多个 wireguard 隧道，多个 ss 分别走对应的通道，每个 ss 监听不同的端口，中转程序连接不同的端口即可实现动态切换出口位置。比起单路由表+策略路由，这样做的灵活度高了很多。</p>
+<p>PS: 中转程序不一定必须是我链接里的那个，也可以是其它转发程序</p>
+]]></content:encoded>
+<pubDate>2024-07-07T13:41:42Z</pubDate>
+<pubDate>2024-07-07T13:47:01Z</pubDate>
+</item>
+<item>
+<title>[Java] springboot 子模块启动无法访问子模块 webapp 目录下静态文件</title>
+<link>https://www.v2ex.com/t/1055495</link>
+<guid>https://www.v2ex.com/t/1055495</guid>
+<content:encoded><![CDATA[
+
+<p>springboot 子模块启动无法访问子模块 webapp 目录下静态文件。</p>
+<p>项目 A ，子模块 a ，子模块 a 下的 src/main/webapp 目录有 login.html 文件。
+启动子模块 java -cp 子模块 a com.xxxMain ，通过 localhost:8080/login.html 无法访问到提示 404 。这种可能是什么原因。</p>
+<p>如果 login.html 在单一层次的项目中，能正确访问到。只有作为子模块启动时无法访问呢。</p>
+]]></content:encoded>
+<pubDate>2024-07-07T13:27:58Z</pubDate>
+<pubDate>2024-07-07T13:27:58Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 请问 Openwrt 23.05 版本有没有支持双栈端口转发的软件</title>
+<link>https://www.v2ex.com/t/1055494</link>
+<guid>https://www.v2ex.com/t/1055494</guid>
+<content:encoded><![CDATA[
+
+<p>最近将 Openwrt 从 21.02 版本更换成了 23.05 版本，发现一个问题，原本使用的 Lucky 和 Socat 两款双栈端口转发的软件似乎并不支持 nftables 。
+具体表现为无法正常转发流量（无论是 IPv4 还是 IPv6 ），例如 ddns 域名为 <a href="http://a.com" rel="nofollow">a.com</a> ，在软件上设置转发公网的 2333 端口到内网服务器 2333 端口并开启 nat 环回，内网设备 tcping <a href="http://a.com" rel="nofollow">a.com</a> 2333 一切正常，但是公网设备则无回应，因此判断是软件不支持 nftables 防火墙，即流量能从内网到达网关，并通过 nat 环回进入转发工具，而公网流量则被防火墙拦截。
+而防火墙自带的转发一切正常，但由于防火墙自带的软件只能公网 IPv4 转发到内网 IPv4 ，公网 IPv6 转发至公网 IPv6 。回退后实测两款软件在使用 iptables （ istoreos 和 immortalwrt 21.02 ）的机器上表现一切正常。
+请问有没有什么方式能较为轻松地在网关上实现双栈公网转发的功能呢？在此先谢过各位</p>
+]]></content:encoded>
+<pubDate>2024-07-07T13:22:49Z</pubDate>
+<pubDate>2024-07-07T14:06:21Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如果没有了搜索引擎，我们该怎么寻找需要的信息？</title>
+<link>https://www.v2ex.com/t/1055493</link>
+<guid>https://www.v2ex.com/t/1055493</guid>
+<content:encoded><![CDATA[
+
+<p>因为搜索引擎的出现，我们只需要输入问题就可以搜到大量的结果，然后在这些结果中过滤出我们需要的信息就可以了。但是如果没有了搜索引擎，我们又该怎么找到自己需要的信息呢？</p>
+<p>假如网上某个人说：“今天蒙大纳的土豆价格很贵”。我们听到这句话后想要去找一下蒙大纳的土豆价格方面的信息，于是，问题来了：</p>
+<p>第一，“蒙大纳”是一个人名还是一个城市？我们怎么确定？</p>
+<p>第二，假如我们已经知道了“蒙大纳”是美国的蒙大纳州，对于不了解美国互联网的人，我们怎么知道蒙大纳州哪个机构在公布市场数据？</p>
+<p>第三，知道了机构名，怎么找到他们的官方网站？</p>
+<p>假如没有了搜索引擎，信息茧房会越来越明显吗？那些不会查找信息的人是不是永远只能在垃圾信息的海洋里翻垃圾？而高质量的信息只会在小圈子间流转？</p>
+]]></content:encoded>
+<pubDate>2024-07-07T12:54:53Z</pubDate>
+<pubDate>2024-07-07T13:36:20Z</pubDate>
+</item>
+<item>
+<title>[macOS] 你们的 M2 Air 最近发热吗？</title>
+<link>https://www.v2ex.com/t/1055492</link>
+<guid>https://www.v2ex.com/t/1055492</guid>
+<content:encoded><![CDATA[
+
+夏天在老家没空调，浏览器看一会儿视频或者直播，就烫手了，新版系统 beta 2 ，更这个测试版系统之前其实看视频也会烫，当时用的 edge 浏览器，这两天换 Arc 也一样，是不是夏天就是没空调压不住？ 没接外接显示器
+]]></content:encoded>
+<pubDate>2024-07-07T12:52:27Z</pubDate>
+<pubDate>2024-07-07T13:42:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么解压软件的 cpu 利用率很低？</title>
+<link>https://www.v2ex.com/t/1055491</link>
+<guid>https://www.v2ex.com/t/1055491</guid>
+<content:encoded><![CDATA[
+
+我用的是 7zip ，当解压缩文件时我打开任务管理器查看 CPU 的利用率才 2%，用什么方法能使解压缩和压缩文件时充分利用 CPU 的性能？
+]]></content:encoded>
+<pubDate>2024-07-07T12:51:44Z</pubDate>
+<pubDate>2024-07-07T14:15:59Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 一个可以帮助你学习外语的浏览器翻译插件!免费！请大家来试用下给我提建议！感谢！</title>
+<link>https://www.v2ex.com/t/1055490</link>
+<guid>https://www.v2ex.com/t/1055490</guid>
+<content:encoded><![CDATA[
+
+<p><strong>Neonlingo 适合谁</strong></p>
+<ol>
+<li>有学习外语的意愿 <br /></li>
+<li>有一定的外语基础 <br />
+<strong>功能</strong> <br /></li>
+<li>AI 翻译句子中陌生单词/短语的含义（还可查看该单词/短语的所有含义）<br /></li>
+<li>句子/段落 AI 翻译 <br /></li>
+<li>在浏览器中自动标记所有已翻译的单词（此功能可关闭），您还可以自定义标记的颜色。<br /></li>
+<li>只需单击一下即可取消对已标记词语的标记。<br />
+<strong>试用链接</strong><br />
+<a href="https://www.neonlingo.com" rel="nofollow">https://www.neonlingo.com</a><br />
+<br />
+<strong>这次俺更新了好多东西！</strong></li>
+<li>接入了 AI ！！！<br /></li>
+<li>加了单词本功能!<br /></li>
+<li>可以自定义标记的颜色了！<br />
+<strong>费用</strong><br /></li>
+<li>免费的免费的！欢迎试用我的工具，我希望听到用户的声音，我会认真对待，希望我可以做得更好！！！感谢大家！！</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-07-07T12:41:42Z</pubDate>
+<pubDate>2024-07-07T12:38:42Z</pubDate>
+</item>
+
+<item>
 <title>[生活] [记录]-2024-07-07 时隔两年的加勒比阳光</title>
 <link>https://www.v2ex.com/t/1055487</link>
 <guid>https://www.v2ex.com/t/1055487</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="ba93d5e45dca376702437fac832c507.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/07/07/ARuVzZhLC4myTEr.jpg" /></p>
 <p>这次有了茄帽 需要剪掉才能开始抽吸<br />
 我也是最近一年才开始入坑雪茄  </p>
 <p>这周三给同事帮忙搬木制床 是真几把重啊 说有 100 来斤 因为是老房子没有货梯 我俩搬到三楼就筋疲力尽 好在我身上带着折叠刀拆了后再弄上楼</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T12:08:47Z</pubDate>
 <pubDate>2024-07-07T12:07:47Z</pubDate>
 </item>
 <item>
@@ -23,10 +163,8 @@
 <link>https://www.v2ex.com/t/1055486</link>
 <guid>https://www.v2ex.com/t/1055486</guid>
 <content:encoded><![CDATA[
-
 🚀 本期我们深入探讨人工智能的最新突破、创新应用和行业动态。从模型进展到开发工具，从跨界应用到市场策略，我们为您精选了最具价值的内容，助您把握 AI 发展脉搏。<br /><br />🔥 AI 模型：突破性进展<br /><br />1. Google Gemini 1.5 Pro：200 万词元上下文窗口，代码执行能力<br />2.阿里 FunAudioLLM：开源语音大模型，提升自然语音交互体验<br />3.Meta Chameleon：混合模式 AI 模型，在某些任务中优于 GPT-4<br />4.Moshi：法国 kyutai 实验室开发的原生多模态 AI 模型，接近 GPT-4o 水平<br />5.字节跳动 Seed-TTS：高质量语音生成大模型，可模仿人类说话特征<br /><br />💡 AI 开发：工具、框架与 RAG 技术创新<br /><br />1.LangGraph v0.1 和 Cloud：为复杂 AI 代理系统开发铺平道路<br />2.GraphRAG：微软开源工具，用于复杂数据发现和知识图谱构建<br />3.Kimi 上下文缓存技术：显著降低长文本大模型使用成本和响应时间<br />4.Jina Reranker v2：针对代理 RAG 的神经重排器模型，支持多语言和代码搜索<br />5.蚂蚁金服 Graph RAG 框架：结合知识图谱技术提高问答质量<br /><br />🏢 AI 产品：跨界应用显身手<br /><br />1.腾讯元宝 AI 搜索升级：推出深度搜索模式，提供结构化、丰富的回答<br />2.ThinkAny：个人开发者艾逗笔开发的 AI 搜索引擎，利用 RAG 技术<br />3.Replika：AI 情感伴侣，通过记忆功能建立深厚的情感连接<br />4. AI 在手语翻译领域的应用：如 Signapse 、PopSign 等改善听障人士生活<br />5.Agent Cloud 与 Google Sheets 构建 RAG 聊天机器人：详细实施指南<br /><br />📊 AI 资讯：市场动态与未来展望<br /><br />1.比尔·盖茨访谈：AI 将在合成生物学和机器人技术等领域成为主导力量<br />2.腾讯汤道生谈 AI 战略：AI 不止于大模型，注重全面布局和产业应用<br />3.Gartner 研究：AIGC 在企业中实现价值的四大关键能力<br />4. AI 产品定价策略：探讨 SaaS 、交易撮合等九种商业模式及其关键指标<br />5.为什么这一波 AI 创业还值得干？探讨 AI 技术改变供给，创造新的市场机会<br /><br />本期内容涵盖 AI 前沿技术、创新应用和市场洞察，为开发者、产品经理和 AI 爱好者提供全面深入的行业视角。<br />我们特别关注了 RAG 技术的实践经验和最新进展，为您提供了宝贵的技术参考。无论您是技术专家还是商业决策者，这里都有助您把握 AI 发展方向的关键信息。让我们一起探索 AI 的无限可能，共创智能化未来！<br /><br />订阅地址： <a href="https://bestblogs.dev/#subscribe" rel="nofollow noopener" target="_blank">https://bestblogs.dev/#subscribe</a><br />在线阅读地址： <a href="https://bestblogs.dev/newsletter/issue10" rel="nofollow noopener" target="_blank">https://bestblogs.dev/newsletter/issue10</a>
 ]]></content:encoded>
-<pubDate>2024-07-07T12:07:02Z</pubDate>
 <pubDate>2024-07-07T12:04:02Z</pubDate>
 </item>
 <item>
@@ -34,7 +172,6 @@
 <link>https://www.v2ex.com/t/1055485</link>
 <guid>https://www.v2ex.com/t/1055485</guid>
 <content:encoded><![CDATA[
-
 <p>🎉 我的神秘项目揭开面纱</p>
 <p>#VirtuaLifes 新一代定制超级智能体平台</p>
 <p>创建并和智能体对话！</p>
@@ -44,7 +181,6 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GR4f0r6XIAAd9pi?format=jpg&amp;name=medium" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GR4f0r6W8AADpAJ?format=jpg&amp;name=medium" /></p>
 ]]></content:encoded>
-<pubDate>2024-07-07T12:00:39Z</pubDate>
 <pubDate>2024-07-07T11:58:39Z</pubDate>
 </item>
 <item>
@@ -52,10 +188,8 @@
 <link>https://www.v2ex.com/t/1055483</link>
 <guid>https://www.v2ex.com/t/1055483</guid>
 <content:encoded><![CDATA[
-
 <p>之前看到一些调侃，月薪 3000 用的着管控情绪吗。最近看了电影头脑特工队结合最近的经济环境有感，经济不好的时候尤其需要管控情绪，最近我们部门开始查考勤，写日报，项目快开始预谋加班，氛围越来越紧张，开我们到不至于，目前的项目够我们做一年。但是这种紧张氛围让人分分钟想跑路，所以我觉得这种情况需要管控情绪，分享给大家</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T11:43:58Z</pubDate>
 <pubDate>2024-07-07T12:31:15Z</pubDate>
 </item>
 <item>
@@ -63,10 +197,8 @@
 <link>https://www.v2ex.com/t/1055482</link>
 <guid>https://www.v2ex.com/t/1055482</guid>
 <content:encoded><![CDATA[
-
 发现一个不错的 RSS 阅读器 feeeed,界面美观，自动 AI 总结文章（只支持英文输出）<br /><br /><a href="https://apps.apple.com/us/app/feeeed-rss-reader-and-more/id1600187490" rel="nofollow noopener" target="_blank">https://apps.apple.com/us/app/feeeed-rss-reader-and-more/id1600187490</a><br /><br /><a href="https://i.imgur.com/EfejDsC.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/EfejDsC.jpeg" /></a><br /><br /><a href="https://i.imgur.com/TSaRG0v.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/TSaRG0v.png" /></a><br /><br /><a href="https://i.imgur.com/ThQht8S.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ThQht8S.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-07-07T11:42:36Z</pubDate>
 <pubDate>2024-07-07T12:23:32Z</pubDate>
 </item>
 <item>
@@ -74,10 +206,8 @@
 <link>https://www.v2ex.com/t/1055481</link>
 <guid>https://www.v2ex.com/t/1055481</guid>
 <content:encoded><![CDATA[
-
 举一个例子，就比如说，我在 chrome 浏览器打开了百度的网页，在我打开百度网页的同时，chrome 浏览器又会自动帮我打开一个谷歌的新标签页。<br />请问有没有大佬知道，怎么解决这个问题？
 ]]></content:encoded>
-<pubDate>2024-07-07T11:42:07Z</pubDate>
 <pubDate>2024-07-07T11:42:07Z</pubDate>
 </item>
 <item>
@@ -85,7 +215,6 @@
 <link>https://www.v2ex.com/t/1055480</link>
 <guid>https://www.v2ex.com/t/1055480</guid>
 <content:encoded><![CDATA[
-
 <p>公司有个成熟的前端桌面项目，有近 200 多个页面。JavaScript 写的。完全搭建在一套公司自己包装的框架上。</p>
 <p>现在开了个新项目。功能啥的基本和之前的类似。</p>
 <p>技术团队想将新项目换到 TypeScript 或 C#（公司框架支持这两种语言，API 什么的都几乎一样，但不支持多语言混用）。
@@ -99,7 +228,6 @@
 <p>目前技术团队在外网找到了一些 AI 转换工具。下周尝试转换少数界面来做评估。</p>
 <p>所以，这个转换有可能完成吗？</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T11:36:51Z</pubDate>
 <pubDate>2024-07-05T11:36:51Z</pubDate>
 </item>
 <item>
@@ -107,10 +235,8 @@
 <link>https://www.v2ex.com/t/1055478</link>
 <guid>https://www.v2ex.com/t/1055478</guid>
 <content:encoded><![CDATA[
-
 <p>之前用过  不是挺便宜的吗</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T11:22:46Z</pubDate>
 <pubDate>2024-07-07T12:33:55Z</pubDate>
 </item>
 <item>
@@ -118,10 +244,8 @@
 <link>https://www.v2ex.com/t/1055477</link>
 <guid>https://www.v2ex.com/t/1055477</guid>
 <content:encoded><![CDATA[
-
 相恋四年，异地两年，结婚半年，老婆出轨了
 ]]></content:encoded>
-<pubDate>2024-07-07T10:51:57Z</pubDate>
 <pubDate>2024-07-07T12:34:03Z</pubDate>
 </item>
 <item>
@@ -130,9 +254,7 @@
 <guid>https://www.v2ex.com/t/1055476</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-07-07T10:50:13Z</pubDate>
 <pubDate>2024-07-07T11:48:52Z</pubDate>
 </item>
 <item>
@@ -140,10 +262,8 @@
 <link>https://www.v2ex.com/t/1055474</link>
 <guid>https://www.v2ex.com/t/1055474</guid>
 <content:encoded><![CDATA[
-
 <p>这种现象有人遇到过吗？是怎么回事呢？</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T10:20:54Z</pubDate>
 <pubDate>2024-07-07T10:20:54Z</pubDate>
 </item>
 <item>
@@ -151,12 +271,10 @@
 <link>https://www.v2ex.com/t/1055473</link>
 <guid>https://www.v2ex.com/t/1055473</guid>
 <content:encoded><![CDATA[
-
 <p>尝鲜周末升级了一下 iOS 18.0 beta ，整体还行但是有一个致命问题，播放器不能正确显示中文的 ass 字幕，infuse ，plex 都试了一下，发现中文字幕都变成了方块。。。
 看 infuse 论坛也有反馈说 tvOS 也是这个情况，如果观影需求强的务必不要尝鲜，尤其是 AppleTV 升上去都没法自己降级
 <a href="https://community.firecore.com/t/some-subtitles-broken-tvos-18-beta/49576" rel="nofollow">https://community.firecore.com/t/some-subtitles-broken-tvos-18-beta/49576</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-07T10:19:08Z</pubDate>
 <pubDate>2024-07-07T10:19:08Z</pubDate>
 </item>
 <item>
@@ -164,7 +282,6 @@
 <link>https://www.v2ex.com/t/1054259</link>
 <guid>https://www.v2ex.com/t/1054259</guid>
 <content:encoded><![CDATA[
-
 <p>6 月份忙的项目昨天深夜终于审核通过上线了。</p>
 <p>这个 APP1.0 的版本是在 V2EX 上找高手开发的 <a href="https://v2ex.com/t/762239" rel="nofollow">https://v2ex.com/t/762239</a></p>
 <p>2.0 也在这里说明过  <a href="https://v2ex.com/t/944446" rel="nofollow">https://v2ex.com/t/944446</a></p>
@@ -185,10 +302,8 @@
 <p><img alt="4.0vs3.0" class="embedded_image" rel="noreferrer" src="https://imgur.com/3jDXH3n.gif" /></p>
 <p>完整的介绍视频请看 <a href="https://youtu.be/8wZ0djcOquY" rel="nofollow">https://youtu.be/8wZ0djcOquY</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-02T07:12:50Z</pubDate>
 <pubDate>2024-07-03T11:33:59Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] Linux 端有没有一款支持分流、可以查看连接信息且方便修改规则的代理工具</title>
 <link>https://www.v2ex.com/t/1055471</link>
@@ -16445,171 +16560,6 @@ mbp 2019 16 寸，天才吧检测说可能主板出问题，因为过保很久�
 <p>会导致我们手里的存款贬值吗？可以通过购买黄金来保护自己的存款吗？</p>
 ]]></content:encoded>
 <pubDate>2024-07-02T09:12:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] iPhone 15 PRO MAX 这电池是正常的吗？</title>
-<link>https://www.v2ex.com/t/1054286</link>
-<guid>https://www.v2ex.com/t/1054286</guid>
-<content:encoded><![CDATA[
-<p>我认为 IPhone 是有自己快充协议的，不必在意充电头的瓦数，手机会自己调节的，所以一直使用的是快充，充电速度和原装数据线比确实是挺快的，手机也会发烫</p>
-<p>今天无意点开电池健康度，看到使用不到一年的手机，健康度 98%，请问这是正常的吗？还是和我使用快充有关系？</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/N5RN0FP.png" /></p>
-]]></content:encoded>
-<pubDate>2024-07-02T09:02:11Z</pubDate>
-</item>
-<item>
-<title>[Mastodon] mastodon 我想实现：分享网址后，激活帐号</title>
-<link>https://www.v2ex.com/t/1054285</link>
-<guid>https://www.v2ex.com/t/1054285</guid>
-<content:encoded><![CDATA[
-<p>官方现在的是，邮箱激活
-能做的联系我 V,X   qiancsf</p>
-]]></content:encoded>
-<pubDate>2024-07-02T08:25:51Z</pubDate>
-</item>
-<item>
-<title>[装修] 这家装修公司咋样啊，最近准备装修：焱歌室内设计（上海）有限公司</title>
-<link>https://www.v2ex.com/t/1054284</link>
-<guid>https://www.v2ex.com/t/1054284</guid>
-<content:encoded><![CDATA[
-<p>之前在土巴兔上提交了装修的需求，然后有几家装修公司联系过来。谈完感觉这家"焱歌室内设计（上海）有限公司"还行，目前还没给我报价，想问问大家有人和他们合作过吗，这家咋样有没有啥坑</p>
-]]></content:encoded>
-<pubDate>2024-07-02T08:24:03Z</pubDate>
-</item>
-<item>
-<title>同志们，失业码农想开发一个 APP，解决一个痛点，请问你最想开发什么</title>
-<link>https://www.v2ex.com/t/1049288</link>
-<guid>https://www.v2ex.com/t/1049288</guid>
-<content:encoded><![CDATA[
-<p>同志们，失业码农想开发一个 APP ，解决一个痛点，请问你最想开发什么</p>
-]]></content:encoded>
-<pubDate>2024-07-01T08:51:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于在家里投屏欧洲杯却出现在 20 公里之外丈母娘家的这件诡异的事。</title>
-<link>https://www.v2ex.com/t/1054283</link>
-<guid>https://www.v2ex.com/t/1054283</guid>
-<content:encoded><![CDATA[
-<h3>背景：</h3>
-<ul>
-<li>我家用的是电信网络，有公网 IP ，电视是 Redmi 电视；</li>
-<li>丈母娘家用的是移动网络，没有公网 IP ，电视是小米电视，距离我家 20 公里之外，开车也要 1 个小时。</li>
-</ul>
-<h3>经过</h3>
-<p>大约半个月前，晚上 9 点多在家投屏准备看欧洲杯比赛，死活投不上，结果发现是<strong>投到了「客厅的小米电视」而不是「客厅的 Redmi 电视」上</strong>。当时的反应是，难道隔壁邻居家蹭我网了，怎么会多了一个小米电视，在路由器中也没有发现有小米电视的 mac 地址。</p>
-<p>周末去丈母娘家，看电视时猛然想起来，不会是投到这边电视上了吧，丈母娘肯定了我的疑惑，说的确有两次，看电视剧好好的，投了足球赛，当时丈母娘还把老丈人骂了一顿，结果发现不是他投的，然后也以为是隔壁家的蹭网。</p>
-<h3>疑惑</h3>
-<p>我至今也百思不得其姐，投屏难道不是需要在同一个局域网之内才可以的嘛？
-而现在我还可以看到丈母家的电视状态</p>
-<h3>感慨</h3>
-<p>还好我投的只是欧洲杯……</p>
-<hr />
-<h3>补充一些细节：</h3>
-<ul>
-<li>手机是 iPhone ，使用的投屏软件是咪咕视频，投屏时的提示也是「请将手机与电视/盒子连接同一个 Wi-Fi 」</li>
-<li>之前偶尔在岳父家使用过投屏功能，用 nPlayer 投过家里 Nas 上的电影；</li>
-<li>两台小米电视登录的是不同的账号，且都用的官方投屏并非第三方投屏软件；</li>
-<li>家里网络有无痛路由，岳父家没有。</li>
-</ul>
-<p>有没有人能帮我破这个案？</p>
-]]></content:encoded>
-<pubDate>2024-07-02T08:22:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有觉得，这几天的大 A 很讲政治😜</title>
-<link>https://www.v2ex.com/t/1054282</link>
-<guid>https://www.v2ex.com/t/1054282</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-07-02T08:22:28Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 删</title>
-<link>https://www.v2ex.com/t/1054281</link>
-<guid>https://www.v2ex.com/t/1054281</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-07-02T08:22:05Z</pubDate>
-</item>
-<item>
-<title>[成都] 前锋路地铁口 附近找合租室友</title>
-<link>https://www.v2ex.com/t/1054280</link>
-<guid>https://www.v2ex.com/t/1054280</guid>
-<content:encoded><![CDATA[
-<ol>
-<li>小区离地铁口 100 米左右，对面就是菜市场，附近有一个大超市。</li>
-<li>房租 800 、水电费平摊、现在入住可免半个月房租。</li>
-<li>有意可加 vx 备注(v2ex)：Y2QxNDE2MzU0OA==</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-07-02T08:17:10Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [日本 IT 会社直招]东京， PM/PL，项目经理， Java / PHP /SAP/PAD/AWS/ios 等开发，提供工签</title>
-<link>https://www.v2ex.com/t/1054279</link>
-<guid>https://www.v2ex.com/t/1054279</guid>
-<content:encoded><![CDATA[
-株式会社 GSD 自我介绍<br />GSDは2015 年に設立され、東京都文京区に所在します。ソフトウェア開発、ソフトウェア受託開発、インターネットサービスを主な業務とするハイテク企業で、主に金融分野（銀行、証券、保険）、コマース、インターネットを活用した各種アプリケーション開発を得意としています。物流などの分野で数多くの経験を積んだエンジニアチームが開発の最前線で活躍しています。同社は設立以来急速に発展し、その一流の開発技術と経営経験により、多くの日本企業と緊密な協力関係を築いてきました。そして、お客様からも満場一致で高い評価をいただいております。<br />当社は人間本位の経営理念を提唱し、人間を向上させ、人間を育て、人間を尊重し、職場で奉仕するという雇用原則を遵守し、相互信頼と一体感のある職場雰囲気の醸成に努めています。<br />私たちは現在、私たちに参加してくれる洞察力のある人材を求めています。GSD に参加して一緒に成長できるよう、寛大な待遇とスペースを提供します。<br /><br />官网： <a href="https://www.g-s-d.co.jp/" rel="nofollow noopener" target="_blank">https://www.g-s-d.co.jp/</a><br />大连支社集思迪公众号： <a href="https://mp.weixin.qq.com/s/WJZhqWRJLjUxKwerb6NNiw" rel="nofollow noopener" target="_blank">https://mp.weixin.qq.com/s/WJZhqWRJLjUxKwerb6NNiw</a><br />本社所在地：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801<br />（ GSD 还可协助社员在日租房等~）<br />------------------------------------------------------------------------------<br />GSD 优势<br /><br />与大手公司签直接口座，在很多项目有大量团队，案件稳定，待机风险低，而且有自社业务。<br />可申请高度人才最高加 20 分，三年拿永驻，实现 0 首付在日购房 经营状态和诚信度好。不内卷，可以实现生活和工作平衡。<br />企业文化好，老板技术出身懂技术，珍视人才培训：有社内关于日语和技术的培训，给予社员免费的学习资源 <br />住宿安排：可以在线选房，公司协助租房子，房租自理 <br />休假安排：周末双休，日本法定节假日放假，其他按公司要求休假 <br />保险：健康保险、厚生年金、雇佣保险各种保险社会福利完备 <br />福利：全额交通费报销+加班费+每年至少涨薪一次+保险+社员旅行+高度人才加分（最高可 加 20 分）+中国传统节假日礼品<br />--------------------------------------------------------------------------------<br />GSD 社员福利：<br />1.社员体检。<br />2.社员旅行。<br />3.忘年会。<br />4.安心财团 WELBOX 。<br />5.祝日礼品。（端午、中秋、春节、元旦）<br />补充福利：（正社员才有）<br />1.社员入社 1 年后可以享受公司假期一年 10 天，每年+1 天，最多 15 天。<br />2.鼓励考证，考下来后公司给报销考试费用。<br />3.公司额外还有灾害保险<br />学习资源：<br />免费的日语课、AWS 技术培训课<br />----------------------------------------------------------------------------------<br />IT 人材募集岗位及要求：<br />PG：口语 N2-N1 ，不会写详细设计，只会编码和测试。<br />有 1-5 年工作经验，java 、C 、.net 、sap 、前端开发、PMO 、移动端技术等等。<br /><br />SE：口语 N2-N1 ，可以写详细设计、基本设计。<br />代码和测试，有 3-10 年工作经验，java 、C 、.net 、sap 、前端开发、PMO 、移动端技术等等。<br /><br />PL/PM/课长/部长：口语 N1-N1++, 可以做上流设计，调查分析，要件定义，基本设计，人员单价管理，项目预算，控制成本等等，有技术背景最好，没有技术背景也可以。<br /><br />年収 300-1000 万円不等，具体薪资由面试结果而定。<br />----------------------------------------------------------------------------------<br />赴日流程：<br />面试：内部线上 zoom 视频面试可定，下发 offer 契约书。<br />办理签证: 提供相关材料，国内技术者（日本公司给办理签证) <br />日本技术者（本人办理，日本公司协助）, 下发在留卡：时间 7-8 周 。<br />工作：飞日本前 1 个月内安排客户面试。<br />房屋：公司协助找房源，提供相关资质材料。垫付 2 个月房租（从第一个月工资扣除）<br />机票：自行承担费用。<br />接机：公司安排专车接松，从机场送到提前租好的房子楼下。<br />日常相关：流量卡，银行卡，水电网煤气，保险等，公司会提供相关指导和帮助。<br />----------------------------------------------------------------------------------<br />応募方法<br />投递简历至 base64 码：YmVpYmVpNjc4MjAyM0AxNjMuY29t<br />（岗位对应 HR 担当均在线，可回复）岗位详情请投递简历咨询哈！<br />----------------------------------------------------------------------------------<br />注意！！！！！！！<br /><br />以上所有岗位均有日语要求，请慎投简历，不然会简历筛选 HR 会直接过滤掉的哦！~<br /><br />其次，由于日本薪资与国内一线城市薪资有相对差距，不能接受的也请慎投哈！！<br />毕竟如果您在国内有高薪的机会也不建议您来日本工作哈。<br />但如果您在几线城市赚着几千块的薪水，建议您来日本试试，生活的会很舒服。<br />（内卷程度、竞争压力、教育、假期、医疗等各方面对比）<br />毕竟日本有很多假期“红日子”！在工作之余，周末假期出去散散步，逛逛街也挺舒服的~！
-]]></content:encoded>
-<pubDate>2024-07-02T08:17:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 回顾历史， 2020 年的 V 友是怎么看待买房的</title>
-<link>https://www.v2ex.com/t/1054278</link>
-<guid>https://www.v2ex.com/t/1054278</guid>
-<content:encoded><![CDATA[
-<p>回顾历史，看看 2020-2021v 友的买房讨论。</p>
-<p>先说我粗略观察的结论：</p>
-<ol>
-<li>超过 1 半的人支持买房: 刚需必买、买了就是投资</li>
-<li>也有少部分牛逼的网友预测到了之后的房价会大跌</li>
-</ol>
-<p>在时代面前，普通人的预测大部分是不准确的</p>
-<p>随手找的几个帖子：</p>
-<ul>
-<li><a href="https://www.v2ex.com/t/694263" rel="nofollow">https://www.v2ex.com/t/694263</a></li>
-<li><a href="https://www.v2ex.com/t/666182" rel="nofollow">https://www.v2ex.com/t/666182</a></li>
-<li><a href="https://v2ex.com/t/777712" rel="nofollow">https://v2ex.com/t/777712</a></li>
-<li><a href="https://v2ex.com/t/837256" rel="nofollow">https://v2ex.com/t/837256</a></li>
-<li><a href="https://www.v2ex.com/t/885278" rel="nofollow">https://www.v2ex.com/t/885278</a></li>
-</ul>
-<p><strong>截图 1</strong></p>
-<p><a href="https://imgse.com/i/pkgwxyT" rel="nofollow"><img alt="pkgwxyT.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/07/02/pkgwxyT.png" /></a></p>
-<p><strong>截图 2</strong>
-<a href="https://imgse.com/i/pkg0ik9" rel="nofollow"><img alt="pkg0ik9.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/07/02/pkg0ik9.png" /></a></p>
-<p><strong>截图 3</strong>
-<a href="https://imgse.com/i/pkg0NnS" rel="nofollow"><img alt="pkg0NnS.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/07/02/pkg0NnS.png" /></a></p>
-]]></content:encoded>
-<pubDate>2024-07-02T08:18:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 坐标深圳推荐电动车</title>
-<link>https://www.v2ex.com/t/1054276</link>
-<guid>https://www.v2ex.com/t/1054276</guid>
-<content:encoded><![CDATA[
-两轮的家人们，4k 内，只看重续航，有推推吗 目前看的深远和台铃
-]]></content:encoded>
-<pubDate>2024-07-02T08:13:54Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 基于哔哩哔哩的音乐播放器</title>
-<link>https://www.v2ex.com/t/1054275</link>
-<guid>https://www.v2ex.com/t/1054275</guid>
-<content:encoded><![CDATA[
-各平台音乐不全，youtube 又有访问问题，哔哩哔哩有丰富的音乐（ MV ）资源，本人规划开发一个跨平台的基于哔哩哔哩的音乐播放器，基本功能包括：<br /><br />- 搜索、播放、收藏、下载<br />- 通过哔哩哔哩账号实现收藏夹的同步<br />开发工具使用 flutter （没有经验）或者 MAUI （有些 dotnet 开发经验）。有同好可以留下联系方式一起开发。
-]]></content:encoded>
-<pubDate>2024-06-24T08:15:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] chouti 彻底关了，打不开了。</title>
-<link>https://www.v2ex.com/t/1054274</link>
-<guid>https://www.v2ex.com/t/1054274</guid>
-<content:encoded><![CDATA[
-之前看到评论区好多人支持，不少人都愿意出年费，弱问一下：这么多人支持怎么不搞一个简单的网页版，能耗费多少资金。羡慕这么多流量的平台！
-]]></content:encoded>
-<pubDate>2024-07-01T08:11:35Z</pubDate>
 </item>
 </channel>
 </rss>
