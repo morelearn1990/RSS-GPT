@@ -5,14 +5,215 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] 每天晚上 20~23 时准点被山西联通 IP 刷流量现象的分析和猜测</title>
+<link>https://www.v2ex.com/t/1055510</link>
+<guid>https://www.v2ex.com/t/1055510</guid>
+<content:encoded><![CDATA[
+
+<h2>现象</h2>
+<p>最近 CDN 平台下都有几十、上百个不同用户的域名受到来自山西太原联通的几个固定 IP 网段的刷流量攻击。</p>
+<p>每天 20:00 左右开始，23:00 准时结束。</p>
+<p>攻击者会事先人为挑选流量较大的静态文件，例如音视频 mp4 、安装包 exe/apk 、体积较大的图片等，然后在攻击期间，不断请求这个文件，消耗流量。</p>
+<p>攻击者会将请求的 Referer 头设置为文件链接本身，User-Agent 则有时是随机的，有时为空。</p>
+<p>其实数月前就有体量较大的用户遇到这个问题，我们封死之后消停了一会儿，</p>
+<p>但最近开始无差别攻击，大站小站只要被它扫到的站，都会在这个时间段内开始高频请求。</p>
+<h2>分析</h2>
+<p>攻击者似乎并不想要将网站打死，而是慢慢地刷流量，每个域名刷的流量也不多，3 个小时内最多几百 GB 。</p>
+<p>一开始我们以为是普通的竞对行为，后来发现互联网上有蛮多类似案例反馈，来自不同 CDN 厂商平台，在 V2EX 上也看到几个类似的帖子：</p>
+<p><a href="https://v2ex.com/t/1055422#r_14960872" rel="nofollow">https://v2ex.com/t/1055422#r_14960872</a></p>
+<p><a href="https://v2ex.com/t/1045318" rel="nofollow">https://v2ex.com/t/1045318</a></p>
+<p>可以认为这个是一个比较广泛的现象。</p>
+<p>另外我们分析这些被攻击的网站的日志，发现攻击开始前的几天内，都会出现一个 <code>153.101.*.*</code> 的 IP （江苏联通） ，使用 Java/1.8.0_91 的 User-Agent 访问被攻击的网站里的资源，我们不确定这是否与攻击有关，但也没查到这是哪家的爬虫信息，也没搜到过前人关于这个 IP 的日志，如果你也遇到了这个攻击，可以检查下日志。</p>
+<h2>猜测</h2>
+<p>攻击者没有把哪个网站当成必须要拿下的目标，甚至你把它 IP 屏蔽之后，它也不在乎，仍旧到点继续刷同一个地址，即使这个地址会被拦截...</p>
+<p>根据时间、攻击者行为特征，我感觉与 <a href="https://v2ex.com/t/1008610" rel="nofollow">省间结算政策</a> 或者该政策推开后运营商加速封杀高上传家宽（比如 PCDN 之类的）有关系。</p>
+<p>至于到底是运营商自身拉平省际带宽差距的需要，还是政策导致的高上传家宽用户需要拉低上传下载比例来避开运营商的封杀？</p>
+<p>我感觉是后者，观察日志发现，攻击者大部分情况下，请求的还是山西联通网内的 CDN 节点，这是达不到拉平省际带宽差异的效果的。</p>
+<p>为什么要广撒网拿中小网站下手？我感觉是怕流量过于集中引起对方报警之类的，这样每个网站 1~200 GB 分摊下来，对于单个网站主来说，损失不大也不好立案。</p>
+<p>本段所述只是我个人的猜测，未经证实，也未有其它证据佐证，仅供参考。</p>
+<h2>应对</h2>
+<p>我们监控到异常的 CDN 域名后，会主动屏蔽相关 IP 访问，你也可以尝试屏蔽下列 IPv4 网段：</p>
+<pre><code>221.205.168.0/23
+60.221.231.0/24
+211.90.146.0/24
+</code></pre>
+<p>后续不知道会不会更换 IP ，但如果上述的猜测正确，攻击者自己频繁更换 IP 应该是不利于他所要实现的目的的。</p>
+<p>另外，CDN 端开启限流措施，例如 IP 访问频率限制、流量封顶限制等访问控制功能，也是非常有必要的，可以有效减少恶意攻击产生的流量，也能在发生攻击后尽快提醒你做出应对。</p>
+]]></content:encoded>
+<pubDate>2024-07-07T16:18:09Z</pubDate>
+<pubDate>2024-07-07T16:18:09Z</pubDate>
+</item>
+<item>
+<title>[Android] 付费请 android 大佬修改一个 flutter 插件</title>
+<link>https://www.v2ex.com/t/1055509</link>
+<guid>https://www.v2ex.com/t/1055509</guid>
+<content:encoded><![CDATA[
+
+<p>我在使用一个 uvc 插件，<a href="https://pub.dev/packages/flutter_uvc_camera" rel="nofollow">https://pub.dev/packages/flutter_uvc_camera</a> 。但是有兼容性问题，是底层库 <a href="https://github.com/jiangdongguo/AndroidUSBCamera" rel="nofollow">https://github.com/jiangdongguo/AndroidUSBCamera</a> 导致的。我找到另外一个项目，<a href="https://github.com/shlllshlll/USBCamera" rel="nofollow">https://github.com/shlllshlll/USBCamera</a> 没有这个问题。所以找个大佬，将上面的插件移植到 USBCamera 上。</p>
+<p>代码应该不难，但是我对原生 Android 开发不熟悉，所以想要付费请个大佬帮忙，报酬是 500 元。可以帮忙的大佬可以添加我微信 phwuwei 。谢谢🙏</p>
+]]></content:encoded>
+<pubDate>2024-07-07T16:12:39Z</pubDate>
+<pubDate>2024-07-07T12:12:39Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 八字配婚 GPTs</title>
+<link>https://www.v2ex.com/t/1055507</link>
+<guid>https://www.v2ex.com/t/1055507</guid>
+<content:encoded><![CDATA[
+
+<p>刚做好的一个八字配婚 GPTs</p>
+<p>还在更新测试验证准确率🀄️</p>
+<p>还没公开发布，测试好了就可以使用了。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/uhBrjxEv.png" /></p>
+<p>项目地址： <a href="https://github.com/Chiliovo/Lingyun-Yilan" rel="nofollow">https://github.com/Chiliovo/Lingyun-Yilan</a></p>
+]]></content:encoded>
+<pubDate>2024-07-07T15:51:27Z</pubDate>
+<pubDate>2024-07-07T16:07:41Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了一个生成故障图片的小工具</title>
+<link>https://www.v2ex.com/t/1055505</link>
+<guid>https://www.v2ex.com/t/1055505</guid>
+<content:encoded><![CDATA[
+
+<p>写了一个生成故障图片的小工具，地址是  <a href="https://glitchgenerator.com/" rel="nofollow">https://glitchgenerator.com/</a>   欢迎大家来玩。</p>
+]]></content:encoded>
+<pubDate>2024-07-07T15:28:21Z</pubDate>
+<pubDate>2024-07-07T15:27:21Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于父亲再婚，我工作五年，家庭关系该如何处理</title>
+<link>https://www.v2ex.com/t/1055504</link>
+<guid>https://www.v2ex.com/t/1055504</guid>
+<content:encoded><![CDATA[
+
+<p><strong>家庭情况-我十多岁的时候父亲再婚</strong></p>
+<ul>
+<li>二婚母亲非常强势</li>
+</ul>
+<ol>
+<li>家庭是二婚，但没领证，是事实婚姻。</li>
+<li>家庭收入是一起做生意，但二婚母亲那边是个儿子，钱也是她管，也就导致家庭收入不透明，我不知，父亲也不和我说。听亲戚说做生意的钱都是你父亲借的，赚的钱都是二婚母亲的，具体父亲欠多少也不知。</li>
+<li>她儿子结婚并且生子，结婚的时候家庭出了彩礼，在城里买房装修也出钱了。具体数目父亲和二婚母亲都不和说。二婚母亲儿子结婚办酒席的时候，我舅舅都没位置吃饭。</li>
+</ol>
+<p><strong>矛盾-我未婚无房无车，毕业五年在外地工作</strong></p>
+<ul>
+<li>父亲想让我回家干，一起做生意，在老家修房，赚的钱各自管理。</li>
+</ul>
+<p>不想的原因：</p>
+<ol>
+<li>十多岁就让我寄宿了，零花钱几乎不给，全靠亲生母亲那边的亲戚，每次寄宿回家床铺卫生都要自己搞，所以长假能不回就不回家。</li>
+<li>大专期间家庭只出必要的学费和生活费，每次打电话要钱都要等个 3 天或者半个月，每次都说赚钱难，手里没钱，甚至要我助学贷款，大学期间每年学费 7 千多，每月生活费 1 千，也就是这时候二婚母亲那边的儿子结婚买房生子</li>
+<li>工作后还给我电话家里生意没钱，每次打钱五千到一万，一年会有 2-3 次，持续 3 年，期间阑尾住院家庭不仅不出一分钱，还把住院报销的钱吞了。后面这 2 年我听我亲生母亲亲戚的，牢牢控住钱，然后陷入冷战，对我不闻不问，现在回想简直就是傻 b ，被所谓的亲情绑架。对于这样的情况我对我父亲和现在的这个家庭极其不信任。</li>
+</ol>
+<p><strong>亲戚矛盾</strong></p>
+<ul>
+<li>现在我父亲已经和自己的亲戚冷淡了，不咋走了，父亲和二婚母亲的亲戚很亲，经常走，还直言自己亲戚不如外人。</li>
+</ul>
+<ol>
+<li>女方亲戚：因为是一起做生意，所以收入应该五五分，或者多劳多得，结婚买房看你父亲。</li>
+<li>我方亲戚：生意圈子是我父亲和以前的母亲打拼出来的，父亲不管钱，怎么着也应该为我考虑，出点钱买房结婚。</li>
+</ol>
+<p><strong>建房问题</strong></p>
+<ul>
+<li>前 2 年，我大发脾气，说快奔三了，亲生的一无所有，我去村里转悠人家问为啥不结婚不买房，我也不怕笑话，自爆家丑了，以后家里养老不需要我。</li>
+</ul>
+<ol>
+<li>老家建房我不愿意，离县城太远，而且我想在二线城市买房，但家里不同意，说二线城里买房看不起乡里人，我想是因为她儿子是在县里买的？</li>
+<li>为什么同意？我这边亲戚劝说修的房子是你的户口，现在房子基本快修好，钱几乎是家庭出的。</li>
+</ol>
+<p><strong>父亲打电话说二婚母亲快进 60 了，让我发红包，办酒席，并且出钱搞装修。我回绝了，不打算回并且一分钱不给，这样做是不是对的，大家帮忙分析下</strong></p>
+]]></content:encoded>
+<pubDate>2024-07-07T15:22:41Z</pubDate>
+<pubDate>2024-07-07T15:57:07Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 为什么现在设计师很多不用 Mac 了？公司提供的电脑里有 Macbook Pro M2 Max 可以选，设计部门好像只有一个人选了 Mac，大部分人都选 Dell 也有选联想 Thinkpad 的</title>
+<link>https://www.v2ex.com/t/1055503</link>
+<guid>https://www.v2ex.com/t/1055503</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-07-07T15:06:13Z</pubDate>
+<pubDate>2024-07-07T16:07:31Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 最近很多站长被山西几个 ip cc 攻击刷图片流量，给各位提醒一下</title>
+<link>https://www.v2ex.com/t/1055502</link>
+<guid>https://www.v2ex.com/t/1055502</guid>
+<content:encoded><![CDATA[
+
+cc 攻击时间段每晚 7 点 45 到 11 点左右，<br />ip 为 221.205 段，221.90 段，<br />建议被刷流量的 url 直接禁掉山西全省，或者更换 url 地址。
+]]></content:encoded>
+<pubDate>2024-07-07T15:06:00Z</pubDate>
+<pubDate>2024-07-07T15:06:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] clash 的路由配置如何同时管理好订阅和自定义规则</title>
+<link>https://www.v2ex.com/t/1055501</link>
+<guid>https://www.v2ex.com/t/1055501</guid>
+<content:encoded><![CDATA[
+
+<p>我有两个订阅地址需要自动更新，订阅的规则默认有 192.168.0.0/16 走直连模式
+需要添加一个 192.168.0.0/16 走指定代理的节点用于回家访问局域网，这就和订阅的冲突了</p>
+<p>配置文件好像只能激活一个，不是冲突了吗，如何管理？</p>
+]]></content:encoded>
+<pubDate>2024-07-07T15:00:10Z</pubDate>
+<pubDate>2024-07-07T16:12:30Z</pubDate>
+</item>
+<item>
+<title>[成都] 支付宝 | 部门直招 流程快 Java P7</title>
+<link>https://www.v2ex.com/t/1052934</link>
+<guid>https://www.v2ex.com/t/1052934</guid>
+<content:encoded><![CDATA[
+
+<p>岗位：服务端技术专家（商家）</p>
+<p>[职位描述]
+1 、负责支付宝商家开放（包括数智化营销、供给增长、公域运营等）平台能力建设，支持消费圈、租赁等支付宝各业务及阵地效果增长。
+2 、面向支付宝的数亿用户建设具有大规模，高吞吐量同时具有高稳定度的系统，面向蚂蚁金服及千万级商家提供通用、灵活、智能的业务支撑能力平台。
+3 、理解对口支付宝业务和产品的目标及策略，拆解并制定技术方案，推动方案和技术命题的持续演进。
+4 、主导复杂领域系统建模，完成详细设计和编码的任务，具备跨团队合作能力，保障项目整体进度和质量。</p>
+<p>[职位要求] </p>
+<ol>
+<li>熟悉 Java 编程，熟悉多线程编程，内存管理，设计模式，具有良好的编程习惯。</li>
+<li>具有搜索、推荐领域基础知识，有召回、排序或算法研发经验。</li>
+<li>熟悉主流应用架构、中间件以及数据库如 Tomcat 、ActiveMQ 、Redis 、Memcached 、HBase 、MySQL 等。</li>
+<li>热爱技术，对新技术有好奇心、善于沟通与团队协作。</li>
+</ol>
+<p>具备以下经验者优先(加分项)：</p>
+<ol>
+<li>负责过复杂业务系统，具备强数据敏感度，有实验分析、数据分析经验者优先。</li>
+<li>有大型分布式、高并发、高负载、高可用性系统设计和稳定性经验优先。</li>
+<li>对 Flink 、Hadoop 、Spark 等大数据平台有所了解，有机器学习算法应用经验者优先。</li>
+</ol>
+<p>联系方式：
+<a href="https://imgse.com/i/pkyyD3t" rel="nofollow"><img alt="pkyyD3t.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/06/26/pkyyD3t.png" /></a></p>
+]]></content:encoded>
+<pubDate>2024-06-26T15:56:06Z</pubDate>
+<pubDate>2024-07-07T15:44:43Z</pubDate>
+</item>
+<item>
+<title>二开项目 直播录制</title>
+<link>https://www.v2ex.com/t/1055506</link>
+<guid>https://www.v2ex.com/t/1055506</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/ihmily/DouyinLiveRecorder" rel="nofollow">https://github.com/ihmily/DouyinLiveRecorder</a><br />
+录制完毕后发送到 telegram<br />
+有大佬感兴趣留个 tg</p>
+]]></content:encoded>
+<pubDate>2024-07-07T15:39:40Z</pubDate>
+<pubDate>2024-07-07T15:37:40Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 在电脑上看到好玩的梗图, 如何一键发送到微信/QQ?</title>
 <link>https://www.v2ex.com/t/1055498</link>
 <guid>https://www.v2ex.com/t/1055498</guid>
 <content:encoded><![CDATA[
-
 经常会有这样一种需求, 在电脑上看到好看的图片(png/gif), 想一键发送给微信/QQ 里的好基友.<br /><br />但是通过各种软件来中转实在是太复杂了.<br /><br />微信/QQ 里似乎能自动读到你相册里的最新一张保存的图片, 不知道是否可以实现我在电脑上一键发到手机的相册里, 然后微信/QQ 就自动读到并提示是否发送这张图片?<br /><br />是否有类似的浏览器插件或者工具呢? 求助各位大神.
 ]]></content:encoded>
-<pubDate>2024-07-07T14:02:40Z</pubDate>
 <pubDate>2024-07-07T14:02:40Z</pubDate>
 </item>
 <item>
@@ -20,7 +221,6 @@
 <link>https://www.v2ex.com/t/1055496</link>
 <guid>https://www.v2ex.com/t/1055496</guid>
 <content:encoded><![CDATA[
-
 <p>简单来说，就是选定的应用走特定的路由表，达到指定出口的效果，连防火墙规则都不用配置。简单到只需要几个字符的简短命令即可做到。</p>
 <p>比如，我可以在一台 FreeBSD 机器连接上 Cloudflare Warp ，连接时“改道”至副路由表（假设是<strong>1 号表</strong>）。连接完成后，WireGuard 会在副路由表中把默认路由指向 Cloudflare Warp 的 IP 。这样一来，其它程序都会不会受到影响，继续按照主路由表（即 0 号表）的规则通讯。</p>
 <p>如何使指定程序走 Cloudflare Warp 通道呢？我要 ping 命令走该通道，只需前面加一条 setfib 命令即可：</p>
@@ -47,7 +247,6 @@ somesocks_fib=1
 <p>在这个基础上可以延伸出更灵活的做法，比如同时连上多个 wireguard 隧道，多个 ss 分别走对应的通道，每个 ss 监听不同的端口，中转程序连接不同的端口即可实现动态切换出口位置。比起单路由表+策略路由，这样做的灵活度高了很多。</p>
 <p>PS: 中转程序不一定必须是我链接里的那个，也可以是其它转发程序</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T13:41:42Z</pubDate>
 <pubDate>2024-07-07T13:47:01Z</pubDate>
 </item>
 <item>
@@ -55,13 +254,11 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055495</link>
 <guid>https://www.v2ex.com/t/1055495</guid>
 <content:encoded><![CDATA[
-
 <p>springboot 子模块启动无法访问子模块 webapp 目录下静态文件。</p>
 <p>项目 A ，子模块 a ，子模块 a 下的 src/main/webapp 目录有 login.html 文件。
 启动子模块 java -cp 子模块 a com.xxxMain ，通过 localhost:8080/login.html 无法访问到提示 404 。这种可能是什么原因。</p>
 <p>如果 login.html 在单一层次的项目中，能正确访问到。只有作为子模块启动时无法访问呢。</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T13:27:58Z</pubDate>
 <pubDate>2024-07-07T13:27:58Z</pubDate>
 </item>
 <item>
@@ -69,13 +266,11 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055494</link>
 <guid>https://www.v2ex.com/t/1055494</guid>
 <content:encoded><![CDATA[
-
 <p>最近将 Openwrt 从 21.02 版本更换成了 23.05 版本，发现一个问题，原本使用的 Lucky 和 Socat 两款双栈端口转发的软件似乎并不支持 nftables 。
 具体表现为无法正常转发流量（无论是 IPv4 还是 IPv6 ），例如 ddns 域名为 <a href="http://a.com" rel="nofollow">a.com</a> ，在软件上设置转发公网的 2333 端口到内网服务器 2333 端口并开启 nat 环回，内网设备 tcping <a href="http://a.com" rel="nofollow">a.com</a> 2333 一切正常，但是公网设备则无回应，因此判断是软件不支持 nftables 防火墙，即流量能从内网到达网关，并通过 nat 环回进入转发工具，而公网流量则被防火墙拦截。
 而防火墙自带的转发一切正常，但由于防火墙自带的软件只能公网 IPv4 转发到内网 IPv4 ，公网 IPv6 转发至公网 IPv6 。回退后实测两款软件在使用 iptables （ istoreos 和 immortalwrt 21.02 ）的机器上表现一切正常。
 请问有没有什么方式能较为轻松地在网关上实现双栈公网转发的功能呢？在此先谢过各位</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T13:22:49Z</pubDate>
 <pubDate>2024-07-07T14:06:21Z</pubDate>
 </item>
 <item>
@@ -83,7 +278,6 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055493</link>
 <guid>https://www.v2ex.com/t/1055493</guid>
 <content:encoded><![CDATA[
-
 <p>因为搜索引擎的出现，我们只需要输入问题就可以搜到大量的结果，然后在这些结果中过滤出我们需要的信息就可以了。但是如果没有了搜索引擎，我们又该怎么找到自己需要的信息呢？</p>
 <p>假如网上某个人说：“今天蒙大纳的土豆价格很贵”。我们听到这句话后想要去找一下蒙大纳的土豆价格方面的信息，于是，问题来了：</p>
 <p>第一，“蒙大纳”是一个人名还是一个城市？我们怎么确定？</p>
@@ -91,7 +285,6 @@ somesocks_fib=1
 <p>第三，知道了机构名，怎么找到他们的官方网站？</p>
 <p>假如没有了搜索引擎，信息茧房会越来越明显吗？那些不会查找信息的人是不是永远只能在垃圾信息的海洋里翻垃圾？而高质量的信息只会在小圈子间流转？</p>
 ]]></content:encoded>
-<pubDate>2024-07-07T12:54:53Z</pubDate>
 <pubDate>2024-07-07T13:36:20Z</pubDate>
 </item>
 <item>
@@ -99,10 +292,8 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055492</link>
 <guid>https://www.v2ex.com/t/1055492</guid>
 <content:encoded><![CDATA[
-
 夏天在老家没空调，浏览器看一会儿视频或者直播，就烫手了，新版系统 beta 2 ，更这个测试版系统之前其实看视频也会烫，当时用的 edge 浏览器，这两天换 Arc 也一样，是不是夏天就是没空调压不住？ 没接外接显示器
 ]]></content:encoded>
-<pubDate>2024-07-07T12:52:27Z</pubDate>
 <pubDate>2024-07-07T13:42:46Z</pubDate>
 </item>
 <item>
@@ -110,10 +301,8 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055491</link>
 <guid>https://www.v2ex.com/t/1055491</guid>
 <content:encoded><![CDATA[
-
 我用的是 7zip ，当解压缩文件时我打开任务管理器查看 CPU 的利用率才 2%，用什么方法能使解压缩和压缩文件时充分利用 CPU 的性能？
 ]]></content:encoded>
-<pubDate>2024-07-07T12:51:44Z</pubDate>
 <pubDate>2024-07-07T14:15:59Z</pubDate>
 </item>
 <item>
@@ -121,7 +310,6 @@ somesocks_fib=1
 <link>https://www.v2ex.com/t/1055490</link>
 <guid>https://www.v2ex.com/t/1055490</guid>
 <content:encoded><![CDATA[
-
 <p><strong>Neonlingo 适合谁</strong></p>
 <ol>
 <li>有学习外语的意愿 <br /></li>
@@ -142,10 +330,8 @@ somesocks_fib=1
 <li>免费的免费的！欢迎试用我的工具，我希望听到用户的声音，我会认真对待，希望我可以做得更好！！！感谢大家！！</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-07-07T12:41:42Z</pubDate>
 <pubDate>2024-07-07T12:38:42Z</pubDate>
 </item>
-
 <item>
 <title>[生活] [记录]-2024-07-07 时隔两年的加勒比阳光</title>
 <link>https://www.v2ex.com/t/1055487</link>
@@ -16428,138 +16614,6 @@ public static func unwrapToNillableAnySimpleType(redisMessage: RedisMessage): ?A
 mbp 2019 16 寸，天才吧检测说可能主板出问题，因为过保很久了，换个主板比买新机器都贵。有靠谱的 mbp 修理师傅求推荐！
 ]]></content:encoded>
 <pubDate>2024-07-02T10:01:02Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] cf 收到转移完域名的邮件账号就登录不上去了</title>
-<link>https://www.v2ex.com/t/1054296</link>
-<guid>https://www.v2ex.com/t/1054296</guid>
-<content:encoded><![CDATA[
-<p>从 gd-&gt;cf 刚刚收到转移成功的邮件，就登录不上去了 改密码也收不到邮件 dns 解析也没了</p>
-]]></content:encoded>
-<pubDate>2024-07-02T08:56:23Z</pubDate>
-</item>
-<item>
-<title>[远程工作] 寻求一名 Swift UI 外包的小伙伴</title>
-<link>https://www.v2ex.com/t/1054295</link>
-<guid>https://www.v2ex.com/t/1054295</guid>
-<content:encoded><![CDATA[
-<p>我们是一个独立开发小组，几名成员都是兼职制作 Apple 生态的产品，现因开发需要，想找一名 SwiftUI 的开发外包合作，有这方面的大佬吗？ </p>
-<p>我们现在产品已经上线了，叫海德时钟，iOS iPad 在 Apple Store 可以下载</p>
-<p>针对这个外包的要求，大概有几点：</p>
-<ol>
-<li>需要有过 2-3 年的 Swift UI 的经验；</li>
-<li>开发经验最好超过 5 年，熟练点的；</li>
-<li>代码习惯好，代码可阅读高 </li>
-</ol>
-<p>项目的费用和功能，可以聊，我不知道这个平台能不能留微信，我先不留，如果你有兴趣，请留下你的联系方式，我每天会来看哒
-谢谢啦</p>
-]]></content:encoded>
-<pubDate>2024-07-02T09:05:32Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 大陆地区的 icould 支持自定义电子邮件域名吗</title>
-<link>https://www.v2ex.com/t/1054293</link>
-<guid>https://www.v2ex.com/t/1054293</guid>
-<content:encoded><![CDATA[
-<p>在官网没看到这个功能，是国区阉割了吗？
-<a href="https://www.apple.com.cn/icloud/" rel="nofollow">https://www.apple.com.cn/icloud/</a></p>
-]]></content:encoded>
-<pubDate>2024-07-02T10:14:47Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海][美企]招初级或中级网站开发</title>
-<link>https://www.v2ex.com/t/1054292</link>
-<guid>https://www.v2ex.com/t/1054292</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>薪资：(10k-15k)*13 ，视能力可做调整，预算不超过 20K</li>
-<li>工作年限要求：0-3 年</li>
-<li>工作地点： 陆家嘴</li>
-<li>中英简历发到邮箱：<code>Z3VhbmdsaS53YW5nQG1zbi5jb20K</code></li>
-</ul>
-<h3>条件：</h3>
-<ul>
-<li>英语沟通顺畅</li>
-<li>自学能力</li>
-<li>熟悉 Git</li>
-<li>熟悉以下编程语言一个或多个：JS/TS, Python, Go, Ruby</li>
-<li>熟悉以下数据库一个或多个：MySQL/SQL Server</li>
-</ul>
-<p>以下属于加分项，非必须。简历或来信如包含以下关键词，请侧重描述相关经验：</p>
-<p>Angular/Bootstrap/Ant Design/Material Design/AWS/Docker/Kubernetes/Redis/Hive/Terraform/Jenkins/.Net/C#/VB</p>
-<h3>关于公司：</h3>
-<p>外企文化，没有加班。工作强度不大，非常养老，团队有刚毕业的、也有入职 20 多年的。上海部门纯技术团队，虽小但稳定。注重 WLB ，没有加班，弹性工作时间，每月可任意两天申请在家办公；每月半天团队游戏时间，不强制参加；团建从不占用员工休息时间；每年带薪病假 5 天，年假 10 天，5 年以上员工年假再加 5 天；加班 5 分钟即可计入调休时间。补充商业保险，补充公积金。</p>
-]]></content:encoded>
-<pubDate>2024-07-02T10:01:19Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于删库跑路——准备离职前服务器突然故障</title>
-<link>https://www.v2ex.com/t/1054291</link>
-<guid>https://www.v2ex.com/t/1054291</guid>
-<content:encoded><![CDATA[
-<p>前情概要：初级运维狗一只！</p>
-<p>刚准备提离职，跟领导反馈了想法！隔了几天，服务器坏了，会不会以为我是故意的？</p>
-<p>啰嗦的细节：
-昨天晚上，公司一个新来的领导问我 git 服务器有没有备份过，我以老板不给买备份服务器为由，说没备份。然后新来的领导不理解备份为什么要用备份服务器，买一块硬盘插到服务器上，把数据被分到那个硬盘里面不就行了吗。我表示单盘运行风险很大，我们服务器上面系统盘做了 raid1(记错了，实际是单盘运行)，数据盘做了 raid10 ，加单盘，还不如买一块硬盘当做备份盘，当有硬盘离线其实可以移动把备份盘顶上。</p>
-<p>结果今天，2024 年 7 月 2 日！单盘运行的系统盘坏了，准备把整个硬盘 dd 到新硬盘里面时候发现，硬盘分区信息也没了，网上查了下发现有同型号同容量出现过同样问题，怀疑固件问题。</p>
-<p>想着反正系统盘不可读取了，打算拿两块硬盘硬盘打算做 raid1 ，结果新硬盘插上去识别不到，由于新硬盘的接口之前没用过，于是怀疑是接口问题，就关机把数据盘按照顺序卸掉，插上新硬盘结果也不能识别，这才觉察是硬盘兼容问题，再换了两块新的硬盘，就可以正常被阵列卡识别了。</p>
-<p>然后就是正常清理数据，创建 raid1 重装系统，装完以后关机把 raid10 的！数据盘插入原先位置。正常启动以后，数据盘识别不到了。进 raid 管理界面一看，发现数据盘全部被识别成未知硬盘，于是立马关机拔硬盘打电话给阵列卡技术支持，阵列卡技术支持说这情况是由于动了正常的数据盘盘位，并且给新硬盘做阵列，其实抹除掉了原先阵列卡上的阵列信息，只能找数据恢复的拷一下数据，然后再把旧数据盘格掉重新做 raid 。</p>
-<p>去了数据恢复那边，把数据拷出来以后，都是 git-data 文件夹下的仓库数据，不知道在没有 git 备份文件的情况下，能不能恢复仓库？
-我自己网上搜了下，好像是不可以直接恢复 gitlab 。各位，帮忙支下招！</p>
-<p>另外问一下，领导会不会以为我是故意删库想跑路？</p>
-]]></content:encoded>
-<pubDate>2024-07-01T16:34:58Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [英伟达] [上海北京深圳] [解决方案架构师 高性能计算]</title>
-<link>https://www.v2ex.com/t/1054290</link>
-<guid>https://www.v2ex.com/t/1054290</guid>
-<content:encoded><![CDATA[
-详情请见腾讯云文档小程序<br /><br /> [腾讯文档]  NV DL 相关职位<br /><a href="https://docs.qq.com/sheet/DV2ZUdGRpeUZpRE90" rel="nofollow noopener" target="_blank">https://docs.qq.com/sheet/DV2ZUdGRpeUZpRE90</a><br /><br /><br /><br />打不开链接的话请及时告诉我
-]]></content:encoded>
-<pubDate>2024-07-02T08:33:07Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [武汉招 1 个前端] 帮朋友发 1 个招聘帖子，前端，会 uniapp, 使用过 google 和 百度地图 api</title>
-<link>https://www.v2ex.com/t/1054289</link>
-<guid>https://www.v2ex.com/t/1054289</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>
-<p>公司名：武汉雷可达，是做雷达相关的</p>
-</li>
-<li>
-<p>要求：搞过高德地图或 google 地图 api 的，会 uniapp (必须上述两项，没其他要求了)</p>
-</li>
-<li>
-<p>地点：武汉光谷新动力(佛祖岭附近)</p>
-</li>
-<li>
-<p>薪资：11k+, 具体面议，(14 薪，2 薪是年底会考核)</p>
-</li>
-<li>
-<p>工作时间:  9:00- 18:00</p>
-</li>
-<li>
-<p>优势：小公司，工作稳定。 方向是雷达方向，偏硬件，非传统互联网公司。</p>
-</li>
-<li>
-<p>学历无要求，只要经验可以即可，欢迎毕业 1-2 年的人投递！</p>
-</li>
-</ul>
-<p>联系邮箱： <a href="mailto:295482300@qq.com">295482300@qq.com</a></p>
-]]></content:encoded>
-<pubDate>2024-07-02T09:11:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 无锚印钞开始了吗？我们该怎么保护我们的存款？</title>
-<link>https://www.v2ex.com/t/1054287</link>
-<guid>https://www.v2ex.com/t/1054287</guid>
-<content:encoded><![CDATA[
-<p>无意中看到不同论坛都有人提起这个，请问下各位怎么看？</p>
-<p>会导致我们手里的存款贬值吗？可以通过购买黄金来保护自己的存款吗？</p>
-]]></content:encoded>
-<pubDate>2024-07-02T09:12:04Z</pubDate>
 </item>
 </channel>
 </rss>
