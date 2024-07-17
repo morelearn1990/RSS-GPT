@@ -5,14 +5,1066 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 使用 ACME 申请免费“永久”的 SSL 证书（补发-上一篇图裂了）</title>
+<link>https://www.v2ex.com/t/1058130</link>
+<guid>https://www.v2ex.com/t/1058130</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>三个多月没写文章了，上半年经历了被裁员，找工作，入职，转正等一系列事情，目前总算是尘埃落定了，继续开始搞创作🤗</p>
+</blockquote>
+<h2>前言</h2>
+<p>通过 https 协议访问网站时，SSL 证书确保了数据传输的安全性。目前，大多数云服务提供商提供的免费证书有效期只有 90 天，想要更长时间的证书则需要付费。这意味着每隔 90 天就需要重新签发并替换证书文件。</p>
+<p>折腾一番后，我找到了一个免费且优雅的方案，只需要在服务器上安装相关脚本，就能申请到免费的域名证书，它会定期检查证书的有效期，实现到期自动续期与更新，从而有效地获得了一个“永久”的证书。</p>
+<p>本文就跟大家详细分享下这个方案，欢迎各位感兴趣的开发者阅读本文。</p>
+<h2>环境搭建</h2>
+<p>我们需要用到<a href="https://letsencrypt.org/zh-cn/docs/client-options/" rel="nofollow">ACME</a>这个程序来完成证书的申请与签发。</p>
+<h3>程序安装</h3>
+<p>首先，我们需要通过<code>SSH</code>连接到服务器，通过以下命令来安装：</p>
+<pre><code class="language-bash">curl  https://get.acme.sh | sh
+</code></pre>
+<p>安装程序会自动做以下操作：</p>
+<ul>
+<li>自动把<code><a href="http://acme.sh" rel="nofollow">acme.sh</a></code>安装到你的 home 的<code>.acme.sh</code>目录下，即<code>~/.acme.sh/</code></li>
+<li>自动创建一个 <strong>bash</strong>的别名，方便命令行的直接使用: <code>alias <a href="http://acme.sh" rel="nofollow">acme.sh</a>=~/.acme.sh/<a href="http://acme.sh" rel="nofollow">acme.sh</a></code></li>
+<li>自动为你创建 <strong>cron 任务</strong>， 每天 0:00 点自动检测所有的证书， 如果快过期了， 需要更新，则会自动更新证书。</li>
+</ul>
+<h3>更改默认证书</h3>
+<p>因为 acme 已经被 ZeroSSL 收购，其默认的证书方式为 ZeroSSL ，但此证书生成时会携带邮箱，因此需要更换为<a href="https://letsencrypt.org/" rel="nofollow">letsencrypt</a></p>
+<pre><code class="language-bash">acme.sh --set-default-ca  --server  letsencrypt
+</code></pre>
+<h2>申请泛域名证书</h2>
+<p>泛域名证书是一种能够为同一个主域名（例如 <a href="http://kaisir.cn" rel="nofollow">kaisir.cn</a> ）下的所有子域名（如 <a href="http://www.kaisir.com" rel="nofollow">www.kaisir.com</a> 、<a href="http://resource.kaisir.cn" rel="nofollow">resource.kaisir.cn</a> 等）提供安全加密的数字证书。能够通过一个单一的证书来保护主域名及其所有子域名的数据传输，使得网站管理者无需为每个子域名分别购买和管理多个 SSL 证书。</p>
+<p>通过 acme 申请的证书，可以绑定满足该通配符型规则的任意三级子域名，例如：</p>
+<pre><code class="language-bash">www.kaisir.cn
+test.kaisir.cn
+aaa.kaisir.cn
+bb.kaisir.cn
+...
+</code></pre>
+<blockquote>
+<p>如果你对数字证书比较感兴趣，可以移步我的另一篇文章：<a href="https://www.kaisir.cn/post/58" rel="nofollow">数字证书的理解</a></p>
+</blockquote>
+<h3>获取 DNS API 参数</h3>
+<p>acme 提供的泛域名证书只能通过 dns 的形式来做验证，因此我们需要进入域名解析控制台（你可以在<a href="https://github.com/acmesh-official/acme.sh/wiki/dnsapi" rel="nofollow">此处</a>找到你的域名解析提供商）创建 API ID 和 API Key 。</p>
+<p>我这里以阿里云为例，登录成功后，去到阿里云的<a href="https://ram.console.aliyun.com/users" rel="nofollow">RAM 访问控制面板</a>来创建用户。</p>
+<p><img alt="image-20240619225842654" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240619/epcAyA.png" /></p>
+<ul>
+<li>创建完用户之后，点击<strong>添加权限</strong>按钮</li>
+</ul>
+<p><img alt="image-20240619225912624" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240619/eXiyVM.png" /></p>
+<ul>
+<li>勾选第一页的所有权限</li>
+</ul>
+<p><img alt="image-20240619225956814" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240619/deiKsd.png" /></p>
+<ul>
+<li>复制<strong>AccessKey ID</strong>和<strong>AccessKey Secret</strong>下来，保存好。</li>
+</ul>
+<p><img alt="image-20240619230641776" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240619/WaWESM.png" /></p>
+<h3>配置环境变量</h3>
+<p>由于每个平台的环境变量名称是不一样的，因此你需要去<a href="https://github.com/acmesh-official/acme.sh/wiki/dnsapi" rel="nofollow">acme-dnsapi 网站</a>里找到你平台的变量名。我这里以阿里云为例，将 key 和 secret 换成上一步创建的即可。</p>
+<pre><code class="language-bash">export Ali_Key="key"
+export Ali_Secret="secret"
+</code></pre>
+<h3>生成证书</h3>
+<p>做完上述操作后，我们的准备工作就做完了，可以使用<strong><a href="http://acme.sh" rel="nofollow">acme.sh</a></strong>脚本来创建证书了。</p>
+<pre><code class="language-bash">acme.sh --issue --dns dns_ali -d kaisir.cn -d '*.kaisir.cn' --dnssleep 300 --debug
+</code></pre>
+<ul>
+<li><code>--dns </code>用于指定 dns 校验平台，我这里是阿里云</li>
+<li>第一个<code>-d</code>是你的网站主域名，第二个是泛域名</li>
+<li><code> --dnssleep</code>用于等待操作，因为把 txt 添加到后台，解析不一定能做到立刻生效，所以需要延时一下，此处我设置了 300 秒的延时，执行命令的过程会有个等待倒计时。</li>
+<li><code> --debug</code>开启调试模式，创建过程中会打印详细的日志出来，方便定位错误。</li>
+</ul>
+<p>创建成功后，你将看到如下所示的内容：</p>
+<p><img alt="image-20240619231229712" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240619/fScHUk.png" /></p>
+<h2>安装证书</h2>
+<p>最后，我们只需要找到创建好的证书，将其在服务器上的路径填写到 nginx 中即可。脚本会在证书快到期时，自动续期并创建相关文件。</p>
+<p>本章节将以我的服务器为例，跟大家分享下如何去做相关的配置。</p>
+<h3>配置路径映射</h3>
+<p>如果你的服务是直接运行在宿主机上的，请跳过这一步。</p>
+<p>我的服务是运行在 docker 容器里的，因此需要先把服务器的证书路径映射进容器中，此处我以<code>docker-compose</code>为例，在<code>volumes</code>节点下添加映射即可。</p>
+<pre><code class="language-yaml">    nginx-server:
+        image: nginx:1.18.0
+        container_name: local_nginx
+        volumes:
+            - /root/.acme.sh/kaisir.cn_ecc:/usr/share/acme
+</code></pre>
+<blockquote>
+<p>注意：如果你只使用了 docker ，则需要在运行<code>docker run</code>指令时，通过添加<code>-v</code>参数来添加路径映射，例如<code>docker run -v /root/.acme.sh/kaisir.cn_ecc:/usr/share/acme</code>。</p>
+<ul>
+<li><code>/root/.acme.sh/kaisir.cn_ecc</code> 是宿主机上的路径</li>
+<li><code>/usr/share/acme</code>是容器内部的路径</li>
+</ul>
+<p>如果你对 docker 不是很了解，可以移步我的另一篇文章：<a href="https://www.kaisir.cn/post/175" rel="nofollow">使用 docker 来编排 Web 应用</a></p>
+</blockquote>
+<h3>配置 nginx</h3>
+<p>随后，我们就可以打开<strong>nginx</strong>的配置文件，指定<strong>ssl 证书</strong>的位置即可。</p>
+<ul>
+<li><code>/usr/share/acme/</code>就是我们上一步所映射出来的路径</li>
+<li><code>fullchain.cer</code>就是我们申请到的泛域名证书</li>
+</ul>
+<pre><code class="language-conf">server {
+	# 配置 ssl 证书
+	ssl_certificate   /usr/share/acme/fullchain.cer;
+	ssl_certificate_key  /usr/share/acme/kaisir.cn.key;
+}
+</code></pre>
+<h2>实现效果</h2>
+<p>最后，我们重启 nginx ，通过浏览器访问网站就能看到证书信息了🤗</p>
+<p><img alt="image-20240620230554443" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240620/H6ZvHB.png" /></p>
+<ul>
+<li>访问子域名的服务也是正常的</li>
+</ul>
+<p><img alt="image-20240620232129698" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240620/a3OfIj.png" /></p>
+<ul>
+<li>证书详情如下所示</li>
+</ul>
+<p><img alt="image-20240620232154469" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20240620/2bd1yZ.png" /></p>
+<h2>写在最后</h2>
+<p>至此，文章就分享完毕了。</p>
+<p>我是<strong>神奇的程序员</strong>，一位前端开发工程师。</p>
+<p>如果你对我感兴趣，请移步我的<a href="https://www.kaisir.cn/" rel="nofollow">个人网站</a>，进一步了解。</p>
+<ul>
+<li>文中如有错误，欢迎在评论区指正，如果这篇文章帮到了你，欢迎点赞和关注😊</li>
+<li>本文首发于<a href="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8b7566ab57814aad861b378882c1ee58%7Etplv-k3u1fbpfcp-watermark.image" rel="nofollow">神奇的程序员</a>公众号，未经许可禁止转载💌</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-07-17T16:25:03Z</pubDate>
+<pubDate>2024-07-17T16:24:03Z</pubDate>
+</item>
+<item>
+<title>[加密货币] 新手请问现在有没有靠谱的方式入金？</title>
+<link>https://www.v2ex.com/t/1058128</link>
+<guid>https://www.v2ex.com/t/1058128</guid>
+<content:encoded><![CDATA[
+
+<p>人在国内，有国外银行卡。</p>
+]]></content:encoded>
+<pubDate>2024-07-17T16:18:21Z</pubDate>
+<pubDate>2024-07-17T16:15:21Z</pubDate>
+</item>
+<item>
+<title>[程序员] 程序员远程工作的三种类型</title>
+<link>https://www.v2ex.com/t/1058127</link>
+<guid>https://www.v2ex.com/t/1058127</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>不用通勤，但是你需要在某个国家境内，主要是税务和数据安全考虑 </li>
+<li>不限制你在哪个国家，但是限制工作的时区，更自由一些，但是是同步的工作和沟通方式 </li>
+<li>不限制你在哪个构架，异步工作不硬性限制时区，我最喜欢的 fully-remote 或者 global-remote</li>
+</ol>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GSs60mWXAAAY71J?format=jpg&amp;name=large" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GSs62q1XIAARXPz?format=jpg&amp;name=large" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GSs63xiXEAACgQk?format=jpg&amp;name=large" /></p>
+]]></content:encoded>
+<pubDate>2024-07-17T16:17:07Z</pubDate>
+<pubDate>2024-07-17T08:17:07Z</pubDate>
+</item>
+<item>
+<title>[分享发现] Raivo OTP 原作者已经卖掉了 app 还在使用的尽快换别的 2FA 应用吧</title>
+<link>https://www.v2ex.com/t/1058126</link>
+<guid>https://www.v2ex.com/t/1058126</guid>
+<content:encoded><![CDATA[
+
+之前有推荐过这个 app ，易主后出问题了，具体看链接<br /><a href="https://news.ycombinator.com/item?id=40523411" rel="nofollow noopener" target="_blank">https://news.ycombinator.com/item?id=40523411</a><br /><a href="https://web.archive.org/web/20240420060534/https://github.com/raivo-otp/marketing-website/issues/19" rel="nofollow noopener" target="_blank">https://web.archive.org/web/20240420060534/https://github.com/raivo-otp/marketing-website/issues/19</a><br /><br />更新后，进 app 如果操作失误就会会把数据都给删除了，还好记得主密码，把数据恢复回来了。<br />不要更新 app ，先安装其他的两步验证 app 把数据迁移过去，再卸载掉就好了<br />买下 app 的人身份不明，而且还把 Github 的 issues 隐藏了
+]]></content:encoded>
+<pubDate>2024-07-17T16:14:53Z</pubDate>
+<pubDate>2024-07-17T16:14:53Z</pubDate>
+</item>
+<item>
+<title>[生活] xdm, 遇到这么奇葩的车位邻居，该怎么处理</title>
+<link>https://www.v2ex.com/t/1058125</link>
+<guid>https://www.v2ex.com/t/1058125</guid>
+<content:encoded><![CDATA[
+
+1.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/326389e33d9b8e04.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/326389e33d9b8e04.png</a><br /><br />2.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/e022f6d850dac94d.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/e022f6d850dac94d.png</a><br /><br />3.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/82c5de04e646434c.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/82c5de04e646434c.png</a><br /><br />4.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/e7b19e88f99d5883.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/e7b19e88f99d5883.png</a><br /><br />5.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/86a9523cdc408e77.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/86a9523cdc408e77.png</a><br /><br />6.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/5f612b39160cd334.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/5f612b39160cd334.png</a><br /><br />7.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/024d2725c30abd72.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/024d2725c30abd72.png</a><br /><br />8.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/7865a8342565130a.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/7865a8342565130a.png</a><br /><br />9.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/5f5ad3616c982dc1.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/5f5ad3616c982dc1.png</a><br /><br />10.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/a1adec7e0a732f52.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/a1adec7e0a732f52.png</a><br /><br />11.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/a03e8db3ae3cfb1f.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/a03e8db3ae3cfb1f.png</a><br /><br />12.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/2491ec9115248616.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/2491ec9115248616.png</a><br /><br />13.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/152dcad72f55680a.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/152dcad72f55680a.png</a><br /><br />14.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/4be2a09d06ae4576.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/4be2a09d06ae4576.png</a><br /><br />15.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/733fb51bdfe3317b.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/733fb51bdfe3317b.png</a><br /><br />16.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/a0517f92c64458a7.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/a0517f92c64458a7.png</a><br /><br />17.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/17/22d4a5a94732863e.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/17/22d4a5a94732863e.png</a><br /><br />18.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/294ac1e5421b90a0.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/294ac1e5421b90a0.png</a><br /><br />19.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/bded2cac562e1d21.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/bded2cac562e1d21.png</a><br /><br />20.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/d9be27e9c0f367eb.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/d9be27e9c0f367eb.png</a><br /><br />21.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/eeaff58f7d8fe22d.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/eeaff58f7d8fe22d.png</a><br /><br />22.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/c2c195d5935dd1a8.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/c2c195d5935dd1a8.png</a><br /><br />23.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/6271762da8a5da61.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/6271762da8a5da61.png</a><br /><br />24.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/03152894a494542d.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/03152894a494542d.png</a><br /><br />25.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/161735f56d5ffdcf.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/161735f56d5ffdcf.png</a><br /><br />26.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/9d083af80d4ec0c6.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/9d083af80d4ec0c6.png</a><br /><br />27.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/3a35e3fb04095fa7.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/3a35e3fb04095fa7.png</a><br /><br />28.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/14043780f0cd3743.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/14043780f0cd3743.png</a><br /><br />29.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/4a2aa6be888cc850.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/4a2aa6be888cc850.png</a><br /><br />30.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/a388ae3ea84bb082.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/a388ae3ea84bb082.png</a><br /><br />31.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/2bb8a2898a0214b9.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/2bb8a2898a0214b9.png</a><br /><br />32.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/bf7d0d32e3b5c949.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/bf7d0d32e3b5c949.png</a><br /><br />33.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/e27741750f285313.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/e27741750f285313.png</a><br /><br />34.<br /><a href="https://s3.bmp.ovh/imgs/2024/07/18/20cf20c0886d141c.png" rel="nofollow noopener" target="_blank">https://s3.bmp.ovh/imgs/2024/07/18/20cf20c0886d141c.png</a><br /><br /><br /><br />坐标上海郊区某小区
+]]></content:encoded>
+<pubDate>2024-07-17T16:04:46Z</pubDate>
+<pubDate>2024-07-17T16:04:46Z</pubDate>
+</item>
+<item>
+<title>[Apple] 教你如何在 Safari 中来回切换翻译结果与原始网页，而无需重新载入网页</title>
+<link>https://www.v2ex.com/t/1058124</link>
+<guid>https://www.v2ex.com/t/1058124</guid>
+<content:encoded><![CDATA[
+
+<p>在 Safari 中，翻译网页后再点『显示原始网页』，网页会重新载入，而不是直接回到刚才已经装载完毕的原始网页。想再看翻译结果的话，又要重来一遍点按翻译的步骤，再执行一遍翻译过程，而不是直接显示刚才的翻译结果。</p>
+<p>但是我发现：</p>
+<ol>
+<li>
+<p>打开原始网页；</p>
+</li>
+<li>
+<p><strong>长按</strong>左下角『大小』，先进入一次阅读模式，再回去；</p>
+</li>
+<li>
+<p><strong>点一下</strong>左下角『大小』-『翻译网站...』-选择语言后以最快速度<strong>按住</strong>左下角『大小』；</p>
+</li>
+<li>
+<p>此时，通过长按『大小』，可以直接在翻译结果与原始网页见切换，而无需重新载入网页。</p>
+</li>
+</ol>
+<p>（第二步有时不需要）</p>
+<hr />
+<p>像这种小技巧，尤其是『以最快速度按住……』，很有可能系统更新一个版本就失效了……</p>
+]]></content:encoded>
+<pubDate>2024-07-17T16:02:01Z</pubDate>
+<pubDate>2024-07-17T15:59:01Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 显卡提升确实没有上限</title>
+<link>https://www.v2ex.com/t/1058123</link>
+<guid>https://www.v2ex.com/t/1058123</guid>
+<content:encoded><![CDATA[
+
+玩双人成行，稍稍卡顿，今天开帧率测试，没想到是 40 帧畅玩 4k ，rx6600 帧的辛苦了。换成 1080p ，瞬间到 140 帧，不过还跑不满高刷显示器<br /><br /><br />看来这 4k 高刷显示器，确实得 4090 来带了，不然浪费了
+]]></content:encoded>
+<pubDate>2024-07-17T15:55:36Z</pubDate>
+<pubDate>2024-07-17T15:55:36Z</pubDate>
+</item>
+<item>
+<title>[生活] 夏季雷雨传</title>
+<link>https://www.v2ex.com/t/1058122</link>
+<guid>https://www.v2ex.com/t/1058122</guid>
+<content:encoded><![CDATA[
+
+<p>最近上海的天似乎是裂开了，雨一阵一阵的下，不是那种缠缠绵绵的细雨，是中雨，大雨，狂风暴雨。</p>
+<p>晴天，在天快黑的时候，天空会出现一大片的克莱因蓝，整个天际都被它笼罩着，像披了一层薄薄的纱，又像是裹了一层厚厚的布。这层蓝色掉落凡间，成为了精美的工艺品。有时候调色盘打翻了，会出现粉红的晚霞，一大片一大片的，天空也有少女心，它的娇羞展露无疑。随着夜幕完全降临，黑暗笼罩着一切，这蓝色才依依不舍的离开。</p>
+<p>有句歌词叫做，爱就像蓝天白云，晴空万里，忽然暴风雨，但是今天这场雨蓄谋已久。</p>
+<p>先是乌云。抬头不见蔚蓝的天空，只有大片大片的乌云，乌云们比较沉默，它们只是成团成团的聚在一起，走在跨铁路的天桥上，脚下的火车刚刚驶出车站，正在提速，远处的高楼巍峨的矗立在那里，但乌云毫无畏惧，不断地吸收，不断地膨胀自己，黑云压城城欲摧，当你凝视乌云的时候，乌云也在凝视你，大有吞噬一切的决心。</p>
+<p>然后是闪电。似乎是乌云的铺垫已经足够，是时候来点猛的了，一道闪电划破长空，把乌云笼罩的天空撕开了口子， 闪电是粉红色的，它华丽，它迅猛，它快捷，等你反应过来的时候，它已经完成了它的出场秀，直接隐遁起来。它是一条漂亮且暴躁的蛟龙，谁都别想阻拦它的脚步，房屋阻拦它，房屋损毁，碰到人阻拦，人首分离，它的眼里只有毁灭，毁灭，毁灭。这么强悍的闪电只有一个敌人，避雷针。避雷针太了解它了，把能量都吸走，把力量都卸去，还能奈我何？也许是多次吃过这个亏，闪电们不再单打独斗，而是群体出击，一道又一道的闪电接踵而至，依次划破天空，他们准备释放些什么。</p>
+<p>接着是打雷。视觉上的刺激还不够，还有最后一道铺垫，闪电蛟龙离开之后，立刻来了一道擂鼓助威。先是剧烈的轰的一下，整个城区都石破天惊，一下子把人们的注意力都吸走，然后是急促的咚咚咚咚咚的擂鼓，这鼓声沉闷而又有力量，所有听到这鼓声的人精神为之一振。这边的鼓声渐渐变小，直到消失，人们终于可以叹口气，休息一下了，突然又从另外一个方向再次来一道雷声，再次震撼人的听觉，摧毁人的神经。在一遍又一遍的雷声过后，人们心里的防线终于彻底崩塌：快点下雨吧，快点下雨吧，这种听觉实在让人备受折磨。</p>
+<p>冲锋的号角已经吹起，无数颗雨滴化身成为千军万马，哗啦啦直接从刚才闪电撕开的口子降落而下，它们犹如一股洪流，锐不可挡，一鼓作气，直接从万里高空直冲而下，像是铁板一块，坚不可摧，快要降落到地面的时候，却又改变阵型，各自有各自明确的分工。有的雨滴冲向高楼，有的雨滴冲向人群。有些雨滴在高楼坚硬的外表下猛烈的撞击了一下，蹦出一朵美丽的花，然后又继续向下游走，有些雨专挑路上落单的行人下手，把头发打湿，把衣服打湿，嘲笑着他们在雨中的窘迫，只有那些认真打伞，全副武装的人，它们才无可奈何。</p>
+<p>我坐在窗边，看着窗外滂沱大雨，忍不住的在发呆。作为一个小沪漂，以前很不喜欢宅在家里，呆在这个小空间里，觉得压抑，难受，周末总是会给自己找个理由多出去走走，现在年纪大了，什么都反着来了，越来越喜欢待在家里了，尤其是这种大风大雨的时候，越发的觉得心里很安心，很平静。</p>
+<p>写在一个下暴雨的傍晚。</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:50:05Z</pubDate>
+<pubDate>2024-07-17T15:49:05Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 大家如何看待广东移动 7.17 下午突然生效的省间结算政策？</title>
+<link>https://www.v2ex.com/t/1058121</link>
+<guid>https://www.v2ex.com/t/1058121</guid>
+<content:encoded><![CDATA[
+
+接广东移动通知，受中国移动“省间结算”政策不可抗力因素影响，自 7 月 16 日 0 时起，广东省内各中国移动网络线路 IDC 将执行 10-15%不等比例的跨省限速，即只有 10-15%的业务带宽质量将获得保证，超出部分移动侧将采取包括强制丢包等策略确保限速比例下整体可控。预计自 7 月 16 日起广东境内各移动网内 IDC 业务服务质量将出现显著下降。
+]]></content:encoded>
+<pubDate>2024-07-17T15:43:03Z</pubDate>
+<pubDate>2024-07-17T16:21:56Z</pubDate>
+</item>
+<item>
+<title>[Java] Java hello world 确实就要占用 30M</title>
+<link>https://www.v2ex.com/t/1058120</link>
+<guid>https://www.v2ex.com/t/1058120</guid>
+<content:encoded><![CDATA[
+
+<p>最近看了几个帖子都是说 java 内存的， 自己也写 java ， 还从来没关注过一个 hello world, 今天一时兴起测试了下，确实需要占用 30 。</p>
+<p>测试方法和代码如下：</p>
+<pre><code class="language-java">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("hello memory 02");
+        Thread.sleep(60 * 60 * 1000);
+    }
+}
+</code></pre>
+<p>方式 1：
+直接运行 <code>java Main.java</code> 。70M 内存</p>
+<p>方式 2：
+先编译，再运行： <code>javac Main.java</code>, 然后 <code>java Main</code>.  30M 内存</p>
+<p>方式 3
+编译成 jar 包在运行，<code>java -jar main.jar</code>  30M 内存。
+编译的 maven 配置如下</p>
+<pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    &lt;groupId&gt;org.example&lt;/groupId&gt;
+    &lt;artifactId&gt;untitled&lt;/artifactId&gt;
+    &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.source&gt;21&lt;/maven.compiler.source&gt;
+        &lt;maven.compiler.target&gt;21&lt;/maven.compiler.target&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-shade-plugin&lt;/artifactId&gt;
+                &lt;version&gt;3.2.1&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;createDependencyReducedPom&gt;false&lt;/createDependencyReducedPom&gt;
+                &lt;/configuration&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;phase&gt;package&lt;/phase&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;shade&lt;/goal&gt;
+                        &lt;/goals&gt;
+                        &lt;configuration&gt;
+                            &lt;transformers&gt;
+                                &lt;transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"&gt;
+                                    &lt;mainClass&gt;Main&lt;/mainClass&gt;
+                                &lt;/transformer&gt;
+                            &lt;/transformers&gt;
+                        &lt;/configuration&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+
+&lt;/project&gt;
+
+</code></pre>
+<p>以上的 java 运行环境：</p>
+<pre><code>openjdk version "21.0.3" 2024-04-16 LTS
+OpenJDK Runtime Environment Temurin-21.0.3+9 (build 21.0.3+9-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.3+9 (build 21.0.3+9-LTS, mixed mode, sharing)
+</code></pre>
+<p>如果觉得上面哪里测试有问题的，欢迎来拍。</p>
+<p>一句话总结：Java 内存没救了，在意内存别用 Java 。</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:42:48Z</pubDate>
+<pubDate>2024-07-17T16:23:58Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有什么靠谱的租 BBA 的平台？</title>
+<link>https://www.v2ex.com/t/1058119</link>
+<guid>https://www.v2ex.com/t/1058119</guid>
+<content:encoded><![CDATA[
+
+已经使用神州和一嗨租过很多普通的 10w 左右的车了，体验都还不错，取车用车都没什么毛病，都没被提灯验车。<br />现在想体验一下更好一点的车，像 A4 ，C260,A6 ，E300 ，但是神州和一嗨都没有这样的豪华车，其他的平台看评价有点慌，感觉有点刮蹭就很难处理，例如枫叶租车。<br />坐标苏州，哥们们有没有用过什么靠谱的平台？
+]]></content:encoded>
+<pubDate>2024-07-17T15:35:07Z</pubDate>
+<pubDate>2024-07-17T15:47:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] Remote Desktop 输入了用户名密码还是进不去</title>
+<link>https://www.v2ex.com/t/1058118</link>
+<guid>https://www.v2ex.com/t/1058118</guid>
+<content:encoded><![CDATA[
+
+需要远程登入一台电脑。输入 ip 后，可以到输入电脑的用户名密码的地方，这说明这台电脑肯定是开着 rdp 的啊。但是提示用户名密码错误。<br /><br />用这个用户名密码，可以登进 <a href="http://microsoft.com" rel="nofollow noopener" target="_blank">microsoft.com</a>,并且在账号里也可以看见上面准备连接的这台电脑，还能查看位置，说明确实是用这个用户名密码登陆的啊。
+]]></content:encoded>
+<pubDate>2024-07-17T15:34:06Z</pubDate>
+<pubDate>2024-07-17T15:34:06Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了一个支持导入第三方 svg，鼠标悬停变色的的标签页</title>
+<link>https://www.v2ex.com/t/1058117</link>
+<guid>https://www.v2ex.com/t/1058117</guid>
+<content:encoded><![CDATA[
+
+<p>个性化自己的浏览器启动页（ svg 折腾）
+自己前后端一起写的，使用链接
+<a href="https://redli.cn" rel="nofollow">redli.cn</a></p>
+<p>这是一个全栈项目 <a href="https://github.com/Heising/lychees" rel="nofollow">https://github.com/Heising/lychees</a></p>
+<p>后端 go 语言，里面有一种方案解决 jwt 无状态问题，同时保持 jwt 多服务器通行，比如解决多设备下线问题</p>
+<p>多种并发 map 加锁 play 🔞 示例</p>
+<p>Redis ，MongoDB ，pgsql 示例</p>
+<p>前端 vue （主页面） react （账号管理）一个成熟的浏览器应该自己动，会自己判断有没有 jwt 过期，别等 401 再请求，浪费服务器资源</p>
+<p>使用文档还没写好
+<a href="https://www.redli.cn" rel="nofollow">介绍页</a></p>
+<p>用户通过第三方网站 symbol 引用，比如使用
+<a href="https://www.iconfont.cn/help/detail?spm=a313x.help_index.i3.29.2e3e3a81xVL9OD&amp;helptype=code" rel="nofollow">iconfont-阿里巴巴矢量图标库</a></p>
+<h3>pc 端</h3>
+<p><img alt="pc 端" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/X0rToGb.jpeg" /></p>
+<h3>移动端</h3>
+<p><img alt="移动端" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/RB8rDTH.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:33:11Z</pubDate>
+<pubDate>2024-07-17T15:30:11Z</pubDate>
+</item>
+<item>
+<title>[程序员] 使用 ACME 申请免费“永久”的 SSL 证书</title>
+<link>https://www.v2ex.com/t/1058116</link>
+<guid>https://www.v2ex.com/t/1058116</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>三个多月没写文章了，上半年经历了被裁员，找工作，入职，转正等一系列事情，目前总算是尘埃落定了，继续开始搞创作🤗</p>
+</blockquote>
+<h2>前言</h2>
+<p>通过 https 协议访问网站时，SSL 证书确保了数据传输的安全性。目前，大多数云服务提供商提供的免费证书有效期只有 90 天，想要更长时间的证书则需要付费。这意味着每隔 90 天就需要重新签发并替换证书文件。</p>
+<p>折腾一番后，我找到了一个免费且优雅的方案，只需要在服务器上安装相关脚本，就能申请到免费的域名证书，它会定期检查证书的有效期，实现到期自动续期与更新，从而有效地获得了一个“永久”的证书。</p>
+<p>本文就跟大家详细分享下这个方案，欢迎各位感兴趣的开发者阅读本文。</p>
+<h2>环境搭建</h2>
+<p>我们需要用到<a href="https://letsencrypt.org/zh-cn/docs/client-options/" rel="nofollow">ACME</a>这个程序来完成证书的申请与签发。</p>
+<h3>程序安装</h3>
+<p>首先，我们需要通过<code>SSH</code>连接到服务器，通过以下命令来安装：</p>
+<pre><code class="language-bash">curl  https://get.acme.sh | sh
+</code></pre>
+<p>安装程序会自动做以下操作：</p>
+<ul>
+<li>自动把<code><a href="http://acme.sh" rel="nofollow">acme.sh</a></code>安装到你的 home 的<code>.acme.sh</code>目录下，即<code>~/.acme.sh/</code></li>
+<li>自动创建一个 <strong>bash</strong>的别名，方便命令行的直接使用: <code>alias <a href="http://acme.sh" rel="nofollow">acme.sh</a>=~/.acme.sh/<a href="http://acme.sh" rel="nofollow">acme.sh</a></code></li>
+<li>自动为你创建 <strong>cron 任务</strong>， 每天 0:00 点自动检测所有的证书， 如果快过期了， 需要更新，则会自动更新证书。</li>
+</ul>
+<h3>更改默认证书</h3>
+<p>因为 acme 已经被 ZeroSSL 收购，其默认的证书方式为 ZeroSSL ，但此证书生成时会携带邮箱，因此需要更换为<a href="https://letsencrypt.org/" rel="nofollow">letsencrypt</a></p>
+<pre><code class="language-bash">acme.sh --set-default-ca  --server  letsencrypt
+</code></pre>
+<h2>申请泛域名证书</h2>
+<p>泛域名证书是一种能够为同一个主域名（例如 <a href="http://kaisir.cn" rel="nofollow">kaisir.cn</a> ）下的所有子域名（如 <a href="http://www.kaisir.com" rel="nofollow">www.kaisir.com</a> 、<a href="http://resource.kaisir.cn" rel="nofollow">resource.kaisir.cn</a> 等）提供安全加密的数字证书。能够通过一个单一的证书来保护主域名及其所有子域名的数据传输，使得网站管理者无需为每个子域名分别购买和管理多个 SSL 证书。</p>
+<p>通过 acme 申请的证书，可以绑定满足该通配符型规则的任意三级子域名，例如：</p>
+<pre><code class="language-bash">www.kaisir.cn
+test.kaisir.cn
+aaa.kaisir.cn
+bb.kaisir.cn
+...
+</code></pre>
+<blockquote>
+<p>如果你对数字证书比较感兴趣，可以移步我的另一篇文章：<a href="https://www.kaisir.cn/post/58" rel="nofollow">数字证书的理解</a></p>
+</blockquote>
+<h3>获取 DNS API 参数</h3>
+<p>acme 提供的泛域名证书只能通过 dns 的形式来做验证，因此我们需要进入域名解析控制台（你可以在<a href="https://github.com/acmesh-official/acme.sh/wiki/dnsapi" rel="nofollow">此处</a>找到你的域名解析提供商）创建 API ID 和 API Key 。</p>
+<p>我这里以阿里云为例，登录成功后，去到阿里云的<a href="https://ram.console.aliyun.com/users" rel="nofollow">RAM 访问控制面板</a>来创建用户。</p>
+<p><img alt="image-20240619225842654" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/be9233adc9624c62abc1cf677e56e442%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=xvaVMLQu%2FZ4dU3JfsxqEjX0ajF0%3D" /></p>
+<ul>
+<li>创建完用户之后，点击<strong>添加权限</strong>按钮</li>
+</ul>
+<p><img alt="image-20240619225912624" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/24eff7d9c97141e79f8d4977085ed8c5%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=%2FosCXf7T8Zp7r6TSEQc%2FMPloUJE%3D" /></p>
+<ul>
+<li>勾选第一页的所有权限</li>
+</ul>
+<p><img alt="image-20240619225956814" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/214a00fba13e4e418fef7511777db951%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=Oxnz7W4lk4MPVUKEMKOI9382dU4%3D" /></p>
+<ul>
+<li>复制<strong>AccessKey ID</strong>和<strong>AccessKey Secret</strong>下来，保存好。</li>
+</ul>
+<p><img alt="image-20240619230641776" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/b748c92a1133445582f9f651143e2171%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=s7It47gAtqMSDjxReI7%2BAzVc7Dw%3D" /></p>
+<h3>配置环境变量</h3>
+<p>由于每个平台的环境变量名称是不一样的，因此你需要去<a href="https://github.com/acmesh-official/acme.sh/wiki/dnsapi" rel="nofollow">acme-dnsapi 网站</a>里找到你平台的变量名。我这里以阿里云为例，将 key 和 secret 换成上一步创建的即可。</p>
+<pre><code class="language-bash">export Ali_Key="key"
+export Ali_Secret="secret"
+</code></pre>
+<h3>生成证书</h3>
+<p>做完上述操作后，我们的准备工作就做完了，可以使用<strong><a href="http://acme.sh" rel="nofollow">acme.sh</a></strong>脚本来创建证书了。</p>
+<pre><code class="language-bash">acme.sh --issue --dns dns_ali -d kaisir.cn -d '*.kaisir.cn' --dnssleep 300 --debug
+</code></pre>
+<ul>
+<li><code>--dns </code>用于指定 dns 校验平台，我这里是阿里云</li>
+<li>第一个<code>-d</code>是你的网站主域名，第二个是泛域名</li>
+<li><code> --dnssleep</code>用于等待操作，因为把 txt 添加到后台，解析不一定能做到立刻生效，所以需要延时一下，此处我设置了 300 秒的延时，执行命令的过程会有个等待倒计时。</li>
+<li><code> --debug</code>开启调试模式，创建过程中会打印详细的日志出来，方便定位错误。</li>
+</ul>
+<p>创建成功后，你将看到如下所示的内容：</p>
+<p><img alt="image-20240619231229712" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/1a230f704ee84d0e8877bd747299e1bb%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=r5PfDU%2FR0BcR%2FvtL0MDO3Udg14w%3D" /></p>
+<h2>安装证书</h2>
+<p>最后，我们只需要找到创建好的证书，将其在服务器上的路径填写到 nginx 中即可。脚本会在证书快到期时，自动续期并创建相关文件。</p>
+<p>本章节将以我的服务器为例，跟大家分享下如何去做相关的配置。</p>
+<h3>配置路径映射</h3>
+<p>如果你的服务是直接运行在宿主机上的，请跳过这一步。</p>
+<p>我的服务是运行在 docker 容器里的，因此需要先把服务器的证书路径映射进容器中，此处我以<code>docker-compose</code>为例，在<code>volumes</code>节点下添加映射即可。</p>
+<pre><code class="language-yaml">    nginx-server:
+        image: nginx:1.18.0
+        container_name: local_nginx
+        volumes:
+            - /root/.acme.sh/kaisir.cn_ecc:/usr/share/acme
+</code></pre>
+<blockquote>
+<p>注意：如果你只使用了 docker ，则需要在运行<code>docker run</code>指令时，通过添加<code>-v</code>参数来添加路径映射，例如<code>docker run -v /root/.acme.sh/kaisir.cn_ecc:/usr/share/acme</code>。</p>
+<ul>
+<li><code>/root/.acme.sh/kaisir.cn_ecc</code> 是宿主机上的路径</li>
+<li><code>/usr/share/acme</code>是容器内部的路径</li>
+</ul>
+<p>如果你对 docker 不是很了解，可以移步我的另一篇文章：<a href="https://www.kaisir.cn/post/175" rel="nofollow">使用 docker 来编排 Web 应用</a></p>
+</blockquote>
+<h3>配置 nginx</h3>
+<p>随后，我们就可以打开<strong>nginx</strong>的配置文件，指定<strong>ssl 证书</strong>的位置即可。</p>
+<ul>
+<li><code>/usr/share/acme/</code>就是我们上一步所映射出来的路径</li>
+<li><code>fullchain.cer</code>就是我们申请到的泛域名证书</li>
+</ul>
+<pre><code class="language-conf">server {
+	# 配置 ssl 证书
+	ssl_certificate   /usr/share/acme/fullchain.cer;
+	ssl_certificate_key  /usr/share/acme/kaisir.cn.key;
+}
+</code></pre>
+<h2>实现效果</h2>
+<p>最后，我们重启 nginx ，通过浏览器访问网站就能看到证书信息了🤗</p>
+<p><img alt="image-20240620230554443" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/b9fbea43a29a4ad49e93ee7fcb040f04%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=HAY3F%2FWobmSFMUehPKDer2EmVv8%3D" /></p>
+<ul>
+<li>访问子域名的服务也是正常的</li>
+</ul>
+<p><img alt="image-20240620232129698" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/d1040fcf3ba346af8e4790b1f8b0911a%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=R0VQx5QWtM1bXUHPxGIUn8JUM08%3D" /></p>
+<ul>
+<li>证书详情如下所示</li>
+</ul>
+<p><img alt="image-20240620232154469" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/d2da2caf9b914a6da19bb5e5d056c254%7Etplv-73owjymdk6-watermark.image?policy=eyJ2bSI6MywidWlkIjoiMzk4NDI4NTg3MDg1OTYxNCJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1721834971&amp;x-orig-sign=jP8dbETFsCAVUq00eBWJjlW2LUs%3D" /></p>
+<h2>写在最后</h2>
+<p>至此，文章就分享完毕了。</p>
+<p>我是<strong>神奇的程序员</strong>，一位前端开发工程师。</p>
+<p>如果你对我感兴趣，请移步我的<a href="https://www.kaisir.cn/" rel="nofollow">个人网站</a>，进一步了解。</p>
+<ul>
+<li>文中如有错误，欢迎在评论区指正，如果这篇文章帮到了你，欢迎点赞和关注😊</li>
+<li>本文首发于<a href="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8b7566ab57814aad861b378882c1ee58%7Etplv-k3u1fbpfcp-watermark.image" rel="nofollow">神奇的程序员</a>公众号，未经许可禁止转载💌</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-07-17T15:31:36Z</pubDate>
+<pubDate>2024-07-17T16:07:57Z</pubDate>
+</item>
+<item>
+<title>[iOS] iOS 18 Public Beta 1 相比于 Dev Beta 3 有何区别</title>
+<link>https://www.v2ex.com/t/1058115</link>
+<guid>https://www.v2ex.com/t/1058115</guid>
+<content:encoded><![CDATA[
+
+<p>现在正在使用<strong>iOS 18 Developer Beta 3</strong>，想问下有没有人<strong>从 Dev Beta 3 切换至 Public Beta 1</strong>的</p>
+<p>能说下相较于 DevBeta ，Public Beta 有没有功能的缺失，有没有新修复的 bug 或新增的 bug ？</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:25:13Z</pubDate>
+<pubDate>2024-07-17T16:07:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 微软的 Office 365 Outlook 比免费版 Outlook 多了哪些安全功能？</title>
+<link>https://www.v2ex.com/t/1058114</link>
+<guid>https://www.v2ex.com/t/1058114</guid>
+<content:encoded><![CDATA[
+
+<p>不懂就问，感谢解答</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:22:19Z</pubDate>
+<pubDate>2024-07-17T11:22:19Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 帮一位 v 友的出海网站开通了海外支付</title>
+<link>https://www.v2ex.com/t/1058113</link>
+<guid>https://www.v2ex.com/t/1058113</guid>
+<content:encoded><![CDATA[
+
+<p>刚帮一位 v 友 <a href="https://www.v2ex.com/member/bilulanlv" rel="nofollow">@bilulanlv</a> 的产品开通了 stripe 海外支付。 </p>
+<p>大家如果有出海业挣美刀的想法的，可以了解一下 <a href="https://batchfy.com/chuhai" rel="nofollow">https://batchfy.com/chuhai</a> 🫡</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:20:28Z</pubDate>
+<pubDate>2024-07-17T15:17:28Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 新做的站，小报童精选专栏 bestxiaobaotong.com</title>
+<link>https://www.v2ex.com/t/1058112</link>
+<guid>https://www.v2ex.com/t/1058112</guid>
+<content:encoded><![CDATA[
+
+<p>##1 、网站功能
+小报童是集合了很多的付费专栏的网站，我手工选了小报童上订阅数大于 1000 的专栏，然后汇聚在一起做成这个网站，按照订阅数从大到小的顺序展示。</p>
+<p>##2 、网站网址
+<a href="http://bestxiaobaotong.com" rel="nofollow">bestxiaobaotong.com</a></p>
+<p>##3 、根据每个专栏的介绍可以跳转到小报童去订阅感兴趣的专栏。</p>
+<p>##4 、不足之处。现在找到 21 个订阅数大于 1000 的专栏，不会爬虫，不知道怎么批量爬取数据，手动找比较费时间。后期再继续增加专栏。不知道怎么动态加载数据，现在是一个个加在静态文件的。</p>
+<p>##5 、欢迎大家访问，欢迎提意见，感谢 V2EX 提供的平台，感谢你花费宝贵的时间看到这里，祝开心！</p>
+]]></content:encoded>
+<pubDate>2024-07-17T15:06:25Z</pubDate>
+<pubDate>2024-07-17T15:03:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 192.168.0.116 上的虚拟机的地址居然是 10.0.2.15，虚拟机能 ping 通主机，主机 ping 不到虚拟机，咋回事儿啊</title>
+<link>https://www.v2ex.com/t/1058110</link>
+<guid>https://www.v2ex.com/t/1058110</guid>
+<content:encoded><![CDATA[
+
+SSH 到虚拟机也不可以。<br /><br />虚拟机创建的时候我根本没动网卡这边的选项。<br /><br />七月前我创建虚拟机，弄到的 IP 地址和 SSH 都还正常，最大的网络变化是我宽带七月一号到期后，路由器改成中继模式中继室友的 WIFI ，而非路由器拨号。但为啥会导致光猫 DHCP 分配 A 类局域网地址给我机子上的虚拟机？我不理解。。<br /><br />虚拟机中 ping <a href="http://baidu.com" rel="nofollow noopener" target="_blank">baidu.com</a> 正常。<br /><br />谢谢任何帮助。。
+]]></content:encoded>
+<pubDate>2024-07-17T14:44:14Z</pubDate>
+<pubDate>2024-07-17T15:18:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] zlib searcher 上的地址很多都下载不了</title>
+<link>https://www.v2ex.com/t/1058109</link>
+<guid>https://www.v2ex.com/t/1058109</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/zlib-searcher/zlib-searcher" rel="nofollow">https://github.com/zlib-searcher/zlib-searcher</a></p>
+<p>有没有好的办法更新呀？</p>
+]]></content:encoded>
+<pubDate>2024-07-17T14:38:42Z</pubDate>
+<pubDate>2024-07-17T15:21:42Z</pubDate>
+</item>
+<item>
+<title>[分享创造] Live Portrait Web App</title>
+<link>https://www.v2ex.com/t/1058108</link>
+<guid>https://www.v2ex.com/t/1058108</guid>
+<content:encoded><![CDATA[
+
+<p>基于最近快手开源的 LivePortrait 技术，开发了一款<a href="https://liveportrait.app/" rel="nofollow">Live Portrait Web App</a>，用于将静态肖像图像转换为动态肖像。适用于各种肖像类型,包括真实照片、动画风格和艺术肖像。</p>
+<p>主要特点:</p>
+<ul>
+<li>高质量生成: 将静态图像转化为栩栩如生的动态肖像。</li>
+<li>精确控制: 调整眼睛和嘴唇动作,为动态肖像创造自然逼真的表情。</li>
+<li>多样风格支持: 可从真实照片、动画风格和艺术肖像创建动态肖像。</li>
+<li>自定义动画: 利用预设模板或自定义视频驱动独特的动态肖像动作。</li>
+<li>高效处理: 根据输入和系统负载,在数秒到数分钟内生成动态肖像。</li>
+</ul>
+<p>此外，Live Portrait App 中提供一些相关的肖像和照片增强工具:</p>
+<ul>
+<li>图像修复: 在创建动态肖像前恢复老旧或受损的照片。</li>
+<li>图像上色: 将黑白图像转换为色彩鲜艳的照片,用于动态肖像创作。</li>
+<li>图像放大: 提高低质量图像的分辨率,以增强动态肖像质量。</li>
+<li>多种风格转换: 创建 3D 渲染、表情符号、像素肖像。</li>
+<li>专业滤镜: 应用粘土或 PS2 风格效果。</li>
+</ul>
+<p>希望可以让更多人简单上手，制作好玩实用的动态肖像，欢迎试用 :)</p>
+]]></content:encoded>
+<pubDate>2024-07-17T14:37:24Z</pubDate>
+<pubDate>2024-07-17T14:35:24Z</pubDate>
+</item>
+<item>
+<title>[Next.js] Nextjs 写的第一个站点， 还是个出海站， UI 怎样才能看起来高大尚？</title>
+<link>https://www.v2ex.com/t/1058107</link>
+<guid>https://www.v2ex.com/t/1058107</guid>
+<content:encoded><![CDATA[
+
+<p>之前玩的 ruby and rails ，现在发现 nextjs 更合适现状。</p>
+<p>不过前端骚操作还是需要点功力，复杂点交互还是有点吃力。</p>
+<p>UI 排版总是觉得细节不是很到位。</p>
+<p>下面是练手的工具站</p>
+<p><a href="https://www.serpchecking.com" rel="nofollow">https://www.serpchecking.com</a></p>
+]]></content:encoded>
+<pubDate>2024-07-17T14:35:44Z</pubDate>
+<pubDate>2024-07-17T14:32:44Z</pubDate>
+</item>
+<item>
+<title>[V2EX] V2EX 怎么突然挂了?</title>
+<link>https://www.v2ex.com/t/1058106</link>
+<guid>https://www.v2ex.com/t/1058106</guid>
+<content:encoded><![CDATA[
+
+<p>今天 7 点 47 就上不去了,現在才恢復,是不是被 DDos 了?
+<img alt="-2024-07-17-7.48.44.png" class="embedded_image" rel="noreferrer" src="https://imageb.net/images/2024/07/17/-2024-07-17-7.48.44.png" /></p>
+<p><img alt="-2024-07-17-7.49.49.png" class="embedded_image" rel="noreferrer" src="https://imageb.net/images/2024/07/17/-2024-07-17-7.49.49.png" /></p>
+]]></content:encoded>
+<pubDate>2024-07-17T14:32:15Z</pubDate>
+<pubDate>2024-07-17T02:31:15Z</pubDate>
+</item>
+<item>
+<title>[V2EX] v2ex 刚才挂了吗？</title>
+<link>https://www.v2ex.com/t/1058105</link>
+<guid>https://www.v2ex.com/t/1058105</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-07-17T14:30:58Z</pubDate>
+<pubDate>2024-07-17T15:12:22Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 北京 AI 公司招前端、算法（实习 ｜ 社招）</title>
+<link>https://www.v2ex.com/t/1058104</link>
+<guid>https://www.v2ex.com/t/1058104</guid>
+<content:encoded><![CDATA[
+
+职位 1 前端开发工程师<br />职位描述<br />1.参与开创性的 AI for Science 项目，参与深势科技 Web 前端研发工作，用技术推动科学前沿；<br />2.协助 PM 完善产品需求，参与制定技术实现方案，实现 AI 与尖端科研的融合；<br />3.在跨学科精英团队中，激发创新潜能，拓展技术边界。<br />职位要求<br />1.本科及以上学历，生化环材等相关专业（不要求 CS 专业），3 年左右工作经验；<br />2.熟悉 JavaScript/TypeScript 、HTML5 、CSS3 ，具备扎实的前端基础；<br />3.有 React/Vue 框架实践经验，熟悉 React 者优先；<br />4.有良好的分析、总结能力，能够有效识别痛点并找到的解决方案；<br />加分项：<br />● 有大型 Canvas 可视化项目开发经验<br />● 有机器学习经验；<br />● 有知名开源库开发贡献维护经验；<br />● 有大厂实习或工作经验；<br />● 全栈开发经验，熟悉 python 更佳<br />● 有 ACM 或其他知名竞赛获奖经验。<br /><br />职位 2 算法研究员<br />职位描述<br />作为 AI for Science 创新算法研究员，您将与团队的其他研究者与工程师合作，利用包括人工智能、分子模拟在内的计算方法，研究新药研发、生物大分子计算、生物信息、材料设计、计算化学等广泛科学领域内的前沿问题，并为相应的学术与工业场景提供新的解决方案。深势科技持续关注创新算法的应用落地，您的研究成果不仅将产生高水平学术论文，还将通过深势科技药物设计平台等方式，为革新相应领域的研究与生产范式做出直接的贡献。<br />岗位职责：<br /><br />深入认识和拆解相应领域的研究现状和真实需求，明确可行的研究问题；<br />提出针对性的解决方案并编程验证；<br />以论文、技术报告或开源代码形式汇总成果。<br />职位要求<br />责任心强，对研究前沿问题具有热情，渴望探索与做出突破；<br />相关理工科专业本科及以上学历毕业，包含但不限于应用数学、计算机、人工智能、物理、计算化学、材料化学、生命科学等；<br />熟悉包括人工智能、分子模拟、新药研发、生物大分子计算、生物信息、材料设计、计算化学等在内的一个或多个领域的最新前沿进展；<br />具有一定编程能力，熟练使用以 Python 为代表的编程语言；<br />能将关键问题汇总精练，对简单问题有独立解决的能力。<br />加分项：在相关领域发表过高质量学术论文者优先。<br /><br /><br />base：北京<br /><br />DP Technology 社招内推码: DPQE6QT<br />有意向者可投递简历至邮箱 jinpeng@dp.tech<br />投递链接: <a href="https://dptechnology.jobs.feishu.cn/s/iMFqHc5r" rel="nofollow noopener" target="_blank">https://dptechnology.jobs.feishu.cn/s/iMFqHc5r</a>
+]]></content:encoded>
+<pubDate>2024-07-17T14:26:38Z</pubDate>
+<pubDate>2024-07-17T14:23:38Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 上海 web3 公司招聘前端</title>
+<link>https://www.v2ex.com/t/1058102</link>
+<guid>https://www.v2ex.com/t/1058102</guid>
+<content:encoded><![CDATA[
+
+<h3>前端开发者</h3>
+<p>**工作地点：上海</p>
+<p><strong>工作类型：</strong> 全职</p>
+<p><strong>主要职责：</strong></p>
+<ul>
+<li>为平台开发响应式的网页和移动界面。</li>
+<li>与后端开发人员合作，将前端界面与后端服务集成。</li>
+<li>确保应用程序的性能、质量和响应速度。</li>
+<li>编写干净、可维护且高效的代码。</li>
+<li>参与代码审查，并提供建设性的反馈以保持高质量代码标准。</li>
+<li>排除和调试与前端相关的问题。</li>
+<li>及时跟踪前端技术和最佳实践的最新发展。</li>
+</ul>
+<p><strong>要求：</strong></p>
+<ul>
+<li>本科学校计算机科学、工程或相关领域的学士学位。</li>
+<li>拥有前端开发者或类似职位的经验。</li>
+<li>熟练掌握 JavaScript 、React.js 和 React Native 。</li>
+<li>具有网页和移动应用程序开发经验。</li>
+<li>深刻理解 UI/UX 原则。</li>
+<li>能够在快节奏、协作的环境中高效工作。</li>
+<li>英语和中文的良好沟通能力。</li>
+</ul>
+<p><strong>优先条件：</strong></p>
+<ul>
+<li>具有其他前端框架和库的经验。</li>
+<li>熟悉区块链和 DeFi 技术。</li>
+<li>学校期间有算法/数学相关竞赛经验</li>
+<li>了解设计工具，如 Sketch 、Figma 或 Adobe XD 。</li>
+</ul>
+<p>有想法可以发送简历到 <a href="mailto:symsyn1@hotmail.com">symsyn1@hotmail.com</a></p>
+]]></content:encoded>
+<pubDate>2024-07-17T11:38:22Z</pubDate>
+<pubDate>2024-07-17T11:35:22Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 滇西小哥的视频里所描绘的农村生活真实吗？</title>
+<link>https://www.v2ex.com/t/1058100</link>
+<guid>https://www.v2ex.com/t/1058100</guid>
+<content:encoded><![CDATA[
+
+有在农村待过的朋友吗？很好奇，视频里的生活好安逸，周围环境很美...
+]]></content:encoded>
+<pubDate>2024-07-17T11:23:11Z</pubDate>
+<pubDate>2024-07-16T19:23:11Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请问一下，服务器虚拟化出来的小 KVM 服务器，如何防止别人滥用？</title>
+<link>https://www.v2ex.com/t/1058099</link>
+<guid>https://www.v2ex.com/t/1058099</guid>
+<content:encoded><![CDATA[
+
+<p>请问一下，服务器虚拟化出来的小 KVM 服务器，如何防止别人滥用？</p>
+<p>感谢 🙏</p>
+]]></content:encoded>
+<pubDate>2024-07-17T11:02:53Z</pubDate>
+<pubDate>2024-07-17T15:25:42Z</pubDate>
+</item>
+<item>
+<title>[生活] 居民医保不能报销拔牙费用 哎</title>
+<link>https://www.v2ex.com/t/1058098</link>
+<guid>https://www.v2ex.com/t/1058098</guid>
+<content:encoded><![CDATA[
+
+<p>一颗智齿小一千块 真的难顶</p>
+]]></content:encoded>
+<pubDate>2024-07-17T10:56:22Z</pubDate>
+<pubDate>2024-07-17T11:42:07Z</pubDate>
+</item>
+<item>
+<title>[云修电脑] gwang.top：一键官网查询。</title>
+<link>https://www.v2ex.com/t/1058096</link>
+<guid>https://www.v2ex.com/t/1058096</guid>
+<content:encoded><![CDATA[
+
+<p>我做了一个工具，欢迎大家提意见。</p>
+<blockquote>
+<p>原文地址：<a href="https://itxiaozhang.com/one-click-official-site-query/" rel="nofollow">https://itxiaozhang.com/one-click-official-site-query/</a><br />
+本文配合视频食用效果最佳，视频教程在文章末尾。  </p>
+</blockquote>
+<h2>简介</h2>
+<p><a href="https://gwang.top/" rel="nofollow">gwang.top</a> 是一个小章做的在线查询工具，可以快速找到各种官网，例如软件、学校、组织等等。</p>
+<h2>使用方法</h2>
+<ol>
+<li><strong>访问网站</strong>：打开浏览器，地址栏输入<code>gwang.top</code>。</li>
+<li><strong>输入关键词</strong>：在搜索框中输入软件名称、机构名或公司名。</li>
+<li><strong>获取结果</strong>：点击查询按钮，gwang.top 将展示目标官方网站的链接。</li>
+<li><strong>直接访问</strong>：点击链接，直达官方网站。</li>
+</ol>
+<h1>视频教程</h1>
+<ul>
+<li><a href="https://www.bilibili.com/video/BV13f421q7BG" rel="nofollow">哔哩哔哩</a></li>
+<li><a href="https://www.ixigua.com/7392546337554465315" rel="nofollow">西瓜视频</a></li>
+</ul>
+<hr />
+<p>▶ 可以在<a href="https://itxiaozhang.com/about/" rel="nofollow">关于</a>或者<a href="https://itxiaozhang.com/about-computer-repair-services-with-me/" rel="nofollow">这篇文章</a>找到我的联系方式。<br />
+▶ 本网站的部分内容可能来源于网络，仅供大家学习与参考，如有侵权请联系我核实删除。<br />
+▶ <strong>我是小章，目前全职提供电脑维修和 IT 咨询服务。如果您有任何电脑相关的问题，都可以问我噢。</strong></p>
+]]></content:encoded>
+<pubDate>2024-07-17T10:39:01Z</pubDate>
+<pubDate>2024-07-17T10:49:35Z</pubDate>
+</item>
+<item>
+<title>[游戏] 中国北方玩 faceit 延迟高有办法解决吗？</title>
+<link>https://www.v2ex.com/t/1058094</link>
+<guid>https://www.v2ex.com/t/1058094</guid>
+<content:encoded><![CDATA[
+
+<p>目前，即使开加速器 ping 也在 80+，正好能感知不对劲  </p>
+<p>我知道最大的问题是物理距离，但是还是想问问有没有其他的优化方案</p>
+]]></content:encoded>
+<pubDate>2024-07-17T10:33:09Z</pubDate>
+<pubDate>2024-07-17T11:05:30Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 用户贡献的“加速”站</title>
+<link>https://www.v2ex.com/t/1058093</link>
+<guid>https://www.v2ex.com/t/1058093</guid>
+<content:encoded><![CDATA[
+
+<p>各个镜像加速站，基本都是站点方尽可能提供全面的“资源”，然后通过 <a href="http://mirrors.xxx.com" rel="nofollow">mirrors.xxx.com</a> 访问，或前端资源 <a href="http://cdn.xx.com" rel="nofollow">cdn.xx.com</a> 访问。</p>
+<p>大厂提供的还好，小厂提供的安全性其实很难有保障，存在一个信任问题。</p>
+<p>是否可搭建一个公开的、用户可监督的镜像站？</p>
+<p>需要加速什么资源，直接提 pr ，合并后开始加速？</p>
+<p>所有被加速的资源都是公开的，可被监督的。</p>
+]]></content:encoded>
+<pubDate>2024-07-17T10:31:06Z</pubDate>
+<pubDate>2024-07-17T16:15:05Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 作为一个技术人，资质一般，怎么面对自己？</title>
+<link>https://www.v2ex.com/t/1058092</link>
+<guid>https://www.v2ex.com/t/1058092</guid>
+<content:encoded><![CDATA[
+
+Java 老兵，最近找工作，<br />面小厂基本吊打面试官，<br />但是遇到中大厂就很难受，面完挫败感很强，问的太细了，还有些业务场景也没遇到过，答不上来，<br />学校渣本，工作上只有 crud ，没去过大厂，没做过高并发项目，智商略低于平均水平，种种迹象表明本人资质一般，<br />奈何一直有个大神梦想，却达不到大神的水平，<br />挫败感很强，<br />v 友们，应该怎么面对这一现实？
+]]></content:encoded>
+<pubDate>2024-07-17T10:26:04Z</pubDate>
+<pubDate>2024-07-17T14:41:01Z</pubDate>
+</item>
+<item>
+<title>[程序员] 线上服务 redis 查询超时排查求教</title>
+<link>https://www.v2ex.com/t/1058091</link>
+<guid>https://www.v2ex.com/t/1058091</guid>
+<content:encoded><![CDATA[
+
+<p>一年前给某单位做了个门户类的服务，SpringBoot 项目，单节点 redis 、mysql
+当时就是几个人瞎写，堆成一堆屎山，现在不知道为什么几乎每隔一两周 redis 都会查询超时，服务报错：
+java.lang.RuntimeException: org.springframework.dao.QueryTimeoutException: Redis command timed out; nested exception is io.lettuce.core.RedisCommandTimeoutException: Command timed out after 10 second(s)
+稍微有点头绪的话就是有个功能会往 redis 里存大量的数据，使用的是 map ，并且取的频率还是挺高的，但是不知道该怎么确定就是这个错，没法找到证据
+线上排错这方面自己也没经验，请问应该怎么入手</p>
+]]></content:encoded>
+<pubDate>2024-07-17T10:25:58Z</pubDate>
+<pubDate>2024-07-17T11:08:52Z</pubDate>
+</item>
+<item>
+<title>[Firefox Addon] Whistle-Switcher 快捷切换 Whistle 规则插件</title>
+<link>https://www.v2ex.com/t/1030651</link>
+<guid>https://www.v2ex.com/t/1030651</guid>
+<content:encoded><![CDATA[
+
+<h2>什么是 Whistle</h2>
+<p><a href="https://github.com/avwo/whistle" rel="nofollow">whistle</a>(读音[ˈwɪsəl]，拼音[wēisǒu])基于 Node 实现的跨平台 web 调试代理工具，类似的工具有 Windows 平台上的<a href="http://www.telerik.com/fiddler/" rel="nofollow">Fiddler</a>，主要用于查看、修改 HTTP 、HTTPS 、Websocket 的请求、响应。</p>
+<h2>面向人群</h2>
+<ol>
+<li>终端开发</li>
+<li>软件测试</li>
+</ol>
+<h2>背景</h2>
+<p>之前了解到 Chrome 下原来有一个 whistle 的快速切换插件可以用，但是搜了一下发现 Firefox 还没有，因此想要自己动手改造一个可以给 Firefox 使用的快速切换插件，提高工作效率。</p>
+<h2>功能</h2>
+<ol>
+<li>快捷切换浏览器代理</li>
+<li>
+规则管理<ol>
+<li>单一规则开关</li>
+<li>规则分组展示</li>
+</ol>
+</li>
+<li>黑名单设置</li>
+<li>
+状态设置<ol>
+<li>多规则开关</li>
+<li>切换规则后自动刷新</li>
+<li>展示代理地址和代理端口</li>
+<li>快捷跳转 whistle 管理页面</li>
+</ol>
+</li>
+<li>
+状态展示<ol>
+<li>是否启用代理</li>
+<li>启用代理规则数量</li>
+</ol>
+</li>
+</ol>
+<h2>截图</h2>
+<table>
+<thead>
+<tr>
+<th>规则管理</th>
+<th>黑名单设置</th>
+<th>状态设置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="规则管理" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/7M0JYeB0l.png" /></td>
+<td><img alt="黑名单设置" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/9X5gRtgDl.png" /></td>
+<td><img alt="状态设置" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/LD372Ec5l.png" /></td>
+</tr>
+</tbody></table><h2>下载地址</h2>
+<blockquote>
+<p>为了安全考量，直接使用 Firefox 的拓展商店安装即可。</p>
+</blockquote>
+<p><a href="https://addons.mozilla.org/zh-CN/firefox/addon/whistle-switcher/" rel="nofollow"><img alt="Mozilla Add-on Version" class="embedded_image" rel="noreferrer" src="https://img.shields.io/amo/v/whistle-switcher" /></a></p>
+<h2>联系方式</h2>
+<blockquote>
+<p>如果有使用问题，可以优先通过邮箱和 Firefox 评论区提交问题，正常情况下在一个工作日内就会回复。（公共假期不定期回复）</p>
+</blockquote>
+<ul>
+<li>Email：<a href="mailto:gz7gugu@qq.com">gz7gugu@qq.com</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-04-08T08:18:41Z</pubDate>
+<pubDate>2024-07-17T11:16:04Z</pubDate>
+</item>
+<item>
+<title>体验了 200 款 AI 导航站感到失望后，我自己做了一款 AI 应用的搜索引擎</title>
+<link>https://www.v2ex.com/t/1056799</link>
+<guid>https://www.v2ex.com/t/1056799</guid>
+<content:encoded><![CDATA[
+
+<h1>体验了 200 款 AI 导航站感到失望后，我自己做了一款 AI 应用的搜索引擎</h1>
+<p>加了不少 AI 社群，经常在群里看到一些群友问，想实现某个功能，大家有没有好用的 AI 应用推荐。多数情况，群主或者热情群友都会人工推荐。人工推荐的准确度和质量无疑很高，但效率却较低。如何用一个产品来解决这个需求，是我一直思考的问题。</p>
+<p>AI 工具导航站是试图解决这个问题的最常见方案。在 5 个多月前，我把市面上几乎所有的 AI 导航站都调研了一遍，并且做了一个小网站把他们列了出来（当时的故事参考：<a href="https://web.okjike.com/repost/65b09ff437f7165b21db3369" rel="nofollow">https://web.okjike.com/repost/65b09ff437f7165b21db3369</a>）。虽然已经有 200 多个 AI 导航站了，但我发现在满足“帮人找 AI 应用”这个需求方面，都还不太理想。</p>
+<p>显然解决这个问题最有效的方式是搜索（或者进阶一点用 AI 问答等创新形态），但绝大多数导航站把产品的重点放在了应用的罗列和呈现上，让用户手动去找，这无法高效满足长尾需求。</p>
+<p>对于有搜索功能的导航站来说，也存在各种问题：要么搜出来的结果太少，虽然有点相关，但无法满足其他额外要求（如收费低）；要么搜出来的结果很多，但根本不相关。要么只能匹配关键词，无法理解语义；要么能理解语义，但精确匹配的结果反而排在了后面。就算上面问题都做的不错的，也存在搜索耗时太久、结果页广告太多等等问题。</p>
+<p>反正按我标准来看，没一个好用的。</p>
+<p>所以我决定自己做一个“AI 应用的搜索引擎”，不为在已有 200 个导航站情况下重复造轮子，只为能在这个垂直场景下，能将搜索体验做到极致。希望大家想找 AI 应用的时候，能第一时间想到我的产品。</p>
+<p>经过大概 5 个多月的努力，我终于开发出了 MVP 版本，地址在：<a href="https://askaitools.ai/" rel="nofollow">https://askaitools.ai/</a> 。（关注过我之前动态的朋友可能会发现，地址还在原来导航站列表的地址上，但是内容更新了。另外旧的内容换到了子目录下：<a href="https://askaitools.ai/directories" rel="nofollow">https://askaitools.ai/directories</a>  ）</p>
+<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/Desktop-light.png" /></a></p>
+<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/Desktop-dark.png" /></a></p>
+<p>在做独立开发者之前，我在某厂做搜索算法工程师。从专业的角度来看，这版做得还很简陋，在前司中积累的 1 万种雕花技巧，都还没用上。也还没达到我上面讲的目标，希望大家能耐心等我后续的优化。</p>
+<p>不过横向和现有的导航站相比，搜索体验做到了前 5 应该是能保证的。<strong>目前的特点包括：</strong></p>
+<ol>
+<li><strong>应用收录数量达 1 万款，超过市面上 95%的 AI 导航站</strong></li>
+<li><strong>结合了关键词搜索和语义搜索，比传统的关键词搜索或只用向量搜索的结果更全面</strong></li>
+<li><strong>每个结果都展示了月访问量、停留时长、互动率等指标，辅助用户决策</strong></li>
+<li><strong>排序时同时考虑了相关性和月访问量数据，兼顾了相关性和应用质量</strong></li>
+<li><strong>作为 MVP ，只有搜索这一个核心功能，页面极为简洁，无广告</strong></li>
+</ol>
+<p>目前的<strong>限制</strong>是：暂时先做的英文搜索，用中文搜的话，效果会差一些。（可以用沉浸式翻译插件，在输入中文后，快速按 3 下空格，将中文翻译为英文，然后搜索）</p>
+<p>顺便说一句，项目核心的搜索功能和前端<strong>代码已经开源</strong>，在<a href="https://github.com/askaitools/askaitools-community-edition" rel="nofollow">https://github.com/askaitools/askaitools-community-edition</a>，欢迎 star 。关于开源和技术相关的话题，我后面会再开一帖和大家分享，敬请期待。</p>
+<p>最后再重复一下地址：<a href="https://askaitools.ai/" rel="nofollow">https://askaitools.ai/</a> ，欢迎大家体验、提出反馈建议！</p>
+<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/Mobile.jpg" /></a></p>
+]]></content:encoded>
+<pubDate>2024-07-12T03:32:22Z</pubDate>
+<pubDate>2024-07-15T02:53:58Z</pubDate>
+</item>
+<item>
+<title>供应链投毒后，我们的选择还剩下哪些？</title>
+<link>https://www.v2ex.com/t/1056428</link>
+<guid>https://www.v2ex.com/t/1056428</guid>
+<content:encoded><![CDATA[
+
+<h3>前言</h3>
+<p>从早前的 LNMP 、OneinStack 到 XZ Utils ，再到现在的 Staticfile 、BootCDN ；供应链攻击总是让人猝不及防。纵观这些被攻击的项目，往往都是无处不在，经常被大家所使用，但是却并没有给提供者带来什么收入。
+在突然有一天，提供者感到疲惫不堪，却又迫于用户们的压力无法关停服务的情况下，突然有新的组织/个人来帮助一起进行开发或提供服务，甚至是直接的现金收购/服务赞助；在这种情况下，接受帮助自然是首选的方案。
+我认为建立有效的捐助途径不失为缓解这一问题的良方，正如 AlmaLinux 、RockyLinux 或是 cdnjs 、jsdelivr 一样，这些服务背后都有着可靠的企业长期提供捐助承诺，也帮助项目不断成长和有效地提供服务。</p>
+<h3>序幕</h3>
+<p>和 WDCP 、LNMP 、OneinStack 一样，这次的 Staticfile 、BootCDN 、Polyfill 事件也是背后指向同一个组织[[1]]。更进一步的研究表明这些组织似乎会恶意攻击其他提供类似服务的供应商，同时采取接触洽谈来并入攻击目标。
+在这种做法下，曾经由七牛云提供服务的<a href="http://Staticfile.org" rel="nofollow" title="Staticfile.org">Staticfile.org</a>被易手，而原先由个人提供服务、由又拍云提供接入服务的<a href="https://www.bootcss.com/" rel="nofollow" title="BootCSS">BootCSS</a>也同样被易手。
+但是这些背后的交易在事件发生前却没有人进行公开，也许是原来的提供者厌倦了日复一日付出却看不到回报的生活，也许是这些组织瞒天过海许下了虚假的承诺，让原本积累了大量用户的基础服务成为了这些组织用来攻击用户们的利刃。</p>
+<h3>探究</h3>
+<p>大多数关于这次攻击的报道集中于一个星期之前，然而事件的开始却远早于这个时间。一年以前，V2EX 社区就有用户发文表示 BootCSS 的静态资源被投毒[2]。
+通过查阅记录可以发现，<a href="http://BootCSS.com" rel="nofollow">BootCSS.com</a> 由王赛于 2012 年底批量注册，建站初期主要提供的是 BootStrap 介绍和交流[3,4,5]。于此同时进行批量注册的还有 <a href="http://golaravel.com" rel="nofollow">golaravel.com</a> 等一系列技术栈的中文网，猜测是想使用站群方式来进行项目文档的本地化，同时积累受众用户。
+<img alt="域名批量注册备案" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1112609884.webp" />
+在 2013 年十一月初，BootStrap 中文网上线了 OpenCDN 加速服务，由又拍云赞助，提供 cdnjs 的国内镜像[6]。
+<img alt="静态资源加速服务上线" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1920556555.webp" />
+<img alt="又拍云提供赞助" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1160348877.webp" title="又拍云提供赞助" />
+也许是由于用户的增长又拍云难以承担高额的成本，又或者是又拍觉得收益无法 Cover 成本，这段关系一直持续到了 2017 年年底[7]。自此之后的一段时间，提供服务的 CDN 便开始快速变更，从白山云到京东云，最终到了 10 月份由于账单压力或是其他原因出现了大面积的服务中断[8]。
+<img alt="又拍云服务中断" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1410603159.webp" title="又拍云服务中断" />
+在恢复后，原先的服务开始由猫云提供，自此开始 BootCDN 的服务出现了一些不连续的中断事件[9]。
+<img alt="提供商变更为猫云" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/38043456.webp" title="提供商变更为猫云" />
+2019 年 3 月、10 月、2020 年 1 月陆续出现小规模的中断，尽管如此，但是在接下来的几年时间中，猫云一直为 BootCDN 提供加速服务，只是加速域名从<code><a href="http://cdn.bootcss.com" rel="nofollow">cdn.bootcss.com</a></code>更换为了<code><a href="http://cdn.bootcdn.net" rel="nofollow">cdn.bootcdn.net</a></code>；而于此同时百度静态资源公共库则彻底停止了服务。
+<img alt="百度静态资源公共库停止服务" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/3918692803.webp" title="百度静态资源公共库停止服务" />
+时间来到 2022 年，在 1 月份经历了中断后，2 月份猫云或许是基于和又拍云同样的原因停止了赞助，服务商也从此开始变更为了极兔云[10]。
+<img alt="服务商变更为极兔云" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1065401829.webp" title="服务商变更为极兔云" />
+或许是由于极兔云本身是融合 CDN 服务，与上一家同样类型的赞助商服务相冲突的原因，BootCDN 发布公告表示将下线<code><a href="http://cdn.bootcss.com" rel="nofollow">cdn.bootcss.com</a></code>域名。
+<img alt="BootCDN 公告" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/3816909016.webp" title="BootCDN 公告" />
+在此期间，jsDelivr 的备案被关停、解析被污染，从此基本断绝了在中国大陆的使用。</p>
+<h3>梦醒</h3>
+<p>2023 年 4 月份，BootCDN 的三个关联域名[<a href="http://bootcdn.net" rel="nofollow">bootcdn.net</a>,<a href="http://bootcdn.cn" rel="nofollow">bootcdn.cn</a>,<a href="http://bootcss.com" rel="nofollow">bootcss.com</a>]ICP 备案变更为<code>郑州紫田网络科技有限公司</code>，同时域名注册商也从阿里云转入腾讯云，由此揭幕了噩梦的来临[11]。
+<img alt="备案及注册商变更" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1176657452.webp" title="备案及注册商变更" />
+2023 年 6 月份，开始有用户陆续发现部分静态资源内存在投毒行为[12]。
+<img alt="用户开始发现投毒行为" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/2720012797.webp" title="用户开始发现投毒行为" />
+即便到现在，投毒行为仍在继续，大量用户反馈存在资源被投毒[13]。
+<img alt="持续的投毒行为" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/2002450129.webp" title="持续的投毒行为" />
+自此 BootCDN 这个拥有十多年历史的国内静态资源加速服务彻底沦为了攻击者的工具，恶意代码随意被嵌入无数正在使用的网站中。而由于 BootCDN 历史久远，以至于许多生产环境甚至都不知道他们曾经引入了该服务。而这样的攻击相信还会继续持续下去，直到大家渐渐意识到...又或是仍旧...</p>
+<h3>巧合</h3>
+<p>无独有偶，原本由七牛云提供服务的 Staticfile CDN 于 2023 年 10 月进行了备案信息变更和注册局转移[14]。
+<img alt="Staticfile 备案变更" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/3469569330.webp" title="Staticfile 备案变更" />
+<img alt="Staticfile 域名转移" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1910424045.webp" title="Staticfile 域名转移" />
+两个关联域名<code><a href="http://staticfile.org" rel="nofollow">staticfile.org</a></code>和<code><a href="http://staticfile.net" rel="nofollow">staticfile.net</a></code>被转入<code>河南泉磐网络科技有限公司</code>。
+而先前 BootCDN 所转入的公司名称为<code>郑州紫田网络科技有限公司</code>，两者同为河南省郑州市的相同类型公司。而先前<code>Ze-Zheng Wu</code>所发现的几个域名由统一组织控制高度符合[15]。
+通过天眼查查询可知紫田科技旗下知名的一个产品为<code><a href="http://51.La" rel="nofollow">51.La</a></code>站点统计平台。
+<img alt="紫田科技旗下产品" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1919039665.webp" title="紫田科技旗下产品" />
+通过 Bing 搜索不难发现在 2023 年集中出现大量使用该统计平台遇到劫持的案例。
+<img alt="51.La 劫持" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/742121885.webp" title="51.La 劫持" />
+通过天眼查对紫田科技股东<code>徐征</code>进行查询，发现其曾担任<code>郑州帝恩爱斯网络科技有限公司</code>法定代表人及高管，也曾担任<code>河南云打包网络科技有限公司</code>高管和股东。
+<img alt="曾任 DNS.La 法人" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1731231198.webp" title="曾任 DNS.La 法人" />
+而 Staticfile 域名持有公司<code>河南图网信息技术有限公司</code>的法人<code>申石磊</code>同时任职<code>郑州帝恩爱斯网络科技有限公司</code>法定代表人。
+<img alt="申石磊实际控制企业" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/353149248.webp" title="申石磊实际控制企业" />
+而 Staticfile 的域名注册商商中在线也与紫田科技关联的公司存在着说不清道不明的关系。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/3944715471.webp" />
+自此可以确定这两个原本由不同云厂商所赞助的静态资源加速服务已经被同一组织所控制，与上述<code>Ze-Zheng Wu</code>的调查一致。
+看似似乎这只是一个名不见经传的小公司所为，然而这只不过是挡在云层前的迷雾。
+通过查阅可以发现<code>郑州紫田网络科技有限公司</code>总经理<code>李跃磊</code>同时担任<code>河南亿恩科技股份有限公司</code>股东。</p>
+<p><img alt="李跃磊任职信息" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/2423598592.webp" title="李跃磊任职信息" />
+通过天眼查透视链可以查看到企业彼此之间的关联信息。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/1172296499.webp" />
+故事到这里似乎就结束了，然而还有收购 polyfill 服务的那家公司<code>Funnull</code>需要进行调查。通过查询域名注册和备案信息可以发现背后的公司为<code>南京妙彩文化传播有限公司</code>。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/132754244.webp" />
+这家公司的主营业务则是为博彩网站提供国内优化 CDN 服务，与上述的劫持行为不谋而合。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://www.54yt.net/usr/uploads/2024/07/2137386275.webp" /></p>
+<h3>答案</h3>
+<p>这就像一张巨大的关系网，串联起了利益链中的彼此。每一家公司都看似运营者合规可靠的服务，背后进行的确实见不得人的勾当。</p>
+<pre><code>郑州紫田网络科技有限公司
+商中在线科技股份有限公司
+河南亿恩科技股份有限公司
+南京妙彩文化传播有限公司
+河南图网信息技术有限公司
+河南云打包网络科技有限公司
+北京新网互联软件服务有限公司
+郑州帝恩爱斯网络科技有限公司
+</code></pre>
+<h3>镇痛</h3>
+<p>从来没有什么疼痛能够有效缓解，更何况是这种绝症。
+目前最为可靠的同类服务为<a href="https://cdn.bytedance.com/" rel="nofollow" title="字节跳动静态资源公共库">字节跳动静态资源公共库</a>
+你可以将以下地址进行修改</p>
+<pre><code>cdn.bootcss.com
+cdn.bootcdn.net/ajax/libs
+cdn.staticfile.net
+cdn.staticfile.org
+</code></pre>
+<p>替换为</p>
+<pre><code>//阿里云
+lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M
+//金山云
+lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M
+//白山云
+lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M
+//华为云
+lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M
+</code></pre>
+<p>或者你可以尝试其他的提供商</p>
+<pre><code>//360 奇舞团
+https://lib.baomitu.com/
+//zstatic.net 又拍云赞助
+s4.zstatic.net/ajax/libs
+//7ED
+use.sevencdn.com/ajax/libs
+//Web 缓存网
+cdnjs.webstatic.cn/ajax/libs
+//晓白云
+sf.akass.cn
+//泽瑶网络 jsDelivr 镜像
+cdn.jsdmirror.com
+</code></pre>
+<p>[1]<a href="https://www.bleepingcomputer.com/news/security/polyfillio-bootcdn-bootcss-staticfile-attack-traced-to-1-operator/" rel="nofollow">https://www.bleepingcomputer.com/news/security/polyfillio-bootcdn-bootcss-staticfile-attack-traced-to-1-operator/</a>
+[2]<a href="https://www.v2ex.com/t/950163" rel="nofollow">https://www.v2ex.com/t/950163</a>
+[3]<a href="https://web.archive.org/web/20121206014141/http://www.bootcss.com/" rel="nofollow" title="https://web.archive.org/web/20121206014141/http://www.bootcss.com/">https://web.archive.org/web/20121206014141/http://www.bootcss.com/</a>
+[4]<a href="https://ip.sb/whois/bootcss.com" rel="nofollow">https://ip.sb/whois/bootcss.com</a>
+[5]<a href="https://www.icpapi.com/%E4%BA%ACICP%E5%A4%8711008151%E5%8F%B7/" rel="nofollow">https://www.icpapi.com/%E4%BA%ACICP%E5%A4%8711008151%E5%8F%B7/</a>
+[6]<a href="https://web.archive.org/web/20131103022433/http://open.bootcss.com/" rel="nofollow" title="https://web.archive.org/web/20131103022433/http://open.bootcss.com/">https://web.archive.org/web/20131103022433/http://open.bootcss.com/</a>
+[7]<a href="https://web.archive.org/web/20171230183848/http://www.bootcdn.cn/" rel="nofollow" title="https://web.archive.org/web/20171230183848/http://www.bootcdn.cn/">https://web.archive.org/web/20171230183848/http://www.bootcdn.cn/</a>
+[8]<a href="https://global.v2ex.com/t/494375" rel="nofollow">https://global.v2ex.com/t/494375</a>
+[9]<a href="https://web.archive.org/web/20190119210705/https://www.bootcdn.cn/" rel="nofollow" title="https://web.archive.org/web/20190119210705/https://www.bootcdn.cn/">https://web.archive.org/web/20190119210705/https://www.bootcdn.cn/</a>
+[10]<a href="https://web.archive.org/web/20220208201547/https://www.bootcdn.cn/" rel="nofollow" title="https://web.archive.org/web/20220208201547/https://www.bootcdn.cn/">https://web.archive.org/web/20220208201547/https://www.bootcdn.cn/</a>
+[11]<a href="https://whoisfreaks.com/tools/whois/history/lookup/bootcss.com" rel="nofollow">https://whoisfreaks.com/tools/whois/history/lookup/bootcss.com</a>
+[12]<a href="https://www.v2ex.com/t/950163" rel="nofollow">https://www.v2ex.com/t/950163</a>
+[13]<a href="https://github.com/Tencent/vConsole/issues/683" rel="nofollow">https://github.com/Tencent/vConsole/issues/683</a>
+[14]<a href="https://www.icpapi.com/staticfile.net/" rel="nofollow">https://www.icpapi.com/staticfile.net/</a>
+[15]<a href="https://x.com/mdmck10/status/1806349965733544160" rel="nofollow">https://x.com/mdmck10/status/1806349965733544160</a></p>
+]]></content:encoded>
+<pubDate>2024-07-11T00:50:22Z</pubDate>
+<pubDate>2024-07-17T16:08:54Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 能不能推荐个三模机械键盘？</title>
 <link>https://www.v2ex.com/t/1058090</link>
 <guid>https://www.v2ex.com/t/1058090</guid>
 <content:encoded><![CDATA[
-
 桌子上线有点多，挺烦人的<br /><br />很久以前用过罗技的 2.4g 无线键盘，有时候打字都卡，换成有线键盘很多年了，<br /><br />不知道现在进化成什么样了，无线键盘还会突发性卡住么？<br /><br />要求不太高，希望能控制在 500 以内吧，必须有背光，最好有小键盘，有多媒体键
 ]]></content:encoded>
-<pubDate>2024-07-17T10:22:08Z</pubDate>
 <pubDate>2024-07-17T10:21:08Z</pubDate>
 </item>
 <item>
@@ -20,10 +1072,8 @@
 <link>https://www.v2ex.com/t/1058089</link>
 <guid>https://www.v2ex.com/t/1058089</guid>
 <content:encoded><![CDATA[
-
 背景：2023 年 3 月入职，口头约定了工资与发薪日，第一天上班时我询问是否需要办理什么手续，被答复不用，且没有签署书面劳动合同以及任何与劳动内容相关的文件，也没有被宣贯诸如员工守则之类的规程；<br />工资是财务自己名义开立的个人银行卡汇款，非公司公账发放；<br />同年 5 月开始缴纳社保（公积金已经在亲戚公司打过招呼，不用自己出一分钱）。<br />今年 2 月到 4 月底，公司以账上没钱的理由，持续没有发放任何工资（后于劳动节假期前一天结清）； 5 月起，计薪方式由原本的固定工资改成如下：每月发放 3000 生活费（还要从这里面扣掉迟到扣款以及个人缴纳的社保费用，另外一哥们公积金全是自己上的，扣完当月就发了五百块），年底计算产出，提成金额未达到 3000 * 12 = 36000 的部分还要员工自己倒贴。<br />由于这种计算方式相当于把本人每月 2/3 左右的收入给砍了，因此 5 月还没过完我就提了离职。近期忙于找工作，准备在入职新东家前至少把材料交到仲裁席，特请经验人士指教。目前能提供的材料如下：<br />·包括工资发放记录的工资卡流水以及社保缴纳记录<br />·与财务的微信聊天记录，其中包括：日常沟通、首次以及今年一次性发放 3 个月工资的转账记录以及工资条截图（没错，上班一年多就给过两次工资条）<br />·工作期间在公司微信群以及部门自建群内的聊天记录<br />·工作成果的 CAD 文件以及外出时的照片<br />截至以上证据材料。<br />自今年 6 月 1 日起我已不在这家公司上班，请问以上材料是否能支撑本人追索补偿的请求？如若未在调解阶段解决，仲裁期间需要注意什么？本人是否需要准备其他材料加以支持请求？敬请不吝赐教。
 ]]></content:encoded>
-<pubDate>2024-07-17T10:15:59Z</pubDate>
 <pubDate>2024-07-17T10:15:59Z</pubDate>
 </item>
 <item>
@@ -31,7 +1081,6 @@
 <link>https://www.v2ex.com/t/1058088</link>
 <guid>https://www.v2ex.com/t/1058088</guid>
 <content:encoded><![CDATA[
-
 <p>前段时间在当前公司办理了离职，计划在月底或者下个月入职新公司，想让当前公司给我正常交 7 月的社保。</p>
 <p>按北京社保缴纳规定，即使这个月只上了一天班，公司也得给买社保。</p>
 <p>离职这家公司的老板说月内入职新公司的话，新公司如果不给交 7 月社保的话可以让这边给交 7 月的社保。</p>
@@ -45,7 +1094,6 @@
 <p>另：离职证明中的离职时间老板给往后开了一周，方便找工作，昨天去拿离职证明时说找工作不顺利可以回去。</p>
 <p>另：我离职后几天刚好有一波新活，老板最近在 BOSS 招人，招人应该不是很顺利，薪资像我这么低，且符合他预期的人暂时看样子是招不到的。</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T10:12:37Z</pubDate>
 <pubDate>2024-07-17T06:12:37Z</pubDate>
 </item>
 <item>
@@ -53,11 +1101,9 @@
 <link>https://www.v2ex.com/t/1058087</link>
 <guid>https://www.v2ex.com/t/1058087</guid>
 <content:encoded><![CDATA[
-
 <p>nodejs 做后端性能真的很差吗？
 比如用前后端都在 Nextjs 里写，部署到 Node20 的 docker ，4 核 8g 能否抗住 10 万 UV 同时访问?</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T10:12:22Z</pubDate>
 <pubDate>2024-07-17T10:20:49Z</pubDate>
 </item>
 <item>
@@ -65,13 +1111,11 @@
 <link>https://www.v2ex.com/t/1058086</link>
 <guid>https://www.v2ex.com/t/1058086</guid>
 <content:encoded><![CDATA[
-
 <p>我是技术小白，不过自己搭建过 rsshub 和 miniflux 用于自己阅读
 目前问题是：我有个 vps 在日本 一个 vps 是阿里云的，现在想把 rsshub 和 miniflux 分开部署，rsshub 是抓取实时内容的，然后 miniflux 进行缓存么？那就是说 我可以把 rss 部署在日本，方便抓取？然后 miniflux 部署在阿里云能缓存，方便手机和 pc 来访问？
 那一些国内没法看的新闻网站 是不是可以这样抓进来？
 求大神解惑？</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T10:11:26Z</pubDate>
 <pubDate>2024-07-17T10:11:26Z</pubDate>
 </item>
 <item>
@@ -79,7 +1123,6 @@
 <link>https://www.v2ex.com/t/1058085</link>
 <guid>https://www.v2ex.com/t/1058085</guid>
 <content:encoded><![CDATA[
-
 <p>低代码，高效而简洁；支持正则表达式，复杂的场景也能很容易提取数据。</p>
 <ul>
 <li>支持: Nodejs, TypeScript</li>
@@ -120,7 +1163,6 @@
 </code></pre>
 <p>传输门: <a href="https://github.com/serping/cheerio-tree" rel="nofollow">https://github.com/serping/cheerio-tree</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:47:26Z</pubDate>
 <pubDate>2024-07-17T09:44:26Z</pubDate>
 </item>
 <item>
@@ -128,10 +1170,8 @@
 <link>https://www.v2ex.com/t/1058084</link>
 <guid>https://www.v2ex.com/t/1058084</guid>
 <content:encoded><![CDATA[
-
 <p>如题哦，第一次办理，不熟悉，所以问问大家，感谢！</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:46:25Z</pubDate>
 <pubDate>2024-07-17T09:47:42Z</pubDate>
 </item>
 <item>
@@ -139,10 +1179,8 @@
 <link>https://www.v2ex.com/t/1058082</link>
 <guid>https://www.v2ex.com/t/1058082</guid>
 <content:encoded><![CDATA[
-
 打开 Safari ，退出立马再打开，YouTube 就需要重新登录，自从我换电脑一年多以来，Safari 一直有这个问题，试过各种办法，没有打开限制 IP 追踪，也没有开什么广告屏蔽的插件，大大小小的系统升级也好多次了，一直没有解决，Chrome 等浏览器都是正常的，Safari 其它网站也没有遇到同样的问题，不是大问题，就是老要点登录麻烦 <a href="https://i.imgur.com/Cko4ups.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Cko4ups.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:37:04Z</pubDate>
 <pubDate>2024-07-17T09:37:04Z</pubDate>
 </item>
 <item>
@@ -150,10 +1188,8 @@
 <link>https://www.v2ex.com/t/1058081</link>
 <guid>https://www.v2ex.com/t/1058081</guid>
 <content:encoded><![CDATA[
-
 合约交易风控<br /><br />岗位职责：<br />- 审核用户风险控制，提出风险应对方案，驱动用户增长。<br />- 负责用户交易行为分析和管理工作，持续迭代活动风控审核策略，并落地执行，提升策略准确性。<br />- 负责风险监控，梳理业务逻辑和风控指标，同开发搭建监控体系，及时预警并进行根因分析，覆盖活动业务风险<br />- 密切与协作部门对业务走向，提出评价，潜在风险，并给予风险提供相应改进或防范措施完善体系<br /><br />岗位要求：<br />- 2-3 年以上交易风控经验 (DEX/CEX)<br />- 熟悉 Java,matlab 或者 python 的使用<br />- 具备用户异常埋点、机器行为、刷量风险审核等相关经验者优先。<br />- 有较强的数据处理和分析能力，清晰的逻辑思维能力<br />- 具有较高的数据敏感度和逻辑分析能力，能够独立进行数据挖掘和分析<br /><br />创始团队背景：前 3 大交易所！<br /><br />创业团队，能接受目前 6 天制的同学一起打拼，盈利之后大家一块分红！<br /><br />薪资范围根据个人经验面议，早期人员配有期权分红福利。<br /><br />入围面试者，将在 5 个工作日内收到面试邀请。<br /><br />感兴趣可以通过电邮至 Goal@artemishr.xyz 附上简历，注明求职岗位。入围面试者，将在 5 个工作日内收到面试邀请。
 ]]></content:encoded>
-<pubDate>2024-07-17T09:33:14Z</pubDate>
 <pubDate>2024-07-15T09:30:14Z</pubDate>
 </item>
 <item>
@@ -161,14 +1197,12 @@
 <link>https://www.v2ex.com/t/1058080</link>
 <guid>https://www.v2ex.com/t/1058080</guid>
 <content:encoded><![CDATA[
-
 <p>tcl 50 xl nxtpaper,购买途径只有美国 cspire 公司,是搞电话卡宽带的，代购费可以谈，关税实付，具体可以交流。</p>
 <p>需要去实体商店购买，以下是商店地图。
 <a href="https://www.cspire.com/cms/wireless/coverage/#stores" rel="nofollow">https://www.cspire.com/cms/wireless/coverage/#stores</a></p>
 <p>这是购买链接，手机价格是 199 美元，买这个必须带他们的手机卡，最低一月 35 美元套餐，还收首次激活费也是无语。
 <a href="https://www.cspire.com/buy/devices/details/prod31650173/50-xl-nxtpaper-5g" rel="nofollow">https://www.cspire.com/buy/devices/details/prod31650173/50-xl-nxtpaper-5g</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:26:41Z</pubDate>
 <pubDate>2024-07-17T10:03:16Z</pubDate>
 </item>
 <item>
@@ -176,12 +1210,10 @@
 <link>https://www.v2ex.com/t/1058079</link>
 <guid>https://www.v2ex.com/t/1058079</guid>
 <content:encoded><![CDATA[
-
 <p>各位哥哥姐姐们，
 计划澳门 1 天，香港 2 天，深圳 2 天
 有避坑或者注意事项吗？</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:25:30Z</pubDate>
 <pubDate>2024-07-16T17:22:30Z</pubDate>
 </item>
 <item>
@@ -189,7 +1221,6 @@
 <link>https://www.v2ex.com/t/1058078</link>
 <guid>https://www.v2ex.com/t/1058078</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 <p>事情是这样，前段时间因为事故，走保险去 4s 店，换了一个前保险杠加喷漆。今天突然发现两边尖尖上都有点毛毛躁躁的。逐怀疑，要么是喷漆没做好，要么这个本体就不是原厂的，4s 店按原厂的价报给保险公司，给我换一个副厂的。</p>
@@ -208,7 +1239,6 @@
 <pre><code>注:车是吉利的，4s 店在官网可查
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:21:31Z</pubDate>
 <pubDate>2024-07-17T09:37:26Z</pubDate>
 </item>
 <item>
@@ -216,14 +1246,12 @@
 <link>https://www.v2ex.com/t/1058076</link>
 <guid>https://www.v2ex.com/t/1058076</guid>
 <content:encoded><![CDATA[
-
 <p>今天看到一个后端同事提交的代码。在 setup 里面获取“vue2 的 data 选项”，然后拿这个 data 数据作为“请求参数”，在 setup 里面使用这个 data 数据来请求。</p>
 <p>说来也是很奇怪，vue 文档有一部分没解释清楚的，这就是第二个问题：setup 在生命周期排在 created 前面，为啥可以在 setup 里面直接拿 setup 数据去请求？</p>
 <p>个人理解就是 setup 里面可以创建一批（在 setup 里面声明的）响应式数据 data 。“vue2 的 data”可以再创建另外一批响应式数据 data ，时机在 setup 后的且在 beforeCreate 后的。一共两批 data ，都创建在 created 之前。</p>
 <p>解释回第二个问题，“setup 在生命周期排在 created 前面，为啥可以在 setup 里面直接拿 setup 数据去请求”，就是因为 setup 里面创建一批自己的响应式数据 data ，比“vue2 的 data”早创建。所以，“vue2 的 data”还没创建，不太建议拿到 setup 中去作为“请求参数”来请求，也就是解释开始的问题。</p>
 <p>以上纯属个人的猜想，拿生命周期打印了一下还是有点懵。。。</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:15:25Z</pubDate>
 <pubDate>2024-07-17T10:04:19Z</pubDate>
 </item>
 <item>
@@ -231,7 +1259,6 @@
 <link>https://www.v2ex.com/t/1058075</link>
 <guid>https://www.v2ex.com/t/1058075</guid>
 <content:encoded><![CDATA[
-
 <p>岗位描述</p>
 <ol>
 <li>
@@ -268,7 +1295,6 @@
 <p>如果有想法，可以将简历发至 <a href="mailto:benjolter2021@gmail.com">benjolter2021@gmail.com</a></p>
 <p>公司招聘流程直接，可以尽快面试，开始工作</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:14:44Z</pubDate>
 <pubDate>2024-07-17T09:34:06Z</pubDate>
 </item>
 <item>
@@ -276,13 +1302,11 @@
 <link>https://www.v2ex.com/t/1058074</link>
 <guid>https://www.v2ex.com/t/1058074</guid>
 <content:encoded><![CDATA[
-
 <p>带岗位（就是你期望的岗位， 我帮你查 jd ），私聊哇</p>
 <p>福利待遇好</p>
 <p>感兴趣的大佬欢迎来投</p>
 <p>VX：huanghtLeon</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:13:53Z</pubDate>
 <pubDate>2024-07-17T09:12:53Z</pubDate>
 </item>
 <item>
@@ -290,10 +1314,8 @@
 <link>https://www.v2ex.com/t/1058073</link>
 <guid>https://www.v2ex.com/t/1058073</guid>
 <content:encoded><![CDATA[
-
 泰国这个新推出的 DTV 签证太牛了。作为程序员或设计工作者，完全可以去申请一个，就是去泰国玩都方便很多，180 天可以待呢，还可以手动续或 Visa Run 自动续<br /><br />看核心关键词就知道有多牛了：5 年 / 多次 / 180 天 / 可携带配偶及子女 / 10 万存款证明 / 2K 办理费用<br /><br />全球抢人大师啊，不挤占当地就业，去了旅游生活消费，带动市场，真的是高招！<br /><br /><a href="https://www.v2ex.com/i/gPQM6sLJ.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 gPQM6sLJ.png"><img class="embedded_image" src="https://i.v2ex.co/gPQM6sLJ.png" /></a><br /><br />看懂核心关键词的就不用点击查看详情了，如果还是希望了解更详细的可以查看一下。<br /><br />DTV 详细签证： <a href="https://topstip.com/thailand-digital-nomad-visa-dtv/" rel="nofollow noopener" target="_blank">https://topstip.com/thailand-digital-nomad-visa-dtv/</a>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:12:52Z</pubDate>
 <pubDate>2024-07-17T09:09:52Z</pubDate>
 </item>
 <item>
@@ -301,10 +1323,8 @@
 <link>https://www.v2ex.com/t/1058072</link>
 <guid>https://www.v2ex.com/t/1058072</guid>
 <content:encoded><![CDATA[
-
 目前正在使用 macsequoia ，发热很大，内存占用也高，降级到哪个版本比较合适。打算这个养老了，之后手头宽裕了再换新 mac 体验新特性
 ]]></content:encoded>
-<pubDate>2024-07-17T09:09:33Z</pubDate>
 <pubDate>2024-07-17T09:33:41Z</pubDate>
 </item>
 <item>
@@ -312,10 +1332,8 @@
 <link>https://www.v2ex.com/t/1058071</link>
 <guid>https://www.v2ex.com/t/1058071</guid>
 <content:encoded><![CDATA[
-
 搞了个 Midjourney API 服务平台，邀请大佬们来体验一下～<br /><br />体验地址： <a href="https://api.getaiai.com" rel="nofollow noopener" target="_blank">https://api.getaiai.com</a><br />API 接入点： <a href="https://api.getaiai.com/faq" rel="nofollow noopener" target="_blank">https://api.getaiai.com/faq</a><br /><br />注册即送$1 ，在评论区提供你的 ID 作为 V 友会额外赠送$5~<br /><br />![image.png]( <a href="https://oss.suning.com/mbap/mbapbk/78051269cc2db1c528305b97ba80731d.png?SDOSSAccessKeyId=42IA0GY51YZ1397N&amp;Expires=1721208763&amp;Signature=gExzJNl5WhJI3wGFikVJhfMxpmw%3D" rel="nofollow noopener" target="_blank">https://oss.suning.com/mbap/mbapbk/78051269cc2db1c528305b97ba80731d.png?SDOSSAccessKeyId=42IA0GY51YZ1397N&amp;Expires=1721208763&amp;Signature=gExzJNl5WhJI3wGFikVJhfMxpmw%3D</a>)
 ]]></content:encoded>
-<pubDate>2024-07-17T09:07:31Z</pubDate>
 <pubDate>2024-07-09T09:07:31Z</pubDate>
 </item>
 <item>
@@ -323,10 +1341,8 @@
 <link>https://www.v2ex.com/t/1058070</link>
 <guid>https://www.v2ex.com/t/1058070</guid>
 <content:encoded><![CDATA[
-
 比如现在有一个其他公司提供的外部 http api 服务 ext ，自己公司内部有两个服务 A 和 B 需要调用 ext ，现在我想到了两种设计来让 A 和 B 访问 ext：<br /><br />1. 配置中心分发连接 ext 的鉴权信息，A 和 B 直接集成 ext 的 sdk 进行调用<br />2. 把 ext 的 http api 反代一层，做一个类似于 API 网关的东西，模糊掉鉴权信息，然后 A 和 B 走网关去调用 ext<br /><br />大家觉得哪种方式比较好？为什么？
 ]]></content:encoded>
-<pubDate>2024-07-17T09:07:06Z</pubDate>
 <pubDate>2024-07-17T09:04:06Z</pubDate>
 </item>
 <item>
@@ -334,10 +1350,8 @@
 <link>https://www.v2ex.com/t/1058068</link>
 <guid>https://www.v2ex.com/t/1058068</guid>
 <content:encoded><![CDATA[
-
 目前有 1.2w+数据，欢迎体验~<br /><a href="http://ym114.com" rel="nofollow noopener" target="_blank">ym114.com</a><br /> 不喜勿喷哈 哥哥们~
 ]]></content:encoded>
-<pubDate>2024-07-17T09:02:26Z</pubDate>
 <pubDate>2024-07-17T08:59:26Z</pubDate>
 </item>
 <item>
@@ -345,10 +1359,8 @@
 <link>https://www.v2ex.com/t/1058067</link>
 <guid>https://www.v2ex.com/t/1058067</guid>
 <content:encoded><![CDATA[
-
 <p>美服账号更新 whatsapp ，显示不再提供，已从 app store 移除。港服也有同样问题，是 whatsapp 的问题，还是发生了什么事……？</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T09:02:22Z</pubDate>
 <pubDate>2024-07-17T09:38:24Z</pubDate>
 </item>
 <item>
@@ -356,7 +1368,6 @@
 <link>https://www.v2ex.com/t/1058066</link>
 <guid>https://www.v2ex.com/t/1058066</guid>
 <content:encoded><![CDATA[
-
 <p>小程序名字：倦猫打牌计分器。</p>
 <p>起初是朋友组局打麻将，大家都是菜鸟，不会计分，就想着写个小程序来记。</p>
 <p>花了半天写完。</p>
@@ -368,19 +1379,16 @@
 <p>支持赢一家、赢三家的自定义分数设置。</p>
 ]]></content:encoded>
 <pubDate>2024-07-17T09:01:08Z</pubDate>
-<pubDate>2024-07-17T09:01:08Z</pubDate>
 </item>
 <item>
 <title>[问与答] 腾讯云 clb 负载均衡类似的产品跟自建 nginx 有什么区别</title>
 <link>https://www.v2ex.com/t/1058065</link>
 <guid>https://www.v2ex.com/t/1058065</guid>
 <content:encoded><![CDATA[
-
 <p>买几台内网互通的云服务器
 其中一台装个 nginx 带宽拉高点，七层四层都能转发
 成本不是便宜很多</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:56:48Z</pubDate>
 <pubDate>2024-07-17T10:04:25Z</pubDate>
 </item>
 <item>
@@ -388,13 +1396,11 @@
 <link>https://www.v2ex.com/t/1058064</link>
 <guid>https://www.v2ex.com/t/1058064</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZBKGXM7.png" />
 发现即使在局域网环境下 macOS 的 mstsc 客户端也是使用 tcp
 没有 windows 下使用 udp 丝滑流畅
 2024 年有更好的 rdp 客户端吗</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:54:20Z</pubDate>
 <pubDate>2024-07-17T09:20:44Z</pubDate>
 </item>
 <item>
@@ -402,12 +1408,10 @@
 <link>https://www.v2ex.com/t/1058063</link>
 <guid>https://www.v2ex.com/t/1058063</guid>
 <content:encoded><![CDATA[
-
 <p>已经是 Python, JavaScript 码农了，但是最近想转 Java</p>
 <p>不要问，问就是工资高，向现实低头 😭</p>
 <p>回到 Java 教程上，请各位大佬推荐，付费免费的都行。</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:54:13Z</pubDate>
 <pubDate>2024-07-17T09:41:42Z</pubDate>
 </item>
 <item>
@@ -415,10 +1419,8 @@
 <link>https://www.v2ex.com/t/1058061</link>
 <guid>https://www.v2ex.com/t/1058061</guid>
 <content:encoded><![CDATA[
-
 我的 ChatGPT 帐号被封了，我又用 gmail 邮箱注册了一个新的帐号，在 app 上登录新的帐号充值后，充值到之前的帐户上去了，这是怎么回事？我明明是用的 GPT 帐户登录的，只是充值还是使用之前的美区账号，现在我申请了退款，现在都不知道怎办充值了🤦。
 ]]></content:encoded>
-<pubDate>2024-07-17T08:51:17Z</pubDate>
 <pubDate>2024-07-17T08:51:17Z</pubDate>
 </item>
 <item>
@@ -427,9 +1429,7 @@
 <guid>https://www.v2ex.com/t/1058060</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-07-17T08:49:40Z</pubDate>
 <pubDate>2024-07-17T08:49:40Z</pubDate>
 </item>
 <item>
@@ -437,11 +1437,9 @@
 <link>https://www.v2ex.com/t/1058059</link>
 <guid>https://www.v2ex.com/t/1058059</guid>
 <content:encoded><![CDATA[
-
 <p>31 岁，9 年后端开发，上一家雇主是阿里。主要用 java 开发微服务，技术栈围绕 spring boot 、spring cloud 、openfeign 、nacos 、mysql 、redis 、rocketmq 、kafka 、k8s 等。擅长基于云原生搭建高可用的微服务架构。除 java 外，还用 go 写过 2 年的区块链。
 希望能看看有没有广州的工作机会，深圳的也可以考虑。</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:45:20Z</pubDate>
 <pubDate>2024-07-17T08:45:20Z</pubDate>
 </item>
 <item>
@@ -449,10 +1447,8 @@
 <link>https://www.v2ex.com/t/1058058</link>
 <guid>https://www.v2ex.com/t/1058058</guid>
 <content:encoded><![CDATA[
-
 此项目教大家快速弯道超车<br /><a href="https://github.com/ShiArthur03/ShiArthur03" rel="nofollow noopener" target="_blank">https://github.com/ShiArthur03/ShiArthur03</a>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:43:17Z</pubDate>
 <pubDate>2024-07-17T05:42:17Z</pubDate>
 </item>
 <item>
@@ -460,10 +1456,8 @@
 <link>https://www.v2ex.com/t/1058057</link>
 <guid>https://www.v2ex.com/t/1058057</guid>
 <content:encoded><![CDATA[
-
 <p>用了一年多，换了 D1581 ，老的准备出了</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:40:39Z</pubDate>
 <pubDate>2024-07-17T08:40:39Z</pubDate>
 </item>
 <item>
@@ -471,13 +1465,11 @@
 <link>https://www.v2ex.com/t/1058056</link>
 <guid>https://www.v2ex.com/t/1058056</guid>
 <content:encoded><![CDATA[
-
 <p>下午临时通知，明天下午 2 点要去济南出差，周期到下周 3 ；</p>
 <p>中间牵涉 2 天周末，想打卡一下济南玩的地方~ </p>
 <p>人生第一次去济南； 求推荐~</p>
 <p>ps: 首先去看一下趵突泉！</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:36:50Z</pubDate>
 <pubDate>2024-07-17T09:56:40Z</pubDate>
 </item>
 <item>
@@ -485,10 +1477,8 @@
 <link>https://www.v2ex.com/t/1058055</link>
 <guid>https://www.v2ex.com/t/1058055</guid>
 <content:encoded><![CDATA[
-
 1 、熟悉 Python 语言（具有 3 年以上开发经验）;python 网络编程，多线程编程;有 psutil pyudev pyinotify 等开源组件使用经验。<br />2 、深入理解 Linux 操作系统，包括进程管理、文件系统、网络配置和安全性。能够理解和编写一般的 shell 脚本。<br />3 、具有 Linux 应用开发经验，具备良好的 python 工程能力，包括代码打包，代码混淆等。<br />4 、熟悉常见数据库，具备独立的数据库程序安装及实例维护工作；能够编写增删改查功能 SQL 。<br />5 、了解 docker ，能够进行日常服务的测试部署。<br /><br />本岗位为南瑞子公司外包岗位，收入性价比在南京算挺好的，平时 124 会加班 这个比较灵活 忙的时候完成工作，闲的时候早走也没问题，不存在内卷。对年龄没有歧视。<br />大环境不好，很多人比较在意稳定性，这块不是啥问题，这边的外包岗位基本上不会轻易动，除非表现非常非常不好，所以只要能力过关不摆烂，可以放心，岗位是稳定的不会砍人。另外有个福利就是这边全市通班车，外包员工一样免费乘坐。<br />最后感兴趣的朋友可以联系 v:<br />d2ZjYXd5cA==
 ]]></content:encoded>
-<pubDate>2024-07-17T08:34:30Z</pubDate>
 <pubDate>2024-07-17T08:38:36Z</pubDate>
 </item>
 <item>
@@ -496,10 +1486,8 @@
 <link>https://www.v2ex.com/t/1058054</link>
 <guid>https://www.v2ex.com/t/1058054</guid>
 <content:encoded><![CDATA[
-
 chrome 每次打开都很卡(只有这个库)，甚至无响应一段时间
 ]]></content:encoded>
-<pubDate>2024-07-17T08:34:21Z</pubDate>
 <pubDate>2024-07-17T09:15:46Z</pubDate>
 </item>
 <item>
@@ -507,10 +1495,8 @@ chrome 每次打开都很卡(只有这个库)，甚至无响应一段时间
 <link>https://www.v2ex.com/t/1058053</link>
 <guid>https://www.v2ex.com/t/1058053</guid>
 <content:encoded><![CDATA[
-
 刚出的时候是可以玩的，那会上头，库库孵蛋。后来突然就索然无味，很久没玩。然后前两天看了个视频，发现更新了东西，那个 up 玩的也挺有意思的，我就想着再玩一下。<br />然后发现，打开就是黑屏，然后应用自己就结束了。看了一下，gpu 使用是 0 。<br />电脑比较垃圾，因为平时也不太玩游戏，之前 3000 块随便配的。但是之前玩的时候，中画质是完全没压力的。<br />看了一些解决方案，兼容性设置、虚拟内存、删档重装，都试过了，除了兼容性能让我进入游戏界面，但是创建世界的时候就卡主了。<br />我试了一下其他的游戏，给他爱 极品飞车之类的都还正常。电脑配来最开始是为了跟朋友玩 war3 rpg 的，平时用也没啥毛病。AMD 相关驱动也都更新了<br /><br />还是贴一下配置<br />主板 微星 B450M-A PRO MAX<br />cpu R5 5600<br />显卡 RX6650 XT<br />内存是 16G*2 <br />1T 的固态<br />win11 家庭版
 ]]></content:encoded>
-<pubDate>2024-07-17T08:32:12Z</pubDate>
 <pubDate>2024-07-17T08:57:41Z</pubDate>
 </item>
 <item>
@@ -518,7 +1504,6 @@ chrome 每次打开都很卡(只有这个库)，甚至无响应一段时间
 <link>https://www.v2ex.com/t/1058052</link>
 <guid>https://www.v2ex.com/t/1058052</guid>
 <content:encoded><![CDATA[
-
 <p>在中国大陆订阅海外流媒体服务往往会遇到支付障碍。我将详细介绍如何顺利在中国大陆订阅 Netflix ，包括选择合适的虚拟卡、处理常见的支付问题，并提供一些额外的技巧帮助你更顺利地享受服务。</p>
 <p>一、准备阶段：选择一张合适的虚拟卡</p>
 <pre><code>•	选择一些信誉好的虚拟卡服务提供商： 建议选择那些提供国际支付功能（ Visa 或 Mastercard 标志）的虚拟卡，并确保它们支持 USD 交易。
@@ -547,7 +1532,6 @@ chrome 每次打开都很卡(只有这个库)，甚至无响应一段时间
 </code></pre>
 <p>希望这篇更为详细的教程能帮助大家解决订阅 Netflix 时遇到的支付问题，欢迎各位大佬在下方评论区交流！</p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:31:08Z</pubDate>
 <pubDate>2024-07-13T08:31:08Z</pubDate>
 </item>
 <item>
@@ -555,14 +1539,11 @@ chrome 每次打开都很卡(只有这个库)，甚至无响应一段时间
 <link>https://www.v2ex.com/t/1058051</link>
 <guid>https://www.v2ex.com/t/1058051</guid>
 <content:encoded><![CDATA[
-
 <p>小米手机，应用商店，偷偷跑流量，手机这个月没怎么用，昨天看用了 40G ，今天早上，手机显示欠费，一看，应用商店用了 88G 流量，，我特意看了一下，软件都没更新，不知道流量用到哪去了，我昨天还设置仅在 WIFI 下更新，和关闭后台使用流量。你们有遇到过吗，太坑了
 <a href="https://imgur.com/a/6AeM546" rel="nofollow">https://imgur.com/a/6AeM546</a></p>
 ]]></content:encoded>
-<pubDate>2024-07-17T08:27:53Z</pubDate>
 <pubDate>2024-07-17T10:20:47Z</pubDate>
 </item>
-
 <item>
 <title>[macOS] macOS 15 的“屏幕使用时间”bug：在系统设置和小组件中均无法开启“屏幕使用时间”设置，有解决办法吗</title>
 <link>https://www.v2ex.com/t/1058049</link>
@@ -15574,564 +16555,6 @@ Summary</p>
 <p>希望不空军，哈哈哈</p>
 ]]></content:encoded>
 <pubDate>2024-07-12T08:04:42Z</pubDate>
-</item>
-<item>
-<title>[程序员] 关于一个摄像头的需求，求大佬指点</title>
-<link>https://www.v2ex.com/t/1056852</link>
-<guid>https://www.v2ex.com/t/1056852</guid>
-<content:encoded><![CDATA[
-<p>现在有这样一个需求，需要开发一个程序，写一个接口，当接口接收到请求，就需要获取摄像头当前时间-5 到+5 秒的视频</p>
-<p>举例说明：
-比如在 10:00:00 接口接收到请求，那就需要将摄像头 9:59:55~10:00:05 这 10 秒的视频保存到指定目录并推送至指定地方，<strong>并且需要在 30 秒内完成该逻辑</strong></p>
-<p>设备是海康威视摄像头</p>
-<p>我尝试过的方法</p>
-<p>1 、通过海康的 RTSP 流添加 starttime 和 endtime 来获取回放流，比如我 10:00:00 收到请求,我就拼接 rtsp 流地址 rtsp://admin:xxx@192.168.1.33:554/Streaming/101?starttime=20240712T095955Z,然后使用 ffmpeg 进行录制 10 秒，就能刚刚好保存出这个时间段的视频</p>
-<p><strong>发现的问题：</strong> 不知道是什么原因，我只要获取当前时间的 rtsp 流，就无法访问，经过写代码尝试，发现必须获取当前时间 2 分钟前的流，才可以访问，比如 10:00:00 接到请求，只能访问到 9:58:00 左右的回放流，我猜测是因为录像没有实时落盘的原因？</p>
-<p>2 、集成海康 SDK 尝试，也遇到了跟 1 操作一样的问题，就是没办法实时或者说获取 10 秒内的回放，获取 1 分钟之前的回放文件可以成功，比 rtsp 稍微好一点，但是也不能满足我的需求，我在看海康文档的时候，有个刷新索引的接口，写的是设备默认 2 分钟刷新，但是我尝试了，我的摄像头提示不支持该接口</p>
-<p>我通过官方的 App 海康互联测试，他们 App 的回放功能好像就没这么大的差距，他们的 App 能回放 30 秒内的视频</p>
-<p>希望求大佬指点，或者有没有其他办法能实现这个需求，万分感谢</p>
-]]></content:encoded>
-<pubDate>2024-07-12T08:24:43Z</pubDate>
-</item>
-<item>
-<title>[程序员] 最近需求忙完了闲的蛋疼，来几个佬推荐下 React 和 Golang 的教程</title>
-<link>https://www.v2ex.com/t/1056850</link>
-<guid>https://www.v2ex.com/t/1056850</guid>
-<content:encoded><![CDATA[
-<p>最好是通俗易懂的文档，跟着做就有结果的那种</p>
-]]></content:encoded>
-<pubDate>2024-07-12T08:18:22Z</pubDate>
-</item>
-<item>
-<title>[微信] 有没有导出微信聊天记录的方法？</title>
-<link>https://www.v2ex.com/t/1056849</link>
-<guid>https://www.v2ex.com/t/1056849</guid>
-<content:encoded><![CDATA[
-<p>微信累积了近 10 年的聊天记录，其中有一些比较珍贵的记录，包括文字语音图片，好怕哪次版本升级/换手机导数据时弄丢了</p>
-<p>有没有办法能完整的导出来，不依赖微信读取？</p>
-]]></content:encoded>
-<pubDate>2024-07-12T08:11:44Z</pubDate>
-</item>
-<item>
-<title>[程序员] 前端大佬们是怎么快速搭建自己的脚手架的？</title>
-<link>https://www.v2ex.com/t/1056847</link>
-<guid>https://www.v2ex.com/t/1056847</guid>
-<content:encoded><![CDATA[
-<p>一般来说现在新的项目都是 vue 或者 react 官方有脚手架，生成一下即可。</p>
-<p>现在比如说我想写一个 demo ，一些简单的想法，有没有类似 jsfiddle ，codepen 那样，本地需要些什么工具（ css,js,库，ui ，框架等等），能快速的就“搭建”起来？还是主要靠积累自己平时写项目有个基础的结构，用的时候 copy 一下就行了？</p>
-]]></content:encoded>
-<pubDate>2024-07-12T07:19:36Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 解决对象转换痛点，利用 idea 插件生成 ChatGPT prompt，自动生成 Java 对象 convert 的函数</title>
-<link>https://www.v2ex.com/t/1056846</link>
-<guid>https://www.v2ex.com/t/1056846</guid>
-<content:encoded><![CDATA[
-<h1>背景</h1>
-<p>方便各种 DTO ，PO ，VO 互转，特别是对象层级如果超过三层，真的很恶心。</p>
-<h1>使用步骤</h1>
-<ol>
-<li>
-<p>写好一个空实现的函数
-<img alt="haha" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/lZVJKXD.png" /></p>
-</li>
-<li>
-<p>函数右键点击生成 prompt ，插件会自动递归获取类信息，拼接好会自动拷到剪切板
-<img alt="haha" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/omRZy4w.png" /></p>
-</li>
-<li>
-<p>把剪切板中的 prompt 拷到 ChatGPT 生成代码，如果有多个类嵌套，就会生成多个函数，效果非常棒。
-<img alt="haha" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/HkZv479.png" /></p>
-</li>
-</ol>
-<p><img alt="haha" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/z7q7W3w.png" /></p>
-<p><img alt="haha" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2nqQUr4.png" /></p>
-<h1>插件</h1>
-<p>此处先记录下，插件后续发布。</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:39:08Z</pubDate>
-</item>
-<item>
-<title>[Android] 2024 年有没有哪家安卓手机有类似 iOS 全盘备份的能力？</title>
-<link>https://www.v2ex.com/t/1056845</link>
-<guid>https://www.v2ex.com/t/1056845</guid>
-<content:encoded><![CDATA[
-<p>用了好多年 iPhone ，想换个安卓</p>
-<p>个人很没有安全感，对 iOS 的连接电脑全盘备份很依赖，每个月都会备份一下，以防手机暴毙/遗失时的数据丢失</p>
-<p>现在有没有哪家安卓有类似的能力，可以全盘备份到电脑后恢复到新手机上</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:59:13Z</pubDate>
-</item>
-<item>
-<title>宣传一下 RIFE 视频插帧 / 补帧方案</title>
-<link>https://www.v2ex.com/t/984548</link>
-<guid>https://www.v2ex.com/t/984548</guid>
-<content:encoded><![CDATA[
-<p><a href="https://github.com/megvii-research/ECCV2022-RIFE" rel="nofollow">项目主页</a> | <a href="https://www.bilibili.com/video/BV1J3411t7qT/" rel="nofollow">b 站宣传视频</a></p>
-<p>对比<a href="https://www.v2ex.com/t/757211" rel="nofollow">两年多前在 V2EX 发的贴</a>，我们的项目有了发表论文，积攒了数千个 star ，特别感谢 V2EX 的第一波流量</p>
-<p>在社区贡献的帮助下，RIFE 插帧算法有了很不错的进步，速度和效果都有大幅改进，也有很多下游的衍生项目和 GUI</p>
-<p>有很多小伙伴借助我们的算法和软件处理视频</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/PokPo5yGl.jpeg" /></p>
-<p>给个 star 鼓励一下呗（我们的进步离不开社区伙伴的支持 <a href="https://github.com/megvii-research/ECCV2022-RIFE/stargazers" rel="nofollow">star</a>）</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Vd8Z44hD.png" /></p>
-<p>友情推荐： <a href="https://github.com/Justin62628/Squirrel-RIFE" rel="nofollow">https://github.com/Justin62628/Squirrel-RIFE</a></p>
-<p><a href="https://github.com/n00mkrad/flowframes" rel="nofollow">https://github.com/n00mkrad/flowframes</a></p>
-<p><a href="https://github.com/nihui/rife-ncnn-vulkan" rel="nofollow">https://github.com/nihui/rife-ncnn-vulkan</a></p>
-]]></content:encoded>
-<pubDate>2024-07-12T08:14:45Z</pubDate>
-</item>
-<item>
-<title>AI 开源项目招募兼职 contributor， 500 元一个月</title>
-<link>https://www.v2ex.com/t/1056857</link>
-<guid>https://www.v2ex.com/t/1056857</guid>
-<content:encoded><![CDATA[
-<p>类 utools 的开源项目 <a href="https://github.com/work7z/MDGJX" rel="nofollow">https://github.com/work7z/MDGJX</a> ，由于要做的东西比较多，希望让这个项目能更快落地，特在 v 站寻求兼职 contributor ，我们一起做点有意思的东西！</p>
-<p>注，目前本项目入不敷出，兼职费用自掏腰包，不喜欢请右上角，请善良一些。</p>
-<p>希望你是</p>
-<ol>
-<li>在校学生或者有空的开源爱好者</li>
-<li>熟悉前端 React 相关技术</li>
-<li>每天能抽出 30 分钟到 1 小时的时间一起整项目   </li>
-</ol>
-<p>作者会提供 </p>
-<ol>
-<li>一个月 500 元兼职费用(会预付一半) </li>
-<li>README 首页加入鸣谢  </li>
-<li>关于一些前端后端技术上的答疑解惑  </li>
-<li>认可我们在做的事情</li>
-</ol>
-<p>对于比较忙的或者嫌弃钱少的，请不要骂人。不会有什么 deadline 或者 Pua ，但一定请投入些时间到项目上。</p>
-<p>目前只能支撑每月两个人的费用，感兴趣可联系  lafting755</p>
-]]></content:encoded>
-<pubDate>2024-07-12T07:56:28Z</pubDate>
-</item>
-<item>
-<title>找个 react+ Python ,(主要是写页面)选手一起干个活儿,内容很简单,量稍微大点,管理系统,离职在家的老哥优先</title>
-<link>https://www.v2ex.com/t/1056851</link>
-<guid>https://www.v2ex.com/t/1056851</guid>
-<content:encoded><![CDATA[
-前端 react+semiui+ts.后端 tortoise+fastapi 基础框架都写好了,直接垒业务就行,后端不需要太多的代码,orm 定义好,就能生成前端代码,页面不需要好看,不丑就行,唯一一点就是需要在 7 月底完活儿,所以需要找个离职在家的老哥一起,钱是真不多,不知道多少层外包到我手上的,做完一人一半,拢共 3w,一人 1w5,做完就给钱(我自己垫,上线了他们才给我)后期的维护部署啥的我自己来.<br />当然因为我后期要维护和升级,所以代码稍微写得容易懂一点,eslint 至少不能关<br /><br />vx:echo "d3V5b3VfMDEyMwo="|base64 -d
-]]></content:encoded>
-<pubDate>2024-07-12T06:53:18Z</pubDate>
-</item>
-<item>
-<title>[汽车] 坐标上海，领克 03 2.0 pro，销售第一次报价落地 15.7w，还能谈多少？</title>
-<link>https://www.v2ex.com/t/1056844</link>
-<guid>https://www.v2ex.com/t/1056844</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-07-12T06:24:14Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 百度的萝卜快跑将要革了网约车的命？</title>
-<link>https://www.v2ex.com/t/1056843</link>
-<guid>https://www.v2ex.com/t/1056843</guid>
-<content:encoded><![CDATA[
-近段时间，百度旗下的“萝卜快跑”自动驾驶出行服务频繁占据各大社媒平台的热度榜。7 月 10 日，网传萝卜快跑在武汉规模已破 1000 辆，百度也因此股价大涨。<br /><br />相关数据信息：<br /><br />百度今年 5 月公布的第一季度财报显示，萝卜快跑供应的自动驾驶订单约 82.6 万单，同比增长 25 %。截至 2024 年 4 月 19 日，萝卜快跑累计为公众提供的自动驾驶出行服务订单超过 600 万单。<br /><br />据新浪科技报道，截至 2024 年一季度，百度萝卜快跑全国累计向公众提供乘车服务 600 万次，其中武汉全无人驾驶订单比例已超 55%，并在 4 月份继续上升至 70%，预计未来几个季度将快速上升至 100%。<br /><br />公开数据显示，武汉市智能网联汽车开放测试道路里程已累计突破 3379 公里（单向里程），覆盖武汉 12 个行政区，辐射面积约 3000 平方公里。自动驾驶累计出行服务订单突破 158 万单，累计服务 198 万余人次。<br /><br />详细阅读： <a href="https://topstip.com/baidu-luobotaxi-fsd-robotaxi/" rel="nofollow noopener" target="_blank">https://topstip.com/baidu-luobotaxi-fsd-robotaxi/</a>
-]]></content:encoded>
-<pubDate>2024-07-12T06:21:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] zlibrary 的中文书有点旧，有地方能看新书么？</title>
-<link>https://www.v2ex.com/t/1056842</link>
-<guid>https://www.v2ex.com/t/1056842</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-07-12T06:23:48Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 上海联通云 NAS 现在已经可以走公网和私网模式直接挂载了</title>
-<link>https://www.v2ex.com/t/1056840</link>
-<guid>https://www.v2ex.com/t/1056840</guid>
-<content:encoded><![CDATA[
-<a href="https://www.v2ex.com/t/975133" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/975133</a><br />---------------------------------<br />背景<br /><br />去年说的 2.0 版本已经做好了，但是走私网的模式只能在自己家里（光猫下）高速访问，实际有点用的还是走公网模式。所谓的公网模式则是指把 Samba 服务器直接暴露在公网上，但使用的是非标准端口<br /><br />目前 PC 客户端的挂载器已经开发好了，其作用主要是为了把非标准端口映射为本地的 445 端口，但是厂商水平有限，那个东西太难用了，所以现在给出一个不需要任何挂载器的方案。<br /><br />这一点很重要：无论走私网访问还是走公网访问，均不影响桥接拨号<br /><br />当然怎么既走私网，又要桥接模式，这个大佬们自己研究下，可以参考下通常的 VLAN 分流+静态路由<br /><br /><br />一、首先得开通云 NAS 业务<br /><br />CB 开通，10010 或者营业厅去开个 0 元 10G 包，现在新开宽带也带 10G 云 NAS 空间<br /><br />二、激活云 NAS 空间<br /><br />如果已经开通了云 NAS 业务，可以直接登录以下网址激活空间<br /><a href="https://mynas.ossapp.chinaunicom.cn/#/login" rel="nofollow noopener" target="_blank">https://mynas.ossapp.chinaunicom.cn/#/login</a><br /><br />然后激活后，V2 的大佬估计对那个网页也没有任何兴趣，记下账号密码就行了，一般这辈子也不需要打开这个网页了<br /><br />三、获取云 NAS 的 Samba 服务器地址及端口号<br /><br />直接打开这个连接下载 Windows 客户端<br /><a href="https://mynas.ossapp.chinaunicom.cn/pcclient/index.html?name=%E5%AE%B6%E5%BA%AD%E4%BA%91NAS" rel="nofollow noopener" target="_blank">https://mynas.ossapp.chinaunicom.cn/pcclient/index.html?name=%E5%AE%B6%E5%BA%AD%E4%BA%91NAS</a><br /><br />安装好客户端之后，得重启，重启后登录，点击右上角下拉菜单的家庭云空间即可挂载（很难用但忍忍吧，只是为了挂载成功一次获取你这个账号所在的 Samba 服务器 IP 地址及端口号）<br />挂载后，你也可以就这么用着，但是本文的原意是让用户脱离客户端使用<br />打开 CMD ，输入 netsh interface portproxy show all ，可以查询到云 NAS 的客户端映射了什么端口到了 445<br /><br />[img]<a href="https://i.imgur.com/eRYRyeg.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/eRYRyeg.jpeg" /></a>[/img]<br /><br />获取 Samba 服务器真实的 IP 地址和原始端口后，即可正常进行挂载<br /><br /><br />四、直接使用 Windows 自带 net use 命令进行 Samba 挂载<br />NET USE Z: \\原始 IP 地址 x.x.x.x\手机号 /TCPPORT:原始端口号 /savecred /persistent:yes<br /><br />[img]<a href="https://i.imgur.com/crfQqao.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/crfQqao.jpeg" /></a>[/img]<br /><br />由于目前的 win11 发行版并不支持非标端口的 Samba 服务挂载，你需要满足以下版本要求<br />先决条件<br />----------------------------<br />要配置替代端口，需要满足以下条件：<br />系统必须运行以下两种操作系统之一：<br />Windows 11 内部预览版 25992 或更高版本<br />Windows Server 预览版 25997 或更高版本<br />----------------------------<br />最后效果如图<br />[img]<a href="https://i.imgur.com/EIV0Slz.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/EIV0Slz.jpeg" /></a>[/img]<br /><br /><br />如果是 Linux 、或者 Mac 等操作系统，那自己研究，本身就支持非标准端口进行 Samba 挂载<br /><br />作为一个正常人，还是建议使用 cd2 挂载阿里云盘、123 盘、115 盘这种东西，毕竟便宜量大，还有秒传<br /><br />五、参考材料<br /><br /><a href="https://techcommunity.microsoft.com/t5/storage-at-microsoft/smb-alternative-ports-now-supported-in-windows-insider/ba-p/3974509" rel="nofollow noopener" target="_blank">https://techcommunity.microsoft.com/t5/storage-at-microsoft/smb-alternative-ports-now-supported-in-windows-insider/ba-p/3974509</a><br /><br />SMB alternative ports now supported in Windows Insider<br /><br /><a href="https://learn.microsoft.com/zh-cn/windows-server/storage/file-server/smb-ports?tabs=command-line" rel="nofollow noopener" target="_blank">https://learn.microsoft.com/zh-cn/windows-server/storage/file-server/smb-ports?tabs=command-line</a><br /><br />配置替代 SMB 端口（预览版）
-]]></content:encoded>
-<pubDate>2024-07-12T06:20:13Z</pubDate>
-</item>
-<item>
-<title>[Apple TV] 你们 infuse pro 会闪退吗？为啥我第一次进入 App 播放视频 3 分钟左右就闪退,再进就好了！</title>
-<link>https://www.v2ex.com/t/1056839</link>
-<guid>https://www.v2ex.com/t/1056839</guid>
-<content:encoded><![CDATA[
-infuse pro 6<br />apple tvOS 最新版（非 beta ）<br />每次开机后，第一次进入 infuse 播放视频两三分钟就会闪退（概率很高，感觉 80%是有的），退到 tv 的 home 页面，无任何操作重新进 app 继续播放就可以正常播放不闪退了<br />资源在本地 nas ，通过 nfs 和 samba 协议连接。两个协议都用过一段时间，都有闪退情况
-]]></content:encoded>
-<pubDate>2024-07-12T06:19:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 强制执行的目标是某某有限公司，法人占股 51，会执行到法人吗？</title>
-<link>https://www.v2ex.com/t/1056837</link>
-<guid>https://www.v2ex.com/t/1056837</guid>
-<content:encoded><![CDATA[
-<p>强制执行对象是某某有限公司，公司法人股份占比 51 ，但是公司账上没钱，执行局会追溯到法人吗？
-<br />
-法人现在重新创建了个公司继续挂羊头卖狗肉，感觉强制执行对这个法人没啥影响
-<br />
-我的赔偿金额 6.5w ，其他三个人差不多一样，在我们之前有三个强制执行的案子两个 5000 ，一个 13000.
-感觉公司法人一点都不慌,重新换了个公司继续搞。
-<br />
-我用法人身份证号码去查是否为被执行人查不出来，但是查公司公司是被执行公司。
-<br />
-按现状，看起来意思像是只是执行到公司。公户有钱就给了，公户没钱，就不了了之了。
-法人换个公司继续正常运作。
-<br />
-所以按现在的情况看，就是这笔钱十有八九强制执行也是拿不到了。
-因为执行目标是公司，如果是到这个法人名下，有可能未来几十年内兴许会突然收到一笔执行款。</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:24:10Z</pubDate>
-</item>
-<item>
-<title>[硬件] 我的电脑有个非常诡异的问题，怎么也解决不了。。。</title>
-<link>https://www.v2ex.com/t/1056836</link>
-<guid>https://www.v2ex.com/t/1056836</guid>
-<content:encoded><![CDATA[
-<p>电脑型号：联想拯救者 REN7000K 台式机
-问题描述：在使用的过程中会突然黑屏，然后风扇狂转。按键盘、鼠标点不亮屏幕，必须长按电源键强制重启。
-主板、CPU 、内存、磁盘、显卡都换过了，系统也重装过了，问题依旧，真是服了，到底啥原因呢？</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:27:00Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一款可以将图片放大增强 10 倍、到 12000 像素的在线 AI 工具，可以免费体验</title>
-<link>https://www.v2ex.com/t/1056834</link>
-<guid>https://www.v2ex.com/t/1056834</guid>
-<content:encoded><![CDATA[
-<h2>事情的起因</h2>
-<p>有天我老婆问我，有没有什么工具可以将图片放大，提高图片画质。她是一名 UI 设计师，对于图片的分辨率和清晰度有比较高的要求。我给她推荐了几个，但是她觉得里面合适的工具太贵了；而价格划算的，放大倍数不够，大部分只有 2 、4 倍。</p>
-<p>所以我想着不如直接做一个这个图片增强的工具，一方面可以满足她的需求；另外这个工具肯定是有需求的，也有机会赚点小钱。</p>
-<h2>产品的优势</h2>
-<p>那市面上已经有这么多的增强放大工具了，我的优势是什么？我觉得第一个是图片放大的倍数，相比于大部分 2 、4 倍的，我们可以做到将图片放大到 10 倍；另外一个是放大后的分辨率，相比于很多最大支持 4k 的，我们可以做到最大放大到 12k 。</p>
-<h2>在线体验</h2>
-<p>本来以为 1 、2 周的时间就能开发完；没想到陆陆续续做了 1 个多月，因为是第一次把登录、支付、数据库、对接 api 这些功能都做到项目里面，踩了一些坑，加上我自己也有点强迫症，总是希望最到更好，所以最终花的时间比较多。</p>
-<p>欢迎大家在线体验，提提建议，不胜感激。</p>
-<p>网站地址： <a href="https://mejorarimagen.org/" rel="nofollow">https://mejorarimagen.org/</a></p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:23:21Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 兼职 ui</title>
-<link>https://www.v2ex.com/t/1056833</link>
-<guid>https://www.v2ex.com/t/1056833</guid>
-<content:encoded><![CDATA[
-如题，需要一个兼职 ui,页面不多，可以月薪形式合作，可以项目分成，可以外包（ 2000 左右）。感兴趣的联系我 v:lingqiyouyue
-]]></content:encoded>
-<pubDate>2024-07-10T06:01:41Z</pubDate>
-</item>
-<item>
-<title>[Apple] macOS 15 beta3 ARC 浏览器很多按钮鼠标无法点击</title>
-<link>https://www.v2ex.com/t/1056832</link>
-<guid>https://www.v2ex.com/t/1056832</guid>
-<content:encoded><![CDATA[
-如题，也不知道 macOS15 beta3 更新了啥，之前的问题都在（ surge 增强模式的，屏幕镜像不兼容 logic option 的），还带来了新的问题<br /><br />Arc 浏览很多按钮无法点击，只能用键盘操作，如 command+f ，出来的搜索框，只能用 esc 退出搜索，无法点击 x 关闭
-]]></content:encoded>
-<pubDate>2024-07-12T06:20:22Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 谁有企业级 ClaudeAPI 账户吗？我需要购买一个</title>
-<link>https://www.v2ex.com/t/1056830</link>
-<guid>https://www.v2ex.com/t/1056830</guid>
-<content:encoded><![CDATA[
-<p>wx:TWVyY3lUWVk=</p>
-]]></content:encoded>
-<pubDate>2024-07-12T05:52:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] Cloudflare 对 openai 的 workers 反代失效了？</title>
-<link>https://www.v2ex.com/t/1056829</link>
-<guid>https://www.v2ex.com/t/1056829</guid>
-<content:encoded><![CDATA[
-<p>写了个 worker 脚本，昨天开始失效了，返回 unsupported_country_region_territory</p>
-<p>openai 是如何识别到的？</p>
-]]></content:encoded>
-<pubDate>2024-07-12T05:49:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小米音乐是如何跟 qq 音乐联动的</title>
-<link>https://www.v2ex.com/t/1056827</link>
-<guid>https://www.v2ex.com/t/1056827</guid>
-<content:encoded><![CDATA[
-<p>手持 14U,无意之间用了一下音乐软件的桌面组件,长得很像 QQ 音乐,一这几天一直用这个放音乐.</p>
-<p>然后我今天发现它居然不是 QQ 音乐... 因为里面的内容跟 QQ 音乐完全一样,导致我一直没有察觉到</p>
-<p>里面我的收藏,歌单啥的都是 qq 音乐之前的内容,所以我很奇怪,它咋做到的呢</p>
-]]></content:encoded>
-<pubDate>2024-07-11T13:43:04Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 现在的音乐软件有这个功能吗</title>
-<link>https://www.v2ex.com/t/1056826</link>
-<guid>https://www.v2ex.com/t/1056826</guid>
-<content:encoded><![CDATA[
-<p>每次去 ktv 都不知道唱什么，打开自己的音乐软件看自己的歌单选也感觉很纠结，
-有个想法就是，我可以挑选一些歌手，风格，高音，低音等选项，然后 ai 按照合适的演唱顺序来,生成一份歌单，不至于不知道唱什么翻歌单翻半天随便选了一首高音的把自己做宝搞。不过要是人很多很杂这个场景好像也不是很适用</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:24:17Z</pubDate>
-</item>
-<item>
-<title>[iPad] iPad Air 6 怎么样</title>
-<link>https://www.v2ex.com/t/1056825</link>
-<guid>https://www.v2ex.com/t/1056825</guid>
-<content:encoded><![CDATA[
-教育优惠想买一个 13 寸的，用来学习看剧，<br /><br />听网上说 air6 续航不行，不知道用过的老哥来个一个实际反馈呗
-]]></content:encoded>
-<pubDate>2024-07-11T21:38:01Z</pubDate>
-</item>
-<item>
-<title>[智能家电] 求第三方智能家电控制软件</title>
-<link>https://www.v2ex.com/t/1056822</link>
-<guid>https://www.v2ex.com/t/1056822</guid>
-<content:encoded><![CDATA[
-系统不限，最好开源，手上买的一个 HUE 灯前几年公司倒闭，软件已经无法接管这灯了，Google HOME 已经完全找不到这牌子了。
-]]></content:encoded>
-<pubDate>2024-07-12T05:41:53Z</pubDate>
-</item>
-<item>
-<title>[NAS] 准备组台 NAS，大家看看配置合理不</title>
-<link>https://www.v2ex.com/t/1056821</link>
-<guid>https://www.v2ex.com/t/1056821</guid>
-<content:encoded><![CDATA[
-<p>基于 <a href="https://www.v2ex.com/t/1048501" rel="nofollow">t/1048501</a> 和 <a href="https://www.v2ex.com/t/1049487" rel="nofollow">t/1049487</a>，NAS 的配置基本确定如下：</p>
-<table>
-<thead>
-<tr>
-<th>配件</th>
-<th>型号</th>
-<th>价格</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>CPU</td>
-<td>英特尔 i5-9600K</td>
-<td>420</td>
-</tr>
-<tr>
-<td>主板</td>
-<td>超微 X11SCA-F</td>
-<td>435</td>
-</tr>
-<tr>
-<td>内存</td>
-<td>（待定） DDR4 2666</td>
-<td>16G</td>
-</tr>
-<tr>
-<td>硬盘</td>
-<td>自备 6 块</td>
-<td>0</td>
-</tr>
-<tr>
-<td>电源</td>
-<td>（待定）</td>
-<td></td>
-</tr>
-<tr>
-<td>散热</td>
-<td>（待定）</td>
-<td></td>
-</tr>
-<tr>
-<td>机箱</td>
-<td>E-ATX 开放式托架</td>
-<td>35</td>
-</tr>
-<tr>
-<td>网卡</td>
-<td>（待定） PCI-E 2.5G</td>
-<td>50</td>
-</tr>
-<tr>
-<td>直通卡</td>
-<td>浪潮 2308 直通卡 6G</td>
-<td>50</td>
-</tr>
-<tr>
-<td>硬盘笼</td>
-<td>浪潮 12 盘位硬盘笼</td>
-<td>150</td>
-</tr>
-<tr>
-<td>硬盘笼散热风扇</td>
-<td></td>
-<td>80</td>
-</tr>
-<tr>
-<td>总计</td>
-<td></td>
-<td>1220</td>
-</tr>
-</tbody></table><p>硬盘评估日常使用最多插 6 块，升级硬盘期间可能最多也就插 8 块。</p>
-<p>极限功耗：硬盘（ 12 盘 x 12V x 2A ）+ 板 U （ 150W ）≈ 438W 。</p>
-<p>目前还差电源、内存、散热、PCI-E 2.5G 网卡，大家帮忙推荐下。</p>
-<ul>
-<li>电源：450W 以上的电源。全汉 GD550 ？</li>
-<li>内存：金百达、镁光？</li>
-<li>散热：金钱豹、九州风神、AVC ？</li>
-</ul>
-<h2>FAQ</h2>
-<ul>
-<li>
-CPU 为什么是 9600K ？<ul>
-<li>9600T 、9600 、9600K 在待机功耗上差不多。</li>
-<li>9600K 在需要性能时也可以有更好的性能。</li>
-<li>还比 9600 便宜了 50 左右。</li>
-</ul>
-</li>
-<li>
-主板为什么是超微 X11SCA-F ？<ul>
-<li>PCI-E 插槽多，可以插 2.5G 网卡、10G 网卡、直通卡。</li>
-<li>带 IPMI 。</li>
-<li>服务器主板更稳定。当然也可以用华擎 Z-370 Pro 替代。</li>
-</ul>
-</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-07-12T05:26:37Z</pubDate>
-</item>
-<item>
-<title>[VPS] SG VPS 求推荐（不在乎和国内的连接质量）</title>
-<link>https://www.v2ex.com/t/1056820</link>
-<guid>https://www.v2ex.com/t/1056820</guid>
-<content:encoded><![CDATA[
-<p>作为落地节点使用，只在乎网络质量，机器配置和性能差一些没关系。</p>
-<p>期望：</p>
-<ul>
-<li>流量便宜（每月消耗 300G 左右）</li>
-<li>服务商正规靠谱</li>
-<li>IP 最好相对干净，别像 DO 的 IP 经常上黑名单被内容网站屏蔽（不用来看流媒体）</li>
-<li>访问国际网络较快（香港的国际网络就不太行）</li>
-</ul>
-<p>预算 10usd 左右/月</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:19:14Z</pubDate>
-</item>
-<item>
-<title>[硬件] 想买一个迷你主机打游戏（主要玩模拟器）， amd 8840hs 这个 U 的性能怎么样？有体验过的请不吝分享一下？</title>
-<link>https://www.v2ex.com/t/1056819</link>
-<guid>https://www.v2ex.com/t/1056819</guid>
-<content:encoded><![CDATA[
-<p>如题，各位彦祖们，有用这种迷你主机打模拟器游戏的没？</p>
-<p>我主要希望能玩 PS3 、xbox360 这个级别的模拟器就行。</p>
-<p>集成的 780m 显卡能否达到 GTX1060 的水平？</p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:12:03Z</pubDate>
-</item>
-<item>
-<title>[香港] 香港旅游开卡攻略 附 1-3 日游景点推荐</title>
-<link>https://www.v2ex.com/t/1056818</link>
-<guid>https://www.v2ex.com/t/1056818</guid>
-<content:encoded><![CDATA[
-暑假出游高峰将至 港府吸引游客的措施又加码 去香港旅游开户的朋友会多一些 之前写过一篇攻略 刚刚又去了一次香港 结合夏日的特点来更新一下攻略<br /><br />旅游：<br />住宿与交通：住香港是最好的，不仅方便，早上醒来就能感受香港是不一样的体验。不过香港住宿实在是比较昂贵，住在深圳也是可以的，比较交通便捷。白天和晚上可以坐 MTR 或者巴士，深夜 MTR 停运，但有深夜公交，对于我这种深夜喜欢跑出去乱逛的人很友好。香港的出租车很贵，且大部分不收八达通，内地游客要么给现金要么扫支付宝，但是很坑的是计价器计的是港币，可能会让你付人民币。需要打车的朋友可以用高德打车 第一单减 30 港币<br />去机场的交通：机场快线是很便捷的，尤其是如果两人或者三人成行，可以买优惠价的票，但不推荐。推荐达成机场公交，票价不仅是地铁的三分之一，速度还一样快，最重要的是可以看到香港的风景。沿途可以看到香港的维港和港口，还可能会有直升飞机。建议搭巴士。建议在航班起飞前至少三小时到达公交站。<br /><br />中途可能会影响时间的因素有<br />1 ）有的机场巴士的终点站不是机场，但谷歌地图上不会标出。一定要上车前问司机是不是去机场（“airport ？”）。去机场的车的八达通价格是 41 港币，车会标出。<br />2 ）我自己坐的是国航香港飞北京的飞机，航旅纵横不支持香港机场线上值机，必须去柜台，而国航的柜台离旅客大楼（巴士下车的地方）很远，要走很久，且安检会排队<br />3 ）过完安检有很多商店，够逛很久，但是这还不够，下楼之后还有一层，走一段路之后还有一层，然后还要做列车通往登机口，在对应的站下车后就是一个完整的航站楼，就像大兴或者白云，我自己的航班登机口在 50 ，在航站楼的最里面，还要走很久。<br />所以推荐大家提前三小时到公交站，公交时间大概 30-40 分钟，下车到值机大概 15 分钟，值机到安检完成大概 15-20 分钟，如果安检完成后不逛店铺直奔登机口，还需要 15-30 分钟。更何况稍微逛一下也是可以接受的。<br /><br />地图：建议使用 Google Maps 。苹果地图即使在香港会切换数据源，但是无法提供实时公交数据。谷歌地图是可以的。<br />支付：现金绝对没问题，连锁商铺可以用卡/八达通/微信支付宝。一些商铺可能只支持现金/卡，不支持八达通/微信支付宝。街边卖水的报刊亭有的只支持现金，且不设找零。一瓶水/可乐的价格大约是 10 块，建议换好零钱，比如中国银行港币零钱包，兜里带一些 10 块钱备用。在有电子支付的同时，随身携带 300-500 元现金为佳。<br />语言：我自己不会说粤语，考虑到对当地的尊重，全程说的是英语。如果你想说普通话，很多服务业人员是可以听懂的。有些小店店主可能不懂普通话，这时候稍微比划几下就行。不过还是建议大家说粤语或者英语，试想一下你在北京或者上海，然后有顾客上来就和你说别的粤语/日语或者别的语言，你是什么感受？当然这个问题没有固定答案，自己觉得 ok 就好<br />其他：记得带电源转换器，有护照的可以带护照，据说万一在香港丢失港澳通行证，没有护照的要去两个地方办手续，有护照的去一个就行，具体的不太清楚，也希望大家用不到。<br /><br />景点推荐：<br />港岛：<br />1 MTR Kennedy Town 坚尼地城附近 可以看日落<br />2 Peak Tram 太平山 适合带相机的朋友去看日落/日出 看日落的朋友可以做缆车上去 看日出的朋友呢 最近日出都在五点左右 没有公共交通 所以可以用前面提到的高德打车第一单减 30 减完的价格就便宜多了<br />3 MTR Central 中环 从 Central 出来之后 穿过 Apple IFC 一直往南走 向上走 全是各种餐厅<br />4 Wan Chai 湾仔 可以坐 Star Ferry 天星小轮 推荐在日落前后坐 可以看到绝美的景色<br /><br />九龙，尖沙咀和油麻地等<br />5 西九龙文化区 M+博物馆就不用说了 最好的视觉艺术博物馆之一<br />6 尖沙咀附近 星光大道<br />7 尖沙咀附近 Hong Kong Art Museum 香港艺术博物馆<br />8 广东路步行街<br />这八个地方基本就会覆盖 1-3 天的行程 不虚此行<br /><br />开卡攻略<br />开完卡基本可以拿到 1500 块 首先 来香港开户的朋友基本至少要开一个实体银行 HSBC 是最简单的 开户时或一月内存入 10000 港币 即可申请 Pulse 信用卡 Pulse 福利如下<br />1 两个月内刷满 8000 港币返 800 奖赏钱 可以 1:1 偿还港币账单 也可以 1:1.1 在闲鱼出掉 假设两个月内刷不到 8000 可以通过京东买 e 卡的方式刷<br />2 在内地消费基本可以获得百分之 4.4 的奖赏钱 所以在花 8000 块的进程中又可以获得两三百的奖赏钱<br />3 申请 MasterCard 借记卡 也就是蓝狮子 各种活动下来又可以得到 100+<br /><br />其次 可以申请众安银行账户 输入邀请码 W99G79 开户后会获得可以返现 500 块的消费券 通过这两个活动我一直真的获得了至少 1500 块 机酒直接报销 而且 1500 块还是保守估计 众安开户后可以给别人自己的邀请码 一个人就是 500 此外还可以通过微信香港钱包开通 airstar 银行 给两张满 150 减 100 的券 叠加下来获得 2000+不是问题<br /><br />开卡方法 <br />HSBC：可以预约或者直接 walk in 记得带港澳通行证原件和至少 100 块现金激活 如果想要能给迎新礼的 Pulse 卡 需要带 10000 港币 我是当场下红狮子（提款卡） 3 周后 Pulse 寄到家里 可选挂号信（空运）<br />BOCHK：需要预约 微信搜索中银香港 提前一周预约 需要证件原件 地址证明 至少 1000 块<br />如果两个都开了 那可以内地中银转账给香港中银 无需手续费 如果只开了 HSBC 那可以回内地办兴业银行寰宇人生借记卡 30 笔免手续费国际汇款 时间紧的话推荐只开 HSBC 开户比中银宽松<br /><br />一些性价比心得 <br />1 游客只去一天的话推荐去地铁站买游客一日通 Adult Tourist Day Pass 65 块 24 小时内除机场线和去深圳的线 随便坐 实际上买这个是有可能赚不到很多的 因为你可以选择坐公交 但是实在不推荐 因为这天气实在太热 我第一次去是五月 感觉还行 第二次是前几天去的 热死了 在公交站等公交是一种煎熬 而且港铁地铁站很大 你就算不坐地铁也可以通过里面的通道走路 坐地铁是快速 凉爽的选择 如果你待不止一天也没关系 记得开通八达通卡 坐地铁 天星小轮都很方便 还可能有优惠 这点钱就别省了<br />2 如果觉得喝水太贵 可以带一些 10 块钱的纸币 比如在内地搜索港币零钱包 然后备一些 10 块钱在身上 街边一些店铺有 3 块钱的水 但是只支持现金 刷卡/二维码支付要 5 块<br />3 强烈建议日落时分坐天星小轮 不仅可以运输自己 还可以观赏景色 日落时间可以在网上或者 iPhone 天气 app 查到 日落前后一小时是观赏景色的好时机 也可以打开你 10 年前冲动购买但一直没打开过的各种日落时间 app 看时间 方向建议：<br />从湾仔到尖沙咀 坐左右都可以看到维港 坐左边看到的楼比较多<br />从中环到尖沙咀 坐右边可以看城景 坐左边海景<br />从尖沙咀到中环 左边城景 右边海景<br />从尖沙咀到湾仔 右边城景 左边海景<br />4 推荐优先说英语或者粤语 有时候本地人真的不是歧视你 是真不懂普通话 语言只是沟通的工具 出来玩还是方便最重要<br />5 如果觉得吃的太贵 可以去街边多走走 尖沙咀往北走 很多 50 块一顿饭的店铺 <br />6 千万别带电子烟 或者超过 19 根香烟入境 会被罚钱<br />7 有护照的一定带护照 然后放在酒店里别拿出来 如果港澳通行证不慎遗失 且没护照 很麻烦 要先报案 还要去开身份证明 如果带了护照 只需要报案 省去宝贵时间 <br />8 去机场不一定非得坐地铁 建议考虑坐机场大巴 具体线路可以上网查 一般票价也就 40 多块钱 是地铁的三分之一 但可以看到绝美景色 便宜 而且最重要的是时间差不多<br />9 喝星巴克可以找店员买卡（ card ）一般是 100 港币起卖 款式任选 做珍藏很好 需要注册 Starbucks HK app 我注册完第二次消费就可以买一送一 如果你和别人一起去 就可以白嫖咖啡<br />10 坐飞机离境的话 安检只需要拿出电脑 iPad ，充电宝 相机电池无需拿出 过完安检可以走左边的 visitor 自助离境通道 别去右边挤<br />最后留一个联系方式 去 hk 旅游 开卡 拿奖励等有问题可以加绿色软件 yyqwwd 最近去上海 澳门 广州 香港旅游拍了不少照片 相机是 s5m2 喜欢玩卡 摄影的朋友也可以来交流
-]]></content:encoded>
-<pubDate>2024-07-12T05:13:34Z</pubDate>
-</item>
-<item>
-<title>[分享创造] OpenSource Thanks 列出项目依赖的开源贡献者名单及其贡献量</title>
-<link>https://www.v2ex.com/t/1056817</link>
-<guid>https://www.v2ex.com/t/1056817</guid>
-<content:encoded><![CDATA[
-<p>根据提供的链接去解析所依赖的开源项目，列出这些项目背后的贡献者，并根据 star 数，fork 数，贡献者的 contribution 数量简单计算出得分，然后列表展示。</p>
-<p>目前支持 Node 和 Golang 的依赖解析和查询。</p>
-<ul>
-<li>Github 项目地址： <a href="https://github.com/zzzgydi/thanks" rel="nofollow">https://github.com/zzzgydi/thanks</a></li>
-<li>直接访问地址： <a href="https://opensourcethanks.com" rel="nofollow">https://opensourcethanks.com</a></li>
-</ul>
-<p><strong>本项目依赖背后的贡献者名单</strong></p>
-<ul>
-<li><a href="https://opensourcethanks.com/t/fhxoQY4iHYToSsRjLGWt7J" rel="nofollow">Node.js Dependencies</a></li>
-<li><a href="https://opensourcethanks.com/t/ZT7aUh7t5tBNnWV3FruQVz" rel="nofollow">Golang Dependencies</a></li>
-</ul>
-<p><strong>为啥做这么一个东西</strong></p>
-<p>有一天就突然很好奇我的一个前端项目所依赖的所有 npm 包，背后都有哪些贡献者。平时除了一些常见的常用的依赖我比较熟悉之外，有大量的 plugin 类的项目，平常都容易忽略，这些项目的作者可能写了或参与很多类似的“小”项目，这些贡献量加权求和一下，他们的贡献可能也不低。</p>
-]]></content:encoded>
-<pubDate>2024-07-12T05:00:00Z</pubDate>
-</item>
-<item>
-<title>[程序员] 改 md5 现在还能防止云盘和谐吗？</title>
-<link>https://www.v2ex.com/t/1056816</link>
-<guid>https://www.v2ex.com/t/1056816</guid>
-<content:encoded><![CDATA[
-<p>rt</p>
-<p>看到这个项目的作者写自己号都被封了： <a href="https://github.com/tisfeng/modify_videos_md5?tab=readme-ov-file" rel="nofollow">https://github.com/tisfeng/modify_videos_md5?tab=readme-ov-file</a></p>
-]]></content:encoded>
-<pubDate>2024-07-12T06:25:50Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 联通续费怎么搞可以优惠？</title>
-<link>https://www.v2ex.com/t/1056815</link>
-<guid>https://www.v2ex.com/t/1056815</guid>
-<content:encoded><![CDATA[
-马上宽带续费了，480 元/年,300M 。<br />但我在天猫那些办宽带的店里看现在新用户是第一年 420 元,500M ；一年后续费 480 。对比下就感觉我这个贵了。<br />有啥办法能搞优惠吗？<br />还是这种是无解的老用户与狗行为？
-]]></content:encoded>
-<pubDate>2024-07-12T05:12:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 企业的邮箱是不是 hr 的邮箱？</title>
-<link>https://www.v2ex.com/t/1056814</link>
-<guid>https://www.v2ex.com/t/1056814</guid>
-<content:encoded><![CDATA[
-企查查上面查询的公司邮箱，有的是公司域名邮箱，有的是个人邮箱（ QQ ，163 等），<br />想问下这里的邮箱是不是 hr 的邮箱？能不能投简历？
-]]></content:encoded>
-<pubDate>2024-07-12T06:14:26Z</pubDate>
-</item>
-<item>
-<title>[微信] 小白变大神--微信小程序云开发快速入门与成本控制实战：一、初识云开发数据库</title>
-<link>https://www.v2ex.com/t/1056812</link>
-<guid>https://www.v2ex.com/t/1056812</guid>
-<content:encoded><![CDATA[
-<p><a href="https://mp.weixin.qq.com/s/Ucnlyjcc6ceAuoLLiG6ktg" rel="nofollow">上一篇文章（微信公众号）</a>发布后，收到许多 V 友的反馈，说是云开发很好用，就是资源消耗费用太高，用不起，用不起。（<a href="https://www.v2ex.com/t/1052720" rel="nofollow">详情看上个 V2EX 帖子</a>）。</p>
-<p>于是我决定写一个系列文章，把我的经验分享出来，帮助想要开发微信小程序的朋友们，这是系列的第一篇：</p>
-<p><a href="https://developers.weixin.qq.com/community/develop/article/doc/0004c2049e8400240fd1706046b813" rel="nofollow">一、初识云开发数据库</a></p>
-<p>大家如果想要了解微信云开发的哪些内容，可以留言，我会尽可能在以后的文章中帮大家解答。</p>
-]]></content:encoded>
-<pubDate>2024-07-12T04:29:14Z</pubDate>
-</item>
-<item>
-<title>[开源软件] [代码已开源] 不到 1 美元，不租服务器部署一个垂直领域的关键词、语义混合搜索引擎</title>
-<link>https://www.v2ex.com/t/1056811</link>
-<guid>https://www.v2ex.com/t/1056811</guid>
-<content:encoded><![CDATA[
-<h2>[代码已开源] 不到 1 美元，不租服务器部署一个垂直领域的关键词、语义混合搜索引擎</h2>
-<p>AI 搜索这个话题最近相当火。前一阵子谣传 OpenAI 要做搜索，不过没有等到 OpenAI 的搜索发布，倒是等到了谷歌的 AI Overview 的全量上线。在这之前，OpenAI 很早发布过联网对话功能，微软发布过 New Bing ，海外创业公司有 Perplexity ，国内则有秘塔、天工搜索。开源的有 Lepton ，独立开发者做的有 ThinkAny 。</p>
-<p>作为独立开发者，同时也是前搜索算法工程师，我曾经也想过自己做一个通用 AI 搜索工具（当时还做了一个 Demo：<a href="https://web.okjike.com/originalPost/653241bbaa7d4f2b30fed187" rel="nofollow">https://web.okjike.com/originalPost/653241bbaa7d4f2b30fed187</a>）。不过考虑到这个赛道的大厂太多，成本也高，最终放弃。</p>
-<p>于是我转向了垂直领域，做了一款 AI 工具的搜索引擎，叫 AskAITools （<a href="https://askaitools.ai/" rel="nofollow">https://askaitools.ai/</a> ），目标是在“帮人找 AI 应用”这个垂域下，将搜索体验做到极致（关于这个产品的初衷和功能介绍，参考上一条帖子：<a href="https://www.v2ex.com/t/1056799" rel="nofollow">https://www.v2ex.com/t/1056799</a>）。</p>
-<p>在设计这个产品时，我希望它不仅能像传统搜索那样，实现关键词匹配；还能理解搜索词的语义，实现智能搜索；最后，排序应该同时考虑到相关性和各结果的质量，让热门的应用相对排在前面。</p>
-<p>本以为上面的需求很普通，应该有很多成熟方案实现了，但我找了很久也没找到现成可用且便宜/免费的解决方案。</p>
-<p>最终，我在 supabase 提供的方案的基础上，进行了部分调整，实现了<strong>几乎零成本</strong>的搜索引擎的部署。整条链路走通的瞬间，感慨自己真是白嫖高手，稍稍得意了一分钟。</p>
-<p>为了能让更多的人知道、使用我的产品；同时也为了让更多对搜索技术不熟悉的开发者，了解混合搜索引擎的实现方式，以及能以最低成本在自己所需领域搭建一套垂域的搜索引擎，我决定将这个项目的搜索和前端部分开源（地址：<a href="https://github.com/askaitools/askaitools-community-edition" rel="nofollow">https://github.com/askaitools/askaitools-community-edition</a>）。大家可以在这个项目基础上，灌入自己的数据，快速实现搜索功能。期待大家的 Star ！</p>
-<p>我之前是算法工程师，虽然有些代码基础，但非科班出生，前后端等技术都是从头学起。整个过程都是和 GPT 一起协作完成的，前后耗时 5 个多月。在专业的开发者眼中，这份代码一定很丑，可能还有很多问题，还望大家多多包涵、多提建议和 PR 。</p>
-<p>以下是这套成本不到 1 美元的技术方案简介：</p>
-<p><strong>先说整体项目架构。</strong></p>
-<ul>
-<li><strong>前端：Next.js ，部署在 Vercel 上，Hobby 套餐成本为 0</strong></li>
-<li><strong>数据库：Supabase ，500M 数据库存储空间，5GB 带宽以内可用免费套餐</strong></li>
-<li><strong>对象存储：Cloudflare R2 ，每月 10GB 以内免费</strong></li>
-<li><strong>CDN：Cloudflare ，也是免费</strong></li>
-<li><strong>后端：多数逻辑是客户端直接和数据库交互，不用服务端；少量服务端逻辑用的 Node.js ，和前端一起部署在 Vercel 上，不用租服务器，成本为 0</strong></li>
-</ul>
-<p><strong>然后是搜索。</strong></p>
-<ul>
-<li><strong>Supabase 底层用的 Postgresql ，包括全文搜索（也就是关键词搜索）和向量数据库（也就是语义搜索）功能，需要组装开发一下，然后就能实现混合搜索。这两个功能也都免费</strong></li>
-<li><strong>文本到语义向量的转化用的 OpenAI 的 API ，这是唯一需要付费的地方，不过也挺便宜的。具体用的 text-embedding-3-small 这个模型，价格是每 1 百万 Token 花费 0.02 美元。我上传了一万多个文档，总共也才花费了 0.63 美元。而且这是一次性费用，而非每个月都要花 0.63 美元。虽然后续用户每次搜索，也都会消耗一些费用，但几乎可以忽略不计</strong></li>
-</ul>
-<p>语义搜索成本只要 0.63 美元：</p>
-<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/api-fee.png" /></a></p>
-<p>AskAITools 桌面版网页截图：</p>
-<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/MainScreenshot.png" /></a></p>
-<p>AskAITools 移动版网页截图：</p>
-<p><a href="https://askaitools.ai" rel="nofollow"><img alt="https://askaitools.ai" class="embedded_image" rel="noreferrer" src="https://public-files.askaitools.ai/MobileScreenshot.png" /></a></p>
-<p>最后再重复一下地址：<a href="https://github.com/askaitools/askaitools-community-edition" rel="nofollow">https://github.com/askaitools/askaitools-community-edition</a>，README 中有详细部署方式，欢迎大家 Fork 、Star 、PR ！希望能对大家有点帮助！</p>
-]]></content:encoded>
-<pubDate>2024-07-12T04:50:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问 vscode 中有没有支持中文的 markdown 格式化插件</title>
-<link>https://www.v2ex.com/t/1056810</link>
-<guid>https://www.v2ex.com/t/1056810</guid>
-<content:encoded><![CDATA[
-目前的几款格式化插件都只支持英文，无法正确计算中文字符的间距，导致格式化出来的表格不对齐。<br />请问大家有解决方案吗？谢谢大家！
-]]></content:encoded>
-<pubDate>2024-07-12T04:21:23Z</pubDate>
 </item>
 </channel>
 </rss>
