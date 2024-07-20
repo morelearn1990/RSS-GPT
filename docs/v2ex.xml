@@ -5,11 +5,142 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] 弯弯的政府 CA 瞎写证书模版被屌了，附时间线及演义</title>
+<link>https://www.v2ex.com/t/1058871</link>
+<guid>https://www.v2ex.com/t/1058871</guid>
+<content:encoded><![CDATA[
+
+<p>此处从 moz 的 bugzilla 采样讨论，经过英译中译中后量化为简单的模型供各位吃第一口瓜，<br />
+本文内容或有错漏与不足，有兴趣围观更多的请去原帖。</p>
+<p>故事很长但很乐，建议往下看。想看神奇回复直接跳到 故事步入高潮 部分。</p>
+<p>日期均以叙述时间为准，即帖子时间为 PDT ，台湾两个 CA 方口中的时间鬼知道哪个时区，可以默认 +8 。</p>
+<p>故事的主角是 GTLSCA （下称 CA 方），或者说 政府伺服器數位憑證管理中心 CA ，<br />
+听名字就知道其特色所在了，下面展示其证书签发列表供各位感性认知一下：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/47U0lRBfl.png" /></p>
+<p>此 CA 是 中华电信 Root CA （下称 根 CA ） 的下级。</p>
+<h2>故事的前摇</h2>
+<blockquote>
+<p>下面的内容主要为 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096" rel="nofollow">1887096</a></p>
+</blockquote>
+<p>2023 年 4 月 11 日，CA/B 普通的一天，<br />
+这一天他们正式发布了他们的 签发与管理公共证书的<strong>基线要求</strong> 2.0 (Baseline Requirements for the Issuance and Management of Publicly‐Trusted Certificates ，下简称 BR)。</p>
+<p>2023 年 9 月 15 日，BR 2.0 正式生效。</p>
+<p>2024 年 2 月 26 日，据 CA 方 所说，他们内部此时看 BR 的时候发现 <code>extKeyUsage</code> 扩展不得标记为 <code>critical</code> (可以理解为“如果不支持此扩展，则不得使用此证书”)，并提议做出修改。</p>
+<p>2024 年 3 月 11 日，CA 方 称于此时间节点修复了此问题，我找了一张此时发布的证书，确实已经修复。</p>
+<p>2024 年 3 月 19 日，chrome 去信给 中华电信 称发现三张来自 GTLSCA 的问题证书，<br />
+CA 方紧急开会吊了这 3 个证书，<br />
+然后和根一起 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096" rel="nofollow">发了个帖子</a> 表示我们第一时间解决问题，而且自查发现了 6450 张要吊销的，
+所以我们是负责任的好 CA （大概</p>
+<p>此时 CA 方 还没意识到问题的严重性，宣布 4.5 之前要吊销所有有问题的证书。</p>
+<p>2024 年 3 月 22 日，CA 方 似乎是意识到了以本岛政府部门的资安水平，这么快吊销好像要出事，发了个信时间表表示我们到 4.17 吧。</p>
+<p>2024 年 4 月 8 日，<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096#c7" rel="nofollow">Rob Stradling 先生感到不太对劲</a>：心想：你小子 BR 看到狗身上去了？这明明写着你得在 5 天内吊销所有的证书，你没按时 revoke 必须再写一份报告。<br />
+而且根据 CCADB 的规定，你事故报告得写受影响证书的清单。</p>
+<p>2024 年 4 月 10 日，CA 方 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096#c8" rel="nofollow">po 出了</a>他们的第一份清单，同时标题中表示，这些都是延迟吊销的证书。</p>
+<p>2024 年 4 月 11 日，CA 方 完成了他们重签发 6450 张证书的<em>伟大工作</em>，<br />
+并将吊销延迟到了 5.15 。</p>
+<p>2024 年 4 月 12 日，战神三哥 amir 在主贴中上线。</p>
+<p>2024 年 4 月 21 日，amir 在问出了几个无关痛痒的程序问题后出了<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096#c14" rel="nofollow">一记重拳</a>：<br />
+捞翔，恁这证书里面怎么还有些我看不懂的玩意啊？<br />
+参考：<a href="https://crt.sh/?id=12589745529" rel="nofollow">此证书</a> Subject Directory Attributes 部分</p>
+<p>CA 方：这是我们内部用的，2.16.886.1.100.2.1 (上面部分解码后的值) 表示这是政府部分，我们台湾国际区号是 886 ，这很合理吧<br />
+amir：但是 <a href="http://www.oid-info.com/cgi-bin/display?oid=2.16.886&amp;a=display" rel="nofollow">OID 数据库</a>说这是你们 1998 年从人家也门那里抢过来的啊<br />
+amir：既然这些 OID 是错的，是不是这些也全该吊销啊？<br />
+Ryan Dickson：*贴出一堆 BR 内容以表示 CA 方 再次把 BR 看到狗身上去了*</p>
+<p>2024 年 5 月 24 日，在讨论内容无法挽回后，CA 方 联系人<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887096#c14" rel="nofollow">表示</a> 我们已经停发并消除此问题。<br />
+一般路过纯路人：你们得吊销重发才行<br />
+amir：确实，得再开个事故报告</p>
+<p>2024 年 5 月 28 日，CA 方：行吧，我们吊</p>
+<h2>故事真正开始</h2>
+<blockquote>
+<p>下面内容涉及 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1899466" rel="nofollow">1899466</a></p>
+</blockquote>
+<p>当 5 月 28 日 CA 方 开贴的那个中午，或许他们的内心已经在颤抖，<br />
+他们发出了一份涉及 12991 张证书的事故报告，每一张都需要他们吊销并通知对应部门替换。</p>
+<p>幸运的是，因为两个月前 chrome 的突然袭击，他们现在学会了一部分流程，
+开篇给出了一个还算完整的答卷，有时间线，有预计时间节点，还有证书列表。</p>
+<p>但是 mozilla 的人们并没有让他们好过太久，<br />
+CA 方 上一次吊销大延迟并且没能按要求给出事故报告，<br />
+（ CRL 显示，CA 方 直到 4.24-25 才吊销了大部分证书，我会在下面给出 CRL 附件）<br />
+而这一次 CA 似乎又忘了 BR 中 5 天的底线，给出了整整 49 天的吊销计划，<br />
+这令社区其他人士十分恼火，开始狂轰滥炸：</p>
+<p>5 月 29 日<br />
+Wayne：中华电信看过自己的证书政策吗？<br />
+CA 方（并非 CHT ）：政府的设备有 SLA ，我们需要时间换</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/DyBK04LAl.png" /></p>
+<p>6 月 14 日<br />
+CA 方：吊销了 4306 了，我们在和政府部门谈<br />
+amir：你谈你🐎，你是想当公共认可的 CA 还是政府狗腿子？</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/JGMYajD4l.png" /></p>
+<p>6 月 14 日<br />
+Wayne：你们咕个没完，CHT 还有很多要做的（指名威胁）
+根 CA （ CHT ）：你说得对，我们马上去找他们开会</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/aMS3PaG4.png" /></p>
+<h2>故事步入高潮</h2>
+<blockquote>
+<p>下面内容涉及 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1903066" rel="nofollow">1903066</a></p>
+</blockquote>
+<p>GTLSCA 部分发现了社区想要什么，此时给出了一个完整的时间表表示我们要延迟多久。</p>
+<p>但社区不会满足于此，更何况，这可是 CA/B 社区的一部分。</p>
+<p>6 月 18 日<br />
+Mike Shaver 和 Tim Callan 各自发布了一段长长的讨罪檄文釜底抽薪直取根 CA ，奠定了新帖的质疑基调。<br />
+他们一个老生常谈，要求 CHT 给出一个符合政策的报告，<br />
+另一个则直接质疑 CHT 在主贴中并不承认吊销是因为他们的错误，也没有给出任何相关的说明。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/V3W7r9acl.png" /></p>
+<p>6 月 20 日<br />
+CA 方使用了超级套话回复，反正要是我，我已经气笑了：  </p>
+<blockquote>
+<p>我们随后制定了一些补救措施，以避免再次发生类似事件。<br />
+1.与用户达成的条款强调，我们必须遵守 BR 时限，并履行 CA 的责任。不能接受的政府机构不应使用 GTLSCA 颁发的 TLS 证书。（：？）<br />
+2.同步系统更新程序，将 CHT 的 BR 程序和证书配置文件同步给 GTLSCA ，并在 deadline 前完成更新，以确保格式符合 BR 。（早干嘛去了）<br />
+3.加强教育和培训指导，使用户能够真正理解 CA 为遵守 BR 而需要遵守的规则，以及这些规则需要用户的充分合作。（政府：你在教我做事啊）</p>
+</blockquote>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/1Zq60FFOl.png" /></p>
+<p>感谢你的建议，我们知道错了，并且要承担责任。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/CRD6e1pOl.png" /></p>
+<p>6 月 20 日<br />
+Wayne：你们是不是搞错了什么，你得给一个证书和对应延迟吊销理由的详细列表啊（比划）
+GTLSCA：好嘞我懂，并给出一张统计表：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/86rsC82fl.png" /></p>
+<p>6 月 24 日<br />
+Zacharias：我没有看到 CHT 避免这种事情再次发生做的事情，<br />
+而且 mozilla 愿意接受特殊情况下不延迟吊销可能出问题，但你一个都没解释
+CA 方：*精华原文见图*<br />
+其中举例：空管要爆炸（划重点，要考）</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/63al776Ml.png" /></p>
+<p>7 月 11 日<br />
+Chrome 来人乱入：我看了你们的规章制度，里面怎么写着：不能用于航空设施啊？</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/rlG4IuCTl.png" /></p>
+<p>7 月 13 日<br />
+CA 方：说错了，他们一开始告诉我这玩意跟 ATC 有关，<br />
+我们又去问了问，其实就是给旅客看日程表的</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/P62Y1oJgl.png" /></p>
+<p>7 月 14 日<br />
+walter.j.marks：所以说你们一开始是知道他跟 ATC 有关，还是不知道他跟 ATC 有关？<br />
+CA 方：是用户在被打电话通知吊销的时候说的，不关我事</p>
+<hr />
+<p>附 CRL 地址： <a href="http://gtlsca.nat.gov.tw/crl/GTLSCA-complete.crl" rel="nofollow">http://gtlsca.nat.gov.tw/crl/GTLSCA-complete.crl</a></p>
+<p>可以用 OpenSSL 转成可读格式 <code>openssl crl -inform DER -in GTLSCA-complete.crl -text</code></p>
+]]></content:encoded>
+<pubDate>2024-07-20T21:08:28Z</pubDate>
+<pubDate>2024-07-20T21:08:28Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 运营商自带的路由器似乎存在 dns 劫持...</title>
+<link>https://www.v2ex.com/t/1058870</link>
+<guid>https://www.v2ex.com/t/1058870</guid>
+<content:encoded><![CDATA[
+
+移动宽带办理时带的路由器 MA3033, 接了一个旁路由，跑 openclash, 发现连接只能显示 ip 地址，正常是会显示网址的，并且在 pc 和路由器上 nslookup <a href="http://www.baidu.com" rel="nofollow noopener" target="_blank">www.baidu.com</a> 10.0.0.2(向旁路由发起 dns 查询)返回的结果不一致. pc 查询结果有 ipv6, 旁路由上没有(openclash 禁用了 ipv6 解析)。<br /><br />似乎是移动这个路由器劫持了内网的 dns 查询，然后我换成了刷机后的 360t7 就没有这个问题了。
+]]></content:encoded>
+<pubDate>2024-07-20T20:57:40Z</pubDate>
+<pubDate>2024-07-20T20:57:40Z</pubDate>
+</item>
+
+<item>
 <title>我开源了 Pintree：可以一键生成书签导航网站</title>
 <link>https://www.v2ex.com/t/1057661</link>
 <guid>https://www.v2ex.com/t/1057661</guid>
 <content:encoded><![CDATA[
-
 <h1>我开发了一个将浏览器书签导出成导航网站的开源项目——Pintree</h1>
 <p>大家好！</p>
 <p>我最近开发了一个叫做 Pintree 的开源项目，专门用来把浏览器里的书签导出成一个美观又好用的导航网站。这个项目是我从个人需求出发做的，希望能帮助大家更好地管理和利用浏览器书签。</p>
@@ -44,7 +175,6 @@
 </ul>
 <p>感谢：上文内容由 ChatGPT 辅助完成写作</p>
 ]]></content:encoded>
-<pubDate>2024-07-16T03:40:22Z</pubDate>
 <pubDate>2024-07-18T04:00:44Z</pubDate>
 </item>
 <item>
@@ -52,7 +182,6 @@
 <link>https://www.v2ex.com/t/1058869</link>
 <guid>https://www.v2ex.com/t/1058869</guid>
 <content:encoded><![CDATA[
-
 <h1>资深全栈开发工程师 | 技术团队创始人</h1>
 <h2>个人介绍</h2>
 <ul>
@@ -88,10 +217,8 @@
 <p><a href="https://www.connectx.work/" rel="nofollow">connectX 工作室</a></p>
 <p><strong>微信号</strong>：xone2023</p>
 ]]></content:encoded>
-<pubDate>2024-07-20T18:47:00Z</pubDate>
 <pubDate>2024-07-20T18:44:00Z</pubDate>
 </item>
-
 <item>
 <title>[NAS] 求个能过 moviepilot 认证的药</title>
 <link>https://www.v2ex.com/t/1058868</link>
@@ -16192,78 +16319,6 @@ Demo： <a href="https://bitmagnet-next-web.vercel.app/" rel="nofollow">https://
 </ul>
 ]]></content:encoded>
 <pubDate>2024-07-16T04:23:37Z</pubDate>
-</item>
-<item>
-<title>[求职] [深圳/远程] Web 前端 / 6 年 / 大专求捞</title>
-<link>https://www.v2ex.com/t/1057667</link>
-<guid>https://www.v2ex.com/t/1057667</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>github: <a href="https://github.com/linsizao" rel="nofollow">https://github.com/linsizao</a></li>
-<li>Blog: <a href="https://42.193.253.56" rel="nofollow">https://42.193.253.56</a> (域名到期了，尴尬)</li>
-<li>wx: TFNaLVpYU0Q=（ base64 ）</li>
-</ul>
-<h2>专业技能</h2>
-<ul>
-<li>掌握 Web 前端开发基本技能，熟悉 W3C 标准、前端语义化、浏览器兼容性</li>
-<li>熟悉 ES6+、TypeScript 和 CSS 预处理器</li>
-<li>熟练使用 Vue 框架（ vue 全家桶）开发，了解 vue2 和 vue3 部分源码</li>
-<li>熟悉移动端跨平台框架和小程序混合开发</li>
-<li>熟悉使用 Bootstrap 、flex 等进行响应式开发</li>
-<li>能熟练使用 git 、svn 版本管理工具和 webpack 、vite 前端构建工具</li>
-<li>能够简单使用 nodejs 和 koa 和 mongoDb 、GraphQL 开发后端服务</li>
-<li>了解网络 http 协议</li>
-</ul>
-<h2>工作经历(2018-2024)</h2>
-<h3>某券商解决方案提供商</h3>
-<p>公司为券商提供解决方案为主。本人所在部门是基础能力研发中心，制定公司开发规范和开发工具组件库等，也承担公司内部系统的开发。</p>
-<h4>项目 1 、bus-common 中台组件库</h4>
-<p>基于 vue3 + vite + ts + antv 开发应用于中台的组件库。支持自动化版本发布，包含多个二次封装组件和自定义组件，以规范中台的前端交互，其中包括中台主表查询组件和流程组件等</p>
-<h4>项目 2 、快速开发平台</h4>
-<p>基于 vue3 + fomily + antv + ts 开发的低代码平台。将 designable 项目 fork 并进行改造使其支持 antv 来实现设计器的功能，并以 monorepo 的方式做成 sdk ，通过设计器配置生成 jsonSchema 。打开对应的路由时，渲染器再将这些 jsonSchema 渲染成对应的页面和弹窗</p>
-<h4>项目 3 、thinkive-vue-cli 脚手架（及其模板）</h4>
-<p>模版脚手架工程，类似 vue-cli ，将自己开发和收集整理多不同场景、环境的前端模版作为模板资源供用户选择和安装，模版有 PC Web 项目、PC 管理项目、移动端 H5 项目以及对应 vue2 、vue3 的版本等</p>
-<h4>项目 4 、thinkive-gpt</h4>
-<p>基于 vue3 + vant 的响应式 gpt ai 对话工具。支持自选模型如 gpt3 、4 等，还支持用户自定义创建机器人（类似 gpts ），提供给公司内部使用</p>
-<h3>某房地产销售租赁平台</h3>
-<p>公司是串联加盟公司和用户实现房产交易的服务平台。通过 app 、网站，小程序以及桌面应用来满足 b 端和 c 端的需求。个人负责交易项目组的前端开发与维护。</p>
-<h4>项目 1 、房客宝+oms 管理平台</h4>
-<p>加盟公司和运营的管理系统。主要包括房源，票据，提成，电子合同，新、旧房成交管理，等模块。
-基于微前端架构技术开发，使用 vue-class-component 的开发模式让 vue2 和 ts 更好地融合，再内嵌入桌面应用。</p>
-<h4>项目 2 、移动端 h5 模板 &amp; 电子合同管理 h5</h4>
-<p>移动端 h5 模板使用 vue3+ts+vite+pinia+vant 开发，并作为公司移动端 h5 模板仓库使用。
-电子合同管理 h5 内嵌于 app 。实现移动端电子合同签署和管理等业务。</p>
-<h4>项目 3 、看房网微信小程序</h4>
-<p>基于 uniapp 开发面向 c 端的微信小程序。新增交易模块实现成交管理，交易工具，交易指南，支付等功能，</p>
-<h2>自我评价</h2>
-<ul>
-<li>热爱编程，热爱前端，有良好的问题分析能力和解决问题的能力。</li>
-<li>良好的自学能力，能通过各种资源来学习丰富自己解决工作上的难题。</li>
-<li>良好的团队协作意识和沟通能力进行团队交流和配合。</li>
-<li>喜欢开源，乐于沟通交流分享。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-07-16T03:45:03Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 一款 React 导航栏菜单组件，支持⌨️全键盘和♿️屏幕阅读器访问，具有流畅的动画</title>
-<link>https://www.v2ex.com/t/1057665</link>
-<guid>https://www.v2ex.com/t/1057665</guid>
-<content:encoded><![CDATA[
-<p>宣传一波最近更新的导航栏组件，<a href="https://github.com/wswmsword/navbar-153" rel="nofollow">navbar-153</a>。</p>
-<p>这两天给组件加上了允许关闭动画的选项，这样用户就能通过打开操作系统的“减弱动态效果”，来关闭动画。代码里，关闭和打开动画的实现是分开的，这样对逻辑组织和实际渲染性能都有好处。</p>
-<p>给文档和<a href="https://wswmsword.github.io/examples/navbar-153/" rel="nofollow">项目主页</a>加上了英语，项目主页用 Next.js 项目，用了 Next.js 的国际化功能，感兴趣的可以查看项目路径 <code>examples/demo-nextjs</code>。个人觉得这个主页做的简约不失格调，欢迎大家访问～</p>
-<p>navbar-153 特性：</p>
-<ul>
-<li>🍯 流畅的过渡动画；</li>
-<li>⌨️ 键盘导航；</li>
-<li>♿️ 屏幕阅读器导航；</li>
-<li>🎨 高度自定义。</li>
-</ul>
-<p>仓库：<a href="https://github.com/wswmsword/navbar-153" rel="nofollow"><em>https://github.com/wswmsword/navbar-153</em></a></p>
-<p>主页：<a href="https://wswmsword.github.io/examples/navbar-153" rel="nofollow"><em>https://wswmsword.github.io/examples/navbar-153</em></a></p>
-]]></content:encoded>
-<pubDate>2024-07-14T03:45:31Z</pubDate>
 </item>
 </channel>
 </rss>
