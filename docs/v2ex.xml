@@ -5,11 +5,58 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Python] 这个场景下，在用户下载完转换好的文件再删除临时文件的最佳实际是什么？</title>
+<link>https://www.v2ex.com/t/1060741</link>
+<guid>https://www.v2ex.com/t/1060741</guid>
+<content:encoded><![CDATA[
+
+<pre><code class="language-python">from flask import Flask, request, send_file, abort
+import ffmpeg
+import os
+import tempfile
+import time
+
+app = Flask(__name__)
+
+@app.route('/audio_appledevices/&lt;name&gt;.m4a', methods=['GET'])
+def convert_audio(name):
+    ogg_path = f'./audio/{name}.ogg'
+    if not os.path.exists(ogg_path):
+        abort(404)
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.m4a') as temp_file:
+        m4a_path = temp_file.name
+    try:
+        ffmpeg.input(ogg_path).output(m4a_path, codec='alac').run(overwrite_output=True)
+        response = send_file(m4a_path, as_attachment=True, download_name=f'{name}.m4a', mimetype='audio/mp4')
+        @response.call_on_close
+        def cleanup():
+            time.sleep(1)
+            if os.path.exists(m4a_path):
+                os.remove(m4a_path)
+        return response
+    except ffmpeg.Error as e:
+        abort(500)
+
+
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=3389)
+</code></pre>
+<p>除非另开一个线程，不管怎么写临时文件都不能被自动删掉，要不就是 ffmpeg 写不进文件，因为临时文件被占用。
+因为 ffmpeg 需要 seekable 的流，所以输出到 IO 流不可行。</p>
+<h2>请先测试再回复！我让 GPT-4 写了几十个版本，没有一个能用。</h2>
+<h2>请先测试再回复！我让 GPT-4 写了几十个版本，没有一个能用。</h2>
+<h2>请先测试再回复！我让 GPT-4 写了几十个版本，没有一个能用。</h2>
+<h2>请先测试再回复！我让 GPT-4 写了几十个版本，没有一个能用。</h2>
+]]></content:encoded>
+<pubDate>2024-07-28T22:00:33Z</pubDate>
+<pubDate>2024-07-28T21:57:33Z</pubDate>
+</item>
+
+<item>
 <title>[macOS] macOS 开源原生本地音乐播放器 Aural</title>
 <link>https://www.v2ex.com/t/1060740</link>
 <guid>https://www.v2ex.com/t/1060740</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/kartik-venugopal/aural-player" rel="nofollow">https://github.com/kartik-venugopal/aural-player</a></p>
 <p><img alt="aural" class="embedded_image" rel="noreferrer" src="https://github.com/kartik-venugopal/aural-player/raw/main/Documentation/Demos/mainDemo.gif?raw=true" /></p>
 <p>目前还在持续更新</p>
@@ -20,10 +67,8 @@
 <p>Menu Bar mode 有点 bug</p>
 <p>感觉后续可以替代 vox</p>
 ]]></content:encoded>
-<pubDate>2024-07-28T19:08:39Z</pubDate>
 <pubDate>2024-07-28T19:05:39Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 请问有在生产环境使用 mulesoft community version 的吗？</title>
 <link>https://www.v2ex.com/t/1060739</link>
@@ -14919,37 +14964,6 @@ exit
 <a href="https://i.imgur.com/ZM8FBHE.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZM8FBHE.png" /></a><br />实测可以用，开启后，关闭自动运营商使其被动无服务状态，就激活 Wi-Fi 在线了。
 ]]></content:encoded>
 <pubDate>2024-07-23T18:55:59Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 2017 款 MBP 屏幕坏了，求对比维修方法</title>
-<link>https://www.v2ex.com/t/1059574</link>
-<guid>https://www.v2ex.com/t/1059574</guid>
-<content:encoded><![CDATA[
-<p>手里这款 MBP 是当年新发布后不久入手，除了硬盘不是顶配外，其它都是顶配；官网购买用了教育优惠，印象里好像是 2.4w 左右。<br />
-中间曾因为电池鼓包，由于还在保修期内，苹果给免费换了电池及整个 C 面。<br />
-最近一个月屏幕开始出问题，先是屏幕闪烁严重，去了 Genius Bar 诊断为硬件问题，猜测是屏幕排线故障。但由于这代 MBP 屏幕排线跟屏幕本身是一体的，所以要修的话只能换掉整块屏幕，工作人员给估了下花费大概 5k 。<br />
-原来想外接显示器凑合着用（偶尔应急用的话，屏幕闪烁勉强可以接受），但最近一周屏幕干脆完全不亮了。<br />
-这台 MBP 除了夏天发烫外，自己还算比较满意，短期内不打算换新。考虑了下，还是决定换屏幕。  </p>
-<p>现在对比官方、第三方两种换屏幕的方法：  </p>
-<ul>
-<li>
-官方  <ul>
-<li>优点：放心；不会失去以后官方维修的资格。  </li>
-<li>缺点：贵；一般需要寄出去维修，时间长，需要备用机 + 倒腾数据。  </li>
-</ul>
-</li>
-<li>
-第三方<ul>
-<li>优点：便宜（淘宝上问了几家，都自称全新 + 原厂，价格 1.8k-2.4k 都有）；可以去线下实体店现场换屏幕。  </li>
-<li>缺点：对屏幕质量不放心（担心是非原厂/二手）；以后失去了官方维修的资格。  </li>
-</ul>
-</li>
-</ul>
-<p>求大伙儿帮忙对比下两种维修方法。<br />
-目前自己倾向于第三方维修，但比较担心第三方渠道的屏幕质量问题，有没有了解苹果供应链的朋友给科普下？<br />
-谢谢大家。</p>
-]]></content:encoded>
-<pubDate>2024-07-23T17:40:56Z</pubDate>
 </item>
 </channel>
 </rss>
