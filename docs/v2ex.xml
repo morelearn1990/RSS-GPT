@@ -5,14 +5,847 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 有没有开源的 api 聚合系统</title>
+<link>https://www.v2ex.com/t/1065631</link>
+<guid>https://www.v2ex.com/t/1065631</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，目前公司做了不同语言的多个项目，现在准备把这些散落在过个项目中，不同入参、响应规范的基础性服务的 api 接口，聚合在一起，做一套统一的接口服务。</p>
+<p>请教大家，有没有类似开源的项目，做接口聚合的？</p>
+]]></content:encoded>
+<pubDate>2024-08-16T12:34:46Z</pubDate>
+<pubDate>2024-08-16T10:34:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] 重学前端-事件循环</title>
+<link>https://www.v2ex.com/t/1065630</link>
+<guid>https://www.v2ex.com/t/1065630</guid>
+<content:encoded><![CDATA[
+
+<h1>事件循环模型</h1>
+<p>事件循环老生常谈了，社区的相关文章也非常多了，但这次为了彻底搞懂，我深度查看了规范中的规则以及 Chromium 中的源码实现。本文章作为笔记记录。</p>
+<blockquote>
+<p>本文主要参考了 <a href="https://www.v2ex.com/#whatwg" rel="nofollow"><code>WHATWG</code></a> 规范中的定义。建议直接从规范中学习。
+各家浏览器对事件循环的具体实现会有细微差别，本文所有代码输出均使用 chrome 。</p>
+</blockquote>
+<blockquote>
+<p>面试碰到很多问题，比如下面这些，面试官实际上很可能想问的是 <strong>事件循环</strong>，搞明白了之后就不用害怕被面试官牵着走了，甚至可以主动引导面试官问事件循环。</p>
+</blockquote>
+<ol>
+<li>什么是进程？什么是线程？</li>
+<li>为什么 js 是异步的？</li>
+<li>说说 Promise 解决了什么问题？</li>
+<li>什么是微任务和宏任务？</li>
+<li>js 引擎执行代码的顺序是什么？</li>
+<li>dom 点击事件中有大量计算后更新 dom ，会有卡死现象如何优化？</li>
+<li>为什么 dom 点击事件中有大量的计算，即使使用异步，还是会影响用户交互操作？</li>
+<li>JS 能实现精准计时器吗？</li>
+<li>如何实现一个尽可能精准的计时器？</li>
+<li>为什么说 js 是事件驱动的？</li>
+<li>…</li>
+</ol>
+<h2>浏览器的进程模型</h2>
+<h3>进程 (Process)</h3>
+<p><strong>定义</strong></p>
+<p>进程是一个正在执行的程序的实例。它包含程序代码、数据、资源（如文件、内存）以及执行中的程序计数器、寄存器和堆栈。</p>
+<p><strong>特点</strong></p>
+<ul>
+<li><strong>独立性</strong>：进程是独立的执行单元，拥有自己的内存空间和资源。一个进程不能直接访问另一个进程的内存。</li>
+<li><strong>资源开销</strong>：创建和销毁进程的开销较大，因为操作系统需要分配和管理独立的资源。</li>
+<li><strong>安全性</strong>：由于进程之间相互独立，不同进程之间的错误不会直接影响彼此，提高了系统的稳定性。</li>
+</ul>
+<p><strong>示例</strong></p>
+<p>操作系统中的每个运行的应用程序，如文本编辑器、浏览器或计算器，都是一个进程。</p>
+<h3>线程 (Thread)</h3>
+<p><strong>定义</strong></p>
+<p>线程是进程中的一个执行路径，也被称为轻量级进程（ Lightweight Process, LWP ）。一个进程可以包含多个线程，它们共享进程的内存和资源。</p>
+<p><strong>特点</strong></p>
+<ul>
+<li><strong>共享资源</strong>：同一个进程内的线程共享内存和资源，因此线程间通信和数据共享更加容易和高效。</li>
+<li><strong>开销较小</strong>：创建和销毁线程的开销比进程小，因为线程之间共享进程的资源。</li>
+<li><strong>并行执行</strong>：多线程允许一个进程中的多个任务并行执行，从而提高程序的执行效率。</li>
+</ul>
+<p><strong>示例</strong></p>
+<p>在一个文本编辑器中，可能会有一个线程负责响应用户输入，另一个线程负责自动保存文档，还有一个线程负责拼写检查。</p>
+<p><strong>进程与线程的对比</strong></p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>进程</th>
+<th>线程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>内存空间</td>
+<td>独立</td>
+<td>共享进程内存</td>
+</tr>
+<tr>
+<td>创建开销</td>
+<td>大</td>
+<td>小</td>
+</tr>
+<tr>
+<td>通信方式</td>
+<td>通过进程间通信（ IPC ）</td>
+<td>通过共享内存</td>
+</tr>
+<tr>
+<td>崩溃影响</td>
+<td>独立进程崩溃不影响其他进程</td>
+<td>线程崩溃可能导致整个进程崩溃</td>
+</tr>
+<tr>
+<td>执行效率</td>
+<td>较低（独立内存）</td>
+<td>较高（共享内存）</td>
+</tr>
+</tbody></table><p><strong>进程与线程的使用场景</strong></p>
+<ul>
+<li><strong>进程</strong>：适用于需要高隔离性和稳定性的任务。例如，操作系统中的不同应用程序通常运行在独立的进程中。</li>
+<li><strong>线程</strong>：适用于需要高效并行执行且可以共享资源的任务。例如，服务器应用程序中的每个请求可以由一个独立的线程处理。</li>
+</ul>
+<p><strong>总结</strong></p>
+<ul>
+<li><strong>进程</strong>是操作系统中独立运行的程序实例，拥有独立的内存空间和资源，适用于需要高隔离性和稳定性的任务。创建和销毁进程开销较大，但稳定性高。</li>
+<li><strong>线程</strong>是进程中的执行路径，共享进程的内存和资源，适用于需要高效并行执行的任务。线程创建和销毁开销较小，但一个线程崩溃可能影响整个进程。</li>
+</ul>
+<p>总结来说，进程提供隔离性和稳定性，而线程提供高效的并行执行能力。</p>
+<h3>浏览器有哪些进程和线程</h3>
+<p><strong>浏览器是一个多进程多线程的应用程序</strong>，而 js 则是单线程的。</p>
+<ul>
+<li>
+<p><strong>主进程</strong></p>
+<p>负责浏览器的用户界面（比如浏览器上面的地址栏、前进后退、书签管理等等）、管理各个子进程（管理和创建<strong>渲染进程</strong>）、处理用户输入以及与操作系统的交互（如文件访问）</p>
+</li>
+<li>
+<p><strong>渲染进程</strong></p>
+<p>每个标签页、iframe 都是一个独立的渲染进程。渲染进程需要处理非常多的任务，譬如：</p>
+<ul>
+<li>解析 HTML</li>
+<li>构建 DOM 树</li>
+<li>解析 CSS</li>
+<li>计算样式</li>
+<li>计算布局</li>
+<li>页面绘制（重排重绘）</li>
+<li>每秒渲染 60 次页面</li>
+<li>执行 JS 代码，处理宏任务微任务</li>
+<li>…</li>
+</ul>
+</li>
+<li>
+<p><strong>网络进程</strong></p>
+<p>专门负责网络请求和资源下载，独立于主进程和渲染进程</p>
+</li>
+<li>
+<p><strong>GPU 进程</strong></p>
+<p>负责处理图形相关任务，如 3D 绘图和硬件加速，以提高渲染性能</p>
+</li>
+<li>
+<p><strong>插件进程</strong></p>
+<p>浏览器插件运行在独立的插件进程中，负责处理插件相关的任务。</p>
+</li>
+<li>
+<p>…</p>
+</li>
+</ul>
+<p>在浏览器的每个渲染进程中，通常包括以下线程：</p>
+<ol>
+<li>
+<strong>主线程</strong>：<ul>
+<li>执行 JavaScript</li>
+<li>处理事件循环</li>
+<li>执行布局和绘制</li>
+</ul>
+</li>
+<li>
+<strong>渲染线程</strong>：<ul>
+<li>负责页面的绘制</li>
+</ul>
+</li>
+<li>
+<strong>合成线程</strong>：<ul>
+<li>处理 CSS 动画和合成层</li>
+</ul>
+</li>
+<li>
+<strong>光栅化线程</strong>：<ul>
+<li>将合成层转换为位图</li>
+</ul>
+</li>
+<li>
+<strong>网络线程</strong>：<ul>
+<li>处理网络请求</li>
+</ul>
+</li>
+<li>
+<strong>Worker 线程</strong>：<ul>
+<li>用于 Web Worker 和 Service Worker 的执行</li>
+</ul>
+</li>
+</ol>
+<h2>异步编程</h2>
+<p>众所周知，<strong>JavaScript 在浏览器的主线程中是单线程执行的</strong>。<em><strong>而异步编程允许代码在不阻塞主线程的情况下执行耗时操作。</strong></em></p>
+<h3>同步编程带来的问题</h3>
+<p>在浏览器环境中，每个标签页都有其独立的渲染进程，其中包含一个主线程负责处理多项任务，如解析 HTML 、构建 DOM 树、解析 CSS 、计算样式和布局、渲染页面以及执行 JavaScript 代码等。</p>
+<p>如果所有这些任务都同步执行，可能会导致以下问题：</p>
+<ol>
+<li><strong>主线程效率低下</strong>：例如，在等待 AJAX 请求返回结果时，主线程处于空闲状态。</li>
+<li><strong>用户体验差</strong>：长时间的计算或等待可能导致页面无响应，影响交互。</li>
+</ol>
+<p>为解决这些问题，浏览器引入了异步编程模型处理各种类型的任务，确保了主线程不会被阻塞，提高了程序的整体效率和响应性。事件循环就是异步的实现方式。</p>
+<h2>JavaScript 中的任务类型</h2>
+<p>同步代码、微任务、宏任务的执行顺序是什么？</p>
+<h3>同步代码</h3>
+<p>在初始阶段，script 标签中的代码被包装称为一个宏任务放到任务队列中，此时是没有其他微任务的。在全局代码中按照出现的顺序立即执行的都是同步代码。</p>
+<p>异步代码则分为微任务和宏任务。</p>
+<h3>微任务</h3>
+<p>在 JavaScript 中，微任务（ Microtasks ）是为了在当前事件循环结束之前执行的小任务。</p>
+<p>微任务在 JavaScript 执行堆栈为空时运行；微任务的执行优先级高于宏任务（ Macrotasks ）。另外，W3C 规范中规定每个渲染进程（标签页或 <strong>Web Worker</strong> ）中必须且只能有一个微任务队列！</p>
+<blockquote>
+<p>不理解也没关系，只需要记住下面的微任务即可</p>
+</blockquote>
+<ol>
+<li>
+<p><strong>Promise 回调函数</strong></p>
+<p>通过 <code>.then()</code>、<code>.catch()</code>、<code>.finally()</code> 注册的<strong>回调函数是微任务</strong>。但<strong>Promise 本身不是微任务。</strong></p>
+<p>例如：下面代码中<code>console.log('Promise');</code> 属于全局同步代码，并不会进入微任务队列！</p>
+<pre><code class="language-js">console.log('Script start');
+
+setTimeout(() =&gt; {
+    console.log('setTimeout');
+}, 0);
+
+new Promise((resolve, reject) =&gt; {
+    console.log('Promise');
+    resolve();
+}).then(() =&gt; {
+    console.log('then');
+});
+
+// 监听 DOM 变化的回调
+const observer = new MutationObserver(() =&gt; {
+		// 该回调函数会进入为任务队列
+    console.log('MutationObserver');
+});
+observer.observe(document.querySelector('.box'), {
+    attributes: true
+});
+document.querySelector('.box').setAttribute('data', Math.random());
+
+Promise.resolve()
+    .then(() =&gt; {
+        console.log('Promise 1');
+    })
+    .then(() =&gt; {
+        console.log('Promise 2');
+    });
+
+console.log('Script end');
+
+// 执行结果：
+// Script start
+// Promise
+// Script end
+// then
+// MutationObserver
+// Promise 1
+// Promise 2
+// setTimeout
+</code></pre>
+</li>
+<li>
+<p><strong><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver" rel="nofollow">MutationObserver</a> 的回调函数</strong></p>
+<p>当监听 DOM 变化，其<strong>触发的回调函数是微任务</strong>。参考上面的代码 <code>console.log('MutationObserver');</code> 是先进入微任务队列后按队列顺序执行的。</p>
+</li>
+<li>
+<p><strong><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/HTML_DOM_API/Microtask_guide" rel="nofollow">queueMicrotask</a> 的回调函数</strong></p>
+<p>显式将任务添加到微任务队列。可以用来改变某些代码的执行顺序，但如果增加过多<code>queueMicrotask</code> ，可能导致其他任务无法执行或延迟， 比如页面渲染任务。</p>
+<pre><code class="language-jsx">console.log('Script start');
+
+setTimeout(() =&gt; {
+    console.log('setTimeout');
+}, 0);
+
+new Promise((resolve, reject) =&gt; {
+    console.log('Promise');
+    resolve();
+}).then(() =&gt; {
+    console.log('then');
+});
+
+// 如果执行下面的无限递归 addMicrotask
+// 那么页面上.box textContent 永远也不会变化，渲染 dom 是一个宏任务
+// 微任务没有执行完，控制权不会交换给事件循环，因此无法执行宏任务
+// function addMicrotask() {
+//     queueMicrotask(() =&gt; {
+//         console.log('Microtask executed');
+//         addMicrotask(); // 继续添加微任务
+//     });
+// }
+// addMicrotask()
+queueMicrotask(() =&gt; {
+    console.log('Microtask 1');
+});
+
+const observer = new MutationObserver(() =&gt; {
+    console.log('MutationObserver');
+});
+observer.observe(document.querySelector('.box'), {
+    attributes: true,
+});
+document.querySelector('.box').textContent = +Date.now();
+
+console.log('Script end');
+
+// 执行结果
+// Script start
+// Promise
+// Script end
+// then
+// Microtask 1
+// setTimeout
+</code></pre>
+</li>
+<li>
+<p><strong><code>await</code></strong></p>
+</li>
+</ol>
+<p>使用 <code>await</code> 时，函数会暂停执行，直到 <code>await</code> 的 Promise 解决（ fulfilled 或 rejected ）,这段暂停时间允许其他任务执行，不会阻塞主线程。</p>
+<p><strong>当 Promise 解决时，<code>await</code> 后面的代码会作为微任务加入微任务队列。</strong></p>
+<h3>宏任务</h3>
+<blockquote>
+<p>在最新的 W3C(WHATWG) 规范中，其实并没有宏任务的定义，而是直接称之为“<a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-task" rel="nofollow"><strong>任务</strong></a>”，为了容易区分，我们暂时还称为宏任务，但请记住，规范的说法是“<a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-task" rel="nofollow"><strong>任务</strong></a>”。</p>
+</blockquote>
+<p>宏任务（ Macrotasks ）同样用于处理异步操作，他和微任务的最大区别在于执行时机，宏任务在微任务之后执行。js 中主要有以下宏任务：</p>
+<ol>
+<li><strong>setTimeout/setInterval 定时器回调函数</strong></li>
+<li>Node.js 中的 <strong>setImmediate</strong></li>
+<li><strong>I/O 操作：</strong>  处理文件读写、网络请求等输入输出操作。</li>
+<li><strong>UI 渲染：</strong>  页面绘制、DOM 更新等等</li>
+<li><strong>MessageChannel：</strong>  可以在不同的浏览器上下文之间持续双向通信</li>
+<li><strong>postMessage：</strong>  在不同窗口、iframe 、或 worker 之间传递单个消息，单向通信</li>
+<li><strong>事件回调：</strong>  绑定到 DOM 事件，如点击、输入等</li>
+</ol>
+<h3>其他特殊任务</h3>
+<p>事实上，还有一些特殊的任务，他们既不是微任务也不是宏任务，有自己独立的运行机制，不适用于常规的事件循环机制，比如：</p>
+<ul>
+<li><strong>requestIdleCallback：</strong>  在浏览器空闲时执行代码的 API ，优先级较低</li>
+<li><strong>requestAnimationFrame：</strong>  浏览器在下一次重绘之前，调用用户提供的回调函数。它的优先级高于宏任务，但低于微任务</li>
+</ul>
+<h2>任务队列</h2>
+<p>任务队列在<a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">规范</a>中有明确的说明：</p>
+<ul>
+<li><a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop" rel="nofollow">事件循环</a>有一个或多个任务队列。<a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">任务队列</a>是一<a href="https://infra.spec.whatwg.org/#ordered-set" rel="nofollow">组</a><a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-task" rel="nofollow">任务</a>。</li>
+<li><em><a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">任务队列</a>是<a href="https://infra.spec.whatwg.org/#ordered-set" rel="nofollow">集合</a>，而不是<a href="https://infra.spec.whatwg.org/#queue" rel="nofollow">队列</a>，因为<a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model" rel="nofollow">事件循环处理模型</a>从所选队列中获取第一个<a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-task-runnable" rel="nofollow">可运行的</a><a href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-task" rel="nofollow">任务</a>，而不是使第一个任务<a href="https://infra.spec.whatwg.org/#queue-dequeue" rel="nofollow">出队</a>。</em></li>
+<li><em><a href="https://html.spec.whatwg.org/multipage/webappapis.html#microtask-queue" rel="nofollow">微任务队列</a>不是<a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">任务队列</a>（这里指的是“宏”任务队列）。</em></li>
+</ul>
+<h3>微任务队列</h3>
+<p><strong><a href="https://html.spec.whatwg.org/multipage/webappapis.html#microtask-queue" rel="nofollow">微任务队列</a>是当前 JavaScript 主线程中所有微任务的集合。</strong><a href="https://html.spec.whatwg.org/multipage/webappapis.html#microtask-queue" rel="nofollow">规范</a>要求每个<a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop" rel="nofollow">事件循环</a>都有一个微任务队列，最初是空的。</p>
+<p>在所有的同步任务执行完成后，控制权移交事件循环，并获取微任务队列中第一个可运行的任务创建执行上下文后在执行堆栈中运行。</p>
+<h3>任务队列</h3>
+<blockquote>
+<p>和上面所说的宏任务一样，规范中的准确定义是 <strong><a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow"><code>任务队列</code></a> 。</strong></p>
+</blockquote>
+<p><strong><a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">任务队列</a>是当前 JavaScript 主线程中所有微任务的集合。</strong> 但和为任务队列不同的是每个事件循环中可以有多个任务队列。</p>
+<p>当页面加载或脚本执行时，最初的同步代码被视为一个宏任务。而此时执行栈是空的，微任务队列也是空的，所以这个“宏任务”会优先执行。</p>
+<p>其他的情况则是按照 <strong>执行同步代码 → 执行微任务 → 执行宏任务</strong>的顺序。</p>
+<blockquote>
+<p>使用定时器无法实现精准的定时效果，给他们传入延时参数只是最快执行的时间，而实际上即使计时到了，也必须等待所有的同步代码和微任务执行完成。
+另外，定时器嵌套达到 5 层后会延时参数最小值会强制从 0 变为 4 ，这也增大了误差。</p>
+</blockquote>
+<p>规范中定义了多个任务的类型，他们有自己关联的任务队列，比如，可能有以下队列：</p>
+<ul>
+<li><strong>DOM 操作队列：</strong>  处理 DOM 相关的任务</li>
+<li><strong>网络事件队列：</strong>  处理网络请求的响应</li>
+<li><strong>计时器队列：</strong>  处理 <code>setTimeout</code> 和 <code>setInterval</code></li>
+<li><strong>用户交互队列：</strong>  处理用户输入事件，如点击和键盘输入。</li>
+<li><strong>渲染队列：</strong>  处理与页面渲染相关的任务。</li>
+</ul>
+<p>多个任务队列如何保证执行顺序？通常来说是按照进入队列的时间，不过规范中并没有严格定义，允许各家浏览器自行实现内部细节，但用户交互相关任务（如鼠标点击、键盘输入等）的优先级会较高一些，以确保用户操作的响应速度。</p>
+<blockquote>
+<p>规范中的原文如下：
+For example, a user agent could have one <a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">task queue</a> for mouse and key events (to which the <a href="https://html.spec.whatwg.org/multipage/webappapis.html#user-interaction-task-source" rel="nofollow">user interaction task source</a> is associated), and another to which all other <a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-source" rel="nofollow">task sources</a> are associated. Then, using the freedom granted in the initial step of the <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model" rel="nofollow">event loop processing model</a>, it could give keyboard and mouse events preference over other tasks three-quarters of the time, keeping the interface responsive but not starving other task queues. Note that in this setup, the processing model still enforces that the user agent would never process events from any one <a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-source" rel="nofollow">task source</a> out of order.</p>
+</blockquote>
+<h3><strong>任务派发流程</strong></h3>
+<p>在浏览器环境中，虽然 JavaScript 是单线程执行的，但每个渲染进程（如每个 Tab 或 Worker ）由多个线程组成。这些线程包括：</p>
+<ul>
+<li><strong>主线程（ UI 线程）</strong>：执行 JavaScript 、布局、绘制等。</li>
+<li><strong>合成线程：</strong>  处理页面合成和光栅化。</li>
+<li><strong>工作线程（ Web Workers ）</strong>：包括 Web Workers 和其他后台任务处理线程。</li>
+<li><strong>IO 线程：</strong>  处理 IPC 通信和网络请求。</li>
+<li><strong>定时器线程</strong>：处理定时任务（如 <code>setTimeout</code>、<code>setInterval</code>）。</li>
+</ul>
+<p>当 JavaScript 代码在主线程的执行栈中运行时，遇到异步 API （如定时器、网络请求、事件监听器等）会触发任务分发：</p>
+<ul>
+<li><strong>定时器任务：</strong>  由定时器线程管理，到期后将回调函数封装为任务，放入任务队列。</li>
+<li><strong>网络请求：</strong>  由 IO 线程处理，完成后将回调封装为任务，加入网络任务队列。</li>
+<li><strong>DOM 事件：</strong>  由主线程监听，事件触发时将监听器封装为任务，加入事件任务队列。</li>
+<li><strong>Promise 微任务：</strong>  在当前执行栈清空后，主线程立即处理这些微任务。</li>
+</ul>
+<p>接下来等待<strong>事件循环</strong>处理任务队列即可。</p>
+<ul>
+<li>浏览器内部会有一套非常复杂的逻辑用于管理不同优先级的任务队列，例如 chromium 中的 <a href="https://github.com/chromium/chromium/blob/d53578e9ef7779254dc7b5681a339c75bbf2e234/base/task/sequence_manager/README.md" rel="nofollow">sequence_manger</a></li>
+</ul>
+<h2>事件循环</h2>
+<blockquote>
+<p>在 w3c 标准中称为<a href="https://www.w3.org/TR/2011/WD-html5-20110525/webappapis.html#event-loops" rel="nofollow"><strong><code>Event loops</code></strong></a> ，而在谷歌的 chromium 中称为 <code>Message Loop</code> ，源码中具体的实现方法是<a href="https://github.com/chromium/chromium/blob/main/base/message_loop/message_pump_default.cc#L32C6-L32C29" rel="nofollow"><code>MessagePumpDefault::Run</code></a> ，参考以下代码：</p>
+</blockquote>
+<pre><code class="language-cpp">    void MessagePumpDefault::Run(Delegate* delegate) {
+      // 通过 AutoReset 类自动管理 keep_running_的值。构造函数将 keep_running_设置为 true ，
+      // 析构函数将其恢复为原来的值。
+      AutoReset&lt;bool&gt; auto_reset_keep_running(&amp;keep_running_, true);
+
+      // 无限循环，直到 keep_running_被设置为 false 或遇到 break 语句。
+      for (;;) {
+    #if BUILDFLAG(IS_APPLE)
+        // 在 Apple 平台上，创建一个自动释放池（ autorelease pool ），
+        // 用于管理 Objective-C 对象的内存。
+        apple::ScopedNSAutoreleasePool autorelease_pool;
+    #endif
+
+        // 调用 delegate 的 DoWork 方法获取下一步工作的信息。
+        Delegate::NextWorkInfo next_work_info = delegate-&gt;DoWork();
+        // 检查是否有更多的紧急工作需要立即处理。
+        bool has_more_immediate_work = next_work_info.is_immediate();
+        // 如果 keep_running_被设置为 false ，退出循环。
+        if (!keep_running_)
+          break;
+
+        // 如果有更多的紧急工作，继续循环处理，而不进行等待。
+        if (has_more_immediate_work)
+          continue;
+
+        // 调用 delegate 的 DoIdleWork 方法，处理空闲时的工作。
+        delegate-&gt;DoIdleWork();
+        // 再次检查 keep_running_，如果为 false ，则退出循环。
+        if (!keep_running_)
+          break;
+
+        // 根据 next_work_info 中的信息决定是否进行等待。
+        if (next_work_info.delayed_run_time.is_max()) {
+          // 如果 next_work_info.delayed_run_time 为最大值，
+          // 则进行无限等待，直到 event_被触发。
+          event_.Wait();
+        } else {
+          // 否则，等待指定的时间（ remaining_delay ）后再继续。
+          event_.TimedWait(next_work_info.remaining_delay());
+        }
+        // Since event_ is auto-reset, we don't need to do anything special here
+        // other than service each delegate method.
+        // event_是自动重置的，因此我们不需要在这里做特殊处理。
+        // 只需要继续服务每个 delegate 的方法。
+      }
+    }
+</code></pre>
+<p>了解上面的内容后，事件循环就非常容易理解了。<strong>整体流程如下：</strong></p>
+<ol>
+<li><strong>主线程运行全局/局部同步代码，同时处理微任务队列和任务队列</strong></li>
+<li><strong>同步代码执行完成通知事件循环启动并查询微任务队列中第一个可运行的任务交由执行栈运行代码，直至微任务队列为空</strong></li>
+<li><strong>查询其他任务队列，取出第一个可运行任务交由执行栈运行代码</strong></li>
+<li><strong>宏任务中可能存在同步代码或微任务，重复 1-4 ，直至任务队列全部清空</strong></li>
+</ol>
+<p><img alt="https://fastly.jsdelivr.net/gh/rennzhang/blog-pics@main/images/1723099122073%E7%94%BB%E5%B8%83%E4%B8%80.png 转存失败，建议直接上传图片文件" class="embedded_image" rel="noreferrer" src="https://fastly.jsdelivr.net/gh/rennzhang/blog-pics@main/images/1723099122073%E7%94%BB%E5%B8%83%E4%B8%80.png" /></p>
+<p>Javascript 是事件驱动的。</p>
+<h2>代码输出顺序</h2>
+<blockquote>
+<p>下面这道地狱级别输出题，能答对 70%我相信就能应对大部分面试官了🤓（可以去掉<strong>requestAnimationFrame 和 requestIdleCallback ，这两个干扰比较大</strong>）</p>
+</blockquote>
+<blockquote>
+<p>这个案例中从输出结果来看 channel.port2.postMessage 的优先级似乎比 settimeout 要低一些，并没有严格按照代码出现顺序执行</p>
+</blockquote>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+
+&lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0" /&gt;
+    &lt;title&gt;Macro and Microtasks&lt;/title&gt;
+    &lt;style&gt;&lt;/style&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+    &lt;textarea name="" id=""&gt;&lt;/textarea&gt;
+    &lt;div class="box"&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        console.log("1");
+
+        setTimeout(() =&gt; {
+            console.log("2");
+        }, 0);
+
+        setTimeout(() =&gt; {
+            console.log("3");
+        }, 1000);
+
+        const channel = new MessageChannel();
+        channel.port1.onmessage = (val) =&gt; {
+            console.log(val);
+        };
+        channel.port2.postMessage("4");
+
+        setInterval(() =&gt; {
+            console.log("55");
+        }, 1000);
+
+        let a = 1;
+        while (a &lt; 100000) {
+            a++;
+            if (a == 1000 || a == 100000) console.log(a);
+        }
+
+        new Promise(function (resolve, reject) {
+            console.log("5");
+            resolve(3);
+        }).then(function (val) {
+            console.log("6");
+        });
+        console.log(7);
+
+        Promise.resolve()
+            .then(() =&gt; {
+                console.log("8");
+            })
+            .then(() =&gt; {
+                console.log("9");
+            });
+
+        const observer = new MutationObserver(() =&gt; {
+            console.log("MutationObserver 10");
+        });
+        observer.observe(document.querySelector(".box"), {
+            attributes: true,
+        });
+        document.querySelector(".box").setAttribute("data", Math.random());
+        setTimeout(() =&gt; {
+            console.log("11");
+            Promise.resolve().then(() =&gt; {
+                console.log("12");
+            });
+            requestAnimationFrame(() =&gt; {
+                console.log("RAF 13");
+            });
+        }, 0);
+
+        console.log("14");
+        requestIdleCallback(() =&gt; {
+            console.log("requestIdleCallback 15");
+        });
+
+        queueMicrotask(() =&gt; {
+            console.log("16");
+            new Promise((resolve, reject) =&gt; {
+                console.log("17");
+                resolve();
+            }).then(() =&gt; {
+                console.log("18");
+            });
+            Promise.resolve()
+                .then(() =&gt; {
+                    console.log("19");
+                })
+                .then(() =&gt; {
+                    console.log("20");
+                });
+
+            setTimeout(() =&gt; {
+                console.log("21");
+            }, 0);
+
+            requestAnimationFrame(() =&gt; {
+                console.log("RAF 22");
+            });
+        });
+
+        Promise.resolve()
+            .then(() =&gt; {
+                console.log("23");
+            })
+        channel.port2.postMessage("24");
+
+        requestAnimationFrame(() =&gt; {
+            console.log("RAF 25");
+        });
+
+        console.log("26");
+    &lt;/script&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+
+</code></pre>
+<h2>参考资料</h2>
+<h3>WHATWG</h3>
+<p>虽然 W3C 曾是 Web 标准的主要制定者，但在 HTML 方面，WHATWG 的“Living Standard”模式更适合快速变化的 Web 环境。W3C 的标准更新较慢，可能无法及时反映最新的技术和浏览器实现。最重要的是，各大浏览器厂商通常使用 WHATWG 的规范来实现 HTML 和 DOM 标准。</p>
+<h3>资料列表</h3>
+<ol>
+<li><a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop" rel="nofollow">事件循环 - HTML Standard</a></li>
+<li><a href="https://html.spec.whatwg.org/multipage/webappapis.html#task-queue" rel="nofollow">任务队列 - HTML Standard</a></li>
+<li><a href="https://html.spec.whatwg.org/multipage/webappapis.html#generic-task-sources" rel="nofollow">任务源类型 - HTML Standard</a></li>
+<li><a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model" rel="nofollow">事件循环执行步骤 - HTML Standard</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/HTML_DOM_API/Microtask_guide/In_depth" rel="nofollow">深入：微任务与 Javascript 运行时环境 - Web API | MDN</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop" rel="nofollow">并发模型与事件循环 - JavaScript | MDN</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/HTML_DOM_API/Microtask_guide#%E4%BB%BB%E5%8A%A1_vs_%E5%BE%AE%E4%BB%BB%E5%8A%A1" rel="nofollow">在 JavaScript 中通过 queueMicrotask() 使用微任务 - Web API | MDN</a></li>
+<li><a href="https://docs.google.com/document/u/0/d/1iugySsfTXtSg4cBwAarhObu89392hYZp-119x7inhR0/mobilebasic?_immersive_translate_auto_translate=1" rel="nofollow">base::CurrentTaskRunner 提案</a></li>
+<li><a href="https://chromium.googlesource.com/chromium/src/+/main/docs/threading_and_tasks.md#Posting-to-the-Current-Virtual_Thread" rel="nofollow">Chromium Docs - Threading and Tasks in Chrome</a></li>
+<li><a href="https://github.com/chromium/chromium/blob/d53578e9ef7779254dc7b5681a339c75bbf2e234/base/task/sequence_manager/README.md" rel="nofollow">chromium/base/task/sequence_manager/README.md · chromium/chromium</a></li>
+<li><a href="https://javascript.plainenglish.io/how-the-event-loop-works-in-the-chrome-browser-ccf99c6c5a5" rel="nofollow">Chrome 浏览器中的事件循环工作原理 | 作者：Roman Melnik</a></li>
+<li><a href="https://cycle263.github.io/blogs/javascripts/depth/async/thread.html" rel="nofollow">浏览器线程 | Cycle263 Blog</a></li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-08-16T12:22:25Z</pubDate>
+<pubDate>2024-08-16T12:20:25Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] pt 站点疑似有 pcdn 用户出现</title>
+<link>https://www.v2ex.com/t/1065628</link>
+<guid>https://www.v2ex.com/t/1065628</guid>
+<content:encoded><![CDATA[
+
+<p>目前只在 hdtime 和 hdfans 上发现，下载到 100%后，过一天又会重新开始下载
+183.130.207.228
+183.130.235.175
+115.221.106.105
+115.219.5.10
+220.190.36.23
+115.222.156.94
+这几个 ip 可以肯定是 pcdn 刷流量的
+而且都是温州的，不知道是不是巧合</p>
+]]></content:encoded>
+<pubDate>2024-08-16T12:03:10Z</pubDate>
+<pubDate>2024-08-16T12:32:39Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS 不允许分配 Shift 键作为快捷键的一部分是有什么原因吗？</title>
+<link>https://www.v2ex.com/t/1065627</link>
+<guid>https://www.v2ex.com/t/1065627</guid>
+<content:encoded><![CDATA[
+
+作为一个平时不只使用英语作为唯一输入法的人，多年以来我始终感觉独自决定使用“单次按大小写锁定键切换输入法”的逻辑非常的离谱，他们难道没有发现左手的小拇指只要轻轻向下移到左 Shift 键上，轻按，这样更符合逻辑同时也不会不舒适么？或者 Shift+空格键也可以。<br /><br />但是如果要去碰键盘最下面一排空格键左边的那几个键，我就不得不用我的胳膊肘带动左手腕移动我左手掌的位置去切换输入法，再回到传统按键区（ ASDF ）继续输入文字。在我的左手在 ASDF 键位上时，不太费力可以碰到的左边的键只有大小写锁定键和左 Shift 键（当然也有 Tab 键，但是在输入文字时单击它有它自己的功能，而单击 Shift 通常没有）。<br /><br />我不觉得只有我一个人给写 feedback 会引起他们的注意，所以只是吐槽一下
+]]></content:encoded>
+<pubDate>2024-08-16T11:57:23Z</pubDate>
+<pubDate>2024-08-16T12:17:20Z</pubDate>
+</item>
+<item>
+<title>[投资] 今天接到 HSBC RM 的电话，建议我投资美股和美债</title>
+<link>https://www.v2ex.com/t/1065626</link>
+<guid>https://www.v2ex.com/t/1065626</guid>
+<content:encoded><![CDATA[
+
+<p>各位有什么推荐？是直接买股/债，还是买 ETF ？</p>
+<p>预计 9 月降息后美元汇率会跌，现在换美元会不会亏？</p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:52:51Z</pubDate>
+<pubDate>2024-08-16T12:29:00Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 重新做了个人主页和导航站，感觉比以前顺眼多了。再顺便加个文件分享</title>
+<link>https://www.v2ex.com/t/1065625</link>
+<guid>https://www.v2ex.com/t/1065625</guid>
+<content:encoded><![CDATA[
+
+<p>之前的主页和导航站一直是静态的，要改个东西还要用 vim 改。</p>
+<p>考虑到之前总是需要传小文件，登微信又不方便，需要一个文件分享功能。</p>
+<p>有些时候一些链接特别长，发给别人一大串，再做个短链服务吧。</p>
+<p>做都做了，再顺手一个 markdown 的笔记（这个功能有点简陋）。</p>
+<h2>功能介绍</h2>
+<ul>
+<li>首页个人信息与横幅展示</li>
+<li>导航页的外链展示与跳转</li>
+<li>
+账号密码登录<ul>
+<li>在主页单击名字，账号密码输入框会弹出</li>
+</ul>
+</li>
+<li>云笔记模块</li>
+<li>短链服务</li>
+<li>文件存储/分享/直链下载/鉴权</li>
+<li>着陆页的所有内容可编辑</li>
+</ul>
+<p><img alt="着陆页首屏" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/Coooolfan/UniBoard/v0.2.1/img/LandingPage1.png" />
+<img alt="着陆页第二屏" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/Coooolfan/UniBoard/v0.2.1/img/LandingPage2.png" />
+<img alt="主页功能组件展示" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/Coooolfan/UniBoard/v0.2.1/img/HomePage.jpg" /></p>
+<p>第一方支持 docker-compose 部署，编辑完<code>.env</code>一行命令就可以启动体验一下</p>
+<p>再说一下这个文件分享，我自己还挺喜欢的。</p>
+<ul>
+<li>可以生成 5 分钟有效的直链</li>
+<li>可以设置分享密码、附言</li>
+<li>非私有的文件也可以用 api 直接下载。直接 wget 就行。</li>
+</ul>
+<p><strong>项目地址：<a href="https://github.com/Coooolfan/UniBoard" rel="nofollow">https://github.com/Coooolfan/UniBoard</a></strong></p>
+<p>后续应该还会集成一个探针服务，嘻嘻。有灵感的时候写代码好爽的</p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:52:42Z</pubDate>
+<pubDate>2024-08-16T11:51:42Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 招聘高级 golang 开发 30-35k，远程办公 [要有游戏和区块链经验]</title>
+<link>https://www.v2ex.com/t/1065623</link>
+<guid>https://www.v2ex.com/t/1065623</guid>
+<content:encoded><![CDATA[
+
+<p>职责描述</p>
+<p>• Golang 工程师 [ 30-35k ]</p>
+<p>1.负责游戏服务端、虚拟币钱包、区块链的开发工作</p>
+<p>2.负责项目的整体框架构建</p>
+<p>3.通过数据分析项目系统性能，对整个系统进行深度优化，提高性能和稳定性</p>
+<p>4.有区块链应用、Telegram 机器人、棋牌游戏服务端开发经验者优先</p>
+<p>有意者可以联系发简历到邮箱： <a href="mailto:luluyaya@proton.me">luluyaya@proton.me</a></p>
+<p>简历留下你的 Telegram 如果合适会有专人联系你的</p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:48:39Z</pubDate>
+<pubDate>2024-08-16T11:47:39Z</pubDate>
+</item>
+<item>
+<title>[求职] web3 有没有新人友好岗位</title>
+<link>https://www.v2ex.com/t/1065622</link>
+<guid>https://www.v2ex.com/t/1065622</guid>
+<content:encoded><![CDATA[
+
+<p>最近正在学习 web3 。苦于没有经验，找不到合适的岗位来对标学习。这个问题如何破解</p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:44:11Z</pubDate>
+<pubDate>2024-08-16T11:42:11Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 谁偷了我的🪜流量？分享一个自用的全屋科学监控面板</title>
+<link>https://www.v2ex.com/t/1065621</link>
+<guid>https://www.v2ex.com/t/1065621</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.v2ex.com/t/1039732" rel="nofollow">书接上回</a>，自从手搓完 OSPF 域名分流方案，并分享出来后，得益于用户反馈，修复了不少小问题，也提升了不少实用性。</p>
+<p>主要包括</p>
+<ul>
+<li>修复了多个出口时 conn-track 可能未按预期工作的 bug</li>
+<li>添加了 balancer 支持，现在可以使用负载均衡作为路由出口决策，并且同时支持 conn-track</li>
+<li>添加了新的 outbound stats 统计，可用于精确观测出口流量状况</li>
+</ul>
+<p>杂项修复</p>
+<ul>
+<li>修正了文档里的部署网段需求，现在要求主/旁路由处于一个独立的网段</li>
+<li>文档添加了负载均衡和连接观测的示例配置</li>
+<li>修复一个上游 bug 导致 leastping balancer fallbackTag 无法使用的问题</li>
+<li>修正了之前 ROS 配置不当导致 WAN 口可接受 DNS 查询的问题（上海电信居然没封家宽 53 端口）</li>
+</ul>
+<p>虽然我用的是黑名单分流，但由于是全屋科学方案，仍然比较尴尬的发现，上个月还剩一周的时候我的魔法流量已经见底了。</p>
+<p>所以，结合我现在已有的 Prometheus 监控方案（用于监控 Mikrotik/Synology/全屋温湿度等），自然是考虑把 v2ray 也接入进来。一通捣鼓后就有了这个帖子。</p>
+<p><strong>必须要逮住这个偷跑我流量的耗子（</strong></p>
+<p>实现过程，大概是，借助现有的 v2ray-exporter ，将 v2ray 的 stats api 数据导出并转换为 Prometheus Counter metric ，顺带再魔改了一下 outbound stats ，添加了来源 IP 的 label ，这下可以精确到每一个终端的实时魔法流量情况和消耗统计了。结合 accessLog 应该就可以最终定位是谁在偷我流量啦。</p>
+<p>fork 并修改后的 exporter 项目如下（感谢原作者 wi1dcard ）</p>
+<p><a href="https://github.com/povsister/v2ray-exporter" rel="nofollow">povsister/v2ray-exporter</a></p>
+<p>README 也已按需修改，有 prometheu 部署经验的可直接食用。
+Release 里提供了预编译好的常见平台可执行文件，可按需下载。</p>
+<p>预览图如下</p>
+<p><img alt="dash1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fWL1h5Y.png" />
+<img alt="dash2" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/72BlCeP.png" /></p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:41:23Z</pubDate>
+<pubDate>2024-08-16T11:38:23Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 苏州徕卡显微系统招人啦</title>
+<link>https://www.v2ex.com/t/1065620</link>
+<guid>https://www.v2ex.com/t/1065620</guid>
+<content:encoded><![CDATA[
+
+<p>需求如下: </p>
+<ul>
+<li>三年以上 c++经验 </li>
+<li>本科以上学历</li>
+<li>工作比较稳定（跳槽不频繁）</li>
+<li>能在苏州长住（团队需要稳定）</li>
+<li>希望不要那么卷（不打黑工，到点就走）（这点是我加的）</li>
+</ul>
+<p>工作内容：</p>
+<ul>
+<li>主要技术栈是桌面端软件 Qt/Qml ，目前主要是 Windows,Linux.</li>
+</ul>
+<p>加分项：</p>
+<ul>
+<li>女生（女生在面试过程中享有巨大优势，并且公司男女比例较均衡）</li>
+<li>硕士（可能会帮助后期筛选）</li>
+<li>能来苏州进行面试</li>
+</ul>
+<p>内推缺点：</p>
+<ul>
+<li>面试周期较长，需要等待</li>
+<li>会有简单笔试（ maybe ）</li>
+</ul>
+<p>福利: </p>
+<ul>
+<li>12 年假+10 病假 </li>
+<li>一定比例居家办公（目前是一年 24 天，具体看情况）</li>
+<li>wlb ，不打卡，永不加班 </li>
+<li>公积金 12%</li>
+<li>享受最棒的团队氛围，manager 也非常棒。</li>
+</ul>
+<p>薪资:
+需要跟 HR 谈，所以给不了大家。(相对一线城市和大厂，可能没有那么有竞争力)</p>
+<p>有兴趣，可以私我:（节省大家的时间，不符合要求勿扰，谢谢大家） 绿色软件:bGlnaWdneQ==</p>
+<p>一年前已经内推过一位了，并且得到了一致好评。</p>
+]]></content:encoded>
+<pubDate>2024-08-16T11:30:10Z</pubDate>
+<pubDate>2024-08-16T12:08:45Z</pubDate>
+</item>
+<item>
+<title>[反馈] 报告用户 maybeok</title>
+<link>https://www.v2ex.com/t/1065619</link>
+<guid>https://www.v2ex.com/t/1065619</guid>
+<content:encoded><![CDATA[
+
+用户首页： <a href="https://www.v2ex.com/member/maybeok" rel="nofollow noopener" target="_blank">https://www.v2ex.com/member/maybeok</a> <br /> 该用户涉及 疑似机器帐号，请站长请处理
+]]></content:encoded>
+<pubDate>2024-08-16T10:52:14Z</pubDate>
+<pubDate>2024-08-16T10:50:14Z</pubDate>
+</item>
+<item>
+<title>[Apple] Apple Watch esim 值不值得开</title>
+<link>https://www.v2ex.com/t/1065617</link>
+<guid>https://www.v2ex.com/t/1065617</guid>
+<content:encoded><![CDATA[
+
+<p>之前一直没买过带 esim 的表，最近换新了，现在在考虑要不要开通 esim 。<br />
+我考虑了一下使用场景，我也没有出门跑步的需求，其他场景好像就用不到 esim 了。<br />
+求指点。</p>
+]]></content:encoded>
+<pubDate>2024-08-16T10:37:48Z</pubDate>
+<pubDate>2024-08-16T11:31:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] 个人项目前端好看的组件库推荐</title>
+<link>https://www.v2ex.com/t/1065616</link>
+<guid>https://www.v2ex.com/t/1065616</guid>
+<content:encoded><![CDATA[
+
+<p>在写个人项目，前端比较菜，有没有大佬推荐下好看的前端组件库。本来用的 element plus ，这玩意儿看着觉得很一般，太通用了。希望炫酷或者优美好看点的。涉及到的组件有通知组件，加载组件，还有些弹窗的组件。</p>
+]]></content:encoded>
+<pubDate>2024-08-16T10:35:10Z</pubDate>
+<pubDate>2024-08-16T12:17:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 谷歌邮箱网页版，居然将广告插到邮件列表里</title>
+<link>https://www.v2ex.com/t/1065615</link>
+<guid>https://www.v2ex.com/t/1065615</guid>
+<content:encoded><![CDATA[
+
+<p>谷歌邮箱网页版，居然将广告插到邮件列表里</p>
+<p>并且这些广告还加在收件箱的计数里面，全部已读功能也无效，必须点击才能查看才清楚未读，删除也只能一条一条删除
+<a href="https://sm.ms/image/Ri3wCMmrUol8BX6" rel="nofollow"><img class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/08/16/Ri3wCMmrUol8BX6.jpg" /></a></p>
+]]></content:encoded>
+<pubDate>2024-08-16T10:28:51Z</pubDate>
+<pubDate>2024-08-14T10:28:51Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 如何让 Chrome 保持账号登录但是 google.com 不登录</title>
 <link>https://www.v2ex.com/t/1065614</link>
 <guid>https://www.v2ex.com/t/1065614</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-08-16T10:22:54Z</pubDate>
 <pubDate>2024-08-16T10:22:54Z</pubDate>
 </item>
 <item>
@@ -20,10 +853,8 @@
 <link>https://www.v2ex.com/t/1065613</link>
 <guid>https://www.v2ex.com/t/1065613</guid>
 <content:encoded><![CDATA[
-
 play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转圈圈。
 ]]></content:encoded>
-<pubDate>2024-08-16T10:22:10Z</pubDate>
 <pubDate>2024-08-16T06:21:10Z</pubDate>
 </item>
 <item>
@@ -31,10 +862,8 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065612</link>
 <guid>https://www.v2ex.com/t/1065612</guid>
 <content:encoded><![CDATA[
-
 各位 V 友大家好，楼主今年 36 岁，不是程序员，是在非洲最穷的地方搞基建的。因为是在法语区国家，去年一位同事移民去了魁北克，说那边对孩子教育很友好。所以楼主也动了心思，2 月份考了雅思，口语拉跨只有 5.5 ，总分 7 。看了一圈学校，不卡小分的比较少，4 月初申请了温莎、渥太华、麦马、康考迪亚的工程硕士。温莎和渥太华很快就发了拒信，康考迪亚 7 月初发了 offer ，麦马还没信儿，估计是没戏（本科专业不是很对口，GPA 也不高）。<br />  <br />　　 7 月份看南洋理工也有招生，也去申了一个土木工程管理类的硕士，咔咔面试一通，今天下了 offer ，让下周一之前交 5000 新币的占位费。<br />  <br />　　楼主很纠结，南洋理工是高中时的梦中情校，QS 排名 10 左右，康考迪亚都 400 了，出了魁北克可能都没人知道这学校。<br />  <br />　　楼主的目的是移民，新加坡的话，毕业后给一年的 LTVP 用来找工作，工程类工作也好找，东南亚基建大市场，但是新加坡对大龄不是很友好，工程类的工资也不会特别高，所以拿永居可能有点危险。优点是一年读出来，时间短，华人友好，整体环境安全，离家近，机票钱和高铁差不多，没有身份的话孩子上国际学校学费贵，但能 cover 住。<br />  <br />　　蒙特利尔的话，读一年半到两年，毕业后给 3 年工签，但是今年政策变了，康考迪亚是英语学校，读出了不能走学生类 PEQ 了，只能工作两年再申请经验类 PEQ ，还要把法语考出来，另外 PEQ 可能一年还下不来，到时候要做过桥工签。这样的话在那边待 5-6 年才能拿到身份。蒙特利尔的房租和生活成本不高，回国机票贵，冬季有点冷，华人少一些，法语民族大熔炉，白人可能有点歧视，社会治安中等吧，听说偷车也很严重（卖给非洲这边黑兄弟）。<br />  <br />      家里的话，媳妇带着孩子，要等我拿到身份可能才会跟我出来，怕拿不到身份没有后路。<br />  <br />　　楼主家境普通，自小单亲家庭，什么事情都是自己做主，也没人指导，没啥见识。论坛的宝子们，你们出去的多，见识广，帮忙看看给个建议。
 ]]></content:encoded>
-<pubDate>2024-08-16T10:15:22Z</pubDate>
 <pubDate>2024-08-16T10:15:22Z</pubDate>
 </item>
 <item>
@@ -42,10 +871,8 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065611</link>
 <guid>https://www.v2ex.com/t/1065611</guid>
 <content:encoded><![CDATA[
-
 在团队负责核心业务开发和性能优化相关工作，有多个完整项目开发迭代经验，同时负责团队 Android 端广告 SDK 开发工作<br />Kotlin/JetPackCompose 都熟练掌握，谋求杭州 Android 岗位开发工作。
 ]]></content:encoded>
-<pubDate>2024-08-16T10:11:05Z</pubDate>
 <pubDate>2024-08-16T10:11:05Z</pubDate>
 </item>
 <item>
@@ -53,10 +880,8 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065610</link>
 <guid>https://www.v2ex.com/t/1065610</guid>
 <content:encoded><![CDATA[
-
 <div class="embedded_video_wrapper"></div><br /><a href="https://chrome.google.com/webstore/detail/nkffbmomkmgaoogcenpadgmclfnjjfbk" rel="nofollow noopener" target="_blank">https://chrome.google.com/webstore/detail/nkffbmomkmgaoogcenpadgmclfnjjfbk</a><br /><br />自己写了个 chrome 插件， 一键下载抖音美女视频<br />欢迎各位老板使用
 ]]></content:encoded>
-<pubDate>2024-08-16T10:11:04Z</pubDate>
 <pubDate>2024-08-16T10:11:04Z</pubDate>
 </item>
 <item>
@@ -64,11 +889,9 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065607</link>
 <guid>https://www.v2ex.com/t/1065607</guid>
 <content:encoded><![CDATA[
-
 <p>这两天 Grok 又放出了新功能，Grok 的图片生成器，初步体验，真的很 Flux 效果很相似，参考他们的方案，我们基于 Flux 也上线了这个<a href="https://https://grokimagegenerator.net/" rel="nofollow">Grok AI 图像工具</a>. 考虑能够快速上线和给用户比较好的体验，工具会比较简单。
 现在有提供试用功能，欢迎大家体验！</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T10:07:40Z</pubDate>
 <pubDate>2024-08-16T06:04:40Z</pubDate>
 </item>
 <item>
@@ -76,7 +899,6 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065606</link>
 <guid>https://www.v2ex.com/t/1065606</guid>
 <content:encoded><![CDATA[
-
 <p>我有个疑问，为什么后端经常会出现不按接口定义的类型返回值呢？</p>
 <p>例如文档上写着：</p>
 <pre><code class="language-ts">{
@@ -92,7 +914,6 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 </code></pre>
 <p>为什么后端不做处理呢？换过几家公司，见过好几个后端这样的了。一般来说，定义了<code>number</code>就返回<code>number</code>，定义了数组至少返回空数组<code>[]</code>吧？</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T10:04:55Z</pubDate>
 <pubDate>2024-08-16T10:22:53Z</pubDate>
 </item>
 <item>
@@ -100,11 +921,9 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065603</link>
 <guid>https://www.v2ex.com/t/1065603</guid>
 <content:encoded><![CDATA[
-
 <p>网址：<a href="https://www.dragonballsoft.cn" rel="nofollow">https://www.dragonballsoft.cn</a></p>
 <p>RSS: <a href="https://www.dragonballsoft.cn/feed" rel="nofollow">https://www.dragonballsoft.cn/feed</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:57:58Z</pubDate>
 <pubDate>2024-08-16T09:56:58Z</pubDate>
 </item>
 <item>
@@ -112,10 +931,8 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065602</link>
 <guid>https://www.v2ex.com/t/1065602</guid>
 <content:encoded><![CDATA[
-
 我的观点是，国内的社交平台展示出来的观点和倾向，是被允许展示的观点和倾向，所谓的大众观点是被审核筛选出来的，而且标准飘忽不定，能否真实反映群体的认知水平是存疑的。<br /><br />墙是保护房间里的大象的，不是保护我们大众的。我还是相信如果墙放开之后，大众总体是能做到理性思考的，不会比快乐教育下的西方大众更容易被洗脑，但得出的结论大象可能不喜欢。
 ]]></content:encoded>
-<pubDate>2024-08-16T09:55:33Z</pubDate>
 <pubDate>2024-08-16T10:11:08Z</pubDate>
 </item>
 <item>
@@ -123,7 +940,6 @@ play 商店版本 42.3.20-23<br /><br />这几天怎么更新不了 app ，转�
 <link>https://www.v2ex.com/t/1065601</link>
 <guid>https://www.v2ex.com/t/1065601</guid>
 <content:encoded><![CDATA[
-
 <p>四大件是这么选的：</p>
 <p>CPU：
 AMD | 锐龙 7 7800X3D</p>
@@ -136,7 +952,6 @@ ROG | ROG STRIX B650E-I GAMING</p>
 <p>然后想安装奇美拉系统（ ChimeraOS ），不知道是否能完美驱动，会有什么坑，怎么解决，感谢各位大佬！</p>
 ]]></content:encoded>
 <pubDate>2024-08-16T09:38:15Z</pubDate>
-<pubDate>2024-08-16T09:38:15Z</pubDate>
 </item>
 <item>
 <title>[问与答] 绝大部分程序员是不是只能依附公司挣钱？如何才能不靠公司写代码挣钱？</title>
@@ -144,9 +959,7 @@ ROG | ROG STRIX B650E-I GAMING</p>
 <guid>https://www.v2ex.com/t/1065600</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-08-16T09:38:13Z</pubDate>
 <pubDate>2024-08-16T10:04:55Z</pubDate>
 </item>
 <item>
@@ -154,11 +967,9 @@ ROG | ROG STRIX B650E-I GAMING</p>
 <link>https://www.v2ex.com/t/1065599</link>
 <guid>https://www.v2ex.com/t/1065599</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://youtu.be/L0cBOnEzueM?si=4tcP7CVKJydgj7kZ" rel="nofollow">https://youtu.be/L0cBOnEzueM?si=4tcP7CVKJydgj7kZ</a>
 免费流媒体应用，全平台支持，超好用</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:36:58Z</pubDate>
 <pubDate>2024-08-16T09:36:58Z</pubDate>
 </item>
 <item>
@@ -166,11 +977,9 @@ ROG | ROG STRIX B650E-I GAMING</p>
 <link>https://www.v2ex.com/t/1065597</link>
 <guid>https://www.v2ex.com/t/1065597</guid>
 <content:encoded><![CDATA[
-
 <p>场景描述：使用 RouterOS 连接国外，配置路由可以正常使用，也配置了基于域名分流（自建纯净的 DoH ，非 CN 的 IP 走国外），但是还想对分流更具体一点，因为想同时接入香港/日本/新加坡，比如访问 chatGPT 走新加坡，访问油管走香港，访问成人内容走日本。</p>
 <p>目前，可以根据 ASN 来查找全球不同国家/运营商的 IP 分配，可以将其按需添加到路由表或防火墙中，此外谷歌提供了对外服务所使用的 IP 地址，可以自己写到路由表中，其他服务呢？比如 chatGPT ，因为当前基于域名分流会有漏掉的情况，如何能比较好的获取互联网服务商使用的 IP 段？ GitHub 上只能找到 GFWlist&amp;GEOip/site 这种项目，貌似没有面向互联网服务商的？如果有请发项目地址给我或者告诉我搜索的关键词。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:32:13Z</pubDate>
 <pubDate>2024-08-16T10:01:08Z</pubDate>
 </item>
 <item>
@@ -178,7 +987,6 @@ ROG | ROG STRIX B650E-I GAMING</p>
 <link>https://www.v2ex.com/t/1065596</link>
 <guid>https://www.v2ex.com/t/1065596</guid>
 <content:encoded><![CDATA[
-
 <p>如题：
 Mac 使用 ClashX 代理后 Safari 打开不网页了</p>
 <p>之前用 Clash 成功链接了个代理，Safari 起初是正常的，然后关闭打开关闭打开关闭打开..Clash 后 Safari 连接不上了，代理无法使用； 更换使用 Chrome 代理一切正常</p>
@@ -187,17 +995,14 @@ Mac 使用 ClashX 代理后 Safari 打开不网页了</p>
 Safari 版本：17.3.1</p>
 ]]></content:encoded>
 <pubDate>2024-08-16T09:31:21Z</pubDate>
-<pubDate>2024-08-16T09:31:21Z</pubDate>
 </item>
 <item>
 <title>[问与答] 程序员为什么不润去印度，印度不也是英语为主自由民主的么 ？</title>
 <link>https://www.v2ex.com/t/1065594</link>
 <guid>https://www.v2ex.com/t/1065594</guid>
 <content:encoded><![CDATA[
-
 我看很多人感概国内的情况，对自由民主这些还是有向往的，<br />可润去美国加拿大新加坡的话难度太高，去了还被当成小赤佬、被看不起，所以我就想为什么程序员不润去印度？
 ]]></content:encoded>
-<pubDate>2024-08-16T09:25:27Z</pubDate>
 <pubDate>2024-08-16T10:22:05Z</pubDate>
 </item>
 <item>
@@ -205,10 +1010,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065593</link>
 <guid>https://www.v2ex.com/t/1065593</guid>
 <content:encoded><![CDATA[
-
 <p>准备搞个硬路由刷 openwrt ，目前在观望 homeproxy 和 passwall ，passwall2 这类，有没有人分享下经验？</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:23:03Z</pubDate>
 <pubDate>2024-08-16T10:10:05Z</pubDate>
 </item>
 <item>
@@ -216,10 +1019,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065592</link>
 <guid>https://www.v2ex.com/t/1065592</guid>
 <content:encoded><![CDATA[
-
 黑苹果老爷机的 i5 8400 ，已经 1080p 跑不动了，显卡还凑活，看来推动设备进步的还得是游戏啊
 ]]></content:encoded>
-<pubDate>2024-08-16T09:23:03Z</pubDate>
 <pubDate>2024-08-16T09:23:03Z</pubDate>
 </item>
 <item>
@@ -227,10 +1028,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065591</link>
 <guid>https://www.v2ex.com/t/1065591</guid>
 <content:encoded><![CDATA[
-
 <p>最近在看一些技术博客时发现很多大佬都有自己的博客网站，上面的内容都很精华，因此将一些技术大佬的博客进行整理： <a href="https://github.com/codeman008/Excellent_person_blog" rel="nofollow">https://github.com/codeman008/Excellent_person_blog</a> ，欢迎大家使用或补充。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:22:00Z</pubDate>
 <pubDate>2024-08-16T09:21:00Z</pubDate>
 </item>
 <item>
@@ -239,9 +1038,7 @@ Safari 版本：17.3.1</p>
 <guid>https://www.v2ex.com/t/1065590</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-08-16T09:06:59Z</pubDate>
 <pubDate>2024-08-16T10:17:46Z</pubDate>
 </item>
 <item>
@@ -249,10 +1046,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065589</link>
 <guid>https://www.v2ex.com/t/1065589</guid>
 <content:encoded><![CDATA[
-
 本人用双系统将近半年时间了，物理机装 Ubuntu 真心流畅，UI 设计和命令行让我爱不释手，科学上网啥的也解决了，唯一的遗憾就是不能打游戏，问题是 steam 推出了官方的 Linux 安装包，可当我每次运行 cs2 的时候总是无响应，网上搜了一圈也没有解决办法，我的显卡是 AMD580 ，CPU 是酷睿 i5 ，是电脑本身不兼容吗？但是 Windows 系统却能完美运行。<br />想用 Ubuntu 玩游戏是最大原因是不想总是切系统，直接用一个系统就好了，工作娱乐两不误。
 ]]></content:encoded>
-<pubDate>2024-08-16T09:06:18Z</pubDate>
 <pubDate>2024-08-15T17:04:18Z</pubDate>
 </item>
 <item>
@@ -260,10 +1055,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065588</link>
 <guid>https://www.v2ex.com/t/1065588</guid>
 <content:encoded><![CDATA[
-
 服务器在内地实验室，我一般都是连内地实验室去写代码，但是 copilot 很容易出现一直转圈的问题（可能和网络相关）。用过一段时间 fitten code,速度很快，但是生成质量不行。现在大模型日新月异，大家有没有 “内地网络友好” 的代码补全插件？
 ]]></content:encoded>
-<pubDate>2024-08-16T09:03:38Z</pubDate>
 <pubDate>2024-08-16T09:03:38Z</pubDate>
 </item>
 <item>
@@ -271,7 +1064,6 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065587</link>
 <guid>https://www.v2ex.com/t/1065587</guid>
 <content:encoded><![CDATA[
-
 <p>SiliconCloud 裂变活动火热开启，2000 万 Tokens 送不停！北京时间 2024 年 8 月 1 日凌晨 0 时起您每邀请一位好友成为 SiliconCloud 新用户，您与好友均可获赠 2000 万 Tokens （ 14 元平台配额）。邀请越多，奖励越多，畅享体验 SiliconCloud ！</p>
 <ol>
 <li>邀请好友赚 2000 万 Tokens：每成功邀请一位新用户，好友注册成功，您将获得 2000 万 Tokens ；</li>
@@ -280,7 +1072,6 @@ Safari 版本：17.3.1</p>
 <p>有 aff：
 <a href="https://cloud.siliconflow.cn?referrer=clxeq7nbz0000khw3nmvajedy" rel="nofollow">https://cloud.siliconflow.cn?referrer=clxeq7nbz0000khw3nmvajedy</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-16T09:02:57Z</pubDate>
 <pubDate>2024-08-16T09:01:57Z</pubDate>
 </item>
 <item>
@@ -288,13 +1079,11 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065585</link>
 <guid>https://www.v2ex.com/t/1065585</guid>
 <content:encoded><![CDATA[
-
 <p>目标是用 rust 写一个可以运行在 RISC-V 架构上的小系统</p>
 <p>后续移植或开发一个游戏模拟器</p>
 <p>默认脚本语言是 rust/lisp?</p>
 <p>有感兴趣的可以<a href="https://zhidayingxiao.cn/to/06g6y5" rel="nofollow">加群组队</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:57:13Z</pubDate>
 <pubDate>2024-08-16T09:45:25Z</pubDate>
 </item>
 <item>
@@ -302,10 +1091,8 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065584</link>
 <guid>https://www.v2ex.com/t/1065584</guid>
 <content:encoded><![CDATA[
-
 资金规模 500 亿+，top 量化投资公司，地点：北京/上海。<br />竞争力的薪资，不卷，朝阳产业。<br />感兴趣邮件： jxiao@hiringby.com<br />微信私聊：15210750729 <br /><br /><br />研发岗位急招(总体要求年轻高潜，聪明， 学校 211 起，对量化金融感兴趣）：<br />1. 核心 c++系统开发-2 年+；<br />2. HPC 存储工程师 -2 年+，大厂 AI 公司等基础架构团队存储经验；<br />3. 机器学习平台开发 - 2 年+，K8s 、机器学习平台、训练框架底层相关开发经验；<br />4. SRE -2 年+，负责系统和平台的可靠性、稳定性；<br />5. 全栈工程师 -1-5 年，全栈开发经验；<br />6. DevOps 运维开发 -1-5 年，CI/CD 经验；<br />7. 网络工程师 -1-3 年，低延迟网络经验；<br />8. FPGA 工程师-2 年+；<br />9. 高性能计算工程师-2 年+；<br />10.python 开发，5-8 年；<br />11.数据开发，5 年+;
 ]]></content:encoded>
-<pubDate>2024-08-16T08:56:10Z</pubDate>
 <pubDate>2024-08-16T09:24:49Z</pubDate>
 </item>
 <item>
@@ -313,7 +1100,6 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065583</link>
 <guid>https://www.v2ex.com/t/1065583</guid>
 <content:encoded><![CDATA[
-
 <p>最近想把博客翻译成英文，可以顺带发到 medium 之类的平台。
 写成了 vscode 插件的形式，这样翻译项目的 README 也更轻松。</p>
 <p>翻译感觉效果还可以。
@@ -322,7 +1108,6 @@ Safari 版本：17.3.1</p>
 <p>第一次写插件，代码质量不是很好，大家可以提一些 pr 和意见。
 （Θ..Θ）</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:56:06Z</pubDate>
 <pubDate>2024-08-16T09:45:51Z</pubDate>
 </item>
 <item>
@@ -330,7 +1115,6 @@ Safari 版本：17.3.1</p>
 <link>https://www.v2ex.com/t/1065582</link>
 <guid>https://www.v2ex.com/t/1065582</guid>
 <content:encoded><![CDATA[
-
 <p>我在 windows 上使用 iCloud ，已经升级到了最新版本。一直正常。
 今天干了两件事，第一个装了索尼的一个电子阅读器同步软件，二是更新了计算机的 bios 。
 之后 iCloud 就突然提示我输入 apple id 的密码。输入以后又会提示：
@@ -340,18 +1124,15 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 请问下大家，这种情况该怎么办呢？</p>
 ]]></content:encoded>
 <pubDate>2024-08-16T08:50:54Z</pubDate>
-<pubDate>2024-08-16T08:50:54Z</pubDate>
 </item>
 <item>
 <title>[问与答] 如何修改机顶盒固件默认分辨率？</title>
 <link>https://www.v2ex.com/t/1065579</link>
 <guid>https://www.v2ex.com/t/1065579</guid>
 <content:encoded><![CDATA[
-
 <p>我的机顶盒刷了个固件，这个固件啥都好，就一个问题，每次开机都是 720p ，在设置里改为 1080 后，下次开机还是 720 ，没有自动适应的选项，想请教怎么改固件的默认输出分辨率。</p>
 <p>指出关键就好，如改哪个文件哪个部位，剩下的我自己折腾，感谢。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:45:32Z</pubDate>
 <pubDate>2024-08-16T08:55:24Z</pubDate>
 </item>
 <item>
@@ -359,7 +1140,6 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <link>https://www.v2ex.com/t/1065578</link>
 <guid>https://www.v2ex.com/t/1065578</guid>
 <content:encoded><![CDATA[
-
 <h1>招 iOS 原生开发。</h1>
 <h2>职位描述</h2>
 <ol>
@@ -385,7 +1165,6 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <p>微信：<strong>ibrothergang_wx</strong></p>
 <p>加我备注：<strong>iOS 招聘</strong></p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:42:12Z</pubDate>
 <pubDate>2024-08-16T09:42:24Z</pubDate>
 </item>
 <item>
@@ -393,10 +1172,8 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <link>https://www.v2ex.com/t/1065577</link>
 <guid>https://www.v2ex.com/t/1065577</guid>
 <content:encoded><![CDATA[
-
 <p>执着于大厂梦，是为什么，稳定 or 高薪，怎么选？</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:42:10Z</pubDate>
 <pubDate>2024-08-16T10:05:33Z</pubDate>
 </item>
 <item>
@@ -404,7 +1181,6 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <link>https://www.v2ex.com/t/1065576</link>
 <guid>https://www.v2ex.com/t/1065576</guid>
 <content:encoded><![CDATA[
-
 <p>最近对 PUBG 比较上瘾，不过玩的比较菜，所以自己做了一个基于 pubg 地图，识别最小单元格，进行距离测算的工具
 <a href="https://imgur.com/a/WQELOF7" rel="nofollow">https://imgur.com/a/WQELOF7</a>
 目前使用流程：
@@ -413,7 +1189,6 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 想通过 electron 直接给 pubg 进行截图，然后进行测距
 目前发现，使用 electron 给桌面进行截图时，截取不了图片，使用 Snipaste 进行截图就没有问题，请问有人知道这个应该怎么处理么</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:40:56Z</pubDate>
 <pubDate>2024-08-16T09:53:48Z</pubDate>
 </item>
 <item>
@@ -421,10 +1196,8 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <link>https://www.v2ex.com/t/1065575</link>
 <guid>https://www.v2ex.com/t/1065575</guid>
 <content:encoded><![CDATA[
-
 我有数据存储在第三方的 server 上，数据的元数据(一些 key,value)中包含了 timestamp = 1723796004500 或者 time = yyyy-MM-dd HH:mm:ss 格式的时间。<br />上述两种格式可以任选一种，又或者你有其他的格式存储也可。<br /><br />第三方 server 提供数据取回的 api ，提供了根据元数据过滤的功能，但仅支持字符串 startAt 匹配的方式。<br />下面的示例将返回具有以 ca 开头的动物属性的数据源（例如，cat 或 camel ）。<br />"startsWith": {"key":"animal","Value":"ca"}<br /><br />我需要怎么处理才能正确获得最近 N 小时的数据，N 的可能取值是[0,24].<br /><br />一些额外的限制：<br />因为获取接口非常慢，所以每次只能请求一次，不能循环请求。<br />允许数据一些偏差，比如限定最近 1 小时，也可以是最近 1.2 或者 1.5 小时。<br /><br />试过 gpt4 Claude3,还没有很好的答案<br /><br />这个坑爹的场景来源于:<br /><a href="https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent-runtime_RetrievalFilter.html" rel="nofollow noopener" target="_blank">https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent-runtime_RetrievalFilter.html</a><br />1. 要用 equals 的 Filter 去过滤用户<br />2. 要用 greatThan 的 Filter 去过滤时间，以得到最近 N 小时的数据<br />BUT! This data type is a UNION, so only one of the following members can be specified when used or returned.<br />只能使用一个 filter 去过滤！<br />因此我只能选择 startsWith 这种方式, 所以实际我的过滤条件前面是 用户的 token+时间
 ]]></content:encoded>
-<pubDate>2024-08-16T08:40:41Z</pubDate>
 <pubDate>2024-08-16T08:40:41Z</pubDate>
 </item>
 <item>
@@ -432,7 +1205,6 @@ To finish signing in to iCloud for Windows, you need a verification code. Sign i
 <link>https://www.v2ex.com/t/1065574</link>
 <guid>https://www.v2ex.com/t/1065574</guid>
 <content:encoded><![CDATA[
-
 <p>简历投递到： <a href="mailto:amber.kuo@woo.network">amber.kuo@woo.network</a></p>
 <p>请写明职位和联系方式，欢迎推荐，推荐成功入职次月奖励 2000U</p>
 <p>一、本帖招聘三个职位：</p>
@@ -505,7 +1277,6 @@ Proficient in using Flutter's state management, global state management, and rou
 <p>Have own understanding of page rendering performance optimization under high frequency data refresh.</p>
 <p>Experience with complete Flutter projects is preferred.</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:40:02Z</pubDate>
 <pubDate>2024-08-16T08:38:02Z</pubDate>
 </item>
 <item>
@@ -513,7 +1284,6 @@ Proficient in using Flutter's state management, global state management, and rou
 <link>https://www.v2ex.com/t/1065573</link>
 <guid>https://www.v2ex.com/t/1065573</guid>
 <content:encoded><![CDATA[
-
 <p>本人技术实力一般，所以自认为更能从大众程序员的视角对比一下 Rust 和其他语言，以及浅浅聊下为什么更喜欢 Rust 。</p>
 <p>用过很多语言了，包括 C, C++, Go, JS, TS, C#。最近几个月一直在用 Rust 工作，用下来的整体体验就是：其他语言用着不爽的地方，在 Rust 这边总是能非常自然地解决。以下是详细版。</p>
 <h1>内存管理</h1>
@@ -543,7 +1313,6 @@ Proficient in using Flutter's state management, global state management, and rou
 <p>个人粗浅的理解：Rust 披着高级语言的外衣，实际上高层、底层的事情都能做，是一门严谨的、高效的、语法现代化的、安全的编程语言。个人用了一段时间，真的感觉很舒服。开发时最喜欢干的事情就是写宏（没错我就是宏孩儿）来解耦，写完了一个宏之后，用起来的感觉是真的爽，一行简单的代码，生成了一堆复杂的代码，很有成就感，代码维护成本也大大降低（不过宏维护起来确实也难一点）。</p>
 <p>欢迎大家补充以及指正我的错误！！</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:35:54Z</pubDate>
 <pubDate>2024-08-16T10:17:02Z</pubDate>
 </item>
 <item>
@@ -551,12 +1320,10 @@ Proficient in using Flutter's state management, global state management, and rou
 <link>https://www.v2ex.com/t/1065572</link>
 <guid>https://www.v2ex.com/t/1065572</guid>
 <content:encoded><![CDATA[
-
 <p>我的支付宝前段时间扫商家的固定付款二维码后，付款选项只有花呗（我没开通花呗），那些银行卡选项都消失了。固定付款二维码就是那种小商贩贴在称上或者纸板上的那种。
 左思右想最近有什么操作，唯一想到的就是前段时间在一个超市用了一回支付宝的那个“碰一下支付”的功能，难道和这个有关系？
 哪位知道原因，请不惜赐教。现在我都只能微信扫码支付了。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:34:05Z</pubDate>
 <pubDate>2024-08-16T08:36:27Z</pubDate>
 </item>
 <item>
@@ -564,13 +1331,10 @@ Proficient in using Flutter's state management, global state management, and rou
 <link>https://www.v2ex.com/t/1065571</link>
 <guid>https://www.v2ex.com/t/1065571</guid>
 <content:encoded><![CDATA[
-
 <p>求推荐</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T08:31:37Z</pubDate>
 <pubDate>2024-08-16T08:30:37Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 兼职收入 要交 20%的个人所得税，这合理吗？</title>
 <link>https://www.v2ex.com/t/1065570</link>
@@ -14965,571 +15729,6 @@ mtopjsonp1({"ret":["FAIL_SYS_USER_VALIDATE","RGV587_ERROR::SM::哎哟喂,被挤�
 <p>谨慎升级</p>
 ]]></content:encoded>
 <pubDate>2024-08-12T10:19:09Z</pubDate>
-</item>
-<item>
-<title>[Apple] qi2&amp;半导体散热二合一充电器</title>
-<link>https://www.v2ex.com/t/1064418</link>
-<guid>https://www.v2ex.com/t/1064418</guid>
-<content:encoded><![CDATA[
-<p>最近买了一个半导体散热器，在 15pm 烫的时候，降降温，体验还凑合<br />
-突然想到如果 qi2 的充电器自带半导体散热，不就能顺便解决磁吸散热的问题了嘛。于是某宝搜了一下，发现只有一家叫 caibeike 的店有一些销量，其他大厂都没做过类似的产品</p>
-<p>大家怎么看这种充电器，有没有其他的推荐，会有什么坑嘛</p>
-]]></content:encoded>
-<pubDate>2024-08-12T10:03:00Z</pubDate>
-</item>
-<item>
-<title>[推广] 一个免费看奈飞，迪士尼等多个流媒体的客户端</title>
-<link>https://www.v2ex.com/t/1064417</link>
-<guid>https://www.v2ex.com/t/1064417</guid>
-<content:encoded><![CDATA[
-<p>网站地址 <a href="https://video.iamok.in/" rel="nofollow">https://video.iamok.in/</a>
-免费看奈飞，迪士尼 HBO Prime 等多个流媒体的客户端
-并且无需账号登录且操作简单和资源真的很丰富</p>
-]]></content:encoded>
-<pubDate>2024-08-12T09:07:59Z</pubDate>
-</item>
-<item>
-<title>[摄影] 有入 s52 的么</title>
-<link>https://www.v2ex.com/t/1064416</link>
-<guid>https://www.v2ex.com/t/1064416</guid>
-<content:encoded><![CDATA[
-<p>松下这是巨单啊，没想到这么沉，而且我还搞了个 24-105 。刚到货，明天出去试试爽不爽<br />
-估计还是得继续玩 m43 了，前几天有意一个松徕 1235 三代</p>
-]]></content:encoded>
-<pubDate>2024-08-12T05:05:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] clubhouse 的会议录音有办法下载下来吗？</title>
-<link>https://www.v2ex.com/t/1064415</link>
-<guid>https://www.v2ex.com/t/1064415</guid>
-<content:encoded><![CDATA[
-<p>是否有 api 啥的可以支持下载到本地？</p>
-<p>录屏也是个方法，但是成本有点高，希望有更加高效的方式</p>
-]]></content:encoded>
-<pubDate>2024-08-12T09:04:09Z</pubDate>
-</item>
-<item>
-<title>[NAS] 求 MoviePilot 认证支持的站点邀请</title>
-<link>https://www.v2ex.com/t/1064414</link>
-<guid>https://www.v2ex.com/t/1064414</guid>
-<content:encoded><![CDATA[
-<p>最近想部署个 MoviePilot 玩玩，但是我只有一个馒头站，无法进行认证，所以想跟大佬们求一个支持认证的站点邀请码，也可交换邀请码</p>
-<blockquote>
-<p>支持的站点：hhclub/audiences/hddolby/zmpt/freefarm/hdfans/wintersakura/leaves/ptba /icc2022/xingtan/ptvicomo/agsvpt/hdkyl/qingwa/discfan/haidan/rousi</p>
-</blockquote>
-<p>馒头站点数据：<a href="https://i.imgur.com/vdxtN8p.png" rel="nofollow">Imgur</a></p>
-<p>邮箱 (base64): ZGFpY2hhbmdjaHVuNjM2NkBnbWFpbC5jb20=</p>
-]]></content:encoded>
-<pubDate>2024-08-12T09:01:01Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 为什么远程控制 p2p 打洞了还是比服务器转发的慢呢？</title>
-<link>https://www.v2ex.com/t/1064413</link>
-<guid>https://www.v2ex.com/t/1064413</guid>
-<content:encoded><![CDATA[
-之前干活的时候用的 todesk 还挺好用的，最近好像质量越来越差，于是自己搭了 ZeroTier+Parsec ，又整了个云服务器作为 planet ，结果跟 todesk 水平难分难解，todesk 虽然总有混色之类的影响体验，但延迟倒更稳定。<br />刚刚发现网易也出远程控制了，装了一下发现能直接用我打的洞，结果发现把洞堵上了直接走服务器转发效果反而比从洞走 p2p 更好，难顶。
-]]></content:encoded>
-<pubDate>2024-08-12T09:57:08Z</pubDate>
-</item>
-<item>
-<title>[问与答] 谷歌浏览器部分网站 DNS 被污染？</title>
-<link>https://www.v2ex.com/t/1064412</link>
-<guid>https://www.v2ex.com/t/1064412</guid>
-<content:encoded><![CDATA[
-<p>谷歌浏览器无法访问 <a href="http://registry.hub.docker.com" rel="nofollow">registry.hub.docker.com</a> 。
-edge 和火狐浏览器可以。
-这是为什么？</p>
-]]></content:encoded>
-<pubDate>2024-08-12T09:34:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 感觉我的人生走向了末路</title>
-<link>https://www.v2ex.com/t/1064411</link>
-<guid>https://www.v2ex.com/t/1064411</guid>
-<content:encoded><![CDATA[
-<p>简单介绍一下
-之前在杭州做开发的，后来回重庆买了房（感觉买坑了），因为买房 gap 了一段时间，结果发现 boss 上的岗位都是半年前的了，找了快 2 个月才找到一个杭州的 offer,感觉自己又绕回原本的轨迹了。</p>
-]]></content:encoded>
-<pubDate>2024-08-12T10:17:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小米的笔记本怎么样呢</title>
-<link>https://www.v2ex.com/t/1064410</link>
-<guid>https://www.v2ex.com/t/1064410</guid>
-<content:encoded><![CDATA[
-<p>最近打算换个轻薄本，前端敲代码用，因为手机用的小米的，所以打算换个小米的笔记本，看了看好像只有 redmibook pro 系列有 32g 内存，想问下 redmiBook pro 14 和 16 这俩买哪个好点呢？预算也就五六千了，或者这俩都不行的话话有没有其他的电脑推荐呢</p>
-]]></content:encoded>
-<pubDate>2024-08-12T09:56:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] Android 找一个国产 app 较全的三方应用商店</title>
-<link>https://www.v2ex.com/t/1064409</link>
-<guid>https://www.v2ex.com/t/1064409</guid>
-<content:encoded><![CDATA[
-当前使用三方 ROM ，内置商店是 play store 。另外需要一个国内软件源的应用商店，集中管理手机上国产 app 的安装和版本更新，免去自己到处下 apk 的麻烦，最好是能类似 obtainium 那种支持多方源和静默安装，求一个推荐。
-]]></content:encoded>
-<pubDate>2024-08-12T10:07:13Z</pubDate>
-</item>
-<item>
-<title>推荐开源项目： fastapi-vue-admin 后台权限管理系统</title>
-<link>https://www.v2ex.com/t/1063145</link>
-<guid>https://www.v2ex.com/t/1063145</guid>
-<content:encoded><![CDATA[
-<h2>前言</h2>
-<p>大家好，我是一个刚入驻 V2 的新人，想来推荐一下自己的开源项目，让更多人看到，帮助更多人更快开发。</p>
-<p>项目名为 <code>fastapi-vue-admin</code>，这是一个基于 FastAPI 、Vue3 、TS 开发的 RBAC 权限管理系统。</p>
-<h2>使用场景</h2>
-<p>适合需要快速搭建一个后台管理系统的场景，并且需要相对应的权限控制。</p>
-<h2>技术栈</h2>
-<ul>
-<li>后端采用 FastAPI （现代、高性能异步框架） + Swagger （自动生成交互式 API 文档） + Pydantic （强制类型约束） + SQLAlchemy 2.0 ；</li>
-<li>前端采用 Vue3 + Ant Design Vue + TypeScript + Vite 等主流技术开发；</li>
-<li>权限认证使用（哈希）密码和 JWT Bearer 令牌的 OAuth2 ；</li>
-<li>基于 RBAC 权限架构设计。支持加载动态权限菜单、按钮级别权限控制、数据级别权限控制；</li>
-<li>开箱即用的中后台解决方案，可以用来作为新项目的启动模版，也可用于学习参考；</li>
-</ul>
-<h2>项目地址</h2>
-<p>Github 地址：<a href="https://github.com/SenQi-666/fastapi-vue-admin" rel="nofollow">fastapi-vue-admin</a></p>
-<p>Gitee 地址：<a href="https://gitee.com/senqi666/fastapi-vue-admin" rel="nofollow">fastapi-vue-admin</a></p>
-<h2>支持我</h2>
-<p>如果您喜欢我的项目，请在 Github 或 Gitee 上给我的项目点个 Star ，您的支持对我来说非常重要！</p>
-<p>最后，感谢 V2EX 社区提供的平台，让我有机会和大家分享我的开源项目。期待与大家交流，共同进步！</p>
-]]></content:encoded>
-<pubDate>2024-08-09T11:57:34Z</pubDate>
-</item>
-<item>
-<title>[送兑换码]提醒英雄更新了 1.7 版本, 新增检查清单，持续提醒等功能。这是一个高颜值，设计优雅的"提醒事项"替代品</title>
-<link>https://www.v2ex.com/t/1061976</link>
-<guid>https://www.v2ex.com/t/1061976</guid>
-<content:encoded><![CDATA[
-<p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/bU6HNdf.png" /></p>
-<p><strong>提醒英雄</strong>是一个高颜值，设计优雅的"提醒事项"替代品</p>
-<p>通过定位权限运行后台任务，保证通知始终在位于锁屏界面。</p>
-<ul>
-<li>通知和自带"提醒事项"一样拥有系统级权限，无法删除，点击之后也不会消失，不受一小时时间限制</li>
-<li>不需要手动设置提醒时间，默认直接推送到通知中心</li>
-<li>把任务按照即时任务(只提醒一次)，重复任务，定期任务分类，不需要手动管理</li>
-</ul>
-<h2>下载地址</h2>
-<p><a href="https://apps.apple.com/cn/app/id6502558762" rel="nofollow">App Store</a></p>
-<p>或者在 App Store 中搜索 "提醒英雄"，外区请搜索 "Notifyman"</p>
-<p><a href="https://apps.apple.com/cn/app/id6502558762?action=write-review" rel="nofollow">好评支持</a></p>
-<h2>更新内容</h2>
-<p>📋 新增检查清单功能</p>
-<ul>
-<li>所有任务类型均可设置对应的检查项(添加任务时点击右上角列表按钮)</li>
-<li>所有检查项完成后，任务才可以点击完成</li>
-<li>通知中会以括号数字显示检查项的完成情况</li>
-<li>点击通知后也会展示相应的检查项</li>
-</ul>
-<p>PS: 检查清单为 [会员功能] </p>
-<p>🍿 新增提醒详情页面</p>
-<ul>
-<li>点击提醒事项时会弹出详情页</li>
-<li>详情页中同样支持编辑检查清单</li>
-<li>等待中或提醒中的事项都可以再次修改提醒时间</li>
-<li>显示任务的创建和修改时间</li>
-</ul>
-<p>🗓️ 侧边栏新增迷你日历视图</p>
-<ul>
-<li>迷你日历会显示本月的任务安排情况</li>
-<li>等待中的任务以橙色显示</li>
-<li>已完成的任务以绿色显示</li>
-</ul>
-<p>⚙️ 设置功能优化</p>
-<ul>
-<li>新增繁体中文支持</li>
-<li>新增对于持续响铃间隔的设置</li>
-</ul>
-<p>🐞 BUG 修复与其它优化</p>
-<ul>
-<li>修复部分本地化翻译问题</li>
-<li>修复筛选弹窗数据展示不正确的问题</li>
-</ul>
-<h2>收费计划</h2>
-<p>基础提醒功能免费，持续提醒，检查清单，日历视图，日历同步等功能按年付费</p>
-<ul>
-<li>国区价格 18¥ / 每年</li>
-<li>外区价格 9.99$ / 每年</li>
-</ul>
-<h2>送兑换码</h2>
-<p>9 个年度会员兑换码 + 随机一个终身会员兑换码，同时每 10 楼再赠送 10 个，共送出 50 个</p>
-<ol>
-<li>9M33XK7LJN9E</li>
-<li>NP4TP7K7HAWA</li>
-<li>TTKFYXWM43TT</li>
-<li>MWHA9TALJ34A</li>
-<li>9P9E3XNHPXTF</li>
-<li>N9YWEYLTYJPR</li>
-<li>Y7XRF6HX7WMN</li>
-<li>4LTTTNLFL6XE</li>
-<li>J6T63KRKYXTF</li>
-<li>TKRPPN6FFFAR</li>
-</ol>
-<p>兑换方式，进入 App Store -&gt; 我的账户中兑换</p>
-]]></content:encoded>
-<pubDate>2024-08-09T04:26:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] macbook 一直弹找不到用于储存的钥匙串</title>
-<link>https://www.v2ex.com/t/1064407</link>
-<guid>https://www.v2ex.com/t/1064407</guid>
-<content:encoded><![CDATA[
-隔几分钟弹一次窗口，哪位大佬知道怎么去掉
-]]></content:encoded>
-<pubDate>2024-08-12T08:16:03Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 还有人玩 Suno 吗，这几天终于有空把界面加进系统了，限时免费测试中...</title>
-<link>https://www.v2ex.com/t/1064406</link>
-<guid>https://www.v2ex.com/t/1064406</guid>
-<content:encoded><![CDATA[
-<h3>系统源码(还没更新，测试完稳定版再 push)： <a href="https://github.com/MayDay-wpf/AIBotPublic" rel="nofollow">https://github.com/MayDay-wpf/AIBotPublic</a></h3>
-<h3>网站(需要注册，并且流程不简易)： <a href="https://aibotpro.cn/Home/Suno" rel="nofollow">https://aibotpro.cn/Home/Suno</a></h3>
-<h3>功能在如图所示位置</h3>
-<ul>
-<li>唱片机部分加了一些细节，唱片转动，唱片针随播放和暂停移动</li>
-<li>文件随账号云端长期托管随时下载</li>
-<li>可顺序播放随机播放</li>
-<li>API 有时候会不稳定，生成失败就多试几次</li>
-</ul>
-<p>浅色： <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/pWGP92v.jpeg" /> </p>
-<p>深色： <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6NaeHl7.png" /> </p>
-<h3>下载会把所有文件打包成 zip</h3>
-<p>zip 包文件： <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/gRtJaR2.png" /></p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:15:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 罗技鼠标 G304 总是双击,有无线鼠标推荐吗?</title>
-<link>https://www.v2ex.com/t/1064405</link>
-<guid>https://www.v2ex.com/t/1064405</guid>
-<content:encoded><![CDATA[
-用了 2 年的 G304 终于寿终正寝了,双击问题 100%复发,之前出过问题还能直接换新,现在保修都过了.<br />看了一遍 200 元左右便宜好用的无线鼠标几乎没有呀,不想再用罗技了.<br />需求是无线双模接收器+蓝牙,大品牌保修内直接换新的那种,没有双击问题,用 5 号电池的方便,能用两年就可以了.<br />谢谢推荐啦
-]]></content:encoded>
-<pubDate>2024-08-11T20:13:34Z</pubDate>
-</item>
-<item>
-<title>[买买买] 安卓盒子，买神盾 shield tv pro 2019，还是买 google tv streamer？</title>
-<link>https://www.v2ex.com/t/1064404</link>
-<guid>https://www.v2ex.com/t/1064404</guid>
-<content:encoded><![CDATA[
-价格应该都是 1000 左右。<br />神盾目前品相好的二手就 1000 左右，<br />下个月马上发售的 google tv streamer 100 美刀，国内买海淘的就 1000 左右估计。<br />看到评测说 google tv 比前一代的才提升 22%左右，有点不想等了。
-]]></content:encoded>
-<pubDate>2024-08-12T08:12:53Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 一个关于求职软件的想法--"破壁"</title>
-<link>https://www.v2ex.com/t/1064403</link>
-<guid>https://www.v2ex.com/t/1064403</guid>
-<content:encoded><![CDATA[
-<p>目前能接触到的求职软件，个人认为大多是依托于简历分类，进行有限推荐的机制，信息面窄而亲买方。</p>
-<p>是否存在一个平台，具备更优的推荐机制：让求职者可以看到更多职业发展的可能性</p>
-<p>简单来讲，打开 51/BOSS 都是开发相关岗位……，但是我觉得我专业学的数学/统计学、做过数据分析、自学的编程，会 PS 能快速上手各种工具，如果卷不动开发的话，本应有更强的学习能力、经验阅历投入一个新的工作事业中去，但是平台能推荐到的信息面，除了开发相关岗和销售就没其他了……（如果有相应的证书门槛，这里不是更方便买课？）</p>
-<p>可能是我不会用 OR 这些平台的功能不够凸显这些特点？如果有的话可以推介我瞅瞅，没有的话有老哥考虑做一个吗？一起搞也可以考虑🤔</p>
-]]></content:encoded>
-<pubDate>2024-08-12T05:11:14Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 16 pro 真的要换成 5 倍长焦吗？</title>
-<link>https://www.v2ex.com/t/1064401</link>
-<guid>https://www.v2ex.com/t/1064401</guid>
-<content:encoded><![CDATA[
-<p>目前爆料看到 iphone 16 pro 也换成了 5 倍长焦</p>
-<p>这 1 倍-5 倍之间差了太多了，全是用数码变焦+一些算法</p>
-<p>大部分人日常拍摄，都是和相机的传统标准变焦范围重叠的 24mm-70mm</p>
-<p>你这 3 个摄像头，1 个 14mm ，1 个 24mm ，1 个 120mm 等于其中 2 个都是日常很少用到的。全靠一个 24mm 的主摄像头苦苦支撑。</p>
-]]></content:encoded>
-<pubDate>2024-08-12T05:58:35Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 长沙 招聘 Java 中级开发</title>
-<link>https://www.v2ex.com/t/1064400</link>
-<guid>https://www.v2ex.com/t/1064400</guid>
-<content:encoded><![CDATA[
-招 Java 中级，2-4 年左右 Java 后端开发经验，物流信息化相关。<br /><br />技术水平要跟工作年限相符，态度责任心要好。<br /><br />待遇 8k 左右，能力强的可以谈。<br /><br />简历发邮件到 zhangyou1010@gmail.com
-]]></content:encoded>
-<pubDate>2024-08-12T08:24:49Z</pubDate>
-</item>
-<item>
-<title>[Apple] MBA M1 通过 Apple TV 实现三屏显示，但出现一个新问题</title>
-<link>https://www.v2ex.com/t/1064399</link>
-<guid>https://www.v2ex.com/t/1064399</guid>
-<content:encoded><![CDATA[
-<p>Macbook Air M1 ，2 台 4k 27 寸显示器，之前一直用 Displaylink adpater 实现双屏，上周 adpater</p>
-<p>忽然不工作了，但每天需要双屏，想到有个闲置的 Apple TV 4K 2022 ，操作了一番，发现使用 AirPlay 居然</p>
-<p>非常容易实现了双 4k 显示（可扩展或镜像），加上自带笔记本显示，等于 3 个独立屏幕。延迟度和之前用 adapter </p>
-<p>差不多，早知道就不花那冤枉钱了。</p>
-<p>但是目前唯一问题，就是 Apple TV Airplay 不支持 笔记本上的 truetone ，导致两台显示器又色彩差异，</p>
-<p>晚上问题更加严重，请问有什么解决办法。</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:55:11Z</pubDate>
-</item>
-<item>
-<title>[微软] Windows Terminal 输入的时候为什么会显示下划线，光标后移也很慢</title>
-<link>https://www.v2ex.com/t/1064398</link>
-<guid>https://www.v2ex.com/t/1064398</guid>
-<content:encoded><![CDATA[
-<p><img alt="ace46e9bb63fecd6af322d8a1059b2dc.png" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/08/12/ace46e9bb63fecd6af322d8a1059b2dc.png" /></p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:21:38Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [抖音研发] [校招] 字节跳动-互娱研发-抖音 校招正式职位招聘启动！</title>
-<link>https://www.v2ex.com/t/1064396</link>
-<guid>https://www.v2ex.com/t/1064396</guid>
-<content:encoded><![CDATA[
-研发团队 leader 亲自一对一服务，内推、招聘、录取、转正全流程指导。<br />面向人群：2025 届获得本科及以上学历，计算机、通信和电子信息科学、数学等相关专业。<br />我们是谁：互娱研发抖音团队，在抖音的多个核心场景提供支撑，包括但不限于基础产品、中长视频、社交与创作、图文等等。通过提供更深度的内容、更极致的体验持续推动抖音系产品 DAU 规模的增长。在这里，你可以学习到前沿技术知识，锻炼自己的架构能力，用技术服务亿级用户。期待你的加入！<br />base：北京、上海、深圳、厦门<br />内推投递链接（内推码: 4SCU7NW ）<br />团队直投：<br />前端（北京）： <a href="https://job.toutiao.com/s/ird1b4J2" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/ird1b4J2</a><br />部门直投：<br />前端： <a href="https://job.toutiao.com/s/irdJ7QDF" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/irdJ7QDF</a><br />客户端： <a href="https://job.toutiao.com/s/irdJEvLY" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/irdJEvLY</a><br />后端： <a href="https://job.toutiao.com/s/irdJK1KC" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/irdJK1KC</a><br />其他职位： <a href="https://jobs.bytedance.com/referral/campus/pc/position?type=201&amp;token=MzsxNzIyOTUwNzI0NDUzOzczMTExNjI2MjY0Nzc1MjQ1MDY7MDsx" rel="nofollow noopener" target="_blank">https://jobs.bytedance.com/referral/campus/pc/position?type=201&amp;token=MzsxNzIyOTUwNzI0NDUzOzczMTExNjI2MjY0Nzc1MjQ1MDY7MDsx</a><br />微信咨询：Giver8626
-]]></content:encoded>
-<pubDate>2024-08-12T07:52:53Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 从公司的角度说明为啥 it 行业已经是红海了</title>
-<link>https://www.v2ex.com/t/1064395</link>
-<guid>https://www.v2ex.com/t/1064395</guid>
-<content:encoded><![CDATA[
-1.应届生便宜，还能抵税，招应届生，用 1-2 年开掉，成本极少<br />2.老人工资太高，一个系统只需要 1 个大牛带着，其他人都可替换<br />3.部门只要换老大，就会带来一次人员清洗，跟技术无关<br />4.gpt 等辅助软件出来，一个人当 3 个人用，交一份社保，965 变成 007 ，对公司成本下降有好处<br />5.学历贬值，谁不愿意要 985 ，年轻，肯加班，要得少的年轻人呢。<br /><a href="http://6.it" rel="nofollow noopener" target="_blank">6.it</a> 系统经过 10 年建设，需求不像刚开始那样旺盛了。大公司垄断了很多东西，开源让很多事变得没有门槛<br /><br />这几天 v 友们推荐求职贴越来越多，也是 it 行业走下坡路的缩影，还是建议尽量找找其他路子，或者削减开支，渡过难关
-]]></content:encoded>
-<pubDate>2024-08-12T08:14:56Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 老哥们弄了移动宽带,搞了 ipv6, nas 也接入了,但是公司没 ipv6 访问不了家里的 nas... 能破吗?</title>
-<link>https://www.v2ex.com/t/1064394</link>
-<guid>https://www.v2ex.com/t/1064394</guid>
-<content:encoded><![CDATA[
-<p>如题  用移动数据可以从外网访问家里的 nas</p>
-<p>但是没 ipv6 的网就访问不了 ,这种 有什么好的法子吗 ~~~</p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:12:55Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 在职考研，快顶不住了</title>
-<link>https://www.v2ex.com/t/1064393</link>
-<guid>https://www.v2ex.com/t/1064393</guid>
-<content:encoded><![CDATA[
-<p>OP 老家是河南的，高中拼劲了全力在 18 年考到了省 800 多名，去了某 C9 高校。身边的外省同学似乎都很清楚自己的方向，准备保研的好好搞成绩，准备出国的都在学雅思，而我考上大学后突然变的茫然了，因为高中除了考个好大学似乎根本就没有其他目标，进入大学也意味着这个唯一的目标也没了。</p>
-<p>大学里开始浑浑噩噩，不想学老师教的那些，挂了好多科，成绩系里倒数吧，不过好在自学了点感兴趣的技术，java,C++,linux 等。最后勉勉强强混毕业了，22 年拿到的信息安全的学位证，当时身边的亲人也都劝我考虑考虑再读个研究生，但是我实在不想再读书了，就开始找工作了，最后找了个国内的 linux C++开发岗，流媒体相关的。工资给开到 18K(在我们学校计算机相关毕业生中这个薪资算中等偏下吧)，工作强度也挺高。</p>
-<p>23 年 11 月，工作满一年，感觉对现状不怎么满意，和一个在上海多年的亲戚聊天，他说我之前成绩很好，现在也还年轻（ OP01 年的人），如果不读个研究生大概率到三四十岁会后悔，我也感觉自己是想要抽出一段完整的时间再去学点什么，于是有了考研的打算，准备考 408 软工</p>
-<p>大学本来就没好好学，再加上工作一年也忘得差不多了。每天 8 点起床，9 点到公司开始工作，下午不加班的话 6 点能回到出租屋，加班的话 8 点半到出租屋，点过外卖就开始学。前几个月学的还行，也很有干劲，到 24 年 3 月公司的工作突然给上强度了，每天忙的不得了，回到家累的只想躺床上，也一度多次萌生过放弃考研的打算，甚至直接摆烂了一个月一点没学。但是感觉已经坚持半年了，也不忍心放弃，还是重整旗鼓接着干。摆烂一个月后感觉学的进度落下了不少，也非常焦虑，晚上开始熬夜，通常凌晨 2 点睡觉，最晚熬到了凌晨 4 点，中午午休能在公司再睡半个小时，但是还是感觉学不完了，英语单词没背完，408 学的不扎实，数学也只是看了一遍不会做题，政治更是完全没开始，总之没有一门让自己满意的，可能还是因为自己的复习效率比较低吧</p>
-<p>离考研还有 130 多天，不知道自己能学成什么样。如果能考上，我的想法是读研期间基本上研二就没什么课了，可以边上学边工作，等快毕业了走选调或者进国企，总之找个比较清闲的工作，能给我交个社保就行，然后自己试着找个 remote job ，给国外公司写代码。所以未来的打算基于考上研究生，还是希望能够考上的，如果考不上我也就认命了，不再考了，继续工作吧，也许会跳个槽试试能不能提高工资</p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:17:12Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] Visual Studio Code 中的 Python – 2024 年 8 月版本 使用 Python -environment-tools 改进了 Python discovery、源代码中显示内联变量值</title>
-<link>https://www.v2ex.com/t/1064392</link>
-<guid>https://www.v2ex.com/t/1064392</guid>
-<content:encoded><![CDATA[
-<p>我们很高兴地宣布 Visual Studio Code 的 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python</a> 和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter</a> 扩展将于 2024 年 8 月发布！</p>
-<p>此版本包括以下公告：</p>
-<ul>
-<li>使用 python-environment-tools 改进了 Python 发现</li>
-<li>源代码中显示的内联变量值</li>
-<li>对 Python 的 VS Code Native REPL 的改进
-如果您有兴趣，可以在我们的 <a href="https://github.com/microsoft/vscode-python/releases" rel="nofollow">Python</a>、<a href="https://code.visualstudio.com/updates/" rel="nofollow">Jupyter</a> 和 <a href="https://github.com/microsoft/pylance-release/blob/main/CHANGELOG.md" rel="nofollow">Pylance</a> 扩展的更改日志中查看完整的改进列表。</li>
-</ul>
-<h1>使用 python-environment-tools 改进了 Python 发现</h1>
-<p>在上一版本中，我们发布了 <a href="https://github.com/microsoft/vscode-docs/blob/main/release-notes/v1_91.md#python-environment-discovery-using-python-environment-tools" rel="nofollow">Python 环境工具</a>，这些工具重新设计了专注于性能的 Python 发现基础结构。这种新方法减少了执行 python 二进制文件来探测信息的需求，从而提高了性能。</p>
-<p>从此版本开始，我们将作为实验的一部分推出此增强功能。如果你有兴趣尝试这个，你可以在你的<code>user settings.json</code>文件中设置<code>"python.locator"</code>为 <code>"native"</code>并重新加载你的 VS Code 。访问 <a href="https://github.com/microsoft/python-environment-tools" rel="nofollow">python-environment-tools 存储库</a>，了解有关此功能、正在进行的工作的更多信息，并提供反馈。</p>
-<h1>源代码中显示的内联变量值</h1>
-<p>Python 调试器扩展引入了内联值功能，以增强 Python 调试体验，从而更轻松地在调试会话期间跟踪变量值。此功能允许在调试会话期间直接在编辑器中显示变量值，该值位于相应的代码行旁边。这可以帮助您快速了解程序的状态，而无需将鼠标悬停在变量上或检查变量窗格。要启用此功能，请在 user <code>settings.json</code>中将设置<code>debugpy.showPythonInlineValues</code> 设置为 <code>true</code>。</p>
-<p><strong>注意</strong>：此功能目前处于开发状态，正在积极进行改进。请试用此功能，并在 <a href="https://github.com/microsoft/vscode-python-debugger" rel="nofollow">vscode-python-debugger 存储库中提供反馈</a>！</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://devblogs.microsoft.com/python/wp-content/uploads/sites/12/2024/07/show-python-inline-variables.png" /></p>
-<h1>对 Python 的 VS Code Native REPL 的改进</h1>
-<p>实验性原生 REPL （<code>"python.REPL.sendToNativeREPL": true</code>） 现在将显示成功/失败 UI ，类似于 Jupyter 单元格中的 UI ，具体取决于执行结果。此外，我们还进行了改进，以便我们不再在不生成输出的单元格上显示空行。</p>
-<h1>其他更改和增强功能</h1>
-<p>我们还添加了一些小的增强功能，并修复了用户请求的问题，这些问题应该会改善你在 Visual Studio Code 中使用 Python 和 Jupyter Notebooks 的体验。一些值得注意的变化包括：</p>
-<ul>
-<li>Pylance 现在提供了一种禁用无法访问性提示的方法 <a href="https://github.com/microsoft/pylance-release/issues/6106" rel="nofollow">@pylance-release#6106</a></li>
-<li>“Debug Welcome”视图现在包含一个按钮，当在编辑器中打开 Python 文件时，用于快速访问自动 Python 配置</li>
-</ul>
-<h1>征集社区反馈</h1>
-<p>由于我们正在规划和确定未来工作的优先级，因此我们重视您的反馈！以下是我们希望得到反馈的几个问题：</p>
-<ul>
-<li>在 Python 社区各个部分的共同努力下，我们正在收集有关在 Python 中使用类型注释的回复。请花几分钟时间分享您<a href="https://docs.google.com/forms/d/e/1FAIpQLSdWzZ6xKZhe2vRcXgd54CtcI4goi4c0S3Q7ndYF9CXg62sBew/viewform?pli=1" rel="nofollow">在 Python 中的类型注释调查中的经验</a>！调查将于 2024 年 8 月底结束。</li>
-<li>（<a href="https://github.com/microsoft/vscode-python/issues/22827" rel="nofollow">@vscode-python#22827</a>） 中的测试覆盖率设计方案</li>
-</ul>
-<p>通过从 Marketplace 下载 <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python" rel="nofollow">Python 扩展</a>和 <a href="https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter" rel="nofollow">Jupyter 扩展</a>，或直接从 Visual Studio Code 的扩展视图（ Ctrl + Shift + X 或 ⌘ + ⇧ + X ）安装它们，尝试这些新的改进。可以在文档中详细了解 Visual Studio Code 中的 <a href="https://code.visualstudio.com/docs/python/python-tutorial" rel="nofollow">Python 支持</a>。如果您遇到任何问题或有建议，请在 <a href="https://github.com/Microsoft/vscode-python" rel="nofollow">Python VS Code GitHub 页面</a>上<a href="https://github.com/microsoft/vscode-python/issues/new/choose" rel="nofollow">提交问题</a>。</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:46:50Z</pubDate>
-</item>
-<item>
-<title>[生活] 各位家里的台式机的开关机频率如何？</title>
-<link>https://www.v2ex.com/t/1064391</link>
-<guid>https://www.v2ex.com/t/1064391</guid>
-<content:encoded><![CDATA[
-<p>周末台式机基本每天都启动，我的习惯就是如果长时间不使用（超过 1-2 个小时），我就会把它关机，有时候游戏玩累了想睡个午觉也会关机，可能一天开关机 3-4 次。</p>
-<p>所以每次关机后很多软件比如 QQ 、微信、运行的虚拟机等等都需要重新打开，觉得效率很低，又不能像笔记本一样合上就好了。</p>
-<p>之前有过一天不关机，但是显示器、显卡风扇、散热风扇、灯光空在那里工作，感觉心理有负担，而且还有噪音。</p>
-<p>所以不知道应该怎么使用是一个正确的方式，休眠？</p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:26:10Z</pubDate>
-</item>
-<item>
-<title>[程序员] 最新的 iOS 的企业微信扫一扫的 URL scheme 有大佬有吗？</title>
-<link>https://www.v2ex.com/t/1064390</link>
-<guid>https://www.v2ex.com/t/1064390</guid>
-<content:encoded><![CDATA[
-<p>论坛找的去年发出来的这几个 url 好像都失效了
-wxwork://wwact=qrcode
-wxwork://platformId=wechat&amp;wwact=qrcode</p>
-<p>有无大佬有最新的🙏🙏</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:43:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 怎样把本地虚拟机的开发环境，打包成 .iso 文件搬到线上服务器？</title>
-<link>https://www.v2ex.com/t/1064389</link>
-<guid>https://www.v2ex.com/t/1064389</guid>
-<content:encoded><![CDATA[
-<p>本地在 virtualbox 中创建的 linux 开发环境，要发布到线上服务器生产环境。</p>
-<p>不想在线上再安装一次各种开发依赖（不考虑 Docker 模式），云服务器支持 .iso 文件初始化系统环境。</p>
-<p>有什么方式可以将本地虚拟机中的 linux 导出为 .iso 文件？</p>
-]]></content:encoded>
-<pubDate>2024-08-12T08:20:32Z</pubDate>
-</item>
-<item>
-<title>[Kubernetes] istio 在 bare metal 机器上怎么暴露服务公网访问</title>
-<link>https://www.v2ex.com/t/1064388</link>
-<guid>https://www.v2ex.com/t/1064388</guid>
-<content:encoded><![CDATA[
-<p>最近在学习 k8s 相关的知识，遇到外部不能访问的问题</p>
-<p>机器环境： 甲骨文 ARM 机器，上面安装了 k3s(已关闭 servicelb 和 traefik), istio(1.22.3), <a href="https://metallb.universe.tf/installation/#installation-by-manifest" rel="nofollow">MetalLB</a> (配置如下), bitnami/kafka(最新版本）</p>
-<p>网络环境：甲骨文的机器有公网 IP ，关闭了防火墙， 域名 <a href="http://kafka.example.com" rel="nofollow">kafka.example.com</a> 配置在 Cloudflare 上，
-kafka 集群默认使用的是 bitnami/kafka 的 helm 配置文件(<code>helm install my-kafka bitnami/kafka --version 30.0.3</code>)，修改了 listener 的 protocol 为 PLAINTEXT, 使用默认的 kraft 模式</p>
-<pre><code class="language-yaml">listeners:
-  client:
-    protocol: PLAINTEXT
-  controller:
-    protocol: PLAINTEXT
-  interbroker:
-    protocol: PLAINTEXT
-  external:
-    protocol: PLAINTEXT
-</code></pre>
-<p>infra 配置文件：
-istio 配置
-gateway.yaml</p>
-<pre><code class="language-yaml">apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: kafka-gateway
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
-      hosts:
-        - "kafka.example.com"
-    - port:
-        number: 9092
-        name: kafka-tcp
-        protocol: TCP
-      hosts:
-        - "kafka.example.com" # 这是 cloud 上面的可用域名
-</code></pre>
-<p>virtualservice.yaml</p>
-<pre><code class="language-yaml">apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: kafka-virtualservice
-spec:
-  hosts:
-    - "kafka.example.com"
-  gateways:
-    - kafka-gateway
-  tcp:
-    - match:
-      - port: 9092
-      route:
-      - destination:
-          host: my-kafka-controller-headless
-          port:
-            number: 9092
-</code></pre>
-<p>MetalLB 配置</p>
-<pre><code class="language-yaml">apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: metallb-pool
-  namespace: metallb-system
-spec:
-  addresses:
-   - xxx.xxx.xxx.xxx/32 # 这里使用的是甲骨文机器的 公网 ip
-</code></pre>
-<p>service 配置</p>
-<pre><code class="language-yaml">apiVersion: v1
-kind: Service
-metadata:
-  name: istio-ingressgateway
-  namespace: istio-system
-  annotations:
-    metallb.universe.tf/allow-shared-ip: "true"
-spec:
-  selector:
-    istio: ingressgateway
-  ports:
-    - port: 9092
-      targetPort: 9092
-      name: kafka
-  type: LoadBalancer
-</code></pre>
-<p>目前的问题
-使用上面的配置启动之后，istio-ingressgateway 的 external-ip 那个看到配置的公网 ip ，在 VM 上 <code>curl -v <a href="http://kafka.example.com:9092" rel="nofollow">kafka.example.com:9092</a></code> 或者 <code>curl -v public-ip:9092</code> 也有结果，但是在其他机器上访问或者我自己电脑上访问不到（ telnet <a href="http://xxx.xxx.xx.xxx" rel="nofollow">xxx.xxx.xx.xxx</a> 9092 也没有结果 telnet: Unable to connect to remote host: Connection refused ）， 这个是正常的现象吗，还是必须要在 VM 上加一层反代才可以</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:37:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位老哥们，问个关于契税的问题</title>
-<link>https://www.v2ex.com/t/1064387</link>
-<guid>https://www.v2ex.com/t/1064387</guid>
-<content:encoded><![CDATA[
-<p>是这样的，我在省会有一套房，有银行贷款未结清</p>
-<p>之前老家有一套全款买的房子，没有办房产证(父母买的，开发商问题办不下来房产证，在我们小城市很常见)，现在地方财政吃紧，想给这些房子统一办证，父母的意思是把房子放在我的名下，省的以后麻烦</p>
-<p>我的问题是，这个情况老家的房子办证交契税的时候是按一套交还是二套交，如果是按二套交，就把房子放在父母名下</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:34:21Z</pubDate>
-</item>
-<item>
-<title>[区块链] 为什么美国一边禁止 Tornado Cash 洗钱，又允许 ZK 隐私技术？</title>
-<link>https://www.v2ex.com/t/1064386</link>
-<guid>https://www.v2ex.com/t/1064386</guid>
-<content:encoded><![CDATA[
-<p>Zk 本质上和 Tornado Cash 没有区别吧，为啥美国政府的态度却不一样</p>
-]]></content:encoded>
-<pubDate>2024-08-12T07:32:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 开了美股，怎么入门，求教</title>
-<link>https://www.v2ex.com/t/1064385</link>
-<guid>https://www.v2ex.com/t/1064385</guid>
-<content:encoded><![CDATA[
-<p>想学习美股入门，那种投资稳健点，不求收益，想学习下流程</p>
-]]></content:encoded>
-<pubDate>2024-08-12T04:28:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 薪资构成如下，这样拆分有坑吗(社保公积金是足额缴纳)
-
-工资标准=基本工资（a%）+岗位工资（b%） +绩效工资（c%）+保密津贴（d%）+预支加班费（e%）</title>
-<link>https://www.v2ex.com/t/1064383</link>
-<guid>https://www.v2ex.com/t/1064383</guid>
-<content:encoded><![CDATA[
-准备入职的公司企查查上显示是国企，国企是这样子发工资的么？各位有没有了解的？
-]]></content:encoded>
-<pubDate>2024-08-07T07:22:25Z</pubDate>
-</item>
-<item>
-<title>[Apple] iOS 18 Public Beta 2 可以作为主力机的系统使用吗？</title>
-<link>https://www.v2ex.com/t/1064382</link>
-<guid>https://www.v2ex.com/t/1064382</guid>
-<content:encoded><![CDATA[
-iOS 18 Public Beta 2 看新闻发布了？有致命 bug 吗？
-]]></content:encoded>
-<pubDate>2024-08-12T08:20:08Z</pubDate>
 </item>
 </channel>
 </rss>
