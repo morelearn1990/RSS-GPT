@@ -5,15 +5,151 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[骑行] 求推荐一款高性价的“公路车骑行前灯”</title>
+<link>https://www.v2ex.com/t/1065675</link>
+<guid>https://www.v2ex.com/t/1065675</guid>
+<content:encoded><![CDATA[
+
+<h3>今天我买的骑行手电收到了，晚上出去溜了一圈</h3>
+<h3>发现一个比较严重的问题，灯光亮度倒是还能接受毕竟东西不贵，就一点我比较难受。</h3>
+<h3>这个手电为低频的 PWM 调光 100Hz ，骑行了一个半小时眼睛比较难受😣。</h3>
+<h1>求大佬推荐性价比比较高的，优先 dc 直驱，其次就是高频 pwm 调光，800lm 或者以上的亮度。</h1>
+]]></content:encoded>
+<pubDate>2024-08-16T18:16:13Z</pubDate>
+<pubDate>2024-08-16T18:14:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 想低成本的试运营一些微服务(主要是 Spring boot)该怎么选型？内网穿透 or ServerLess</title>
+<link>https://www.v2ex.com/t/1065674</link>
+<guid>https://www.v2ex.com/t/1065674</guid>
+<content:encoded><![CDATA[
+
+<p><strong>需求和背景</strong></p>
+<p>最近公司开始降薪 15%并且传闻要搬到很偏的一个地方办公，逼得我又捡起了尝试了十万次的副业计划，就想试着运营一些开源的或者以前自己写的一些项目，以 Spring boot 的微服务居多。去云上看了下，现在的服务器（三台 ecs+rds+redis+elastic search ）按包一年算下来这笔钱也有点吓人，就是去掉 es 、kafka 这些贵族服务，RDS 采用 Serverless ，感觉投入也不小。根据自己经验和看了网上的一些资料:</p>
+<h4>对于应用/服务层觉得如下两种方案可行</h4>
+<p>一、是使用阿里云的 Serverless 应用引擎 SAE
+这个方案有三个疑问：</p>
+<ol>
+<li>其他云如腾讯云似乎没有对应的微服务的 Serverless 解决方案，它只有单服务的函数计算，这不是被绑死了云，二来想想腾讯云不应该搞不定这个，问问在座的各位彦祖亦菲，是不是我打开方式不对；</li>
+<li>感觉这个服务是每次请求来了才会启动应用，这个延迟会不会很大；</li>
+<li>明明是 serverless ，怎么又要让我先买资源包才能开通；</li>
+</ol>
+<p>二、是把服务跑在家里的主机上，买台公网 IP 的 ECS ，通过内网穿透如 frp 把家里搭建的服务穿透出去。
+这个方案的疑问是：</p>
+<p>1.这种方案可行性如何，比如延迟、稳定性等；
+2.是本地运维有没有好一些平台和框架来管理本地的一台主机和两台笔记本的集群，rancher 和 kubesphere 都没接触过，但是看起来似乎重了点。</p>
+]]></content:encoded>
+<pubDate>2024-08-16T17:35:36Z</pubDate>
+<pubDate>2024-08-16T17:35:36Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如何理解 Go 语言中作用域延伸？</title>
+<link>https://www.v2ex.com/t/1065673</link>
+<guid>https://www.v2ex.com/t/1065673</guid>
+<content:encoded><![CDATA[
+
+<p>在 Go 语言中，代码块内声明的标识符，只能在代码块内使用。例如函数体是个代码块，里面定义的变量，只要没发生逃逸，在外部无法访问。
+但有一种特殊情况，就是在支持初始化子语句的流程语句中，初始化子语句中定义的变量，作用域会延伸到条件对应的代码块之外。请看代码：</p>
+<pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+	if a := 1; false {
+		fmt.Println(a)
+		//fmt.Println(b)   // 不能引用下面语句定义的块级变量
+	} else if b := 2; a &gt; b { 
+		fmt.Println(a - b) // 可以引用上面语句定义的块级变量
+	} else {
+		fmt.Println(a + b) // 在最后 a 和 b 都可以引用
+	}
+}
+</code></pre>
+<p>左看右看也想不明白，为什么 <code>else if</code> 中定义的变量 <code>b</code> 也能在 <code>else</code> 块中使用？如果有更多条件判断，那么前一个 <code>else if</code> 中定义的变量，在之后所有 <code>else if</code> 块中都能使用。</p>
+<p>在 C++ 中，<code>if</code> 中定义的变量 <code>a</code>，可以跨整个流程语句，<code>else if</code> 中定义的变量明确不能在其他 <code>else</code> 代码块中引用：</p>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+
+int main() {
+    if (int a = 1; false) { // a 在整个 if-else 结构中可见
+        std::cout &lt;&lt; a &lt;&lt; std::endl;
+    } else if (int b = 2; a &gt; b) {  // a 可访问
+        std::cout &lt;&lt; a - b &lt;&lt; std::endl;
+    } else {
+        std::cout &lt;&lt; a &lt;&lt; std::endl;  // a 可访问
+        // std::cout &lt;&lt; b &lt;&lt; std::endl;  // 错误：b 不可访问
+    }
+    return 0;
+}
+</code></pre>
+<p>在 C# 中，规定更是严格，<code>if</code> 和 <code>else if</code> 中定义的变量，只能在随后的代码块中使用，不能跨到代码块：</p>
+<pre><code class="language-c#">public class Program {
+    public static void Main() {
+        if (int a = 1; false) {
+            Console.WriteLine(a);
+        } else if (int b = 2; a &gt; b) {  // 错误：a 不可访问
+            Console.WriteLine(a - b);
+        } else {
+            Console.WriteLine(a + b);  // 错误：a 和 b 都不可访问
+        }
+    }
+}
+</code></pre>
+<p>有本 Go 语言书管这叫「惰性求值」行为，但我也仅仅是知道有这么个现象，不明白为什么会设计成这样？</p>
+]]></content:encoded>
+<pubDate>2024-08-16T17:21:23Z</pubDate>
+<pubDate>2024-08-09T05:44:46Z</pubDate>
+</item>
+<item>
+<title>[macOS] Electron 的程序有办法打 universal 包吗（就是 Intel/ARM 都能直接运行）很多用户搞不清楚他们机器的 CPU 是不是 ARM 的，有的又不懂得怎么装 Rosetta（点一下都不会，直接说你的程序有问题）</title>
+<link>https://www.v2ex.com/t/1065672</link>
+<guid>https://www.v2ex.com/t/1065672</guid>
+<content:encoded><![CDATA[
+
+浏览器 JS 无法准确检测 ARM<br />有些极品用户点两下提示要安装东西才能运行，特别是 Rosetta 安装还慢，会说你的程序有捆绑、有病毒<br />公司的产品，又不能放弃这些用户
+]]></content:encoded>
+<pubDate>2024-08-16T17:02:57Z</pubDate>
+<pubDate>2024-08-16T17:59:43Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 做多语言网站，总不能舍弃最大单一文化体简体中文吧</title>
+<link>https://www.v2ex.com/t/1065671</link>
+<guid>https://www.v2ex.com/t/1065671</guid>
+<content:encoded><![CDATA[
+
+<p>上世纪九十年代下海，这个世纪二十年代出海，不知道是卷还是进化。</p>
+<p>近期凑热闹上线了个多语言站，基于 flux.1 模型的文字生成图片工具。</p>
+<p>模型不错，令人惊艳，但是在非英文面前就是个废品，非英文输入文字极不友好，简直傻瓜。</p>
+<p>没办法，又嵌入套层，对非英文进行翻译，使用接口实现，当然会牺牲一些速度。</p>
+<p>基本过程就是先判断是不是英文，如果不是，翻译成英文。最终，不管什么文字，都以英文形式提交，然后进行图片生成。</p>
+<p>毕竟，作为简体中文人，简体中文又是最大单一文化体，咋样都不能舍弃这一块。</p>
+<p>不对简体中文友好，做多语言网站就是本末倒置。</p>
+<p>目前免费使用、不限次数，后续看成长情况再考虑是不是搞登录、支付功能。</p>
+<p>菜鸟第一次上线出海加 AI 概念产品，期待大佬指点！</p>
+<p><a href="https://www.fluximg.com/" rel="nofollow">https://www.fluximg.com/</a></p>
+]]></content:encoded>
+<pubDate>2024-08-16T17:02:56Z</pubDate>
+<pubDate>2024-08-16T17:02:56Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 现在的 Remote work</title>
+<link>https://www.v2ex.com/t/1065669</link>
+<guid>https://www.v2ex.com/t/1065669</guid>
+<content:encoded><![CDATA[
+
+<p>现在的远程工作是不是主要是 web3 为主，好想转为远程，也想过学 web3 。</p>
+]]></content:encoded>
+<pubDate>2024-08-16T16:48:08Z</pubDate>
+<pubDate>2024-08-16T12:47:08Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 💥 免费的 111 种风格图片生成网站💥 
 🤖网站的内容和图片都是通过 AI 生成的🤖</title>
 <link>https://www.v2ex.com/t/1065667</link>
 <guid>https://www.v2ex.com/t/1065667</guid>
 <content:encoded><![CDATA[
-
 网站的内容文案, 图片都是通过 AI 生成的, <br />也是跑通了一把完全基于 AI 的上站旅程<br /><br />h1,h2, desc, feature, fqa 也都是通过 prompt 生成<br /><a href="https://chatgptimage.org/" rel="nofollow noopener" target="_blank">https://chatgptimage.org/</a>
 ]]></content:encoded>
-<pubDate>2024-08-16T16:17:12Z</pubDate>
 <pubDate>2024-08-16T16:14:12Z</pubDate>
 </item>
 <item>
@@ -21,10 +157,8 @@
 <link>https://www.v2ex.com/t/1065666</link>
 <guid>https://www.v2ex.com/t/1065666</guid>
 <content:encoded><![CDATA[
-
 比如小朋友玩的蒙特利梭启蒙乐园，直接购买 288 ，闲鱼上用卖家账号的卖 6 块，自己邮箱开通会员的卖 25 块。
 ]]></content:encoded>
-<pubDate>2024-08-16T16:09:20Z</pubDate>
 <pubDate>2024-08-16T16:13:12Z</pubDate>
 </item>
 <item>
@@ -32,10 +166,8 @@
 <link>https://www.v2ex.com/t/1065665</link>
 <guid>https://www.v2ex.com/t/1065665</guid>
 <content:encoded><![CDATA[
-
 做矩阵号，需要几万张头像，有没有批量生成，是人就可以的那种，有知道的朋友，帮忙介绍一下哈
 ]]></content:encoded>
-<pubDate>2024-08-16T16:08:52Z</pubDate>
 <pubDate>2024-08-16T16:06:52Z</pubDate>
 </item>
 <item>
@@ -43,7 +175,6 @@
 <link>https://www.v2ex.com/t/1065664</link>
 <guid>https://www.v2ex.com/t/1065664</guid>
 <content:encoded><![CDATA[
-
 <p>webview_go 地址： <a href="https://github.com/webview/webview_go" rel="nofollow">https://github.com/webview/webview_go</a></p>
 <p>第一个是打开子窗口的问题：</p>
 <pre><code>主窗口：
@@ -67,14 +198,12 @@ main.Eval("alert(1)")
 <p>本人是 golang 新手，还望大佬指点迷津，谢谢！</p>
 ]]></content:encoded>
 <pubDate>2024-08-16T15:56:24Z</pubDate>
-<pubDate>2024-08-16T15:56:24Z</pubDate>
 </item>
 <item>
 <title>[奇思妙想] 自定义智能家居 之三（设备共同接入的理由）</title>
 <link>https://www.v2ex.com/t/1065663</link>
 <guid>https://www.v2ex.com/t/1065663</guid>
 <content:encoded><![CDATA[
-
 <p>续帖：智能家居（全屋智能）从 遥控智能 进入 自定义智能
 续帖：自定义智能家居 之二（商家分工）</p>
 <p>企业有大有小，有软件、硬件企业。如何让所有人都心甘情愿加入平台?</p>
@@ -99,7 +228,6 @@ main.Eval("alert(1)")
 养鱼，我在家里砌了一个鱼缸，我希望可以智能控制，随时告知我。米家允许我个人 DIY 吗？
 我喜欢周边、模型。不动的模型是不是很呆板，未来是不是可以有很多可动的模型，放在展柜里，除了可以被灯光照明，还可以被智能控制。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T15:29:49Z</pubDate>
 <pubDate>2024-08-16T16:10:41Z</pubDate>
 </item>
 <item>
@@ -107,10 +235,8 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065662</link>
 <guid>https://www.v2ex.com/t/1065662</guid>
 <content:encoded><![CDATA[
-
 前端 base 曼谷<br />测试 base 曼谷<br />UI base 国内远程<br />futter base 曼谷<br /><br />出海补贴超级给力<br />薪资福利对标一线大厂，很给力！！！<br /><br />简历 -&gt;  jiangziwen0420@gmail.com
 ]]></content:encoded>
-<pubDate>2024-08-16T15:28:42Z</pubDate>
 <pubDate>2024-08-16T15:46:54Z</pubDate>
 </item>
 <item>
@@ -118,11 +244,9 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065660</link>
 <guid>https://www.v2ex.com/t/1065660</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://static.yicode.tech/images/202408/20240816231303.png" /></p>
 <p>数据库明明有 sort 字段，怎么也不显示，定位半天才找到罪魁祸首。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T15:14:07Z</pubDate>
 <pubDate>2024-08-15T23:14:07Z</pubDate>
 </item>
 <item>
@@ -130,10 +254,8 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065659</link>
 <guid>https://www.v2ex.com/t/1065659</guid>
 <content:encoded><![CDATA[
-
 <a href="http://今天发现一直在用的机场域名换成了.cn" rel="nofollow noopener" target="_blank">今天发现一直在用的机场域名换成了.cn</a> ，CN 是要实名的，所以这个机场还安全吗？如果不安全，有推荐的机场吗？
 ]]></content:encoded>
-<pubDate>2024-08-16T15:07:19Z</pubDate>
 <pubDate>2024-08-14T15:07:19Z</pubDate>
 </item>
 <item>
@@ -141,10 +263,8 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065658</link>
 <guid>https://www.v2ex.com/t/1065658</guid>
 <content:encoded><![CDATA[
-
 不管是电脑版微信还是手机版微信，微信中的收藏功能，即新建笔记功能算是真正的笔记功能？和 Notion 、Google Keep 、Evernote （国内的：印象笔记）、OneNote 这类软件有什么不同？他们不都是可以云端同步 或 存储？
 ]]></content:encoded>
-<pubDate>2024-08-16T14:57:43Z</pubDate>
 <pubDate>2024-08-16T14:57:43Z</pubDate>
 </item>
 <item>
@@ -152,14 +272,12 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065657</link>
 <guid>https://www.v2ex.com/t/1065657</guid>
 <content:encoded><![CDATA[
-
 <h2>需求</h2>
 <p>基于 vue3 + js + css3 + html 写了一个 web 网站，有用到（ tailwindcss ，vite ，sass ，el ）；</p>
 <p>我找到一个自己比较喜欢的字体，我想让所有访问这个网站的人都能使用这个字体浏览；</p>
 <p>最优雅的解决方式是什么？ 易实现，高性能；</p>
 <p>ps：目前是用户进来会默认下载</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T14:53:03Z</pubDate>
 <pubDate>2024-08-16T14:58:10Z</pubDate>
 </item>
 <item>
@@ -167,10 +285,8 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065656</link>
 <guid>https://www.v2ex.com/t/1065656</guid>
 <content:encoded><![CDATA[
-
 我妹结婚的时候家里给了 45w （一辆 15 的车+30 嫁妆钱），现金算上男方的彩礼一共 40w （彩礼共 10w 返还给他们小家庭了）；<br /><br />我想着再转给她 10w ，凑够 50w 把房贷还了，这样有娃以后会好很多（为啥要给这笔钱，因为我的房子更贵，家里已经帮我把房贷还清了，我单身，收入也远比他们夫妻俩高，所以想帮衬下）；<br /><br />话说到这里，房产证本身没写我妹的名，所以还的这些贷款就显得稀里糊涂的，虽然妹夫人品很好很老实，但就怕万一后续出现什么变故，到要分财产的那一步，到时候无法将我们家给的这些钱剥离出来（我表达不太好，但感觉大家应该能猜到我在担心什么，另外我也不是故意想到分财产这种糟心事，但凡事总有万一嘛）<br /><br />我是个法盲，对这块还不太懂，大家怎么看待这个事情？
 ]]></content:encoded>
-<pubDate>2024-08-16T14:44:59Z</pubDate>
 <pubDate>2024-08-06T14:54:51Z</pubDate>
 </item>
 <item>
@@ -178,10 +294,8 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065655</link>
 <guid>https://www.v2ex.com/t/1065655</guid>
 <content:encoded><![CDATA[
-
 <p>有没有拼车的 surge mac 的，145 一位，人满开车，拉 WX 群 。后期大版本看情况升级，费用平摊，跳车不退。</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T14:43:40Z</pubDate>
 <pubDate>2024-08-16T14:43:40Z</pubDate>
 </item>
 <item>
@@ -189,11 +303,9 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065654</link>
 <guid>https://www.v2ex.com/t/1065654</guid>
 <content:encoded><![CDATA[
-
 <p>IGN 中国给出 10 分满分，全球给出 8 分。</p>
 <p>看了一圈外媒，扣分项集中在本地化和游戏 bug 上。那这波真可以开香槟了啊，下周请假玩！</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T14:31:06Z</pubDate>
 <pubDate>2024-08-16T16:15:11Z</pubDate>
 </item>
 <item>
@@ -201,12 +313,10 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065652</link>
 <guid>https://www.v2ex.com/t/1065652</guid>
 <content:encoded><![CDATA[
-
 <p>bg:混迹各社区 3 个月，对 web3 有基本了解。目前正学习 web3 go rust ，每天能有 10 小时时间。寻求一份社区志愿者工作
 期望薪资：0
 合作周期：6 个月以上</p>
 ]]></content:encoded>
-<pubDate>2024-08-16T14:28:04Z</pubDate>
 <pubDate>2024-08-16T14:26:04Z</pubDate>
 </item>
 <item>
@@ -214,7 +324,6 @@ main.Eval("alert(1)")
 <link>https://www.v2ex.com/t/1065651</link>
 <guid>https://www.v2ex.com/t/1065651</guid>
 <content:encoded><![CDATA[
-
 <p>工作后读研，校招进了某股份制吊车尾总行金科。
 实习期总工资不到读研前在互联网工作工资的四分之一，另外得再去柜台轮岗两年。
 一想到枯燥且没有成就感工作就有点难绷，只能开解自己是为了稳定而平和的生活所做的选择。
@@ -227,10 +336,8 @@ main.Eval("alert(1)")
 <li>明白既要还要总是不现实的，但还是会忍不住乱想，如何控制自己的思绪避免内耗呢？</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-08-16T14:26:45Z</pubDate>
 <pubDate>2024-08-16T15:29:16Z</pubDate>
 </item>
-
 <item>
 <title>[OpenAI] chatgpt 果然变拉了 不如 claude</title>
 <link>https://www.v2ex.com/t/1065650</link>
@@ -15642,221 +15749,6 @@ a.click();
 <p>用 infuse pro 挂载阿里云盘，买了会员+三方应用权益包，但是高速流量只有 1T 的流量，现在用完了，还要等 7 天才能重置流量，怎么办，看视频一直在转圈圈</p>
 ]]></content:encoded>
 <pubDate>2024-08-12T14:05:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 杭州临平 招小程序/安卓/全栈 工程师</title>
-<link>https://www.v2ex.com/t/1064473</link>
-<guid>https://www.v2ex.com/t/1064473</guid>
-<content:encoded><![CDATA[
-<p>1.经验学历不限但是能力一定要强
-2.薪资 10-20K
-3.要会代码设计，代码有没有问题心里要有数
-4.小程序/安卓/全栈各招一个
-5.微信：eXVqODg4</p>
-]]></content:encoded>
-<pubDate>2024-08-12T13:36:06Z</pubDate>
-</item>
-<item>
-<title>[Android] Android、iOS 软件的逆向分析工作海外项目 兼职也可行</title>
-<link>https://www.v2ex.com/t/1064472</link>
-<guid>https://www.v2ex.com/t/1064472</guid>
-<content:encoded><![CDATA[
-岗位职责：<br /><br />1. Android 、iOS App 软件的逆向分析工作；<br /><br />2. 公司 App 安全防护加固。<br /><br />岗位要求：<br /><br />1.有很强的学习能力，对逆向分析有浓厚兴趣，能够独立完成软件逆向工作；<br /><br />2. 精通 xposed 框架、熟悉常见 hook 技术如 frida 等，有 xposed 模块编写经验；<br /><br />3. 熟练使用 IDA 、apktool 、jadx 、dex2jar 等工具，有丰富的脱壳经验，具备静态分析代码，<br /><br />动态调试 App 的能力；<br /><br />4.熟悉 HTTP 、TCP 等网络协议及数据抓包、分析，包括常用工具 wireshark 、charles 、<br /><br />fiddler 等；<br /><br />5.熟悉 JS 的 Hook 技术，能够完成逆向分析、HOOK 、模拟执行等工作；<br /><br />6. 有较强的钻研精神，能够对遇到的技术难点进行攻克；<br /><br />加分项：<br /><br />1. 有 Android 开发经验优先；<br /><br />2. 了解反汇编、调试器、代码注入等技术优先；<br /><br />3. 精通 js 逆向优先；<br /><br />4. 有 Nodejs 相关开发经验优先；<br /><br />可以留下 tg ，方便我与你联系，可以兼职，都是海外项目。
-]]></content:encoded>
-<pubDate>2024-08-12T13:34:25Z</pubDate>
-</item>
-<item>
-<title>[V2EX] 现在创建回复还扣币的吗？发了三个正常的评论发现被扣了 15 个铜币！</title>
-<link>https://www.v2ex.com/t/1064471</link>
-<guid>https://www.v2ex.com/t/1064471</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-12T13:57:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有好用的 2D 视频转 VR 设备用的左右格式 3D 视频的软件</title>
-<link>https://www.v2ex.com/t/1064469</link>
-<guid>https://www.v2ex.com/t/1064469</guid>
-<content:encoded><![CDATA[
-想把平时拍摄的普通 2D 视频转换成左右格式的 3D 视频，有点类似苹果 vision pro 可以把 2D 照片转换成 3D 立体照片那种感觉的视频版呢
-]]></content:encoded>
-<pubDate>2024-08-12T13:22:17Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 全栈开发工程师， 5 年以上工作经验，上海知名外企，薪资 70-100W</title>
-<link>https://www.v2ex.com/t/1064468</link>
-<guid>https://www.v2ex.com/t/1064468</guid>
-<content:encoded><![CDATA[
-希望有量化证券相关背景<br />英语口语流利<br />学历最好 985+<br />QS 前 30 最佳<br />此等好机会不多了<br /><br />Knowledge of Web technologies (Angular, ReactJS), NodeJs, JAVA Spring boot, various AWS components e.g. Step Functions<br />Python, Lambda etc is added advantage.<br />Exposure to design principles, user-centric design, design thinking, lean / agile methodologies and tools<br />Knowledge of the latest UI/UX standards, trends and tools<br /><br />微信：18621580540<br />邮箱： fancyfrees@yeah.net
-]]></content:encoded>
-<pubDate>2024-08-04T13:21:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 老式服务器有啥用啊？</title>
-<link>https://www.v2ex.com/t/1064466</link>
-<guid>https://www.v2ex.com/t/1064466</guid>
-<content:encoded><![CDATA[
-最近便宜淘到一台过时的服务器 HP Proliant DL380 G9,配置如下：<br />1. Xeon E5-2687W v4 处理器---X2<br />2. 1024GB RDIMM DDR4 内存<br />3. 800W 电源 ---X2<br /><br />入手价格是 4200RMB<br />无硬盘<br /><br />本人其实对于服务器的使用和管理并不熟悉，买过来主要是看中它便宜。<br /><br />请问 V 友们，对于我个人来说，可以用它来做什么？或者说最好用来做什么？家里并无公网 ip.
-]]></content:encoded>
-<pubDate>2024-08-12T14:00:01Z</pubDate>
-</item>
-<item>
-<title>一个小程序项目找个外包</title>
-<link>https://www.v2ex.com/t/1064467</link>
-<guid>https://www.v2ex.com/t/1064467</guid>
-<content:encoded><![CDATA[
-这是一个前端为微信小程序的完整项目，想找一个真正靠谱的外包合作。<br /><br />项目已有多个早前版本的迭代和用户基础，现在推倒重来做一个全新版本。已经有完整需求文档、UI 设计、运营流程，只需要开发，不需要做产品设计、UI 设计和需求分析。<br /><br />分为三个子项目：小程序、管理后台及后端。<br /><br />有一些要求：<br /> [ 1 ] 必须有成熟的开发经验和案例，而且不能是玩具级别的；<br /> [ 2 ] 有充足的全职或半全职投入项目，能够马上开始、长期合作，后期技术维护能够支持；可以随时联系交流；<br /> [ 3 ] 前端技术栈基于原生微信小程序或者 Uniapp ，可以基于 Vue 体系，不用 React ；<br /> [ 4 ] 后端可以选用 NodeJS 或 Golang ；<br /> [ 5 ] 有好的编程风格、代码使用规范的命名、代码写注释，后端做好参数校验和安全保护，有基本的文档；<br /> [ 6 ] 同步 Git 仓库，接受代码 Review 和代码架构及细节上的要求；<br /> [ 7 ] 有性能优化、IM 开发经验者优先。<br /><br />最后说几句，之所以要求比较多是因为我自己就是做了二十年的全栈开发同时也了解项目的实际运营，对项目可能涉及的技术风险和坑考虑的很清楚。看起来要求高，其实是为了更好的确保成功的合作。<br /><br />如果感兴趣，可以联系我：Y2Jyb3dj (base64)
-]]></content:encoded>
-<pubDate>2024-08-12T13:04:40Z</pubDate>
-</item>
-<item>
-<title>[剧集] 沙雕动漫推荐与求推荐</title>
-<link>https://www.v2ex.com/t/1064465</link>
-<guid>https://www.v2ex.com/t/1064465</guid>
-<content:encoded><![CDATA[
-<p>最近在 B 站上看了挺多沙雕动漫（指根据小说进行改编的小成本动漫，通常用 AI 配音和熊猫头人物）的，感觉还不错，有的作品制作精良，题材新颖。</p>
-<p>首先推荐几个看过觉得好看的：</p>
-<ol>
-<li>奇遇十三太保（各方面都不错，算得上天花板）</li>
-<li>朱大彪（十三太保的前作，一般，打发时间）</li>
-<li>陈二狗动画（还不错，是我初高中喜欢的都市题材，可惜断更了，后面转去看小说了）</li>
-<li>回档修仙（题材新颖，制作精良，有深度）</li>
-<li>我的法宝都是规则系（各方面都不错，up 和作者都是鬼才，很搞笑，观感不错）</li>
-</ol>
-<p>各位还有何推荐的呢？</p>
-]]></content:encoded>
-<pubDate>2024-08-12T12:40:42Z</pubDate>
-</item>
-<item>
-<title>[iMac] 苹果秋季将卖史上最小 Mac 电脑——搭载 M4 芯片的新款 Mac Mini，迎接 AI 功能</title>
-<link>https://www.v2ex.com/t/1064464</link>
-<guid>https://www.v2ex.com/t/1064464</guid>
-<content:encoded><![CDATA[
-8 月 8 日周四，据知名财经媒体的科技记者马克·古尔曼（ Mark Gurman ）援引知情人士透露，Mac Mini 消费类台式机将经过彻底设计改造，不仅在今年秋季发布时搭载最新的苹果自研 M4 和 M4 Pro 芯片，还会成为苹果公司历史上最小的电脑。<br /><br />这也将是自 2010 年以来，也就是乔布斯时代以来 Mac Mini 台式机的首次重大设计变革。据称，这款设备将比前代产品在外观上小得多，更接近 Apple TV 机顶盒的大小，被参与开发的工作人员称为“本质上是装在小盒子里的 iPad Pro”。而现有外观已经存在了至少十五年。<br /><br />有分析称，新款 Mac Mini 不仅将是苹果 Mac 电脑里的最小款，而且也将是世界上最小的台式机电脑，也代表将是最便携的台式机装备。<br /><br /><a href="https://i.imgur.com/CPI0CEI.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/CPI0CEI.png" /></a><br /><br /><br />via: <a href="https://wallstreetcn.com/articles/3723332" rel="nofollow noopener" target="_blank">https://wallstreetcn.com/articles/3723332</a>
-]]></content:encoded>
-<pubDate>2024-08-12T12:37:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求医碰到一个让我疑惑又无奈的问题，到底哪里是权威？</title>
-<link>https://www.v2ex.com/t/1064463</link>
-<guid>https://www.v2ex.com/t/1064463</guid>
-<content:encoded><![CDATA[
-<p>不小心滑了一下膝盖扭了，然后去当地三甲医院挂了骨科运动医学门诊，当天门诊下午 4 点了，医生问了是不是摔了有没有听到断裂声音，我回答是好像有听到，然后躺在床上稍微弯了下腿，说血肿太多明天核磁共振，核磁共振后直接去住院部找医生，第二天医生看到图就明确指给我看是交叉韧带断了一半（我看不懂），要马上住院手术，稀里糊涂办理了住院，还提前做了几千快的检查，当时应该等一下的。</p>
-<p>回到家感觉还是要去问问其他医院，晚上只能先在好医生这种平台问该领域最好的医院医生，大概一次 300 块钱吧，发了详细核磁共振图和情况说明后，那边专家说核磁共振图无法判断出我韧带断裂一半，连续性也不错，如果存在损伤也是很轻微的韧带伤，可以保守治疗，更多怀疑是髌骨一次性错位。并建议去当地其他三甲医院再做一次门诊，我收到回复后一下子懵了，就再去问了几个其他地方三甲的医生（线上），这次问的比较便宜的，89 的和 15 的，给出的回复和上海第六医院的专家差不多结论，更多怀疑是髌骨一次性错位。</p>
-<p>于是我第二天白天就去当地另外一家三甲挂了个专家，这次专家看到我的核磁共振给出的结论也是髌骨的可能想更大，韧带没有那么大问题，建议带支具或者打石膏三周再复查，主要注意修养。</p>
-<p>回来我和第一家医院联系了一下，告知了一下我去求证其他医生好像结论有点不一样（这个是他让我也去外面问问的），麻烦他再看看核磁共振图，因为我拿到核磁报告的结论其实也没说断裂，医生说他看过了，他从来不看自己医院的报告结论的，直接看核磁共振原图的，对于其他我询问的医生他说不同医生看图水平不同，反正随我，让我自己决定。</p>
-<p>我就郁闷了，这样我是直接跑躺上海看吗，这一番折腾实在是太累了。</p>
-<p><img alt="22222.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/08/12/NzLqQxsDo3ylWaS.jpg" />
-<img alt="1111.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/08/12/Z5mGqrpbQ924EXO.jpg" /></p>
-<p>这里有核磁共振图，看得懂得可以看看，是否真得断一半，需要手术： <a href="https://ss.mtywcloud.com/ICCWebClient/Image/Viewer?AllowQuery=0&amp;DicomDirPath=http://jxyy-20230928/oos-cn.ctyunapi.cn/12330400470890351D/2024/08/11/Exam/1e14e482-6617-46b7-adb3-597059254601/Exam/ExamImage/8ab7b4dd-7ad6-479d-8668-4e7ee380bede/DICOMDIR&amp;OrganizationID=12330400470890351D&amp;Anonymous=true&amp;Token=D7208F20387E65952CA34EC168E473BE" rel="nofollow">https://ss.mtywcloud.com/ICCWebClient/Image/Viewer?AllowQuery=0&amp;DicomDirPath=http://jxyy-20230928/oos-cn.ctyunapi.cn/12330400470890351D/2024/08/11/Exam/1e14e482-6617-46b7-adb3-597059254601/Exam/ExamImage/8ab7b4dd-7ad6-479d-8668-4e7ee380bede/DICOMDIR&amp;OrganizationID=12330400470890351D&amp;Anonymous=true&amp;Token=D7208F20387E65952CA34EC168E473BE</a></p>
-]]></content:encoded>
-<pubDate>2024-08-12T12:28:20Z</pubDate>
-</item>
-<item>
-<title>[生活] 今天晚上老妈又来电话催婚了，说话有点急，感觉很多不起父母</title>
-<link>https://www.v2ex.com/t/1064462</link>
-<guid>https://www.v2ex.com/t/1064462</guid>
-<content:encoded><![CDATA[
-<p><br />说是有亲戚介绍对象，问我要不要谈。今天中午给的消息问题，晚上下班回去到，上楼的时候正好给我电话。<br /><br />自己被说的有点饭了，说话有点着急，最后面挂电话我感受到我老妈满是的失望和一些叹息的情绪挂了电话！<br /><br />到底是单身久了，越来的恐婚，怕自己是不能够胜任，什么也不懂，加上现在社会男女恋爱婚姻的…“不好结局”例子，让我有些抵触。<br /><br />但情愿如初见，也不要真的多“甜蜜”到最后就多么的恶语相向，相互诋毁！<br /><br />父母也老了，真挺觉得对不起他们的…还让他们操心了！就是自己心理也过去不去这个槛，心理有点封闭了…</p>
-]]></content:encoded>
-<pubDate>2024-08-12T12:28:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 骑自行车有点费屁股。</title>
-<link>https://www.v2ex.com/t/1064460</link>
-<guid>https://www.v2ex.com/t/1064460</guid>
-<content:encoded><![CDATA[
-为了减肥天天骑自行车，发现了些问题。<br /><br />肛门摩擦太严重，你们是怎么解决的？
-]]></content:encoded>
-<pubDate>2024-08-12T12:39:46Z</pubDate>
-</item>
-<item>
-<title>[互联网] 分享一个免费不限次数的最火的 FLUX 文生图网站</title>
-<link>https://www.v2ex.com/t/1064459</link>
-<guid>https://www.v2ex.com/t/1064459</guid>
-<content:encoded><![CDATA[
-<p>开发了一个 FLUX.dev 的文生图网站，免费，不限次数（ 1 分钟限制生成一张，这个限制约等于没有）</p>
-<p>网站地址: <a href="https://aiflux.cc/zh" rel="nofollow">Free AI FLUX Generator</a></p>
-<h2>使用流程</h2>
-<ol>
-<li>登录(或注册), 目前第三方登录只接入了谷歌登录, 但国内应该用不了, 但是能上 v 站的兄弟们应该都没问题~</li>
-<li>输入英文提示词，注意，一定是英文提示词。</li>
-<li>等待（我们按照队列处理请求，请求量大时，可能较长时间，所以需要教程时间，您可关闭网页，后续可以在我的 FLUX 中找到您的任务）</li>
-</ol>
-<p>关于反馈，v： <code>yalvhe2009</code></p>
-]]></content:encoded>
-<pubDate>2024-08-12T12:17:40Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 海外电商独角兽 SHEIN-核心部门紧急招大数据、数据挖掘、算法、 Java 后台开发</title>
-<link>https://www.v2ex.com/t/1064458</link>
-<guid>https://www.v2ex.com/t/1064458</guid>
-<content:encoded><![CDATA[
-<h1>海外电商独角兽 SHEIN-核心部门紧急招大数据、数据挖掘、算法、Java 后台开发</h1>
-<hr />
-<h2>招聘岗位</h2>
-<ol>
-<li>资深后台开发工程师（大数据平台）: <a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/02003a81-65b3-48fc-b423-90a97c94eb9f" rel="nofollow">岗位链接</a></li>
-<li>资深后台开发工程师（大数据组件）：<a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/1b22b67d-9fe6-4536-b3cc-9b533c9ebb01" rel="nofollow">岗位链接</a></li>
-<li>spark/flink 组件技术专家 ：<a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/0cbc181e-83dc-4486-9a12-1455eb6cbc6d" rel="nofollow">岗位链接</a></li>
-<li>资深/高级数据挖掘工程师 : <a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/bce854f1-d7a8-4cc4-a742-0162f4cc5f7e" rel="nofollow">岗位链接</a></li>
-<li>高级/资深算法工程师（广告营销） : <a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/1fc7936c-ac61-4e74-96af-6f6b1efd0bdf" rel="nofollow">岗位链接</a></li>
-<li>高级/资深算法工程师（货品/流量策略） : <a href="https://app.mokahr.com/social-recruitment/shein/2933#/job/402d0294-82e0-49f1-9504-e07229f199c3" rel="nofollow">岗位链接</a></li>
-</ol>
-<hr />
-<h2>应聘方式</h2>
-<ol>
-<li>找本人内推，简历直达 leader,效率最高，灵活沟通。是推荐的方式。</li>
-<li>自己投递：点击上面的岗位链接，投递，输入内推码：NTA1Rg9<br />
-<strong>重点：</strong> 记得填写内推码：NTA1Rg9<br />
-我这边可以推进进度，以及提供岗位咨询以及面试交流。 手机和微信：17607994096(欢迎骚扰)</li>
-<li>如果想头其它岗位，可以进入官网:<a href="https://careers.shein.cn/Professionals" rel="nofollow">官网链接</a><br />
-选择自己感兴趣的岗位，投递，  自投(内推码：NTA1Rg9) 或者 联系我都可以。</li>
-</ol>
-<h2>工作地点</h2>
-<h2>部门主要：深圳、南京<br />
-其它 base 地也有，可联系本人</h2>
-<h2>岗位优势</h2>
-<ul>
-<li>平台规模大，互联网电商主流业务，数百 PB 超大规模数据体量</li>
-<li>项目机会好，大数据底层能力正处在往云原生容器化的建设的关键节点上，进来就是核心</li>
-<li>有机会接触各大主流公有云</li>
-</ul>
-<h2>福利待遇</h2>
-<ul>
-<li>具有行业竞争力的薪资待遇</li>
-<li>各种节假日礼品福利+加强</li>
-<li>入职 macbook pro</li>
-<li>年终奖</li>
-<li>工作日加班有加班费(无需申请)，自愿加班，非强制。</li>
-<li>餐补，体检，零食</li>
-<li>旅游</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-08-12T12:20:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 快递代收点能被投诉吗？要如何操作</title>
-<link>https://www.v2ex.com/t/1064455</link>
-<guid>https://www.v2ex.com/t/1064455</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>
-<p>一想到投诉，感觉最后都投诉到快递员那边去了，代收点有什么办法投诉吗？</p>
-</li>
-<li>
-<p>以前是放在菜鸟驿站，也是要么自己看自己的取件码自己去货架上拿，要么给店员说他再帮你找。菜鸟驿站至少还能在菜鸟上找到客服电话，在 app 上反馈，现在菜鸟驿站换了老板，叫快递之家。网上都搜不到这个玩意儿。投诉都不知道怎么投诉。</p>
-</li>
-<li>
-<p>经过：去取快递，没有取件码，让老板帮我拿一下快递，喊了半天没反应，当我空气。最后都对着他吼了，才不情愿的问我手机尾号。感觉他们现在就这样，故意不鸟你，让你尽可能自己动手不要去麻烦他们，甚至有些老人过来他们也不理别人。不到万不得已他动都不动一下。</p>
-</li>
-<li>
-<p>说实话，快递新规出来过后，我这边的快递代收点并没有更好，反而越来越烂。也不要说互相理解什么的，都一样是打工人，我也没少他一分钱，凭什么服务质量越来越差，不要把底层人民和资本家的利益冲突，变成底层人民和底层人民的利益冲突。</p>
-</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-08-12T12:08:15Z</pubDate>
 </item>
 </channel>
 </rss>
