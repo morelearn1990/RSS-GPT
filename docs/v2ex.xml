@@ -5,14 +5,96 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] Go 新手求教</title>
+<link>https://www.v2ex.com/t/1065970</link>
+<guid>https://www.v2ex.com/t/1065970</guid>
+<content:encoded><![CDATA[
+
+<p>在 2019-2020 年初三期间接触到了翻墙，一直想写一个翻墙软件，但是当时什么也不会</p>
+<p>后来高中自己学了点 go 语言，虽然知道了其中的法律风险，梦想早已放弃，但是前几天突然又记起来了，<del>贼心不死，虽然并不打算搞这个，但是还是想实现一个带加密的 socks5 代理服务器，遇到一些问题，故来请教 V 友们</del></p>
+<p>PS：我只是为了缅怀一下曾经的梦想，没有任何非法的打算!!!</p>
+<p>依照 <a href="https://github.com/gwuhaolin/blog/issues/12" rel="nofollow">你也能写个 Shadowsocks</a> 这个教程，主要分为两端：</p>
+<ul>
+<li>本地：将浏览器流量转发至服务器端</li>
+<li>服务器端：完成和浏览器之间的 socks5 握手，解析出目标服务器，并转发流量至目标服务器</li>
+</ul>
+<p>实现流量转发的关键代码：</p>
+<pre><code>	go CopyData(srcConn, dstConn, cipher)
+	CopyData(dstConn, srcConn, cipher)
+</code></pre>
+<p>其中这个 CopyData 几乎完全按照标准库的 io.Copy 实现，只是加了一层加解密，长这样：</p>
+<pre><code>func CopyData(srcConn, dstConn net.Conn, cipher Cipher) (err error) {
+	buf := make([]byte, 32*1024)
+	for {
+		nr, er := srcConn.Read(buf)
+		if nr &gt; 0 {
+			nw, ew := dstConn.Write(cipher.Encrypt(buf[0:nr]))
+			//fmt.Println("内容：", cipher.Encrypt(buf[0:nr]))
+			//time.Sleep(1 * time.Nanosecond)
+			if nw &lt; 0 || nr &lt; nw {
+				nw = 0
+				if ew == nil {
+					ew = errors.New("short write")
+				}
+			}
+
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
+	}
+	fmt.Println("CopyData err:", err)
+	return err
+}
+</code></pre>
+<p>问题来了，只要我把 <code>fmt.Println("内容：", cipher.Encrypt(buf[0:nr]))</code> 注释掉，程序就不能运行起来（不会报错），一旦取消注释，程序就能如预期一样运行 QAQ</p>
+<p>然后我想了一下，可能是这行代码起到了延时的作用，于是我把它改成 <code>time.Sleep(1 * time.Nanosecond)</code> 发现依然可以正常运行，但是一旦注释掉就不能正常进行流量转发了，想请问一下是为什么 QAQ</p>
+<p>我可以补充任何大家需要的详细信息</p>
+]]></content:encoded>
+<pubDate>2024-08-18T17:50:01Z</pubDate>
+<pubDate>2024-08-18T17:49:01Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 16 全系列 8g 内存</title>
+<link>https://www.v2ex.com/t/1065969</link>
+<guid>https://www.v2ex.com/t/1065969</guid>
+<content:encoded><![CDATA[
+
+<a href="https://x.com/theapplehub/status/1824947614623969510?s=46" rel="nofollow noopener" target="_blank">https://x.com/theapplehub/status/1824947614623969510?s=46</a>
+]]></content:encoded>
+<pubDate>2024-08-18T17:29:21Z</pubDate>
+<pubDate>2024-08-18T17:48:53Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 直接让 HyperOS 崩溃</title>
+<link>https://www.v2ex.com/t/1065966</link>
+<guid>https://www.v2ex.com/t/1065966</guid>
+<content:encoded><![CDATA[
+
+Redmi K70 至尊版（ HyperOS 1.0.22, Android 14 ）<br />Spotify 版本在 Goole Play 更新到最新<br /><br />问题描述：如果只在手机上播放，一切正常。如果此时在其他设备上播放的同时手机打开 Spotify ，手机直接崩溃。手机疯狂闪烁，可能重启或者进入到 Recovery 模式。重启后手机壁纸均被恢复为默认，手机提示--刚刚手机崩溃了，我们为你进行了修复（大概意思，原文忘记截屏了）<br /><br />引用下小米社区其他朋友的帖子，里面有视频<br /><a href="https://s.xiaomi.cn/c/YluBsQt3?channel=Share" rel="nofollow noopener" target="_blank">https://s.xiaomi.cn/c/YluBsQt3?channel=Share</a><br /><br />那么这是 Spotify 还是 HyperOS 的问题呢，我就先放在 Spotify 节点下了
+]]></content:encoded>
+<pubDate>2024-08-18T17:02:54Z</pubDate>
+<pubDate>2024-08-18T17:01:54Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 分享一个小工具网站~AI 电子邮件生成器</title>
 <link>https://www.v2ex.com/t/1065965</link>
 <guid>https://www.v2ex.com/t/1065965</guid>
 <content:encoded><![CDATA[
-
 基于 ChatGPT-4o-mini 制作的一个可以根据输入内容生成对应邮件模板的网站。<br /><br />目前无需登录即可每天免费生成五次~<br /><br />Q&amp;A<br />1. 什么是 AI 电子邮件生成器？<br />AI 邮件生成器是一项利用人工智能协助用户创建电子邮件的服务，解决了撰写邮件耗时的问题。<br /><br />2. AI 电子邮件生成器用例？<br />该工具可用于客户支持、虚拟助手、教育工具、内容生成和创意写作辅助。<br /><br />3. AI 电子邮件生成器适合哪些人？<br />受众包括专业人士、学生、作家、营销人员以及任何需要电子邮件写作帮助的人。<br /><br />4. AI 电子邮件生成器是免费的吗？<br />是的，该产品允许用户每天免费生成五次电子邮件。
 ]]></content:encoded>
-<pubDate>2024-08-18T16:15:56Z</pubDate>
 <pubDate>2024-08-18T16:14:56Z</pubDate>
 </item>
 <item>
@@ -20,10 +102,8 @@
 <link>https://www.v2ex.com/t/1065964</link>
 <guid>https://www.v2ex.com/t/1065964</guid>
 <content:encoded><![CDATA[
-
 广州这边好像不允许电瓶车后座载成年人，交警抓到会罚款<br />联想到新国标对于电动自行车的相关标准，突然就觉得好像不太合理<br /><br />短途出行还是两轮的交通工具比较合适，<br />如果要两个成年人一起去办点事，不得开两辆车才不违反交通规则？<br /><br />好像没几个人的电自速度是限制的 25km/h ，看外卖小哥跑得比汽车还快<br />按照新国标的电池和电机功率标准，车子的续航也注定不可能太长<br />大家上牌的时候为了过审，都会在商家那里换一个小一点的电池去上牌，上完立马换回大电池<br />所以这个新国标是不是太过严格一点，以至于根本就没起到什么实质性的作用；<br /><br />此外最近很多地方有电子眼抓拍电瓶车违章，大家为了防止被拍，很多人都在车牌上挂了个口罩，或者毛巾。。<br />那这个电子眼抓拍是不是也没起到多大的约束作用？
 ]]></content:encoded>
-<pubDate>2024-08-18T16:15:48Z</pubDate>
 <pubDate>2024-08-18T16:23:36Z</pubDate>
 </item>
 <item>
@@ -31,7 +111,6 @@
 <link>https://www.v2ex.com/t/1065963</link>
 <guid>https://www.v2ex.com/t/1065963</guid>
 <content:encoded><![CDATA[
-
 <h3>在线体验：</h3>
 <p><a href="https://fluxiamge.org" rel="nofollow">https://fluxiamge.org</a></p>
 <p>这回着实慢了，断断续续搞了一周，基本功能都已完备，Flux 的生成速度很快，出图效果真的很不错，现在提供 5 次免费试用机会，欢迎大家来试。</p>
@@ -39,7 +118,6 @@
 <a href="https://pub-f5fc00c4ca7b445d95004c53d4b77e82.r2.dev/images/%E6%88%AA%E5%B1%8F2024-08-18%2000.46.06.png" rel="nofollow">Flux AI Image Generator</a></p>
 <p>后面再放项目开源地址，到时还请各位大佬赏个小星星⭐️</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T16:06:57Z</pubDate>
 <pubDate>2024-08-18T16:03:57Z</pubDate>
 </item>
 <item>
@@ -47,10 +125,8 @@
 <link>https://www.v2ex.com/t/1065961</link>
 <guid>https://www.v2ex.com/t/1065961</guid>
 <content:encoded><![CDATA[
-
 高层电梯房 要维护 电梯要维护 维护就要人力和经费，<br />大麻烦吧？<br />步梯房子呢，<br />人年纪大了，爬楼梯爬不动了。<br />于是 步梯房小区也成问题了。<br />而且步梯房很多是老小区，连物业都没有。<br />也是麻烦事吧？<br /><br />分享个情况，<br />我家镇上全是步梯房，<br />这两年，其他楼层在降价，便宜的两万块一套，<br />就一二层不但没跌，还一直涨价。<br />因为留下来的当地人大多是老人了，都想换个矮点的，结果供不应求了。
 ]]></content:encoded>
-<pubDate>2024-08-18T15:57:36Z</pubDate>
 <pubDate>2024-08-18T11:56:36Z</pubDate>
 </item>
 <item>
@@ -58,7 +134,6 @@
 <link>https://www.v2ex.com/t/1065959</link>
 <guid>https://www.v2ex.com/t/1065959</guid>
 <content:encoded><![CDATA[
-
 <h3>目前支持的支付方式</h3>
 <ul>
 <li>Binance Pay</li>
@@ -77,7 +152,6 @@
 <p>网址:<a href="https://www.btcmai.com" rel="nofollow"><strong>https://www.btcmai.com</strong></a></p>
 <p>如果各位还有其他需求，功能和建议请告诉我，感谢指导。</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:44:00Z</pubDate>
 <pubDate>2024-08-18T11:44:00Z</pubDate>
 </item>
 <item>
@@ -85,10 +159,8 @@
 <link>https://www.v2ex.com/t/1065957</link>
 <guid>https://www.v2ex.com/t/1065957</guid>
 <content:encoded><![CDATA[
-
 成都联通以前都是用 http://192.168.1.1/cu.html + CUAdmin 即可登录，最近发现密码错误了，怀疑变成动态密码了。光猫是吉比特 PT927G ，找了两天还没找到破解的办法🥲
 ]]></content:encoded>
-<pubDate>2024-08-18T15:42:43Z</pubDate>
 <pubDate>2024-08-18T16:11:36Z</pubDate>
 </item>
 <item>
@@ -96,7 +168,6 @@
 <link>https://www.v2ex.com/t/1065956</link>
 <guid>https://www.v2ex.com/t/1065956</guid>
 <content:encoded><![CDATA[
-
 <h2>起因</h2>
 <p>自七月开始，手机开始陆续收到一些短信、贷款的推销短信。</p>
 <p>到了八月初，首先是接到了一个电话，声称我有一笔 “医疗补充金” 待领取。这种话术一听就是推销 or 诈骗，直接就挂断掉了。这个时候也没有特别关心，只是觉得推销越来越多了。</p>
@@ -122,7 +193,6 @@
 <p>个人的力量终归太有限，我很希望能深挖这条灰色链条，但又苦于没有时间、精力，也没有足够的手段制裁。能做到这些多多少少依赖着灰产。很多材料还能深挖出一些蛛丝马迹。但真的，个人的力量太弱小了。</p>
 <p>很无奈，但我能做的也只是把他发出来。</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:40:20Z</pubDate>
 <pubDate>2024-08-18T15:38:20Z</pubDate>
 </item>
 <item>
@@ -130,10 +200,8 @@
 <link>https://www.v2ex.com/t/1065955</link>
 <guid>https://www.v2ex.com/t/1065955</guid>
 <content:encoded><![CDATA[
-
 RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子产品<br />有没有了解的推荐点
 ]]></content:encoded>
-<pubDate>2024-08-18T15:40:08Z</pubDate>
 <pubDate>2024-08-18T16:07:34Z</pubDate>
 </item>
 <item>
@@ -141,10 +209,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065954</link>
 <guid>https://www.v2ex.com/t/1065954</guid>
 <content:encoded><![CDATA[
-
 <p>预算比较有限，不超过 3000 吧，有没有推荐的，在网上看了好多都没有满意的</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:35:32Z</pubDate>
 <pubDate>2024-08-18T15:54:13Z</pubDate>
 </item>
 <item>
@@ -152,7 +218,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065953</link>
 <guid>https://www.v2ex.com/t/1065953</guid>
 <content:encoded><![CDATA[
-
 <p>如果一个人没上班或者处在下班后的时间，你跟他说，猪肉一块钱十斤，他肯定会觉得要么你疯了要么商家疯了，因为他的理智告诉他，几乎不可能有这么卖猪肉的。</p>
 <p>但是，一旦类似的情况发生在公司，情况完全就变了。</p>
 <p>我们以熟悉的互联网公司为例。比如面试，我们都知道技术注重的是实操，但是很多公司就是喜欢面八股文，不注重实操。再比如加班，明明没什么事做，早点下班休息，第二天精神饱满才能更好干活，但是公司就是不让走，哪怕坐着玩手机都行。</p>
@@ -165,7 +230,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <p>所以公司，不是单纯的经济实体，而是资本控制人们思想的统治工具。</p>
 <p>PS：只是随便聊聊一些看法，有不同意见欢迎评论理性探讨。</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:34:17Z</pubDate>
 <pubDate>2024-08-18T16:15:13Z</pubDate>
 </item>
 <item>
@@ -173,7 +237,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065951</link>
 <guid>https://www.v2ex.com/t/1065951</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 于 1996 年成立于阿姆斯特丹，当年的荷兰小型初创企业现已发展成为全球规模最大的旅游电子商务公司之一。<a href="http://Booking.com" rel="nofollow">Booking.com</a> 隶属于 Booking Holdings Inc.（纳斯达克上市公司：BKNG ），其使命是：<strong>探索世界，我们在你身边</strong>。</p>
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 通过投资科技，为数百万用户提供顺畅无阻的难忘旅行体验、一系列交通选择以及各种精彩住宿。从民宿到酒店，应有尽有。无论是成熟品牌还是各种规模的初创企业都能受益于 <a href="http://Booking.com" rel="nofollow">Booking.com</a> 。作为全球知名旅游平台，<a href="http://Booking.com" rel="nofollow">Booking.com</a> 帮助世界各地的住宿吸引全球游客，实现业务增长。</p>
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 支持 46 种语言，已有超过 2800 万房源，其中民宿、公寓和其他特色住宿房源超过 660 万家。无论你想去哪里，你想做什么，<a href="http://Booking.com" rel="nofollow">Booking.com</a> 提供 7*24 小时全天候客服支持，让一切变得容易。</p>
@@ -263,7 +326,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <h2>联系方式</h2>
 <p>欢迎感兴趣的小伙伴们发送简历到 <a href="mailto:xiaoyu.zhong@booking.com">xiaoyu.zhong@booking.com</a> ，并注明来自 V2EX 。</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:27:13Z</pubDate>
 <pubDate>2024-08-18T15:55:41Z</pubDate>
 </item>
 <item>
@@ -271,10 +333,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065950</link>
 <guid>https://www.v2ex.com/t/1065950</guid>
 <content:encoded><![CDATA[
-
 文件只有一个单体的 exe 文件，但是打开时同时出现程序的窗口和一个 installing 窗口，installIng 运行一会会退出，重新打开程序的窗口。<br /><br />这是为什么呢？
 ]]></content:encoded>
-<pubDate>2024-08-18T15:26:29Z</pubDate>
 <pubDate>2024-08-18T16:24:16Z</pubDate>
 </item>
 <item>
@@ -282,10 +342,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065949</link>
 <guid>https://www.v2ex.com/t/1065949</guid>
 <content:encoded><![CDATA[
-
 <p>各位巨佬们，iPhone 15 发布已经快一年了，各位的手机电池健康度如何，对于经常/天天用 PD 20w 功率快的手机，电池还 ok 吗?</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:18:24Z</pubDate>
 <pubDate>2024-08-18T16:06:31Z</pubDate>
 </item>
 <item>
@@ -293,11 +351,9 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065948</link>
 <guid>https://www.v2ex.com/t/1065948</guid>
 <content:encoded><![CDATA[
-
 <p>实现手机 App 那种 navbar+内容区域，内容区域如果内容超出自动滚动，navbar 固定，各位都如何实现的。
 给内容区域设置了 overflow-y 自动，如果没设置一个固定高度，不生效。就用 js 获取界面除了 navbar 之外的高度，这样做行嘛？</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:16:09Z</pubDate>
 <pubDate>2024-08-18T15:16:09Z</pubDate>
 </item>
 <item>
@@ -305,7 +361,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065947</link>
 <guid>https://www.v2ex.com/t/1065947</guid>
 <content:encoded><![CDATA[
-
 <p>请教大家一个问题：</p>
 <ol>
 <li>
@@ -322,7 +377,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <p>5.但是如果将递归解析打开，则一切正常。</p>
 <p>请问大家，为什么？</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:13:45Z</pubDate>
 <pubDate>2024-08-18T16:19:43Z</pubDate>
 </item>
 <item>
@@ -331,9 +385,7 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <guid>https://www.v2ex.com/t/1065946</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-08-18T14:56:35Z</pubDate>
 <pubDate>2024-08-18T14:59:40Z</pubDate>
 </item>
 <item>
@@ -341,10 +393,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065945</link>
 <guid>https://www.v2ex.com/t/1065945</guid>
 <content:encoded><![CDATA[
-
 准备整个支持 esim 的手机，有没有推荐顺便推荐下购买渠道，某鱼的苹果无锁机看着有些不靠谱
 ]]></content:encoded>
-<pubDate>2024-08-18T14:42:48Z</pubDate>
 <pubDate>2024-08-18T14:44:09Z</pubDate>
 </item>
 <item>
@@ -352,10 +402,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065943</link>
 <guid>https://www.v2ex.com/t/1065943</guid>
 <content:encoded><![CDATA[
-
 目前手里已经有了几个 offer ，其中相比较而言最让我心动的是一个中厂的实习 offer(服务端开发的方向)，hr 那边和我说如果实习期间考核达标的话就可以 1:1 转正(换句话说就是实习岗位会锁定一个正式岗位)。<br /><br />现在就是又想直接一步到位拿下这个转正，但是又怕万一不过秋招还错过了那就真凉凉了，就，哎现在挺纠结的，想听听大家的意见😐
 ]]></content:encoded>
-<pubDate>2024-08-18T14:33:22Z</pubDate>
 <pubDate>2024-08-18T16:00:39Z</pubDate>
 </item>
 <item>
@@ -363,10 +411,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065942</link>
 <guid>https://www.v2ex.com/t/1065942</guid>
 <content:encoded><![CDATA[
-
 搜索了一下，V 站很少有讨论腾讯云轻量数据库相关的贴，是因为有坑吗？<br />还是说选轻量数据库不如轻量服务器自建之类？
 ]]></content:encoded>
-<pubDate>2024-08-18T14:31:42Z</pubDate>
 <pubDate>2024-08-18T14:58:31Z</pubDate>
 </item>
 <item>
@@ -374,10 +420,8 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065941</link>
 <guid>https://www.v2ex.com/t/1065941</guid>
 <content:encoded><![CDATA[
-
 下班晚的打工人看懵了，很多 10 点下班的人直接在菜鸟门口开骂了<br /><br /><br />人生艰难，打工人真就工蜂的待遇
 ]]></content:encoded>
-<pubDate>2024-08-18T14:30:45Z</pubDate>
 <pubDate>2024-08-18T16:22:59Z</pubDate>
 </item>
 <item>
@@ -385,7 +429,6 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 <link>https://www.v2ex.com/t/1065940</link>
 <guid>https://www.v2ex.com/t/1065940</guid>
 <content:encoded><![CDATA[
-
 <p>主浏览器窗口有三个选项卡组：</p>
 <ol>
 <li>通讯：内有邮箱、通讯等不到十个标签；</li>
@@ -402,20 +445,16 @@ RT  <br />最近几周在这边出差 <br />看看有啥折扣力度大的电子
 如何快速（一键、批量）将选项卡组添加到收藏夹？</p>
 ]]></content:encoded>
 <pubDate>2024-08-18T14:26:53Z</pubDate>
-<pubDate>2024-08-18T14:26:53Z</pubDate>
 </item>
 <item>
 <title>[问与答] 三星 S90D 和索尼 XR70 怎么选择</title>
 <link>https://www.v2ex.com/t/1065939</link>
 <guid>https://www.v2ex.com/t/1065939</guid>
 <content:encoded><![CDATA[
-
 三星的配置参数 :<br />4K OLED 144Hz, 800-1000 尼特, 8ms 响应, 99%色域, 四核 A72+3GB RAM+32GB 存储, 40W 音响 x4, 97%屏占比, USB2.0x2, HDMI2.1x4, 功耗 290W. 支持 VRR/ALLM/HDR10+/eARC/MEMC 等, 但是只有杜比全景声, 没有杜比视界, 三星没有电视支持杜比视界, 没有标记是否有 QFT/QMS<br />蓝牙是 5.2, Wi-Fi5<br /><br />索尼的配置参数 :<br />4K miniLED 120Hz, 2000-3000 尼特, 7ms 响应, 95%色域, 四核 A73+6GB RAM+32G 存储, 32w 音响 x4, 95%屏占比, USB2.0x1+USB3.0x1+HDMI2.0x2+HDMI2.1x4, 功耗 219W. 支持 VRR/ALLM/HDR10+/eARC/MEMC 等, 有杜比视界, 没有标记是否有 QFT/QMS<br />蓝牙是 5.3, Wi-Fi6<br /><br />两者京东价位都是一万级别, 淘宝上差价 2000. 不过索尼 OLED 版本 XR80, 要加 3000, 音响多一个, 色域和三星持平, 亮度 1500-2000 尼特, 功耗增加至 340W, 其它差不多. 保修都是一年, 主要部件三年<br />网上得到的信息是, 索尼电视国内是特供版本, 三星不清楚. 大家都说索尼硬件差, 但是这么一比看起来也不差?<br /><br />个人的情况是播放的电影和电视剧基本上都是尽量高品质, 有原盘上原盘. 偶尔有 iOS/macOS 投屏, 现在的小米画面声音都延迟非常高. 不播放电影和电视剧基本上都放运营商的宽带电视直播, 人在家电视从早到晚都开. 有油管需求, 奈飞是潜在需求, 应该没有玩游戏投屏需求, 有也是 switch, 之后大概率会加一个 Apple TV<br /><br />另外, 购买前要不要去线下比较一下?
 ]]></content:encoded>
-<pubDate>2024-08-18T14:22:04Z</pubDate>
 <pubDate>2024-08-18T14:48:24Z</pubDate>
 </item>
-
 <item>
 <title>[Apple] Apple Care 取消订阅以后一直没有收到退款</title>
 <link>https://www.v2ex.com/t/1065938</link>
@@ -15626,241 +15665,6 @@ RT ，要不是早上收到 google store 的邮件，我还真忘了 pixel 系�
 QNAP 在内网原本是固定 IP ，突然无法登陆（浏览器无法打开），用 SIM 卡小针插入重置键 3 秒，重置后由于 DHCP 分配 IP ，网页打开后，登陆显示密码错误，尝试默认密码（ admin 以及 Cloud Key ）均失败。再次尝试用小针戳重置按钮，发现重置按钮似乎物理性损坏，无法再次重置。<br />请教，如果遇到如上情况：<br /><br />1. 除了返厂硬件维修，是否还有其他办法重置密码？<br />2. 硬盘内资料是否可以插入 Mac 导出（因为没有现成硬盘盒，所以无法直接测试，想请教一下）<br />3. 如果无法插入 Mac 并导出资料，是否可买一台新的 QNAP NAS （旧的已经停产，可能需要买新款），插入硬盘后继续无缝使用？<br /><br />谢谢大家
 ]]></content:encoded>
 <pubDate>2024-08-13T18:03:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求解，为什么我每次关其他电器，我的笔记本都会响两下？</title>
-<link>https://www.v2ex.com/t/1064755</link>
-<guid>https://www.v2ex.com/t/1064755</guid>
-<content:encoded><![CDATA[
-我搬入新的租房后，发现我关闭其他任何电器(风扇、空调、灯)时，都有可能使我的笔记本电脑响两下，关闭电器的瞬间，电脑会先响一下，过一两秒之后再响一下，且两下声响不是相同的声调，有点像插拔 u 盘时分别发出的声音<br /><br />印象中，开启电器不会触发声响，只有关闭电器会，且关闭电器不是必定触发异常声响的，概率大概只有 50%左右，有点玄，有 v 友知道原因吗？有点害怕会影响电脑寿命，谢谢！
-]]></content:encoded>
-<pubDate>2024-08-13T18:04:29Z</pubDate>
-</item>
-<item>
-<title>[Apple] 苹果与其搞什么聪明 siri 不如先学学英伟达</title>
-<link>https://www.v2ex.com/t/1064754</link>
-<guid>https://www.v2ex.com/t/1064754</guid>
-<content:encoded><![CDATA[
-<p>真不如先学学英伟达</p>
-<p>任何媒体片源 SDR 视频转 HDR 播放
-任何媒体片源 480p 转 4K 播放</p>
-<p>效果很好 这才是现在 ai 真的能落地的功能</p>
-<p>在线 GPT 现在还是个智障 结果本地 ai 弄了个更智障的 真没比 siri 强多少</p>
-]]></content:encoded>
-<pubDate>2024-08-13T01:09:04Z</pubDate>
-</item>
-<item>
-<title>[iCloud] obsidian ios 都有什么同步方案呢? icloud 被禁用了</title>
-<link>https://www.v2ex.com/t/1064753</link>
-<guid>https://www.v2ex.com/t/1064753</guid>
-<content:encoded><![CDATA[
-<p>原来用 icloud 同步的, ios 上只展示, 不怎么编辑. 问题不大. Mac 上使用的 git 定时同步
-现在公司把 icloud 禁用了.  有什么替代的方案呢, 主要是同步给 ios 使用.</p>
-]]></content:encoded>
-<pubDate>2024-08-13T17:51:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为啥那么多广告，连系统都不放过</title>
-<link>https://www.v2ex.com/t/1064752</link>
-<guid>https://www.v2ex.com/t/1064752</guid>
-<content:encoded><![CDATA[
-<p>我是真的搞不懂，国内 Android 手机操作系统都要植入广告，虽然都可以关闭。对用户体验一点都不重视吗？</p>
-<p>软件开屏广告也就算了，连一个干净的操作系统都要植入广告位。</p>
-<p>说到 App 就又不得不提“臃肿”二字了，一个 App 能刷视频、能买东西、能贷款、能聊天、甚至还能加个虚幻引擎让你在里面玩游戏。新买的手机打开淘宝、百度网盘这些“超级应用”都能卡顿，更别说用个一两年之后更新到那种程度了。</p>
-<p>这种风气到底是怎么产生的啊，谁带动的这种风气。</p>
-]]></content:encoded>
-<pubDate>2024-08-13T17:44:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 回到宁夏老家感觉迷茫了</title>
-<link>https://www.v2ex.com/t/1064751</link>
-<guid>https://www.v2ex.com/t/1064751</guid>
-<content:encoded><![CDATA[
-考学的时候考了个末流三本，在北上深杭打了 6 年工做过两年 Java 开发又干了 4 年前端开发，工资大约 2w 多一个月，然后突然有一天感觉在面打工没啥意思于是出国新加坡混了硕士学历，回到宁夏老家。<br /><br />准备看看 29 岁有什么国企招聘应届生试试水，刚回来一个月闲的难受感觉哪哪都不舒服。哪哪都难受，太闲了真的。宁夏没有啥互联网行业，真对未来有点迷茫。
-]]></content:encoded>
-<pubDate>2024-08-13T17:13:12Z</pubDate>
-</item>
-<item>
-<title>[香港] 8 月底左右，深圳出发，找个小伙伴一起去香港办理银行卡</title>
-<link>https://www.v2ex.com/t/1064750</link>
-<guid>https://www.v2ex.com/t/1064750</guid>
-<content:encoded><![CDATA[
-是工作日，非周六日，到时候请一天假<br /><br />实体银行： 汇丰、中银<br />虚拟银行：ZA Bank 、Livi Bank （视情况）<br /><br />楼主没去过香港，所以有点生疏，但是该准备东西都准备了，<br />来一个人即可，有耐心的，怕排队太久，所以想着去冷门网点<br /><br />请联系： 绿色气泡  <br />Base64 解码：5b6u5L+h77yaT09OT09S
-]]></content:encoded>
-<pubDate>2024-08-13T16:17:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 怎么看 [微信服务器会自动清理未保留信息]</title>
-<link>https://www.v2ex.com/t/1064749</link>
-<guid>https://www.v2ex.com/t/1064749</guid>
-<content:encoded><![CDATA[
-近日，有网友反馈，微信疑似会吞掉 3 天前的未读信息，除了文字，还涉及文件和图片等消息类型，相关话题冲上微博热搜。<br /><br />对此，腾讯客服回应称，已接收消息不会清理，但是微信服务器会自动清理未保留信息，具体机制如下：<br /><br />- 对于未接收的消息：微信服务器保存 3 天，会在 3 天后自动清理这些消息，清理后无法再接收。<br />- 对于已接收并下载或查看的消息：这些消息将被保存在用户的设备中，并且可以永久查看。<br /><br />想知道，手机收到推送，但没去打开微信，这种算接收还是未接收？<br /><a href="https://i.imgur.com/KPjHnE4.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KPjHnE4.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-08-13T16:24:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 公司的 mac 禁用了 icloud 的同步, 有什么同步备忘录,日历的方案呢?</title>
-<link>https://www.v2ex.com/t/1064748</link>
-<guid>https://www.v2ex.com/t/1064748</guid>
-<content:encoded><![CDATA[
-<p>用的苹果全家桶.
-有没有其他体验比较好的笔记, 日历全平台同步的软件呢</p>
-]]></content:encoded>
-<pubDate>2024-08-13T16:09:46Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 海鲜市场的阿里 300 有没有猫腻？</title>
-<link>https://www.v2ex.com/t/1064746</link>
-<guid>https://www.v2ex.com/t/1064746</guid>
-<content:encoded><![CDATA[
-海鲜市场有很多卖阿里 300 优惠券的，是不是黑铲？买了有没有风险？
-]]></content:encoded>
-<pubDate>2024-08-13T11:21:17Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [求职] GO 后端离职 4 个月,有点焦虑了,大佬们帮忙看看简历</title>
-<link>https://www.v2ex.com/t/1064745</link>
-<guid>https://www.v2ex.com/t/1064745</guid>
-<content:encoded><![CDATA[
-<p>大专学历,非全本科.目前在杭州.
-大佬们求指导.
-<img alt="90b61c9399bd0d39cb35b93bb1ad082c.png" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/08/13/90b61c9399bd0d39cb35b93bb1ad082c.png" /></p>
-]]></content:encoded>
-<pubDate>2024-08-13T15:18:02Z</pubDate>
-</item>
-<item>
-<title>[VXNA] 申请收录 https://overstarry.vip/</title>
-<link>https://www.v2ex.com/t/1064744</link>
-<guid>https://www.v2ex.com/t/1064744</guid>
-<content:encoded><![CDATA[
-<p>url:https://overstarry.vip/
-rss:https://overstarry.vip/index.xml</p>
-]]></content:encoded>
-<pubDate>2024-08-13T15:13:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有在用 x100 pro 的小伙伴吗？请教下使用体验如何。看见网上评价不错，想买个二手玩玩， iPhone 用久了实在有点 boring，目前是 15。</title>
-<link>https://www.v2ex.com/t/1064743</link>
-<guid>https://www.v2ex.com/t/1064743</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-13T10:59:16Z</pubDate>
-</item>
-<item>
-<title>[软件] LosslessCut,经常提示视频格式不支持,怎么破,求指点.</title>
-<link>https://www.v2ex.com/t/1064742</link>
-<guid>https://www.v2ex.com/t/1064742</guid>
-<content:encoded><![CDATA[
-<p>如题,除了 mp4,不提示之外,甚至连 mkv 格式的视频,都提示我视频不支持,需要转格式才能编辑.
-请教下,是需要额外在装什么解码器之类的吗?
-感谢指点!!!</p>
-]]></content:encoded>
-<pubDate>2024-08-13T10:45:39Z</pubDate>
-</item>
-<item>
-<title>[Notion] notion.so 是国人做的产品么？为什么域名的名字叫 zhao huan</title>
-<link>https://www.v2ex.com/t/1064741</link>
-<guid>https://www.v2ex.com/t/1064741</guid>
-<content:encoded><![CDATA[
-<p>刚查了下 <a href="http://notion.so" rel="nofollow">notion.so</a> 的 whois ，名字叫 zhao huan 呀。不会是国人做的产品吧</p>
-<p><img alt="图片链接" class="embedded_image" rel="noreferrer" src="https://telegra.ph/file/735241a682e41927b64b5.png" /></p>
-]]></content:encoded>
-<pubDate>2024-08-13T11:33:20Z</pubDate>
-</item>
-<item>
-<title>[Electron] mac 如何监听软件变化</title>
-<link>https://www.v2ex.com/t/1064739</link>
-<guid>https://www.v2ex.com/t/1064739</guid>
-<content:encoded><![CDATA[
-<p>为了实时扫描本机软件的变化(删除 更新 安装)，使用了 chokidar 去监听 application 文件夹的变化，对于已经安装的可以直接监听 plist 即可，但是对于新增或者更新 plist 路径变化，就需要全部纳入监听，虽然已经限制 depth 为 3 ，但是 fsevents cpu 占用还是比较高，大家还有其他一些建议或者思路可以参考下吗？</p>
-]]></content:encoded>
-<pubDate>2024-08-13T14:10:50Z</pubDate>
-</item>
-<item>
-<title>[iPhone] iPhone 中开启 iMessage 后，如何选择给发送人短信而不是默认的 iMessage？</title>
-<link>https://www.v2ex.com/t/1064738</link>
-<guid>https://www.v2ex.com/t/1064738</guid>
-<content:encoded><![CDATA[
-因为有些发送信息的对象不想暴露出我的 iMessage ，只想发送短信，那么除了断网发送长按选择以普通短信发送之外，还有什么便捷的办法给对方发送普通短信？<br /><br />我想不少人有同样的疑问吧。
-]]></content:encoded>
-<pubDate>2024-08-13T11:09:43Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 关于 icloud 账号换家庭的问题</title>
-<link>https://www.v2ex.com/t/1064737</link>
-<guid>https://www.v2ex.com/t/1064737</guid>
-<content:encoded><![CDATA[
-<p>比如我现在 A 账号是在一个家庭里面，之前家庭是在土区，A 是国区账号，且 A 是家庭组织者。
-然后 A 账号现在要换家庭，到巴西的家庭里面去。</p>
-<p>那么有 2 个问题，问下各位吴彦祖；</p>
-<p>1 、因为 A 是家庭创建者，是不是换区就必须要解散家庭了？</p>
-<p>2 、按照我换家庭的逻辑，到巴西家庭应该也可以享受 iCloud 的服务吧？我记得知识 music 啥的不行；</p>
-<p>3 、我以前在土耳其之前的 iCloud 云端的照片啊文件啥的，应该是可以丝滑切换的吧？不会说不需要我把所有云端下载到本地然后重新上传迁移吧？》</p>
-]]></content:encoded>
-<pubDate>2024-08-13T13:55:45Z</pubDate>
-</item>
-<item>
-<title>[C#] ClosedXML 如何对一列数据设置高亮重复项？（高亮重复项是 Excel 的一种功能；不能手动给重复单元格设置背景颜色，这样的话用户删除重复项后不会自动去除高亮）</title>
-<link>https://www.v2ex.com/t/1064736</link>
-<guid>https://www.v2ex.com/t/1064736</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-13T13:51:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] JMS 客服半个月没回复了，不会要跑路了吧</title>
-<link>https://www.v2ex.com/t/1064735</link>
-<guid>https://www.v2ex.com/t/1064735</guid>
-<content:encoded><![CDATA[
-<p>RT. LA1000 最近 s3 s4 节点总是断联换 ip. 但是别人的在不同集群上的 s3 s4 就没有问题，客服只回了一个换 port ，后面怎么发都不回复了……</p>
-<p>不会要跑路了吧</p>
-]]></content:encoded>
-<pubDate>2024-08-13T13:52:02Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 请教一下关于 iOS 开发就业问题</title>
-<link>https://www.v2ex.com/t/1064733</link>
-<guid>https://www.v2ex.com/t/1064733</guid>
-<content:encoded><![CDATA[
-<p>现在有个某互联网大厂的客户端实习 offer ，leader 让在 ios 跟 android 选一个方向，说是 ios 比较缺人，本人 25 届，之前只做过一点简单 android ，主要语言 java 。
-实习有转正 hc ，但 leader 说不打包票，还是看产出，担心 ios 前景跟从头学影响产出。请教各位大佬们该如何抉择。</p>
-]]></content:encoded>
-<pubDate>2024-08-13T14:08:47Z</pubDate>
-</item>
-<item>
-<title>[微信] 微信小程序如何实现无限制发送模板消息？</title>
-<link>https://www.v2ex.com/t/1064732</link>
-<guid>https://www.v2ex.com/t/1064732</guid>
-<content:encoded><![CDATA[
-<p>目前只能申请到一次性模板消息，用户只能收到一次消息通知，管理角色需要接收到多次消息通知，如何实现？无法申请到永久消息模板，缺少相应资质</p>
-]]></content:encoded>
-<pubDate>2024-08-13T13:25:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有 Notion AI 的平替 APP</title>
-<link>https://www.v2ex.com/t/1064731</link>
-<guid>https://www.v2ex.com/t/1064731</guid>
-<content:encoded><![CDATA[
-<h4>背景：</h4>
-<p>最近工作越来越杂，有的时候总是想不起来一些事情，公司提供的是 office 365 ，其中包含 onenote ，但是 onenote 我不太喜欢用，而且再 MAC 上体验也不是特别好，我更习惯把一些随手记 记在 apple 备忘录上，，试用了 Notion AI ，很好用， 可以满足我随手记，但是过了很久又能快速找到，而且还能帮我整理排版润色，但问题是价格有点贵。</p>
-<h4>目前已有的工具</h4>
-<ul>
-<li>ChatGPT plus ，刚好公司提供日本原生 ip 代理，每天高强度使用，主要是问技术问题，</li>
-<li>ohmygpt ，用他家用了一年多了，api 稳定 速度快 还国内直连，目前主要用于 bob 插件，翻译 + 润色，因为有了 ChatGPT plus 之后，很多事情就不需要用 api 解决了，</li>
-</ul>
-<h4>需求</h4>
-<ul>
-<li>可以使用自定义 api 和 token ，做到像 Notion AI 提供的功能</li>
-<li>markdown 支持</li>
-<li>免费</li>
-<li>web/mac/win/ios/ 多设备支持 + 同步</li>
-<li>支持数据隔离，工作个人分开（如果做不到的话那就只存工作相关的， 反正私人的话还有 apple 备忘录）</li>
-</ul>
-<p>希望找免费的是因为我希望可以用自己的 chatgpt api token 去处理这些东西，已经为 api 和 chatgpt plus 付费了，不想多花一分钱，不然我就直接上 Notion AI 了</p>
-]]></content:encoded>
-<pubDate>2024-08-13T13:30:26Z</pubDate>
 </item>
 </channel>
 </rss>
