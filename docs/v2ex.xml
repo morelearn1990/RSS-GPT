@@ -5,15 +5,122 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] [讨论] 如何将一个结构体的 buffer 数据，拷贝到另一个结构体的实例中</title>
+<link>https://www.v2ex.com/t/1066298</link>
+<guid>https://www.v2ex.com/t/1066298</guid>
+<content:encoded><![CDATA[
+
+<h1>背景</h1>
+<p>我有一个静态库 A ，提供的头文件中有 public 的结构体和方法接口，以供别人调用</p>
+<pre><code>namespace api {
+
+struct MyStruct {
+    std::string text;
+    int text_length;
+};
+
+std::string getStructInfo(const MyStruct &amp;struct);
+
+}
+
+</code></pre>
+<p>另一个静态库 B ，依赖了静态库 A ，其源码内实例化了一个 <code>MyStruct</code> 结构体对象，并调用了 <code>getStructSize</code> 方法获取了结果</p>
+<p>静态库 A 和静态库 B 均以 <code>二进制.a</code> 形式集成到工程 App 中使用</p>
+<h1>问题</h1>
+<p>某一天，静态库 A 中的头文件 MyStruct 定义发生变化:</p>
+<pre><code>struct MyStruct {
+    int text_length;
+    float score;
+    std::string full_text;
+};
+</code></pre>
+<p>我想在<code>不重新构建静态库 B ，保持 MyStruct 命名不变，使用新定义</code>的情况下，通过指针偏移或二进制适配手段，使静态库 B 内的代码逻辑能正常运行，应该如何进行处理？</p>
+<p>我的想法是，由于 <code>getStructSize</code> 的参数是引用，所以打算通过上测算出老的结构体定义的大小，然后 <code>memcpy</code> 对应长度的 buffer 到一个和原结构体定义完全一致，但命名空间不一致的的结构体中，随后进行提取：</p>
+<p>第一步：定义一个结构体，和原来的 MyStruct 完全一致，但通过命名空间隔离:</p>
+<pre><code>namespace old {
+
+struct MyStruct {
+    std::string text;
+    int text_length;
+};
+
+}
+</code></pre>
+<p>第二步：在 getStructInfo 内部，进行转换</p>
+<pre><code>int getStructInfo(const MyStruct &amp;struct) {
+    size_t old_size = sizeof(old::MyStruct);
+    old::MyStruct old_struct;
+    memcpy(&amp;old_struct, &amp;struct, old_size);
+
+    printf("old struct text:%s", old_struct.text.c_str());
+    ……
+}
+</code></pre>
+<p>总觉得这个方法是可以的，但实际操作的过程中就不行，无法获得 text 的值，这是为什么呢？求大神赐教下</p>
+<p>补充信息：iOS 系统，arm64 架构</p>
+]]></content:encoded>
+<pubDate>2024-08-19T20:15:23Z</pubDate>
+<pubDate>2024-08-19T20:15:23Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 想不明白的网络问题，求指点。</title>
+<link>https://www.v2ex.com/t/1066297</link>
+<guid>https://www.v2ex.com/t/1066297</guid>
+<content:encoded><![CDATA[
+
+今天随手用手机测个速，发现有点问题：<br />200M 宽带，家中网络链路正常，虽然主路由是 esxi 里的 openwrt ，但性能没任何问题。宽带速率 200M 。<br />    如果用电脑有线测试，使用电信官方的测速平台：<a href="http://10000.gd.cn" rel="nofollow noopener" target="_blank">10000.gd.cn</a> ，测得结果约 360M ，正常并且有余。用内网的 speedtest 服务器测，无限接近 1000M ，看来内外网有线链路没问题。<br />    用手机（ iphone 14 pro ios:17.5.1 ） wifi 测试内网，下载速率 800M 左右，稳定。分别使用 Ruckus R730 （ wifi6 8*8:8 ），Aruba AP-534(wifi6 4*4:4)测试，结果接近。<br />    而用手机打开 <a href="http://10000.gd.cn" rel="nofollow noopener" target="_blank">10000.gd.cn</a> 测速，多次结果都在 120M-130M 左右。<br />    手机、路由均关闭梯子，路由重启过。<br />    同样位置、信号强度，测试内网速度，可达 800M 。<br />    试了⼀晚无法理解，求助。
+]]></content:encoded>
+<pubDate>2024-08-19T19:06:03Z</pubDate>
+<pubDate>2024-08-19T03:05:03Z</pubDate>
+</item>
+<item>
+<title>[程序员] 推荐一个好用美观的开源 Whois 查询工具: who.zmh.me</title>
+<link>https://www.v2ex.com/t/1066296</link>
+<guid>https://www.v2ex.com/t/1066296</guid>
+<content:encoded><![CDATA[
+
+<h2>Next Whois UI</h2>
+<p><a href="https://github.com/zmh-program/next-whois-ui" rel="nofollow">https://github.com/zmh-program/next-whois-ui</a></p>
+<ol>
+<li>✨ <strong>精美的 UI 设计</strong>: 现代化设计风格，采用 Shadcn UI 。</li>
+<li>📱 <strong>响应式设计</strong>: 完美适配手机✅ / 平板✅ / 桌面设备✅，支持 PWA 应用。</li>
+<li>🌈 <strong>多主题支持</strong>: 支持多主题模式（浅色和深色），自动检测系统主题，可随心切换。</li>
+<li>🚀 <strong>灵活查询</strong>: 基于 Next.js, 支持无服务器快速部署。</li>
+<li>📚 <strong>记录历史</strong>: 历史记录存储在本地存储中，方便查看和查询。</li>
+<li>📡 <strong>开放 API</strong>: 提供便捷的 API 进行 whois 查询，方便与其他服务集成。</li>
+<li>🌍 <strong>IPv4 &amp; IPv6 Whois</strong>: 支持 IPv4 、IPv6 、域名、ASN 、CIDR 的 whois 查询。</li>
+<li>📦 <strong>结果截图</strong>: 可以捕捉 whois 查询结果，方便分享和保存。</li>
+<li>📡 <strong>Whois 缓存</strong>: 支持设置基于 Redis 的 whois 缓存，提升查询速度。</li>
+</ol>
+<blockquote>
+<p><em>这是我之前有空的时候搓的小项目, 应该还用蛮多 bug, 欢迎大家提 issue</em></p>
+</blockquote>
+<p><img alt="Next Whois UI" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/pkE57sr.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2024-08-19T18:46:18Z</pubDate>
+<pubDate>2024-08-19T19:26:33Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] passwall2 代理端口过多会失效</title>
+<link>https://www.v2ex.com/t/1066295</link>
+<guid>https://www.v2ex.com/t/1066295</guid>
+<content:encoded><![CDATA[
+
+<p>结论：passwall2 --&gt; 高级设置  --&gt;TCP 转发端口 自定义端口超过 15~16 部分 app 代理会失效，但网页又正常（都使用的 443 ）。</p>
+<p>通过对 luci-app-passwall2.ipk 更新时有一条提示：iptables v1.8.7 (legacy): too many ports specified</p>
+]]></content:encoded>
+<pubDate>2024-08-19T18:29:20Z</pubDate>
+<pubDate>2024-08-19T18:27:20Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 偶然间看到的字体，忽然令我感到汉字的美感</title>
 <link>https://www.v2ex.com/t/1066294</link>
 <guid>https://www.v2ex.com/t/1066294</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic1.zhimg.com/80/v2-79278389e5d5f240fa53a16b152e72d2_1440w.png" /></p>
 <p>这是什么字体？<a href="https://www.bilibili.com/video/BV1iE4m1R7Zh/?t=610" rel="nofollow">来源</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-19T18:17:29Z</pubDate>
 <pubDate>2024-08-19T18:14:29Z</pubDate>
 </item>
 <item>
@@ -21,11 +128,9 @@
 <link>https://www.v2ex.com/t/1066293</link>
 <guid>https://www.v2ex.com/t/1066293</guid>
 <content:encoded><![CDATA[
-
 <p>前几天官方机房全挂了。
 这两天我不同运营商安装宝塔的机器全 MYSQL 和 PHP 故障，感觉不是巧合。</p>
 ]]></content:encoded>
-<pubDate>2024-08-19T17:52:59Z</pubDate>
 <pubDate>2024-08-19T18:22:58Z</pubDate>
 </item>
 <item>
@@ -33,11 +138,9 @@
 <link>https://www.v2ex.com/t/1066292</link>
 <guid>https://www.v2ex.com/t/1066292</guid>
 <content:encoded><![CDATA[
-
 <p>最近想要在 Dash 上看 Python3 中文文档，但是网上似乎没有现成的（也有些版本比较旧的），自己从官方文档转换又遇到了问题，<a href="https://github.com/python/python-docs-zh-cn/issues/360" rel="nofollow">具体遇到的问题是这样的</a> 。</p>
 <p>想问问有没有朋友有制作这个的经验？</p>
 ]]></content:encoded>
-<pubDate>2024-08-19T17:10:50Z</pubDate>
 <pubDate>2024-08-19T17:10:50Z</pubDate>
 </item>
 <item>
@@ -45,10 +148,8 @@
 <link>https://www.v2ex.com/t/1066291</link>
 <guid>https://www.v2ex.com/t/1066291</guid>
 <content:encoded><![CDATA[
-
 为什么国内没有公共的 DNS over Quic ？阿里和 DNSPOD DoT 、DoH 都支持，但没有 DoQ
 ]]></content:encoded>
-<pubDate>2024-08-19T16:59:27Z</pubDate>
 <pubDate>2024-08-19T17:05:14Z</pubDate>
 </item>
 <item>
@@ -56,7 +157,6 @@
 <link>https://www.v2ex.com/t/1066290</link>
 <guid>https://www.v2ex.com/t/1066290</guid>
 <content:encoded><![CDATA[
-
 <p>虚拟卡平台很多 fomepay 、fomecard （一家的）、dupay 、vvacard 等等</p>
 <p>为了避免再次掉入类似 Fomepay 的骗局，选择合规的实体公司、合规的服务非常重要。
 我总结了一些分辨靠谱合规的公司、服务的方法：</p>
@@ -80,7 +180,6 @@
 <p>目前用下来 wildcard 挺不错，审美在线，关键是金额随时可以提现！！！</p>
 <p>如果需要的话，可以参考下这篇文章： <a href="https://chatgptzh.com.cn/fomepay-run/" rel="nofollow">https://chatgptzh.com.cn/fomepay-run/</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-19T16:55:53Z</pubDate>
 <pubDate>2024-08-19T16:52:53Z</pubDate>
 </item>
 <item>
@@ -88,15 +187,12 @@
 <link>https://www.v2ex.com/t/1066289</link>
 <guid>https://www.v2ex.com/t/1066289</guid>
 <content:encoded><![CDATA[
-
 <p>如果再添加几本书就不知道多少秒了.而且因为添加 md,导致不全 build 还不行</p>
 <p>我还是老老实实 sphinx 吧,
 毕竟 sphinx 添加 rst 不重新 build 也没事,不像 hugo</p>
 ]]></content:encoded>
-<pubDate>2024-08-19T16:49:27Z</pubDate>
 <pubDate>2024-08-19T17:03:55Z</pubDate>
 </item>
-
 <item>
 <title>[Go 编程语言] 分享我最新的开源项目： goargs</title>
 <link>https://www.v2ex.com/t/1066288</link>
@@ -15414,62 +15510,6 @@ Multi-process time taken  : 6.14 seconds
 是对 ios app 有什么特殊检测吗，求高手解答
 ]]></content:encoded>
 <pubDate>2024-08-15T01:09:59Z</pubDate>
-</item>
-<item>
-<title>[Apple] 土区 apple id 被禁用</title>
-<link>https://www.v2ex.com/t/1065099</link>
-<guid>https://www.v2ex.com/t/1065099</guid>
-<content:encoded><![CDATA[
-24 年 8 月 8 日 谷歌 play 续费后苹果音乐就登不上了，最开始以为是钱没过去，打电话问了银行，问了谷歌，最后发现是苹果账号登不上了。<br /><br />尝试了重置密码，自助解锁 一直提示等一天给结果但还几天没收到邮件，页面客服问了好几次无果，最后一次客服说建议电话，但是土区客服，一想到自己啥也不会说就算了。<br /><br />网上搜了搜有不少老哥遇到过，说是国内苹果客服也能处理，遂连夜拨打苹果客服电话，经过漫长等待和听音乐，先后联系了三位客服，收到一个邮件还是那个自助解封的操作我又写了一遍。还是让等待一天。电话客服一直问道最高级的客服，依旧无法解决，包括恢复账号，退款，导出歌单，一个也解决不了。。。。已经彻底放弃了。<br /><br />不料第二天收到已经解封成功的邮件。<br /><br />推测是电话客服发的自助解封有特殊魔法？或者是拨打客服电话本身有加速解封的 buff<br /><br />遂记录，希望对遇到类似问题的有所帮助
-]]></content:encoded>
-<pubDate>2024-08-15T01:23:28Z</pubDate>
-</item>
-<item>
-<title>[汽车] 极氪是要倒闭的节奏了吗？</title>
-<link>https://www.v2ex.com/t/1065098</link>
-<guid>https://www.v2ex.com/t/1065098</guid>
-<content:encoded><![CDATA[
-<p>所有评论区全部无法评论
-全网口碑下滑</p>
-]]></content:encoded>
-<pubDate>2024-08-15T01:23:15Z</pubDate>
-</item>
-<item>
-<title>[汽车] 极氪真是三代同堂啊</title>
-<link>https://www.v2ex.com/t/1065097</link>
-<guid>https://www.v2ex.com/t/1065097</guid>
-<content:encoded><![CDATA[
-刚吃早餐摸鱼看到的<br /><a href="https://www.ithome.com/0/788/402.htm" rel="nofollow noopener" target="_blank">https://www.ithome.com/0/788/402.htm</a><br />------------------------------------<br />"因此极氪为老车主专门提供了价值 1 万元的购车抵用券"<br />我只能说，伤害性很大，侮辱性更强，极氪的口碑是越来越差了<br />------------------------------------<br />我对车企快速更迭其实没什么意见，挺好的，传统的整车机械底子基本上已经没有质的上升空间了，安全性基本都能保证，除了那些吸能盒，所以车企大部分也就在智能化这个方向卷，因为确实是未来的方向，不过相对这些，我还是更期待电池的突破，尽早实现最低 1000km 续航，就可以换车了。
-]]></content:encoded>
-<pubDate>2024-08-15T01:22:36Z</pubDate>
-</item>
-<item>
-<title>[macOS] ClashX Pro 和 Clash Verge 有啥本质区别？</title>
-<link>https://www.v2ex.com/t/1065096</link>
-<guid>https://www.v2ex.com/t/1065096</guid>
-<content:encoded><![CDATA[
-<p>谢谢🙏</p>
-]]></content:encoded>
-<pubDate>2024-08-15T01:11:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] power bi 应该是永远不可能在 macOS 上用的。
-那问题是 macos 应该用什么替代 powerbi 呢。</title>
-<link>https://www.v2ex.com/t/1065094</link>
-<guid>https://www.v2ex.com/t/1065094</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-11T00:16:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有人用过 Copilot for Microsoft 365 吗？</title>
-<link>https://www.v2ex.com/t/1065093</link>
-<guid>https://www.v2ex.com/t/1065093</guid>
-<content:encoded><![CDATA[
-搞到一个 license ，发现在 word/excel 等软件里面并没有 Copliot 图标，可能是大陆有限制？ 网页版的 office 软件正常可用
-]]></content:encoded>
-<pubDate>2024-08-13T12:27:42Z</pubDate>
 </item>
 </channel>
 </rss>
