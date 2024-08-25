@@ -5,14 +5,272 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] kafka 单节点问题请教</title>
+<link>https://www.v2ex.com/t/1067617</link>
+<guid>https://www.v2ex.com/t/1067617</guid>
+<content:encoded><![CDATA[
+
+佬们，请教个问题，我需要搭建一个单节点的 kafka 服务器，，根据官网的教程，我已经搭建好了，现在需要局域网的节点的能连 kafka 服务器，为了 kafka 服务器能局域网能访问，需要修改配置文件 ，修改内容如下<br /><br />listeners=PLAINTEXT://0.0.0.0:9092<br />advertised.listeners=PLAINTEXT://192.168.5.155:9092<br /><br />这样操作后，在本机上，创建话题，再使用生产者，和消费者没有问题。但是我在另一台服务器上使用 Python3 脚本模拟生产者，消费者就有问题。<br />下面是生产者脚本<br />from kafka3 import KafkaProducer<br />import json<br /><br />创建 Kafka Producer 实例<br />producer = KafkaProducer(<br />bootstrap_servers=‘192.168.5.155:9092’, # Kafka 服务器的地址和端口<br />value_serializer=lambda v: json.dumps(v).encode(‘utf-8’) # 将消息序列化为 JSON 格式<br />)<br /><br />发送消息到 Kafka 的主题<br />producer.send(‘test-topic’, {‘key’: ‘value’}) # ‘my-topic’ 替换为你的实际主题名<br /><br />确保所有消息都被发送<br />producer.flush()<br /><br />print(“消息发送成功”)<br />下面是消费者的脚本<br />from kafka3 import KafkaConsumer<br />import json<br /><br />创建 Kafka Consumer 实例<br />consumer = KafkaConsumer(<br />‘test-topic’, # 替换为你的实际主题名<br />bootstrap_servers=‘192.168.5.155:9092’, # Kafka 服务器的地址和端口<br />auto_offset_reset=‘earliest’, # 从最早的消息开始读取<br />enable_auto_commit=True, # 自动提交偏移量<br />group_id=‘my-group’, # 消费者组 ID<br />value_deserializer=lambda x: json.loads(x.decode(‘utf-8’)) # 将消息反序列化为 JSON 格式<br />)<br /><br />消费消息<br />for message in consumer:<br />print(f"接收到消息: {message.value}")<br />运行脚本报错了，<br />Traceback (most recent call last):<br />File “/root/python_code/<a href="http://writing.py" rel="nofollow noopener" target="_blank">writing.py</a>”, line 5, in<br />producer = KafkaProducer(<br />File “/usr/local/lib/python3.10/dist-packages/kafka3/producer/<a href="http://kafka.py" rel="nofollow noopener" target="_blank">kafka.py</a>”, line 383, in init<br />client = self.config[‘kafka_client’](<br />File “/usr/local/lib/python3.10/dist-packages/kafka3/<a href="http://client_async.py" rel="nofollow noopener" target="_blank">client_async.py</a>”, line 244, in init<br />self.config[‘api_version’] = self.check_version(timeout=check_timeout)<br />File “/usr/local/lib/python3.10/dist-packages/kafka3/<a href="http://client_async.py" rel="nofollow noopener" target="_blank">client_async.py</a>”, line 900, in check_version<br />raise Errors.NoBrokersAvailable()<br />kafka3.errors.NoBrokersAvailable: NoBrokersAvailable<br /><br />想问哈各位哪里不对，脚本是用 chatgpt4 生成的，我在 192.168.5.111 上 ping 192.168.5.155 是通的，我试了 telnet 192.168.5.155 9092 不通，但我已经 关了防火墙，我查看了又有端口监听在 9092.<br />感谢各位大佬给我指点。
+]]></content:encoded>
+<pubDate>2024-08-25T06:27:00Z</pubDate>
+<pubDate>2024-08-25T06:26:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] 凹语言支持 Wasm4 游戏平台</title>
+<link>https://www.v2ex.com/t/1067616</link>
+<guid>https://www.v2ex.com/t/1067616</guid>
+<content:encoded><![CDATA[
+
+<p>凹语言是国内首个面向 WebAssembly 设计的通用编程语言，也是国内首个被 CNCF 基金会 wasm 全景图收录的开源编程语言。在 2022 年刚刚开源时，凹语言开发组以贪吃蛇为例做了第一个案例。具体请参考： <a href="https://wa-lang.org/smalltalk/st0018.html" rel="nofollow">https://wa-lang.org/smalltalk/st0018.html</a></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0018-01.png" /></p>
+<p>在线试玩地址： <a href="https://wa-lang.org/wa/snake/" rel="nofollow">https://wa-lang.org/wa/snake/</a></p>
+<h2>Wasm4 版本的贪吃蛇</h2>
+<p>Wasm4 是一个使用 WebAssembly 构建复古风格游戏的框架。它提供了一个 160 x 160 像素、64K 内存的游戏主机。通过使用 WebAssembly 技术使得开发的游戏能够在所有网页浏览器和一些低端设备上运行。随着凹语言支持 Wasm4 平台，现在开发者也能使用凹语言轻松开发 Wasm4 游戏。</p>
+<p>以下是 Wasm4 贪吃蛇的效果图：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0046-01.png" /></p>
+<p>实现代码在 <code>waroot/examples/w4-snake</code> 目录下。</p>
+<h2>Wasm4 快速入门</h2>
+<p>先安装 wa-v0.15.0 命令行程序，然后执行以下命令：</p>
+<pre><code>$ wa init -wasm4
+$ tree hello
+hello
+├── README.md
+├── src
+│   └── main.wa
+└── wa.mod
+</code></pre>
+<p>在 hello 目录生成一个 Wasm4 版本的你好世界例子。其中 main.wa 代码如下：</p>
+<pre><code class="language-wa">import "syscall/wasm4"
+</code></pre>
+<p>首先是导入<code>syscall/wasm4</code>包，然后定义 Update 函数：</p>
+<pre><code class="language-wa">global smiley = [8]byte{...}
+
+#wa:export update
+func Update {
+	wasm4.SetDrawColors(2)
+	wasm4.Text("Hello from Wa-lang!", 10, 10)
+
+	gamepad := wasm4.GetGamePad1()
+	if gamepad&amp;wasm4.BUTTON_1 != 0 {
+		wasm4.SetDrawColors(4)
+	}
+
+	wasm4.Blit(smiley[:], 76, 76, 8, 8, wasm4.BLIT_1BPP)
+	wasm4.Text("Press X to blink", 16, 90)
+}
+</code></pre>
+<p>首先是调用<code>wasm4.SetDrawColors</code>设置绘制颜色，然后调用<code>wasm4.Text</code>在屏幕的指定坐标绘制文字。然后根据<code>wasm4.GetGamePad1()</code>获得游戏按键状态，并有条件调整绘制颜色。最后<code>wasm4.Blit()</code>调用绘制一个笑脸精灵。</p>
+<p>进入 hello 目录编译和执行：</p>
+<pre><code>$ wa build -target=wasm4
+$ w4 run output/hello.wasm
+</code></pre>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://wa-lang.org/st0046-02.png" /></p>
+]]></content:encoded>
+<pubDate>2024-08-25T06:22:27Z</pubDate>
+<pubDate>2024-08-25T02:22:27Z</pubDate>
+</item>
+<item>
+<title>[微信] 微信不同国家的手机号之间竟然会冲突</title>
+<link>https://www.v2ex.com/t/1067615</link>
+<guid>https://www.v2ex.com/t/1067615</guid>
+<content:encoded><![CDATA[
+
+我的微信绑定的手机号是美国的（+1 ），然后 +1 xxx xxx xxxx 带上国家代码连起来刚好十一位，竟然跟某个微信绑定的 +86 手机号重了...<br /><br />有个人加我微信说我在他们公司投了简历，我一脸懵，一看才知道那人的 +86 手机号和我 +1 手机号带上 1 之后完全一样...<br /><br />我的微信测试下来通过 001 ，1 ，不要区号三种方式都能搜到，不知道遇到这种冲突的情况下微信是怎么处理的...
+]]></content:encoded>
+<pubDate>2024-08-25T06:19:09Z</pubDate>
+<pubDate>2024-08-25T06:19:09Z</pubDate>
+</item>
+<item>
+<title>[Linux] 小弟问下 systemd 日志的问题</title>
+<link>https://www.v2ex.com/t/1067614</link>
+<guid>https://www.v2ex.com/t/1067614</guid>
+<content:encoded><![CDATA[
+
+<p>systemd 日志总是被轮转，有什么办法可以解决吗？</p>
+<pre><code class="language-bash">[root@localhost ~]# grep -v ^# /etc/systemd/journald.conf
+
+[Journal]
+[root@localhost ~]#
+[root@localhost ~]# journalctl --disk-usage
+Archived and active journals take up 184.0M on disk.
+[root@localhost ~]#
+[root@localhost ~]# systemctl status systemd-journald.service
+● systemd-journald.service - Journal Service
+   Loaded: loaded (/usr/lib/systemd/system/systemd-journald.service; static; vendor preset: disabled)
+   Active: active (running) since Fri 2024-08-23 22:28:55 CST; 1 day 15h ago
+     Docs: man:systemd-journald.service(8)
+           man:journald.conf(5)
+ Main PID: 610 (systemd-journal)
+   Status: "Processing requests..."
+   CGroup: /system.slice/systemd-journald.service
+           └─610 /usr/lib/systemd/systemd-journald
+
+Warning: Journal has been rotated since unit was started. Log output is incomplete or unavailable.
+[root@localhost ~]#
+</code></pre>
+<p>出现这个</p>
+<pre><code class="language-bash">Warning: Journal has been rotated since unit was started. Log output is incomplete or unavailable.
+</code></pre>
+<p>网上搜了一下，redhat 说不用管它，但日志被轮转了会导致 journalctl 看不了系统日志。</p>
+]]></content:encoded>
+<pubDate>2024-08-25T05:56:17Z</pubDate>
+<pubDate>2024-08-25T06:09:30Z</pubDate>
+</item>
+<item>
+<title>[Apple] 2024macmini 据说会做的很小</title>
+<link>https://www.v2ex.com/t/1067612</link>
+<guid>https://www.v2ex.com/t/1067612</guid>
+<content:encoded><![CDATA[
+
+<p>2024macmini 据说会做的很小，会不会有厂商出一款 mac 皮笔记本，只有键盘和屏幕，预留 macmini 主板的位置，之后把 mini 主板拆掉，直接装进 mac 皮笔记本里，哈哈，再预留俩 m2 接口，上俩 8T 固态。</p>
+]]></content:encoded>
+<pubDate>2024-08-25T05:54:22Z</pubDate>
+<pubDate>2024-08-25T06:22:47Z</pubDate>
+</item>
+<item>
+<title>[NAS] 有哪些个人网盘存储的系统可以挂载本地磁盘和网盘再 ISCSI 共享？</title>
+<link>https://www.v2ex.com/t/1067607</link>
+<guid>https://www.v2ex.com/t/1067607</guid>
+<content:encoded><![CDATA[
+
+<p>好多都是 FTP 或者 webdav 的方式共享</p>
+]]></content:encoded>
+<pubDate>2024-08-25T05:40:41Z</pubDate>
+<pubDate>2024-08-25T05:44:23Z</pubDate>
+</item>
+<item>
+<title>[Apple] 你们苹果自带的离线地图会自动更新吗</title>
+<link>https://www.v2ex.com/t/1067606</link>
+<guid>https://www.v2ex.com/t/1067606</guid>
+<content:encoded><![CDATA[
+
+<p>明明开了自动更新的按钮，手机也长时间在有 wifi 的区域，但我似乎就没见它自动更新过，刚刚弹通知提示我的离线地图快过期了，打开一看上次更新是 3 周前。自从离线地图这个功能上线以来基本都是我偶尔自己点的更新或者它弹提示我之前的地图快过期了，我再手动更新，好奇它这个更新逻辑到底是怎样，多久更新一次？</p>
+]]></content:encoded>
+<pubDate>2024-08-25T05:38:37Z</pubDate>
+<pubDate>2024-08-25T05:38:37Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 用 claude 写了一个不知道有啥用的宝可梦随机工具。UI 样式感觉还不错，只需要把需求和排版样式给他，给个主题色，指定 shadcn 最为 UI 库。</title>
+<link>https://www.v2ex.com/t/1067605</link>
+<guid>https://www.v2ex.com/t/1067605</guid>
+<content:encoded><![CDATA[
+
+<p>自己做了一些手动调整（ 30%）左右吧。主要是没有掌握好怎么描述构建目录结构应该如何生成。</p>
+<p>数据获取，给他一段网站的 html 结构，让他使用写一段 jquery 获取结构中的名字和图片链接等信息，然后放入油猴脚本中。</p>
+<p>做表格简直不要太简单，直接给个 json 让他输出表格或者 markdown 即可。</p>
+<p>布局方面只要给出明确提示说明要移动端友好即可。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Y4IALKl.png" /> </p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6EIyEb4.png" /></p>
+<p>网址： <a href="https://randomkits.com/kit/random-pokemon-generator" rel="nofollow">https://randomkits.com/kit/random-pokemon-generator</a></p>
+<p>准备后续用 AI 写更多的随机工具，试试效果。</p>
+]]></content:encoded>
+<pubDate>2024-08-25T05:33:06Z</pubDate>
+<pubDate>2024-08-25T05:38:40Z</pubDate>
+</item>
+<item>
+<title>[macOS] 卧槽，这俩系统进程到底背着我干了啥</title>
+<link>https://www.v2ex.com/t/1067604</link>
+<guid>https://www.v2ex.com/t/1067604</guid>
+<content:encoded><![CDATA[
+
+这写入有点不正常吧<br />之前怀疑过 spotlight 和 swap ，关掉之后还这样，无语了<br />开机才一周，这俩卧龙凤雏干了 500+G ，真担心把硬盘写废了<br />系统卡顿估计跟他俩脱不了干系<br /><br /><a href="https://s21.ax1x.com/2024/08/25/pAFTnOO.png" rel="nofollow noopener" target="_blank">https://s21.ax1x.com/2024/08/25/pAFTnOO.png</a>
+]]></content:encoded>
+<pubDate>2024-08-25T05:32:59Z</pubDate>
+<pubDate>2024-08-25T06:01:00Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 大家的 GPT plus 怎么开通的？怎么开最便宜呢</title>
+<link>https://www.v2ex.com/t/1067602</link>
+<guid>https://www.v2ex.com/t/1067602</guid>
+<content:encoded><![CDATA[
+
+现在有点依赖 gpt 了，问点东西太好使了
+]]></content:encoded>
+<pubDate>2024-08-25T05:14:50Z</pubDate>
+<pubDate>2024-08-25T05:39:48Z</pubDate>
+</item>
+<item>
+<title>[iDev] iOS app 遇到了一个“该实体已被停用”的报错，导致无法提交审核成功。</title>
+<link>https://www.v2ex.com/t/1067599</link>
+<guid>https://www.v2ex.com/t/1067599</guid>
+<content:encoded><![CDATA[
+
+我现在编写完成了一个 app ，需要提交到 App Store ，但是遇到了一个“该实体已被停用”的报错，导致无法提交审核成功。请求帮助。谢谢。<br /><br />我的操作过程详情如下：<br /><br />把 app 信息填写完毕，然后点击,然后看到提示：<br /><br />```<br />无法添加以供审核 <br /><br />根据《数字服务法》你必须提供验证账户<br />```<br /><br />然后到点击“商务”，发现错误：<br /><br /><br />```此实体已被停用```<br /><br /><br />现在我的应用提交就卡在这走不下去了.<br /><br />我的问题：<br />1. 我如何让实体不在是停用状态？<br />2. 我如何提供验证账户？<br />3. 我如何继续提交应用审核？<br /><br />请大佬帮忙看看。多谢。（本来有截图，但是 V2EX 不知道如何传图。。）
+]]></content:encoded>
+<pubDate>2024-08-25T04:32:04Z</pubDate>
+<pubDate>2024-08-25T00:32:04Z</pubDate>
+</item>
+<item>
+<title>[投资] 经济下行阶段，一个 37 岁失业程序员的独白（经历/经验分享）</title>
+<link>https://www.v2ex.com/t/1067597</link>
+<guid>https://www.v2ex.com/t/1067597</guid>
+<content:encoded><![CDATA[
+
+<p><strong>警告：区块链投资高风险，需要谨慎，谨慎，再谨慎！</strong></p>
+<p>我是从 2012 开始从事的编程工作，由切图仔（网页重构）起步，经历了前端，大前端这两个阶段，职业生涯里参与过的好项目比较多（也有被网友骂的最多的一个应用），技术积累和经验，算是沉淀的比较厚实。生活里，目前的状态是没有孩子，房子和车子，一直租房，属于网上说的三无人员，在失业之后，曾经有一段时间想去找工作，但后来发现一些人，总会用一些异样的眼光看你，或者是故意的刁难你，也许是我比较敏感吧，感受很不好，索性就再没去找工作，生活依然要继续，怎么办？</p>
+<p>比较想感谢的是区块链，它算阶段性的改善了我的生活，让我拥有了一定的经济能力，可以应付自如。我想分享的经历也是这一部分，期望可以给在低谷的大龄程序员朋友们一个参考，这也是为什么我将警告，写在了第一行。</p>
+<p><a href="https://www.v2ex.com/t/787423" rel="nofollow">https://www.v2ex.com/t/787423</a></p>
+<p>这是我三年前写的一个帖子，没错，就是撸空投（现在也叫撸猫，撸毛）</p>
+<h2>进入正题：经历分享</h2>
+<p>我是一个懒惰的人，也不是一个交易者，因此，每一次发了空投之后，我都会把空投的代币，兑换成 BTC 或 ETH ，在撸空投的策略上，我自己定义了两个主题：生产资料和现金流产品，在别人还是手搓的时代（ 2020 年之前），我已经进入了脚本阶段，唯一不同的是，当年那个时候，包括现在，我都没有走地址的数量，而是有序的控制着地址的数量，靠项目的数量，来完成（一个地址上撸了 N 个项目）生产资料的积累。</p>
+<p>现在回过头来看，这种策略是一个非常平衡的策略（<strong>但也是一个没有提升量级的策略，想想别人成千上万的地址撸，而我只有十几个地址，收益和结果就被拉开了，但对于目前的经济状态，我也知足了</strong>），因为我的生活支出完全依赖于现金流产品捕获的增量价值，随着时间来到 2024 年，我才发现自己积累的生产资料（ ETH 和 BTC ）到达了一个小量级，这一部分变成了自己经济基础的定海神针，一是我可以继续通过它来撸空投继续积累生产资料，二是在行情暴涨的时候我可以出售一部分来深度的改善自己的生活，三是有一小部分资金被我抽走投入到了美股里。</p>
+<p>得益于早年间在公司上班时办了汇丰银行的卡，(用于接收公司配给的股票，富途上开户用)，那个时候我用的是 okcoin 来提现美元，然后结汇到国内，后来 okcoin 出于合规，关闭了中国大陆 ID 的提款，后来就一直使用 Kraken 来提现美元了，这是在没有出现预付卡之前，如今用于生活的支出，我并没有再去提现到银行，而是用着 <a href="https://card.onekey.so/home" rel="nofollow">https://card.onekey.so/home</a> ，在国内吃饭什么的都比较方便；</p>
+<p>我现在依赖的现金流产品主要有四个：</p>
+<ul>
+<li><a href="https://aero.drome.eth.limo/" rel="nofollow">https://aero.drome.eth.limo/</a></li>
+<li><a href="https://velo.drome.eth.limo/" rel="nofollow">https://velo.drome.eth.limo/</a></li>
+<li>Cosmos ATOM OSMO DYM TIA 的质押</li>
+<li><a href="https://www.influenceth.io/" rel="nofollow">https://www.influenceth.io/</a></li>
+</ul>
+<p>虽然现在撸空投变成了一个白热化的事情（内卷），投入和收益，不再像三四年前那样，可以改变生活（也不一定），但是撸空投这个事情会一直存在，收益也会一直存在，如果我们的目标是通过它来生活，我个人的判断，可行性是很高的。</p>
+<h2>如何撸空投：经验分享</h2>
+<p>现在不管是链还是项目与三四年前相比都是爆发性的增长，链和项目这么多，我们该怎么撸，变成了一个问题，包括如果不投入，如何从零撸开始，进入这个行业，也变成了另外一个问题。现在撸空投不像三四年前那样，如今是散户，工作室，项目方，几方博弈，包括资产的分发模式，也变了，现在主要是以积分的形式来分配，它就要求你有一定贡献，才可能有收益，这个收益还不一定，是一个正向的。</p>
+<p>我现在主要使用三个工具和一个新闻来看项目（首先我们得先要知道有这个东西）：</p>
+<ul>
+<li><a href="https://www.rootdata.com/" rel="nofollow">https://www.rootdata.com/</a></li>
+<li><a href="https://dappradar.com/rankings" rel="nofollow">https://dappradar.com/rankings</a></li>
+<li><a href="https://defillama.com/chains" rel="nofollow">https://defillama.com/chains</a></li>
+</ul>
+<p>新闻</p>
+<ul>
+<li><a href="https://www.bankless.com/" rel="nofollow">https://www.bankless.com/</a></li>
+</ul>
+<p>当然，我在推特上也会关注一些行业里比较厉害的人，他们会在推特上分享观点和项目，通过这些方式，主要是来解决信息来源的问题，首先我们要知道（信息）。</p>
+<p>其次是，要划分重点，也就是我们要重点参与哪个生态，目前主要是按链来做的划分：</p>
+<ul>
+<li>EVM</li>
+<li>BTC</li>
+<li>Solana</li>
+</ul>
+<p>等等 ... 当我们划分了重点之后，自然的会把资源做一定的倾斜，也就是重点撸（查询，分析，编码）的，我自己的重点是 EVM 和 BTCFi</p>
+<p>当上述这些都配齐后，最终比的就是执行力了，有计划有逻辑的将它分解成任务，然后每天抽出时间来完成它。</p>
+<h3>零撸的可行性</h3>
+<p>我自己的判断是可行性很高，但是介入项目，可能要以游戏，任务平台为主，包括新链，如最近的 ton dogs ，海盗等，这些都是零撸（投入时间），一个号可以分到几百 u ，但如何找（判断）到这个项目，可能会变成一个问题，因为谁也不知道未来会怎样，有些时候，可能投入了，不一定能有结果。</p>
+<p>以我自己目前的经验来看，上面这些项目都是短平快，所以只能靠量，也就是，起步（零撸）阶段，可能要以月为单位，就是什么项目都搞，我个人的倾向是以游戏和任务为主。</p>
+<p>目前任务主要是三个平台：</p>
+<ul>
+<li><a href="https://zealy.io/" rel="nofollow">https://zealy.io/</a></li>
+<li><a href="https://layer3.xyz/zh/" rel="nofollow">https://layer3.xyz/zh/</a></li>
+<li><a href="https://app.galxe.com/" rel="nofollow">https://app.galxe.com/</a></li>
+</ul>
+<p>游戏，主要是看投资机构，投的一些游戏；</p>
+<p>至少想办法，通过零撸先攒到一个 ETH ，有了一个 ETH ，后面的操作就比较好搞了。</p>
+<h2>结束语：仅是参考</h2>
+<p>这是我唯一的推特： <a href="https://x.com/i_icepy" rel="nofollow">https://x.com/i_icepy</a> </p>
+<p>我经常在推特上分享一些观点和自己在撸的项目，但由于行业的高风险高波动，这些内容都只能用于<strong>参考，不能完全照搬，要很谨慎的对待自己做出的投资决策</strong>，很欢迎大家关注我，一起交流，有问题也可以在推特上私信我，我很乐意分享和提供帮助，大龄程序员抱团取暖 ～</p>
+<p>写于 2024 年 8 月 25 日 午饭后 . 长沙</p>
+]]></content:encoded>
+<pubDate>2024-08-25T04:26:34Z</pubDate>
+<pubDate>2024-08-25T06:04:57Z</pubDate>
+</item>
+
+<item>
 <title>[游戏] 游戏加速方案？</title>
 <link>https://www.v2ex.com/t/1067596</link>
 <guid>https://www.v2ex.com/t/1067596</guid>
 <content:encoded><![CDATA[
-
 <p>我想用机场绕墙玩外服窝窝屎，但手上的机场都不支持 UDP 。想问问 V 友们都用的什么游戏加速方案？</p>
 ]]></content:encoded>
-<pubDate>2024-08-25T04:22:31Z</pubDate>
 <pubDate>2024-08-25T04:22:31Z</pubDate>
 </item>
 <item>
@@ -20,7 +278,6 @@
 <link>https://www.v2ex.com/t/1067595</link>
 <guid>https://www.v2ex.com/t/1067595</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/08/25/a183eaaa0e28866fb874a43f48a1a4a0.png" /></p>
 <p><strong>YABS 测试，如上图</strong></p>
 <p><strong>cpu 跑分 GB5 ，ssd 读/写性能</strong></p>
@@ -77,14 +334,12 @@ ipv4+ipv6
 <p>联系，TG 与 WX 同号：brunuhville</p>
 ]]></content:encoded>
 <pubDate>2024-08-25T04:14:34Z</pubDate>
-<pubDate>2024-08-25T04:14:34Z</pubDate>
 </item>
 <item>
 <title>[汽车] 如何辨别销售是否在良心推荐而不是 be an asshole？</title>
 <link>https://www.v2ex.com/t/1067593</link>
 <guid>https://www.v2ex.com/t/1067593</guid>
 <content:encoded><![CDATA[
-
 <p>8 月 11 日提了 2025 款宋 Plus DM-i 112KM 尊荣版，目前开起来比较满意。唯独就是价钱方面没谈下来，原价 15.58w 购买，+5100 多的保险。配件只送了原厂脚垫和太阳膜，另外后面可以申请当地的 1.2w 补贴，总体还行吧。</p>
 <p>正题：</p>
 <p>一、提车当天，车企销售就推荐了延保服务，只要 3790, 8 年或者 21w 公里内免费更换原厂配件。说的可玄乎了，这个补贴价只有当天有。结果今天（已经过去了半个月了）那个销售又给我打电话，问我要办一下吗，说价格还是 3790 。我说我先了解下，晚点联系你，就挂了电话。</p>
@@ -96,18 +351,15 @@ ipv4+ipv6
 <p>你们怎么看？</p>
 ]]></content:encoded>
 <pubDate>2024-08-25T04:11:26Z</pubDate>
-<pubDate>2024-08-25T04:11:26Z</pubDate>
 </item>
 <item>
 <title>[Telegram] 怎样获取的 TG 账号能够防封，耐用？</title>
 <link>https://www.v2ex.com/t/1067592</link>
 <guid>https://www.v2ex.com/t/1067592</guid>
 <content:encoded><![CDATA[
-
 <p>求 TG 账号的稳定来源，之前+86 的用了几个月，前两天跟别人私聊被封了，申诉了快两天没有解封
 早上用 giffgaff 注册，只加了一个 archlinuxcn 的频道后就被封了。。。。</p>
 ]]></content:encoded>
-<pubDate>2024-08-25T04:01:47Z</pubDate>
 <pubDate>2024-08-25T04:20:14Z</pubDate>
 </item>
 <item>
@@ -115,10 +367,8 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067591</link>
 <guid>https://www.v2ex.com/t/1067591</guid>
 <content:encoded><![CDATA[
-
 使用相机获取西瓜大小，形状，纹路，颜色，还可以获取敲打时的声音频率。这些特征应该足够了吧。<br /><br /><br /><br />在引申一下，还可以用来帮助年轻人挑选各种瓜果蔬菜，肉蛋米面等
 ]]></content:encoded>
-<pubDate>2024-08-25T04:00:08Z</pubDate>
 <pubDate>2024-08-25T04:20:37Z</pubDate>
 </item>
 <item>
@@ -126,10 +376,8 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067590</link>
 <guid>https://www.v2ex.com/t/1067590</guid>
 <content:encoded><![CDATA[
-
 平时集显够了 想玩玩 随便买个显卡玩玩 要求不高
 ]]></content:encoded>
-<pubDate>2024-08-25T03:44:23Z</pubDate>
 <pubDate>2024-08-25T03:44:23Z</pubDate>
 </item>
 <item>
@@ -137,11 +385,9 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067589</link>
 <guid>https://www.v2ex.com/t/1067589</guid>
 <content:encoded><![CDATA[
-
 <p>每次转账，比特币的地址就要变，说是为了隐私，但是实际上也能找得到关联。</p>
 <p>对隐私没啥用，反而还增加了复杂度</p>
 ]]></content:encoded>
-<pubDate>2024-08-25T03:34:00Z</pubDate>
 <pubDate>2024-08-25T04:23:35Z</pubDate>
 </item>
 <item>
@@ -149,10 +395,8 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067587</link>
 <guid>https://www.v2ex.com/t/1067587</guid>
 <content:encoded><![CDATA[
-
 真的无误了，今天和老妈聊天，听了老妈聊我姐和她男朋友的事，我发现我姐就和网上那些集美一样样的。
 ]]></content:encoded>
-<pubDate>2024-08-25T03:27:59Z</pubDate>
 <pubDate>2024-08-25T04:22:05Z</pubDate>
 </item>
 <item>
@@ -160,7 +404,6 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067585</link>
 <guid>https://www.v2ex.com/t/1067585</guid>
 <content:encoded><![CDATA[
-
 <p>需求：</p>
 <ol>
 <li>
@@ -180,7 +423,6 @@ ipv4+ipv6
 </li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-08-25T02:58:23Z</pubDate>
 <pubDate>2024-08-25T03:28:20Z</pubDate>
 </item>
 <item>
@@ -188,7 +430,6 @@ ipv4+ipv6
 <link>https://www.v2ex.com/t/1067583</link>
 <guid>https://www.v2ex.com/t/1067583</guid>
 <content:encoded><![CDATA[
-
 <h1>工作职责</h1>
 <ul>
 <li>负责直播和短视频服务端，参与内容生态、营销权益、商业化等业务研发工作，提升直播系统性能和研发效率，保证高并发高可用</li>
@@ -207,21 +448,17 @@ ipv4+ipv6
 <p>feiyang21687@gmail.com</p>
 ]]></content:encoded>
 <pubDate>2024-08-25T02:49:59Z</pubDate>
-<pubDate>2024-08-25T02:49:59Z</pubDate>
 </item>
 <item>
 <title>[程序员] 建个技术交流群，欢迎加入</title>
 <link>https://www.v2ex.com/t/1067582</link>
 <guid>https://www.v2ex.com/t/1067582</guid>
 <content:encoded><![CDATA[
-
 <p>自行备注城市-昵称就行，欢迎加入</p>
 <p><img alt="WechatIMG377" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/f21b8ab6-b7fc-4ee2-8d2b-b0992e2ebeff" /></p>
 ]]></content:encoded>
-<pubDate>2024-08-25T02:48:49Z</pubDate>
 <pubDate>2024-08-25T03:37:03Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 求推荐开源的在线文章编辑器</title>
 <link>https://www.v2ex.com/t/1067580</link>
@@ -15681,135 +15918,6 @@ sudo update-grub
 如题，想买个便携屏，因为有些晕 3D ，发现小屏幕能缓解一下症状。想打游戏，想买个带有音响的便携屏。各位神通广大的朋友们，有没有推荐？
 ]]></content:encoded>
 <pubDate>2024-08-20T06:21:18Z</pubDate>
-</item>
-<item>
-<title>[游戏] 看了 B 站上黑神话悟空的宣传片，觉得太有趣了！有问题想请教一下大佬玩家！</title>
-<link>https://www.v2ex.com/t/1066418</link>
-<guid>https://www.v2ex.com/t/1066418</guid>
-<content:encoded><![CDATA[
-目前的电脑，只能玩网游(核显)，玩不了 3A 大作，所以考虑入手 PS5 来玩，请问：<br /><br />1.PS5 平台的的画质和手柄操作体验，和 PC 端高端显卡+键盘操作的感受区别大吗，哪个体验更好？（相同显示设备情况下）<br /><br />2.如果后续游戏出了 DLC ，PS5 平台能否和 PC 端一样可以下载 DLC ？<br /><br />(附上看到的图， 快被黄眉蛊惑了 bushi)<br /><a href="https://i.imgur.com/63Ne2mY.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/63Ne2mY.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-08-20T06:28:36Z</pubDate>
-</item>
-<item>
-<title>[Apple] 国行 APPLE 设备是不是都是阉割版，即使登录外区账号也没用，必须外区手机加外区账号，才能用 AI？</title>
-<link>https://www.v2ex.com/t/1066417</link>
-<guid>https://www.v2ex.com/t/1066417</guid>
-<content:encoded><![CDATA[
-我现在是美区超大杯，即使这样，苹果地图还是高德的，跟国内一样。<br /><br />上次去 HK 旅游，惊喜发现苹果地图自动切换成自己的地图了，带街景的那种<br /><br />求问，是不是国行所有 APPLE 设备都是阉割版，即使你登陆了美区，还是超大杯用户，还是没鸟用<br /><br />必须港版手机配美区账户才行
-]]></content:encoded>
-<pubDate>2024-08-20T06:12:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 最近想抽空学习一门乐器， 0 基础，学啥比较好呢，求推荐</title>
-<link>https://www.v2ex.com/t/1066416</link>
-<guid>https://www.v2ex.com/t/1066416</guid>
-<content:encoded><![CDATA[
-<p>最近想抽空学一门稍微简单的乐器，陶冶下情操，发展下兴趣爱好（万一失业了说不定还能直播卖个艺呢 [笑哭] ），但是又没啥基础，唱歌也是五音不全的那种（要不要先报个班先学个唱歌？）</p>
-<p>自己心里有一些想法，不知道该怎么选择，求过来人推荐下：</p>
-<p>1 、唢呐（最近都挺火的，本人肺活量也还不错）
-2 、长笛
-3 、洞箫
-4 、陶笛
-5 、要不还是先报个班学学唱歌？</p>
-<p>PS:全是吹的，因为弹的试过，手指笨笨的，所以放弃尤克里里、吉他这类的。</p>
-]]></content:encoded>
-<pubDate>2024-08-20T06:28:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想给家里买两台空调，求兄弟们推荐</title>
-<link>https://www.v2ex.com/t/1066415</link>
-<guid>https://www.v2ex.com/t/1066415</guid>
-<content:encoded><![CDATA[
-主要配在主卧和次卧，1.5 匹够用了，单台预算 2000 左右，希望大家给点建议。<br /><br />另外想给农村家里买个摄像头，插流量卡的，家里没有 wifi 。求推荐。
-]]></content:encoded>
-<pubDate>2024-08-20T06:13:52Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 搞了可以快手 kelingAI 的文生图页面</title>
-<link>https://www.v2ex.com/t/1066413</link>
-<guid>https://www.v2ex.com/t/1066413</guid>
-<content:encoded><![CDATA[
-之前开的一个月会员快到期了，也没咋用过，放出开给大伙玩玩<br />keling 的效果还是不错的<br /><br /><a href="https://kelingai.yh4922.com/text2img" rel="nofollow noopener" target="_blank">https://kelingai.yh4922.com/text2img</a>
-]]></content:encoded>
-<pubDate>2024-08-20T06:29:03Z</pubDate>
-</item>
-<item>
-<title>[游戏] 等 EPIC 白送🆓</title>
-<link>https://www.v2ex.com/t/1066412</link>
-<guid>https://www.v2ex.com/t/1066412</guid>
-<content:encoded><![CDATA[
-早买早享受首发 bug<br />晚买享折扣和全套 DLC<br /><br />即使现在买了，很大可能也会在一小时后弃坑。<br /><br />等到这波 AI 训练热过了，显卡和显存便宜了，EPIC 也该白送了。我倒时候再装新机配个 Gtx6060 ，还能用上 sm11.0 写 cuda15 。
-]]></content:encoded>
-<pubDate>2024-08-20T06:05:20Z</pubDate>
-</item>
-<item>
-<title>[硬件] 日常使用， CPU 是不是没必要升级了</title>
-<link>https://www.v2ex.com/t/1066411</link>
-<guid>https://www.v2ex.com/t/1066411</guid>
-<content:encoded><![CDATA[
-<p>最近想升级下电脑，升级路径：
-打算升级显卡（ 7900XTX ） -&gt; 发现需要换主板(B650)和电源 -&gt; 还要换 CPU (9700X)</p>
-<p>但感觉 cpu 好像还不用退休，（ amd 的 3700X ），日常使用、打游戏一点压力都没有。</p>
-<p>是不是如果主板架构没限制，老 cpu 可以一直用下去？</p>
-]]></content:encoded>
-<pubDate>2024-08-20T06:10:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 来群懂哥帮我分析下我目前的情况该买个什么车？</title>
-<link>https://www.v2ex.com/t/1066410</link>
-<guid>https://www.v2ex.com/t/1066410</guid>
-<content:encoded><![CDATA[
-<p>背景：29 岁，有车有房有老婆有一孩，房贷 2500 一个月(之前提前还贷了)，开了 8 年的马自达昂克赛拉，目前存款现金 50w 多一点点。家庭年收入大概 40 个。</p>
-<p>我一直以来的梦想就是宝马三系，实在是想买，年轻的时候预算不足才上的马 3 ，而且我还想买个二手的，f 地盘 E48 发动机的 320Li 曜夜版的，二手也就 15w 左右，最近看过很多款，就能实现我的梦想。我是真喜欢宝马。</p>
-<p>但是考虑家庭情况，是否需要一次到位换个理想 L6 ？兼顾家庭，主要让老婆孩子坐的舒服，但是说实话冰箱彩电大沙发并不是我的刚需。</p>
-<p>理想 L6 需要 28w ，二手 3 系 15w 就能到手，我的车还能卖个 3 万多一点。</p>
-<p>兄弟们，我是应该坚持我的宝马梦还是上理想？</p>
-]]></content:encoded>
-<pubDate>2024-08-20T06:21:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] SSR 框架能实现在 prod 环境下，日志打印实际的 source 而不是 chunk.js 的内容吗？</title>
-<link>https://www.v2ex.com/t/1066408</link>
-<guid>https://www.v2ex.com/t/1066408</guid>
-<content:encoded><![CDATA[
-<p>我用的一个 ssr 框架加 vite 来构建项目，除此之外没有用任何中间件；这个 ssr 框架是 sveltekit ，当然无论用 nuxt 和 next 我想原理都是一样的。</p>
-<p>目前在 dev 环境 client 端和 server 端的日志都是通过 source map 对应了 source 的，开发起来很顺利。</p>
-<p>但是项目上线以后，server 端的日志都是 chunk.js 中的内容，无法看到源码。</p>
-<p>是否有办法实现在 prod 环境运行时，client 端的用户无法看到（下载）源码，但是凡是在 server 端通过 <code>console.log()</code> 打印的日志都直接显示对应的 source 呢？谢谢大家！</p>
-]]></content:encoded>
-<pubDate>2024-08-18T05:40:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请推荐一个 RSS 客户端</title>
-<link>https://www.v2ex.com/t/1066407</link>
-<guid>https://www.v2ex.com/t/1066407</guid>
-<content:encoded><![CDATA[
-<p>系统：macOS 10.15.7 （不打算升了）</p>
-<p>目前在用 Reeder+Feedly ，但是很难受的一点是，webp 图片不显示。</p>
-<p>需求：</p>
-<ol>
-<li>支持 macOS 10.15.7</li>
-<li>支持 Feedly</li>
-<li>支持显示 webp 图片</li>
-<li>窗口布局类似 Reeder 这样 2/3 栏式（不强求）</li>
-<li>最好不是 electron 应用（不强求）</li>
-</ol>
-<p>麻烦大家给我一点推荐，谢谢！</p>
-]]></content:encoded>
-<pubDate>2024-08-20T05:39:32Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 关于被调的问题，来请教一下</title>
-<link>https://www.v2ex.com/t/1066406</link>
-<guid>https://www.v2ex.com/t/1066406</guid>
-<content:encoded><![CDATA[
-<p>7 年经验的 Java 。  </p>
-<p>1.简历上写自己是后端技术组长，实际上是普通开发  </p>
-<p>2.简历上写自己从 0-1 作为核心开发人员参与了项目，实际上是项目运行后才加入的  </p>
-<p>请教一下，被调联系人填跟自己关系好的同事，关于以上两点会导致被调失败吗</p>
-]]></content:encoded>
-<pubDate>2024-08-20T06:02:10Z</pubDate>
 </item>
 </channel>
 </rss>
