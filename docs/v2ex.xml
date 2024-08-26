@@ -5,17 +5,303 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 黑神话，你们到哪里了？</title>
+<link>https://www.v2ex.com/t/1067731</link>
+<guid>https://www.v2ex.com/t/1067731</guid>
+<content:encoded><![CDATA[
+
+我一周目已经通关了，没有怎么搜地图，通关完成是 55 个成就。<br />现在开了二周目，感觉二周目才是齐天大圣，打什么都是虐，直接变无双了，二周目还有复活，简直不要太爽。
+]]></content:encoded>
+<pubDate>2024-08-26T01:37:28Z</pubDate>
+<pubDate>2024-08-26T01:35:28Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [独立开发 - 轻简历] - 优化了操作区域，更加清晰明了，坚持做有价值的产品！</title>
+<link>https://www.v2ex.com/t/1067730</link>
+<guid>https://www.v2ex.com/t/1067730</guid>
+<content:encoded><![CDATA[
+
+<p>轻简历：<a href="https://www.wktline.com" rel="nofollow">访问地址</a></p>
+<p><img alt="轻轻松松制作简历" class="embedded_image" rel="noreferrer" src="https://static.wktline.com/avatar/30ecf2a454c5a7a337bf3637c0b127d6.jpg" /></p>
+]]></content:encoded>
+<pubDate>2024-08-26T01:37:00Z</pubDate>
+<pubDate>2024-08-26T01:34:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] [求助] Python 调用 dll 的时候发现代码运行被阻塞了？</title>
+<link>https://www.v2ex.com/t/1067729</link>
+<guid>https://www.v2ex.com/t/1067729</guid>
+<content:encoded><![CDATA[
+
+<h3>业务说明</h3>
+<p>使用 ctypes 对接 C++的 dll 接口，封装为 websocket 接口方便网络调用。使用了 Redis 的 PUB/SUB 来监听服务端主动发起的消息通知。</p>
+<p>使用了 asyncio 库做异步任务来处理 websocket 的请求通知，使用 aioredis 来进行管理 Redis 连接。</p>
+<h3>案例代码</h3>
+<p>入口代码如下：</p>
+<pre><code class="language-python">async def main():
+    redis = aioredis.from_url(f'redis://:{redis_password}@{redis_host}:{redis_port}', encoding='utf-8')
+    redis_task = asyncio.create_task(redis_subscriber_start_websocket(redis))
+    server_task = websockets.serve(msdk_handler, "0.0.0.0", 8765)
+    asyncio.create_task(monitor_loop())
+    print("WebSocket 服务器启动在 ws://localhost:8765：redis 地址： ", redis_host, redis_port)
+    await asyncio.gather(server_task, redis_task)
+    
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+</code></pre>
+<p>大致的 websocket 处理流程如下：</p>
+<pre><code class="language-python">       try:
+            async for message in websocket:
+                data = json.loads(message)
+                # print(f"收到 websocket 消息: {data}")
+                await messageHandler(data, connected[random_id_str])
+            print("WebSocket 连接正常关闭")  # 添加这行来确认循环是否正常结束
+            await clearnWebscoket(random_id_str)
+            
+     
+   async def messageHandler(data, connected):
+      if data['action'] == 'something':
+      # 切换位置
+      results = await change_something(connected['client_id'], data)
+      await connected['websocket'].send(json.dumps(results))
+
+	async def change_something(client_id):
+	    future = asyncio.Future()
+	    futures_change_chara_pos[client_id] = future
+	    # 调用 DLL 中的更改角色位置函数
+	    sdk.SDK_change_something(c_char_p(client_id.encode('utf-8')),callback_instance)    
+	    while not future.done():
+	        await asyncio.sleep(0)
+	    result = await future
+	    return result
+	    
+在 callback_instance 回调中，我会设置 future 的内容。
+
+def set_futures_status(client_id, futures_obj, data):
+    if client_id in futures_obj:
+        future = futures_obj.pop(client_id)
+        if not future.done():
+            future.set_result(data)
+</code></pre>
+<h3>问题</h3>
+<p>对项目的异步和 Redis 消息有点不理解。</p>
+<p>1 、有一个播放音频的 C++接口，会频繁触发回调函数，我发现在播放音频的时候，接收了其他的 websocket 消息，发现好像没有处理，处理函数的日志没有打印出来 [偶现正常] 。不知道是不是我异步有问题，阻塞了主线程导致的。(作为一个前端开发，python 的异步好难懂，大佬们有推荐的书籍吗)</p>
+<p>2 、Redis 消息一会后，就不会接收到订阅的消息。 消息的发布和接收频道一致，并且重启 python 后服务正常。</p>
+<h3>期望</h3>
+<p>能帮忙解决一下目前碰到的 2 个问题，特别是异步的代码，我不知道自己写的是否正确。</p>
+<pre><code class="language-python">	    while not future.done():
+	        await asyncio.sleep(0)
+	    result = await future
+</code></pre>
+<p>上面的代码就是我发现 await future 后会一直阻塞主进程代码运行。所以在 AI 的提示下，加上了代码后正常运行。但是 websocket 消息处理中的 await 又不会阻塞整个主进程运行，就很疑惑。</p>
+<h3>报酬</h3>
+<p>目前预算 500 ，可谈。代码地址： <a href="https://github.com/mydaoyuan/pythonAndDll" rel="nofollow">https://github.com/mydaoyuan/pythonAndDll</a></p>
+<p>联系方式：d29zaGl0ZHkxMjM0NTY=</p>
+]]></content:encoded>
+<pubDate>2024-08-26T01:36:41Z</pubDate>
+<pubDate>2024-08-26T01:36:41Z</pubDate>
+</item>
+<item>
+<title>[Telegram] 换手机后 TG 账号如何登录</title>
+<link>https://www.v2ex.com/t/1067726</link>
+<guid>https://www.v2ex.com/t/1067726</guid>
+<content:encoded><![CDATA[
+
+背景：<br />账号 1 ，+86 注册的<br />账号 2 ，sms-activate 注册的<br /><br />电脑 win10：两个都在线<br />旧 iphone：两个都在线<br />新 iphone：账号 1 绑定邮箱后登录成功，账号 2 无法登录<br /><br />账号 2 登录提示要绑定邮箱，最后还是要注册的号码收短信。绕不过去，求解！<br /><br />（记得之前电脑端在线的话，会直接收到验证码）
+]]></content:encoded>
+<pubDate>2024-08-26T01:26:04Z</pubDate>
+<pubDate>2024-08-26T01:36:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] [软件求助] 关于 YY 语音 在运行几十分钟后会自动关闭的问题。</title>
+<link>https://www.v2ex.com/t/1067723</link>
+<guid>https://www.v2ex.com/t/1067723</guid>
+<content:encoded><![CDATA[
+
+<p>情况描述：</p>
+<p>yy 最新版+win11 系统
+正在打本，YY 就会突然关闭，没有任何弹窗提醒，只能手动在打开 YY 运行，打个奥杜尔 2 小时能手动重启 YY 10 几次冷</p>
+<ol>
+<li>本以为是初次运行 YY 本地/公用网络没有勾选的问题，在防火墙中把 YY 全部勾选后还是会关闭</li>
+<li>重新卸载，重新安装后也不能解决问题</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-08-26T01:15:54Z</pubDate>
+<pubDate>2024-08-26T01:15:54Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有什么好用的拼音输入法</title>
+<link>https://www.v2ex.com/t/1067722</link>
+<guid>https://www.v2ex.com/t/1067722</guid>
+<content:encoded><![CDATA[
+
+搜狗后台吃 cpu ，搞的鼠标一直闪烁。怒删。有没有不搞乱七八糟事的输入法？除了 win 自带的微软拼音
+]]></content:encoded>
+<pubDate>2024-08-26T01:14:31Z</pubDate>
+<pubDate>2024-08-26T01:31:09Z</pubDate>
+</item>
+<item>
+<title>[小米] 吐槽，小米手环的配件缺货</title>
+<link>https://www.v2ex.com/t/1067721</link>
+<guid>https://www.v2ex.com/t/1067721</guid>
+<content:encoded><![CDATA[
+
+用的是小米手环 8pro ，前段时间充电线掉了。电商没有官方的充电线，官方销售客服也说没有，昨天售后说让销售联系我到现在也没有回复。<br />难道小米手环 9 不用磁吸充电线吗，为什么要买充电线买不到官方正品？
+]]></content:encoded>
+<pubDate>2024-08-26T01:09:49Z</pubDate>
+<pubDate>2024-08-26T01:20:09Z</pubDate>
+</item>
+<item>
+<title>[Apple] 如何观看流媒体时保活小火箭（shadowrocket）</title>
+<link>https://www.v2ex.com/t/1067720</link>
+<guid>https://www.v2ex.com/t/1067720</guid>
+<content:encoded><![CDATA[
+
+iPhone12 数字版<br />小火箭版本：2.2.54 （ 2335 ）<br />iOS17.5.1<br />VLC 播放器网络串流，看一集或者 3/4 的番剧，小火箭就掉了，然后 VLC 缓存用完就会退掉，比较糟心。<br />播放器问题？代理软件问题？看起来现在只有 VLC 播放会出问题，b 站就不会<br />源站是 alist ，境外，用代理可以加速一下，用 VLC 是因为免费，viphub 导入 alist 后空白，不会排查问题<br />看起来快捷指令能解决相关问题，但是不会写
+]]></content:encoded>
+<pubDate>2024-08-26T01:09:07Z</pubDate>
+<pubDate>2024-08-26T01:28:24Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] [GPT plus 订阅] 通过苹果 APP store 订阅的 GPT plus 用户，如果暂停订阅一段时间，后面可以随时恢复吗？</title>
+<link>https://www.v2ex.com/t/1067718</link>
+<guid>https://www.v2ex.com/t/1067718</guid>
+<content:encoded><![CDATA[
+
+<p>我是用苹果的 APP store 订阅的 plus ，基本上每月到期前用礼品卡充 20 刀，一直挺正常</p>
+<p>最近感觉 Plus 有点弱了，想换成 claude 付费用户，所以想来咨询下各位：</p>
+<p>（ 1 ）如果订阅暂停（就是到期不充值了），以后能随时恢复吗？ 想恢复的话要怎么操作？（比如我是每月 2 号续订的，暂停一段时间后，我 2 号之前再充值 20 刀，账户能扣款的话，就可以恢复订阅了吗？</p>
+<p>（ 2 ）大家 claude pro 都用什么方式付费的? 国内信用卡方便吗？还是要其他特殊手段？</p>
+<p>谢谢</p>
+]]></content:encoded>
+<pubDate>2024-08-26T00:51:45Z</pubDate>
+<pubDate>2024-08-26T00:54:51Z</pubDate>
+</item>
+<item>
+<title>[Spotify] Spotify 菲区，年付 80</title>
+<link>https://www.v2ex.com/t/1067717</link>
+<guid>https://www.v2ex.com/t/1067717</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，非电话卡付款
+联系绿色软件：YWlmZW5ubmc=</p>
+]]></content:encoded>
+<pubDate>2024-08-26T00:50:13Z</pubDate>
+<pubDate>2024-08-26T00:47:13Z</pubDate>
+</item>
+<item>
+<title>[Apple] 无线充电新规 9 月 1 日施行： MagSafe / Qi2 因频率冲突或将停售，苹果 iPhone 无线功率改为 7.5W</title>
+<link>https://www.v2ex.com/t/1067716</link>
+<guid>https://www.v2ex.com/t/1067716</guid>
+<content:encoded><![CDATA[
+
+节选部分重要信息：<br />1.《无线充电（电力传输）设备无线电管理暂行规定》将于 2024 年 9 月 1 日起施行。<br />2.MagSafe 和 Qi2 协议使用的频率为 360kHz ，工信部回复网友留言时表示，325-405KHz 频段划分用于航空无线电导航业务，该频段在我国不可用于无线充电设备，不符合规定要求，自规定施行之日起，不可生产或进口在国内销售、使用。<br />3.苹果中国官网的无线充电设备声明界面，iPhone 的无线充电额定传输功率已更改为 7.5W 。
+]]></content:encoded>
+<pubDate>2024-08-26T00:48:54Z</pubDate>
+<pubDate>2024-08-26T01:26:23Z</pubDate>
+</item>
+<item>
+<title>[生活] 在网络上被人诬陷，该如何反击？</title>
+<link>https://www.v2ex.com/t/1067715</link>
+<guid>https://www.v2ex.com/t/1067715</guid>
+<content:encoded><![CDATA[
+
+家人一行三人周末乘坐地铁，在地铁上跟一个人吵了一架。      <br />我方：我妈六十多，媳妇三十多，娃两岁；     <br />对方：一老人也是六十多，一小伙三十多，娃五到六岁；   <br /><br />冲突经过：    <br />以下是家人口述，我虽然不在现场，但是相信家人的人品。     <br />地铁人很多，大家都没有座位，婴儿车不方便让娃坐着，所以娃是我妈抱着，媳妇推着车在方便放车的地方站着。   <br />到了某一个大的站点，下车的人比较多，于是出现了空座位，假设一排座位是 ABCDE ，此时空出来的是 BC 两个座位。我妈离得近，所以抱着娃先坐到了 B 上，然后把娃放到了 C 上。因为我妈把娃往 C 上放的时候有一个 45 度侧身的动作，就是这个间隙，对方小伙子坐到了 AB 中间，试图让我妈抱着娃坐到 C 上。这里再说下我妈的动机，实际上也是想给媳妇占座，不过媳妇离得太远而且婴儿车没有办法过去所以并不打算坐。     <br /><br />小伙子坐到 AB 中间之后，我妈这个时候并没有挪到 C 上，而是被挤到了 BC 座位中间，这个时刻双方开始暗自较劲。小伙子架起胳膊开始发暗劲试图把我妈挤到 C 上，这个时候我妈就炸毛了，开始大声呵斥问他挤什么挤？然后双方就吵起来了。      <br />对方认为你家孩子小，你要抱起来，把这个座让给他爸老年人来坐；    <br />我妈认为你如果说有老人想坐，你跟我说我会让的，你是哑巴吗你不说直接上来架着胳膊挤我？    <br />一来二去，小伙子站起来不坐了，说我妈骂他，实际上除了这个“哑巴”并没有说任何脏话。     <br />媳妇过去后了解到情况，这个时候说让把这个座让给对方父亲坐，对方父亲这个时候不过来坐，旁边有人看见了说婴儿车 ta 帮忙看着让媳妇坐，媳妇也没坐，于是这个座位就这么空着了。     <br />吵架过程大概持续三分钟，吵架完之后对方一行没几站就下车了。本来以为事情就这样结束了。     <br />昨天晚上媳妇朋友刷抖音刷到了他们在地铁的一幕，拍摄者从我媳妇过去调解开始录的，视频标题大概意思是： [老年人一个人占俩座，辱骂年轻人] ，我点开进去发现七成是在说类似于坏人变老了、母女泼妇之类的话，三成里面有说这算什么事，有个别评论是一个意思，我选几个： [发视频的人写的文案有问题，这老人也没有骂人啊]  [你这视频也太误导了吧] 。       <br />发视频的博主在反对的人评论下面回复了几个明显违背事实的地方：    <br />1.”这哥们一开始是坐在旁边的，被她挤下去了“，实际是我妈先坐上的    <br />2.“一开始骂的可难听了，我没录上“，实际除了”哑巴“一词外，没有说任何过分的话      <br />3.“老人让小孩站在座位上”，孩子坐上没一会就爆发冲突了，一冲突我妈就把娃抱起来了   <br /><br />发现视频第一时间就是想固定证据报警，所以做了以下几个事：     <br />1.录屏，关键污蔑信息截图；     <br />2.投诉举报，抖音需要实名，身份证+人脸识别；    <br />3.开始搜索类似攻略应当如何报警起诉；     <br /><br />晚上 12 点左右了解到证据需要公证，本来计划是今天早上去公证书固定证书的，某网站支持在线公证，费用 1K ，于是 12 点爬起来准备在线公证，结果发现视频已经没了。      <br /><br />现在的问题：     <br />1.对方视频点赞 200 ，评论 100 ，转发 200 ，是否够得上诽谤标准？    <br />2.视频已经没了，不清楚是对方删的还是举报生效没了，拿手里的录屏证据去起诉可行性有多大？    <br />3.不清楚传播范围多少，该如何检索确定影响范围？
+]]></content:encoded>
+<pubDate>2024-08-26T00:45:03Z</pubDate>
+<pubDate>2024-08-26T01:30:45Z</pubDate>
+</item>
+<item>
+<title>[上海] [找室友] 浦东上南地区耀华路地铁 7/8 号线找合租室友</title>
+<link>https://www.v2ex.com/t/1067714</link>
+<guid>https://www.v2ex.com/t/1067714</guid>
+<content:encoded><![CDATA[
+
+<h1>背景</h1>
+<p>迫于原室友搬到嘉定，现找一新室友合租，东西已搬空，随时可入住</p>
+<p>具体信息可<a href="https://docs.qq.com/doc/DRUVFRVRaR3V5bkJQ" rel="nofollow">查看详情</a></p>
+<h1>位置</h1>
+<p>上南五村，小区中间楼栋，6/6 层无电梯</p>
+<p>距离 7/8 号线耀华路约 500 米，7 号线云台路约 400 米</p>
+<h1>时间</h1>
+<p>随时入住</p>
+<h1>价格</h1>
+<p>整租 5k/月付三押一，南卧带阳台 2700 ，北卧 2300 ，你可以选一个</p>
+<h1>联系我</h1>
+<p>张小龙 amlhbmdjaGlpaQ==</p>
+<p>工作日 20 点后，周末全天可看房</p>
+]]></content:encoded>
+<pubDate>2024-08-26T00:43:38Z</pubDate>
+<pubDate>2024-08-26T00:43:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 对方全责定损问题</title>
+<link>https://www.v2ex.com/t/1067713</link>
+<guid>https://www.v2ex.com/t/1067713</guid>
+<content:encoded><![CDATA[
+
+发生了剐蹭，右前车门和叶子板凹陷，特别是右前车门下方凹陷有点严重，对方全责，对方的保险是人保，不同意 4s 店换门的维修方案，让先修，修不好再换，因为之前出过一次险，换过车门，不打算卖车，如何操作让对方保险同意换门。
+]]></content:encoded>
+<pubDate>2024-08-26T00:40:56Z</pubDate>
+<pubDate>2024-08-26T01:35:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 同样都是甲骨文首尔，为什么我的要绕美？</title>
+<link>https://www.v2ex.com/t/1067712</link>
+<guid>https://www.v2ex.com/t/1067712</guid>
+<content:encoded><![CDATA[
+
+<a href="https://i.imgur.com/aGgYYlB.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/aGgYYlB.jpeg" /></a><br /> <a href="https://i.imgur.com/7fCMXZ0.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7fCMXZ0.jpeg" /></a><br /> 图 1 是我自己的，图 2 是用别人的测试，为什么都是首尔，别人的可以直连，我的就要绕美国？
+]]></content:encoded>
+<pubDate>2024-08-26T00:34:04Z</pubDate>
+<pubDate>2024-08-26T00:46:31Z</pubDate>
+</item>
+<item>
+<title>[RSS] twitter rss 还有免费方案吗 rsshub 不行了</title>
+<link>https://www.v2ex.com/t/1067711</link>
+<guid>https://www.v2ex.com/t/1067711</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-08-26T00:25:26Z</pubDate>
+<pubDate>2024-08-25T16:25:26Z</pubDate>
+</item>
+<item>
+<title>[程序员] shopee 的 api 参数逆向这个找人做的话大概预算多少合适</title>
+<link>https://www.v2ex.com/t/1067710</link>
+<guid>https://www.v2ex.com/t/1067710</guid>
+<content:encoded><![CDATA[
+
+主要采集分类、和商品详情的数据。目录了解到 2024 好像是改了风控算法比较复杂了。<br /><br />主要几个参数 |x-sap-Ri|x-sap-Sec|af-ac-enc-dat|
+]]></content:encoded>
+<pubDate>2024-08-26T00:18:58Z</pubDate>
+<pubDate>2024-08-26T01:09:02Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 有没有人像我一样很想有个全键盘+触屏的手机</title>
+<link>https://www.v2ex.com/t/1067709</link>
+<guid>https://www.v2ex.com/t/1067709</guid>
+<content:encoded><![CDATA[
+
+<p>就像以前的黑莓那样。
+起码很有趣。</p>
+]]></content:encoded>
+<pubDate>2024-08-26T00:03:38Z</pubDate>
+<pubDate>2024-08-26T01:36:38Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 在广州现在就业行情真的很差， 3K 到 5K 左右的驻场 IT 运维岗位还要复试通过才录用，没经验都不要</title>
 <link>https://www.v2ex.com/t/1067706</link>
 <guid>https://www.v2ex.com/t/1067706</guid>
 <content:encoded><![CDATA[
-
 现在就业行情真的很差，3K 到 5K 左右的驻场 IT 运维岗位还要复试通过才录用，我面试了 6 份都不要，没经验都不要
 ]]></content:encoded>
-<pubDate>2024-08-25T20:57:33Z</pubDate>
 <pubDate>2024-08-25T21:59:29Z</pubDate>
 </item>
-
 <item>
 <title>[Spotify] 有什么办法能让 Spotify 认为我的电脑是电视吗？</title>
 <link>https://www.v2ex.com/t/1067705</link>
@@ -15500,15 +15786,6 @@ Mac 办公
 </ul>
 ]]></content:encoded>
 <pubDate>2024-08-20T10:01:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] web3 相关产品后端开发</title>
-<link>https://www.v2ex.com/t/1066516</link>
-<guid>https://www.v2ex.com/t/1066516</guid>
-<content:encoded><![CDATA[
-工作地点：郑州或深圳。要求熟悉 go 语言相关的 web 开发。有 java 开发经验转 go 开发也可以。<br />可以加我的微信：Brendongoodluck
-]]></content:encoded>
-<pubDate>2024-08-20T06:00:44Z</pubDate>
 </item>
 </channel>
 </rss>
