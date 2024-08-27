@@ -5,14 +5,705 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 有个 win11 问题咨询各位大大， google 了好多结果，都不符合！</title>
+<link>https://www.v2ex.com/t/1068278</link>
+<guid>https://www.v2ex.com/t/1068278</guid>
+<content:encoded><![CDATA[
+
+<h5>我的笔记本 Y9000P 2024 更换了两根 ddr5 5200 频率的内存调（实际是让卖家直接定制两跟 32G 的 ddr5 ），然后使用中有个问题，目前的系统是 win11 23H2 ，之前是 22H2 也是相同问题，原本想着是不是 22H2 的 bug ，然后升级到 23H2 ，结果问题依旧存在。</h5>
+<h5>问题：两根内存条 32G * 2 ，每当系统内存使用率超过 50% 时，系统明显会出现卡顿，体现在开发上，ide 明显操作会出现卡顿现象，游戏上，2k ol2 当使用率超过 50% 也是会出现这个问题，当刻意降低内存使用率低于 50% 时，就不会出现卡顿，google 的结果是清理各种缓存和禁用各种微软服务（例如：sysMain ）都没有解决该问题，求祝各位大佬小哥们，有没有遇到类似问题，或者有解决思路的。</h5>
+]]></content:encoded>
+<pubDate>2024-08-27T14:03:01Z</pubDate>
+<pubDate>2024-08-27T10:01:01Z</pubDate>
+</item>
+<item>
+<title>[问与答] 拔智齿后的血凝块掉了，牙槽骨暴漏，有必要去复诊吗？</title>
+<link>https://www.v2ex.com/t/1068277</link>
+<guid>https://www.v2ex.com/t/1068277</guid>
+<content:encoded><![CDATA[
+
+<p>第三天了，不确定是掉了还是出血少一开始就没有血凝块，只有轻微的痛感。<br />
+没有血凝块那个洞还能长回去吗？</p>
+]]></content:encoded>
+<pubDate>2024-08-27T13:56:58Z</pubDate>
+<pubDate>2024-08-27T14:12:52Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了一个支持百万 QPS 的营销活动，欢迎大家交流沟通</title>
+<link>https://www.v2ex.com/t/1068275</link>
+<guid>https://www.v2ex.com/t/1068275</guid>
+<content:encoded><![CDATA[
+
+<p>这两天写了一个支持百万 QPS 的营销活动，把我想到的优化点全部用上了，甚至比一些工业级别的我感觉都优秀不少，在我自己的小水管，压不上去，如果哪位大佬有比较好的机器，欢迎压测一波，看看性能能到哪里去。欢迎大家沟通交流。</p>
+<p>代码 <a href="https://github.com/wenbochang888/marketing" rel="nofollow">github 链接</a></p>
+<p>体检地址 <a href="http://101.33.233.214:8989/" rel="nofollow">点我 - 体验地址</a></p>
+<h2>优化点(难点、亮点)</h2>
+<p>代码中优化点用了 redis 预减缓存，随机比例获取奖品，高并发场景拦截大部分用户，乐观锁，mq 直接异步化发放奖品。基本上整个流程不会与数据库进行交互，瓶颈点几乎可以说是没有。这种架构，支撑百万，千万 qps 一点问题都没有。</p>
+<ol>
+<li>核心发奖流程</li>
+</ol>
+<pre><code class="language-java">public boolean grantPrize(String phone, String activity) {
+        if (StringUtils.isAnyEmpty(activity, phone)) {
+            throw new RuntimeException(ERROR_MSG);
+        }
+
+        // phone 为幂等键
+        String key = StrUtil.format(ACTIVITY_PHONE_LOCK, activity, phone);
+        boolean success = RedisUtils.tryLock(key, redissonClient, () -&gt; {
+            //1. 幂等处理，这里还可以优化，因为 grantId 是一个唯一索引，插入失败就是重复领取，但可能失败次数会比较多
+            MktActivityPrizeGrant mktActivityPrizeGrant = mktActivityPrizeGrantDao.getMktActivityPrizeGrant(phone);
+            if (mktActivityPrizeGrant != null &amp;&amp; StringUtils.isNotEmpty(mktActivityPrizeGrant.getGrantId())) {
+                throw new RuntimeException("请勿重复领取");
+            }
+
+            // 2. 这里一个优化, 随机比例获取奖品，可以随时调整
+            int seed = ThreadLocalRandom.current().nextInt(0, 100) + 1; // 1-100
+            int random = NumberUtils.toInt(RedisUtils.get(CACHE_MKT_ACTIVITY_PRIZE_RANDOM, stringRedisTemplate));
+            if (seed &gt; random) {
+                //log.warn("随机比例被拦截 seed = {}, random = {}", seed, random);
+                throw new RuntimeException("随机比例拦截 - " + ERROR_MSG);
+            }
+
+
+            // 3. 缓存预减库存
+            Long num = RedisUtils.decr(CACHE_MKT_ACTIVITY_PRIZE_NUM, stringRedisTemplate);
+            if (num == null || num &lt; 0) {
+
+                // 将 redis 库存加回，可做可不做，看业务需求
+                RedisUtils.incr(CACHE_MKT_ACTIVITY_PRIZE_NUM, stringRedisTemplate);
+                throw new RuntimeException("redis 库存不足 - " + ERROR_MSG);
+            }
+
+            MktActivityPrize activityPrize = activityCacheService.getActivityPrize();
+
+
+            // 4. 真正数据库减库存，并且插入发奖记录
+            // 如果 redis 预减库存成功，这里大概率会成功，基本不会失败，如果失败，放弃重试，失败重试会影响系统性能，重试次数越多，对系统性能的影响越大。
+            Boolean execute = transactionTemplate.execute(status -&gt; {
+                // 4.1 扣减库存
+                Integer update = mktActivityPrizeDao.occupyActivityPrize(activityPrize.getActivityId(), activityPrize.getPrizeId());
+                if (update == null || update &lt;= 0) {
+                    //log.warn("mysql 扣减库存失败 update = {}", update);
+                    throw new RuntimeException("mysql 库存扣减失败 - " + ERROR_MSG);
+                }
+
+                // 4.2 插入发奖记录
+                MktActivityPrizeGrant grant = buildMktActivityPrizeGrant(phone, activityPrize);
+                Integer insert = mktActivityPrizeGrantDao.insert(grant);
+                if (insert == null || insert &lt;= 0) {
+                    //log.warn("mysql 插入发奖记录失败 insert = {}", insert);
+                    throw new RuntimeException("mysql 插入发奖记录失败 - " + ERROR_MSG);
+                }
+
+                return true;
+            });
+
+            return execute;
+        });
+
+
+        return success;
+    }
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-08-27T13:51:13Z</pubDate>
+<pubDate>2024-08-27T13:51:13Z</pubDate>
+</item>
+<item>
+<title>[微信] 谁还信微信没监控，不会窃取用户资料？看看海外版的用户协议昭然若揭毫不掩饰了</title>
+<link>https://www.v2ex.com/t/1068274</link>
+<guid>https://www.v2ex.com/t/1068274</guid>
+<content:encoded><![CDATA[
+
+<a href="https://imgur.com/a/qSmAQRy" rel="nofollow noopener" target="_blank">https://imgur.com/a/qSmAQRy</a><br /><br />用户准则写的很清楚<br /><br />使用人工审核员和技术手段<br /><br />针对海外 WeChat 用户都可以这样，那国内的微信用户呢？
+]]></content:encoded>
+<pubDate>2024-08-27T13:44:57Z</pubDate>
+<pubDate>2024-08-27T10:44:57Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 我做了个训练注意力的网站， https://iandmyfriends.net。欢迎大家来玩。域名没专门注册，有哪个用哪个。</title>
+<link>https://www.v2ex.com/t/1068273</link>
+<guid>https://www.v2ex.com/t/1068273</guid>
+<content:encoded><![CDATA[
+
+如果我发帖位置不对，还请版主帮忙转移，谢谢
+]]></content:encoded>
+<pubDate>2024-08-27T13:43:30Z</pubDate>
+<pubDate>2024-08-26T13:43:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家帮忙拿个主意，央企 5 年，今天被谈话了</title>
+<link>https://www.v2ex.com/t/1068272</link>
+<guid>https://www.v2ex.com/t/1068272</guid>
+<content:encoded><![CDATA[
+
+今天说我学校是民办本科，不符合集团要求，给两个选择，要么拿 n ，要么转为派遣员工（工资涨 10%），5 年老员工没想到，今天还当正面试官...
+]]></content:encoded>
+<pubDate>2024-08-27T13:42:41Z</pubDate>
+<pubDate>2024-08-27T14:12:39Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 不懂的求带，懂点不赚钱的割韭菜，懂的赚钱的闷声发财</title>
+<link>https://www.v2ex.com/t/1068271</link>
+<guid>https://www.v2ex.com/t/1068271</guid>
+<content:encoded><![CDATA[
+
+懂点不赚钱的时候就会到处吆喝希望能吸引点韭菜。<br /><br />赚钱了，都在防泄露，防竞品知道，哪还那么多分享。
+]]></content:encoded>
+<pubDate>2024-08-27T13:30:44Z</pubDate>
+<pubDate>2024-08-27T13:30:44Z</pubDate>
+</item>
+<item>
+<title>[游戏] xbox 精英一代手柄挑耳机线是怎么回事？</title>
+<link>https://www.v2ex.com/t/1068268</link>
+<guid>https://www.v2ex.com/t/1068268</guid>
+<content:encoded><![CDATA[
+
+家里有 anker Q20 和 Q30 耳机，都配了 3.5mm 直连耳机线。奇怪的是，Q20 配的 3.5mm 耳机线接手柄就有声音。Q30 配的耳机线插到手柄上就没有反应。<br /><br />而且这个只跟耳机线有关，另一头的耳机没关系（ Q20 线加 Q30 耳机也能工作，Q30 线配 Q20 耳机还是不识别）
+]]></content:encoded>
+<pubDate>2024-08-27T13:24:24Z</pubDate>
+<pubDate>2024-08-27T13:21:24Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 新做的一个 prompt 编辑与格式化的网站</title>
+<link>https://www.v2ex.com/t/1068267</link>
+<guid>https://www.v2ex.com/t/1068267</guid>
+<content:encoded><![CDATA[
+
+<p>你可以用这个网站来整理和保存你经常会使用的 prompt ，同时网站还有个很有用的功能————prompt 嵌入，你可以在 prompt 中设置占位符，后面再次使用 prompt 的时候只需要指定占位符的值就能快速生成 prompt 。
+具体功能可以点进去查看，这个网站原本是基于我自己的需求开发的。
+点击这里访问：<a href="https://www.v2ex.com/www.promptcove.com" rel="nofollow">Promptcove</a></p>
+]]></content:encoded>
+<pubDate>2024-08-27T13:23:55Z</pubDate>
+<pubDate>2024-08-27T13:20:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] [流量劫持] 求问如何本地进程 A 发给本地进程 B 的数据包转发给其他机器呢？</title>
+<link>https://www.v2ex.com/t/1068265</link>
+<guid>https://www.v2ex.com/t/1068265</guid>
+<content:encoded><![CDATA[
+
+<h2>背景</h2>
+<p>在某个节点上，容器进程 A 默认是将数据包发给容器进程 B ，考虑到进程 B 升级，需要将流量转到其他机器上。</p>
+<h2>尝试</h2>
+<p>使用 ebpf 劫持 connect 系统调用可以做，以及使用 tc-ebpf 实现 nat ，但是被否了！理由是不够安全，存在影响其他容器的风险。</p>
+<p>有大佬说可以使用 tc mirror 将流量镜像到 tun ，走隧道，发给本地进程 B 的就 drop 掉（暂时还没弄明白，可不可行，有无大佬解答）</p>
+<p>iptables contrack 被禁止使用，导致无法使用其 nat 能力。</p>
+<p>求问实现如上功能的方式</p>
+]]></content:encoded>
+<pubDate>2024-08-27T13:20:39Z</pubDate>
+<pubDate>2024-08-27T13:22:37Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 自己做了一个跨平台剪切板同步工具 免安装</title>
+<link>https://www.v2ex.com/t/1068264</link>
+<guid>https://www.v2ex.com/t/1068264</guid>
+<content:encoded><![CDATA[
+
+<p>自己做了一个跨平台剪切板同步工具，支持手机，电脑。不管是 macos ios window 鸿蒙都支持。
+体验地址： <a href="https://gcopy.rutron.net" rel="nofollow">https://gcopy.rutron.net</a>
+项目 Github 地址在上面链接里面</p>
+<p>因为平时工作用好几部设备 比如 mac windows 和 ios s 之间想同步点东西好难。同时比较使用了很多同类产品每一个是自己想要的。
+他们要么是局域网要么收费 要么要各种安装客户端很不方便</p>
+<p>所以我这个不需要你安装，web 的，邮箱登录就能用。
+公司安全软件也也扫描不到，哈哈哈🤣</p>
+<p>退出来半年多吧。收到了很多支持和意见，希望你也喜欢。</p>
+]]></content:encoded>
+<pubDate>2024-08-27T13:11:22Z</pubDate>
+<pubDate>2024-08-27T13:54:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] aardio，教别人怎么解决误报，自己的 imtip 却被管家杀，被 eset 杀？</title>
+<link>https://www.v2ex.com/t/1068263</link>
+<guid>https://www.v2ex.com/t/1068263</guid>
+<content:encoded><![CDATA[
+
+<a href="https://bbs.aardio.com/forum.php?mod=viewthread&amp;tid=8299&amp;from=portal" rel="nofollow noopener" target="_blank">https://bbs.aardio.com/forum.php?mod=viewthread&amp;tid=8299&amp;from=portal</a>
+]]></content:encoded>
+<pubDate>2024-08-27T13:02:20Z</pubDate>
+<pubDate>2024-08-25T13:00:20Z</pubDate>
+</item>
+<item>
+<title>[Apple] iWatch 睡眠分析和站立提醒不准</title>
+<link>https://www.v2ex.com/t/1068262</link>
+<guid>https://www.v2ex.com/t/1068262</guid>
+<content:encoded><![CDATA[
+
+手持 Watch 5 ，平时睡觉时手机表带的偏松，日常倒挺稳的，隔壁的 Autosleep 却很准确，但自带的数据完全不准，懂的 V 友们帮看看
+]]></content:encoded>
+<pubDate>2024-08-27T12:57:32Z</pubDate>
+<pubDate>2024-08-27T12:56:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 升级到 HyperOS 1.08.0 的红米 K60，目前还能解锁降级刷机吗？</title>
+<link>https://www.v2ex.com/t/1068261</link>
+<guid>https://www.v2ex.com/t/1068261</guid>
+<content:encoded><![CDATA[
+
+<p>因为现在小米官方已经不支持玩机了，就想买一台最后一代支持解锁的机型 K60 来解锁刷机，延长点折腾的乐趣。但这段时间从京东和其他渠道收了几台机子，都发现被升级到了 HyperOS ，最后都只能退货了事。在京东、拼多多、拍拍、以及转转的线下门店问了很多，都不支持发货前确认系统。</p>
+<p>目前又刚从转转收了一台机子，下单前客服确认是 MIUI 的系统，但拿到手仍然是 HyperOS 。要退货再购买吧，这段时间折腾下来，觉得再也不可能从靠谱的渠道收到仍然是 MIUI 系统的 K60 了。想要自己尝试解锁降级，看了网上的一些分享，似乎之前的方法目前已经没有把握一定会成功了。担心最后不行错过了 7 天的退货期，最终砸在自己手里。所以，现在也很犹豫。</p>
+<p>不知道有没有其他 K60 的用户最近有过解锁降级的经历，想要了解下。</p>
+<p>人各有志，我能够理解很多人习惯了买来的房子原先的装修是什么样都一直那么住下去，也能够理解很多人习惯了安装的输入法默认的单行候选只有 5 个也就那么一直用下去，但我是喜欢根据自己的需要来折腾的人，所以，就用不着劝我“这年头正经人谁解锁刷机”了。</p>
+]]></content:encoded>
+<pubDate>2024-08-27T12:55:21Z</pubDate>
+<pubDate>2024-08-27T12:55:21Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 聚合博客网址导航大全代码</title>
+<link>https://www.v2ex.com/t/1068260</link>
+<guid>https://www.v2ex.com/t/1068260</guid>
+<content:encoded><![CDATA[
+
+<p>优秀个人独立博客导航大全是一个专注于收藏有价值的有效更新的优秀个人独立博客的导航网站。集博客趣导航，趣博客，博客库,it 博客网、技术博客圈导航、博客录导航，博客屋网址大全等聚合网站 <a href="http://www.bokequ.com/603.html" rel="nofollow">http://www.bokequ.com/603.html</a></p>
+<p>博客友包括技术博客、文学博客、生活博客等。你可以在这里发现和收藏优秀的博客内容，也可以加入博客活动和社区，与其他博主交流和分享</p>
+<pre><code>&lt;!DOCTYPE HTML&gt;
+&lt;html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN"&gt;
+&lt;head&gt;
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8"&gt;
+&lt;meta http-equiv="Cache-Control" content="no-transform" /&gt;
+&lt;meta http-equiv="X-UA-Compatible" content="IE=7" /&gt;
+&lt;title&gt;博客网站 _ 网址大全 _ 博科趣 - 第 2 页&lt;/title&gt;
+&lt;meta name="keywords" content="个人博客网站,博客网站大全,博客网站都有哪些"/&gt;
+&lt;meta name="description" content="博客网站大全,博客网址导航,独立个人博客,个人博客网站,个人主页空间"/&gt;
+&lt;link href="/css/style.css" rel="stylesheet" type="text/css" /&gt;
+&lt;link href="/css/style2.css" rel="stylesheet" type="text/css" /&gt;
+&lt;style&gt;
+  dl,dd{margin:0;padding:0}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id="classicsWrap"&gt;
+
+  &lt;div class="theme" id="theme"&gt;    
+      &lt;div class="themeWrap loadingBig"&gt;&lt;/div&gt;  
+  &lt;/div&gt;  
+  &lt;div id="wrap"&gt;
+      &lt;div class="container"&gt; 
+          &lt;div class="header"&gt;
+              &lt;div class="header-bd cf"&gt;                            
+                  &lt;div class="fr cf"&gt;
+                      &lt;div class="fl handle bg" id="qingtiancms_com_xiaohua"&gt; 
+                      &lt;a href="http://m.bokequ.com/"&gt;&lt;img src="http://m.bokequ.com/img/mulu.gif" border="0" width="350" height="50"&gt;&lt;/a&gt;                        &lt;/div&gt;
+                  &lt;/div&gt;          
+                  &lt;h1&gt;&lt;a href="http://m.bokequ.com/" title="博科趣"&gt;&lt;img src="http://m.bokequ.com/images/logo.gif" style="padding-top:16px"&gt;&lt;/a&gt;&lt;/h1&gt;
+              &lt;/div&gt;
+          &lt;/div&gt; 
+          &lt;div class="w980 m-search rep" block="search"&gt;
+              &lt;header id="header"&gt;
+&lt;section id="hd_logo"&gt;&lt;a href="/" title="网站搜索"&gt;网站搜索&lt;/a&gt;&lt;/section&gt;
+&lt;section id="hd_searchbar"&gt;
+  &lt;form class="fm" action="/e/search/index.php" method="post" name="searchform" id="searchform"&gt;
+    &lt;div id="search-input" class=""&gt;
+      &lt;input name="keyboard" type="text" id="search-kw" maxlength="100" value="" placeholder="请输入您要搜索的关键词……" /&gt;
+      &lt;input name="src" class="src" type="hidden" value="newhome"&gt;
+      &lt;input type="hidden" name="show" value="title,smalltext" /&gt;
+     &lt;input type="hidden" name="tempid" value="1" /&gt;
+     &lt;input type="hidden" value="url" name="tbname"&gt;
+      &lt;div id="search-hotword" class="g-toggle" onselectstart="return false;"&gt;&lt;/div&gt;
+      &lt;div id="search-hotword-update" data-expires="24"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;span class="s_btn_wr"&gt;
+    &lt;button type="submit" class="s_btn" onmousedown="this.className='s_btn s_btn_f'" onmouseout="this.className='s_btn'"&gt;搜索&lt;/button&gt;
+    &lt;/span&gt;
+  &lt;/form&gt;
+  &lt;div id="suggest-container" style="visibility: hidden; position: absolute; top: 69px; left: 581.5px; width: 528px; z-index: 999;"&gt;
+    &lt;div class="suggest-bd"&gt;&lt;/div&gt;
+    &lt;div class="suggest-ft"&gt;
+      &lt;div class="declare"&gt;网址导航目录&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/header&gt;
+&lt;/div&gt;
+          &lt;div class="w980 content_top_ad1 cf" id="content_top_ad1" style="display:none"&gt; &lt;/div&gt;
+            &lt;div class="menus" id="menu_tab"&gt;
+&lt;li&gt;&lt;a href="/"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_1"&gt;&lt;/i&gt;&lt;span&gt;首页&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                  &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/12-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_2"&gt;&lt;/i&gt;&lt;span&gt;电脑网络&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/19-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_3"&gt;&lt;/i&gt;&lt;span&gt;综合其它&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/24-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_4"&gt;&lt;/i&gt;&lt;span&gt;休闲娱乐&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/16-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_5"&gt;&lt;/i&gt;&lt;span&gt;教育文化&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/33-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_6"&gt;&lt;/i&gt;&lt;span&gt;生活服务&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/34-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_7"&gt;&lt;/i&gt;&lt;span&gt;行业企业&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/list/208-0.html"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_8"&gt;&lt;/i&gt;&lt;span&gt;文章资讯&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                              &lt;li class=""&gt;&lt;a href="http://m.bokequ.com/moban/"&gt;&lt;em&gt;&lt;i class="menutop qt_tab_9"&gt;&lt;/i&gt;&lt;span&gt;模板源码&lt;/span&gt;&lt;/em&gt;&lt;/a&gt;&lt;/li&gt;
+                        &lt;/div&gt;            
+          &lt;div style="line-height:0px; font-size:0px; clear:both" id="menu_id_both"&gt;&lt;/div&gt;                        
+      &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="clear"&gt;&lt;/div&gt;
+&lt;div class="seatt"&gt;
+&lt;div class="seat_left"&gt;
+当前位置：&lt;a href="http://m.bokequ.com/"&gt;首页&lt;/a&gt; &gt; &lt;a href="http://m.bokequ.com/list/19-0.html"&gt;综合其它&lt;/a&gt; &gt; &lt;a href="http://m.bokequ.com/list/22-0.html"&gt;博客网站&lt;/a&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="mainWrapper"&gt;
+&lt;div class="mainWrapper_left"&gt;
+  &lt;div class="k"&gt;
+  &lt;div class="t"&gt;
+  &lt;span style="padding-left:15px;"&gt;博客网站站点分类&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class="t2"&gt;
+  &lt;ul&gt;&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/51-0.html" title="返利比价" &gt;返利比价&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/54-0.html" title="文库文档" &gt;文库文档&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/85-0.html" title="广告联盟" &gt;广告联盟&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/110-0.html" title="数据分析" &gt;数据分析&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/20-0.html" title="论坛社区" &gt;论坛社区&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/22-0.html" title="博客网站" &gt;博客网站&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/23-0.html" title="新闻媒体" &gt;新闻媒体&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/132-0.html" title="百科资讯" &gt;百科资讯&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/138-0.html" title="云盘相册" &gt;云盘相册&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/140-0.html" title="网络交易" &gt;网络交易&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/164-0.html" title="社会科学" &gt;社会科学&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/29-0.html" title="搜索查询" &gt;搜索查询&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/30-0.html" title="地方门户" &gt;地方门户&lt;/a&gt;&lt;/li&gt;
+&lt;li id="tabnav_btn_1" onMouseOver="tabit(this)"&gt;&lt;a href="http://m.bokequ.com/list/31-0.html" title="政府单位" &gt;政府单位&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+  &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="k1"&gt;
+  &lt;div class="title"&gt;
+  &lt;div class="text"&gt;
+  &lt;b&gt;博客网站 - 网址大全&lt;/b&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/2071-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.yudouyudou.com" alt="余斗个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/2071-0.html" target="_blank"&gt;&lt;b&gt;余斗个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    余斗的个人网站，主要写一些推广营销观点文章，发布 CMS 与设计教程，记录个人笔记，上传一些实用的网络工具与网站模版。
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.yudouyudou.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=广东省"&gt;广东省&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-18 03:57:20
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/2059-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.yangruolan.cn" alt="杨若岚个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/2059-0.html" target="_blank"&gt;&lt;b&gt;杨若岚个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    杨若岚个人博客,一个记录生活与分享资讯的个人博客网站；记录生活点滴,分享资讯,珍藏美丽回忆等资讯博客
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.yangruolan.cn  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=四川省"&gt;四川省&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-17 18:30:01
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/2047-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.majiabin.com" alt="马佳彬博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/2047-0.html" target="_blank"&gt;&lt;b&gt;马佳彬博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    马佳彬个人博客，坚持实干与理论相结合,专注于微信营销和网络营销,偶尔吐槽下创业、管理、传媒、IT 、营销等。
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.majiabin.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=云南省"&gt;云南省&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-17 18:28:17
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1867-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.itlaoli.com" alt="李洋博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1867-0.html" target="_blank"&gt;&lt;b&gt;李洋博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    李洋博客提供个人/企业网站建设_zblogPHP 安装_制作 zblog 博客主题模板以及 SEO 排名优化的原创博客网站.
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.itlaoli.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=辽宁省"&gt;辽宁省&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-17 18:26:40
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1825-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.zhangziran.com" alt="张自然个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1825-0.html" target="_blank"&gt;&lt;b&gt;张自然个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    张自然个人博客，一个博客类型的个人网站。其中记录了张自然在学习和工作过程中总结出来的一些小经验以及经过测试的一些免费或收费资源。欢迎来张自然个人博客，交流学习！作者：张自然（ Nature Zhang ）。
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.zhangziran.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro="&gt;&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-17 18:24:44
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1823-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://cuiqingcai.com" alt="崔庆才个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1823-0.html" target="_blank"&gt;&lt;b&gt;崔庆才个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    崔庆才的个人网站，记录生活的瞬间，分享学习的心得，感悟生活，留住感动，静静寻觅生活的美好
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：cuiqingcai.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=北京市"&gt;北京市&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2020-05-17 18:23:54
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1354-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.yangqq.com" alt="青于蓝个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1354-0.html" target="_blank"&gt;&lt;b&gt;青于蓝个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    青于蓝个人博客模板网站下载个人博客模板，个人网站模板，响应式博客模板，HTML5 网站模板，CSS3 网站模板;定制个人原创模板，静态网站原创模板，定期分享免费个人博客模板
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.yangqq.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=天津市"&gt;天津市&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2019-09-05 10:32:24
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1150-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.duanliang920.com" alt="段亮个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1150-0.html" target="_blank"&gt;&lt;b&gt;段亮个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    段亮个人博客，是记录博主学习和成长的一个自媒体博客，关注于 web 前端技术和 SEO 技术的学习研究。让你快速学习如何搭建自己个人网站！
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.duanliang920.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro=湖南省"&gt;湖南省&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2019-09-05 10:30:40
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+  &lt;div class="box1"&gt;
+  &lt;div class="picture"&gt;
+  &lt;a name="obj_1" id="obj_1" href="http://m.bokequ.com/article/22/1081-0.html"&gt;
+  &lt;img src="http://s0.wp.com/mshots/v1/http://www.yezismile.com" alt="叶子个人博客" width="164" height="114" /&gt;
+          &lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="tt"&gt;
+    &lt;div class="tt_title"&gt;
+    &lt;div class="tu"&gt;
+    &lt;a href="http://m.bokequ.com/article/22/1081-0.html" target="_blank"&gt;&lt;b&gt;叶子个人博客&lt;/b&gt;&lt;/a&gt;&lt;/div&gt;      
+    &lt;/div&gt;
+    &lt;div class="tt_detail"&gt;
+    叶子个人博客，是一个伪文艺女码农个人网站，分享工作经验和生活,值得大家收藏的原创博客网站。
+    &lt;/div&gt;
+    &lt;div class="tt_url"&gt;
+   网站地址：www.yezismile.com  所属地区：&lt;a href="/e/action/ListInfo.php?&amp;mid=10&amp;tempid=13&amp;ph=1&amp;pro="&gt;&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;div class="tt_time"&gt;
+    更新时间：2019-09-05 10:29:07
+    &lt;/div&gt;
+  &lt;/div&gt; 
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="page"&gt;
+&lt;div class="page_box"&gt;
+&lt;a title="总数"&gt; 32 &lt;/a&gt;  &lt;a href="http://m.bokequ.com/list/22-0.html"&gt;首页&lt;/a&gt; &lt;a href="http://m.bokequ.com/list/22-0.html"&gt;上一页&lt;/a&gt; &lt;a href="http://m.bokequ.com/list/22-0.html"&gt;1&lt;/a&gt; &lt;b&gt;2&lt;/b&gt; &lt;a href="http://m.bokequ.com/list/22-2.html"&gt;3&lt;/a&gt; &lt;a href="http://m.bokequ.com/list/22-3.html"&gt;4&lt;/a&gt; &lt;a href="http://m.bokequ.com/list/22-2.html"&gt;下一页&lt;/a&gt; &lt;a href="http://m.bokequ.com/list/22-3.html"&gt;尾页&lt;/a&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="mainWrapper_right"&gt;
+     &lt;div class="text"&gt;
+    &lt;ul&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/45/1475-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; V2EX 技术社区&lt;span class="tt_newurl"&gt;2024-08-26&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/45/1464-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 编程狮&lt;span class="tt_newurl"&gt;2024-08-26&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/45/1798-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; stackoverflow&lt;span class="tt_newurl"&gt;2024-08-26&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/45/1799-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; LearnKu 编程社区&lt;span class="tt_newurl"&gt;2024-08-26&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/122/1787-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 职友集&lt;span class="tt_newurl"&gt;2024-08-24&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1770-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; Steam 游戏官网&lt;span class="tt_newurl"&gt;2024-08-23&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1773-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; Origin 游戏平台&lt;span class="tt_newurl"&gt;2024-08-23&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1779-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 育碧 Ubisoft 游戏&lt;span class="tt_newurl"&gt;2024-08-23&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1784-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; xbox 游戏&lt;span class="tt_newurl"&gt;2024-08-23&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1772-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; Epic 游戏商城&lt;span class="tt_newurl"&gt;2024-08-21&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1795-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; steamdb&lt;span class="tt_newurl"&gt;2024-08-21&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/138/1599-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 123 云盘&lt;span class="tt_newurl"&gt;2024-08-21&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1508-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 乐趣 H5 游戏平台&lt;span class="tt_newurl"&gt;2024-08-21&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/21/1663-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 爱给网&lt;span class="tt_newurl"&gt;2024-08-19&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1714-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 游戏鸟&lt;span class="tt_newurl"&gt;2024-08-19&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://m.bokequ.com/article/63/1419-0.html" target="_blank"&gt;&lt;img src="/images/shuzi.png" align="absmiddle"&gt; 9377 游戏&lt;span class="tt_newurl"&gt;2024-08-19&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;/div&gt;
+    &lt;div class="xian"&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="footer cf" id="content_top_ad_foot3"&gt;
+              &lt;p class="copyright"&gt;Copyright ©2023.12  &lt;a target="_self" href="http://m.bokequ.com/"&gt;博科趣&lt;/a&gt;
+              &lt;/p&gt;
+          &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-08-27T12:52:27Z</pubDate>
+<pubDate>2024-08-27T12:49:27Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 知名 Crypto Casino | Java Backend Engineer | 远程 | $4,000 - $8,000 USDT / 月</title>
+<link>https://www.v2ex.com/t/1068259</link>
+<guid>https://www.v2ex.com/t/1068259</guid>
+<content:encoded><![CDATA[
+
+Position Title: Java Backend Engineer <br /><br />Working Location: Remote <br /><br />Employment Type: Full-time<br /><br /><br />Job Responsibilities:<br /><br />l 连接内外平台，整合相关功能<br />l -负责系统设计和功能模块设计,编程和重写<br />l -带领 1-2 个成员完成开发任务<br />l -找到并发现问题，提高功能相应速度<br />l -设计和实施支持的服务和 API<br />l -成为确保我们的代码可扩展、可维护和可靠的一部分<br />l -构建用于在生产环境中监控、跟踪和调试我们的服务的解决方案 l -在实验系统上快速迭代以解决实际用户问题<br />l -与其他团队密切合作，帮助我们为客户提供解决方案<br /><br />Position Requirements:<br /><br />l 有 5 年以上经验。计算机科学或 IT 相关专业的文凭<br />l 极其熟悉 git 、java 、spring cloud 、MySQL 、Redis 、Kafka 、MongoDBl 熟练使用 mysql ，理解索引原理，能对 sql 进行性能优化<br />l 能够设计幂等性接口 , 解分布式事务 ,熟练运用多线程 ,灵活运用设计模式<br /><br />Join Our Adventure<br /><br />We're an inclusive and collaborative team that values hard work and enthusiasm. Our goal is to thrive together, creating impactful and seamless interactive technologies. We believe in rewarding dedication and fostering a positive environment where everyone can excel. If you're eager to contribute your passion and skills, join us today!<br /><br />Recruitment Process:<br /><br />You will be contacted by our team within 72 hours of your application. Our recruitment process takes a maximum of 21 days from the first interview and you will be notified in case of success or failure.<br /><br /><br /><br /><br />福利待遇：<br />底薪：4000~8000 USDT/月 <br /><br />项目奖金， 年终奖金，每月带薪假期 ，远程办公。<br /><br /><br />联系方式：<br /><br />Telegram : <a href="https://t.me/SamHanHR" rel="nofollow noopener" target="_blank">https://t.me/SamHanHR</a><br /><br />Skype :live:.cid.3f9db9ac54272104<br /><br />投递简历时请备注是在 V2EX 上看到的招聘信息
+]]></content:encoded>
+<pubDate>2024-08-27T12:51:07Z</pubDate>
+<pubDate>2024-08-27T13:07:14Z</pubDate>
+</item>
+<item>
+<title>[NAS] 威联通挂了，想换成群晖，求推荐型号。</title>
+<link>https://www.v2ex.com/t/1068258</link>
+<guid>https://www.v2ex.com/t/1068258</guid>
+<content:encoded><![CDATA[
+
+按照 SMZDM 上的教程给威联通 TS-453Dmini 换内存，结果新内存无法点亮，换就内存也开不了机了，电源灯都没有反应。<br /><br />以为是静电保护，尝试给主板放电以及清扫和插拔内存条无果。致电客服，客服表示已经过了两年保修期，目前维修需要自费，无法开机算二级维修，要 1500 左右，不如买新的。<br /><br />但是 NAS 这东西深度与厂家绑定，组了 RAID 要从威联通换到群晖要麻烦死，最主要我现在威联通还开不了机。<br /><br />我对于威联通的槽点在于：<br />第一，卡。除了开机和关机太慢之外，内存和 CPU 感觉都不太行，Docker 一点都不敢开。<br />第二，配置比群晖还是麻烦不少。<br />第三，威联通客服整体服务态度、交付水平和响应时效都很差。同时降价太可怕，我 20 年 7 月京东买的，当年双十一就降价了 30%。<br /><br />想问问大家，这种情况你们觉得我要换成群晖吗，还是继续买威联通一生黑。如群晖，求推荐群晖型号。
+]]></content:encoded>
+<pubDate>2024-08-27T12:50:36Z</pubDate>
+<pubDate>2024-08-27T13:29:56Z</pubDate>
+</item>
+<item>
+<title>[iOS] 喜马拉雅吃相太难看，求推荐 iOS 离线听书 App</title>
+<link>https://www.v2ex.com/t/1068256</link>
+<guid>https://www.v2ex.com/t/1068256</guid>
+<content:encoded><![CDATA[
+
+<p>在国内的时候开了多年喜马拉雅会员，前几年出国以后发现越来越多 VIP 书籍要下载国际版才能听，但喜马拉雅国际版会员是独立的，里面的版权和国内也不一样。如果想要都听，就得开两个会员，而且我国内的会员到 2026 年才过期。</p>
+<p>另外，有部分版权音频喜马拉雅要求开启位置共享功能才能听，所以开代理和 VPN 也无法解决问题。</p>
+<p>准备弃坑了换本地播放器。试过一些播放器，大部分都是基于听歌优化的（比如播放进度容易丢失）。所以 iOS 上有没有比较适合听本地离线书籍的 App 推荐?感谢！</p>
+]]></content:encoded>
+<pubDate>2024-08-27T12:41:11Z</pubDate>
+<pubDate>2024-08-27T13:18:33Z</pubDate>
+</item>
+<item>
+<title>又一个在线文本对比工具，带有合并，以及若干个文本处理功能</title>
+<link>https://www.v2ex.com/t/1067055</link>
+<guid>https://www.v2ex.com/t/1067055</guid>
+<content:encoded><![CDATA[
+
+<p>我创建了一个新的工具站，希望对大家有作用： <a href="https://diffsuite.com" rel="nofollow">https://diffsuite.com</a></p>
+<p>主要功能与特点：</p>
+<ul>
+<li>文本对比 &amp; 合并</li>
+<li>若干个文本处理工具，如：排序、去重、删空白行等</li>
+<li>100% 免费</li>
+<li>注重隐私，所有操作都在浏览器中进行，不会经过服务器</li>
+</ul>
+<p>如果你有什么想增加的功能，欢迎留言讨论~~~</p>
+<p><a href="https://diffsuite.com" rel="nofollow">➡️ Go to diffsuite.com</a></p>
+]]></content:encoded>
+<pubDate>2024-08-22T09:15:21Z</pubDate>
+<pubDate>2024-08-24T00:28:54Z</pubDate>
+</item>
+<item>
+<title>也是看 29 岁那个帖子有感</title>
+<link>https://www.v2ex.com/t/1067079</link>
+<guid>https://www.v2ex.com/t/1067079</guid>
+<content:encoded><![CDATA[
+
+<p>发现自己情况有点类似，本来想回复的，索性直接开一帖，把一些话发出来也给自己解解压。</p>
+<p>我今年也 28 了，之前在一家医疗行业做前端开发，其实还是挺不错的，后面因为各种原因（这里说一下一个是工资一直没涨，我在公司负责的内容越来越多。另一个是当时买的基金亏钱了亏了 20%左右大概 2w 多，直接影响了每天的心情）长时间下来我觉得我也抑郁了，反正就是每天一到公司内心就开始难受，就想离职。在 23 年年初过完年我直接裸辞了，当时我也知道行情不好，还是毅然选择裸辞。当时跟领导提出要辞职后心里一下就好受多了，感觉一块大石头落地那种感觉。</p>
+<p>后面开始找工作，找了两个月没找到有点焦虑了，终于在 5 月份拿到了一份工作，薪资也有涨，技术栈从 vue 转到 react ，我觉得能胜任然后当时也不是很想继续再找了，就入职了。事实做下来技术这块也确实没问题，react 上手的很快。不过有个问题是做的事比较多，不是指开发，公司没有产品没有 ui ，原型图要前端去画，功能设计还要我自己去想，只有一个大纲。所以有点受不了，再加上买的基金没有及早抽身出来又亏了不少，还有下半年的时候我妈身体不好，去医院也花了不少钱做了不少次检查，最后也没查出具体问题（腹部痛腿痛这些，肠镜胃镜都做了也没查出问题），最后在新冠病毒变异时我中招了，身体上很难受再加上心里上的长期压抑，导致我又一次冲动离职。回到公司第二天我就跟领导提了。</p>
+<p>之后本来打算尽快找到工作的，然后找了两个月没什么回复，就索性懒得找了，准备躺平。
+人一闲下来就容易胡思乱想，就觉得看不到希望，在大城市房子也买不起，女朋友也没有。没人可以倾诉，不跟父母倾诉也是不想让他们担心。有时候真的就觉得活得好没意思，好痛苦。</p>
+<p>8 月初我注销了基金账户，简单收拾了下行李来合肥找工作（离家近，芜湖），投了两个星期吧，拿了 3 个 offer ，拒掉其中一个，选择了一家小公司，部门是初创的 2 前端 2 后端。入职一周的时候 hr 交社保的时候被告知社保是代缴的（什么人力资源公司），因为公司注册地不在合肥，这个是之前沟通时没跟提过，唉不过我自己也没问。然后我正好打算申请合肥的住房补贴（一个月 1250 ），结果这样我就不能申请了。于是我找了之前的一个 offer ，讯飞外包，准备去干着看看。这里也是非常冲动，没怎么考虑。
+去了外包后发现内网开发真受不了，办公电脑配置也差的要死 8g 内存。
+我当天就不干了，然后我又想回原来那家，但被 hr 告知离职公司规定离职后不得再入职了，其实我也是厚着脸皮了，正常人肯定不会再去找原单位了
+也是自从第一次离职后，感觉我越来越容易冲动离职了。第一次离职我犹豫了半年。
+现在的情况是合肥这边岗位少的可怜，能投的基本都被投过了。
+唉大好的机会给我却被我浪费了。
+后续也不知道怎么办了，有想过要么回上海继续找。</p>
+<p>说出来后感觉轻松了一点，今天一天心情真的超压抑</p>
+]]></content:encoded>
+<pubDate>2024-08-22T11:12:06Z</pubDate>
+<pubDate>2024-08-26T00:26:05Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] win11 如何整个系统打包成 ISO，在另外一台设备重装？</title>
 <link>https://www.v2ex.com/t/1068255</link>
 <guid>https://www.v2ex.com/t/1068255</guid>
 <content:encoded><![CDATA[
-
 用 DISM++的系统备份生成了 WIM 文件，有 500G ，在另一台虚拟机上恢复 30 多个小时了进度条还没一半。。。。。<br /><br />如果用 ISO 直接重装的话，应该要比恢复速度快得多吧，有啥办法可以直接打包成 ISO 呢？
 ]]></content:encoded>
-<pubDate>2024-08-27T12:29:28Z</pubDate>
 <pubDate>2024-08-27T12:33:27Z</pubDate>
 </item>
 <item>
@@ -20,7 +711,6 @@
 <link>https://www.v2ex.com/t/1068254</link>
 <guid>https://www.v2ex.com/t/1068254</guid>
 <content:encoded><![CDATA[
-
 <p>支持的功能：</p>
 <p>支持上传大于 5MB 的图片。</p>
 <p>支持在图床界面粘贴上传。</p>
@@ -39,7 +729,6 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://kycloud3.koyoo.cn/20240827af8cb20240827105515239.png" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://kycloud3.koyoo.cn/20240827bc0fd202408271715013025.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-08-27T12:27:44Z</pubDate>
 <pubDate>2024-08-27T12:32:16Z</pubDate>
 </item>
 <item>
@@ -47,10 +736,8 @@
 <link>https://www.v2ex.com/t/1068253</link>
 <guid>https://www.v2ex.com/t/1068253</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.picgo.net/image/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE-2024-08-27-201319.ooIBtl" rel="nofollow">https://www.picgo.net/image/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE-2024-08-27-201319.ooIBtl</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-27T12:17:36Z</pubDate>
 <pubDate>2024-08-27T12:22:48Z</pubDate>
 </item>
 <item>
@@ -58,7 +745,6 @@
 <link>https://www.v2ex.com/t/1068250</link>
 <guid>https://www.v2ex.com/t/1068250</guid>
 <content:encoded><![CDATA[
-
 <p>上周末回家，刚一到家，我妈就告诉我她钱丢了</p>
 <p>经过：
 我妈有一张邮储的储蓄卡，不常用，也没多少钱在里面。去年年初我爸转了 2w 元到我妈这张卡上，没有开通短信通知，一直也不知道存上了没有。
@@ -73,7 +759,6 @@
 <p>第二天又去找乡镇警察，直接推脱说出差了，下周才能回来，到时候联系。</p>
 <p>来回推脱，案子都立不上。</p>
 ]]></content:encoded>
-<pubDate>2024-08-27T11:59:42Z</pubDate>
 <pubDate>2024-08-27T12:33:53Z</pubDate>
 </item>
 <item>
@@ -82,9 +767,7 @@
 <guid>https://www.v2ex.com/t/1068248</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-08-27T11:41:07Z</pubDate>
 <pubDate>2024-08-27T11:58:16Z</pubDate>
 </item>
 <item>
@@ -92,7 +775,6 @@
 <link>https://www.v2ex.com/t/1068247</link>
 <guid>https://www.v2ex.com/t/1068247</guid>
 <content:encoded><![CDATA[
-
 <div>
  已知近几年楼房隔音差，
  <br />所以我只想租顶楼，
@@ -121,7 +803,6 @@
 3 很多房间没有收拾</p>
 </div>
 ]]></content:encoded>
-<pubDate>2024-08-27T11:30:32Z</pubDate>
 <pubDate>2024-08-27T07:29:32Z</pubDate>
 </item>
 <item>
@@ -129,7 +810,6 @@
 <link>https://www.v2ex.com/t/1068246</link>
 <guid>https://www.v2ex.com/t/1068246</guid>
 <content:encoded><![CDATA[
-
 <p>三星 s21 ，刷了港版系统。
 GooglePlay 账号是 A ，是美区账号
 AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
@@ -138,14 +818,12 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <p>这种情况我还咋整？是需要我必须在土耳其网络下登录 AppleMusic 账号才能正常访问歌曲库吗。</p>
 ]]></content:encoded>
 <pubDate>2024-08-27T11:17:43Z</pubDate>
-<pubDate>2024-08-27T11:17:43Z</pubDate>
 </item>
 <item>
 <title>[程序员] 全栈开发者技术交流(514 members)</title>
 <link>https://www.v2ex.com/t/1068245</link>
 <guid>https://www.v2ex.com/t/1068245</guid>
 <content:encoded><![CDATA[
-
 <p>欢迎全栈开发者加入本群！</p>
 <p>这里是各路编程高手的技术交流平台，涵盖了多种主流编程语言和技术栈。</p>
 <p>无论你专注于前端（如 HTML 、CSS 、JavaScript 、TypeScript ）、后端（如 Java 、Python 、PHP 、Go 、Node.js 、Ruby 、C#）、移动端（如 Swift 、Kotlin 、Flutter 、React Native ）、数据库（如 SQL 、NoSQL 、MongoDB 、PostgreSQL ）、还是 DevOps （如 Docker 、Kubernetes 、CI/CD ），都可以在这里分享经验、交流技术。</p>
@@ -154,7 +832,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <li>telegram: <a href="https://t.me/DockerCommunityChina" rel="nofollow">链接 2</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:56:52Z</pubDate>
 <pubDate>2024-08-27T10:53:52Z</pubDate>
 </item>
 <item>
@@ -162,10 +839,8 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068244</link>
 <guid>https://www.v2ex.com/t/1068244</guid>
 <content:encoded><![CDATA[
-
 <p>个人博客，技术类相关</p>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:51:04Z</pubDate>
 <pubDate>2024-08-27T06:51:04Z</pubDate>
 </item>
 <item>
@@ -173,13 +848,11 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068243</link>
 <guid>https://www.v2ex.com/t/1068243</guid>
 <content:encoded><![CDATA[
-
 <p>最近接触的需求都是浏览器脚本类型的（模拟手工操作）</p>
 <p>但是有些需求会操作浏览器插件，例如网站唤起插件后，需要在插件上模拟输入、点击操作
 感觉这种类型的需求写起来比较撇脚</p>
 <p>各位有什么好的编程语言或者框架推荐么？</p>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:50:08Z</pubDate>
 <pubDate>2024-08-27T11:34:04Z</pubDate>
 </item>
 <item>
@@ -187,10 +860,8 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068242</link>
 <guid>https://www.v2ex.com/t/1068242</guid>
 <content:encoded><![CDATA[
-
 个人博客： <a href="https://wenfeixiang.com/" rel="nofollow noopener" target="_blank">https://wenfeixiang.com/</a>   申请收录<br />主要关注创业、投资等话题<br /><br />谢谢
 ]]></content:encoded>
-<pubDate>2024-08-27T10:46:59Z</pubDate>
 <pubDate>2024-08-27T10:46:59Z</pubDate>
 </item>
 <item>
@@ -198,7 +869,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068241</link>
 <guid>https://www.v2ex.com/t/1068241</guid>
 <content:encoded><![CDATA[
-
 <h3>背景：</h3>
 <p>在深圳混了几年，到老家省会混了两年，认识了个妹纸在交往。有车没房，搞 PHP 的，现在失业了。
 由于平时做了些产品项目在运营小程序，毕业后这几年手上不到 200 个 w ，想躺平确实也很难。
@@ -213,7 +883,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <h4>创业</h4>
 <p>想依靠技术创业，一时半会没有好的想法，感觉也是困难重重。</p>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:45:24Z</pubDate>
 <pubDate>2024-08-27T12:40:15Z</pubDate>
 </item>
 <item>
@@ -221,12 +890,10 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068240</link>
 <guid>https://www.v2ex.com/t/1068240</guid>
 <content:encoded><![CDATA[
-
 <p>媳妇自己开的一个 1.6 的小破车，1.6 的她开能开出来 11 个油，跟我说开不起了。想买电车
 目前考虑海鸥，宋 plus 这个有 dmi 可以出远门
 我其实是很喜欢 i3 的，无奈媳妇说宝马电车是杂牌。有开过这些车的能讲讲么？</p>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:32:35Z</pubDate>
 <pubDate>2024-08-27T11:25:25Z</pubDate>
 </item>
 <item>
@@ -234,10 +901,8 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068239</link>
 <guid>https://www.v2ex.com/t/1068239</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/AnyISalIn/1password-to-apple-passwords" rel="nofollow">https://github.com/AnyISalIn/1password-to-apple-passwords</a></p>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:28:49Z</pubDate>
 <pubDate>2024-08-27T12:22:55Z</pubDate>
 </item>
 <item>
@@ -245,7 +910,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068238</link>
 <guid>https://www.v2ex.com/t/1068238</guid>
 <content:encoded><![CDATA[
-
 <p>RT ，准备在云上做一份备份</p>
 <p>不考虑国内网盘，不考虑国外小厂（不稳）</p>
 <p>数据量目前 25TB 左右，日后估计 30TB 左右</p>
@@ -263,7 +927,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 </li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-08-27T10:28:12Z</pubDate>
 <pubDate>2024-08-27T11:23:29Z</pubDate>
 </item>
 <item>
@@ -271,10 +934,8 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1068237</link>
 <guid>https://www.v2ex.com/t/1068237</guid>
 <content:encoded><![CDATA[
-
 我知道的有：<br /><br /><a href="https://replicate.com/explore" rel="nofollow noopener" target="_blank">https://replicate.com/explore</a><br /><a href="https://fal.ai/pricing" rel="nofollow noopener" target="_blank">https://fal.ai/pricing</a><br /><br />有没有一些经验可以分享，谢谢。
 ]]></content:encoded>
-<pubDate>2024-08-27T10:25:00Z</pubDate>
 <pubDate>2024-08-27T10:25:00Z</pubDate>
 </item>
 <item>
@@ -282,7 +943,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/803669</link>
 <guid>https://www.v2ex.com/t/803669</guid>
 <content:encoded><![CDATA[
-
 <div><h1>UI 优先的统一身份认证系统 Casdoor</h1>
 <h2>Casdoor 是什么？</h2>
 <p>Casdoor 是一个基于 OAuth 2.0 / OIDC 的 UI 优先集中认证 / 单点登录 (SSO) 平台，简单点说，就是 Casdoor 可以帮你解决 <strong>用户管理</strong> 的难题，你无需开发用户登录注册等与用户鉴权相关的一系列功能，只需几个步骤，简单配置，与你的主应用配合，便可完全托管你的用户模块，简单省心，功能强大。</p>
@@ -319,7 +979,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 </ul>
 </div>
 ]]></content:encoded>
-<pubDate>2021-09-23T07:24:06Z</pubDate>
 <pubDate>2024-08-27T08:55:56Z</pubDate>
 </item>
 <item>
@@ -327,7 +986,6 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 <link>https://www.v2ex.com/t/1066825</link>
 <guid>https://www.v2ex.com/t/1066825</guid>
 <content:encoded><![CDATA[
-
 <p>迫于上个季度，前端没招够人，现在还缺人，老大要求内推简历，望有兴趣的老铁来聊</p>
 <p>如果有意向的话可以发送简历到邮箱： heihei2thesky@outlook.com, 不确定的朋友也可以先聊聊，base64：bWljaGFlbGppNTIw</p>
 <p>下面贴上 JD 供参考：</p>
@@ -346,10 +1004,8 @@ AppleMusic 账号是 B ，是土耳其账号,里面买了很多周杰伦
 3 、具备高效、快速的学习能力，积极主动的业务推进能力；
 4 、额外加分项： 活动营销类业务开发、设计经验。</p>
 ]]></content:encoded>
-<pubDate>2024-08-21T13:20:19Z</pubDate>
 <pubDate>2024-08-26T04:41:00Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] 轻量级大数据计算平台</title>
 <link>https://www.v2ex.com/t/1068235</link>
@@ -16429,402 +17085,6 @@ const targetRef = useTargetElement(document.getElementById('my-div'))
 我买了彩云天气好多年的会员，但是界面广告越来越多，越来越丑，loading 时间过长，小组件更新不及时，推送广告，反正一堆的问题，不打算忍了。<br />所以想换一个体验更好的天气 App ，Android 的，可以接受付费，用的类原生 Android 系统自带的天气不好用，大家有什么推荐的吗？
 ]]></content:encoded>
 <pubDate>2024-08-22T11:30:42Z</pubDate>
-</item>
-<item>
-<title>[推广] AI 恶魔名字生成器</title>
-<link>https://www.v2ex.com/t/1067080</link>
-<guid>https://www.v2ex.com/t/1067080</guid>
-<content:encoded><![CDATA[
-<p><a href="https://demon-name-generator.com/" rel="nofollow">AI Demon Name Generator</a>。</p>
-]]></content:encoded>
-<pubDate>2024-08-22T11:17:37Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 也是看 29 岁那个帖子有感</title>
-<link>https://www.v2ex.com/t/1067079</link>
-<guid>https://www.v2ex.com/t/1067079</guid>
-<content:encoded><![CDATA[
-<p>发现自己情况有点类似，本来想回复的，索性直接开一帖，把一些话发出来也给自己解解压。</p>
-<p>我今年也 28 了，之前在一家医疗行业做前端开发，其实还是挺不错的，后面因为各种原因（这里说一下一个是工资一直没涨，我在公司负责的内容越来越多。另一个是当时买的基金亏钱了亏了 20%左右大概 2w 多，直接影响了每天的心情）长时间下来我觉得我也抑郁了，反正就是每天一到公司内心就开始难受，就想离职。在 23 年年初过完年我直接裸辞了，当时我也知道行情不好，还是毅然选择裸辞。当时跟领导提出要辞职后心里一下就好受多了，感觉一块大石头落地那种感觉。</p>
-<p>后面开始找工作，找了两个月没找到有点焦虑了，终于在 5 月份拿到了一份工作，薪资也有涨，技术栈从 vue 转到 react ，我觉得能胜任然后当时也不是很想继续再找了，就入职了。事实做下来技术这块也确实没问题，react 上手的很快。不过有个问题是做的事比较多，不是指开发，公司没有产品没有 ui ，原型图要前端去画，功能设计还要我自己去想，只有一个大纲。所以有点受不了，再加上买的基金没有及早抽身出来又亏了不少，还有下半年的时候我妈身体不好，去医院也花了不少钱做了不少次检查，最后也没查出具体问题（腹部痛腿痛这些，肠镜胃镜都做了也没查出问题），最后在新冠病毒变异时我中招了，身体上很难受再加上心里上的长期压抑，导致我又一次冲动离职。回到公司第二天我就跟领导提了。</p>
-<p>之后本来打算尽快找到工作的，然后找了两个月没什么回复，就索性懒得找了，准备躺平。
-人一闲下来就容易胡思乱想，就觉得看不到希望，在大城市房子也买不起，女朋友也没有。没人可以倾诉，不跟父母倾诉也是不想让他们担心。有时候真的就觉得活得好没意思，好痛苦。</p>
-<p>8 月初我注销了基金账户，简单收拾了下行李来合肥找工作（离家近，芜湖），投了两个星期吧，拿了 3 个 offer ，拒掉其中一个，选择了一家小公司，部门是初创的 2 前端 2 后端。入职一周的时候 hr 交社保的时候被告知社保是代缴的（什么人力资源公司），因为公司注册地不在合肥，这个是之前沟通时没跟提过，唉不过我自己也没问。然后我正好打算申请合肥的住房补贴（一个月 1250 ），结果这样我就不能申请了。于是我找了之前的一个 offer ，讯飞外包，准备去干着看看。这里也是非常冲动，没怎么考虑。
-去了外包后发现内网开发真受不了，办公电脑配置也差的要死 8g 内存。
-我当天就不干了，然后我又想回原来那家，但被 hr 告知离职公司规定离职后不得再入职了，其实我也是厚着脸皮了，正常人肯定不会再去找原单位了
-也是自从第一次离职后，感觉我越来越容易冲动离职了。第一次离职我犹豫了半年。
-现在的情况是合肥这边岗位少的可怜，能投的基本都被投过了。
-唉大好的机会给我却被我浪费了。
-后续也不知道怎么办了，有想过要么回上海继续找。</p>
-<p>说出来后感觉轻松了一点，今天一天心情真的超压抑</p>
-]]></content:encoded>
-<pubDate>2024-08-22T12:38:06Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 各位大佬，请教一个 golang 多线程的阻塞问题</title>
-<link>https://www.v2ex.com/t/1067078</link>
-<guid>https://www.v2ex.com/t/1067078</guid>
-<content:encoded><![CDATA[
-<p>编程小白，在写一个多线程目录文件遍历的时候，出现了阻塞问题，求教各位大佬~</p>
-<p>通过增大 var taskChan = make(chan string, 1000)，chan 缓冲区为 100 万的时候程序不会阻塞</p>
-<p>但是我通过打印日志发现 taskChan 占用很小，只有十几，而且存在通道写入失败的情况</p>
-<p>taskChan 的缓冲区为 1000 时，阻塞的日志如下：</p>
-<pre><code class="language-shell">[DEBUG]:增加目录，增加 wg, [1802], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1842], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1843], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1844], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1801], taskChan = [5]
-[DEBUG]:任务完成，减小 wg, [1798], taskChan = [1]
-[DEBUG]:任务完成，减小 wg, [1797], taskChan = [17]
-[DEBUG]:任务完成，减小 wg, [1816], taskChan = [4]
-[DEBUG]:增加目录，增加 wg, [1803], taskChan = [1]
-[DEBUG]:任务完成，减小 wg, [1843], taskChan = [1]
-[DEBUG]:任务完成，减小 wg, [1797], taskChan = [21]
-[DEBUG]:任务完成，减小 wg, [1841], taskChan = [24]
-[DEBUG]:增加目录，增加 wg, [1841], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1841], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1841], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1841], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1840], taskChan = [6]
-[DEBUG]:任务完成，减小 wg, [1798], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1840], taskChan = [13]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1840], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1841], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1842], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1842], taskChan = [2]
-[DEBUG]:增加目录，增加 wg, [1842], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [1843], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1844], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1845], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1846], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1847], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1848], taskChan = [0]
-[ERROR]:写入通道失败...
-[DEBUG]:增加目录，增加 wg, [1849], taskChan = [0]
-</code></pre>
-<p>如果把 taskChan 的缓冲区为 100 万的时候，程序可以正常退出，日志如下：</p>
-<pre><code class="language-shell">[DEBUG]:增加目录，增加 wg, [2], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [3], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [4], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [3], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [3], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [3], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [4], taskChan = [0]
-[DEBUG]:增加目录，增加 wg, [2], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [2], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [2], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [1], taskChan = [0]
-[DEBUG]:任务完成，减小 wg, [0], taskChan = [0]
-[INFO]:目录扫描完毕
-[DEBUG]:func GetAllFilePath end
-[DEBUG]:func StartScan end
-[DEBUG]:func btnStartScanOnclick end
-</code></pre>
-<p>代码如下：</p>
-<pre><code class="language-go">package core
-
-import (
-	"DopliGo/logs"
-	"github.com/panjf2000/ants/v2"
-	"os"
-	"path/filepath"
-	"sync"
-	"sync/atomic"
-)
-
-func GetAllFilePath(rootPath string) {
-	//logs.IsLogDebug = false
-	logs.Debug("func GetAllFilePath start")
-	// 创建任务通道和结果通道
-	var taskChan = make(chan string, 1000000)
-	var resultChan = make(chan string, 1000000)
-	var wg sync.WaitGroup
-	var counter int64 = 0
-
-	// 创建生产者 goroutine 池
-	producerPool, _ := ants.NewPoolWithFunc(16, func(i interface{}) {
-		produceTasks(i.(string), taskChan, resultChan, &amp;counter, &amp;wg)
-	})
-
-	logs.Debug("cap:%d", producerPool.Cap())
-	defer producerPool.Release()
-
-	taskChan &lt;- rootPath
-	wg.Add(1) // 这里增加计数器
-	atomic.AddInt64(&amp;counter, 1)
-	logs.Debug("任务开始，增加 wg, [%d], taskChan = [%d]", atomic.LoadInt64(&amp;counter), len(resultChan))
-
-	// 启动生产者
-	go func() {
-		//defer logs.Debug("生产者退出")
-		for task := range taskChan {
-			err := producerPool.Invoke(task)
-			if err != nil {
-				logs.Error("failed to producerPool Invoke, err: %s", err)
-				return
-			}
-		}
-	}()
-
-	// 启动结果处理 goroutine
-	go func() {
-		//defer logs.Debug("消费者退出")
-		for result := range resultChan {
-			_ = result
-		}
-	}()
-
-	// 等待所有任务完成
-	wg.Wait()
-	close(resultChan)
-	close(taskChan)
-	logs.Info("目录扫描完毕")
-	logs.Debug("func GetAllFilePath end")
-}
-
-func produceTasks(rootPath string, taskChan chan string, resultChan chan string, counter *int64, wg *sync.WaitGroup) {
-	defer wg.Done() // 确保每次 produceTasks 完成时，调用 Done
-	//	logs.Debug("func produceTasks start")
-
-	entries, err := os.ReadDir(rootPath)
-	if err != nil {
-		logs.Error("failed to read dir: %s , err: %s", rootPath, err)
-		return
-	}
-
-	for _, entry := range entries {
-		path := filepath.Join(rootPath, entry.Name())
-		if entry.IsDir() {
-			wg.Add(1)
-			atomic.AddInt64(counter, 1)
-			select {
-			case taskChan &lt;- path:
-				// 发送成功
-			default:
-				// 发送失败，通道已满
-				logs.Error("写入通道失败...")
-			}
-			logs.Debug("增加目录，增加 wg, [%d], taskChan = [%d]", atomic.LoadInt64(counter), len(resultChan))
-		} else {
-			resultChan &lt;- path
-		}
-	}
-
-	atomic.AddInt64(counter, -1)
-	logs.Debug("任务完成，减小 wg, [%d], taskChan = [%d]", atomic.LoadInt64(counter), len(resultChan))
-	//logs.Debug("func produceTasks end")
-}
-
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-08-22T11:57:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教一个场景怎么搭建服务</title>
-<link>https://www.v2ex.com/t/1067077</link>
-<guid>https://www.v2ex.com/t/1067077</guid>
-<content:encoded><![CDATA[
-<ol>
-<li>有一个 tcp 服务，连接成千上万的设备</li>
-<li>有一个 websocket 服务，连接用户端 如 web ，小程序，app 等</li>
-</ol>
-<p>用户发送的请求通过 websocket 通知给 tcp 到设备，下面 2 种方案怎么选择？</p>
-<ol>
-<li>tcp 和 websocket 服务合并成单个服务开发部署
-缺点：每次重启 ws 就要重启 tcp ，
-优点：不需要 2 个服务之间通信</li>
-<li>tcp 和 ws 分开部署
-缺点： 服务间需要通信，要么 ws 开一个 tcp 客户端，要么用消息中间件， 增加维护成本
-优点：ws 可以单独重启，ws 服务上含有业务 api</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-08-22T10:39:12Z</pubDate>
-</item>
-<item>
-<title>[Apple] 澳门 iPad 美区 iCloud 香港电话客服 成功买到美区 AC+</title>
-<link>https://www.v2ex.com/t/1067076</link>
-<guid>https://www.v2ex.com/t/1067076</guid>
-<content:encoded><![CDATA[
-<p>最近刚刚折腾了一把，分享下我买美区 AC+的过程，也想问问有没有人在中国大陆/香港使用过美区 AC+的？使用的体验是什么样的？</p>
-<p>因为 Apple Intelligence 锁中国大陆的硬件，于是把原来的国行 AC+的 iPad Pro M1 卖掉了，找人从澳门伦敦人的 Apple Store 带回来了一台 M4 的 iPad Pro ，有小票。</p>
-<p>结果因为不熟悉情况，收到才发现澳门和香港的 iPad 还是有区别的，具体在于澳门的不能在 iPad 设置里面买 AC+，只能线下购买或者电话购买。
-先是尝试去拨打澳门的 Apple Support 电话，结果无法接通，退而求其次拨打澳门伦敦人店的电话，结果那时候他们还没开业，不在营业时间 w 不接电话。</p>
-<p>最终拨打了香港的 Apple Support 电话，接通之后发现只有广东话和英语，就选择了英语客服。之后的过程倒是挺顺利的，只是由于没有显示 this device is eligible for AppleCare+，客服让我额外运行并且上传了个设备诊断日志作为补充。客服还说按月订阅的方案无法选择，只能先买两年的。
-购买的 AppleCare+是与当前登录的 Apple ID 绑定的，我登录的是美区，所以收到的邮件就是美区 AC+的链接，点进去之后支付只支持美国发行的卡，无论是输入 cvv 还是直接 Apple Pay ，还好我有张美卡，支付顺利。这里还有个题外话题外话，当时我问客服港卡是否可以支付，她告诉我可以，结果最终验证结果是不行的。</p>
-<p>买完之后很快就收到了邮件，AppleCare+ Proof of Coverage ，另外买完之后如果你还有 Apple Pencil Pro 或者 Magic Keyboard 的话，需要把序列号也报给客服，她再做一次绑定。</p>
-<p>这次算是踩了一个坑，按理说我这种直营店买的有收据的也不会被刁难使用 AC+，不知道有没有人真的在中国大陆或者香港用过美区 AC+，是什么体验？</p>
-]]></content:encoded>
-<pubDate>2024-08-22T10:34:57Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 远程平面，薪资 10-12k</title>
-<link>https://www.v2ex.com/t/1067075</link>
-<guid>https://www.v2ex.com/t/1067075</guid>
-<content:encoded><![CDATA[
-<p>远程平面，薪资 10-12k,
-联系 tg  @<a href="https://www.v2ex.com/member/foya188">foya188</a></p>
-]]></content:encoded>
-<pubDate>2024-08-22T06:34:17Z</pubDate>
-</item>
-<item>
-<title>[生活] 重庆最近温度好高</title>
-<link>https://www.v2ex.com/t/1067074</link>
-<guid>https://www.v2ex.com/t/1067074</guid>
-<content:encoded><![CDATA[
-<p>最高温普遍 43°C</p>
-<p><a href="https://imgur.com/FZAEu9s.jpg" rel="nofollow">https://imgur.com/FZAEu9s.jpg</a></p>
-]]></content:encoded>
-<pubDate>2024-08-22T12:13:32Z</pubDate>
-</item>
-<item>
-<title>米哈游 2025 校招启动！校招、社招内推进行中~~</title>
-<link>https://www.v2ex.com/t/1061584</link>
-<guid>https://www.v2ex.com/t/1061584</guid>
-<content:encoded><![CDATA[
-米哈游 2024 年 7 月最新招聘信息来啦！更新于 2024 年 7 月 31 日，持续更新中~~~<br /><br />米哈游 2025 校招启动！一起拯救世界 ！！！<br />校招、社招持续进行中～通过内推链接可查看各个岗位具体要求，各位优秀的小伙伴们，简历赶紧投起来吧。<br />米哈游 2025 秋招启动！～通过内推链接可查看各个岗位具体要求，各位优秀的小伙伴们，简历赶紧投起来吧。<br />八大通道岗位，网申全面开启！<br />在这里，你可以加入已上线项目和熟悉的 IP 并肩作战，也可以探索全新的玩法品类、不同的美术风格，与预研项目共同打怪升级…<br /><br />岗位类别：<br />美术&amp;表现类、程序&amp;技术类、产品策划类、运营类、市场&amp;商务类、国际化类、质量管理类、综合类<br /><br />✨面向对象：<br />2025 届毕业生（ 2024.9-2025.8 毕业）<br /><br />⏰网申日期：<br />7 月 26 日-10 月 31 日<br /><br />加入米哈游，一起踏上拯救世界的旅程～<br /><br />校招内推码：9MK7D<br />米哈游 2024 春季校园招聘官网：<br /><a href="https://jobs.mihoyo.com/#/campus/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/#/campus/position</a><br /><br />社招内推码：NTAEVIP<br />社招内推链接：<br /><a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position</a><br /><br />薪资福利参考我司 boss 直聘主页：<br /><a href="https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1" rel="nofollow noopener" target="_blank">https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1</a><br /><br />2 、加入米哈游你将享受以下福利：<br />- - 每年 10 天年假，3 天带薪病假<br />16+薪 六险二金 （全额五险一金+补充住房公积金+商业医疗保险）<br />每年两次薪资回顾机会（根据绩效评估是否调薪），分别在 4 月、10 月<br />免费定期体检（本人+一位家属），免费午餐晚餐，内部专属咖啡吧<br />早十晚七，内部各种福利群，猫群，鱼群，ps 群。。。。<br />不限量零食饮料，丰富多彩的节日礼品，年会百分百中奖，丰厚年终奖。<br />福利多多停不下来，我在 miHoYo ，等你一起拯救世界，米哈游期待你的到来。<br /><br />3 、关于米哈游<br />米哈游成立于 2011 年，致力于为用户提供美好的、超出预期的产品与内容。米哈游陆续推出了多款高品质人气产品，包括《崩坏学园 2 》、《崩坏 3 》、《未定事件簿》、《原神》、《崩坏:星穹铁道》，《绝区零》，动态桌面软件《人工桌面》以及社区产品《米游社》，并围绕原创 IP 打造了动画、音乐及周边等多元产品。<br />秉承着“技术宅拯救世界”的使命，米哈游始终致力于技术研发、探索前沿科技，在卡通渲染、人工智能、云游戏技术等领域积累了先进的技术能力。<br />米哈游总部位于中国上海，并在新加坡、美国、加拿大、日本、韩国等国家和地区进行全球化布局。目前，公司员工 5,000 人，来自世界知名游戏/互联网/科技公司。<br /><a href="https://www.v2ex.com/i/ZvDj5mzF.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 ZvDj5mzF.png"><img class="embedded_image" src="https://i.v2ex.co/ZvDj5mzF.png" /></a>
-]]></content:encoded>
-<pubDate>2024-08-22T12:03:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 发达国家真的不卷吗？</title>
-<link>https://www.v2ex.com/t/1067072</link>
-<guid>https://www.v2ex.com/t/1067072</guid>
-<content:encoded><![CDATA[
-从网上的信息看，发达国家普遍松弛，收入也不错，有相当的时间去消费以及做自己喜欢的事。有经历的老哥来聊聊，事实真的是这样吗？
-]]></content:encoded>
-<pubDate>2024-08-22T10:21:33Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 挽大厦之将倾： Macbook 2015-2016 12 寸半死硬上 Sonoma！</title>
-<link>https://www.v2ex.com/t/1067071</link>
-<guid>https://www.v2ex.com/t/1067071</guid>
-<content:encoded><![CDATA[
-<p>Macbook 12 寸是我认为最经典的机型之一。但是这个机子主板设计有缺陷，没有散热。导致散热不好，经常丢硬盘。海鲜市场很多机子。A1534 型号。</p>
-<p>然后闲着无聊收了很多尸体机子个人捣鼓。因为不是修电脑的。就拿起来组合着玩。</p>
-<p>我搞了个外置固态硬盘启动，然后搞了 opencore legacy ，上了 sonoma 。</p>
-<p>然后就拿来当副屏幕使用，可以直接从主屏幕移动到副屏幕使用。可以做一些工作的跟踪，听音乐，看视频。</p>
-<p>当然还能熟悉 sonoma 系统。都是插电使用。</p>
-<p>当然也搞了很多配件出来，键盘，螺丝，触控板，现在很熟悉 macbook 内部构造了。</p>
-<p>简直是什么都学到了。</p>
-<p>唉。哎。有同好的么？</p>
-<p><a href="https://imgur.com/psz5faM" rel="nofollow">Imgur</a> <a href="https://imgur.com/w9QCGBV" rel="nofollow">Imgur</a></p>
-]]></content:encoded>
-<pubDate>2024-08-22T10:11:47Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] 小爱同学访问淘宝干什么？</title>
-<link>https://www.v2ex.com/t/1067070</link>
-<guid>https://www.v2ex.com/t/1067070</guid>
-<content:encoded><![CDATA[
-<a href="https://imgur.com/a/wVd6ITc" rel="nofollow noopener" target="_blank">https://imgur.com/a/wVd6ITc</a><br />w 为什么小爱音箱会有淘宝的进程？
-]]></content:encoded>
-<pubDate>2024-08-22T09:45:35Z</pubDate>
-</item>
-<item>
-<title>[程序员] Docker 学习|交流|分享群</title>
-<link>https://www.v2ex.com/t/1067069</link>
-<guid>https://www.v2ex.com/t/1067069</guid>
-<content:encoded><![CDATA[
-<p>Docker 学习|交流|分享</p>
-<p>Docker | Moby | Docker Compose | Docker Swarm | Kubernetes (k8s)| Go (Golang)</p>
-<p>telegram: <a href="https://t.me/DockerCommunityChina" rel="nofollow">Docker 技术交流群</a></p>
-]]></content:encoded>
-<pubDate>2024-08-22T09:44:30Z</pubDate>
-</item>
-<item>
-<title>[求职] 求职全栈工程师/架构师</title>
-<link>https://www.v2ex.com/t/1067068</link>
-<guid>https://www.v2ex.com/t/1067068</guid>
-<content:encoded><![CDATA[
-岗位：Golang/K8s/开发/运维/架构等<br />地点：北京<br />联系方式：微信同昵称<br /><br />● 简述 <br />有 10 多年的工作经验，有云计算领域的相关技术发明专利 6 项，在架构设计，分布式系统，和优化上有一定积累;能带团队，能做架构，也能独立攻克一些 技术难题;是开源社区的积极代码贡献者(<a href="http://github.com/jmzwcn)，如" rel="nofollow noopener" target="_blank">github.com/jmzwcn)，如</a> Docker ，gRPC 等，获得 CNCF 认证的 Kubernetes 云原生资格 CKA 证书(证 号:LF-kw0dx02itf)。<br /><br />● 工作经验 <br />2023/01–2024/01:爱康国宾健康体检集团<br />裁员;集团技术部架构师，参与公司范围内的技术架构，技术方案，技术评 审，新技术推广等工作;推动云原生 K8s 平台的落地，指导公司各个业务系统 的一些上云 POC ，上云实施等流程;解决公司一些长期积累的问题，如流量 LB 的版本化/可视化能力。<br /><br />2021/04--2022/12:百度网络技术有限公司 <br />资深软件工程师，负责百度智能云 ACG 部门下的 ToB 交付平台，(天牛)的开 发与建设工作，该平台为典型微服务架构，个人主要承担平台的交付底座功 能，一个基于 Kubernetes 的部署引擎(DKE)的设计与开发;和 CI/CD 流水线 与多 CPU 架构/多操作系统/多 GPU 卡/多 K8s 版本的适配发版自动化;及场外客 户 onsite 支持等工作。<br /><br />2017/02--2021/04:新浪网技术(中国)有限公司 <br />作为架构师及主要开发人员，负责搭建新浪网技术部的容器云计算平台，包括 技术选型，方案论证，系统开发等，从无到有，已让新浪网 80%的 WEB 业务 运行于容器云平台之上;主要技术方向是基于 kubernetes 的落地与二次开发， 包括定制化的 CRD ，自定义的策略调度，自动化方向的 cloud-provider 等， 及基础的网络组件 calico ，监控普罗米修斯，存储组件 ceph ，日志组件 fluentd 等<br /><br />2011/03—2017/01:甲骨文软件(北京)有限公司 <br />1.作为高级软件工程师服务于 Oracle WebLogic 团队，主要负责 Connector/ Spring/Batch 等组件，包括新 feature 和 bug 处理，及相应的功能开发，代码 测试，解决产品 cloud/scrum 化过程中出现的各式问题<br />2.Weblogic 的 cloud 化相关工作，基于 docker 改造已有 infra 系统，采用 Golang+GRPC+Protobuffer 和微服务模式，使开发测试 CI/CD 流程更高效 的运行。<br /><br />●教育经历<br />2005/09--2008/07 <br />湖北工业大学 计算机科学与技术 硕士研究生 <br />2000/09--2004/07 <br />三峡大学 数学与应用数学 本科<br /><br /><br />-----------<br /><br />从 12 月底裁员开始，起初还有几个面试，可能期望值太高吧，大公司的架构师/专家岗级别，面完也没下文，现在是越来越凉，面试机会都没了。43 岁，家庭压力大，不知道哪位兄弟公司有机会，帮忙推荐一把，感激不尽。
-]]></content:encoded>
-<pubDate>2024-08-22T09:58:49Z</pubDate>
-</item>
-<item>
-<title>[Python] 贴吧 cookie 怎么用无头浏览器登录？</title>
-<link>https://www.v2ex.com/t/1067067</link>
-<guid>https://www.v2ex.com/t/1067067</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-22T09:39:31Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享一个自己慢慢积累的食谱给大家</title>
-<link>https://www.v2ex.com/t/1067066</link>
-<guid>https://www.v2ex.com/t/1067066</guid>
-<content:encoded><![CDATA[
-食谱的内容大多来自一些自己的尝试、或是《食帖》杂志，或是 B 站一些 up 主。记录的食谱都已经是自己已经烹饪过的。<br /><br />大部分的食谱内容都适合 1 人食或者 2 人食。<br /><br />链接： <a href="https://food.sayidhe.com/" rel="nofollow noopener" target="_blank">https://food.sayidhe.com/</a><br /><br />后续想打造一个基于节气、地理位置等的食谱日历，有烹饪兴趣的也可以一起来玩。
-]]></content:encoded>
-<pubDate>2024-08-22T09:49:38Z</pubDate>
-</item>
-<item>
-<title>[程序员] [有偿]神，祈求来个 perf 大神帮我解决一下问题吧！</title>
-<link>https://www.v2ex.com/t/1067065</link>
-<guid>https://www.v2ex.com/t/1067065</guid>
-<content:encoded><![CDATA[
-<p>perf node 程序。有偿，base64 绿色气泡 Um9sbG9Ub21hc3k=</p>
-<p>目前已知的问题：</p>
-<ol>
-<li>
-<p>perf record 怎么正确统计 node 程序，且获取 js 源码函数信息。我需要了解函数的执行时间（目前暂时不需要以 cpu 占用为目的），重点。</p>
-</li>
-<li>
-<p>perf report 怎么以树状图的形式查看。怎么搜索信息。每次执行特别慢。</p>
-</li>
-<li>
-<p>perf 获取出来的数据怎么利用时间戳信息。我希望生成的火焰图最好能有较好的时间信息。</p>
-</li>
-<li>
-<p>perf record 出来的数据中 perf.map 我看到是存在我添加的多个函数的，但是 perf script 出来只剩部分了，为什么呢？每次执行结果显示的函数都不一样，有部分函数失踪了。</p>
-</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-08-22T09:35:14Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 打印机打印数据采集</title>
-<link>https://www.v2ex.com/t/1067064</link>
-<guid>https://www.v2ex.com/t/1067064</guid>
-<content:encoded><![CDATA[
-<p>实现打印机打印数据的采集，后续我们自己对这些数据进行分析</p>
-<p>有了解这块儿的老哥嘛，有偿</p>
-]]></content:encoded>
-<pubDate>2024-08-22T09:48:10Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 特别实测｜从「它」到《Her》，浅析 ChatGPT 最新语音模式如何假装爱你</title>
-<link>https://www.v2ex.com/t/1067063</link>
-<guid>https://www.v2ex.com/t/1067063</guid>
-<content:encoded><![CDATA[
-<p>各位好，我们的《 WEB VIEW 》播客更新了。这一次，我们拿到了 ChatGPT 最新语音模式的内测资格。本次评测，我们会竭力避开 ChatGPT 可以「借力文字」而无法体现语音交流本质的方法，来看看它是否可以达到《 Her 》中斯嘉丽的智能程度。</p>
-<p>欢迎大家移步收听：</p>
-<ul>
-<li><a href="https://www.xiaoyuzhoufm.com/episode/66c680b1db5e6d6bf907bc7a" rel="nofollow">小宇宙</a></li>
-<li><a href="https://podcasts.apple.com/hk/podcast/web-view/id1401362237?i=1000666184531" rel="nofollow">苹果播客</a></li>
-</ul>
-<p>我们尝试测试 ChatGPT 在英语学习、中国方言（粤语、沪语）、多角色对话（音色）、音乐识别与创作、人类情感识别与表达、创意生成六个方面的表现。节目中，我们使用真实录音最大还原 ChatGPT 的现场表现，以及我们的主/客观评价。</p>
-<p>英语作为全球最广泛使用的语言，也是 ChatGPT 背后的最大语料库，我们自然要看看它的「主场」表现。ChatGPT 作为一个可以完全暴露语言缺陷的绝佳练习伙伴，是目前最合适的 AI 语音落地场景。<strong>所以，我们首先测试了英语学习场景。</strong></p>
-<p>感受完国际范儿，我们好奇 ChatGPT 是否可以理解我们的日常方言，尤其是以南方语系为代表的变调方言。我们主要测试了粤、沪两种方言。这两种语言都保留了古汉语中「入声」迹象，且包含一些需要了解当地文化、历史才能更好理解的概念。<strong>所以，我们接着测试了方言识别场景。</strong></p>
-<p>人与人之间沟通的前提是什么？是语义的准确性？还是附带的人类情感？但在讨论这些之前，我们更要知道「谁在和我们说话」。想象一个原始人小孩，听到熟悉父母和陌生人的声音时，谁会对他产生更大影响？从进化论角度，听谁的话对他更有利？同样一句话，不同的人说出来，你的感受也不一样，因为份量和情感不同。<strong>所以，我们关心 ChatGPT 是否可以识别音色，知道它在和谁对话。</strong></p>
-<p>AI 音乐并不新鲜，比如 Suno （一款 AI 音乐制作工具），但现在看来，更像是一个危机。从乐理角度看，人类使用的和弦、旋律走向等编曲特性趋同性严重，有人甚至怀疑，未来会不会有旋律写尽的一天。<strong>所以，抱着不让人类音乐向无聊、枯燥方向演进的幻想，我们想看看 ChatGPT 能否识别旋律，并与我们共同创作。</strong></p>
-<p>情感测试是我们最期待的环节。语言作为信息载体，帮助我们建立合作纽带。但为什么我们还会言不由衷、词不达意？是语言天生多义？还是语言承载着更微妙的东西？ ChatGPT 能否听出我们的言外之意，如讽刺、愤怒、离别的不舍，以及它是否会像人一样情绪失控。<strong>所以，我们在测试中不断让 ChatGPT 面临冲突升级，看它是否会为了保护「妻子和孩子」，突破系统提示词限制，做出意料之外的情感行为。</strong></p>
-<p>ChatGPT 的最大特点是回复及时，你一梳理好想法，答案就瞬间生成。但我们不行，因为我们要消化、理解并回复对话。<strong>所以，这次我们选择让 Claude 帮忙，让它与 ChatGPT 魔法对轰，双方接替回答，看几轮对话之内能否创作出精彩故事。</strong></p>
-<p>几年前我们刚开始做播客时，V 友还给了非常多的鼓励。这期节目希望大家喜欢。</p>
-]]></content:encoded>
-<pubDate>2024-08-22T09:58:59Z</pubDate>
 </item>
 </channel>
 </rss>
