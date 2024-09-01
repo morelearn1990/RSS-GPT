@@ -5,11 +5,405 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Java] 记录一次修复 Spring Framework Bug 的经历</title>
+<link>https://www.v2ex.com/t/1069437</link>
+<guid>https://www.v2ex.com/t/1069437</guid>
+<content:encoded><![CDATA[
+
+<h1>Spring RestTemplate 拦截器修改请求体导致的诡异问题</h1>
+<p>最近在工作中发现了 Spring 的一个"特性"（也许可以叫 Bug ？），反正我已经给 Spring 提了 PR ，等着看能不能合进去。</p>
+<h2>问题背景</h2>
+<p>最近在调用第三方 API 时，遇到了一个有意思的场景。整个调用流程大概是这样的：</p>
+<ol>
+<li>先调用 <code>/login</code> 接口，发送 username 和 password ，对方服务返回一个 JWT 。</li>
+<li>之后的每个请求接口都是标准格式，需要把 JWT 和请求参数放到一个 JSON 中，类似这样：</li>
+</ol>
+<pre><code class="language-json">{
+    "token": "JWT-TOKENxxxxxx",
+    "data": {
+        "key1": "value1",
+        "key2": "value2"
+    }
+}
+</code></pre>
+<ol>
+<li>发送请求，然后拿到响应报文。</li>
+</ol>
+<h2>解决方案</h2>
+<p>为了避免在每个接口都重复封装 token ，我想到了用 <code>org.springframework.http.client.ClientHttpRequestInterceptor</code> 来拦截请求，统一修改请求体。</p>
+<p>代码大概长这样：</p>
+<pre><code class="language-java">this.restTemplate = new RestTemplateBuilder()
+        .requestFactory(() -&gt; new ReactorNettyClientRequestFactory())
+        .interceptors((request, body, execution) -&gt; {
+            byte[] newBody = addToken(body); // 调用登陆获取 token ，修改入参 body ，添加 token
+            return execution.execute(request, newBody);
+        })
+        .build();
+</code></pre>
+<h2>诡异的问题</h2>
+<p>修改完成后，进入测试阶段，奇怪的事情就发生了：token 能正确获取，body 也修改成功了，但对方的接口一直报 400 ，Invalid JSON 。更奇葩的是，我把 newBody 整个复制出来，用独立的 Main 代码发送请求，居然一次就成功了。</p>
+<h2>深入源码</h2>
+<p>不服气的我只能往源码里找原因。从<code>RestTemplate</code>一路 Debug 到<code>org.springframework.http.client.InterceptingClientHttpRequest.InterceptingRequestExecution#execute</code>，发现了这么一段代码：</p>
+<pre><code class="language-java">@Override
+public ClientHttpResponse execute(HttpRequest request, byte[] body) throws IOException {
+    if (this.iterator.hasNext()) { //这里是在执行 interceptor 链，我的登陆和修改 body 接口就在这里执行
+        ClientHttpRequestInterceptor nextInterceptor = this.iterator.next();
+        return nextInterceptor.intercept(request, body, this);
+    }
+    else { // 上面的 interceptor 链执行完后，下面就是真实执行发送请求逻辑
+        HttpMethod method = request.getMethod();
+        ClientHttpRequest delegate = requestFactory.createRequest(request.getURI(), method);
+        request.getHeaders().forEach((key, value) -&gt; delegate.getHeaders().addAll(key, value)); 
+        if (body.length &gt; 0) {
+            if (delegate instanceof StreamingHttpOutputMessage streamingOutputMessage) {
+                streamingOutputMessage.setBody(new StreamingHttpOutputMessage.Body() {
+                    @Override
+                    public void writeTo(OutputStream outputStream) throws IOException {
+                        StreamUtils.copy(body, outputStream);
+                    }
+
+                    @Override
+                    public boolean repeatable() {
+                        return true;
+                    }
+                });
+            }
+            else {
+                StreamUtils.copy(body, delegate.getBody());
+            }
+        }
+        return delegate.execute();
+    }
+}
+</code></pre>
+<p>在 Debug 到<code>request.getHeaders().forEach</code>这里时，我突然发现 request 里的<code>Content-Length</code>居然和<code>body.length</code>（被修改后的请求体）不一样。</p>
+<h2>问题根源</h2>
+<p>继续往上追溯，在<code>org.springframework.http.client.AbstractBufferingClientHttpRequest</code>中找到了这段代码：</p>
+<pre><code class="language-java">@Override
+protected ClientHttpResponse executeInternal(HttpHeaders headers) throws IOException {
+    byte[] bytes = this.bufferedOutput.toByteArrayUnsafe();
+    if (headers.getContentLength() &lt; 0) {
+        headers.setContentLength(bytes.length);
+    }
+    ClientHttpResponse result = executeInternal(headers, bytes);
+    this.bufferedOutput.reset();
+    return result;
+}
+</code></pre>
+<p>原来<code>Content-Length</code>在执行拦截器之前就已经被设置了。但我们在拦截器里修改了<code>body</code>，导致对方接收到的 JSON 格式总是不对，因为<code>Content-Length</code>和实际的请求体长度不匹配。</p>
+<h2>解决问题</h2>
+<p>这时候为了先解决问题，就先在<code>interceptor</code>中重新赋值了<code>Content-Length</code></p>
+<pre><code class="language-java">this.restTemplate = new RestTemplateBuilder()
+        .requestFactory(() -&gt; new ReactorNettyClientRequestFactory())
+        .interceptors((request, body, execution) -&gt; {
+            byte[] newBody = addToken(body); // 调用登陆获取 token ，修改入参 body ，添加 token
+            request.getHeaders().setContentLength(body.length); // 重新设置 Content-Length
+            return execution.execute(request, newBody);
+        })
+        .build();
+</code></pre>
+<p>测试后，问题解决了。</p>
+<h2>反思和改进</h2>
+<p>问题虽然解决了，但我琢磨了一下，虽然是我在拦截器中修改了 body ，但这个地方 Spring 应该还是有责任把错误的<code>Content-Length</code>修正的。
+第一，Spring 的文档中没有明确写这里应该由谁来负责，是个灰色地带。
+第二，我们用<code>RestTemplate</code>谁会自己设置<code>Content-Length</code>啊，不都是框架设置的吗，所以这里不也应该由框架来负责嘛。</p>
+<p>思考完，周末找了个时间给 Spring 提了个 PR ，有兴趣的同学可以到这里看看。<a href="https://github.com/spring-projects/spring-framework/pull/33459" rel="nofollow">Update Content-Length when body changed by Interceptor</a></p>
+<p>有一说一，虽然不是第一次提 PR ，但是还是感觉挺爽的，记录一下。</p>
+<p>写的挺乱的，技术一般，大佬轻喷。</p>
+]]></content:encoded>
+<pubDate>2024-09-01T14:18:38Z</pubDate>
+<pubDate>2024-09-01T14:18:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 楼下工地每天早上八点半就施工, 我十一点上班, 一天换一个 3M 耳塞还是一周换一个 8 元的安耳悠耳塞更好? 安耳悠效果好一点, 但是不能清洗有点不卫生, 一天一换有点浪费</title>
+<link>https://www.v2ex.com/t/1069436</link>
+<guid>https://www.v2ex.com/t/1069436</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-01T14:07:30Z</pubDate>
+<pubDate>2024-09-01T14:04:30Z</pubDate>
+</item>
+<item>
+<title>[服务器] 服务器硬件条件有限，在 1Panel 和 雷池之间如何选择</title>
+<link>https://www.v2ex.com/t/1069435</link>
+<guid>https://www.v2ex.com/t/1069435</guid>
+<content:encoded><![CDATA[
+
+<p>本人不太熟悉运维和安全方面的东西，然后现在买了一台 2c2g 的阿里云的 ecs</p>
+<p>想要在这台服务器上部署自己写的一些页面然后还有一些对外的 node 服务</p>
+<p>但是又考虑到服务器的安全性，还有部署时候的一系列繁琐的操作，就像找个工具统一弄一下</p>
+<p>在网上看大家对 <a href="https://1panel.cn/" rel="nofollow">1Panel</a> 和 <a href="https://waf-ce.chaitin.cn/" rel="nofollow">雷池</a> 的评价比较高</p>
+<p>不过看了一下对硬件的要求，我的服务器如果同时安装两个，可能内存就撑满了（现在服务器用 docker 装了一个 1panel 和 mysql 就已经占一半了）</p>
+<p>现在想问一下各位大佬，装哪一款比较好，或者说这两个根本就是不同纬度的东西，没有可比性</p>
+<p>我目前能想到的需求主要是集中在下面两点： </p>
+<ul>
+<li>https 证书的更新啥的</li>
+<li>怕服务器被攻击</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-09-01T14:00:42Z</pubDate>
+<pubDate>2024-09-01T14:18:22Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone xs 打电话声音故障 天才吧说只能整机换</title>
+<link>https://www.v2ex.com/t/1069434</link>
+<guid>https://www.v2ex.com/t/1069434</guid>
+<content:encoded><![CDATA[
+
+打电话对方听不清，要开免提，天才吧说底部麦克风损坏（当时那 sb 还说的是扬声器），只能自己掏钱整机更换，更换之后保修期只有 90 天<br />私人维修店说 120 换个“送话器”就能搞定，球问各位靠谱吗<br /><br />顺便吐槽下 apple store 服务够 low 的，那态度拽的跟你欠了它八百万似的
+]]></content:encoded>
+<pubDate>2024-09-01T14:00:40Z</pubDate>
+<pubDate>2024-09-01T14:00:40Z</pubDate>
+</item>
+<item>
+<title>[程序员] Linux 写时复制问题</title>
+<link>https://www.v2ex.com/t/1069433</link>
+<guid>https://www.v2ex.com/t/1069433</guid>
+<content:encoded><![CDATA[
+
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+
+int g=100;
+
+int main()
+{
+
+	static int x=666;
+
+	
+	pid_t pid = fork();
+
+
+	if (pid==-1){
+		printf("创建进程失败\r\n");
+	}
+
+	if (pid==0){
+		printf("pid=%d g=%d,x=%d,g=%p,x=%p\r\n",pid,g,x,&amp;g,&amp;x);
+		g=111;
+		x=222;
+
+		printf("我子进程 pid=%d,g=%d,x=%d,g=%p,x=%p\r\n",pid,g,x,&amp;g,&amp;x);
+	}else{
+
+		printf("pid=%d,g=%d,x=%d,g=%p,x=%p\r\n",pid,g,x,&amp;g,&amp;x);
+		g=666;
+		x=777;
+		printf("我是父进程 pid=%d,g=%d,x=%d,g=%p,x=%p\r\n",pid,g,x,&amp;g,&amp;x);
+		
+	}
+
+
+	return 0;
+}
+
+</code></pre>
+<h3>输出</h3>
+<pre><code>pid=4502,g=100,x=666,g=0x601044,x=0x601048
+我是父进程 pid=4502,g=666,x=777,g=0x601044,x=0x601048
+pid=0 g=100,x=666,g=0x601044,x=0x601048
+我子进程 pid=0,g=111,x=222,g=0x601044,x=0x601048
+</code></pre>
+<h3>我的问题是：</h3>
+<h4>子进程修改变量后，会重新开启一块新内存，再我重新修改变量值后，为什么在打印变量的地址还是相同的？</h4>
+]]></content:encoded>
+<pubDate>2024-09-01T13:57:59Z</pubDate>
+<pubDate>2024-09-01T14:06:35Z</pubDate>
+</item>
+<item>
+<title>[VPS] [收］绿云日本 3 年付中盘鸡</title>
+<link>https://www.v2ex.com/t/1069432</link>
+<guid>https://www.v2ex.com/t/1069432</guid>
+<content:encoded><![CDATA[
+
+<p>多少刀我忘了反正是 3 年付 0.5t 盘的初期活动鸡，  愿意出的老哥留个 tg?
+适当溢价可</p>
+]]></content:encoded>
+<pubDate>2024-09-01T13:50:52Z</pubDate>
+<pubDate>2024-09-01T13:48:52Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 用过目前最准确的 AI 翻译 api</title>
+<link>https://www.v2ex.com/t/1069430</link>
+<guid>https://www.v2ex.com/t/1069430</guid>
+<content:encoded><![CDATA[
+
+<p>很久没更新翻译软件了，前段时间偶然知道 deepseek ，试用了下，添加到沉浸式翻译，翻译结果非常准确，读起来通顺，以前用过百度，通义千问，字节，腾讯，的 API 感觉都不是太完美，微软，Google 也差点，，，以前一直用的微软，，腾讯偶尔，，其他翻译都差点意思
+还没试用过 openai 的翻译，，主要 api 并发问题不好解决，开翻译会员有太贵，，
+请问网上那些卖中转 api 的，兼容 openai ，key 的是用 chat2api 项目开发的吗？？他们那种怎么那么多账号，撸来的做负载？，，那种中转 api 根 CNY 一比一，不知道放到翻译 api 效果如何，，，</p>
+]]></content:encoded>
+<pubDate>2024-09-01T13:42:56Z</pubDate>
+<pubDate>2024-09-01T13:42:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 在 ARM64 的 Linux 内核下，使用比 sp 指针小的内存空间存储变量是否可行</title>
+<link>https://www.v2ex.com/t/1069428</link>
+<guid>https://www.v2ex.com/t/1069428</guid>
+<content:encoded><![CDATA[
+
+<p>在阅读 ptrace 相关代码时，看到为了修改 openat 系统调用的 path 参数，在小于 sp 指针（或者叫高于栈顶位置）保存了新的 path 路径，然后将传递参数的寄存器指向了这个新的 path ，这样做为什么是没有问题的？一般文档上说，sp 指向栈顶，那么如果变量使用了没有被 sp 涵盖的内存空间（字符数组指向了小于 sp 指针的位置），这不会报错吗？</p>
+]]></content:encoded>
+<pubDate>2024-09-01T13:16:37Z</pubDate>
+<pubDate>2024-09-01T13:16:37Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 请事假失去的当天薪资是否属于“扣薪”？</title>
+<link>https://www.v2ex.com/t/1069427</link>
+<guid>https://www.v2ex.com/t/1069427</guid>
+<content:encoded><![CDATA[
+
+<p>周围同事认为事假会“扣薪”，所以不到万不得已不会轻易请事假。但在本人的认知里，本来人就没去上班，没有当天的薪资很正常，故即使年假用光了也会经常以小时为单位请事假。（被调侃了下“没有生活压力~”）</p>
+<p>关于这点认知的差异我稍感兴趣。可能是我一直以来都是按时薪去计算薪资，导致观念里认为自己的工作是计时的；但其他人或许不这么认为，他们大概更倾向于固定薪资（？），所以才会有因事假失去了当天的薪资属于被“扣薪”的观念。</p>
+<p>综上，发帖调查统计下其他人的观念。</p>
+]]></content:encoded>
+<pubDate>2024-09-01T12:52:20Z</pubDate>
+<pubDate>2024-09-01T14:13:14Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 分享一个电脑上 bark 推送的 ahk 脚本</title>
+<link>https://www.v2ex.com/t/1069426</link>
+<guid>https://www.v2ex.com/t/1069426</guid>
+<content:encoded><![CDATA[
+
+原脚本没有对剪贴板的内容进行 urlencode 处理，稍作修改了一下<br /><a href="https://gist.github.com/codexss/03ca2290a89d8becf6c39286b0af537c" rel="nofollow noopener" target="_blank">https://gist.github.com/codexss/03ca2290a89d8becf6c39286b0af537c</a>
+]]></content:encoded>
+<pubDate>2024-09-01T12:43:53Z</pubDate>
+<pubDate>2024-09-01T12:43:53Z</pubDate>
+</item>
+<item>
+<title>[实习] Casbin 开源社区《Talent 2024》远程开源预选生招募中！</title>
+<link>https://www.v2ex.com/t/966666</link>
+<guid>https://www.v2ex.com/t/966666</guid>
+<content:encoded><![CDATA[
+
+<h2>Casbin 明日之星预选生计划-Talent for Casbin 2024</h2>
+<h3>“Casbin 明日之星预选生计划-Talent for Casbin 2024”是什么？</h3>
+<p>“Casbin 明日之星预选生计划-Talent for Casbin 2024”（以下简称 Talent 2024 ）是由 Casbin 开源社区举办的一项面向高校学生的编程活动，旨在鼓励在校学生积极参与 Casbin 社区旗下开源软件的开发维护，促进国内优秀开源软件的蓬勃发展。</p>
+<p>2020 年，Casbin 以开源社区的身份首次参加了由 Google 公司主办的<a href="https://summerofcode.withgoogle.com/archive/2020/organizations/6587176113930240/" rel="nofollow">Google Summer of Code 2020</a> 和由中科院软件所、OpenEuler 社区主办的<a href="https://isrc.iscas.ac.cn/summer2020" rel="nofollow">开源软件供应链点亮计划-暑期 2020</a> 。在上述活动中，Casbin 社区共派出 7 位来自国内外（中国、法国等）互联网一线的资深社区导师，共培养、指导了国内外 15 名学生（ 14 位中国同学、1 位印度同学）进行为期 3 个月的开源编程活动。Casbin 项目已毕业的同学，有的成长为 Casbin 项目核心维护者、以开源大牛的身份活跃于 GitHub ，有的毕业后全职加入腾讯微信事业部等互联网头部公司，有的凭借在 Casbin 社区的出色经历拿到全球顶级投行 Morgan Stanley （摩根士丹利）的 offer ，在工业界和学术界发挥着重要作用。</p>
+<p>2021 年和 2022 年，Casbin 社区继续参加上述两项活动，Google Summer of Code 和开源软件供应链点亮计划-暑期编程之夏，题目的数量与招纳的学生人数均创下新高。</p>
+<table>
+<thead>
+<tr>
+<th>活动</th>
+<th>学生人数</th>
+<th>最终考核通过人数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GSoC 2020</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>暑期 2020</td>
+<td>12</td>
+<td>10</td>
+</tr>
+<tr>
+<td>GSoC 2021</td>
+<td>9</td>
+<td>9</td>
+</tr>
+<tr>
+<td>暑期 2021</td>
+<td>11</td>
+<td>11</td>
+</tr>
+<tr>
+<td>GSoC 2022</td>
+<td>12</td>
+<td>11</td>
+</tr>
+<tr>
+<td>暑期 2022</td>
+<td>6</td>
+<td>5</td>
+</tr>
+</tbody></table><p>为了在非暑期时间能够继续促进 Casbin 开源软件的发展，同时挖掘有潜力的学生作为 Google Summer of Code 2024 和暑期 2024 （若该赛事仍举行并且 Casbin 社区获得参加资格）的有力竞争者，Casbin 社区将自筹资金，在 Google Summer of Code 等活动的闭幕期间，开展常态化的“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动，针对 Casbin 社区旗下开源软件的开发与维护提供 mini 项目，并向全国高校学生开放报名。学生可自主选择感兴趣的项目进行申请，并在中选后获得该软件资深维护者（社区导师）亲自指导的机会。</p>
+<p>根据项目的难易程度和完成情况，参与者可获取“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动奖金和加盖 Casbin 社区公章的参与（实习）证明。</p>
+<p><strong>“Talent 2024”项目在 2024 年第四次举办，与 Google Summer of Code 等活动类似，不同点是“Talent 2024”在非 GSoC 申请时间举行，与 GSoC 等活动是互补的关系。</strong></p>
+<ol>
+<li>Casbin 明日之星预选生计划-Talent for Casbin 2024 官网： <a href="https://github.com/casbin/Talent2024" rel="nofollow">https://github.com/casbin/Talent2024</a></li>
+<li>Google Summer of Code 官网： <a href="https://summerofcode.withgoogle.com/" rel="nofollow">https://summerofcode.withgoogle.com/</a></li>
+<li>Google Summer of Code 中文介绍： <a href="https://github.com/gsoc-cn/gsoc-cn" rel="nofollow">https://github.com/gsoc-cn/gsoc-cn</a> 或 <a href="https://zhuanlan.zhihu.com/p/27823910" rel="nofollow">https://zhuanlan.zhihu.com/p/27823910</a> 或 <a href="https://zhuanlan.zhihu.com/p/27330699" rel="nofollow">https://zhuanlan.zhihu.com/p/27330699</a></li>
+<li>开源软件供应链点亮计划-暑期活动官网： <a href="https://summer.iscas.ac.cn/" rel="nofollow">https://summer.iscas.ac.cn/</a></li>
+</ol>
+<h3>活动的主要参与方有哪些？</h3>
+<p>活动组织方：Casbin 开源软件社区。</p>
+<p>活动参与方主要角色为学生和导师。</p>
+<ol>
+<li>学生：学生自由选择项目，与导师沟通实现方案并撰写项目计划书。被选中的学生将在导师指导下，按计划完成开发工作，并将成果贡献给社区。社区评估学生的完成度，主办方根据评估结果发放资助金额给学生。</li>
+<li>社区：社区提供项目列表和描述，并安排项目对应的导师，导师与申请者沟通方案、并从申请者中选中一位承接项目。在为期三个月的开发周期中，导师指导学生进行对应项目的开发工作。</li>
+<li>导师：社区针对每一个项目指定一个导师，与学生一起制定合适的开发计划和方案，指导学生按计划完成开发。</li>
+</ol>
+<h3>本项目的资助额度是多少？</h3>
+<p>资助金按月发放，分为基础资助金：600 元 + 奖金：0~400 元
+（均为每月税后，根据上手快慢程度及技术栈匹配程度会有浮动，项目开始前会协商好。）</p>
+<h2>Casbin 开源项目介绍</h2>
+<p>Casbin 是一个强大的、高效的开源访问控制框架，支持 Go, Java, Node.js, Javascript (React), Python, PHP, .NET, C++, Rust 等十几种语言。Casbin 开源项目由北京大学罗杨博士创立于 2017 年，核心维护团队有二十多人。Casbin 在业界具有广泛影响力。目前已经被 Intel 、VMware 、Orange 、RedHat 、T-Mobile 等公司开源使用，被腾讯云、Cisco 、Verizon 等公司闭源使用。具体详见 Casbin 主页。Casbin Go 主项目目前 GitHub 10000+ stars ，加上所有语言的实现、插件等可达到 15000+ stars 。</p>
+<p>Casbin 技术已经被列入多个国内外权威机构、政府部门的白皮书：</p>
+<ol>
+<li>国家广电总局《广播电视和网络视听区块链系统》白皮书（第 85 页）： <a href="http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf" rel="nofollow">http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf</a></li>
+<li>美国国家标准与技术研究院（ NIST ）《 Attribute-based Access Control for Microservices-based Applications Using a Service Mesh 》白皮书（第 10 页）： <a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf" rel="nofollow">https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf</a></li>
+</ol>
+<p>Casbin 也曾经在国际上进行多次线下宣讲：</p>
+<ol>
+<li>新加坡政府技术部 Open Government Products： <a href="https://www.youtube.com/watch?v=OTT84oplR9o" rel="nofollow">https://www.youtube.com/watch?v=OTT84oplR9o</a></li>
+<li>俄罗斯最大在线旅游平台 <a href="http://tutu.ru" rel="nofollow">tutu.ru</a>： <a href="https://www.youtube.com/watch?v=Z5dUxH4PqYM" rel="nofollow">https://www.youtube.com/watch?v=Z5dUxH4PqYM</a></li>
+</ol>
+<p>具体请了解 Casbin 官网： <a href="https://casbin.org/" rel="nofollow">https://casbin.org/</a></p>
+<h2>可选项目列表</h2>
+<p>所有可选项目详见： <a href="https://github.com/casbin/Talent2024#%E5%8F%AF%E9%80%89%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8" rel="nofollow">https://github.com/casbin/Talent2024#可选项目列表</a></p>
+<h2>候选人要求</h2>
+<h3>工作职责：</h3>
+<ul>
+<li>每周与项目导师进行线上讨论，完成项目规定的开发任务。项目导师由开源项目创始人或其他核心成员担任；</li>
+<li>积极参与开源社区的建设，参与代码提交、解决 Issue 、审核 PR 等日常工作；</li>
+<li>配合完成官方要求的材料提交等事项，包括项目申请书撰写、社区反馈任务完成度追踪等。</li>
+</ul>
+<h3>职位要求：</h3>
+<ul>
+<li>本科、硕士或博士在读（已毕业、工作的无法参加）；</li>
+<li>对开源软件、开源社区感兴趣；</li>
+<li>熟悉一种或多种编程语言，有较强的工程能力，代码格式清晰规范，善于团队协作；</li>
+<li>有一定英文读写能力，能够熟练运用英语在 GitHub 进行开发、协作；</li>
+<li>较强的沟通能力和逻辑表达能力。</li>
+</ul>
+<h3>具有以下条件者优先：</h3>
+<ul>
+<li>熟悉 Go, Javascript 、React 等语言或框架、Web 系统、分布式系统、微服务架构，有相关项目经验；</li>
+<li>在 GitHub 较为活跃，有自己的开源项目，或参与过知名开源项目；</li>
+<li>可以在项目结束后继续长期参与开源社区的开发、建设或维护。</li>
+</ul>
+<h2>投递要求</h2>
+<p>申请学生需要同时完成以下“联系社区”和“官网投递”两个环节：</p>
+<h3>1. 联系社区（ 2023 年 8 月 1 日 - 2023 年 12 月 31 日）</h3>
+<ol>
+<li>加入《 Casbin 访问控制社区群》（ QQ 大群）：<a href="https://shang.qq.com/wpa/qunwpa?idkey=8ac8b91fc97ace3d383d0035f7aa06f7d670fd8e8d4837347354a31c18fac885" rel="nofollow">546057381</a></li>
+<li>加入《 Casbin 明日之星预选生计划-Talent for Casbin 2024-群》（ QQ 小群）：<a href="https://qm.qq.com/cgi-bin/qm/qr?k=5MjIdZuPmAio6lfAr-NTxBY0CcoGL1yl&amp;jump_from=webapi" rel="nofollow">540163681</a> ，联系导师，与导师沟通项目细节和方案，完成社区指定的 Easy Tasks</li>
+</ol>
+<div>
+<img alt="qrcode-casbin" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-casbin.png" />
+<img alt="qrcode-talent" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-talent.png" />
+</div>
+<h3>2. 官网投递（ 2023 年 8 月 1 日 - 2023 年 12 月 31 日）</h3>
+<p>发送 [中文简历 PDF ] 至 Casbin 社区官方邮箱： <a href="mailto:admin@casbin.org">admin@casbin.org</a></p>
+]]></content:encoded>
+<pubDate>2023-08-19T07:15:13Z</pubDate>
+<pubDate>2024-09-01T13:25:06Z</pubDate>
+</item>
+
+<item>
 <title>[NAS] 请教 NAS 指向旁路由的网络问题</title>
 <link>https://www.v2ex.com/t/1069425</link>
 <guid>https://www.v2ex.com/t/1069425</guid>
 <content:encoded><![CDATA[
-
 <p>今天想安装个新 Docker ，发现怎么都拉取不到镜像。然后想起来 Dockerhub 被墙了...
 于是我把 NAS 的网关和 DNS 地址指向了旁路由网关，旁路由开了梯子。
 但是还是不行，折腾了一圈后我把 NAS 的 ipv6 关了，然后就好了。</p>
@@ -17,14 +411,12 @@
 <p>想请教一下各位，应该怎么设置调整才能 ipv6 和科学共存。因为需要 ipv6 访问 NAS</p>
 ]]></content:encoded>
 <pubDate>2024-09-01T12:32:33Z</pubDate>
-<pubDate>2024-09-01T12:32:33Z</pubDate>
 </item>
 <item>
 <title>[酷工作] 硅谷 OpenAI 投资公司招聘 AI 工程师</title>
 <link>https://www.v2ex.com/t/1069424</link>
 <guid>https://www.v2ex.com/t/1069424</guid>
 <content:encoded><![CDATA[
-
 <p>Hee Labs 是一家美国硅谷 AI 教育公司。我们的旗舰产品 Heeyo 是儿童教育 AI 老师产品。Heeyo 目前已获 OpenAI 等 350 万美元投资，最新估值 2000 万美元。</p>
 <p><strong>职位描述：</strong></p>
 <p>这是一份全职远程的 AI 工程师岗位。AI 工程师将负责模式识别、计算机科学、神经网络、软件开发和自然语言处理（ NLP ）等任务。他们将致力于开发和实施 AI 算法，设计和培训神经网络，并创建软件解决方案。AI 工程师将与跨职能团队合作，将 AI 技术整合到各种应用和系统中。</p>
@@ -60,7 +452,6 @@
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-09-01T12:32:28Z</pubDate>
 <pubDate>2024-09-01T12:29:28Z</pubDate>
 </item>
 <item>
@@ -68,10 +459,8 @@
 <link>https://www.v2ex.com/t/1069423</link>
 <guid>https://www.v2ex.com/t/1069423</guid>
 <content:encoded><![CDATA[
-
 <p>相信有很多朋友的孩子学校用钉钉的, 群里会有一些资料需要打印, 每次需要先下载再使用其他 App 打开进行打印, 操作比较繁琐, 有没有办法直接让家里的打印机支持钉钉的云打印?</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T12:26:00Z</pubDate>
 <pubDate>2024-09-01T12:26:00Z</pubDate>
 </item>
 <item>
@@ -79,14 +468,12 @@
 <link>https://www.v2ex.com/t/1069421</link>
 <guid>https://www.v2ex.com/t/1069421</guid>
 <content:encoded><![CDATA[
-
 <p>主路由是华硕的 ax88u ，桥接模式用来拨号，开通了 IPv6.
 Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设置网关和 DNS ，所以在路由器上统一设置了 IPv4 网关和 DNS 指向 Apple TV 的固定 IP 。
 目前发现一个问题，路由器开启 IPv6 的情况下，家里设备除 Apple TV 本身外都无法连接外网。关闭 IPv6 后所有设备可以正常访问外网，基本可以确定是 IPv6 导致的问题，我猜测可能是路由器只设置了 IPv4 的网关和 DNS ，但家里设备都被分配了 IPv6 的地址，导致仍然通过主路由的 IPv6 DNS 去做解析。但由于家里还在使用 iptv 看电视，所以也无法关闭 IPv6 。
 目前我想到的办法是获取并固定 Apple TV 的 IPv6 地址，将主路由的 IPv6 DNS 指向它。但在 Apple TV 中没有找到相关的操作办法。
 求教有没有其他方式可以解决呢？梅林固件上的 clash 调整策略太不方便了。</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T12:22:00Z</pubDate>
 <pubDate>2024-09-01T12:21:00Z</pubDate>
 </item>
 <item>
@@ -94,10 +481,8 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069420</link>
 <guid>https://www.v2ex.com/t/1069420</guid>
 <content:encoded><![CDATA[
-
 1 ，可以互传剪切板<br />2 ，可以互传文件
 ]]></content:encoded>
-<pubDate>2024-09-01T12:19:55Z</pubDate>
 <pubDate>2024-09-01T12:38:33Z</pubDate>
 </item>
 <item>
@@ -105,10 +490,8 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069418</link>
 <guid>https://www.v2ex.com/t/1069418</guid>
 <content:encoded><![CDATA[
-
 相较于每天抽时间看书，<br /><br />我更好奇这些大佬管理这么大的公司，没有烦心事，能够年复一年的保持长期阅读的心情？
 ]]></content:encoded>
-<pubDate>2024-09-01T12:11:04Z</pubDate>
 <pubDate>2024-09-01T12:35:20Z</pubDate>
 </item>
 <item>
@@ -116,7 +499,6 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069417</link>
 <guid>https://www.v2ex.com/t/1069417</guid>
 <content:encoded><![CDATA[
-
 <p>开发一个申请免费 SSL 证书的网站,<br />
 虽然有 acme 脚本申请，但那对于一些不太懂的人就不那么直观,<br />
 也有很多网站提供申请，但无一例外都要注册账号，甚至是手机号,  </p>
@@ -126,7 +508,6 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <p>欢迎使用和反馈：
 草啦 SSL <a href="https://cao.la" rel="nofollow">https://cao.la</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-01T12:00:56Z</pubDate>
 <pubDate>2024-09-01T12:34:31Z</pubDate>
 </item>
 <item>
@@ -134,13 +515,11 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069415</link>
 <guid>https://www.v2ex.com/t/1069415</guid>
 <content:encoded><![CDATA[
-
 <p>突然从电脑桌左手边的抽屉里翻出来了这个玩意 还是我两年前入职 Infosys 送的入职礼品  </p>
 <p>现在是可算是 come in handy(派上用场)了  </p>
 <p><img alt="b1e95fb1d524dc4b2602514aaf80959.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/09/01/SnJVNOsIavzCmQE.jpg" /></p>
 <p><img alt="1367d9f30db659518a4551998e36716.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/09/01/ubw2U8xIWAt1CER.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2024-09-01T11:46:36Z</pubDate>
 <pubDate>2024-09-01T11:45:36Z</pubDate>
 </item>
 <item>
@@ -148,10 +527,8 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069414</link>
 <guid>https://www.v2ex.com/t/1069414</guid>
 <content:encoded><![CDATA[
-
 因为我的 MacBook 只是放在房间自己用所以昨天清除了锁屏密码。<br />结果今天重启后发现自己的 shell 返璞归真了，连变色都没了<br />brew 也没了🥹<br />为什么删密码会把这些数据也删了呀。。。
 ]]></content:encoded>
-<pubDate>2024-09-01T11:41:10Z</pubDate>
 <pubDate>2024-09-01T11:38:10Z</pubDate>
 </item>
 <item>
@@ -159,11 +536,9 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069413</link>
 <guid>https://www.v2ex.com/t/1069413</guid>
 <content:encoded><![CDATA[
-
 <p>Spotify 日区家庭车有没有上车～
 上次车到期啦有一人下车￣ ￣)σ，有意联系邮箱 <a href="mailto:99gywyjq@Gmail.com">99gywyjq@Gmail.com</a> 或者电报 @gengyuwei1021</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T11:21:07Z</pubDate>
 <pubDate>2024-09-01T11:21:07Z</pubDate>
 </item>
 <item>
@@ -171,14 +546,12 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069411</link>
 <guid>https://www.v2ex.com/t/1069411</guid>
 <content:encoded><![CDATA[
-
 <h1>我艹，太恐怖了</h1>
 <p>刚刚看了一个私活报价，108 个后台管理系统页面，12000</p>
 <p>并且不是简单的 CRUD ，兄弟们，谁把价格压这么低的？？？？</p>
 <p>并且还是简单的原型，需求也很粗糙，这怎么敢的？？？？</p>
 <p>还要赶时间，我靠！！！！</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T11:15:54Z</pubDate>
 <pubDate>2024-09-01T12:38:45Z</pubDate>
 </item>
 <item>
@@ -186,7 +559,6 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069410</link>
 <guid>https://www.v2ex.com/t/1069410</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>
 <p>如何将 mac 的默认输入法设置为搜狗, 不然每次切换有点麻烦</p>
@@ -197,7 +569,6 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 </ol>
 <p>各位老哥有解决方式吗, 目前是 macos 14.6</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T11:11:35Z</pubDate>
 <pubDate>2024-09-01T11:15:04Z</pubDate>
 </item>
 <item>
@@ -205,10 +576,8 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069409</link>
 <guid>https://www.v2ex.com/t/1069409</guid>
 <content:encoded><![CDATA[
-
 找了个下载直播回放视频的脚本，已经打包成 exe 了，但是运行的时候报错，我大概看了看脚本内容，是因为获取网页元素的一行代码报了错，获取的元素名字不对，我改了脚本直接运行提示创建视频临时文件的时候没权限，因为原作者联系不到，只能来请教各位，我想把修改后的脚本打包成 exe 运行，或者解决没权限的问题，哪个更简单些，具体该怎么做？没接触过 python ，仰仗各位了。
 ]]></content:encoded>
-<pubDate>2024-09-01T11:10:53Z</pubDate>
 <pubDate>2024-09-01T12:38:25Z</pubDate>
 </item>
 <item>
@@ -216,10 +585,8 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069408</link>
 <guid>https://www.v2ex.com/t/1069408</guid>
 <content:encoded><![CDATA[
-
 微软用了十多年的 hotmail 账号，去年加入 office365 家庭拼车，平时用 onedrive 同步桌面办公资料，前端时候因为公司内网封锁用不了 onedrive ，开始改用美国的 vpn 同步，上个月有段时间发现登录不上，一直没理会，直到有一天跳出账号异常界面，用网页登录提示违反了微软用户协议（异常界面说有违规内容上传行为），账号被封停了，目前只能请愿，请了几次都没有回复。有人遇到过这种情况吗？哪位大神能指引下有没恢复办法，谢谢🙏
 ]]></content:encoded>
-<pubDate>2024-09-01T11:01:40Z</pubDate>
 <pubDate>2024-09-01T05:01:40Z</pubDate>
 </item>
 <item>
@@ -227,16 +594,13 @@ Apple TV 使用 Qx 作为网关，家里设备多，不想每台设备单独设�
 <link>https://www.v2ex.com/t/1069407</link>
 <guid>https://www.v2ex.com/t/1069407</guid>
 <content:encoded><![CDATA[
-
 <p>如题<br />
 跟专业和非专业的证都可以,不用报班或者报班在 1000 元以下的<br />
 拿证下来后可以提高生活质量或者改变个人认知的
 谢谢大家提提意见,让我长长见识,感谢!</p>
 ]]></content:encoded>
-<pubDate>2024-09-01T11:00:36Z</pubDate>
 <pubDate>2024-09-01T11:10:15Z</pubDate>
 </item>
-
 <item>
 <title>[职场话题] 文科转码，毕业五年的感受与迷茫</title>
 <link>https://www.v2ex.com/t/1069405</link>
@@ -15615,197 +15979,6 @@ Hong Kong 私人地址（英文地址） 只做合法代收业务，提前预定
 <p>问：能使用 apple pay 里的香港万事达卡进行支付吗</p>
 ]]></content:encoded>
 <pubDate>2024-08-27T09:40:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] M575 用了两年半出现频繁卡、涩的现象，想准备换一个。。。</title>
-<link>https://www.v2ex.com/t/1068198</link>
-<guid>https://www.v2ex.com/t/1068198</guid>
-<content:encoded><![CDATA[
-如题， 罗技的 M575 ， 前两年用着非常舒服， 十天半个月的清洁一次， 手感立刻回复。<br /><br />但是最近无论怎么清洁， 滚球还是会发生卡顿、生涩的情况，到也不多， 似乎绕过那个点又好了，有时候甚至和气温有点儿关系。。。<br /><br />看到有自己换支点的帖子，但是手残党还是算了。<br /><br /><br />现在要么再买一个 m575 ， 理论上至少再爽 2 年<br /><br />要么换个别家的中指大球体验一下，slim blade pro 还有宜丽客的一个。又怕有坑。<br /><br />用过的同学请指教一下
-]]></content:encoded>
-<pubDate>2024-08-27T08:27:08Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问一下 YTmusic 歌曲点赞，歌曲保存到媒体库以及歌曲保存到一个播放列表 这三者的逻辑</title>
-<link>https://www.v2ex.com/t/1068197</link>
-<guid>https://www.v2ex.com/t/1068197</guid>
-<content:encoded><![CDATA[
-我遇到一首好歌的时候，我之前是点了个赞，之后我就会发现我赞过的视频和赞过的音乐越来越多，非常杂<br />我就开始把我听的歌新建一个播放列表保存到那里面<br />但是我最近又发现了一个保存到媒体库的选项，库里会有专门的歌曲分页，上面会一首一首的展示所有保存到媒体库的歌<br />以用户使用来讲，我保存到媒体库和点赞，之后都不能轻易的找到我希望听的歌，所以保存到播放列表看起来是最优解，但是好像保存到这里边儿之后，个性化推荐不会更新<br />并且如果你要下载歌曲，好像只能以一个播放列表为单位
-]]></content:encoded>
-<pubDate>2024-08-27T08:25:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 远程桌面 开启了单用户同时登陆 但是没法同时运行 edge 浏览器</title>
-<link>https://www.v2ex.com/t/1068196</link>
-<guid>https://www.v2ex.com/t/1068196</guid>
-<content:encoded><![CDATA[
-<p>sever 2022
-设备 a 登陆用户 A 远程桌面
-设备 b 登陆用户 A 远程桌面
-可以同时登陆各操作各的
-IE 程序就可以同时打开
-但是没法同时打开 edge 程序 只能其中一个桌面打开
-请教这个怎么解决</p>
-]]></content:encoded>
-<pubDate>2024-08-27T08:24:49Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] Watch 睡眠检测相关，如何才能让自己决定是否退出睡眠模式？</title>
-<link>https://www.v2ex.com/t/1068195</link>
-<guid>https://www.v2ex.com/t/1068195</guid>
-<content:encoded><![CDATA[
-现在的睡眠模式，都是早上按掉闹钟后自己退出的。<br />这样听起来很合理，但实际体验中存在问题。<br /><br /><br />比如你平日里 8 点的闹钟，周末不想闹钟响了，把闹钟设置关闭了。<br />但到了第二天的 8 点，他就准时把你睡眠模式关掉了。<br />这时候有各种信息进来就会把人吵醒。<br /><br />难道周末只能设置勿扰模式吗？勿扰模式他就无法检测到人睡着了？
-]]></content:encoded>
-<pubDate>2024-08-27T08:26:55Z</pubDate>
-</item>
-<item>
-<title>[推广] 在线解答保险相关问题（不包括财险）</title>
-<link>https://www.v2ex.com/t/1068194</link>
-<guid>https://www.v2ex.com/t/1068194</guid>
-<content:encoded><![CDATA[
-通过寿险/保险金信托/家族信托资产配置和风险规避，围绕：<br />1.资产隔离(婚姻相关、债务相关等)<br />2.财富传承(安全传承并防止子女挥霍、遗产税等)<br />3.稳健增值(养老金、子女教育金等)
-]]></content:encoded>
-<pubDate>2024-08-27T08:19:42Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [广州小鹏] 招 Java 开发高级工程师</title>
-<link>https://www.v2ex.com/t/1068193</link>
-<guid>https://www.v2ex.com/t/1068193</guid>
-<content:encoded><![CDATA[
-岗位职责：<br />1.负责小鹏汽车充电平台 B/C 端业务后端设计与开发工作，包括需求分析、系统设计、代码编写、单元测试及上线等全周期开发；<br />2.深入理解业务需求，与产品经理、前端工程师紧密合作，提供合理的技术解决方案；<br />3.负责后端系统的故障排查和定位，优化系统架构，提高系统性能、安全性和可扩展性；<br />4.编写高质量的技术文档，包括系统设计文档、接口文档等；<br />5.推动技术研究和创新，引入新技术、新工具，提升团队整体技术水平；<br /><br />任职要求：<br />1.计算机科学或相关专业本科及以上学历，3 年以上 Java 后端开发经验，有大型互联网公司、电商平台工作经验者优先；<br />2.精通 Java 语言及 JVM 原理，熟悉 Spring Boot/Spring Cloud 等主流框架，有微服务架构设计和实施经验；<br />3.熟悉常见的开源分布式中间件、缓存、消息队列等，熟悉 MySQL ，熟悉 Linux 下的 DevOps ，使用过 MQTT 协议优先；<br />4.具备良好的问题分析与解决能力，能够独立承担项目模块的设计与开发；<br />5.有良好的团队合作精神，优秀的沟通协调能力和抗压能力，对技术充满热情，愿意不断学习和探索。<br /><br />联系邮箱：bGl1ZGMxQHhpYW9wZW5nLmNvbQ==
-]]></content:encoded>
-<pubDate>2024-08-27T08:19:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问这个 zilch app 是怎么回事？</title>
-<link>https://www.v2ex.com/t/1068192</link>
-<guid>https://www.v2ex.com/t/1068192</guid>
-<content:encoded><![CDATA[
-<h2>基本介绍</h2>
-<ul>
-<li>用户来信</li>
-</ul>
-<p>早上有用户发邮件过来说付款了，用户中心找不到订单，付款截图如下</p>
-<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://github.com/declandragon/img/blob/master/test.png" /></p>
-<blockquote>
-<p>md 格式图片预览的时候不知道为啥裂开了
-<a href="https://github.com/declandragon/img/blob/master/test.png" rel="nofollow">https://github.com/declandragon/img/blob/master/test.png</a></p>
-</blockquote>
-<ul>
-<li>网站情况</li>
-</ul>
-<p>网站对接了 stripe 支付（卡号付款 + 安卓 google pay + 苹果 apple pay ），paddle 支付</p>
-<p>没有其他的付款方式了，不知道用户是怎么付的款。</p>
-<ul>
-<li>支付平台没订单</li>
-</ul>
-<p>去支付平台查了，没有来信邮箱的订单，相同时间内也没有订单，不知道订单去哪里了</p>
-<ul>
-<li>处理</li>
-</ul>
-<p>跟用户回信说，我们没有收到订单，让他去联系 Zilch 的客服去了</p>
-<h2>app google play 地址</h2>
-<p>我是通过截图里面 『 You earned £0.15 of Zilch Rewards 』 这句话才找到的这个 APP</p>
-<p><a href="https://play.google.com/store/apps/details?id=com.payzilch.app&amp;hl=en_GB&amp;gl=GB&amp;utm_product_line=zilch-up" rel="nofollow">https://play.google.com/store/apps/details?id=com.payzilch.app&amp;hl=en_GB&amp;gl=GB&amp;utm_product_line=zilch-up</a></p>
-<h2>问题</h2>
-<ul>
-<li>有了解这个 app 的大佬吗？</li>
-<li>没有对接支付通道，为什么它的付款界面会有我们这边的域名？</li>
-</ul>
-<p>谢谢</p>
-]]></content:encoded>
-<pubDate>2024-08-27T08:18:34Z</pubDate>
-</item>
-<item>
-<title>[生活] 中秋国庆调休，哎，看着日历都心累</title>
-<link>https://www.v2ex.com/t/1068191</link>
-<guid>https://www.v2ex.com/t/1068191</guid>
-<content:encoded><![CDATA[
-<p>这破玩意儿，真恶心人，</p>
-<p>吃枣药丸</p>
-]]></content:encoded>
-<pubDate>2024-08-27T08:26:43Z</pubDate>
-</item>
-<item>
-<title>[职场话题] IBM 关闭中国研发业务，咋没人讨论</title>
-<link>https://www.v2ex.com/t/1068190</link>
-<guid>https://www.v2ex.com/t/1068190</guid>
-<content:encoded><![CDATA[
-<p>看报道，说是很突然， 昨天新闻就发了，今天咋没进水深火热
-[ IBM 证实将停止在中国的研发业务，雇员披露或涉及逾千岗位 <a href="https://www.voachinese.com/a/ibm-says-will-end-research-and-development-work-in-china-20240826/7757674.html" rel="nofollow">https://www.voachinese.com/a/ibm-says-will-end-research-and-development-work-in-china-20240826/7757674.html</a> ]
-还有提“IBM 已告诉一些员工，公司将在中国以外的地区增加岗位，包括印度班加罗尔。” 这是彻底的大撤离么，各种外资的生产研发投资都在撤。</p>
-]]></content:encoded>
-<pubDate>2024-08-27T08:22:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 家里更换网线遇到的几个问题，求大神</title>
-<link>https://www.v2ex.com/t/1068189</link>
-<guid>https://www.v2ex.com/t/1068189</guid>
-<content:encoded><![CDATA[
-光纤入户之后可以分出来两根光纤吗？<br />还有就是光纤可以直接链接电脑吗？如果再转换成普通的网线之后，信号强度有变化吗？<br />另外就是家里原来的网线卡在里面拔不出来了，有啥好办法解决吗谢谢了
-]]></content:encoded>
-<pubDate>2024-08-27T08:26:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问这种表情图片是怎么发的，是有什么插件吗</title>
-<link>https://www.v2ex.com/t/1068188</link>
-<guid>https://www.v2ex.com/t/1068188</guid>
-<content:encoded><![CDATA[
-我现在发的是其他人发的图片链接<br /><br />1 <a href="https://i.imgur.com/agAJ0Rd.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/agAJ0Rd.png" /></a>2 <a href="https://i.imgur.com/L62ZP7V.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/L62ZP7V.png" /></a>3 <a href="https://i.imgur.com/Iy0taMy.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Iy0taMy.png" /></a>
-]]></content:encoded>
-<pubDate>2024-08-27T08:26:45Z</pubDate>
-</item>
-<item>
-<title>[推广] 原封现货包邮 新西兰接码神器实体电话卡 skinny ￥ 76 无月租后续接近 0 成本保号</title>
-<link>https://www.v2ex.com/t/1068187</link>
-<guid>https://www.v2ex.com/t/1068187</guid>
-<content:encoded><![CDATA[
-现货不议价，只要链接还在就可以直接拍，圆通包非偏远地区。<br /><br />不挑号，盲发。走闲鱼，非偏远圆通包邮。<br /><br />全新未激活原封带卡板，有需要的朋友可以联系我<br />V：Ranger7hero<br />或者<br />Telegram: @<a href="https://www.v2ex.com/member/haisenbergor" rel="nofollow noopener" target="_blank">haisenbergor</a><br /><br />相关文档： <a href="https://www.yuque.com/u33641174/lp0fcn/fptse35ohsfsmz5e" rel="nofollow noopener" target="_blank">https://www.yuque.com/u33641174/lp0fcn/fptse35ohsfsmz5e</a><br /><br /><br /> [闲鱼]  <a href="https://m.tb.cn/h.gnsEoSL?tk=HqYl3UtArJE" rel="nofollow noopener" target="_blank">https://m.tb.cn/h.gnsEoSL?tk=HqYl3UtArJE</a> HU0025 「我在闲鱼发布了 [ skinny 安迪斯马斯特原厂金属面盖 有线款无线款均适用的金] 」<br />点击链接直接打开<br /><br />或闲鱼搜用户：请叫偶达文西<br /><br />飞机换绑不成功的话就更换节点，或者下载最新版本重新注册。 激活后一年内免费接码，截止日前充值 5NZD 或者转入转出 1NZD 即可续期一年，可以加我 V 已建互转群
-]]></content:encoded>
-<pubDate>2024-08-27T08:06:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] AdGuard DNS 黑名单规则共享</title>
-<link>https://www.v2ex.com/t/1068186</link>
-<guid>https://www.v2ex.com/t/1068186</guid>
-<content:encoded><![CDATA[
-<p>大家觉得长期用下来感觉还不错的规则有哪些呢？
-来分享一下吧？</p>
-<p>我目前用的是</p>
-<pre><code class="language-shell">https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
-https://easylist.to/easylist/easylist.txt
-https://easylist.to/easylist/easyprivacy.txt
-https://gitea.com/Cats-Team/AdRules/raw/branch/main/adblock_plus.txt
-https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
-https://gcore.jsdelivr.net/gh/xinggsf/Adblock-Plus-Rule@master/rule.txt
-https://gcore.jsdelivr.net/gh/xinggsf/Adblock-Plus-Rule@master/mv.txt
-https://raw.githubusercontent.com/banbendalao/ADgk/master/ADgk.txt
-</code></pre>
-<p>目前使用过程中还是有误杀的情况的，需要调整，想顺便问问各位经常使用的规则。</p>
-]]></content:encoded>
-<pubDate>2024-08-27T08:09:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 每天最喜欢干的事就是去水深火热寻找 block 名单，这算病态吗？</title>
-<link>https://www.v2ex.com/t/1068185</link>
-<guid>https://www.v2ex.com/t/1068185</guid>
-<content:encoded><![CDATA[
-净化网络环境，构建同温层，六根清净。<br /><br />从作为一个私人个体的角度讲，这样做无可厚非吧。
-]]></content:encoded>
-<pubDate>2024-08-27T08:25:43Z</pubDate>
-</item>
-<item>
-<title>[程序员] 来给 v 友们提个醒……一场因为国际形式导致的 404</title>
-<link>https://www.v2ex.com/t/1068184</link>
-<guid>https://www.v2ex.com/t/1068184</guid>
-<content:encoded><![CDATA[
-<p>今天碰到一件非常崩溃的事情，托管在 codepen 上的很多 demo 都 404 了，尝试登录发现账号已经被 block 。</p>
-<p>猜测是因为用了俄国的邮箱注册账号（ yandex mail ）,因为手里还有其它不活跃的美丽国邮箱注册的账号，但是都能正常使用。</p>
-<p>刚给 codepen 发了 support 申诉，也不知道能不能找回来。</p>
-<p>之前听闻美丽国要禁止老毛子使用 windows 系统，还以为离自己很远，没想到一个小前端也会因为一个小小的邮箱翻车，关键是很多 demo 都让我嵌入到在线文档里了，哭死……</p>
-<p>不知道大家还遇到过哪些类似情况（正经使用，机场除外）？</p>
-]]></content:encoded>
-<pubDate>2024-08-27T07:59:46Z</pubDate>
 </item>
 </channel>
 </rss>
