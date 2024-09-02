@@ -5,14 +5,423 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Android] Dhizuku，更优雅地免解锁使用第三方安装器</title>
+<link>https://www.v2ex.com/t/1069736</link>
+<guid>https://www.v2ex.com/t/1069736</guid>
+<content:encoded><![CDATA[
+
+<p>使用了一段时间的 Dhizuku ，在自己的网站写了一篇<a href="https://www.alpacabro.com/archives/use-3rd-apk-installer-with-dhizuku.html" rel="nofollow">水文</a>，全文如下，权当抛砖引玉，欢迎大佬们不吝赐教。</p>
+<hr />
+<p>如果把 Android 手机比喻为一栋房屋，那么解锁 Bootloader 后，你才真正拥有了这座房屋的“所有权”而非“使用权”；而诸如 Dhizuku / Shizuku 这类免解锁玩机工具则更像是与房东“扯皮”来获得更多对房屋装修的“支配权”，虽然有种戴着脚铐跳舞的妥协感，但是在部分场景下足矣。</p>
+<h3>解锁玩机已经愈发困难，折腾需求依然存在</h3>
+<p>由于众所周知的原因，手机厂商对于用户的“折腾”、“玩机”行为不断限制，解锁 Bootloader 的难度与日俱增，就看看<a href="https://www.bilibili.com/video/BV1bi421e7Y6" rel="nofollow">小米 BL 解锁答题裸考</a>下面的热门评论吧：</p>
+<blockquote>
+<p>KernelSU 作者 weishu 在小米解锁 bootloader 考试中获得了 30 分的好成绩 你也快来试试吧!</p>
+</blockquote>
+<p>小米“高考”果然名不虚传！</p>
+<p>当然，忽略“房间里的大象”而直接指责手机厂商固然不妥，但是厂商的一些“流氓行径”着实令人不爽。那么如果跳过成本愈发高昂的解锁，我们是否还能实现一些玩机需求？比如绕过烦人的官方安装器，使用更方便的第三方安装器？</p>
+<h3>Shizuku —— 巧借 adb ，获取更高的权限玩机</h3>
+<p>根据 Shizuku <a href="https://shizuku.rikka.app/zh-hans/" rel="nofollow">官网</a> 和 <a href="https://github.com/RikkaApps/Shizuku" rel="nofollow">GitHub 主页</a> 上面的介绍，开发者将其定义为“让你的应用直接使用系统 API”的工具，其最大亮点就在主页上的“支持 adb 使用”，也就是“如果你的「需要 root 的应用」只需要 adb 权限，则可以使用 Shizuku 轻松地扩大用户群体。”</p>
+<p>虽然对于大多数玩机发烧友已经是陈词滥调，但是还是援引一下<a href="https://developer.android.google.cn/tools/adb?hl=zh-cn" rel="nofollow">Android 调试桥 (adb) - Android Developers</a>上面的定义：Android 调试桥 (<code>adb</code>) 是一种功能多样的命令行工具，可让您与设备进行通信。<code>adb</code> 命令可用于执行各种设备操作，例如安装和调试应用。<code>adb</code> 提供对 Unix shell （可用来在设备上运行各种命令）的访问权限……简单来说，adb 就是谷歌给予开发者的一个调试工具，其本意是便于开发者调试应用，不过在 Android 11 或更高版本上，您可以直接从您的设备启动无线调试并启动 Shizuku ，而无需连接到计算机。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.alpacabro.com/archives/use-3rd-apk-installer-with-dhizuku/1.jpg" /></p>
+<p>正因为如此，目前已经有大量玩机应用适配了 Shizuku ，具体可以看 <a href="https://github.com/timschneeb/awesome-shizuku" rel="nofollow">timschneeb/awesome-shizuku</a> 上面整理的列表，其中就有可以包含你正在使用的部分甚至所有玩机应用，在此处不再赘述。</p>
+<p>不过，由于对于 adb 的强依赖，虽然理论上 Shizuku 在正常开关机后依然能保持激活状态，其易用性在不同厂商的设备上也因不同厂商的“优化”而不尽相同——某些厂商的“安全管家”会把 “USB 调试”作为风险项目，在扫描时关闭；某些厂商的“USB 调试”被魔改，或在高版本 AOSP 中隐藏“无线调试”选项，或需要手动调整为“生产模式”才能使用 adb 完整权限；更有甚者，在拔掉数据线时会自动禁用 adb 权限……在我的设备上，即使允许 Shizuku 后台运行、自启动并忽略省电优化，其依然会在重新开机（不是重启或者更新）后失去激活状态，这样即使使用 Shizuku 激活第三方安装器，也免不了一遍又一遍的重新激活，外加烦人的 USB 安装风险提示对话框，与预期的流畅优雅的安装器体验相去甚远。</p>
+<h3>Dhizuku —— 共享 DeviceOwner 权限，更稳定的“旁门左道”</h3>
+<p>不过，除了方便开发者使用 USB 调试而带来的 adb 权限，Google 为了方便企业进行企业移动管理（ EMM ）而引入了 DeviceOwner ，相比被频繁“关照”的 adb ，其更为冷门，在部分场景下甚至更为强大。</p>
+<p>由于其过于冷门，为了方便后续行文并且让读者不被，还是援引一些资料补充一下背景信息：根据<a href="https://developer.android.google.cn/work/device-admin" rel="nofollow">设备管理概览 - Android Developers</a>中的内容，结合<a href="https://www.esper.io/blog/android-device-admin-and-device-owner-explained" rel="nofollow">Android Device Admin and Device Owner Explained</a>中的内容稍加整理，你会发现 Google：</p>
+<ul>
+<li>在 2010 年，Android 在 Android 2.2 （ API 级别 8 ）中推出了一项名为“Device Admin”（设备管理员）的功能。它从未真正打算用作企业设备管理解决方案，尽管 Google 确实鼓励使用它；</li>
+<li>在 2014 年，Google 在 Android 5.0 Lollipop 中<a href="https://developer.android.google.cn/about/versions/lollipop/android-5.0?hl=zh-cn#DeviceOwner" rel="nofollow">推出了“Device Owner”</a>，这是 Device Admin 的替代品。Device Owner 提供了更多功能、更好的安全性，并为真正的企业设备配置系统铺平了道路;</li>
+<li>在 2018 年，Android 9.0 （ API 级别 28 ）发布，这是最后一个支持 Device Admin 的 Android 版本；</li>
+<li>在 2019 年，Android 10.0 （ API 级别 29 ）发布，这是第一个不支持设备管理员的 Android 版本；</li>
+<li>在 2022 年（及以后），Device Admin 已经 4+ 年没有得到 Google 的支持。早在 2014 年，Device Owner 就被引入以取代 Device Admin ，但在 2019 年 Android 10.0 推出之前，Android 同时支持这两种功能。</li>
+</ul>
+<p>如果你是从 Android 4.4 时代开始玩机的老发烧有，或许对一些应用（安全软件或是恶意软件）请求激活设备管理员权限来进行“加固”，那便是已经在 Android 10.0 中消亡的“Device Admin”（设备管理员）；拜“Device Owner”的广泛支持所赐，本文的主角 Dhizuku 也能能够实现 Android 5.0 ~ 14 的广泛且一致的支持。</p>
+<p>好的，现在忘掉那些繁琐的概念，根据 Dhizuku 的<a href="https://github.com/iamr0s/Dhizuku" rel="nofollow">GitHub 主页</a> 介绍，其“参考 Shizuku 的设计思想，分享 DeviceOwner (设备所有者) 权限给其余应用”。不过由于 Android 的一些奇妙限制，其激活过程略显繁琐。根据<a href="https://github.com/iamr0s/Dhizuku/discussions/16" rel="nofollow">激活指南</a>，我使用<a href="https://github.com/iamr0s/AndroidAccounts" rel="nofollow">AndroidAccounts</a>找到了所有创建了账户的应用并且使用<a href="https://github.com/aistra0528/Hail" rel="nofollow">雹 Hail</a>进行冻结。不过在我遇到的场景下，“小米账号”和“Google Play 服务”作为系统应用无法使用 Shizuku 模式进行冻结，退出登录，在成功激活后重新登录即可；此外，在 2.8 版本中，通过 Shizuku 激活后会提示“已激活但是权限不完整”，还需要 ADB 运行额外命令才能完成激活，而在最新的 2.9-alpha 版本中，已经无需连接电脑执行额外的命令。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.alpacabro.com/archives/use-3rd-apk-installer-with-dhizuku/2.jpg" /></p>
+<p>恭喜，现在不出意外的话，你已经完成了 Dhizuku 激活，此时你的手机锁屏页面和通知页面底部会多出一行小字——“此设备归贵单位所有”（英文版系统为“This device belong to your organization”）。此提示无法隐藏（可能是处于安全和隐私考虑），但是可以通过爱玩机工具箱或者<a href="https://github.com/BinTianqi/OwnDroid" rel="nofollow">OwnDroid</a>自定义“贵单位”/"your organization"的内容。顺带一提，OwnDroid 在最新的 6.0 版已经支持 Dhizuku API 激活，此后便可根据其<a href="https://owndroid.pages.dev/zh_CN/" rel="nofollow">文档</a>体验 Google 为企业管理提供的细致的权限管理。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.alpacabro.com/archives/use-3rd-apk-installer-with-dhizuku/3.jpg" /></p>
+<p>Dhizuku 由于起步较晚，现阶段提供支持的应用还相对较少，除了上文提到的 雹 Hail 和 OwnDroid ，目前还有 <a href="https://github.com/deltazefiro/Amarok-Hider" rel="nofollow">Amarok</a> 支持借助 Dhizuku 隐藏应用和文件。不过我个人目前认为最好用的应用当 InstallX 莫属，从其<a href="https://t.me/InstallerX" rel="nofollow">Telegram Channel</a>下载最新版后，在“配置”选项卡新建一个配置，授权器选择“Dhizuku”，此后在设置的默认配置选择刚刚的配置，如果单击“锁定为默认安装器”提示“锁定成功”，即可体验优雅丝滑的安装体验。Dhizuku 在 2.9-alpha 也修复了重启后无法自启动的问题，因此无论是开关机、重启还是更新，Dhizuku 的激活状态依然有效。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic.alpacabro.com/archives/use-3rd-apk-installer-with-dhizuku/4.jpg" /></p>
+<h3>瑕不掩瑜——免解锁方案的缺陷</h3>
+<p>如果说此方案有什么瑕疵，那当属在安装应用后会有一条通知——“……已由您的管理员安装”，此通知和提示文字一样为系统级设计，如果介意可以考虑使用第三方通知收纳软件，不属于本文讨论范围；另外根据酷安社区的讨论，尽管 DeviceOwner 冷门且通用，部分厂商还是通过系统自带的不可删除的账户、屏蔽部分 adb 命令等方式限制 Dhizuku ，而且部分厂商的系统安装器是写死在内核中，无法使用 root 以外的方式修改或绕过，本文的方法同样不适用于这类设备。</p>
+<p>当然，此方案还有不少值得优化之处，本文就权当抛砖引玉，欢迎大佬们不吝赐教。</p>
+]]></content:encoded>
+<pubDate>2024-09-02T14:11:29Z</pubDate>
+<pubDate>2024-09-02T14:10:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 自己公司的自助设备小程序，被用户投诉要求退款，难道只能认栽吗?</title>
+<link>https://www.v2ex.com/t/1069735</link>
+<guid>https://www.v2ex.com/t/1069735</guid>
+<content:encoded><![CDATA[
+
+自助设备上已经完成操作，而且数量比较大，接近 100 块钱。<br />客户投诉要求退款，收到投诉后就及时在投诉单上进行了回复，但是客户留的电话打了一下午也打不通。<br /><br />然后到傍晚的时候就收到交易体验分扣分通知：<br />违规类型：拒绝提供服务<br />备注：因用户投诉并平台审核，你的小程序存在 [拒绝提供服务--和解期超时未回复] 的违规行为。。。。平台将对你的小程序扣减体验分 1 分。
+]]></content:encoded>
+<pubDate>2024-09-02T13:55:26Z</pubDate>
+<pubDate>2024-09-02T13:55:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有好的收二手电子产品的 论坛</title>
+<link>https://www.v2ex.com/t/1069734</link>
+<guid>https://www.v2ex.com/t/1069734</guid>
+<content:encoded><![CDATA[
+
+咸鱼水太深
+]]></content:encoded>
+<pubDate>2024-09-02T13:54:06Z</pubDate>
+<pubDate>2024-09-02T09:54:06Z</pubDate>
+</item>
+<item>
+<title>[华硕] Koolcenter 的固件不开源，可以放心用吗？</title>
+<link>https://www.v2ex.com/t/1069733</link>
+<guid>https://www.v2ex.com/t/1069733</guid>
+<content:encoded><![CDATA[
+
+过去 koolshare 被取缔以后，现在新版的 koolcenter 感觉是被朝廷招安以后的版本了，其发布的固件确定可信吗？<br /><br />有没有相关消息报道过可信度的？
+]]></content:encoded>
+<pubDate>2024-09-02T13:49:03Z</pubDate>
+<pubDate>2024-09-02T13:47:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 北京联通 4G 访问 GitHub 飞快，不知道是 DNS 还是链路问题</title>
+<link>https://www.v2ex.com/t/1069732</link>
+<guid>https://www.v2ex.com/t/1069732</guid>
+<content:encoded><![CDATA[
+
+<p>有啥工具可以调试吗，查看 dns ，访问的 ip ，跟踪路由啥的</p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:47:18Z</pubDate>
+<pubDate>2024-09-02T13:47:18Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 开学了，分享下之前写的关于大学计算机学习的方法指引</title>
+<link>https://www.v2ex.com/t/1069730</link>
+<guid>https://www.v2ex.com/t/1069730</guid>
+<content:encoded><![CDATA[
+
+<p>也许对在读大学的朋友会有一定的参考价值，顺手在这里贴一下，有兴趣可以参考。</p>
+<p><a href="https://wiki.0xffff.one/getting-started/" rel="nofollow">https://wiki.0xffff.one/getting-started/</a></p>
+<p>主要是针对我过去学计算机到工作的困惑，与身边人的观念冲突，和身边朋友数年来的摸索之间，一步步想通后的一个方法总结。</p>
+<p>形式上是一系列文章，整体比较务实和行动导向。主要讨论大学与中小学学习、以及不同大学之间的异同；在心态上如何平衡学校 title 的落差，从中小学填鸭教育过渡到大学的主动学习的策略；还有 CS 领域入门的一些关注点，关于个人电脑开发环境，知识管理体系的准备，以及最早期 Overview 的搭建等等。</p>
+<p>这里也是 <a href="https://github.com/0xffff-one/0xffff-wiki" rel="nofollow">0xFFFF CS Wiki</a> 的一部分，Wiki 本身除了这一系列指引外，其他内容目前还及其简陋，所以也希望可以吸纳一些新鲜血液一起来交流，沉淀一些东西。不知不觉我毕业也有好几年，自觉已经很难再从学生的视角去思考一些问题了😄</p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:43:10Z</pubDate>
+<pubDate>2024-09-02T13:43:10Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 用 cursor 做网站是真的爽</title>
+<link>https://www.v2ex.com/t/1069729</link>
+<guid>https://www.v2ex.com/t/1069729</guid>
+<content:encoded><![CDATA[
+
+<p>比如说，我想要个 图片分割并 zip 下载 的功能，但是我又不懂 canvas 也不知道浏览器能不能直接打包 zip 。只要告诉它：  </p>
+<pre><code>生成一个 image splitter 组件，用户上传一张照片，选择行、列数量，点击按钮，就会自动分割，并打包成 zip 格式自动下载。
+</code></pre>
+<p>就会生成一个功能完整的组件：  </p>
+<pre><code>'use client'
+import React, { useState } from 'react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+
+const ImageSplitter = () =&gt; {
+    const [image, setImage] = useState&lt;File | null&gt;(null);
+    const [rows, setRows] = useState(3);
+    const [cols, setCols] = useState(3);
+
+    const handleImageUpload = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+        if (e.target.files &amp;&amp; e.target.files[0]) {
+            setImage(e.target.files[0]);
+        }
+    };
+
+    const handleSplitImage = async () =&gt; {
+        if (!image) return;
+
+        const img = new Image();
+        img.src = URL.createObjectURL(image);
+        img.onload = async () =&gt; {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const zip = new JSZip();
+            const { width, height } = img;
+            const pieceWidth = width / cols;
+            const pieceHeight = height / rows;
+
+            for (let r = 0; r &lt; rows; r++) {
+                for (let c = 0; c &lt; cols; c++) {
+                    canvas.width = pieceWidth;
+                    canvas.height = pieceHeight;
+                    ctx.drawImage(
+                        img,
+                        c * pieceWidth,
+                        r * pieceHeight,
+                        pieceWidth,
+                        pieceHeight,
+                        0,
+                        0,
+                        pieceWidth,
+                        pieceHeight
+                    );
+
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const base64Data = dataUrl.split(',')[1];
+                    zip.file(`piece_${r}_${c}.png`, base64Data, { base64: true });
+                }
+            }
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            saveAs(content, 'image_pieces.zip');
+        };
+    };
+
+    return (
+        &lt;div className="flex flex-col items-center justify-center p-4"&gt;
+            &lt;div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md"&gt;
+                &lt;label className="block mb-2"&gt;
+                    Upload an image:
+                    &lt;input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="mb-4 w-full p-2 border border-gray-300 rounded"
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label className="block mb-2"&gt;
+                    Enter number of rows:
+                    &lt;input
+                        type="number"
+                        value={rows}
+                        onChange={(e) =&gt; setRows(parseInt(e.target.value))}
+                        min="1"
+                        className="mb-4 w-full p-2 border border-gray-300 rounded"
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label className="block mb-2"&gt;
+                    Enter number of columns:
+                    &lt;input
+                        type="number"
+                        value={cols}
+                        onChange={(e) =&gt; setCols(parseInt(e.target.value))}
+                        min="1"
+                        className="mb-4 w-full p-2 border border-gray-300 rounded"
+                    /&gt;
+                &lt;/label&gt;
+                &lt;button
+                    onClick={handleSplitImage}
+                    className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+                &gt;
+                    Split Image
+                &lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    );
+};
+
+export default ImageSplitter;
+</code></pre>
+<p>当然一开始样式有点丑，我补充了一句：<code>使用 tailwind 优化一下样式，要现代感，柔色调</code> </p>
+<p>大体效果就出来了：
+<a href="https://imagesplitter.org/" rel="nofollow">https://imagesplitter.org/</a></p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:42:42Z</pubDate>
+<pubDate>2024-09-02T13:42:42Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 草草体验了下飞牛私有云 fnOS,只能说是大失所望。</title>
+<link>https://www.v2ex.com/t/1069728</link>
+<guid>https://www.v2ex.com/t/1069728</guid>
+<content:encoded><![CDATA[
+
+这两天忽然出来个免费 nas 系统，尤其是我在的几个 qq 群基本是在同一两天内出现说免费 nas 系统好牛掰，尤其是影音多么多么牛掰之类的，体验吊打黑裙之类的，架不住都说的天花乱坠，虚拟机装了下体验了下，登录后的第一感觉是 好快，第二感觉是 就这？说好的吊打呢？说好的影音牛掰呢？<br /><br />1 说应用：少，总共 25 个应用，11 个是矿神 SPK7 的，玩群晖的都懂。<br />[img]<a href="https://i.imgur.com/L6RuACs.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/L6RuACs.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/zUbwsXg.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zUbwsXg.png" /></a>[/img]<br /><br />2 说备份：有点意思，差点意思。<br />[img]<a href="https://i.imgur.com/SbrLmKl.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/SbrLmKl.png" /></a>[/img]<br /><br />3 说设置：好听叫功能简洁，对小白友好。<br />[img]<a href="https://i.imgur.com/TEphry2.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/TEphry2.png" /></a>[/img]<br /><br />4 说 docker: 内置加速，其他没啥可说。<br />[img]<a href="https://i.imgur.com/V1pRtte.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/V1pRtte.png" /></a>[/img]<br />AdGuard Home fnOS 查询日志<br />[img]<a href="https://i.imgur.com/V1Ghz0j.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/V1Ghz0j.png" /></a>[/img]<br /><br />5 说远程访问：用他家的得注册懒得试,ddns 就 4 个。<br />[img]<a href="https://i.imgur.com/ZiPeZGE.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ZiPeZGE.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/guk2z4w.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/guk2z4w.png" /></a>[/img]<br /><br />6 说影音：刮削挺快，但是你为啥要请求百度的域名？另外上传了个.wmv 的视频，无法播放，没然后了。<br />[img]<a href="https://i.imgur.com/TBoY0jt.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/TBoY0jt.png" /></a>[/img]<br />自家服务器刮削就是快<br />[img]<a href="https://i.imgur.com/ybBFZg6.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ybBFZg6.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/sBnPb25.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/sBnPb25.png" /></a>[/img]<br /><br />7 说系统：是 debian12 没错，还是清华源，虽然 fnOS 应用少，但是有 docker 啊，你甚至还可以 apt install.<br /><br />[img]<a href="https://i.imgur.com/8WVun6M.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/8WVun6M.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/Lcapjng.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Lcapjng.png" /></a>[/img]<br />[img]<a href="https://i.imgur.com/RLRlDnf.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/RLRlDnf.png" /></a>[/img]<br /><br />因为是草草体验，找了半天没找到 demo,只能虚拟机体验下，加上本人很业余，也就用过群晖和 Pve ，所以上面所说都是非常片面小白的，很多方面理解不到位，还望担待。<br /><br />截至现在，还有人在群里说：“fnOS 挺不错的”  <br />我只能说：啊 对对对。
+]]></content:encoded>
+<pubDate>2024-09-02T13:36:00Z</pubDate>
+<pubDate>2024-09-02T13:39:14Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 局域网内无线连接的设备之间无法互相访问，但无线和有线连接设备之间却可以</title>
+<link>https://www.v2ex.com/t/1069727</link>
+<guid>https://www.v2ex.com/t/1069727</guid>
+<content:encoded><![CDATA[
+
+<p>用 R2S Plus 做的<strong>主路由</strong>，用的是友善定制的 FriendlyWrt ，但其实就是 OpenWRT 。</p>
+<p>下面是我用 iperf3 测出来的情况：</p>
+<p><img alt="iperf3 测试图" class="embedded_image" rel="noreferrer" src="https://img.k1r.in/2024/08/picgo_d6ae4e4bb80fce6e868daa977a4cf7e6.png" /></p>
+<p>第一次用 OpenWRT ，不太懂怎么设置，不过可以确定的是无线设置<strong>没开客户端隔离</strong>。</p>
+<p><img alt="image-20240902212831816" class="embedded_image" rel="noreferrer" src="https://img.k1r.in/2024/09/picgo_189067cf1a25344244df74f381bcb225.png" /></p>
+<p>网上搜不到相关问题，问客服也不知道怎么解决，所以来万能的 V2 问问。</p>
+<p>因为不知道到底是什么问题也不懂，如果需要更多的信息还望老哥们提出来。</p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:31:19Z</pubDate>
+<pubDate>2024-09-02T13:30:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐能稳定运行 SPA Web 应用的 mini 主机</title>
+<link>https://www.v2ex.com/t/1069726</link>
+<guid>https://www.v2ex.com/t/1069726</guid>
+<content:encoded><![CDATA[
+
+需求：<br />1. 便宜！<br />2. 体积小！<br />3. HDMI 插电视上运行，稳定性强，需要稳定运行 4 年以上。
+]]></content:encoded>
+<pubDate>2024-09-02T13:18:14Z</pubDate>
+<pubDate>2024-09-02T13:17:14Z</pubDate>
+</item>
+<item>
+<title>[汽车] 抱歉，该帖需要删除</title>
+<link>https://www.v2ex.com/t/1069725</link>
+<guid>https://www.v2ex.com/t/1069725</guid>
+<content:encoded><![CDATA[
+
+<p>@<a href="https://www.v2ex.com/member/Livid">Livid</a></p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:17:26Z</pubDate>
+<pubDate>2024-08-23T13:17:26Z</pubDate>
+</item>
+<item>
+<title>[程序员] 独立开发周记 81： 8 月数据总结</title>
+<link>https://www.v2ex.com/t/1069724</link>
+<guid>https://www.v2ex.com/t/1069724</guid>
+<content:encoded><![CDATA[
+
+<h1>2024 ，0826-0901</h1>
+<p>暑假结束了，天气凉快了，孩子终于要开学了。</p>
+<h1>8 月数据总结</h1>
+<p>最近一个多月都在全身心在新 App 上，所有的在架 App 都没有任何打理。
+总得来看，下载量提升很多，App Store 和 Google Play 的收入没什么变化，但是国内安卓市场的收入大幅减少。</p>
+<h2>下载量（极简时钟）</h2>
+<ul>
+<li>App Store ，增长 44%</li>
+<li>Google Play ，增长 19.30%</li>
+<li>国内安卓市场，因为上个月的数据不全，就和 6 月份对比，增长了 18.7%</li>
+</ul>
+<h2>收入变化</h2>
+<ul>
+<li>App Store ，增长 2.2%</li>
+<li>Google Play ，增长 9.08%</li>
+<li>Admob ，增长 0.28%</li>
+<li>国内安卓市场，减少 18.92%</li>
+</ul>
+<h1>Ship-A-Ton 第三周</h1>
+<p>Ship-A-Ton 就剩 18 天了，感觉要砍掉一个大功能才能勉强提交了。</p>
+<p>这周严重阻碍开发进度的就是黑神话·悟空！。每天都会玩到后半夜一点多，这就导致睡眠不足，严重影响到了白天的开发效率。</p>
+<p>这周的番茄钟数量是 26 ，相比上周多了 4 个， 但也只是 4 个而已。开发速度太慢了，这让我又开始焦虑了。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/adf6e19e-1c6b-4c86-b0cc-5b6f4dea73b9.jpeg?imageView2/2/w/1920/q/100" /></p>
+<p>这周有两个主要的进展，一是完成了第三个功能模块的原型，跑通了整个流程。这个模块经历了两次更名，一开始叫 Wishlist ，再后来叫 Goals ，最后定为 Desires 。</p>
+<p>另一个进展就是和设计师顺利达成了合作，App 的 UI 终于有保证了。这一周的绝大部分开发时间都花在了 UI 上，和我之前自己瞎写的 UI 一对比，简直是云泥之别。专业的事情还是要交给专业的人来做。</p>
+<p>[Vlog: Week 3 for Shipaton]</p>
+<h1>本周探索</h1>
+<h2>监测 ScrollView 滚动状态</h2>
+<p>需要在新 App 里加入对 ScrollView 滚动状态的监测，看完了肘子哥的文章，<a href="https://fatbobman.com/zh/posts/how_to_judge_scrollview_is_scrolling/" rel="nofollow" title="# 如何判断 ScrollView 、List 是否正在滚动中"># 如何判断 ScrollView 、List 是否正在滚动中</a>。因为 App 是 iOS 17+ 的，还不能直接使用 iOS 18 的新 API ， 直接就使用了肘子哥的 <a href="https://github.com/fatbobman/IsScrolling" rel="nofollow" title="IsScrolling">IsScrolling</a> 。</p>
+<h2>单复数的文案本地化</h2>
+<p>App 里需要用的针对单词单复数的不同文案，所以就第一次使用了 SwiftUI 中 Text 对单复数的 API ，不用自己写 if else 判断，很优雅。<a href="https://medium.com/@o.alizade93/pluralisation-made-simpler-in-swiftui-9015e31512e6" rel="nofollow" title="# Pluralisation made simpler in SwiftUI"># Pluralisation made simpler in SwiftUI</a></p>
+<h2>SVG 转成 SF Symbols</h2>
+<p>我想要把 MasterGo/Figma 里面的切图导出后，放到 Xcode 中，然后通过 Image 和 foregroundStyle 给切图加上不同的颜色，就像 SF Symbols 那样。导出成 jpg 和 png 都无法做到，尝试导出 SVG 后才发现 SwiftUI 的 Image 还不支持 SVG 。</p>
+<p>我就想着怎么能把 SVG 转成 SF Symbols ，找了两个工具 App ，都是收费的，连试用也没有，我就没敢直接付费。于是我就问了下 ChatGPT 怎么将 SVG 转换成 SF Symbols ，AI 的回答如下：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/fdd7a038-5d21-428e-8c0d-5cf286f181a4.png?imageView2/2/w/1920/q/100" /></p>
+<p>我就在这个回答里找到了解决方案：PDF ！将 icon 导出为 PDF ，放到 Xcode 的 Asset 里，然后将图片设置为 Render as Template Image 就可以了。</p>
+<h1>生活</h1>
+<p>吃了两顿大餐，还发现了一家不错的面馆。
+和许久没见的老同学见面，畅聊一晚。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/21d82a53-6f1b-4153-ba6e-d9c6976759c5.jpeg?imageView2/2/w/1920/q/100" /></p>
+<p>直面天命，刚过第五回，下周肯定能通关了。
+第三回，黄眉差一点初见过，我以为还有一个阶段变身，当时葫芦也没酒了，就摆烂打了。
+第四回，晦月魔君确实恶心，我是天命人，不是修脚师傅！
+第五回，死的最多次数居然是在铁球山路……</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.way2solo.com/photo/vulgur/9f0f397f-bce2-453a-b70d-ec9f671ca13d.jpg?imageView2/2/w/1920/q/100" /></p>
+<p>最近因为玩游戏和写代码，尤克里里都生疏了，每天练习时间大大减少，甚至有一两天都没拿起来。花了将近一个月练习 Em 和弦终于成功了，录了 New Boy 。</p>
+<p>[Vlog: Ukulele - New Boy]</p>
+<p>视频内容还请移步到公众号文章里查看： <a href="https://mp.weixin.qq.com/s/OgBlZGfDmPtq7hFY7XLi9g" rel="nofollow">https://mp.weixin.qq.com/s/OgBlZGfDmPtq7hFY7XLi9g</a></p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:16:49Z</pubDate>
+<pubDate>2024-09-02T13:32:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有这么一款 webssh 管理工具</title>
+<link>https://www.v2ex.com/t/1069723</link>
+<guid>https://www.v2ex.com/t/1069723</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>轻量化，最好开源，能支持私有部署，准备部署到公司内网</li>
+<li>支持 webssh 和 文件下载</li>
+<li><strong>重点</strong>  支持通过按用户组指定登录授权，比如：管理组的用户使用 root 登录， 而程序组的用户使用 programer 用户登录</li>
+<li>资产管理及权限控制，即： 特定的用户/用户组只能连接特定的 ssh 主机</li>
+</ol>
+<p>jumpserver 太重了，完全不想去用</p>
+<p>next-terminal 不支持第 3 条</p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:11:14Z</pubDate>
+<pubDate>2024-09-02T13:17:45Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 开发了一个网页端跨平台传输工具，基于 WebRTC，无需下载软件</title>
+<link>https://www.v2ex.com/t/1069722</link>
+<guid>https://www.v2ex.com/t/1069722</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://peer-drop.real-tech.online/" rel="nofollow">https://peer-drop.real-tech.online/</a></p>
+<p>用聊天框的形式，支持传输文字和文件
+目前只支持局域网
+只要有浏览器就能互相通信，无论手机平板还是电脑</p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:02:20Z</pubDate>
+<pubDate>2024-09-02T13:00:20Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 现在 AI 太好了,想实现啥自己提需求让 AI 去实现</title>
+<link>https://www.v2ex.com/t/1069721</link>
+<guid>https://www.v2ex.com/t/1069721</guid>
+<content:encoded><![CDATA[
+
+<p>一直没找到好用的 goole 居中的插件 让 Claud 实现了一个 几分钟就完事了
+<a href="https://raw.githubusercontent.com/macong0420/Image/main/202409022058444.png" rel="nofollow">https://raw.githubusercontent.com/macong0420/Image/main/202409022058444.png</a></p>
+]]></content:encoded>
+<pubDate>2024-09-02T13:00:56Z</pubDate>
+<pubDate>2024-09-02T13:45:40Z</pubDate>
+</item>
+<item>
+<title>[VPS] 这回毛子的 vps 真是毛用都没有了</title>
+<link>https://www.v2ex.com/t/1069720</link>
+<guid>https://www.v2ex.com/t/1069720</guid>
+<content:encoded><![CDATA[
+
+之前是封锁 twitter ，但好在 youtube 体验很好，现在 youtube 也不行了，卡的要死，拜拜了您内！
+]]></content:encoded>
+<pubDate>2024-09-02T12:56:53Z</pubDate>
+<pubDate>2024-09-02T10:56:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么 acfun 的网页版登录不上了</title>
+<link>https://www.v2ex.com/t/1069719</link>
+<guid>https://www.v2ex.com/t/1069719</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-02T12:48:36Z</pubDate>
+<pubDate>2024-09-02T12:46:36Z</pubDate>
+</item>
+<item>
+<title>[程序员] 高度配置化的工作流系统有老板需要吗</title>
+<link>https://www.v2ex.com/t/1069718</link>
+<guid>https://www.v2ex.com/t/1069718</guid>
+<content:encoded><![CDATA[
+
+给大伙推荐一款高度可配置化的工作流系统，非常 nice,具体可以看图片或者访问下面的网址。<br />访问地址:<br />http://106.54.16.175/<br />账号/密码：vistor1/vistor1
+]]></content:encoded>
+<pubDate>2024-09-02T12:43:29Z</pubDate>
+<pubDate>2024-09-02T14:18:21Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] iPhone 16 可能不支持微信？苹果中国区技术顾问称正与腾讯沟通应用商店抽成事宜</title>
 <link>https://www.v2ex.com/t/1069717</link>
 <guid>https://www.v2ex.com/t/1069717</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.ithome.com/0/792/961.htm" rel="nofollow">https://www.ithome.com/0/792/961.htm</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T12:42:40Z</pubDate>
 <pubDate>2024-09-02T12:39:40Z</pubDate>
 </item>
 <item>
@@ -20,10 +429,8 @@
 <link>https://www.v2ex.com/t/1069715</link>
 <guid>https://www.v2ex.com/t/1069715</guid>
 <content:encoded><![CDATA[
-
 最近一直也有在看 iPhone AI 相关的信息<br />国内目前看来是没办法用上，最近好像只解锁了港版<br />然后刚好晚上看到一个老哥在看日版的<br />自己手上现在是 15pro<br />春节期间大概率会去日本旅游或者香港旅游<br />各位大佬有什么建议么
 ]]></content:encoded>
-<pubDate>2024-09-02T12:31:10Z</pubDate>
 <pubDate>2024-09-02T12:35:49Z</pubDate>
 </item>
 <item>
@@ -31,7 +438,6 @@
 <link>https://www.v2ex.com/t/1069714</link>
 <guid>https://www.v2ex.com/t/1069714</guid>
 <content:encoded><![CDATA[
-
 <p>最近把五年前写的一个弹幕库给重构了一下，本来两年前就想着做这件事，但是其中有一段工作时间压力很大，所以就搁置了，导致没有时间来做这件事情，最近周末 + 晚上花一些时间重构了下，并把文档好好写了一下。言归正传，这篇文章会介绍部分这个弹幕库有的能力，如果正好符合你的需求或者感兴趣，<a href="https://github.com/imtaotao/danmu" rel="nofollow"><strong>可以帮忙点点 star 来支持一下。</strong></a></p>
 <h2>我们有哪些能力</h2>
 <p>我们提供了<strong>灵活调整轨道</strong>，<strong>自定义弹幕和容器样式</strong>，<strong>弹幕运动算法</strong>等能力，还在提供非常丰富的钩子来让用户处理自定义的行为，只要你想要的，都能做到，本文档会简单介绍一些能力和一些功能的实现。</p>
@@ -350,7 +756,6 @@ manager.use(
 <h2>总结</h2>
 <p>本文档只是简单介绍了下现在的部分能力，更详细的文档在官网可以查看，如果对你的业务或者学习有帮助的，<a href="https://github.com/imtaotao/danmu" rel="nofollow"><strong>给个 star 支持一下作者</strong></a>，也欢迎大家评论探讨（不止弹幕，哈哈）。</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T12:20:16Z</pubDate>
 <pubDate>2024-09-02T12:27:02Z</pubDate>
 </item>
 <item>
@@ -358,10 +763,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069713</link>
 <guid>https://www.v2ex.com/t/1069713</guid>
 <content:encoded><![CDATA[
-
 手机端在隐私与权限里倒是有清空个人词典选项
 ]]></content:encoded>
-<pubDate>2024-09-02T12:00:29Z</pubDate>
 <pubDate>2024-09-02T12:16:12Z</pubDate>
 </item>
 <item>
@@ -369,10 +772,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069712</link>
 <guid>https://www.v2ex.com/t/1069712</guid>
 <content:encoded><![CDATA[
-
 想趁着这次家电补贴给家里领导换一台电脑，现在的 i7 确实烫手，她的日常工作就是聊天软件和 Excel 表格处理数据，用惯了 MAC 不想换 Windows<br />想问下 M2 芯片+16G 内存，以上工作是否能够撑个 3-5 年？
 ]]></content:encoded>
-<pubDate>2024-09-02T11:58:40Z</pubDate>
 <pubDate>2024-09-02T12:24:54Z</pubDate>
 </item>
 <item>
@@ -380,12 +781,10 @@ manager.use(
 <link>https://www.v2ex.com/t/1069711</link>
 <guid>https://www.v2ex.com/t/1069711</guid>
 <content:encoded><![CDATA[
-
 <p>2022 年三月买的，马上快三年了，这电池就没撑住。
 <img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/makaspacex/PictureZone@main/picgo/202409021952876.png" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/makaspacex/PictureZone@main/picgo/202409021953348.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T11:54:56Z</pubDate>
 <pubDate>2024-09-02T12:18:39Z</pubDate>
 </item>
 <item>
@@ -393,7 +792,6 @@ manager.use(
 <link>https://www.v2ex.com/t/1069710</link>
 <guid>https://www.v2ex.com/t/1069710</guid>
 <content:encoded><![CDATA[
-
 <p>1.负责游戏服务端、虚拟币钱包、区块链的开发工作</p>
 <p>2.负责项目的整体框架构建</p>
 <p>3.通过数据分析项目系统性能，对整个系统进行深度优化，提高性能和稳定性</p>
@@ -401,7 +799,6 @@ manager.use(
 <p>有意者可以联系发简历到邮箱： <a href="mailto:luluyaya@proton.me">luluyaya@proton.me</a></p>
 <p>简历留下你的 Telegram 如果合适会有专人联系你的</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T11:54:53Z</pubDate>
 <pubDate>2024-09-02T11:53:53Z</pubDate>
 </item>
 <item>
@@ -409,12 +806,10 @@ manager.use(
 <link>https://www.v2ex.com/t/1069708</link>
 <guid>https://www.v2ex.com/t/1069708</guid>
 <content:encoded><![CDATA[
-
 <p>请做过游戏的大佬们帮我答疑解惑.</p>
 <p>例如 PUBG, GTA 这类 3D 游戏, 经常会遇到一些情况: 比如角色或物品被压住, 如果是按真实的世界, 不管是尸体还是什么被压住就是被压住, 不会无限反弹. 两个物品之间的受力最终也会达到平衡而静止. 但是在一些 3D 游戏里就经常会看到角色或物品在与其他物品接触的时候会不断的抖动, 甚至抽搐变形. 严重的甚至可能会造成飞天 (例如鲁大能通过层叠车辆并炸飞导致了远超出直接炸飞所产生的效果)</p>
 <p>诸位大佬能否从技术的角度说说这种情况是如何造成的? 什么原理?</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T11:46:51Z</pubDate>
 <pubDate>2024-09-02T12:04:46Z</pubDate>
 </item>
 <item>
@@ -422,10 +817,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069707</link>
 <guid>https://www.v2ex.com/t/1069707</guid>
 <content:encoded><![CDATA[
-
 某些 APP 的官方版太难用，巨卡务必，<br /><br />如果想做一个它的第三方客户端，瘦身版，<br /><br />原封不动的使用官方 app 的通讯接口，<br /><br />只是想要界面和交互上自己重新设计，<br /><br />这需要学习哪些知识？<br /><br />需要怎样的学习路线图呢？
 ]]></content:encoded>
-<pubDate>2024-09-02T11:42:22Z</pubDate>
 <pubDate>2024-09-02T11:40:22Z</pubDate>
 </item>
 <item>
@@ -433,10 +826,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069706</link>
 <guid>https://www.v2ex.com/t/1069706</guid>
 <content:encoded><![CDATA[
-
 我重装完去 chrome 应用商店下载，直接提示不兼容
 ]]></content:encoded>
-<pubDate>2024-09-02T11:42:19Z</pubDate>
 <pubDate>2024-09-02T11:50:30Z</pubDate>
 </item>
 <item>
@@ -444,10 +835,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069705</link>
 <guid>https://www.v2ex.com/t/1069705</guid>
 <content:encoded><![CDATA[
-
 一、汇丰旺角分行<br />材料：<br />1.身份类：身份证，通行证，过境小票<br />2.地址证明，收入明细证明，个税 app<br />流程：<br />提前约到了 30 号下午 4：00 的号，15：47 才能刷二维码。刷码等叫号，查看身份证，通行证，过境小票，地址证明，收入明细，通过个税 app 查看工作单位。按步填写信息全拼音，签名用中文即可，电话号码用内地号码。询问带了多少现金，我说 1w 多，存了 1.1w ，给卡，提醒要当天内在 atm 改密，初始密码在白色回单上。接着我询问是否有 mastercard ，对方不明白，但后来帮我申请了扣款卡。再接着问能否申请信用卡，回答说信用卡对内地人已停办。后来回住处后，自己在网上申请了，不确定能否申请成功。<br />二、中银香港牛头角分行(不建议预约这家分行)<br />提前 7 天预约了 31 号 9：00 的号，没办法，预约时网页卡顿，最后只好选了这家分行。人流量不大，但 8：30 到，门口也有长者在排队了。虽然不记得在哪个地方看到说这家分行不能当场下卡，但想着既然预约到了，那就碰下运气吧！<br />1.材料：和汇丰银行旺角分行准备的一样，但还要求有近三个月的理财账户持仓和收支明细，也就因为这个材料没有，线下开卡失败。即便我说我有 A 股几年前的交易，并给对方查看了。对方还说不能是截图。<br />2.线上开户：<br />(1)要求：肉身过港，手机过港。<br />(2)材料：移民局小程序过境信息 pdf 文档，通行证，身份证。<br />(3)人脸识别比较坑，8 秒钟，3 个动作。<br />(4)拍证件不能过亮反光。<br />(5)实体卡邮寄到家，平邮。<br />(6)资料可用全简体中文。<br />3.线上开户弊端：<br />(1)转数快小额支付没问题。<br />(2)中银快汇等其他投资交易类业务没法办理，相当于内地开了张 II 类卡的感觉。联系客服说，要再次到任意分行提交身份证件，提供账户，签字印鉴，才能使用全功能。(只能看哪天会不会再过港了)<br />三、ZAbank<br />1.虚拟卡，开户流程和中银香港差不多，同样肉身过港，手机过港。<br />2.要求：除了身份证、通行证、移民局小程序过境信息 pdf 文件信息外，还要内地银行卡和内地手机号参与验证信息，并且这张银行卡预留的手机号码要和 ZAbank 开户手机号一致。<br />3.5 个工作日反馈开卡结果。<br /><br />PS:移民局小程序建议不用 hotmail 接收。不管是 hkt 的网络，还是我用 csl 或者 ctmo 数据打开都有问题，页面卡顿，点不开邮件，借助 tw 的梯子打开了邮件，但下不了附件，那会真是着急。也许是我的 iphone13safari 问题吧。最后重新发到 qq 邮箱解决问题。手机上有 qq 邮箱 app ，但是 qq 邮箱代收 hotmail 好像也有问题，不及时或者被 hotmail 风控。<br /><br />最后，这次到香港，去了油麻地果栏(水果批发也不便宜啊)，ifc ，港大(最近学校活动周末也要预约，拖个行李箱转悠真的把自己累到了)，圆方(港大到圆方好近，就是中环内部换乘很远)。每次都是经西九龙高铁过港，但还是第一次去圆方，感觉比 ifc ，海港城，崇光铜锣湾，时代广场，太古广场都要好逛一些的感觉。当然每次去到香港都会去星光大道拍维港日景和夜景。话说近几年汇率高企，买买买也没有之前划算了，再加上各大品牌为了盈利也提高了在香港的销售价格，也没那么大优惠了。
 ]]></content:encoded>
-<pubDate>2024-09-02T11:07:10Z</pubDate>
 <pubDate>2024-09-02T11:51:29Z</pubDate>
 </item>
 <item>
@@ -455,10 +844,8 @@ manager.use(
 <link>https://www.v2ex.com/t/1069704</link>
 <guid>https://www.v2ex.com/t/1069704</guid>
 <content:encoded><![CDATA[
-
 Trillium 这个笔记软件，但是同步只能用服务器同步，或者可以装 docker 的 NAS 。<br />于是想弄个 VPS 玩玩，目前看中了 racknerd 的 VPS ，对于怎么同步大家还有更好的建议吗？
 ]]></content:encoded>
-<pubDate>2024-09-02T10:59:58Z</pubDate>
 <pubDate>2024-09-02T11:37:43Z</pubDate>
 </item>
 <item>
@@ -466,7 +853,6 @@ Trillium 这个笔记软件，但是同步只能用服务器同步，或者可�
 <link>https://www.v2ex.com/t/1069703</link>
 <guid>https://www.v2ex.com/t/1069703</guid>
 <content:encoded><![CDATA[
-
 <p>我们 app 是使用 POST 请求发送至 <a href="http://x.x.x.x" rel="nofollow">http://x.x.x.x</a></p>
 <p>其中 x.x.x.x 是国内 IP ，腾讯云，部分还在上海</p>
 <p>但是最近用户反馈登录问题，抓包分析以后发现 app 在向 <a href="http://x.x.x.x" rel="nofollow">http://x.x.x.x</a> ，也就是我们服务器发送请求的时候，会被移动拦截返回 302 码</p>
@@ -475,10 +861,8 @@ location: <a href="http://183.192.65.101" rel="nofollow">http://183.192.65.101</
 server: Apache-Coyote/1.1
 content-length: 0</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T10:46:38Z</pubDate>
 <pubDate>2024-09-02T11:16:29Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 想 AutoDL 那种 GPU 云的管理系统，有木有开源版本的？</title>
 <link>https://www.v2ex.com/t/1069701</link>
@@ -15909,162 +16293,6 @@ tun:
 CPU：INTEL 13 代 i5 13600KF 盒装-14 核 20 线程<br />散热器： 先马 XW240 2 代（无风扇） 2.1 寸 LCD 圆屏 黑色<br />主板： 华硕 TUF GAMING B760M-PLUS WIFI D5 2 代<br />内存： 宏碁 Vestall 炫光星舰 32G 6000 16Gx2 C32 黑<br />固态硬盘： 伯维 NV7400 2TB PCIE 4.0 7450MB/S.<br />显卡：华硕 DUAL-RTX4060TI O8G 雪豹 V2<br />机箱：乔思伯 TK-1 星舰舱黑色<br />电源：安耐美 G750 金牌全模组 黑色 五年质保一年换新<br />风扇 4 把丛林豹 星河 T1 黑色 ARGB 风扇（含 2 把反叶）
 ]]></content:encoded>
 <pubDate>2024-08-28T08:22:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 我想把多台机器上同一个服务的日志进行合并, 有什么好用的工具么</title>
-<link>https://www.v2ex.com/t/1068478</link>
-<guid>https://www.v2ex.com/t/1068478</guid>
-<content:encoded><![CDATA[
-<p>日志的格式如下
-<code>[08-28 07:36:30 839420] [debug] [16169] [<a href="http://worker.cc:1100" rel="nofollow">worker.cc:1100</a>] ivyjxj,Foo, timer</code>
-我想把合并的日志按前面的时间进行排序</p>
-]]></content:encoded>
-<pubDate>2024-08-28T08:06:49Z</pubDate>
-</item>
-<item>
-<title>[iCloud] iCloud 2T 拼车 (年付 70, 人均 400G)</title>
-<link>https://www.v2ex.com/t/1068476</link>
-<guid>https://www.v2ex.com/t/1068476</guid>
-<content:encoded><![CDATA[
-<p>一位乘客下车了, 年付 70</p>
-<p>wx: aDN6ODIzICA=</p>
-]]></content:encoded>
-<pubDate>2024-08-28T05:29:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国内视频网站求推荐，只有知道视频链接才能观看视频的那种。</title>
-<link>https://www.v2ex.com/t/1068474</link>
-<guid>https://www.v2ex.com/t/1068474</guid>
-<content:encoded><![CDATA[
-有些家庭视频，想分享给家人，不想被路人看到，想问下有没有只有知道链接才能访问、网站直接搜搜不到的这种视频平台。<br /><br />试过 b 站，好像没有隐匿的选项。油管可以，但家人用起来不方便。
-]]></content:encoded>
-<pubDate>2024-08-28T07:25:30Z</pubDate>
-</item>
-<item>
-<title>[游戏] 来排序，黑神话，战神 3，战神 45，法环</title>
-<link>https://www.v2ex.com/t/1068473</link>
-<guid>https://www.v2ex.com/t/1068473</guid>
-<content:encoded><![CDATA[
-<p>我就不排序了，好几个都没玩过，但是看小红书上的帖子，这些可以一战。</p>
-<ol>
-<li>黑神话</li>
-<li>战神 3</li>
-<li>战神 45</li>
-<li>法环</li>
-</ol>
-<p>大家怎么排序呢？</p>
-]]></content:encoded>
-<pubDate>2024-08-28T08:02:47Z</pubDate>
-</item>
-<item>
-<title>[Node.js] 分享一下在 node.js 项目里打包 docker 镜像的小技巧.</title>
-<link>https://www.v2ex.com/t/1068472</link>
-<guid>https://www.v2ex.com/t/1068472</guid>
-<content:encoded><![CDATA[
-<p>在实际的项目开发时，打包 Docker 镜像，其实还是有些细节需要注意</p>
-<p>例如，镜像的 name 、tag 如何更准确的表达当前代码的信息。</p>
-<p>我认为，镜像的名字以这种格式会比较好 : <strong>私有仓库/项目/产品-git 分支:时间-git hash</strong> </p>
-<p>当然， 这个观点，大家可能有不同的意见，只是这个格式比较适合我们。</p>
-<p>基于以上的想法， 可以在 package.json 的 <code>scripts</code> 里， 增加:</p>
-<pre><code class="language-json">// package.json
-{
-    ...
-    "scripts": {
-        ...
-        "build-img": "docker build -t registry.xxxxx.com/$(pwd | rev | cut -d / -f 1-2 - | rev)-$(git rev-parse --abbrev-ref HEAD):$(git log --pretty=%ad-%h --date=format:'%y%m%d%H%M' -n 1) ."
-        ...
-    }
-    ...
-}
-</code></pre>
-<p>使用时， 直接 <code>npm run build-img</code> 即可， 打包出来的镜像名称类似: <code><a href="http://registry.xxxxx.com/上级目录名/当前目录名-分支名:yyMMddmmss-hash" rel="nofollow">registry.xxxxx.com/上级目录名/当前目录名-分支名:yyMMddmmss-hash</a></code>。</p>
-<p>上面的脚本，其实有个关于代码目录的约定: 在项目的目录下，clone 各个 git 仓库的代码 .</p>
-<p>通过上面这种方式打包镜像，好处是从镜像名称就能知道 这个镜像属于哪个项目,哪个产品，所属 git 分支，最后一次签入的时间和 hash （即代码的当前状态） 。</p>
-<p>并且，只要代码没有变动(或者应该说，没有进行 git commit)，任何时候从 仓库 clone 代码，再次打包镜像时，名称都是一致的。</p>
-<p>简单来说， 可以保持镜像名称和 git 仓库的关系。</p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:54:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有接过 PayPal braintree 支付的？信用卡交易状态返回 Submitted for settlement 就算交易成功了吗？</title>
-<link>https://www.v2ex.com/t/1068471</link>
-<guid>https://www.v2ex.com/t/1068471</guid>
-<content:encoded><![CDATA[
-<p>提交交易成功后，返回的状态是 Submitted for settlement ，看了下文档，这个状态并不是交易支付成功完成了，会在晚上统一结算完成，完成后变成 Settled 。</p>
-<p>最终接过也有可能是 Settlement declined 。</p>
-<p>我是做充值，是否是返回状态<code>Submitted for settlement</code>后就认为支付成功了呢？</p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:26:07Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 闲逛之无聊的产物</title>
-<link>https://www.v2ex.com/t/1068470</link>
-<guid>https://www.v2ex.com/t/1068470</guid>
-<content:encoded><![CDATA[
-无聊逛 v 站 点来点去<br />发现 a 标签默认都是当前页面跳转的（ target=self ）<br />很不爽，于是写了个 1 行代码的插件，默认都改成 target=blank<br />当然也可以直接控制台里面写个遍历改..我比较懒 所以写了个插件一劳永逸..<br />然后没啥了..继续闲逛..<br /><br /><a href="https://github.com/Bill-Pang/linkClick" rel="nofollow noopener" target="_blank">https://github.com/Bill-Pang/linkClick</a>
-]]></content:encoded>
-<pubDate>2024-08-28T07:39:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] mac 系统 SVN 工具 Cornerstone 4.2 无限试用方法，亲测可用，立省 79 刀~</title>
-<link>https://www.v2ex.com/t/1068469</link>
-<guid>https://www.v2ex.com/t/1068469</guid>
-<content:encoded><![CDATA[
-<p>之前一直用破解版，后面不知怎么突然就闪退用不了，找到大佬给的解决方案。</p>
-<p>1 、安装正版的 Cornerstone 4.2
-官网： <a href="https://cornerstone.assembla.com/" rel="nofollow">https://cornerstone.assembla.com/</a></p>
-<p>2 、免费试用时间是 7 天，试用期到期后，清空“com.zennaware.cornerstone3 ”文件夹，或者直接删除新建一样的文件夹，重新打开软件后，又可以继续试用。</p>
-<p>/Users/xxx(用户名)/Library/Containers/com.zennaware.cornerstone3/Data/Library/Application Support/com.zennaware.cornerstone3/</p>
-<p>或者直接桌面--上面前往菜单--前往文件夹，打开
-~/资源库/Containers/com.zennaware.cornerstone3/Data/Library/Application Support/com.zennaware.cornerstone3/</p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:22:03Z</pubDate>
-</item>
-<item>
-<title>[推广] 国区谷歌苹果无限额低费率收款结汇线上服务的科学姿势！</title>
-<link>https://www.v2ex.com/t/1068468</link>
-<guid>https://www.v2ex.com/t/1068468</guid>
-<content:encoded><![CDATA[
-Hi ，这里是 Livy ，这篇帖子主要是想分享一下关于如何科学安全的将谷歌苹果的美金收益回款结汇。<br />对于中国大陆区的 AdSense/admob/GooglePlay/App store ，最安全的回款方式无非就是银行，但是银行有限额，怎么办？答案就是重庆结汇！重庆结汇是国内首家直连银行系统的渠道，真正实现资金不过任何第三方平台。<br />我们的优势在于：<br />1.没有额度限制<br /><br />相比普通银行存在的个人 5 万外汇额度限制问题，重庆结汇可以根据开发者的实际经营情况来申请结算额度，无需担心 5 万美金限额问题，可满足大家大额资金结算的需求。<br /><br />2.安全性高<br /><br />依靠国内大银行系统，重庆结汇通过为客户办理一类实体储蓄卡进行收款结汇，资金不会过第三方平台，所有的流水明细均在银行可查。<br /><br />3.便捷性高<br /><br />手机银行操作结汇，无需跑柜台，不怕风吹，不怕雨淋，不担心日晒！客户经理一对一专业细心服务，我们负责帮您与银行联系！！<br /><br />4.费率极低<br /><br />市场费率平均千五，而我们，可以低至千三，如果您拥有 1w 美金需要结汇，即可立省 20 美金的手续费！<br /><br />5.汇率优惠<br /><br />结汇汇率采用银行 app 内实时汇率，结汇汇率通常高七八十 bp 左右。<br />如有需要可 V 我：Livy15669 或 QQ：3665384226
-]]></content:encoded>
-<pubDate>2024-08-28T07:21:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 男同胞们，你们胡子都几天一刮</title>
-<link>https://www.v2ex.com/t/1068466</link>
-<guid>https://www.v2ex.com/t/1068466</guid>
-<content:encoded><![CDATA[
-今年 28 ，从去年初开始我基本就是每天一刮了，而且每天早上 9 点刮下午 6 点左右就冒得很明显了，感觉很麻烦，不刮的话第二天就看起来特别邋遢，我属于是冒的快，但是又长不长，可能就半厘米长度就不会长了，就很烦，你们都是咋打理的
-]]></content:encoded>
-<pubDate>2024-08-28T08:24:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有关 react-native-webview 的问题请教</title>
-<link>https://www.v2ex.com/t/1068465</link>
-<guid>https://www.v2ex.com/t/1068465</guid>
-<content:encoded><![CDATA[
-在 iOS 使用 onFileDownload 属性来捕获下载事件的时候，我们注意到 iframe 中的下载链接无法捕获到，会被 webview 直接加载，因此无法对其进行处理。<br /><br /><br />当前考虑过的方案，但都不理想：<br /><br />1.通过 url 后缀黑白名单来处理非 TopFrame 的下载请求。<br />2.通过 fetch 判断 content-type 来处理非 TopFrame 的下载请求。<br /><br />请问有什么比较完美的办法在 webview 层面处理好这个问题？
-]]></content:encoded>
-<pubDate>2024-08-28T08:23:34Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] Zerotier 在没有使用的情况下为什么最近 7 天也消耗了 44GB/12GB 的上下行流量？</title>
-<link>https://www.v2ex.com/t/1068464</link>
-<guid>https://www.v2ex.com/t/1068464</guid>
-<content:encoded><![CDATA[
-<p>我通过火绒的流量监控工具，查看了历史流量，发现最近 7 天上传最多的是 Zerotier ，<strong>但是我最近基本没有</strong>使用这个软件，为什么还会后台跑了这么多流量？</p>
-<p><img alt="_20240828151311.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/08/28/stTAKq9IXrl2vGy.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:15:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问现在有什么好用稳定按次收费的 AI 网站吗？</title>
-<link>https://www.v2ex.com/t/1068463</link>
-<guid>https://www.v2ex.com/t/1068463</guid>
-<content:encoded><![CDATA[
-rt<br />之前买过按月收费的，感觉不合算，有按次收费的吗？求推荐，谢谢！
-]]></content:encoded>
-<pubDate>2024-08-28T07:02:54Z</pubDate>
 </item>
 </channel>
 </rss>
