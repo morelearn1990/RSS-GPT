@@ -5,14 +5,487 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Apple] iPhone 16 可能不支持微信？苹果中国区技术顾问称正与腾讯沟通应用商店抽成事宜</title>
+<link>https://www.v2ex.com/t/1069717</link>
+<guid>https://www.v2ex.com/t/1069717</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.ithome.com/0/792/961.htm" rel="nofollow">https://www.ithome.com/0/792/961.htm</a></p>
+]]></content:encoded>
+<pubDate>2024-09-02T12:42:40Z</pubDate>
+<pubDate>2024-09-02T12:39:40Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPhone 16 到底买哪个版本的比较好？</title>
+<link>https://www.v2ex.com/t/1069715</link>
+<guid>https://www.v2ex.com/t/1069715</guid>
+<content:encoded><![CDATA[
+
+最近一直也有在看 iPhone AI 相关的信息<br />国内目前看来是没办法用上，最近好像只解锁了港版<br />然后刚好晚上看到一个老哥在看日版的<br />自己手上现在是 15pro<br />春节期间大概率会去日本旅游或者香港旅游<br />各位大佬有什么建议么
+]]></content:encoded>
+<pubDate>2024-09-02T12:31:10Z</pubDate>
+<pubDate>2024-09-02T12:35:49Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 这可能是见过的最好用的弹幕库 🔥🔥</title>
+<link>https://www.v2ex.com/t/1069714</link>
+<guid>https://www.v2ex.com/t/1069714</guid>
+<content:encoded><![CDATA[
+
+<p>最近把五年前写的一个弹幕库给重构了一下，本来两年前就想着做这件事，但是其中有一段工作时间压力很大，所以就搁置了，导致没有时间来做这件事情，最近周末 + 晚上花一些时间重构了下，并把文档好好写了一下。言归正传，这篇文章会介绍部分这个弹幕库有的能力，如果正好符合你的需求或者感兴趣，<a href="https://github.com/imtaotao/danmu" rel="nofollow"><strong>可以帮忙点点 star 来支持一下。</strong></a></p>
+<h2>我们有哪些能力</h2>
+<p>我们提供了<strong>灵活调整轨道</strong>，<strong>自定义弹幕和容器样式</strong>，<strong>弹幕运动算法</strong>等能力，还在提供非常丰富的钩子来让用户处理自定义的行为，只要你想要的，都能做到，本文档会简单介绍一些能力和一些功能的实现。</p>
+<blockquote>
+<ul>
+<li>在线 demo: <a href="https://imtaotao.github.io/danmu/" rel="nofollow">https://imtaotao.github.io/danmu/</a></li>
+<li>github: <a href="https://github.com/imtaotao/danmu?tab=readme-ov-file" rel="nofollow">https://github.com/imtaotao/danmu?tab=readme-ov-file</a></li>
+<li>官方文档： <a href="https://imtaotao.github.io/danmu/document/zh/" rel="nofollow">https://imtaotao.github.io/danmu/document/zh/</a></li>
+</ul>
+</blockquote>
+<h2>快速开始</h2>
+<p>对于一个开箱即用的 demo ，可以非常简单的接入，如下所示：</p>
+<pre><code class="language-js">import { create } from 'danmu';
+
+const manager = create();
+
+manager.mount('#root');
+manager.startPlaying();
+
+// 发送弹幕
+manager.push('弹幕内容')
+</code></pre>
+<h2>对轨道进行调整</h2>
+<p>我们对支持类似 CSS calc 表达式的能力，一些位置/宽高等信息都可以用表达式来计算。所以对于轨道来说可以很方便的进行调整。</p>
+<ol>
+<li>**<code>number</code>**：默认单位为 <code>px</code>。</li>
+<li>**<code>string</code>**：表达式计算。支持（<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>）数学计算，只支持 <code>%</code> 和 <code>px</code> 两种单位。</li>
+</ol>
+<pre><code class="language-ts">// 例如，这里的 100% 是指容器宽度（如果是高度相关的配置 100%  就是容器的高度）
+manager.setGap('(100% - 10px) / 5');
+</code></pre>
+<h3>限制为顶部 3 条弹幕</h3>
+<pre><code class="language-ts">// 如果我们希望轨道高度为 50px
+manager.setTrackHeight('100% / 3');
+
+// 如果不设置渲染区域，轨道的高度会根据默认的 container.height / 3 得到，
+// 这可能导致轨道高度不是你想要的
+manager.setArea({
+  y: {
+    start: 0,
+    // 3 条轨道的总高度为 150px
+    end: 150,
+  },
+});
+</code></pre>
+<h3>限制为中间 3 条弹幕</h3>
+<pre><code class="language-ts">manager.setTrackHeight('100% / 3');
+
+manager.setArea({
+  y: {
+    start: `50%`,
+    end: `50% + 150`,
+  },
+});
+</code></pre>
+<h3>限制为几条不连续的轨道</h3>
+<p>限制为几条不连续的轨道，除了要做和连续轨道的操作之外，还需要借助 <a href="https://imtaotao.github.io/danmu/document/zh/reference/manager-hooks/#hooks-willrender" rel="nofollow"><strong><code>willRender</code></strong></a> 这个钩子来实现。</p>
+<pre><code class="language-ts">// 如果我们希望轨道高度为 50px ，并渲染 0 ，2 ，4 这几条轨道
+manager.setTrackHeight('100% / 6');
+
+// 设置容器的渲染区域
+manager.setArea({
+  y: {
+    start: 0,
+    // 6 条轨道的总高度为 300px
+    end: 300,
+  },
+});
+
+manager.use({
+  willRender(ref) {
+    // 高级弹幕和轨道不强相关，没有 trackIndex 这个属性
+    if (ref.trackIndex === null) return ref;
+
+    // 如果为 1 ，3 ，5 这几条轨道就阻止渲染，并重新添加等待下次渲染
+    if (ref.trackIndex % 2 === 1) {
+      ref.prevent = true;
+      manager.unshift(ref.danmaku);
+    }
+    return ref;
+  },
+});
+</code></pre>
+<h2>自定义渲染</h2>
+<p>弹幕和容器都允许自定义的渲染样式，你可以很方便的做到。</p>
+<h3>自定义弹幕的样式</h3>
+<p><strong>1. 通过 <code>manager.setStyle</code> 来设置</strong></p>
+<pre><code class="language-ts">import { create } from 'danmu';
+
+// 需要添加的样式
+const styles = {
+  color: 'red',
+  fontSize: '15px',
+  // .
+};
+
+const manager = create();
+
+// 后续渲染的弹幕和当前已经渲染的弹幕会设置上这些样式。
+for (const key in styles) {
+  manager.setStyle(key, styles[key]);
+}
+</code></pre>
+<p><strong>2. 通过 <code>danamaku.setStyle</code> 来设置</strong></p>
+<pre><code class="language-ts">import { create } from 'danmu';
+
+// 需要添加的样式
+const styles = {
+  color: 'red',
+  fontSize: '15px',
+  // .
+};
+
+// 初始化的时候添加钩子处理，这样当有新的弹幕渲染时会自动添加上这些样式
+const manager = create({
+  plugin: {
+    $moveStart(danmaku) {
+      for (const key in styles) {
+        danmaku.setStyle(key, styles[key]);
+      }
+      // 你也可以在这里给弹幕 DOM 添加 className
+      danmaku.node.classList.add('className');
+    },
+  },
+});
+
+// 对当前正在渲染的弹幕添加样式
+manager.asyncEach((danmaku) =&gt; {
+  for (const key in styles) {
+    danmaku.setStyle(key, styles[key]);
+  }
+});
+</code></pre>
+<h3>自定义容器样式</h3>
+<pre><code class="language-ts">import { create } from 'danmu';
+
+// 需要添加的样式
+const styles = {
+  background: 'red',
+  // .
+};
+
+const manager = create({
+  plugin: {
+    // 你可以在初始化的时候添加钩子处理
+    init(manager) {
+      for (const key in styles) {
+        manager.container.setStyle(key, styles[key]);
+      }
+      // 你也可以在这里给容器 DOM 添加 className
+      manager.container.node.classList.add('className');
+    },
+  },
+});
+
+// 或者直接调用 api
+for (const key in styles) {
+  manager.container.setStyle(key, styles[key]);
+}
+</code></pre>
+<h2>高级弹幕的示例</h2>
+<p>本章节将介绍如何将弹幕固定在某一位置，以 <strong><code>top</code></strong> 和 <strong><code>left</code></strong> 这两个位置举例。由于我们需要自定义位置，所以我们需要使用高级弹幕的能力。</p>
+<h3>将弹幕固定在顶部</h3>
+<pre><code class="language-ts">// 这条弹幕将会居中距离顶部 10px 的位置悬停 5s
+manager.pushFlexibleDanmaku('弹幕内容', {
+  duration: 5000,
+  direction: 'none',
+  position(danmaku, container) {
+    return {
+      x: `50% - ${danmaku.getWidth() / 2}`,
+      y: 10, // 具体容器顶部的距离为 10px
+    };
+  },
+});
+</code></pre>
+<h3>固定在顶部第 2 条轨道上</h3>
+<pre><code class="language-ts">// 这条弹幕将会在第二条轨道居中的位置悬停 5s
+manager.pushFlexibleDanmaku('弹幕内容', {
+  duration: 5000,
+  direction: 'none',
+  position(danmaku, container) {
+    // 渲染在第 3 条轨道中
+    const { middle } = manager.getTrackLocation(2);
+    return {
+      x: `50% - ${danmaku.getWidth() / 2}`,
+      y: middle - danmaku.getHeight() / 2,
+    };
+  },
+});
+</code></pre>
+<h3>将弹幕固定在左边</h3>
+<pre><code class="language-ts">// 这条弹幕将会在容器中间距离左边 10px 的地方停留 5s
+manager.pushFlexibleDanmaku('弹幕内容', {
+  duration: 5000,
+  direction: 'none',
+  position(danmaku, container) {
+    // 渲染在第 3 条轨道中
+    const { middle } = manager.getTrackLocation(2);
+    return {
+      x: 10,
+      y: `50% - ${danmaku.getHeight() / 2}`,
+    };
+  },
+});
+</code></pre>
+<h2>发送带图片的弹幕</h2>
+<p>要让弹幕里面能够携带图片，要在弹幕的节点内部添加自定义的内容，实际上不止图片，你可以往弹幕的节点里面<strong>添加任何的内容。</strong></p>
+<blockquote>
+<p>本章节的组件以 <strong>React</strong> 来实现演示。</p>
+</blockquote>
+<h3>开发弹幕组件</h3>
+<pre><code class="language-ts">export function Danmaku({ danmaku }) {
+  return (
+    &lt;div&gt;
+      &lt;img src="https://abc.jpg" /&gt;
+      {danmaku.data}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<h3>渲染弹幕</h3>
+<pre><code class="language-ts">import ReactDOM from 'react-dom/client';
+import { create } from 'danmu';
+import { Danmaku } from './Danmaku';
+
+const manager = create&lt;string&gt;({
+  plugin: {
+    // 将组件渲染到弹幕的内置节点上
+    $createNode(danmaku) {
+      ReactDOM.createRoot(danmaku.node).render(&lt;Danmaku danmaku={danmaku} /&gt;);
+    },
+  },
+});
+</code></pre>
+<h2>编写一个插件</h2>
+<p>编写一个插件是很简单的，但是借助内核暴露出来的<code>钩子</code>和 <code>API</code>，你可以很轻松的实现强大且定制化的需求。由于内核没有暴露出来<strong>根据条件来实现过滤弹幕</strong>的功能，原因在于内核不知道弹幕内容的数据结构，这和业务的诉求强相关，所以我们在此通过插件来实现<strong>精简弹幕</strong>的功能用来演示。</p>
+<h3>编写一个插件</h3>
+<ul>
+<li>你编写的插件应当取一个 <code>name</code>，以便于调试定位问题（注意不要和其他插件冲突了）。</li>
+<li>插件可以选择性的声明一个 <code>version</code>，这在你的插件作为独立包发到 <code>npm</code> 上时很有用。</li>
+</ul>
+<pre><code class="language-ts">export function filter({ userIds, keywords }) {
+  return (manager) =&gt; {
+    return {
+      name: 'filter-keywords-or-user',
+      version: '1.0.0', // version 字段不是必须的
+      willRender(ref) {
+        const { userId, content } = ref.danmaku.data.value;
+        console.log(ref.type); // 可以根据此字段来区分是普通弹幕还是高级弹幕
+
+        if (userIds &amp;&amp; userIds.includes(userId)) {
+          ref.prevent = true;
+        } else if (keywords) {
+          for (const word of keywords) {
+            if (content.includes(word)) {
+              ref.prevent = true;
+              break;
+            }
+          }
+        }
+        return ref;
+      },
+    };
+  };
+}
+</code></pre>
+<h3>注册插件</h3>
+<p>你需要通过 <code>mananger.use()</code> 来注册插件。</p>
+<pre><code class="language-ts">import { create } from 'danmu';
+
+const manager = create&lt;{
+  userId: number;
+  content: string;
+}&gt;();
+
+manager.use(
+  filter({
+    userIds: [1],
+    keywords: ['菜'],
+  }),
+);
+</code></pre>
+<h3>发送弹幕</h3>
+<ul>
+<li>❌ <strong>会</strong>被插件阻止渲染</li>
+</ul>
+<pre><code class="language-ts">manager.push({
+  userId: 1,
+  content: '',
+});
+</code></pre>
+<ul>
+<li>❌ <strong>会</strong>被插件阻止渲染</li>
+</ul>
+<pre><code class="language-ts">manager.push({
+  userId: 2,
+  content: '你真菜',
+});
+</code></pre>
+<ul>
+<li>✔️ <strong>不会</strong>被插件阻止渲染</li>
+</ul>
+<pre><code class="language-ts">manager.push({
+  userId: 2,
+  content: '',
+});
+</code></pre>
+<ul>
+<li>✔️ <strong>不会</strong>被插件阻止渲染</li>
+</ul>
+<pre><code class="language-ts">manager.push({
+  userId: 2,
+  content: '你真棒',
+});
+</code></pre>
+<h2>总结</h2>
+<p>本文档只是简单介绍了下现在的部分能力，更详细的文档在官网可以查看，如果对你的业务或者学习有帮助的，<a href="https://github.com/imtaotao/danmu" rel="nofollow"><strong>给个 star 支持一下作者</strong></a>，也欢迎大家评论探讨（不止弹幕，哈哈）。</p>
+]]></content:encoded>
+<pubDate>2024-09-02T12:20:16Z</pubDate>
+<pubDate>2024-09-02T12:27:02Z</pubDate>
+</item>
+<item>
+<title>[macOS] 微信输入法 mac 端好像无法清空个人词典</title>
+<link>https://www.v2ex.com/t/1069713</link>
+<guid>https://www.v2ex.com/t/1069713</guid>
+<content:encoded><![CDATA[
+
+手机端在隐私与权限里倒是有清空个人词典选项
+]]></content:encoded>
+<pubDate>2024-09-02T12:00:29Z</pubDate>
+<pubDate>2024-09-02T12:16:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] 主要工作是处理 Excel 表格+聊天软件， M2 16G Air 是否够用</title>
+<link>https://www.v2ex.com/t/1069712</link>
+<guid>https://www.v2ex.com/t/1069712</guid>
+<content:encoded><![CDATA[
+
+想趁着这次家电补贴给家里领导换一台电脑，现在的 i7 确实烫手，她的日常工作就是聊天软件和 Excel 表格处理数据，用惯了 MAC 不想换 Windows<br />想问下 M2 芯片+16G 内存，以上工作是否能够撑个 3-5 年？
+]]></content:encoded>
+<pubDate>2024-09-02T11:58:40Z</pubDate>
+<pubDate>2024-09-02T12:24:54Z</pubDate>
+</item>
+<item>
+<title>[Apple] 苹果电池是真不行啊， MBP 电池提示维修</title>
+<link>https://www.v2ex.com/t/1069711</link>
+<guid>https://www.v2ex.com/t/1069711</guid>
+<content:encoded><![CDATA[
+
+<p>2022 年三月买的，马上快三年了，这电池就没撑住。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/makaspacex/PictureZone@main/picgo/202409021952876.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.jsdelivr.net/gh/makaspacex/PictureZone@main/picgo/202409021953348.png" /></p>
+]]></content:encoded>
+<pubDate>2024-09-02T11:54:56Z</pubDate>
+<pubDate>2024-09-02T12:18:39Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 招聘 golang 开发，游戏和区块链 [40k] 远程</title>
+<link>https://www.v2ex.com/t/1069710</link>
+<guid>https://www.v2ex.com/t/1069710</guid>
+<content:encoded><![CDATA[
+
+<p>1.负责游戏服务端、虚拟币钱包、区块链的开发工作</p>
+<p>2.负责项目的整体框架构建</p>
+<p>3.通过数据分析项目系统性能，对整个系统进行深度优化，提高性能和稳定性</p>
+<p>4.有区块链应用、Telegram 机器人、棋牌游戏服务端开发经验者优先</p>
+<p>有意者可以联系发简历到邮箱： <a href="mailto:luluyaya@proton.me">luluyaya@proton.me</a></p>
+<p>简历留下你的 Telegram 如果合适会有专人联系你的</p>
+]]></content:encoded>
+<pubDate>2024-09-02T11:54:53Z</pubDate>
+<pubDate>2024-09-02T11:53:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教: 3D 游戏中的各种因碰撞而导致的角色/载具抖动, 抽搐甚至飞天是如何造成的?</title>
+<link>https://www.v2ex.com/t/1069708</link>
+<guid>https://www.v2ex.com/t/1069708</guid>
+<content:encoded><![CDATA[
+
+<p>请做过游戏的大佬们帮我答疑解惑.</p>
+<p>例如 PUBG, GTA 这类 3D 游戏, 经常会遇到一些情况: 比如角色或物品被压住, 如果是按真实的世界, 不管是尸体还是什么被压住就是被压住, 不会无限反弹. 两个物品之间的受力最终也会达到平衡而静止. 但是在一些 3D 游戏里就经常会看到角色或物品在与其他物品接触的时候会不断的抖动, 甚至抽搐变形. 严重的甚至可能会造成飞天 (例如鲁大能通过层叠车辆并炸飞导致了远超出直接炸飞所产生的效果)</p>
+<p>诸位大佬能否从技术的角度说说这种情况是如何造成的? 什么原理?</p>
+]]></content:encoded>
+<pubDate>2024-09-02T11:46:51Z</pubDate>
+<pubDate>2024-09-02T12:04:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 制作别人 APP 的第三方客户端需要哪些知识？</title>
+<link>https://www.v2ex.com/t/1069707</link>
+<guid>https://www.v2ex.com/t/1069707</guid>
+<content:encoded><![CDATA[
+
+某些 APP 的官方版太难用，巨卡务必，<br /><br />如果想做一个它的第三方客户端，瘦身版，<br /><br />原封不动的使用官方 app 的通讯接口，<br /><br />只是想要界面和交互上自己重新设计，<br /><br />这需要学习哪些知识？<br /><br />需要怎样的学习路线图呢？
+]]></content:encoded>
+<pubDate>2024-09-02T11:42:22Z</pubDate>
+<pubDate>2024-09-02T11:40:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么现在 360 极速浏览器不支持 Adblock 了</title>
+<link>https://www.v2ex.com/t/1069706</link>
+<guid>https://www.v2ex.com/t/1069706</guid>
+<content:encoded><![CDATA[
+
+我重装完去 chrome 应用商店下载，直接提示不兼容
+]]></content:encoded>
+<pubDate>2024-09-02T11:42:19Z</pubDate>
+<pubDate>2024-09-02T11:50:30Z</pubDate>
+</item>
+<item>
+<title>[香港] 2024 年 8 月底过港开卡经验分享</title>
+<link>https://www.v2ex.com/t/1069705</link>
+<guid>https://www.v2ex.com/t/1069705</guid>
+<content:encoded><![CDATA[
+
+一、汇丰旺角分行<br />材料：<br />1.身份类：身份证，通行证，过境小票<br />2.地址证明，收入明细证明，个税 app<br />流程：<br />提前约到了 30 号下午 4：00 的号，15：47 才能刷二维码。刷码等叫号，查看身份证，通行证，过境小票，地址证明，收入明细，通过个税 app 查看工作单位。按步填写信息全拼音，签名用中文即可，电话号码用内地号码。询问带了多少现金，我说 1w 多，存了 1.1w ，给卡，提醒要当天内在 atm 改密，初始密码在白色回单上。接着我询问是否有 mastercard ，对方不明白，但后来帮我申请了扣款卡。再接着问能否申请信用卡，回答说信用卡对内地人已停办。后来回住处后，自己在网上申请了，不确定能否申请成功。<br />二、中银香港牛头角分行(不建议预约这家分行)<br />提前 7 天预约了 31 号 9：00 的号，没办法，预约时网页卡顿，最后只好选了这家分行。人流量不大，但 8：30 到，门口也有长者在排队了。虽然不记得在哪个地方看到说这家分行不能当场下卡，但想着既然预约到了，那就碰下运气吧！<br />1.材料：和汇丰银行旺角分行准备的一样，但还要求有近三个月的理财账户持仓和收支明细，也就因为这个材料没有，线下开卡失败。即便我说我有 A 股几年前的交易，并给对方查看了。对方还说不能是截图。<br />2.线上开户：<br />(1)要求：肉身过港，手机过港。<br />(2)材料：移民局小程序过境信息 pdf 文档，通行证，身份证。<br />(3)人脸识别比较坑，8 秒钟，3 个动作。<br />(4)拍证件不能过亮反光。<br />(5)实体卡邮寄到家，平邮。<br />(6)资料可用全简体中文。<br />3.线上开户弊端：<br />(1)转数快小额支付没问题。<br />(2)中银快汇等其他投资交易类业务没法办理，相当于内地开了张 II 类卡的感觉。联系客服说，要再次到任意分行提交身份证件，提供账户，签字印鉴，才能使用全功能。(只能看哪天会不会再过港了)<br />三、ZAbank<br />1.虚拟卡，开户流程和中银香港差不多，同样肉身过港，手机过港。<br />2.要求：除了身份证、通行证、移民局小程序过境信息 pdf 文件信息外，还要内地银行卡和内地手机号参与验证信息，并且这张银行卡预留的手机号码要和 ZAbank 开户手机号一致。<br />3.5 个工作日反馈开卡结果。<br /><br />PS:移民局小程序建议不用 hotmail 接收。不管是 hkt 的网络，还是我用 csl 或者 ctmo 数据打开都有问题，页面卡顿，点不开邮件，借助 tw 的梯子打开了邮件，但下不了附件，那会真是着急。也许是我的 iphone13safari 问题吧。最后重新发到 qq 邮箱解决问题。手机上有 qq 邮箱 app ，但是 qq 邮箱代收 hotmail 好像也有问题，不及时或者被 hotmail 风控。<br /><br />最后，这次到香港，去了油麻地果栏(水果批发也不便宜啊)，ifc ，港大(最近学校活动周末也要预约，拖个行李箱转悠真的把自己累到了)，圆方(港大到圆方好近，就是中环内部换乘很远)。每次都是经西九龙高铁过港，但还是第一次去圆方，感觉比 ifc ，海港城，崇光铜锣湾，时代广场，太古广场都要好逛一些的感觉。当然每次去到香港都会去星光大道拍维港日景和夜景。话说近几年汇率高企，买买买也没有之前划算了，再加上各大品牌为了盈利也提高了在香港的销售价格，也没那么大优惠了。
+]]></content:encoded>
+<pubDate>2024-09-02T11:07:10Z</pubDate>
+<pubDate>2024-09-02T11:51:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 最近看到很多人都在用 Trillium 这个笔记软件，有一个问题想请教一下</title>
+<link>https://www.v2ex.com/t/1069704</link>
+<guid>https://www.v2ex.com/t/1069704</guid>
+<content:encoded><![CDATA[
+
+Trillium 这个笔记软件，但是同步只能用服务器同步，或者可以装 docker 的 NAS 。<br />于是想弄个 VPS 玩玩，目前看中了 racknerd 的 VPS ，对于怎么同步大家还有更好的建议吗？
+]]></content:encoded>
+<pubDate>2024-09-02T10:59:58Z</pubDate>
+<pubDate>2024-09-02T11:37:43Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 上海移动 IP 直接访问 302 跳反诈？</title>
+<link>https://www.v2ex.com/t/1069703</link>
+<guid>https://www.v2ex.com/t/1069703</guid>
+<content:encoded><![CDATA[
+
+<p>我们 app 是使用 POST 请求发送至 <a href="http://x.x.x.x" rel="nofollow">http://x.x.x.x</a></p>
+<p>其中 x.x.x.x 是国内 IP ，腾讯云，部分还在上海</p>
+<p>但是最近用户反馈登录问题，抓包分析以后发现 app 在向 <a href="http://x.x.x.x" rel="nofollow">http://x.x.x.x</a> ，也就是我们服务器发送请求的时候，会被移动拦截返回 302 码</p>
+<p>connection: close
+location: <a href="http://183.192.65.101" rel="nofollow">http://183.192.65.101</a>
+server: Apache-Coyote/1.1
+content-length: 0</p>
+]]></content:encoded>
+<pubDate>2024-09-02T10:46:38Z</pubDate>
+<pubDate>2024-09-02T11:16:29Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 想 AutoDL 那种 GPU 云的管理系统，有木有开源版本的？</title>
 <link>https://www.v2ex.com/t/1069701</link>
 <guid>https://www.v2ex.com/t/1069701</guid>
 <content:encoded><![CDATA[
-
 有需求内网搭一个用
 ]]></content:encoded>
-<pubDate>2024-09-02T10:23:50Z</pubDate>
 <pubDate>2024-09-02T10:20:50Z</pubDate>
 </item>
 <item>
@@ -20,10 +493,8 @@
 <link>https://www.v2ex.com/t/1069700</link>
 <guid>https://www.v2ex.com/t/1069700</guid>
 <content:encoded><![CDATA[
-
 <p>有一批数据想做个备份，理想情况下永远都不会取了，只有在本地意外丢失才会读取，目前大概 1T 。目前看上 s3 和 aliyun oss ，两个价格都差不多，选哪个会比较长久可靠？</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T10:16:05Z</pubDate>
 <pubDate>2024-09-02T10:17:32Z</pubDate>
 </item>
 <item>
@@ -31,7 +502,6 @@
 <link>https://www.v2ex.com/t/1069699</link>
 <guid>https://www.v2ex.com/t/1069699</guid>
 <content:encoded><![CDATA[
-
 <p>base 深圳（暂不支持远程），初创团队，主要做海外产品，业务稳定未来可期，诚招前端/全栈。</p>
 <p>起薪可能不高，后面加薪机会和奖金机会多多。</p>
 <h1>前端/全栈工程师 10-20k</h1>
@@ -61,14 +531,12 @@
 </code></pre>
 ]]></content:encoded>
 <pubDate>2024-09-02T10:15:22Z</pubDate>
-<pubDate>2024-09-02T10:15:22Z</pubDate>
 </item>
 <item>
 <title>[NGINX] nginx if 语句 return 403，没办法跳转自定义 403 页面</title>
 <link>https://www.v2ex.com/t/1069698</link>
 <guid>https://www.v2ex.com/t/1069698</guid>
 <content:encoded><![CDATA[
-
 <p>nginx if 语句 return 403 ，没办法跳转自定义 403 页面</p>
 <p>返回的 403 还是 nginx 自带的 403 页面</p>
 <pre><code class="language-conf">error_page 403 /403.html;
@@ -81,7 +549,6 @@ if ($http_user_agent ~ "Baiduspider") {
 }
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-09-02T10:13:41Z</pubDate>
 <pubDate>2024-09-02T10:20:24Z</pubDate>
 </item>
 <item>
@@ -89,7 +556,6 @@ if ($http_user_agent ~ "Baiduspider") {
 <link>https://www.v2ex.com/t/1069697</link>
 <guid>https://www.v2ex.com/t/1069697</guid>
 <content:encoded><![CDATA[
-
 <p>用 Node.js 写了一个解析<strong>纯真 IP 数据库</strong>的项目：<a href="https://github.com/ifuyun/qqwry.js" rel="nofollow">纯真 IP 数据库解析 Nest.js 版</a></p>
 <p>支持以下特性：</p>
 <ol>
@@ -104,17 +570,14 @@ if ($http_user_agent ~ "Baiduspider") {
 <p>最后，感谢算法提供：<a href="https://blog.dnomd343.top/qqwry.dat-analyse/" rel="nofollow">qqwry.dat-analyse</a>。</p>
 ]]></content:encoded>
 <pubDate>2024-09-02T10:11:45Z</pubDate>
-<pubDate>2024-09-02T10:11:45Z</pubDate>
 </item>
 <item>
 <title>[问与答] 有没有大模型 ui 的语音做的比较好的</title>
 <link>https://www.v2ex.com/t/1069695</link>
 <guid>https://www.v2ex.com/t/1069695</guid>
 <content:encoded><![CDATA[
-
 <p>想终止订阅 chatgpt ，但移动端和 mac 端的语音识别和 tts 没有找到能替代的。理论上调用 api 也能做到类似。</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T10:05:16Z</pubDate>
 <pubDate>2024-09-02T10:04:16Z</pubDate>
 </item>
 <item>
@@ -122,7 +585,6 @@ if ($http_user_agent ~ "Baiduspider") {
 <link>https://www.v2ex.com/t/1069692</link>
 <guid>https://www.v2ex.com/t/1069692</guid>
 <content:encoded><![CDATA[
-
 <p>我们是一家初创的企业级 AIGC 方向的公司，主要内容是整合 LLM ，Flux ，Midjourney ，Runwayml ，Kling 等其他上游资源为企业提供营销视频产出，面向未来十年到二十年的新兴技术趋势和发展。公司在后滩。</p>
 <p>团队成员有世界 500 强外企管理人员、土豆网、百姓 AI 、携程网等著名互联网企业的早期创始团队成员组成。</p>
 <hr />
@@ -142,20 +604,17 @@ AIGC 视频主创和运营 <a href="https://www.v2ex.com/t/1066382" rel="nofollo
 AIGC Agent Python /Golang 程序员 <a href="https://www.v2ex.com/t/1053179" rel="nofollow">https://www.v2ex.com/t/1053179</a></p>
 ]]></content:encoded>
 <pubDate>2024-09-02T09:57:19Z</pubDate>
-<pubDate>2024-09-02T09:57:19Z</pubDate>
 </item>
 <item>
 <title>[汽车] 感觉现在的车好宽啊.想买但不好停.</title>
 <link>https://www.v2ex.com/t/1069688</link>
 <guid>https://www.v2ex.com/t/1069688</guid>
 <content:encoded><![CDATA[
-
 <p>目前开的是比亚迪唐 DM..车宽 1950mm.我车位宽度只有 2 米 2(不算白线),两边都有车.每次都要打起十二分精神尽量停在中间.</p>
 <p>前几年极氪 001 上的时候,在商场看到了,样子确实帅,配置我也喜欢.最后一查尺寸,卧槽 2 米宽,算了...</p>
 <p>一晃就开了 5 年半了,最近又看上比亚迪的 Z9GT 了,各种黑科技着实让人心动,价格也合适.结果一查宽度也是 1950mm...</p>
 <p>就没有窄一点的车吗...</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:42:38Z</pubDate>
 <pubDate>2024-09-02T10:21:09Z</pubDate>
 </item>
 <item>
@@ -163,13 +622,11 @@ AIGC Agent Python /Golang 程序员 <a href="https://www.v2ex.com/t/1053179" rel
 <link>https://www.v2ex.com/t/1069686</link>
 <guid>https://www.v2ex.com/t/1069686</guid>
 <content:encoded><![CDATA[
-
 <p>哈哈 中年压力来了 开始尝试一点其他的东西，就从随便写写开始吧</p>
 <p>欢迎大家订阅，哈哈现在已经有 16 位订阅的了， 订阅联系我有返现哦  wx: ZmQxMTI5cmVhbG1l  （ base64 ）</p>
 <p>目前计划从挣点小钱开始，慢慢增加一些其他的门路吧，下面是我的文章订阅地址，从挣到一杯多肉芒芒开始吧</p>
 <p><a href="https://xiaobot.net/post/c907eec4-5b4d-4f4c-aa85-4349b16ba09e?refer=2697185a-e943-438e-90ca-ad0c4b4a4ae3" rel="nofollow">https://xiaobot.net/post/c907eec4-5b4d-4f4c-aa85-4349b16ba09e?refer=2697185a-e943-438e-90ca-ad0c4b4a4ae3</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:38:22Z</pubDate>
 <pubDate>2024-09-02T09:37:22Z</pubDate>
 </item>
 <item>
@@ -177,13 +634,11 @@ AIGC Agent Python /Golang 程序员 <a href="https://www.v2ex.com/t/1053179" rel
 <link>https://www.v2ex.com/t/1069685</link>
 <guid>https://www.v2ex.com/t/1069685</guid>
 <content:encoded><![CDATA[
-
 <p>在隔壁帖子看到有人提到 nsfwjs ，点进去看了下发现了 nsfw-filter 这个屏蔽涩图的插件。</p>
 <p>nsfw-filter：一个免费的、开源的、注重隐私的浏览器扩展，用于阻止“NSFW”的内容，使用 TypeScript 和 TensorFlow.js 构建。</p>
 <p>项目地址： <a href="https://github.com/nsfw-filter/nsfw-filter" rel="nofollow">https://github.com/nsfw-filter/nsfw-filter</a></p>
 <p>安装插件： <a href="https://chromewebstore.google.com/detail/nsfw-filter/kmgagnlkckiamnenbpigfaljmanlbbhh" rel="nofollow">https://chromewebstore.google.com/detail/nsfw-filter/kmgagnlkckiamnenbpigfaljmanlbbhh</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:31:43Z</pubDate>
 <pubDate>2024-09-02T10:23:25Z</pubDate>
 </item>
 <item>
@@ -191,7 +646,6 @@ AIGC Agent Python /Golang 程序员 <a href="https://www.v2ex.com/t/1053179" rel
 <link>https://www.v2ex.com/t/1069684</link>
 <guid>https://www.v2ex.com/t/1069684</guid>
 <content:encoded><![CDATA[
-
 <p>我个人有个习惯: <strong>总是把每天要做的事情先写一遍. 否则容易忘记</strong>. 我称之为工作日志</p>
 <p>刚开始我是用有道云笔记, 工作几年下来文件都几万行. 打开的速度越来越慢, 页面越来越卡.</p>
 <p>而且还不能上传文件. 虽然可以贴图进去, 但这样会让页面更卡
@@ -250,7 +704,6 @@ git push
 <p>这个工具我用了半年下来, 还是很方便的. 极大的解决了我的自动同步问题</p>
 <p>如果喜欢的话, 麻烦给个 star <a href="https://github.com/CoderXiaoShi/codesave" rel="nofollow">https://github.com/CoderXiaoShi/codesave</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:31:37Z</pubDate>
 <pubDate>2024-09-02T09:35:12Z</pubDate>
 </item>
 <item>
@@ -258,14 +711,12 @@ git push
 <link>https://www.v2ex.com/t/1069683</link>
 <guid>https://www.v2ex.com/t/1069683</guid>
 <content:encoded><![CDATA[
-
 <p>使用场景：
 1 ，用于自己的一些简单的日志（主要是文字+简单的外链图片为主）的记录。
 2 ，可以用 api 来发帖。
 3 ，因为要长期运行，需要足够轻量。
 4 ，有完善的 rss/sitemap ，方便搜索引擎。</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:29:15Z</pubDate>
 <pubDate>2024-09-02T09:43:56Z</pubDate>
 </item>
 <item>
@@ -274,9 +725,7 @@ git push
 <guid>https://www.v2ex.com/t/1069682</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-09-02T09:28:25Z</pubDate>
 <pubDate>2024-09-02T10:05:24Z</pubDate>
 </item>
 <item>
@@ -284,10 +733,8 @@ git push
 <link>https://www.v2ex.com/t/1069681</link>
 <guid>https://www.v2ex.com/t/1069681</guid>
 <content:encoded><![CDATA[
-
 <h1>最近看到有专家说高铁、水、电、燃气、汽油、蔬菜、水果、肉类等食品生活必须品涨价是为了倒逼企业给员工加工资？</h1>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:24:02Z</pubDate>
 <pubDate>2024-09-02T09:56:47Z</pubDate>
 </item>
 <item>
@@ -295,7 +742,6 @@ git push
 <link>https://www.v2ex.com/t/1069680</link>
 <guid>https://www.v2ex.com/t/1069680</guid>
 <content:encoded><![CDATA[
-
 <p>从截至目前的情况来看，#唯云四杰 可能已成过去时：</p>
 <p>1️⃣ 奶昔、ImmTel 、Amy 、库洛米 Kuromis 的 #唯一 入口全部下线，更换为 #深圳联通</p>
 <p>另外，奶昔的香港节点（含 Premium ）延迟抖动较大，不仅远超往日自身限度，也远比使用深圳联通的其他机场恶劣——并在流量跨出 广东省或上海市 后问题更严峻！ （ 9 月 2 日早 11:00 优化后，已趋 #深联十三太保 平均水平。</p>
@@ -303,7 +749,6 @@ git push
 据悉，薯条的唯一入口可能也将到期。</p>
 <p>原贴地址： <a href="https://t.me/haitun_channel/264" rel="nofollow">https://t.me/haitun_channel/264</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:22:21Z</pubDate>
 <pubDate>2024-09-02T05:22:21Z</pubDate>
 </item>
 <item>
@@ -311,10 +756,8 @@ git push
 <link>https://www.v2ex.com/t/1069678</link>
 <guid>https://www.v2ex.com/t/1069678</guid>
 <content:encoded><![CDATA[
-
 想找 2-3 个前端技术栈，和我比较 match 的开发搭子，一个人做外包太累了，虽然现在有各种 AI 加持，但还是太辛苦了。想找几个能做小程序开发、Android 、iOS 、H5 开发的前端技术，有项目的时候大家一起赚钱，没有项目的时候一起研究产品。当然，做外包或者自研产品和在公司上班不一样，只能当做兼职，补贴家用。有兴趣加 V：xiaowon12
 ]]></content:encoded>
-<pubDate>2024-09-02T09:14:57Z</pubDate>
 <pubDate>2024-09-02T10:22:53Z</pubDate>
 </item>
 <item>
@@ -322,10 +765,8 @@ git push
 <link>https://www.v2ex.com/t/1069677</link>
 <guid>https://www.v2ex.com/t/1069677</guid>
 <content:encoded><![CDATA[
-
 <p>资深玩球🐶，最近写在公众号：FootballDance ，每天分享一场信心方案，欢迎大家关注，有红黑榜证明。</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:14:20Z</pubDate>
 <pubDate>2024-09-02T09:12:20Z</pubDate>
 </item>
 <item>
@@ -333,7 +774,6 @@ git push
 <link>https://www.v2ex.com/t/1069676</link>
 <guid>https://www.v2ex.com/t/1069676</guid>
 <content:encoded><![CDATA[
-
 <p>背景：
 宿主机 IP 为 10.0.0.1 ，容器部署在宿主机的默认网桥上，容器 A 的 ip 为 172.17.0.2 ，容器 B 的 ip 为 172.17.0.3
 宿主机的端口 50000 映射到容器 A 中
@@ -360,7 +800,6 @@ Chain DOCKER (2 references)
 </code></pre>
 <p>从规则来看，理解是 docker0 中发来的包在命中 DNAT 规则前就 RETURN 了，为什么会这样呢，是鼓励容器网络中互访应该直接使用容器自身的 IP 吗？</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:12:34Z</pubDate>
 <pubDate>2024-09-02T09:09:34Z</pubDate>
 </item>
 <item>
@@ -368,7 +807,6 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069675</link>
 <guid>https://www.v2ex.com/t/1069675</guid>
 <content:encoded><![CDATA[
-
 <p>非日经贴，各位大佬不要 show me aaaa blog 了。
 需求：</p>
 <ol>
@@ -379,7 +817,6 @@ Chain DOCKER (2 references)
 拜谢！</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:11:18Z</pubDate>
 <pubDate>2024-09-02T09:44:51Z</pubDate>
 </item>
 <item>
@@ -387,7 +824,6 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069674</link>
 <guid>https://www.v2ex.com/t/1069674</guid>
 <content:encoded><![CDATA[
-
 <p>视力情况：双眼近视均在 375 度、散光 150 度(最近检查)。</p>
 <p>个人用眼情况：习惯不戴眼镜，平时除了上班+看剧+打游戏（对着电脑）、开车外基本都不带。</p>
 <p>请教做过的大佬几个问题：</p>
@@ -397,7 +833,6 @@ Chain DOCKER (2 references)
 <li>后遗症+反弹问题。</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-09-02T09:06:06Z</pubDate>
 <pubDate>2024-09-02T10:12:16Z</pubDate>
 </item>
 <item>
@@ -405,7 +840,6 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069672</link>
 <guid>https://www.v2ex.com/t/1069672</guid>
 <content:encoded><![CDATA[
-
 <p>想入一个 TUMI 的 ALPHA3 2603578D3 或 2603580D3 。
 出差配一个 20 寸的登机箱，做到短期出差不用托运行李。2-3 天出差仅背包。
 京东：自营 47xx ，国际自营 32xxx 。
@@ -416,14 +850,12 @@ Chain DOCKER (2 references)
 <p>多谢多谢</p>
 ]]></content:encoded>
 <pubDate>2024-09-02T08:56:41Z</pubDate>
-<pubDate>2024-09-02T08:56:41Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 我也开发了一款 node.js 的开源工具</title>
 <link>https://www.v2ex.com/t/1069670</link>
 <guid>https://www.v2ex.com/t/1069670</guid>
 <content:encoded><![CDATA[
-
 <p>一个小型的 http 服务器, 可以预览你的本地文件, 托管 html 等静态资源</p>
 <blockquote>
 <p>安装命令</p>
@@ -447,7 +879,6 @@ Chain DOCKER (2 references)
     如果喜欢的话, 麻烦给个 star
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-09-02T08:56:06Z</pubDate>
 <pubDate>2024-09-02T08:55:06Z</pubDate>
 </item>
 <item>
@@ -455,10 +886,8 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069668</link>
 <guid>https://www.v2ex.com/t/1069668</guid>
 <content:encoded><![CDATA[
-
 家里和公司用的都是 cloudcone VPS 自建的梯子，在公司（电信）电脑和手机用 v2rayn 和 clash 一点问题没有，家里（联通）路由器用 clash 和 v2ray 插件，老是不定时访问不了外网，国外地址显示叉，过一会又好了。<br /><br />我以为是路由器插件的问题，但在电脑和手机上使用也会出现这种情况，连接显示正常，延迟和测速都能出来，就是访问不了外网。<br /><br />有可能是因为联通宽带是多层 NAT 所以外网访问不稳定吗？
 ]]></content:encoded>
-<pubDate>2024-09-02T08:45:16Z</pubDate>
 <pubDate>2024-09-02T08:52:38Z</pubDate>
 </item>
 <item>
@@ -466,7 +895,6 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069667</link>
 <guid>https://www.v2ex.com/t/1069667</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li><strong>投递方式</strong>: <a href="https://engineer.joinbrix.com.cn/outer/shareJob?unique_id=1273447421089452032&amp;invite_code=QV1LUSMY" rel="nofollow">点击该链接投递</a></li>
 <li><strong>关于 Brix</strong>: <a href="https://a10khaznyg.feishu.cn/docs/doccn7UxrLhCpUVzIL4eKMWuuEd" rel="nofollow">点击了解 Brix 是啥</a></li>
@@ -516,14 +944,12 @@ Chain DOCKER (2 references)
 </ul>
 ]]></content:encoded>
 <pubDate>2024-09-02T08:41:51Z</pubDate>
-<pubDate>2024-09-02T08:41:51Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 做了一个个人感觉还不错的 ai 生成内容向的日历小网站</title>
 <link>https://www.v2ex.com/t/1069666</link>
 <guid>https://www.v2ex.com/t/1069666</guid>
 <content:encoded><![CDATA[
-
 <h1>TimeTicket</h1>
 <p><a href="https://imgse.com/i/pAVMFxg" rel="nofollow"><img alt="pAVMFxg.jpg" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/09/02/pAVMFxg.jpg" /></a></p>
 <h2>技术栈</h2>
@@ -566,18 +992,15 @@ Chain DOCKER (2 references)
 </ul>
 ]]></content:encoded>
 <pubDate>2024-09-02T08:37:48Z</pubDate>
-<pubDate>2024-09-02T08:37:48Z</pubDate>
 </item>
 <item>
 <title>[问与答] 请教大佬：基于 jelly 的博客有没有比较有设计感的风格主题？</title>
 <link>https://www.v2ex.com/t/1069665</link>
 <guid>https://www.v2ex.com/t/1069665</guid>
 <content:encoded><![CDATA[
-
 <p>我的博客目前看起来有点过于素净了： <a href="https://www.broyustudio.com/" rel="nofollow">https://www.broyustudio.com/</a></p>
 <p>我琢磨，稍微加点统一的色调和背景图片可能会好看一点？</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T08:37:20Z</pubDate>
 <pubDate>2024-09-02T00:37:20Z</pubDate>
 </item>
 <item>
@@ -585,7 +1008,6 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069664</link>
 <guid>https://www.v2ex.com/t/1069664</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>坐标上海，二房东，签了合同</li>
 <li>住了一个月，开始起疹子，恶心，失眠</li>
@@ -593,7 +1015,6 @@ Chain DOCKER (2 references)
 </ul>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/S9g4MPV.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-09-02T08:36:35Z</pubDate>
 <pubDate>2024-09-02T10:13:53Z</pubDate>
 </item>
 <item>
@@ -601,12 +1022,10 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069663</link>
 <guid>https://www.v2ex.com/t/1069663</guid>
 <content:encoded><![CDATA[
-
 <p>最近打算结婚买房了，政府有人才补贴 15 万，但是我女朋友名下已经有房了，只能写我一个人的名字才可以领取。现在，虽然她嘴上说随便我，但是我看的出来她不开心。
 我是觉得 15 万，也不少，可以先来个婚前协议，产权共有，不知道有没有法律效应。主要也是房贷必须还清才可以写她的名字。不领取补贴，感觉好亏。
 另外，感想，现在买房真的比前两年便宜太多了。去年同一个小区的洋房一万四五，今年只要一万一二还送车位。从大城市回到小城市，之前预算大城市的小房子，直接回去可以大平层了。</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T08:35:13Z</pubDate>
 <pubDate>2024-09-02T09:38:57Z</pubDate>
 </item>
 <item>
@@ -614,16 +1033,13 @@ Chain DOCKER (2 references)
 <link>https://www.v2ex.com/t/1069669</link>
 <guid>https://www.v2ex.com/t/1069669</guid>
 <content:encoded><![CDATA[
-
 <p>将当前 windows 的桌面画面共享给其他的机器，其他的机器可能是 android\ios\web ，</p>
 <p>有会做的朋友联系哈，谢谢！</p>
 <p>tg: aHR0cHM6Ly90Lm1lL2RhbGlfY2hlbg== （随时在线）
 qq: MTg3MTg5Ng== (上的少）</p>
 ]]></content:encoded>
-<pubDate>2024-09-02T08:49:29Z</pubDate>
 <pubDate>2024-09-02T08:51:48Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 今日热榜 HotList-Web 前端开源 Vue - （聚合热榜）</title>
 <link>https://www.v2ex.com/t/1069661</link>
@@ -15649,916 +16065,6 @@ Hi ，这里是 Livy ，这篇帖子主要是想分享一下关于如何科学�
 rt<br />之前买过按月收费的，感觉不合算，有按次收费的吗？求推荐，谢谢！
 ]]></content:encoded>
 <pubDate>2024-08-28T07:02:54Z</pubDate>
-</item>
-<item>
-<title>[视频技术] 如何实现 App 内的视频/直播悬浮小窗播放</title>
-<link>https://www.v2ex.com/t/1068462</link>
-<guid>https://www.v2ex.com/t/1068462</guid>
-<content:encoded><![CDATA[
-<h1>方案概述</h1>
-<ul>
-<li>
-<p>功能：使用 webview 的方案，在 App 中实现视频/直播的悬浮小窗播放效果，支持应用内小窗、系统小窗，在订单页小窗播放，回到直播间小窗消失</p>
-</li>
-<li>
-<p>场景：适用于要在 App 中快速实现直播带货场景，或在 App 中需要点播视频小窗播放的场景</p>
-</li>
-<li>
-<p>支持环境：安卓、iOS 、鸿蒙</p>
-</li>
-<li>
-<p>前置条件：使用<a href="https://www.polyv.net/?src=wh" rel="nofollow" title="保利威">保利威</a>的 webview SDK Demo ，对方案有任何疑问，可+V：wjc24680525 ，备注“小窗”</p>
-</li>
-</ul>
-<h1>一、安卓对接说明</h1>
-<h2>1.1 集成简介</h2>
-<h3><strong>1.1.1 项目架构图</strong></h3>
-<h3><strong>1.1.2 使用源码项目集成</strong></h3>
-<p>当前将提供的源码包中的 PolyvAndroidWebViewDemo 、PLVWebViewSDK 、PLVJsBridge 、PLVFloatWindow 四个项目放入到同一目录下，然后使用编译器打开 PolyvAndroidWebViewDemo 项目即可。</p>
-<h3><strong>1.1.3 源码集成注意事项</strong></h3>
-<h4><strong>功能对接说明</strong></h4>
-<p>参考 1.2 功能对接文档</p>
-<h4><strong>更换通信协议</strong></h4>
-<p>如果需要更换 web-native 通信协议的情况时，可以参考提供的  1.3 更换 web-native 通信规则注意事项<a href="https://j9k9c2q2qc.feishu.cn/docx/U7D5dyO4NoXlSBxu0emchu5AnSD#share-OCQMd5qbuoyuBFx0xDvccJ2xnXg" rel="nofollow" title="1.3 更换 web-native 通信规则注意事项"></a></p>
-<h2>1.2 功能对接文档</h2>
-<h3><strong>1.2.1 功能设置</strong></h3>
-<h4><strong>设置 Url 和</strong> <strong>UA</strong></h4>
-<p>在启动 PLVWebViewDemoActivity 之前，我们需要设置加载的 Url 和添加上需要用到的 Ua ，这里可以通过<code>PLVWebViewConfig</code>来进行设置，示例代码如下：</p>
-<pre><code>PLVWebViewConfig config = new PLVWebViewConfig(); 
-config.setUrl("需要加载的 url") .setUa("需要添加的 UA"); 
-PLVWebViewDemoActivity.startWebViewDemoActivity(PLVURLInputActivity.this, config);
-</code></pre>
-<h4><strong>设置小窗边框颜色</strong></h4>
-<p>当前 SDK 支持设置小窗边框颜色，通过<code>PLVFloatWindowManager</code>进行设置，示例代码如下：</p>
-<pre><code>PLVFloatWindowManager.getInstance().setSolidColor(Color.RED);
-</code></pre>
-<h5><strong>1 ）设置小窗边框厚度</strong></h5>
-<p>当前 SDK 支持设置小窗边框颜色，通过<code>PLVFloatWindowManager</code>进行设置，示例代码如下：</p>
-<pre><code>PLVFloatWindowManager.getInstance().setSolidWidth(20);
-</code></pre>
-<h5><strong>2 ）设置自动开启小窗功能</strong></h5>
-<p>当进程退到后台时会自动唤出小窗(默认关闭)，通过<code>PLVFloatWindowManager</code>进行设置，示例代码如下：</p>
-<pre><code>PLVWebViewConfig config = new PLVWebViewConfig(); 
-config.setSupportAutoFloating(true); // 开启自动开启小窗功能 
-PLVWebViewDemoActivity.startWebViewDemoActivity(PLVURLInputActivity.this, config);
-</code></pre>
-<h5><strong>3 ）使用系统/应用小窗</strong></h5>
-<p>当前小窗支持系统小窗和应用窗(默认使用系统小窗)，如果开启系统小窗需要请求小窗悬浮权限，而应用小窗不需要请求权限，注意应用小窗依赖于 Activity ，当 Activity 被销毁时，应用小窗也会被关闭。</p>
-<pre><code>PLVWebViewConfig config = new PLVWebViewConfig(); 
-config.isSystemFloatingWindow(true);// 为 true 时使用系统窗，false 为使用应用小窗 
-PLVWebViewDemoActivity.startWebViewDemoActivity(PLVURLInputActivity.this, config);
-</code></pre>
-<h5><strong>4 ）使用原生/web 弹出请求权限窗</strong></h5>
-<p>当前 sdk 支持通过原生或 web 端来弹出请求悬浮权限弹窗（默认使用原生弹窗方式）。</p>
-<p>注意如果是选择使用 web 端来弹窗请求悬浮权限弹窗，需要 web 端支持对应的事件。</p>
-<pre><code>PLVWebViewConfig config = new PLVWebViewConfig(); 
-config.setUseWebRequestPermission(true);// 为 true 时 web 弹窗，false 为使用原生弹窗 
-PLVWebViewDemoActivity.startWebViewDemoActivity(PLVURLInputActivity.this, config);
-</code></pre>
-<h3><strong>1.2.2 监听方法</strong> <strong>js</strong> <strong>事件</strong></h3>
-<p>SDK 内部已经定义了一部分与 web 端通信的 js 事件，这些通信事件可以在 demo 层中重写某些方法进行监听和拦截处理，这里以监听 onShare 事件进行为例：</p>
-<pre><code>public class PLVWebViewDemoActivity extends PLVWebViewBaseActivity { 
-    @Override 
-    public void onShare() { 
-        // 监听到 onShare 事件的处理 
-        ... 
-        super.onShare(); 
-    } 
-}
-</code></pre>
-<p>可以选择需要监听的 js 事件进行重写实现对事件的监听。</p>
-<p><code>注意:这些 js 通信事件都是与 webview 关联，开启系统小窗后,即使 Activity 被销毁依然能收到来自 web 端发送的消息，触发这些方法，所以重写这些方法时，尽量避免做与 Activity 生命周期关联的操作</code></p>
-<h4><strong>允许的监听</strong> <strong>js</strong> <strong>事件</strong></h4>
-<p>当前支持通过重写方法来监听事件；</p>
-<p>有以下这些方法：</p>
-<pre><code>    /**
-     * 点击商品，将切换到小窗时会触发该回调
-     *
-     * @param width   小窗的宽
-     * @param height  小窗的高
-     * @param newPage 是否打开新的一页
-     * @param link    打开新的一页加载的 url
-     * @param data    其他更多数据，开发者可根据需要自定义实现逻辑，数据为 json 格式
-     */
-    void changeToWindowForProduct(int width, int height, boolean newPage, String link, String data);
-
-    /**
-     * 用户主动调用切换到小窗的方法，在切换前会触发该回调
-     *
-     * @param width  小窗的宽
-     * @param height 小窗的高
-     */
-    void changeToWindowForUser(int width, int height);
-
-    /**
-     * 点击小窗区域，从小窗中恢复到页面触发该回调
-     **/
-    void changeToNormal();
-
-    /**
-     * 点击小窗关闭按钮，关闭小窗触发该回调
-     **/
-    void closeWindow();
-
-    /**
-     * 点击返回事件
-     */
-    void onGobackPressed();
-
-    /**
-     * 横置屏幕事件
-     */
-    void onLandScreen();
-
-    /**
-     * 竖直屏幕事件
-     */
-    void onPortraitScreen();
-
-    /**
-     * 分享事件
-     */
-    void onShare();
-
-    /**
-     * 收藏事件
-     */
-    void onCollect();
-
-    /**
-     * 隐藏状态栏，进入沉浸模式
-     */
-    void hideNavigationBar();
-
-    /**
-     * 显示状态栏，退出沉浸模式
-     */
-    void showNavigationBar();
-
-    /**
-     * 打开悬浮窗权限页面
-     */
-    void requestFloatWindowPermissionByWeb();
-
-    /**
-     * 发送当前小窗的打开状态给前端
-     */
-    void getFloatWindowStatus();
-
-    /**
-     * 获取当前的网路状态
-     */
-    void getCurrentNetworkStatus();
-
-    /**
-     * 设置是否开启自动悬浮窗权限
-     * @param enable true 为打开，false 为甘比
-     */
-    void setEnableBackground(boolean enable);
-
-    /**
-     * 获取是否开启了自动悬浮窗的权限
-     */
-    void getEnableBackground();
-
-    /**
-     * 处理其他 event
-     */
-    void handleOtherEvent(String event);
-</code></pre>
-<h3>1.2.<strong>3 注册新的</strong> <strong>js</strong> <strong>通信事件</strong></h3>
-<p>SDK 支持注册自定义 js 事件，可以通过下面的方式来注册自定义 js 事件，示例代码如下：</p>
-<pre><code>@Override
-protected void initHandleForDemo() {
-    //监听来自 web 端发送事件
-   floatableLayout.getWebView().registerHandler("监听事件", new BridgeHandler() {
-        @Override
-        public void handler(String s, CallBackFunction callBackFunction) {}
-    });
-    
-    //向 web 端发送对应事件和消息
-   floatableLayout.getWebView().callHandler("发送事件", "发送消息", new CallBackFunction() {
-        @Override
-        public void onCallBack(String s
-        }
-    });
-}
-</code></pre>
-<p><code>注意：注册新的 js 事件时不仅需要原生端做相应的操作，还需要 web 端有注册对应的事件，否则是原生端是不会接收到对应的事件消息</code></p>
-<h2>1.3 <strong>更换 web-native 通信规则注意事项</strong></h2>
-<h3><strong>1.3.1 说明</strong></h3>
-<p>当前 SDK 内部是通过 Jsbridge 该库来实现 web 端与原生端的通信，Jsbridge 中定义了 web 端与原生的通信规则，如果集成项目是没有制定指定的 web-native 通信规则，那么可以直接使用 SDK 的通信规则即可，无需其余改动。</p>
-<p>如果集成项目中有定制指定的 web-native 通信规则，可以参考下面的方式进行修改。</p>
-<p>无论是使用哪一种通信规则，关键在于原生端发送/接收 web 端消息，web 端发送/接收原生端消息，所以当需要更换 SDK 内部的 web-native 通信规则仅关注上述的两点即可。</p>
-<h3><strong>1.3.2 更换 native 端通信规则</strong></h3>
-<p>因为 sdk 内部是依赖于 jsbridge 该模块实现 web-native 通信，当需要更换通信规则时，可以选择不依赖该模块。</p>
-<h3><strong>1.3.3 更改 PLVBaseWebView 继承类</strong></h3>
-<pre><code>public class PLVBaseWebView extends BridgeWebView {
-    ....
-}
-</code></pre>
-<p>可将 PLVBaseWebView 继承的 BridgeWebView 更换为集成项目中指定通信规则的 webview 。</p>
-<h3><strong>1.3.4 更改 WebViewClient</strong></h3>
-<p>WebViewClient 是实现原生端接收 web 端消息的关键，也是定制修改 webview 的核心部份，所以在更换通信规则时也需要更换 WebViewClient</p>
-<pre><code>//替换自己需要用到的 WebViewClient 
-webView.setWebViewClient(webviewClient);
-</code></pre>
-<p>可以通过 setWebViewClient(new WebViewClient() 方法为 webview 设置指定 WebViewclient 。</p>
-<h3><strong>1.3.5 更改原生端发送/接收 web 端消息的方法</strong></h3>
-<ol>
-<li>更换发送消息方式</li>
-</ol>
-<pre><code>public void callMessage(String type, String message) {
-    //当使用的新的 web-native 规则时，可以将下面的代码修改为 webview 使用新规则发送消息时的代码
-    webview.callHandler(type, message, new CallBackFunction() {
-        @Override
-        public void onCallBack(String s) {
-          ...
-        }
-    });
-}
-</code></pre>
-<p>当前 SDK 内部时通过 webview.callHandler()方法来实现消息的发送，当更换新的通信规则时，可以将这个 webview.callHandler()方法替换为新规则中对应原生端发送消息的方法。</p>
-<ol>
-<li>更换接收 web 端消息</li>
-</ol>
-<pre><code>webview.registerHandler("xxx", new BridgeHandler() {
-    @Override
-    public void handler(String s, CallBackFunction callBackFunction) {
-        ...    
-    }
-});
-</code></pre>
-<p>当前 SDK 内部是通过 webview.registerHandler()方法来监听 web 端发送的消息，当更换新的通信规则时，可以将这个 webview.registerHandler()方法替换为新规则中对应原生端接收 web 消息的方法。</p>
-<h3><strong>1.3.6 更换 web 端通信规则</strong></h3>
-<p>web-native 通信规则是由 web 端和原生端两端定制的，所以当更换 web-native 通信规则不仅需要原生端更换，web 端也需要进行更换。</p>
-<h4><strong>注意事项</strong></h4>
-<p>当前需要通信的 web 页面 与 更换通信规则后的原生端 所使用的通信规则是否是对应，如果是对应的情况下无需做其他更替。</p>
-<p>如果需要通信的 web 页面与 更换通信规则后的原生端 所使用的不对应，那么就需要去更替 web 端的通信规则。</p>
-<p><code>如 web 端页面需要使用保利威的 web 页面（当前保利威 web 页面与 sdk 内部所使用的通信规则一致，当原生端切换通信规则，那么 web 端页面也需要更换对应通信规则）</code></p>
-<h3><strong>1.3.7 更换 web 端发送/接收方法</strong></h3>
-<h4>1.更改 web 端发送消息方式</h4>
-<pre><code> window.bridge.callHandler(
-                'callAppEvent', message,
-                function(responseData) {
-                   //发送消息
-                    ....
-                }
-            );
-</code></pre>
-<p>当前 SDK 内部与 Web 端对应的通信规则是通过 bridge.callHandler()方法来进行发送消息，当替换新的通信规则后，可以使用新的发送方式来取代这个 bridge.callHandler()方法</p>
-<h4>2.更改 web 端接收消息方式</h4>
-<pre><code>// 监听来自 xxx 事件的消息
-bridge.registerHandler("xxx", function(data, responseCallback) {
-                document.getElementById("show").innerHTML = (data);
-});
-</code></pre>
-<p>当前 SDK 内部与 Web 端对应的通信规则是通过 bridge.registerHandler()方法来接收消息，当替换新的通信规则后，可以使用新的发送方式来取代这个 bridge.registerHandler()方法</p>
-<h1>二、iOS 对接说明</h1>
-<h2>2.1 集成简介</h2>
-<h3>2.1.1 项目架构图</h3>
-<h3>2.1.2 运行环境要求</h3>
-<table>
-<thead>
-<tr>
-<th>名称·</th>
-<th>要求</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>iOS 系统</td>
-<td>9.0+</td>
-</tr>
-<tr>
-<td>CocoaPods</td>
-<td>1.11.3+</td>
-</tr>
-<tr>
-<td>Xcode</td>
-<td>11.0+</td>
-</tr>
-</tbody></table><h2>2.2 快速集成</h2>
-<h3>2.2.1 <strong>项目配置</strong></h3>
-<h4><strong>配置支持系统版本</strong></h4>
-<p>打开项目的 PROJECT - Deployment Target - iOS Deployment Target 改为 9.0 或更高。</p>
-<p>打开项目的 TARGETS - General - Deployment Info ，把 iOS 系统改为 9.0 或更高。</p>
-<h3><strong>2.2.2 配置 App Transport Security (ATS)</strong></h3>
-<p>打开项目的 <code>info.plist </code>文件，添加如下内容：</p>
-<pre><code>&lt;key&gt;NSAppTransportSecurity&lt;/key&gt;
-&lt;dict&gt;
-    &lt;key&gt;NSAllowsArbitraryLoads&lt;/key&gt;
-    &lt;true/&gt;
-    &lt;key&gt;NSAllowsArbitraryLoadsInWebContent&lt;/key&gt;
-    &lt;true/&gt;
-&lt;/dict&gt;
-</code></pre>
-<h3>2.2.3 <strong>配置设备旋转</strong></h3>
-<p>播放器支持全屏播放，需要在 TARGETS - General - Deployment Info 中，勾选支持的横屏旋转方向。</p>
-<h3>2.2.4 <strong>配置后台播放和画中画</strong></h3>
-<p>打开项目的 TARGETS - Signings &amp; Capabilities ，点击 + Capability ，选择 Background Modes ，勾选 ‘Audio, AirPlay, and Picture in Picture’。</p>
-<h2><strong>2.3 集成</strong> <strong>SDK</strong></h2>
-<h3>2.<strong>3.1 Pod 方式集成</strong></h3>
-<h4><strong>集成 PLVWebViewSDK</strong></h4>
-<p>在 Podfile 文件中，添加以下内容：</p>
-<pre><code>pod 'PLVWebViewSDK', '~&gt; 1.0.0'
-</code></pre>
-<p>在终端执行 <code>pod install</code></p>
-<h4><strong>集成系统小窗</strong></h4>
-<p>如果需要使用系统小窗功能，则需要在 Podfile 文件中另外添加以下内容</p>
-<pre><code># 包含系统画中画 -- 如果不使用系统小窗 则不需要下面配置
-pod 'PLVAliHttpDNS', '~&gt;1.10.0'
-pod 'PLVFoundationSDK', '1.10.6', :subspecs =&gt; ['BaseUtils', 'NetworkUtils', 'ErrorCode', 'LogReporter', 'ConsoleLogger', 'Reachability', 'SafeModel', 'ProgressHUD']
-pod 'PLVBusinessSDK', '1.10.4', :subspecs =&gt; ['BaseBSH']
-pod 'PLVLiveScenesSDK', '1.10.6', :subspecs =&gt; ['Base', 'LogReporter', 'ConsoleLogger', 'ErrorManager', 'Network', 'Player', 'BasePlayer', 'LivePlayer', 'LivePlaybackPlayer', 'PictureInPicture']
-</code></pre>
-<p>并在终端执行 <code>pod install</code>，并且将对应的 <code>PLVLiveScenesSDK 、PLVBusinessSDK</code> 进行替换。</p>
-<h3>2.<strong>3.2 离线包方式集成</strong></h3>
-<h4><strong>集成 PLVWebViewSDK</strong></h4>
-<p>将 PLVWebViewSDK.framework 库添加到自己的项目中。如果是使用源码的方式集成，则需要将 PLVWebViewSDK 文件整个添加到自己的项目即可。</p>
-<h4><strong>集成系统小窗</strong></h4>
-<p>1.如果项目使用系统小窗功能则需要将以下库添加到项目中</p>
-<pre><code>PLVAliHttpDNS 、PLVBusinessSDK 、PLVFoundationSDK 、PLVIJKPlayer 、PLVLiveScenesSDK
-</code></pre>
-<p>2.在 General =&gt; Frameworks ，Libraries ，and Embedded Content 中移除已添加的 PLVFoundationSDK.framework 、PLVLiveScenesSDK.framework 、PLVBusinessSDK.framework 库，并添加系统库 libresolv.tbd 。</p>
-<p>3.设置 PLVIJKPlayer 为 Embed &amp; Sign</p>
-<p>4.Build Settings ，Other Linker Flags 中添加 -ObjC ，如果项目已配置有，则不需要重复添加</p>
-<p>5.运行报错</p>
-<p>如果模拟器运行报错需要在 Build Settings 中设置 Excluded Architecture =&gt; Any iOS Simulator SDK 为 arm64</p>
-<p>如果运行报错</p>
-<pre><code>Building for iOS Simulator, but the linked and embedded framework '***' was built for iOS + tvOS Simulator
-</code></pre>
-<p>可在 Build Settings 中 设置 VALIDATE_WORKSPACE 为 YES 即可。</p>
-<h2><strong>2.4 WebView 接入</strong></h2>
-<p>创建想要展示 WebView 的控制器页面 <code>DemoViewController</code> 继承于<code>PLVWebViewBaseViewController</code>，并通过初始化方法 <code>-initWithConfig:</code>创建控制器页面。示例代码如下：</p>
-<pre><code>// PLVWebViewDemoViewController.h
-
-#import &lt;PLVWebViewSDK/PLVWebViewSDK.h&gt;
-
-@interface PLVWebViewDemoViewController : PLVWebViewBaseViewController
-
-@end
-</code></pre>
-<p>初始化时可通过重写 <code>initHandleForDemo</code> 进行自定义配置，同时可以对 Bridge 事件进行自定义处理。示例代码如下：</p>
-<pre><code>// PLVWebViewDemoViewController.m
-    
-@implementation PLVWebViewDemoViewController
-
-#pragma mark - [ Override ]
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
- 
-}
-
-/// 初始化时，可以进行的自定义配置
-//- (void)initHandleForDemo {
-//
-//}
-
-#pragma mark - [ Delegate ]
-#pragma mark PLVFloatableWebViewBridgeDelegate
-/// 如需要监听 js 回调事件，可以通过 Delegate 事件进行相应的处理，例如 webviewBridgeShare 消息
-//- (void)webviewBridgeShare:(PLVFloatableWebViewBridge *)bridge {
-//
-//}
-
-@end
-</code></pre>
-<p>创建、配置、打开直播页面控制器</p>
-<pre><code>PLVWebViewConfig *config = [[PLVWebViewConfig alloc] init];
-config.urlString = urlString;
-config.allowFloatingWindow = YES;
-config.isSystemFloatingWindow = NO;
-config.userAgent = self.uaTextView.text;
-config.enableAutoFloatWindow = YES;
-    
-PLVWebViewDemoViewController *webVC = [[PLVWebViewDemoViewController alloc] initWithConfig:config];
-[self.navigationController pushViewController:webVC animated:YES];
-</code></pre>
-<h2>2.5 高级功能</h2>
-<h3><strong>2.5.1 WebView 配置</strong></h3>
-<p>创建 PLVWebViewBaseViewController 时需要根据 PLVWebViewConfig 配置来进行初始化。</p>
-<pre><code>PLVWebViewConfig *config = [[PLVWebViewConfig alloc] init];
-config.urlString = @"";
-config.allowFloatingWindow = YES;
-config.isSystemFloatingWindow = NO;
-config.userAgent = @"";
-config.enableAutoFloatWindow = YES;    
-PLVWebViewDemoViewController *floatingWebVC = [[PLVWebViewDemoViewController alloc] initWithConfig:config];
-</code></pre>
-<ul>
-<li>allowFloatingWindow 是否允许使用浮窗的功能</li>
-<li>isSystemFloatingWindow 使用系统小窗或者应用内小窗</li>
-<li>userAgent 浏览器的 UA ，可自行修改</li>
-<li>enableAutoFloatWindow 开启自动浮窗，开启后 在退出页面或者退到后台时会自动开启小窗</li>
-</ul>
-<h3><strong>2.5.2 应用内小窗配置</strong></h3>
-<p>我们还可以对浮窗的大小、默认位置、以及样式进行配置修改：</p>
-<pre><code>// 配置浮窗大小
-[[PLVFloatWindowManager sharedManager] setFloatingWindowSize:size];
-// 配置浮窗初始位置
-[[PLVFloatWindowManager sharedManager] setFloatingWindowLocation:point];
-// 应用内小窗样式修改
-UIView *appWindowView = [PLVFloatWindowManager sharedManager].floatingWindow;
-appWindowView.layer.cornerRadius = 8.0f;
-appWindowView.layer.masksToBounds = YES;
-</code></pre>
-<p>其中，调用 <code>-moveContentViewToWindow:size:</code> 方法主动唤起的浮窗，默认宽度为屏幕的 0.3 倍，宽高比 16:9 。通过保利威的网页唤起浮窗，浮窗大小由网页告知。初始位置是指浮窗右下角距离屏幕右下角的相对位置，默认为(-10, -100)， 表示悬浮窗右边沿距离屏幕右边沿 10pt ，下边沿距离屏幕下边沿 100pt 。</p>
-<h3><strong>2.5.3 画中画配置</strong></h3>
-<ol>
-<li>
-<p>如果要使用画中画功能，首先需要在 Podfile 文件中 添加支持画中画的 SDK ，然后执行 <code>pod install</code>；</p>
-<pre><code># 包含系统画中画 -- 如果不使用系统小窗 则不需要下面配置
-pod 'PLVAliHttpDNS', '~&gt;1.10.0'
-pod 'PLVFoundationSDK', '1.10.6', :subspecs =&gt; ['BaseUtils', 'NetworkUtils', 'ErrorCode', 'LogReporter', 'ConsoleLogger', 'Reachability', 'SafeModel', 'ProgressHUD']
-pod 'PLVBusinessSDK', '1.10.4', :subspecs =&gt; ['BaseBSH']
-pod 'PLVLiveScenesSDK', '1.10.6', :subspecs =&gt; ['Base', 'LogReporter', 'ConsoleLogger', 'ErrorManager', 'Network', 'Player', 'BasePlayer', 'LivePlayer', 'LivePlaybackPlayer', 'PictureInPicture']
-</code></pre>
-</li>
-<li>
-<p>替换对应的离线包</p>
-</li>
-</ol>
-<p>用提供的离线包<code>PLVLiveScenesSDK 、PLVBusinessSDK</code> 将 Pods 文件夹下对应的 SDK 进行替换。</p>
-<h3><strong>2.5.4</strong> <strong>UA</strong> <strong>和白名单配置</strong></h3>
-<p>当开启了 <code>enabelWhiteList</code> 后，只有添加了域名白名单的链接才会支持原生与前端的通信，才支持小窗的功能。</p>
-<pre><code>[PLVUAConfigManager sharedManager].enabelWhiteList = YES;
-[[PLVUAConfigManager sharedManager] addHostWhitelist:@[@"live.polyv.cn"]];
-</code></pre>
-<p>同时支持 自定义配置 UA</p>
-<pre><code>[[PLVUAConfigManager sharedManager] addCustomUserAgent:@""];
-</code></pre>
-<h3><strong>2.5.5 监听方法</strong> <strong>js</strong> <strong>事件</strong></h3>
-<p>在 SDK 内部已经对一些事件进行了处理，如果想要自定义处理某些事件可以在 demo 中进行监听拦截处理。示例如下：</p>
-<pre><code>#pragma mark - [ Delegate ]
-#pragma mark PLVFloatableWebViewBridgeDelegate
-/// 如需要监听 js 回调事件，可以通过 Delegate 事件进行相应的处理，例如 webviewBridgeShare 消息
-- (void)webviewBridgeShare:(PLVFloatableWebViewBridge *)bridge {
-
-}
-</code></pre>
-<h3><strong>2.5.6 注册和调用自定</strong> <strong>js</strong> <strong>事件</strong></h3>
-<p>可以通过 Demo 层注册和调用自定义事件，示例代码如下：</p>
-<pre><code>- (void)initHandleForDemo {
-    [self.contentAreaView.mainWebView.bridge registerHandler:@"" handler:^(id  _Nonnull data, PLVWVJBResponseCallback  _Nonnull responseCallback) {
-            
-    }];
-    [self.contentAreaView.mainWebView.bridge callHandler:@"" data:nil responseCallback:^(id  _Nonnull responseData) {
-        
-    }];
-}
-</code></pre>
-<h2>2 <strong>.6 更换 web-native 通信规则注意事项</strong></h2>
-<p>本项目中使用的是开源库 WebViewJavascriptBridge 来实现 web 和 native 之间的通信。如果接入的项目中没有用到 web-native 通信，则不需要做任何调整。如果接入的项目中也用到 web-native 通信，则可以参考下面的方式进行修改。</p>
-<h3><strong>2.6.1 更换 native 端通信规则</strong></h3>
-<p>SDK 中使用的 WebViewJavascriptBridge 来实现通信的，在 PLVFloatableWebViewBridge 中对其进行了封装处理，如果需要更换 native 端通信规则只需要修改 PLVFloatableWebViewBridge 这个类即可</p>
-<h4>更换注册消息方式:</h4>
-<pre><code>- (void)registerHandler:(NSString*)handlerName handler:(WVJBHandler)handler {
-      //当使用的新的 web-native 规则时，可以将下面的代码修改为 webview 使用新规则注册消息时的代码
-    [self.bridge registerHandler:handlerName handler:handler];
-}
-</code></pre>
-<h4>更换发送 web 端消息</h4>
-<pre><code>- (void)callHandler:(NSString*)handlerName data:(id _Nullable)data responseCallback:(WVJBResponseCallback _Nullable)responseCallback {
-      //当使用的新的 web-native 规则时，可以将下面的代码修改为 webview 使用新规则发送消息时的代码
-    [self.bridge callHandler:handlerName data:data responseCallback:responseCallback];
-}
-</code></pre>
-<h3><strong>2.6.2 更换 web 端通信规则</strong></h3>
-<p>当 native 端通信规则改变时，web 端则要根据是否与原来的通信方式原理相同来判断是否需要修改。</p>
-<h4>当前 web 端注册消息方式</h4>
-<pre><code>bridge.registerHandler("testJavascriptHandler",
-          function (data, responseCallback) {
-            console.log(data);
-            responseCallback(data);
-          }
- );
-</code></pre>
-<h4>当前 web 端发送消息方式</h4>
-<pre><code>bridge.callHandler("callAppEvent", { },
-          function responseCallback(responseData) {
-            console.log(responseData);
-          }
-);
-</code></pre>
-<p>当前 web-native 的通信是通过 bridge 这种方式来发送和接收消息的，如果需要调整可用集成项目 web 端接收、发送消息的方式来进行替换。</p>
-<h2><strong>2.7</strong> <strong>iOS</strong> <strong>系统版本使用系统小窗功能说明</strong></h2>
-<p>iOS 因为系统限制想实现系统小窗只能通过画中画的功能，同时这个功能会有版本限制，在 iOS14+开始支持 iPhone 的画中画功能。同时直播如果使用系统播放器 AVPlayer 会有 14s+的高延迟，IJKPlayer 可以实现低延迟，但是 iOS15 以上画中画才支持 SampleBufferLayer ，因此如果直播低延迟的话需要 iOS15+。</p>
-<ul>
-<li>回放视频系统小窗支持 iOS14+</li>
-<li>直播视频系统小窗支持 iOS15+</li>
-</ul>
-<h1>三、鸿蒙 next</h1>
-<h2>3.1 简介</h2>
-<p>PLVWebSDK 项目从属于易方信息科技股份有限公司，对保利威云直播、云点播系列产品的直播、回放观看做了良好的适配，极大优化了用户的观看体验，并支持浮窗播放等扩展功能，也可作为其他网页的展示容器。</p>
-<p>本项目包含功能如下：</p>
-<ul>
-<li>支持基础 Web 功能</li>
-<li>支持应用内浮窗播放</li>
-<li>支持系统级浮窗播放</li>
-<li>支持悬浮窗手势拖动</li>
-<li>支持视频全屏播放</li>
-</ul>
-<h2>3.2 下载安装</h2>
-<pre><code>ohpm install plvwebsdk
-</code></pre>
-<p>OpenHarmony ohpm 环境配置等更多内容，请参考如何安装 OpenHarmony ohpm 包</p>
-<h2>3.3 需要权限</h2>
-<pre><code>ohos.permission.INTERNET
-ohos.permission.GET_NETWORK_INFO
-</code></pre>
-<h2>3.5 功能说明</h2>
-<h3>3.5.1 PLVWebViewConfig</h3>
-<p>1.设置 UA</p>
-<p>当前可以通过下面的方式来设置需要的 UA</p>
-<p><code>PLVWebViewConfig().setUa("Android" + PLVUAConfig.defaultUA)</code></p>
-<p>注意：如果需要到 Saas 页面的小窗功能的情况，必须在 UA 中带上 Android 和 PLVUAConfig.defaultUA 字段</p>
-<p>2.设置 url</p>
-<p>可以通过下面的方式来设置需要加载的 url</p>
-<p>PLVWebViewConfig().setUrl("需要加载的 url")</p>
-<p>3.设置是否允许小窗悬浮</p>
-<p>可以通过下面的方式来设置是否允许开启小窗功能，默认是开启的，如不需要可以设置为 false</p>
-<p><code>PLVWebViewConfig().setAllowFloatingWindow(true)</code></p>
-<h3>3.5.2 自定义注册事件</h3>
-<p>当前 SDK 内部已经注册好与前端页面通信的事件，当接入 sdk 后就能直接使用这些事件。</p>
-<p>SDK 也支持注册自定义事件，可以通过下面的方式来进行注册</p>
-<pre><code>this.controller.registerHandler("自定义事件", (data: string) =&gt; {// 监听自定义事件的处理
-})
-this.controller.callHandle("发送原生事件", "xxx", () =&gt; {//发送原生事件
-})
-</code></pre>
-<p>如果需要监听/拦截 SDK 内部已经实现了的事件，可以通过下面的方式继续监听/拦截，这里以 onShare 事件为例子，如果需要监听/拦截其他事件可以仿照这里来完成</p>
-<pre><code>this.controller.registerCustomerContainEvent({
-  onShare: () =&gt; {// 监听到 onShare 事件时的操作 return true // return true 表示拦截掉分享事件 false 就继续由 sdk 往下执行
-  }
-})
-</code></pre>
-<h1>四、自定义事件</h1>
-<pre><code>// 小窗播放事件
-webviewBridage?.sendData('clickProduct', webviewData);
-
-// 没有小窗播放的情况： 监听自定义事件
-webviewBridage?.sendData('clickProductCustom', webviewData);
-
-// 数据格式
-const webviewData = {
-        width: plvWebviewDataSize.width,
-        height: plvWebviewDataSize.height,
-        newPage: true,
-        link:  “跳转的自定义 url”,
-        data: {
-                type : out | inner | stock
-                link : “跳转的自定义 url” ( 同上 link )
-                market : ‘5053’,
-                code : 789465,
-                name : 名称
-        },
-}
-</code></pre>
-<p>clickProduct 事件 和 clickProductCustom 自定义 webviewData ---&gt; data 下面根据 type 和 其他参数完成 app 内链接跳转功能</p>
-<p>对方案有任何疑问，可+V：wjc24680525 ，备注“小窗”</p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:02:47Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 土区 iCloud 扣款 249.99 后，刚刚收到苹果的 120 退款</title>
-<link>https://www.v2ex.com/t/1068461</link>
-<guid>https://www.v2ex.com/t/1068461</guid>
-<content:encoded><![CDATA[
-续费日期：8 月 22 日<br /><br />扣费日期：8 月 23 日<br /><br />扣费 249.99<br /><br />8 月 26 日收到苹果的涨价邮件<br /><br />今天收到 120 的退款<br /><br /><br /><br />应该是下个月再涨价了
-]]></content:encoded>
-<pubDate>2024-08-28T08:26:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家是怎么优雅的放钥匙的？</title>
-<link>https://www.v2ex.com/t/1068460</link>
-<guid>https://www.v2ex.com/t/1068460</guid>
-<content:encoded><![CDATA[
-<p>我随身带的钥匙有：大门钥匙，车钥匙，门禁卡。这已经是精简后的了，放在裤子口袋里，感觉有点鼓鼓的，想问问各位彦祖，你们是怎么优雅的放钥匙的？</p>
-]]></content:encoded>
-<pubDate>2024-08-28T07:49:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 东莞有可靠的维修戴森吸尘器的店铺吗？最好是南城、东城附近</title>
-<link>https://www.v2ex.com/t/1068457</link>
-<guid>https://www.v2ex.com/t/1068457</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-28T06:56:08Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 市三甲医院信息科值得去不，还是留一线大厂卷？</title>
-<link>https://www.v2ex.com/t/1068455</link>
-<guid>https://www.v2ex.com/t/1068455</guid>
-<content:encoded><![CDATA[
-二线城市医院信息科值得去吗?目前在互联网一线大厂，年包 50+<br /><br />医院信息科月薪差不多 1.2w 左右，没有编制.但是院领导比较重视信息化建设，不会是进去修电脑的，估计是带外包开发.领导画大饼是说干得好会有编制，升到主任也会有 3w1 月，平时开发项目也有奖金，医院在我对象老家，骑车<br /><br />就 7.8 分钟，她那边亲戚比较多.<br /><br />目前 28 岁了，攒了一定积蓄，全款买个车房没问题.内心有点卷累了，想躺平，但就怕这一趟，再也起不来了，而且没有编制，不一定说是很稳<br /><br />算了下，差不多降薪到只有 1/3 ，属实肉疼，但是工作强度很低，中午休息 2 个半小时，下午 5 点半就走了，个人时间能多很多，<br /><br />另外看了下现在医院招聘都要求 30 岁以下了，我害怕等过两年应届生更多，想躺平都没机会
-]]></content:encoded>
-<pubDate>2024-08-28T08:24:40Z</pubDate>
-</item>
-<item>
-<title>[投资] 10 个打不溜，往哪儿放可以做到每天 200 块稳定收益？</title>
-<link>https://www.v2ex.com/t/1068454</link>
-<guid>https://www.v2ex.com/t/1068454</guid>
-<content:encoded><![CDATA[
-<p>大 A 玩了三个月了，来来回回挣了 200 块，草！</p>
-]]></content:encoded>
-<pubDate>2024-08-28T08:26:44Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Node.js 后端开发求介绍</title>
-<link>https://www.v2ex.com/t/1068452</link>
-<guid>https://www.v2ex.com/t/1068452</guid>
-<content:encoded><![CDATA[
-<p>各位大佬，深圳有 Node.js 后端开发工作可以介绍吗</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:37:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 未 ROOT 的安卓手机怎么才能虚拟定位</title>
-<link>https://www.v2ex.com/t/1068451</link>
-<guid>https://www.v2ex.com/t/1068451</guid>
-<content:encoded><![CDATA[
-<p>有什么路子吗
-需要能虚拟微信 小红书什么的</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:34:03Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了一个 Flux 新模型的免费试用站点 fluxai.art</title>
-<link>https://www.v2ex.com/t/1068450</link>
-<guid>https://www.v2ex.com/t/1068450</guid>
-<content:encoded><![CDATA[
-<p>大家好，最近折腾了个文生图的网站，用了新模型 Flux.1 ，体验下来感觉对手部细节和文字处理的效果都不错，质量不输 midjourney 。</p>
-<p>目前站点提供每日免费试用 10 次，无需注册，国内不挂梯子可直接试用。生成的图片支持无水印下载，主页也提供了一些 prompt 可以参考。</p>
-<p>有兴趣的朋友可以试试，看看效果怎么样，欢迎交流反馈~</p>
-<p>免费在线体验地址： <a href="https://fluxai.art/" rel="nofollow">https://fluxai.art/</a></p>
-<p><img alt="Image" class="embedded_image" rel="noreferrer" src="https://file.aiquickdraw.com/imgcompressed/img/compressed_1151f15b5db20e82c0380814597791dc.webp" /></p>
-<p><img alt="Image" class="embedded_image" rel="noreferrer" src="https://file.aiquickdraw.com/imgcompressed/img/compressed_38ddbf41c4f217244d5635fb09c4084a.webp" /></p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:32:24Z</pubDate>
-</item>
-<item>
-<title>[DNS] 只有 baidu.com 无法 ping 通可能是什么原因？</title>
-<link>https://www.v2ex.com/t/1068449</link>
-<guid>https://www.v2ex.com/t/1068449</guid>
-<content:encoded><![CDATA[
-<p>使用的是阿里云的 223.5.5.5 的 DNS 服务器，ping 国内的大部分网站包括 <a href="http://zhihu.com" rel="nofollow">zhihu.com</a>, <a href="http://douban.com" rel="nofollow">douban.com</a> 都能 ping 通，只有 ping <a href="http://baidu.com" rel="nofollow">baidu.com</a> 提示超时，<a href="http://baidu.com" rel="nofollow">baidu.com</a> 解析出来的 IP 地址为 39.156.66.10 ，可能是什么原因？</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:27:36Z</pubDate>
-</item>
-<item>
-<title>[汽车] 坦克 300 想置换为豹 5</title>
-<link>https://www.v2ex.com/t/1068448</link>
-<guid>https://www.v2ex.com/t/1068448</guid>
-<content:encoded><![CDATA[
-我是 21 年买的坦克 300 ，开了 3w 公里，车没出过任何问题，但是有些不满意的地方：<br /><br />1 、1500 转 D8 档左右的拖档共鸣，动力来得慢，市区开不跟脚；<br />2 、油耗确实有点高，我平时就节假日出去游玩开开高速，11L 左右，其实也能接受；<br />3 、车里气味比较大，皮制座椅的味道？<br /><br />试驾过一次云撵 P 的豹 5 ，感觉好开些，所以想换车，也算是刺激下寡淡的生活。。
-]]></content:encoded>
-<pubDate>2024-08-28T06:23:02Z</pubDate>
-</item>
-<item>
-<title>[程序员] 想发布一个内容找程序员来做，猪八戒收费就不考虑了，有更好的推荐吗</title>
-<link>https://www.v2ex.com/t/1068447</link>
-<guid>https://www.v2ex.com/t/1068447</guid>
-<content:encoded><![CDATA[
-<p>请各位大佬赐教</p>
-]]></content:encoded>
-<pubDate>2024-08-28T02:22:26Z</pubDate>
-</item>
-<item>
-<title>[互联网] 百度网盘不能直接下载到 SMB 挂载的磁盘上</title>
-<link>https://www.v2ex.com/t/1068446</link>
-<guid>https://www.v2ex.com/t/1068446</guid>
-<content:encoded><![CDATA[
-有个百度网盘的文件需要下载，我就连接到我的 windows 虚拟机，用上面的百度网盘下载。<br /><br />结果百度网盘提示本地路径无效，改英文名试了下也没用，发现只能下载到本地磁盘。<br /><br />是百度网盘故意为之吗？连这点权限都要扼杀。<br /><br />我也不想使用百度网盘，可是有些文件只有百度网盘的链接。<br /><br />我发现上个版本都是可以的，就这次好像更新了，UI 有些变化，然后就不能下载到 SMB 挂载磁盘上了。<br /><br /><a href="https://i.imgur.com/6cEG0rx.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6cEG0rx.png" /></a>
-]]></content:encoded>
-<pubDate>2024-08-28T06:19:18Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 新玩具来了 go-hotfix，用于运行时热修复函数</title>
-<link>https://www.v2ex.com/t/1068445</link>
-<guid>https://www.v2ex.com/t/1068445</guid>
-<content:encoded><![CDATA[
-<p>基于 monkey-patch + plugin 机制实现的热修复方案，用于实现不停服修复 bug!!</p>
-<p>仓库地址: <a href="https://github.com/go-hotfix/hotfix" rel="nofollow">https://github.com/go-hotfix/hotfix</a></p>
-<p>感兴趣可以玩一下 <a href="https://github.com/go-hotfix/hotfix/tree/main/example/webapp" rel="nofollow">example/webapp</a> 这个例子，注意仅支持 Linux （ ps: Windows 可以在 wsl2 里面玩）</p>
-<div>
-<h1>hotfix</h1>
-<p>hotfix is a golang function hot-fix solution</p>
-<hr />
-</div>
-<blockquote>
-<p>警告: 目前尚未经过严格测试，请勿用于生产环境<br />
-Warning: This has not been rigorously tested, do not use in production environment</p>
-</blockquote>
-<blockquote>
-<p>注意: 不支持 Windows<br />
-Note: Windows is not supported</p>
-</blockquote>
-<blockquote>
-<p>注意: 为了确保函数都能被修补，需要关闭函数内联，会因此损失一些性能<br />
-Note: To ensure that all functions can be patched, function inlining needs to be disabled, which will result in a loss of some performance</p>
-</blockquote>
-<h2>Features</h2>
-<ul>
-<li>支持指定包级别/类级别/函数级别热补丁支持</li>
-<li>Supported for hot patching at package/class/function</li>
-<li>支持导出函数/私有函数/成员方法修补</li>
-<li>Support for exporting functions/private functions/member methods patching</li>
-<li>基于<a href="https://github.com/brahma-adshonor/gohook" rel="nofollow">monkey-patch</a> + <a href="https://pkg.go.dev/plugin" rel="nofollow">plugin</a>机制实现</li>
-<li>Implemented based on <a href="https://github.com/brahma-adshonor/gohook" rel="nofollow">monkey-patch</a> + <a href="https://pkg.go.dev/plugin" rel="nofollow">plugin</a></li>
-<li>线程安全, 使用 <code>stw</code> 确保所有协程都进入安全点从而实现线程安全的补丁</li>
-<li>Thread safety, use <code>stw</code> to ensure that all coroutines enter safe points to hot patching</li>
-</ul>
-<h2>Limits</h2>
-<ul>
-<li>受限于<a href="https://pkg.go.dev/plugin" rel="nofollow">go plugin</a>仅支持 Linux, FreeBSD, macOS ，其他平台目前不支持</li>
-<li>The go plugin is currently only supported on Linux, FreeBSD, and macOS platforms; other platforms are not supported</li>
-<li>加载的补丁包无法卸载，如果热修复次数过多可能导致较大的内存占用</li>
-<li>The loaded patch package cannot be uninstalled. Too many hot fixes may result in large memory usage</li>
-<li>不支持对闭包进行修复，需要热修复的逻辑不要放在闭包中</li>
-<li>Closures are not supported, and logic that requires hotfixes should not be placed in closures</li>
-<li>不能修改已有数据结构和函数签名，否则可能将导致程序崩溃，应该仅用于 bug 修复</li>
-<li>Cannot modify existing data structures and function signatures, as this may lead to program crashes. It should only be used for bug fixes</li>
-<li>编译时请保留调试符号，并且禁用函数内联<code>-gcflags=all=-l</code></li>
-<li>Please keep the debugging symbols when compiling, and disable function inline <code>-gcflags=all=-l</code></li>
-<li>编译错误<code>invalid reference to xxxx</code> 是因为 <code>go1.23</code>开始限制了<code>go:linkname</code>功能，必须添加编译参数关闭限制<code>-ldflags=-checklinkname=0</code></li>
-<li>The compilation error <code>invalid reference to xxxx</code> is because <code>go1.23</code> began to limit the <code>go:linkname</code> function, and the compilation parameter must be added to turn off the restriction <code>-ldflags=-checklinkname=0</code></li>
-<li>补丁包的的编译环境必须和主程序一致，包括 go 编译器版本，编译参数，依赖等，否则加载补丁包将会失败</li>
-<li>The patch package's build environment must match that of the main program, including the Go compiler version, compilation parameters, dependencies, etc., otherwise loading the patch package will fail</li>
-<li>补丁包的<code>main</code>包下面的<code>init</code>会首先调用一次，请注意不要重复初始化</li>
-<li>The 'init' under the 'main' package of the patch package will be called once first, be careful not to initialize it repeatedly</li>
-<li>打补丁包时<code>main</code>包必须产生变化，否则可能出现 <code>plugin already loaded</code>错误，推荐使用 <code>-ldflags="-X main.HotfixVersion=v1.0.1"</code>指定版本号， 确保每次编译补丁包都会有变化</li>
-<li>The <code>main</code> package must be changed when applying the patch package, otherwise the <code>plugin already loaded</code> error may occur. It is recommended to use <code>-ldflags="-X main.HotfixVersion=v1.0.1"</code> to specify the version number to ensure that the patch package is compiled every time There will be changes</li>
-<li><strong>该方案处于实验性质，尚未经过严格验证</strong></li>
-<li><strong>The solution is experimental in nature and has not yet been rigorously validated</strong></li>
-</ul>
-<h2>Example</h2>
-<p>参考这个<a href="https://www.v2ex.com/example/webapp" rel="nofollow">例子</a>项目<br />
-Refer to this <a href="https://www.v2ex.com/example/webapp" rel="nofollow">example</a> project</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:18:09Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 2024 年，有没有性价比的 24 寸 4k 显示器推荐了呢？</title>
-<link>https://www.v2ex.com/t/1068443</link>
-<guid>https://www.v2ex.com/t/1068443</guid>
-<content:encoded><![CDATA[
-<p>一直在用 27 寸的一线通，工位不大，看着太累了；</p>
-<p>但是也一直没找到合适的 24 寸的，是不是这辈子找不到了</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:21:32Z</pubDate>
-</item>
-<item>
-<title>[汽车] 最近享界汽车 s9 和 b 站 up 主袁启聪的事，咋没看有 v 友讨论呢。一起来吃吃瓜啊</title>
-<link>https://www.v2ex.com/t/1068442</link>
-<guid>https://www.v2ex.com/t/1068442</guid>
-<content:encoded><![CDATA[
-事件大概就是<br />1 、b 站 up 主袁启聪发布了一个评测享界汽车 s9 ，其中有段飞坡，车姿态底盘表现不好，他就批评了。<br /><br />2 、享界官方发布声明，说袁启聪评测结论不客观、不严谨，对消费者形成误导<br /><br />3 、袁启聪直播回应<br /><br />4 、后续袁启聪微博被封<br /><br />我只说了大概，具体细节大家感兴趣可以上网搜搜了解了解。<br /><br />看了下网上各个平台大部分的评论都是比较支持袁启聪的，我本人也是。<br /><br />有几个值得吃的瓜<br />1 、享界在微博发布的声明修改过，但没有显示已编辑<br />2 、评测视频的飞坡地点路面有坑，现在那条路已经在修了。<br />3 、高德地图已经能搜到那个飞坡地点了，叫 x 界汽车起飞点，哈哈哈<br /><a href="https://i.imgur.com/w6f9Yq1.jpg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/w6f9Yq1.jpg" /></a>
-]]></content:encoded>
-<pubDate>2024-08-28T06:14:10Z</pubDate>
-</item>
-<item>
-<title>[Java] 分布式部署的情况，分为中心端和多个执行器端，要实时在中心端可以查看执行器端的任务日志，有什么好的实现方案吗？</title>
-<link>https://www.v2ex.com/t/1068441</link>
-<guid>https://www.v2ex.com/t/1068441</guid>
-<content:encoded><![CDATA[
-当前是执行器端任务执行完了后，会往中心端传，然后在中心端提供查看。<br />现在是执行器任务正在执行，日志文件写了一半，也需要在中心端提供查看。<br />不引入外部的第三方的服务。<br />然后目前是，调中心端查看日志接口，中心端先去调执行器端的接口，获取日志内容，再在中心端做返回。<br />有什么更好的解决方案吗？
-]]></content:encoded>
-<pubDate>2024-08-28T06:28:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 搞不懂为什么网上有那么多人喷赛里斯的</title>
-<link>https://www.v2ex.com/t/1068440</link>
-<guid>https://www.v2ex.com/t/1068440</guid>
-<content:encoded><![CDATA[
-最近关于问界的两个视频<br />1.问界 M5 RS 充电时起火,官方发布声明说电池包未着火<br />2.问界 M9 雨天激光雷达漏水,解决方案还没谈妥<br /><br />下边评论全是一边倒的在喷,不知道是真买了这车,还是跟风<br />感觉互联网的戾气是真重,不喜欢,不买不就行了
-]]></content:encoded>
-<pubDate>2024-08-28T06:18:37Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 公司有同性恋相互表白怎么办 ?</title>
-<link>https://www.v2ex.com/t/1068438</link>
-<guid>https://www.v2ex.com/t/1068438</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-28T06:07:38Z</pubDate>
-</item>
-<item>
-<title>[程序员] 记得在 V2EX 上看到过一个网页翻译工具但是不记得叫什么了</title>
-<link>https://www.v2ex.com/t/1068437</link>
-<guid>https://www.v2ex.com/t/1068437</guid>
-<content:encoded><![CDATA[
-<p>特殊点是全文翻译的时候会空出来一些单词不翻译...</p>
-<p>搜了半天也没搜到 T.T, 有大佬知道叫什么吗?</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:04:29Z</pubDate>
-</item>
-<item>
-<title>[程序员] 求 背句子 和单词的软件 多端最佳</title>
-<link>https://www.v2ex.com/t/1068436</link>
-<guid>https://www.v2ex.com/t/1068436</guid>
-<content:encoded><![CDATA[
-<p>如题</p>
-<p>求背句子和单词的软件 而且支持多端</p>
-<p>因为日常工作中 会在电脑遇到生词和句子比较多</p>
-<p>但是主要背单词应该还是通过手机?</p>
-<p>希望支持句子的朗读, 跟读没有也行 有最好
-能自己加句子/单词意思也最好</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:00:30Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] 新版 vscode 能把右键折叠菜单 ui 还原吗</title>
-<link>https://www.v2ex.com/t/1068434</link>
-<guid>https://www.v2ex.com/t/1068434</guid>
-<content:encoded><![CDATA[
-<p>chrome win11 化，现在是 vscode chrome 化，一切软件都在阿三化</p>
-<p>好的不学偏学那个右键折叠菜单，现在这个折叠菜单又占空间又不好用，有没有办法可以还原原版的右键菜单</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:26:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 看到有 v 友说卸载网盘了，有兄弟同步下什么情况吗</title>
-<link>https://www.v2ex.com/t/1068432</link>
-<guid>https://www.v2ex.com/t/1068432</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-08-28T05:46:01Z</pubDate>
-</item>
-<item>
-<title>[Apple] 想买 64GB 的 macOS 系统，最佳选择是什么？</title>
-<link>https://www.v2ex.com/t/1068430</link>
-<guid>https://www.v2ex.com/t/1068430</guid>
-<content:encoded><![CDATA[
-<p>最近一致想要一个 64GB 以上的 macOS 系统设备。</p>
-<p>在考虑是买 Mac studio ，还是等 Mac mini 。</p>
-<p>感觉等下一代 Mac Studio 要到明年了，等不及了。</p>
-<p>（不太考虑带电池的 MacBook 系列</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:00:57Z</pubDate>
-</item>
-<item>
-<title>[分享发现] V2EX 的财富排行榜原来隐藏了那么多企业</title>
-<link>https://www.v2ex.com/t/1068429</link>
-<guid>https://www.v2ex.com/t/1068429</guid>
-<content:encoded><![CDATA[
-<p>闲来无聊看了那么一眼，原来还有那么多的企业账号。</p>
-<p><a href="https://www.v2ex.com/top/rich" rel="nofollow">https://www.v2ex.com/top/rich</a><br />
-<a href="https://www.v2ex.com/top/player" rel="nofollow">https://www.v2ex.com/top/player</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/yNArhIw.png" /></p>
-]]></content:encoded>
-<pubDate>2024-08-18T05:44:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有关宽带上传被封和 NAS 使用问题</title>
-<link>https://www.v2ex.com/t/1068428</link>
-<guid>https://www.v2ex.com/t/1068428</guid>
-<content:encoded><![CDATA[
-不久前看的差评一个视频，说的这个话题，对视频最后一句话很有感触，大概是说“我自己花钱买的宽带，为什么限制我使用，我买了一个月这么多钱，我 24 小时满速使用不行吗？”<br /><br />以及最近很多帖子网盘之类的，都用 NAS 了。<br /><br />那么实际情况来说，是否有规律可循，家里如果真买个 NAS ，就当个人网盘用，使用量达多少会有被封风险？<br /><br />或者，反正都是网盘了，我买个放公司得了，还不用电费和网费，是否可行？
-]]></content:encoded>
-<pubDate>2024-08-26T05:36:52Z</pubDate>
-</item>
-<item>
-<title>[硬件] M2 玩魔兽总假死， Win 平台小主机推荐</title>
-<link>https://www.v2ex.com/t/1068427</link>
-<guid>https://www.v2ex.com/t/1068427</guid>
-<content:encoded><![CDATA[
-<p>Macmini M2 16G 最近玩魔兽世界正式服总卡死，台服没碰到过
-插件、图像设置折腾了一圈也没解决</p>
-<p>感觉 M4 的 Macmini 快出来了，现在出手，换个 win 平台小主机玩游戏是不是更好？
-Inetel Ultra5/7 的核显，相当于显卡什么水平？能玩魔兽吗？</p>
-]]></content:encoded>
-<pubDate>2024-08-28T06:09:16Z</pubDate>
-</item>
-<item>
-<title>[微信] 今年微信 APP 的更新速度变慢了</title>
-<link>https://www.v2ex.com/t/1068426</link>
-<guid>https://www.v2ex.com/t/1068426</guid>
-<content:encoded><![CDATA[
-<p>之前手机微信 APP 一直保持着一个月一更或者两更的速度，今年以来明显变慢了，甚至三个月才更新一个版本。  </p>
-<p>2024 年 1 月：8.0.46<br />
-2 月：8.0.47<br />
-3 月：8.0.48<br />
-4 月：8.0.49<br />
-<strong>5 月：未更新</strong><br />
-<strong>6 月：未更新</strong><br />
-7 月：8.0.50<br />
-<strong>8 月：未更新</strong></p>
-]]></content:encoded>
-<pubDate>2024-08-28T05:33:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] vscode 中 flutter 开发连不上模拟器</title>
-<link>https://www.v2ex.com/t/1068425</link>
-<guid>https://www.v2ex.com/t/1068425</guid>
-<content:encoded><![CDATA[
-真的后悔，升级到 macos beta 版本。是不是没办法了，单独用 xcode 跑效率太低了。每次都得重新 build
-]]></content:encoded>
-<pubDate>2024-08-28T05:31:24Z</pubDate>
 </item>
 </channel>
 </rss>
