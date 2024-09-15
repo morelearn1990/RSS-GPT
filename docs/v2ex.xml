@@ -5,18 +5,340 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 51.la 最近老是打不开</title>
+<link>https://www.v2ex.com/t/1073267</link>
+<guid>https://www.v2ex.com/t/1073267</guid>
+<content:encoded><![CDATA[
+
+<p>提示证书蹦了 希望只是单纯的小问题 一直在用</p>
+]]></content:encoded>
+<pubDate>2024-09-15T16:06:08Z</pubDate>
+<pubDate>2024-09-15T16:10:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 用 selenium 爬 bjidex.com 商品数据，无论试多少遍都只能拿到 40 条。脑壳扣了半天，想不明白。</title>
+<link>https://www.v2ex.com/t/1073266</link>
+<guid>https://www.v2ex.com/t/1073266</guid>
+<content:encoded><![CDATA[
+
+<p>我的代码：</p>
+<pre><code class="language-python">from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import pandas as pd
+import time
+
+# 设置 Chrome 选项以启用 headless 模式和自定义 user-agent
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument(
+    f'--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"'
+)
+
+# 初始化 WebDriver
+driver = webdriver.Chrome(
+    executable_path="D:/lab/chromedriver-win64/chromedriver.exe", options=chrome_options
+)  
+url = "https://webs.bjidex.com/sys-bsc-home/#/bscConsole/tradingMarket"
+
+# 访问网页
+driver.get(url)
+
+# 初始化一个列表来保存数据
+data_list = []
+
+# 爬取数据
+for page in range(184):
+
+    # 构建翻页按钮的 XPath
+    if page &lt; 4:
+        next_button_xpath = "/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[2]/ul/li[10]/button"
+    elif 4 &lt; page &lt; 181:
+        next_button_xpath = "/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[2]/ul/li[12]/button"
+    elif 181 &lt; page:
+        next_button_xpath = "/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[2]/ul/li[10]/button"
+    else:
+        next_button_xpath = "/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[2]/ul/li[11]/button"
+
+    # 爬取每页的 10 组数据
+    for i in range(1, 11):
+        time.sleep(1)  # 等待页面加载新内容
+        # 构建每组的 XPath
+        product_name_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[1]/div/div[1]/div/span[1]"
+        supplier_list_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[1]/div/div[3]/span"
+        product_type_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[1]/div/div[1]/div/span[2]"
+        application_scenario_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[1]/div/div[3]/div"
+        product_description_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[1]/div/div[2]"
+        price_xpath = f"/html/body/div[2]/div[2]/div/div/div[2]/div/div/section/div/div/div/div[7]/div/div[1]/div/ul/li[{i}]/div[2]/div[1]"
+
+        try:
+            # 供应商提供商品名称
+            product_name = driver.find_element(By.XPATH, product_name_xpath).text
+
+            # 数据供应商名单
+            supplier_list = driver.find_element(By.XPATH, supplier_list_xpath).text
+
+            # 商品类型
+            product_type = driver.find_element(By.XPATH, product_type_xpath).text
+
+            # 应用场景
+            application_scenario = driver.find_element(
+                By.XPATH, application_scenario_xpath
+            ).text
+
+            # 商品描述
+            product_description = driver.find_element(
+                By.XPATH, product_description_xpath
+            ).text
+
+            # 价格
+            price = driver.find_element(By.XPATH, price_xpath).text
+
+            # 将数据添加到列表
+            data_list.append(
+                {
+                    "页数": page + 1,
+                    "供应商提供商品名称": product_name,
+                    "数据供应商名单": supplier_list,
+                    "商品类型": product_type,
+                    "应用场景": application_scenario,
+                    "商品描述": product_description,
+                    "价格": price,
+                }
+            )
+        except Exception as e:
+            print(f"Error on page {page + 1}, item {i}: {e}")
+
+    # 点击翻页按钮
+    try:
+        next_button = WebDriverWait(driver, 2).until(  # 等待时间为 2 秒
+            EC.element_to_be_clickable((By.XPATH, next_button_xpath))
+        )
+        next_button.click()
+    except Exception as e:
+        print("翻页出错或已经是最后一页:", e)
+        break  # 如果无法翻页，则跳出循环
+
+# 关闭浏览器
+driver.quit()
+
+# 将列表转换为 DataFrame
+data_df = pd.DataFrame(data_list)
+
+# 输出为表格
+data_df.to_csv(
+    "bjidex.com_data.csv", index=False, encoding="utf_8_sig"
+)  # 保存为 CSV 文件
+print(data_df)  # 打印 DataFrame
+</code></pre>
+<p>输出</p>
+<pre><code class="language-powershell">PS D:\lab\bigdata24.9.9&gt; &amp; C:/tools/miniconda3/python.exe d:/lab/bigdata24.9.9/bjidex.com.py
+
+DevTools listening on ws://127.0.0.1:60057/devtools/browser/66a61aa5-3598-4069-94bd-d4f10be20d96
+[42892:8184:0915/232611.717:ERROR:ssl_client_socket_impl.cc(882)] handshake failed; returned -1, SSL error code 1, net_error -101
+[42892:8184:0915/232611.834:ERROR:ssl_client_socket_impl.cc(882)] handshake failed; returned -1, SSL error code 1, net_error -101
+[42892:8184:0915/232630.213:ERROR:ssl_client_socket_impl.cc(882)] handshake failed; returned -1, SSL error code 1, net_error -101
+翻页出错或已经是最后一页: Message: 
+
+    页数  ...       价格
+0    1  ...   0.5 元/次
+1    1  ...     0 元/次
+2    1  ...     0 元/次
+3    1  ...   2.5 元/次
+...
+37   4  ...   0.2 元/次
+38   4  ...   0.1 元/次
+39   4  ...  0.15 元/次
+
+[40 rows x 7 columns]
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-09-15T15:57:38Z</pubDate>
+<pubDate>2024-09-15T15:55:38Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 小颜同学 - 精美的卡片分享小工具</title>
+<link>https://www.v2ex.com/t/1073265</link>
+<guid>https://www.v2ex.com/t/1073265</guid>
+<content:encoded><![CDATA[
+
+<p><strong>介绍</strong></p>
+<p>小颜同学是一个精美卡片制作的贴身小助手，让你的文字充满艺术气息。
+免费，界面美观，交互简单，只需要输入文字，就可以帮助你生成优雅的媒体卡片。</p>
+<p><strong>在线体验</strong></p>
+<p><a href="https://yan.ognai.com" rel="nofollow">https://yan.ognai.com</a></p>
+<p><strong>演示</strong></p>
+<p><a href="https://i.imgur.com/qOqQXlv.png" rel="nofollow">https://i.imgur.com/qOqQXlv.png</a></p>
+<p><a href="http://imgur.com/qOqQXlv" rel="nofollow">imgur.com/qOqQXlv</a></p>
+]]></content:encoded>
+<pubDate>2024-09-15T15:03:04Z</pubDate>
+<pubDate>2024-09-15T15:00:04Z</pubDate>
+</item>
+<item>
+<title>[VPS] 国内 vps 流量也太贵了吧</title>
+<link>https://www.v2ex.com/t/1073261</link>
+<guid>https://www.v2ex.com/t/1073261</guid>
+<content:encoded><![CDATA[
+
+业务需要 10M 带宽且低延迟，阿里腾讯 1 元 1G 算，一个小时就特么 3 块 6 了<br />好奇向日葵这种吃流量的 app 用的是啥服务器啊
+]]></content:encoded>
+<pubDate>2024-09-15T14:34:17Z</pubDate>
+<pubDate>2024-09-15T11:32:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 羊过以后，会不会有时莫名闻到一种特殊的香味？</title>
+<link>https://www.v2ex.com/t/1073260</link>
+<guid>https://www.v2ex.com/t/1073260</guid>
+<content:encoded><![CDATA[
+
+最近几年，是不是的会闻到（也许不是从外界闻到，而是身体感觉到）一种香味，类似檀香，很浓。<br />开始以为是家具的味道或者是家里衣服上的洗衣液的味道。还以为是熬夜的问题。<br />但是，有几次在办公室也可以闻到，但是寻找香味的来源，周边闻了很久都没找到。<br />所以觉得是从身体内部产生。<br /><br />-----------------------------------<br />大家是否也能闻到这样的香味？
+]]></content:encoded>
+<pubDate>2024-09-15T14:28:06Z</pubDate>
+<pubDate>2024-09-15T16:17:31Z</pubDate>
+</item>
+<item>
+<title>[Linux] 原本打算换电脑，但是突然觉得还可以再坚持几年</title>
+<link>https://www.v2ex.com/t/1073259</link>
+<guid>https://www.v2ex.com/t/1073259</guid>
+<content:encoded><![CDATA[
+
+<p>21 年的 Thinkbook 14p g2 CPU R7-5800H 32G 内存</p>
+<p>最近用 VSCode 总是是不是卡一下，有点烦，所以原本是想要换一台电脑的，但是今天编译 Linux 内核的时候发现一套下来也就 40min 左右（肯定不是全部模块都启用，Arch 默认 config 基础上加上几个 HID 的一些子模块）。然后回过来一想，编译内核也就 40min ，至少这个性能我还是能接收的——虽然不算多牛比，但是我已经满足了，没必要给自己制造性能焦虑。</p>
+<p>最重要的是我发现在 CPU 占用率 100% 的这段时间做其他事情基本没有受影响，这体验就很舒服。所以，虽然它已经跟不上主流笔记本的性能，但是对我来说已经够了，至少是一个我能满足的性能。至于 VSCode 偶尔卡吨一下的问题一来稍微忍一忍也未尝不可，而来自己本来也就在往 neovim 上迁移，只是一直没有断舍干净。</p>
+<p>也许还能再战三年？</p>
+]]></content:encoded>
+<pubDate>2024-09-15T14:27:15Z</pubDate>
+<pubDate>2024-09-15T16:24:55Z</pubDate>
+</item>
+<item>
+<title>[NAS] 分享一个群晖部署 WireGuard， iPhone 用 Loon 连接的实例</title>
+<link>https://www.v2ex.com/t/1073258</link>
+<guid>https://www.v2ex.com/t/1073258</guid>
+<content:encoded><![CDATA[
+
+<h1>写在前面</h1>
+<p>接上一个帖子（[<a href="https://www.v2ex.com/t/1073068" rel="nofollow">https://www.v2ex.com/t/1073068</a>]），请教了大家如何减少暴漏 NAS 的端口，建议比较多的是使用 WireGuard ，遂尝试部署了下，踩了好多坑，终于调通，跟大家分享一下经历</p>
+<p>我的设备情况：</p>
+<p>NAS：群晖 1821+ ，DSM 7.2.1-69057 Update 5 ，内网 IP 是 <code>192.168.1.2</code>；
+WireGuard 服务端：wg-easy/wg-easy v14.0.0 ；
+手机：iPhone 15 ，iOS 17.6 (21G80)；
+WireGuard 客户端：Loon 3.2.2 (749)；
+有动态公网 IPv4 地址，有一个域名 <code><a href="http://example.com" rel="nofollow">example.com</a></code>，通过 DDNS 把公网 IPv4 地址绑定到云服务商，NAS 上安装了泛域名证书。</p>
+<p>在这个实例中，域名、端口号、密码等均为虚构，请根据你的需要修改。</p>
+<hr />
+<h1>一、在 NAS 安装部署 WireGuard</h1>
+<h3>1. 解决内核版本过低问题</h3>
+<blockquote>
+<p>WireGuard 要求 Linux 内核版本高于 5.6 ，但是群晖不满足这个要求，在 NAS 终端执行 <code>uname -r</code> 后看到 <code>4.4.302+</code></p>
+</blockquote>
+<p>办法是安装第三方套件源，套件中心 → 设置  →  添加： <a href="https://spk7.imnks.com/" rel="nofollow">https://spk7.imnks.com/</a></p>
+<p>进入社群，搜索 WireGuard 下载，在 NAS 终端执行 <code>sudo sed -i 's/package/root/g' /var/packages/WireGuard/conf/privilege</code> 修复权限问题。</p>
+<h3>2. 通过 Container Manager 构建 WireGuardEasy</h3>
+<p>2.1. 新建目录 <code>docker/WireGuardEasy</code>，<code>docker/WireGuardEasy/config</code>；
+2.2. 新建 compose.yml 文件，上传到 <code>docker/WireGuardEasy</code>，内容如下：</p>
+<pre><code>services:
+  wg-easy:
+    environment:
+      - LANG=chs
+      - WG_HOST=example.com		# NAS 的域名
+      - PASSWORD_HASH=$$2y$$10$$hBCoykrB95WSzuV4fafBzOHWKu9sbyVa34GJr8VV5R/pIelfEMYyG		# 哈希后的密码，下面有介绍怎么生成
+      - PORT=51821		# WireGuardEasy 的后台管理端口，TCP 协议的
+      - WG_PORT=51820		#WireGuardEasy 的连接端口，UDP 协议的，需要映射暴露到外网。
+      - WG_DEFAULT_ADDRESS=10.0.0.1
+      - WG_ALLOWED_IPS=10.0.0.0/24,192.168.1.0/24
+      - WG_PERSISTENT_KEEPALIVE=25
+      - UI_TRAFFIC_STATS=true
+      - MAX_AGE=30
+      - UI_ENABLE_SORT_CLIENTS=true
+
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: wg-easy
+    volumes:
+      - /volume1/docker/WireGuardEasy/config:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      
+    network_mode: "bridge"
+</code></pre>
+<p>2.2. 用 Container Manager 构建项目；
+2.3. 修改后台密码：在 NAS 终端执行 <code>docker run -it <a href="http://ghcr.io/wg-easy/wg-easy" rel="nofollow">ghcr.io/wg-easy/wg-easy</a> wgpw YOUR_PASSWORD</code>，得到 <code>PASSWORD_HASH='$2a$12$ptdssPxwS2vKlXCPcYP3juENfkuhJPGamBQM7utsUJ8Gv7LP8tjm6'</code> 将单引号去除，在每一个 <code>$</code> 前再添加一个 <code>$</code>，加工成 <code>$$2a$$12$$ptdssPxwS2vKlXCPcYP3juENfkuhJPGamBQM7utsUJ8Gv7LP8tjm6</code> 填入 <code>compose.yml</code> 文件的环境变量 <code>PASSWORD_HASH</code> 中，清除项目，再构建项目。</p>
+<h3>3. 对后台管理界面配置反向代理</h3>
+<p>因为本人有强迫症，不喜欢浏览器提示 HTTP 不安全，所以都会给后台管理界面套一个 HTTPS 反代，通过域名访问，消除安全警告。</p>
+<ul>
+<li>描述：<code>WireGuardEasy</code></li>
+<li>来源协议：<code>HTTPS</code></li>
+<li>来源主机名：<code><a href="http://wg.example.com" rel="nofollow">wg.example.com</a></code></li>
+<li>来源端口：<code>443</code></li>
+<li>启用 HSTS</li>
+<li>目的地协议：<code>HTTP</code></li>
+<li>目的地主机名：<code>localhost</code></li>
+<li>目的地端口：<code>51821</code></li>
+<li>如果设置了访问控制文件，且允许远程登后台的话，需要放行 <code>172.16.0.0/12</code>，这是因为容器的网络模式为 <code>bridge</code>，<code>10.0.0.0/24</code> 出容器后地址会被 NAT 成 <code>172.16.0.0/12</code> ，本质上是容器在访问 NAS 的资源。</li>
+</ul>
+<h3>4. 配置防火墙</h3>
+<p>网关路由器设置  UDP <code>51820</code> 端口转发至群晖，群晖防火墙放行 UDP <code>51820</code> 端口，群晖防火墙无需再对 <code>10.0.0.0/24</code>，<code>172.16.0.0/12</code> 的来源地址放行，因为容器已经在防火墙之后了。</p>
+<h3>5. 后台管理</h3>
+<p>5.1. 访问 <code><a href="https://wg.example.com" rel="nofollow">https://wg.example.com</a></code>，密码 <code>YOUR_PASSWORD</code> ，进入管理后台；
+5.2. 新建客户端，重要！！把 IP 改为 <code>10.0.0.2</code>，不得占用 <code>10.0.0.1</code> ；
+5.3. 显示二维码，让手机扫码。</p>
+<hr />
+<h1>二、在手机连接 WireGuard</h1>
+<p>我使用的是 Loon ，这是一款功能强大的网络代理工具，通过策略组、分流规则、Wi-Fi 规则可以实现内外网自动切换，日常使用基本无感。</p>
+<h3>1. 添加本地节点</h3>
+<p>用 Loon 添加本地节点，扫码添加，名称为 <code>NAS_WireGuard</code>，删除默认添加的 <code>1.1.1.1</code> DNS 。</p>
+<h3>2. 设置 DNS 映射</h3>
+<p>因为本人有强迫症，不喜欢浏览器提示 HTTP 不安全，所以一律通过域名访问内网资源，消除安全警告，所以就需要配置本地 DNS ，这里使用 Loon 的 DNS 映射功能。</p>
+<p>DNS 映射规则有顺序，从上到下匹配，要确保 ssid 那条在最顶。</p>
+<pre><code>ssid:ChinaNet-Home = server:192.168.1.1		# 当手机连入家里的 Wi-Fi：ChinaNet-Home 时，将 DNS 服务器设为路由器的 IP ，由路由器负责把 `example.com` 解析到 NAS 的内网 IP
+critical-service.example.com = 192.168.1.2			# 将 critical-service 服务的主机名指向 NAS 的内网 IP
+wg.example.com = 192.168.1.2			## 将 WireGuard 管理后台的主机名指向 NAS 的内网 IP
+</code></pre>
+<p>第一条映射规则的作用是，当手机在家时，把 NAS 的域名解析到内网 IP ；
+后面的规则作用是，当手机不在家时，将几个关键服务的主机名解析到内网 IP ，配合 WireGuard 隧道访问；
+当手机不在家时，非关键服务的主机名还是通过云服务商解析，通过传统的 DDNS 访问，不走隧道。</p>
+<h3>3. 添加策略组</h3>
+<pre><code>服务器 = ssid,default=NAS_WireGuard,cellular=NAS_WireGuard,"ChinaNet-Home"=DIRECT,url = http://www.gstatic.com/generate_204
+</code></pre>
+<p>添加一个名为 <code>服务器</code> 的策略组。当手机连入家里的 Wi-Fi：ChinaNet-Home 时，访问 NAS 一律直连，当手机用其他 Wi-Fi 或蜂窝网络时，就走本地节点 <code>NAS_WireGuard</code>，隧道访问，url 是测延迟的链接。</p>
+<h3>4. 设置分流规则</h3>
+<pre><code>AND,((OR,((DEST-PORT,1234),(DEST-PORT,443))),(DOMAIN-SUFFIX,example.com)),服务器
+AND,((OR,((DEST-PORT,5000),(DEST-PORT,5001))),(DOMAIN-SUFFIX,example.com)),DIRECT
+</code></pre>
+<p>设置两个嵌套的分流规则：
+第一条规则：当访问 <code><a href="http://wg.example.com:443" rel="nofollow">wg.example.com:443</a></code>，<code><a href="http://critical-service.example.com:1234" rel="nofollow">critical-service.example.com:1234</a></code> 时，交给 <code>服务器</code> 策略组进一步处理，用来保护关键服务配合 WireGuard 隧道访问；
+第二条规则：当访问 <code><a href="http://file.example.com:5000" rel="nofollow">file.example.com:5000</a></code>，<code><a href="http://music.example.com:5001" rel="nofollow">music.example.com:5001</a></code> 时，通过传统的 DDNS 访问，不走隧道，需要防火墙放行这两个端口。</p>
+<h3>5. 取消默认的绕过路由 (bypass-tun) 和绕过代理 (skip-proxy)</h3>
+<p>在 bypass-tun 和 skip-proxy 中，要删除 <code><a href="http://example.com" rel="nofollow">example.com</a></code>，<code>192.168.0.0/16</code>， <code>192.168.1.0/24</code>，确保这些域名和内网地址通过 Loon 的处理</p>
+<hr />
+<h1>最后的效果</h1>
+<p>只要手机的 Loon 一直开启，无论身在何处，都可以访问  <code><a href="http://wg.example.com:443" rel="nofollow">wg.example.com:443</a></code>，<code><a href="http://critical-service.example.com:1234" rel="nofollow">critical-service.example.com:1234</a></code> 这两个关键服务，端口在公网不可见，没有 DNS 解析问题；
+<code><a href="http://file.example.com:5000" rel="nofollow">file.example.com:5000</a></code>，<code><a href="http://music.example.com:5001" rel="nofollow">music.example.com:5001</a></code> 这两个非关键服务的端口在公网仍然可见，满足资源共享的需求。</p>
+<p>唯一美中不足的是，当手机从内网切到外网时，做不到无缝衔接，需要等待几秒钟才能建立 WireGuard 连接，甚至要手动关闭 Loon 再开启，有无优化的办法？</p>
+]]></content:encoded>
+<pubDate>2024-09-15T14:23:43Z</pubDate>
+<pubDate>2024-09-15T16:05:58Z</pubDate>
+</item>
+
+<item>
 <title>[Planet] Planet Update 13 - 网页上的 ETH 打赏</title>
 <link>https://www.v2ex.com/t/1073257</link>
 <guid>https://www.v2ex.com/t/1073257</guid>
 <content:encoded><![CDATA[
-
 <p>Planet Update 13 里带来一个新的网页上接受 ETH 打赏的功能，可以在 Planet 经过简单设置，就可以在 Sepia 模版上启用。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://olivida.eth.sucks/96B694AB-6E7C-4ABA-AB61-84BEA4487C46/donation-settings.png" /></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://olivida.eth.sucks/96B694AB-6E7C-4ABA-AB61-84BEA4487C46/donation-modal.png" /></p>
 <p>如果你是内容创作者、开源软件开发者，之前用过 PayPal 或者 Ko-Fi 的打赏，那么来试试这种新的方式吧。不需要向任何人申请，也没有任何人可以扣留你收到的款项，一切都只需要代码。</p>
 <p><a href="https://olivida.eth.sucks/feature-update-13/" rel="nofollow">https://olivida.eth.sucks/feature-update-13/</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-15T14:10:52Z</pubDate>
 <pubDate>2024-09-15T14:19:10Z</pubDate>
 </item>
 <item>
@@ -24,10 +346,8 @@
 <link>https://www.v2ex.com/t/1073255</link>
 <guid>https://www.v2ex.com/t/1073255</guid>
 <content:encoded><![CDATA[
-
 当前仅支持阿里云用户使用具备公网访问能力的阿里云产品进行镜像加速，且仅限于特定范围内的容器镜像。详情请见公告。<a href="https://help.aliyun.com/zh/acr/product-overview/product-change-acr-mirror-accelerator-function-adjustment-announcement" rel="nofollow noopener" target="_blank">https://help.aliyun.com/zh/acr/product-overview/product-change-acr-mirror-accelerator-function-adjustment-announcement</a><br /><br />由于运营商网络问题，拉取 Docker Hub 镜像可能会变慢。<br />建议手动拉取镜像到本地节点并重启 Pod ，也可上传镜像至 ACR 或使用订阅海外源镜像功能，再从 ACR 拉取对应镜像。<br /><br />现在哪个国内的镜像服务还可以用？
 ]]></content:encoded>
-<pubDate>2024-09-15T13:39:16Z</pubDate>
 <pubDate>2024-09-15T13:39:16Z</pubDate>
 </item>
 <item>
@@ -35,10 +355,8 @@
 <link>https://www.v2ex.com/t/1073254</link>
 <guid>https://www.v2ex.com/t/1073254</guid>
 <content:encoded><![CDATA[
-
 如何看待 iPhone 16 和 iPhone 16 Plus 依然采用 60Hz 刷新率的屏幕？ - Luv Letter 的回答 - 知乎<br /><a href="https://www.zhihu.com/question/665832611/answer/3626373465" rel="nofollow noopener" target="_blank">https://www.zhihu.com/question/665832611/answer/3626373465</a>
 ]]></content:encoded>
-<pubDate>2024-09-15T13:35:14Z</pubDate>
 <pubDate>2024-09-15T13:54:20Z</pubDate>
 </item>
 <item>
@@ -46,7 +364,6 @@
 <link>https://www.v2ex.com/t/1073253</link>
 <guid>https://www.v2ex.com/t/1073253</guid>
 <content:encoded><![CDATA[
-
 <h2>网站名称</h2>
 <p>tiktok 表情</p>
 <h2>一句话简介</h2>
@@ -57,7 +374,6 @@
 <p><img alt="tiktok-emojis.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/09/15/c8R67eSLMt1z3DA.png" /></p>
 <p>感谢大家花时间看到这里，祝中秋节快乐</p>
 ]]></content:encoded>
-<pubDate>2024-09-15T13:32:48Z</pubDate>
 <pubDate>2024-09-15T13:29:48Z</pubDate>
 </item>
 <item>
@@ -65,13 +381,11 @@
 <link>https://www.v2ex.com/t/1073252</link>
 <guid>https://www.v2ex.com/t/1073252</guid>
 <content:encoded><![CDATA[
-
 <p>ImagenWorks: <a href="https://imagenworks.com" rel="nofollow">https://imagenworks.com</a> </p>
 <p><a href="https://github.com/rudy2steiner/imagenWorks" rel="nofollow">https://github.com/rudy2steiner/imagenWorks</a></p>
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/07097db6-6c66-4102-ba0a-e8529a75cd94" /></p>
 <p>提供免费额度：10 credits ，可以生成 10 张图片。需求大的可以在下方留下邮箱，额外赠送 10 credits 。</p>
 ]]></content:encoded>
-<pubDate>2024-09-15T13:32:26Z</pubDate>
 <pubDate>2024-09-15T13:29:26Z</pubDate>
 </item>
 <item>
@@ -79,10 +393,8 @@
 <link>https://www.v2ex.com/t/1073250</link>
 <guid>https://www.v2ex.com/t/1073250</guid>
 <content:encoded><![CDATA[
-
 由于使用的工具只能填写官方 sk 使用，想问问怎样给官方账号充值，或者怎样可以买到有额度的账号？
 ]]></content:encoded>
-<pubDate>2024-09-15T13:05:09Z</pubDate>
 <pubDate>2024-09-15T13:05:09Z</pubDate>
 </item>
 <item>
@@ -90,11 +402,9 @@
 <link>https://www.v2ex.com/t/1073249</link>
 <guid>https://www.v2ex.com/t/1073249</guid>
 <content:encoded><![CDATA[
-
 <p>同标题,测试好多软件都找不到,弱弱的来请教大家,感谢
 <a href="https://imgse.com/i/pAusdYR" rel="nofollow"><img alt="pAusdYR.md.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/09/15/pAusdYR.md.png" /></a></p>
 ]]></content:encoded>
-<pubDate>2024-09-15T12:41:00Z</pubDate>
 <pubDate>2024-09-15T12:52:34Z</pubDate>
 </item>
 <item>
@@ -102,7 +412,6 @@
 <link>https://www.v2ex.com/t/1065951</link>
 <guid>https://www.v2ex.com/t/1065951</guid>
 <content:encoded><![CDATA[
-
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 于 1996 年成立于阿姆斯特丹，当年的荷兰小型初创企业现已发展成为全球规模最大的旅游电子商务公司之一。<a href="http://Booking.com" rel="nofollow">Booking.com</a> 隶属于 Booking Holdings Inc.（纳斯达克上市公司：BKNG ），其使命是：<strong>探索世界，我们在你身边</strong>。</p>
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 通过投资科技，为数百万用户提供顺畅无阻的难忘旅行体验、一系列交通选择以及各种精彩住宿。从民宿到酒店，应有尽有。无论是成熟品牌还是各种规模的初创企业都能受益于 <a href="http://Booking.com" rel="nofollow">Booking.com</a> 。作为全球知名旅游平台，<a href="http://Booking.com" rel="nofollow">Booking.com</a> 帮助世界各地的住宿吸引全球游客，实现业务增长。</p>
 <p><a href="http://Booking.com" rel="nofollow">Booking.com</a> 支持 46 种语言，已有超过 2800 万房源，其中民宿、公寓和其他特色住宿房源超过 660 万家。无论你想去哪里，你想做什么，<a href="http://Booking.com" rel="nofollow">Booking.com</a> 提供 7*24 小时全天候客服支持，让一切变得容易。</p>
@@ -192,10 +501,8 @@
 <h2>联系方式</h2>
 <p>欢迎感兴趣的小伙伴们发送简历到 <a href="mailto:xiaoyu.zhong@booking.com">xiaoyu.zhong@booking.com</a> ，并注明来自 V2EX 。</p>
 ]]></content:encoded>
-<pubDate>2024-08-18T15:27:13Z</pubDate>
 <pubDate>2024-09-15T05:55:03Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 用 Linear 扁平风 + Magic UI 开发简洁美观的个人主页: zmh.me</title>
 <link>https://www.v2ex.com/t/1073247</link>
@@ -14677,151 +14984,6 @@ addComponentFromCache(componentName) {
 1 、需要手机号注册。<br />2 、和 Parsec 一致，UDP 链接。<br />3 、支持远程剪切板。<br />4 、支持隐私屏（连接后会自动把物理显示器置失效只保留虚拟显示器，断连后回复）<br />5 、支持断连锁屏。<br />6 、不支持设置比特率上限。<br />7 、帧率不稳定。同样的网络环境下（同城广域网，被控端有公网 IP ），parsec 可以稳定 60 帧，但 gameviewer 只能 30~50 波动。<br /><br />总结：在 parsec 被墙的大环境下，差强人意。帧率波动严重影响体验，建议修改流媒体策略。
 ]]></content:encoded>
 <pubDate>2024-09-11T09:02:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有人和我一样，有隐私癖</title>
-<link>https://www.v2ex.com/t/1072050</link>
-<guid>https://www.v2ex.com/t/1072050</guid>
-<content:encoded><![CDATA[
-<p>就是那种非理性的隐私癖。</p>
-<p>我现在用的 iphone 手机，接手了一个老爹的 X2 当玩具。但是装第三方侧载的软件必须要登录华子账号，蹭的一下火就上来了。虽然 iphone 也是必须要登录 icloud 才能在商店里使用吧，也无法完全保证个人隐私。但是这个 X2 装个第三方软件还要登录账号，就彻底激怒了我。。。</p>
-<p>除此之外，家里买的监控摄像头也走的是局域网，路由器也是绝不登录官方账号。虽然知道只要官方想做点手脚其实很容易，总觉得这样就能保证自己的隐私。。。所有软件能用开源的绝不用闭源的，能用本地绝不用云上的。有一种近乎变态的隐私癖，但是实际上也没啥卵用。</p>
-<p>不知道泥潭的老哥是不是也有相同的性格，还是说只是因为我个人比较变态。</p>
-]]></content:encoded>
-<pubDate>2024-09-11T09:47:19Z</pubDate>
-</item>
-<item>
-<title>[摄影] 现在底大一级压死人还有意义吗？</title>
-<link>https://www.v2ex.com/t/1072049</link>
-<guid>https://www.v2ex.com/t/1072049</guid>
-<content:encoded><![CDATA[
-<p>我看现在主流手机的摄像头像素都已经爆炸了。动不动就 4k 120 帧这种录像品质。
-但是真的对比比较大的底，比如 A7S2 这种，或者 zve10 这种，到底手机能不能打？
-假设我有个 4k ，想没事录录家里的日常，是直接买个 4k 的高端手机？
-还是在咸鱼入手一个 2000 多的 A7S2 ，剩下的掏个 1k 的镜头？
-或者入手一个 zve10
-到底哪个拍视频效果更好？
-zve10 我很中意，但是 a7s2 好像效果不好，有大佬答疑解惑吗？</p>
-]]></content:encoded>
-<pubDate>2024-09-11T09:24:05Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 各位同学们，字节跳动-抖音-前端实习机会，接受 2026 年毕业，实习地点上海</title>
-<link>https://www.v2ex.com/t/1072048</link>
-<guid>https://www.v2ex.com/t/1072048</guid>
-<content:encoded><![CDATA[
-职位描述<br />1 、参与抖音的平台业务需求研发，配合产品、测试高质量交付业务需求；<br />2 、参与核心系统前端工程架构迭代优化，参与 B 端、C 端前端产品的交互规范、性能、体验等优化 ；<br />3 、参与制定代码规范、技术方案规范、测试规范，推进团队研发规范迭代；<br /><br />职位要求<br />1 、2025/2026 年毕业，本科及以上学历在读，计算机、软件工程等相关专业优先；<br />2 、具有良好基础知识，熟悉常用算法和数据结构；有技术钻研精神，并具有较强的自驱学习能力；<br />3 、对互联网产品有浓厚兴趣，关注产品设计和用户体验，能够通过技术不断优化产品体验；<br />4 、掌握 Java 、C++、JavaScript 等任意一门编程语言，有前端经验加分；<br />5 、每周可实习 4 天以上，可实习 3 个月以上；<br /><br />投递链接： <a href="https://job.toutiao.com/s/ihowEutc" rel="nofollow noopener" target="_blank">https://job.toutiao.com/s/ihowEutc</a>
-]]></content:encoded>
-<pubDate>2024-09-11T08:48:34Z</pubDate>
-</item>
-<item>
-<title>[Telegram] Telegram 可以删除对方的聊天记录是否算反人类设计？</title>
-<link>https://www.v2ex.com/t/1072047</link>
-<guid>https://www.v2ex.com/t/1072047</guid>
-<content:encoded><![CDATA[
-<p>RT ，而且被对方拉黑没有任何提示，消息仍然可以正常发送只是对方收不到了而已</p>
-]]></content:encoded>
-<pubDate>2024-09-11T09:42:24Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请问如何实现大文件夹即时浏览器下载</title>
-<link>https://www.v2ex.com/t/1072046</link>
-<guid>https://www.v2ex.com/t/1072046</guid>
-<content:encoded><![CDATA[
-<p>我用的是 php ，问了一圈 AI ，告诉我使用 ZipStream ，但是我试了同样需要等待压缩的时候非常久，而不是像群晖 NAS 那样，立即开始下载，且浏览器不显示最终文件大小。
-请问 v 友这是如何做到的</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://free.wzznft.com/i/2024/09/11/r4i2k7.jpg" /></p>
-<pre><code>public function downloadFolderNew()
-{
-    $path = $this-&gt;request-&gt;param("path", "");
-    if (!empty($path)) {
-        // 将路径转换为项目的公共路径
-        $path = str_replace("D:\\phpproject\\test\\public\\", public_path(), $path);
-    }
-
-    if (!is_dir($path)) {
-        $this-&gt;error("路径不存在");
-    }
-
-    $fileName = $this-&gt;request-&gt;param("file_name", "") ?: uniqid();
-    $zipFileName = $fileName . ".zip";
-
-    // 设置响应头
-    header('Content-Type: application/zip');
-    header('Content-Disposition: attachment; filename="' . $zipFileName . '"');
-    header('X-Accel-Buffering: no'); // 关闭 Nginx 的输出缓冲
-
-    // 禁用输出缓冲区
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
-    // 立即输出部分内容，浏览器开始下载
-    echo "\xEF\xBB\xBF"; // 避免 PHP 输出缓冲，立即开始下载
-    flush();
-    // 创建一个 ZIP 流
-    $zip = new ZipStream\ZipStream(null, [
-        'outputStream' =&gt; 'php://output' // 将输出直接定向到浏览器
-    ]);
-    // 递归添加文件夹内容到 ZIP
-    $this-&gt;addFolderToZip($zip, $path, '');
-
-    // 结束 ZIP 流
-    $zip-&gt;finish();
-    exit();
-}
-
-private function addFolderToZip($zip, $folder, $zipPath)
-{
-    // 创建迭代器，遍历文件夹中的文件
-    $files = new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($folder, \RecursiveDirectoryIterator::SKIP_DOTS),
-        \RecursiveIteratorIterator::LEAVES_ONLY
-    );
-    foreach ($files as $file) {
-        $filePath = $file-&gt;getRealPath();
-        $relativePath = substr($filePath, strlen($folder) + 1); // 获取文件相对路径
-        if (!$file-&gt;isDir()) {
-            // 确保文件路径和内容正确添加到 ZIP 中
-            $zip-&gt;addFileFromPath($zipPath . $relativePath, $filePath);
-        }
-        // 刷新输出缓冲，逐步发送数据到浏览器
-        flush();
-    }
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-09-11T09:36:07Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 镜像推送问题求助</title>
-<link>https://www.v2ex.com/t/1072045</link>
-<guid>https://www.v2ex.com/t/1072045</guid>
-<content:encoded><![CDATA[
-<p>系统：Sequoia RC 版、iOS18 RC 版</p>
-<p>Mac 上装有微信，在使用 iPhone 镜像登陆微信时候，手机上的微信推送无法同步到 Mac 。（微信手机通知已开）</p>
-<p>系统设置 - 通知 - 允许来自 iPhone 的通知 选项中，微信通知无法打开，下方小字 “已在 Mac 上安装”</p>
-<p>卸载 Mac 微信后，手机微信推送可以同步到 Mac</p>
-<p>现在想问问，有无可能在 Mac 上微信保留，同时在不运行微信的情况下，还能将手机微信通知同步到 Mac</p>
-]]></content:encoded>
-<pubDate>2024-09-11T08:41:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐不会卡档的，内裤</title>
-<link>https://www.v2ex.com/t/1072044</link>
-<guid>https://www.v2ex.com/t/1072044</guid>
-<content:encoded><![CDATA[
-<p>现在的内裤坐久了就会卡档，时不时要拉一下贼难受。求求大佬们什么推荐个好的内裤产品</p>
-]]></content:encoded>
-<pubDate>2024-09-11T10:20:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求教 macOS 卡死&amp;强制关机重启后，怎么避免自动重启所有应用？</title>
-<link>https://www.v2ex.com/t/1072043</link>
-<guid>https://www.v2ex.com/t/1072043</guid>
-<content:encoded><![CDATA[
-如题<br />版本：macOS Sonoma 14.1.2
-]]></content:encoded>
-<pubDate>2024-09-11T08:40:32Z</pubDate>
 </item>
 </channel>
 </rss>
