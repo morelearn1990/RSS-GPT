@@ -5,17 +5,448 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享创造] 更简单的部署 AnyType 同步服务器的方案</title>
+<link>https://www.v2ex.com/t/1073399</link>
+<guid>https://www.v2ex.com/t/1073399</guid>
+<content:encoded><![CDATA[
+
+<p>原文地址: <a href="https://yojigen.tech/33.html" rel="nofollow">https://yojigen.tech/33.html</a></p>
+<h2>前言</h2>
+<p>之前折腾了<a href="https://yojigen.tech/32.html" rel="nofollow" title="使用 Docker 在 NAS 里部署桌面版 AnyType 客户端">使用 Docker 在 NAS 里部署桌面版 AnyType 客户端</a>，用来局域网同步数据。</p>
+<p>但是我还是不死心，还是想试试部署官方的同步服务。于是又研究了一天，得出了这个新的方案。</p>
+<h2>分析官方 docker 结构</h2>
+<p>官方是有着一个<a href="https://github.com/anyproto/any-sync-dockercompose" rel="nofollow" title="github 仓库">github 仓库</a>用来部署 docker 的。</p>
+<p>配置很复杂，而且一些服务的设置有些迷惑，类似<code>redis</code>，<code>mongo</code>，<code>minio</code>之类的服务其实都没必要把端口映射出来，一些官方的镜像也完全没有必要用<code>Dockerfile</code>自己编译，直接用官方的镜像就行。</p>
+<p>于是我就想能不能把他的镜像优化一下，所以先看看他的镜像都有什么。</p>
+<p>源文件: <a href="https://github.com/anyproto/any-sync-dockercompose/blob/main/docker-compose.yml" rel="nofollow" title="https://github.com/anyproto/any-sync-dockercompose/blob/main/docker-compose.yml">https://github.com/anyproto/any-sync-dockercompose/blob/main/docker-compose.yml</a></p>
+<p>根据源文件的 service 字段，从上到下的服务一共有这些。</p>
+<ul>
+<li>generateconfig-anyconf</li>
+<li>generateconfig-processing</li>
+<li>mongo-1</li>
+<li>redis</li>
+<li>minio</li>
+<li>create-bucket</li>
+<li>any-sync-coordinator_bootstrap</li>
+<li>any-sync-coordinator</li>
+<li>any-sync-filenode</li>
+<li>any-sync-node-1</li>
+<li>any-sync-node-2</li>
+<li>any-sync-node-3</li>
+<li>any-sync-consensusnode</li>
+<li>netcheck</li>
+</ul>
+<p><code>generateconfig-anyconf</code>是用于创建配置的。
+<code>generateconfig-processing</code>是用来判断配置是否创建完成的。
+<code>any-sync-coordinator_bootstrap</code>也是用来判断配置是否正确的。
+<code>netcheck</code>是检测配置和网络是否正确的。</p>
+<p>换句话说其实上面这 4 个镜像都没有必要启动，是完全可以去掉的。</p>
+<h2>创建正确的配置</h2>
+<p>AnyType 官方的 docker 配置，是要用户使用<code>make start</code>命令来自动创建出来一些配置，然后再将<code>client.yml</code>导入到客户端，实现私有化部署。</p>
+<p>那么如何才能创建出来正确的配置呢？</p>
+<p>官方实际上有另一个工具<a href="https://github.com/anyproto/any-sync-tools" rel="nofollow" title="https://github.com/anyproto/any-sync-tools">https://github.com/anyproto/any-sync-tools</a>。这个库内含两个二进制程序。<code>any-sync-network</code>用于创建网络配置，<code>any-sync-netcheck</code>用于检查网络配置。</p>
+<p>我们可以下载<code>any-sync-tools</code>二进制文件，里面内含了一个<code>defaultTemplate.yml</code>文件。这是网络配置的模板参数，我们可以修改其中的一部分 IP 和端口配置，然后用这个模板创建自己的配置。</p>
+<pre><code class="language-yaml"># 这里添加你的同步服务的地址/域名，可以填写多个
+# 同时需要填写一个 docker 宿主的可访问 IP ，用于让镜像内部可以访问到其他镜像的端口
+external-addresses:
+ - 172.123.234.1
+ - 127.0.0.1
+
+any-sync-consensusnode:
+  listen: any-sync-consensusnode
+  yamuxPort: 4530
+  quicPort: 5530
+  mongo:
+    # 这里修改了 mongo 的地址
+    connect: mongodb://mongo:27017/?w=majority
+    database: consensus
+
+any-sync-coordinator:
+  listen: any-sync-coordinator
+  yamuxPort: 4630
+  quicPort: 5630
+  mongo:
+    # 这里修改了 mongo 的地址
+    connect: mongodb://mongo:27017
+    database: coordinator
+  defaultLimits:
+    spaceMembersRead: 1000
+    spaceMembersWrite: 1000
+    sharedSpacesLimit: 1000
+
+any-sync-filenode:
+  listen: any-sync-filenode
+  yamuxPort: 4730
+  quicPort: 5730
+  s3Store:
+    # 这里修改了 minio 的地址
+    endpoint: http://minio:9000
+    bucket: minio-bucket
+    indexBucket: minio-bucket
+    region: us-east-1
+    profile: default
+    forcePathStyle: true
+  redis:
+    # 这里修改了 redis 的地址
+    url: redis://redis:6379?dial_timeout=3&amp;read_timeout=6s
+  defaultLimit: 1099511627776
+
+any-sync-node:
+  listen:
+  - any-sync-node-1
+  - any-sync-node-2
+  - any-sync-node-3
+  yamuxPort: 4430
+  quicPort: 5430
+</code></pre>
+<p>修改完成后，在当前目录执行。</p>
+<pre><code class="language-shell">any-sync-network create --auto
+</code></pre>
+<p>可以一键创建配置，配置文件在<code>etc</code>目录下，其中<code>client.yml</code>就是给客户端用的配置文件。</p>
+<p>本以为配置到这里就结束了，但是实际上还有一个隐藏的关于 s3 的配置，我最开始就是因为没有注意这个配置，导致一开始文件都不能同步，只能同步文本。</p>
+<p>在<code>etc</code>目录下，需要创建一个<code>.aws</code>目录，然后在<code>.aws</code>目录中，创建一个<code>credentials</code>文件，文件内容如下。这个文件的内容是和后面的<code>docker-compose.yml</code>对应的，可以酌情修改。</p>
+<pre><code class="language-ini">[default]
+aws_access_key_id=user
+aws_secret_access_key=password
+</code></pre>
+<h2>部署 docker</h2>
+<p>我创建了一个新的<code>docker-compose.yml</code>文件，里面的配置和端口是和上面的配置对应的，如果你有自己的想法，可以酌情修改。</p>
+<pre><code class="language-yaml">services:
+  mongo:
+    image: mongo:4
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--port", "27017"]
+    volumes:
+      - ./storage/mongo/:/data/db
+    networks:
+      - network
+    healthcheck:
+      test: mongo --port 27017 --eval 'rs.initiate({"_id":"rs0","members":[{"_id":0,"host":"mongo:27017"}]})'
+      interval: 10s
+      start_period: 30s
+
+  redis:
+    image: redis/redis-stack-server:latest
+    restart: unless-stopped
+    command: ["redis-server", "--port", "6379", "--dir", "/data/", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction", "--protected-mode", "no", "--loadmodule", "/opt/redis-stack/lib/redisbloom.so"]
+    volumes:
+      - ./storage/redis/:/data/
+    networks:
+      - network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "-p", "6379", "incr", "ping" ]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001", "--address", ":9000"]
+    environment:
+      MINIO_ROOT_USER: "user"
+      MINIO_ROOT_PASSWORD: "password"
+    volumes:
+      - ./storage/minio:/data
+    healthcheck:
+      test: bash -c ':&gt; /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    networks:
+      network:
+        aliases:
+          - "minio-bucket.minio"
+
+  create-bucket:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    networks:
+      - network
+    entrypoint: &gt;
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 'user' 'password') do echo '...waiting...' &amp;&amp; sleep 1; done;
+      /usr/bin/mc mb minio/minio-bucket;
+      exit 0;
+      "
+
+  any-sync-consensusnode:
+    image: ghcr.io/anyproto/any-sync-consensusnode:latest
+    depends_on:
+      any-sync-coordinator:
+        condition: service_started
+    ports:
+      - "4530:4530"
+      - "5530:5530/udp"
+    volumes:
+      - ./etc/any-sync-consensusnode/:/etc/any-sync-consensusnode/
+      - ./storage/networkStore/any-sync-consensusnode/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+  any-sync-coordinator:
+    image: ghcr.io/anyproto/any-sync-coordinator:latest
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4630:4630"
+      - "5630:4630/udp"
+    volumes:
+      - ./etc/any-sync-coordinator/:/etc/any-sync-coordinator/
+      - ./storage/networkStore/any-sync-coordinator/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+  any-sync-filenode:
+    image: ghcr.io/anyproto/any-sync-filenode:latest
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      any-sync-coordinator:
+        condition: service_started
+    ports:
+      - "4730:4730"
+      - "5730:5730/udp"
+    volumes:
+      - ./etc/any-sync-filenode/:/etc/any-sync-filenode/
+      - ./etc/.aws:/root/.aws:ro
+      - ./storage/networkStore/any-sync-filenode/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+  any-sync-node-1:
+    image: ghcr.io/anyproto/any-sync-node:latest
+    depends_on:
+      any-sync-coordinator:
+        condition: service_started
+    ports:
+      - "4430:4430"
+      - "5430:5430/udp"
+    volumes:
+      - ./etc/any-sync-node-1/:/etc/any-sync-node/
+      - ./storage/any-sync-node-1/:/storage/
+      - ./storage/networkStore/any-sync-node-1/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+  any-sync-node-2:
+    image: ghcr.io/anyproto/any-sync-node:latest
+    depends_on:
+      any-sync-coordinator:
+        condition: service_started
+    ports:
+      - "4431:4431"
+      - "5431:5431/udp"
+    volumes:
+      - ./etc/any-sync-node-2/:/etc/any-sync-node/
+      - ./storage/any-sync-node-2/:/storage/
+      - ./storage/networkStore/any-sync-node-2/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+  any-sync-node-3:
+    image: ghcr.io/anyproto/any-sync-node:latest
+    depends_on:
+      any-sync-coordinator:
+        condition: service_started
+    ports:
+      - "4432:4432"
+      - "5432:5432/udp"
+    volumes:
+      - ./etc/any-sync-node-3/:/etc/any-sync-node/
+      - ./storage/any-sync-node-3/:/storage/
+      - ./storage/networkStore/any-sync-node-3/:/networkStore/
+    networks:
+      - network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped
+
+# gateway 的 IP 需要添加到之前配置模板里面，我上面已经添加过了
+# 如果有 IP 地址冲突，请自行修改
+networks:
+  network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.123.234.0/24
+          gateway: 172.123.234.1
+</code></pre>
+<p>然后将<code>etc</code>复制到同目录下，启动镜像即可。</p>
+<h2>现成的配置</h2>
+<p>我把我的配置放在了 github 库里。你可以直接使用我的配置（但是还是要添加你的服务器 IP ）。</p>
+<p>仓库地址: <a href="https://github.com/mouyase/anytype-docker-compose" rel="nofollow" title="https://github.com/mouyase/anytype-docker-compose">https://github.com/mouyase/anytype-docker-compose</a></p>
+<h2>客户端使用提示</h2>
+<p>如果你现在已经有了一个 AnyType 的库，记得先把库导出，然后切换私有化部署方案，创建新的库，再导入。</p>
+<p>一个其他服务上的旧的库，是没有办法直接在另一个服务中打开的，每一个服务都需要创建一个新的库，再导入旧数据才能正常使用。请一定要注意。</p>
+<h2>尾声</h2>
+<p>我在 NAS 上部署了这套服务，然后再用 frp 做了内网穿透。局域网下走本地 IP ，在外网则使用 frp 转发 IP 。同时内网客户端还能 P2P 同步。这下终于可以稳妥的做到私有化同步了。</p>
+<p>接下来该试着学一学 AnyType 的体系，看看能不能彻底替换掉 Notion 使用啦。</p>
+]]></content:encoded>
+<pubDate>2024-09-16T18:21:01Z</pubDate>
+<pubDate>2024-09-16T18:21:01Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 独立软件开发者（非安卓，非苹果 App），客户主要在国外， 哪种收款方式最安全？</title>
+<link>https://www.v2ex.com/t/1073398</link>
+<guid>https://www.v2ex.com/t/1073398</guid>
+<content:encoded><![CDATA[
+
+帮我的一个程序员朋友问个问题，他自己独立开发了一个小众领域的 PC 端软件（非安卓，非苹果 App ），主要在专业领域内销售，客户 99.9%在国外，单价几十美元，目前此软件一年收入几万刀吧。<br /><br />主要交易方式就是让对方汇款到银行账户，然后激活 软件。当然试过信用卡收款，如果客户来自欧美还好，信用卡收款比较顺利，但是当客户来自东南亚或南美时候等欠发达地区时，信用卡收款经常出现各种莫名其妙的问题，比较扯皮。<br /><br />前几天想改成 paypal 收款，发现 paypal 也有很多坑，账户容易被封，手续费高，汇率太坑。请问各位前辈大佬，除了转账，信用卡，paypal ，目前还有什么靠谱的国际收款方式吗？加密币就算了，这东西太小众，人家不会因为想买你软件还专门开了加密币账户。<br />转账（效率低，手续麻烦）<br />信用卡（发展中国家，东南亚，南美地区经常出问题）<br />paypal （坑多，封号，手续费高，汇率问题）<br /><br />还请有经验的 老哥指教下，哪种收款方式靠谱，先谢过了！
+]]></content:encoded>
+<pubDate>2024-09-16T17:43:40Z</pubDate>
+<pubDate>2024-09-16T17:42:40Z</pubDate>
+</item>
+<item>
+<title>[Apple] iOS 18， iOS 17.7， macOS 15 推送正式版更新, 太着急手抖其中一台点到 iOS 17.7 去了, 待会还要再更 18</title>
+<link>https://www.v2ex.com/t/1073397</link>
+<guid>https://www.v2ex.com/t/1073397</guid>
+<content:encoded><![CDATA[
+
+RT, 迫不及待.
+]]></content:encoded>
+<pubDate>2024-09-16T17:23:13Z</pubDate>
+<pubDate>2024-09-16T18:08:47Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有没有浏览器端挖矿的 js，可以调用 gpu 的</title>
+<link>https://www.v2ex.com/t/1073396</link>
+<guid>https://www.v2ex.com/t/1073396</guid>
+<content:encoded><![CDATA[
+
+我看到一些带后端的 xmr 挖矿 js<br /><br />但有人说能调用 gpu 是怎么一回事<br /><br />调用 gpu 就能提速啥的了
+]]></content:encoded>
+<pubDate>2024-09-16T17:20:31Z</pubDate>
+<pubDate>2024-09-16T17:18:31Z</pubDate>
+</item>
+<item>
+<title>[浏览器] 分享一下今天使用 Arc 浏览器的感受</title>
+<link>https://www.v2ex.com/t/1073394</link>
+<guid>https://www.v2ex.com/t/1073394</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p><strong>本人并非专业的开发者或者媒体，如有疏漏和错误还请谅解。</strong></p>
+</blockquote>
+<p>好像也没大家说得那么好用，至少我个人用下来觉得一般。</p>
+<h2>本身就一堆小问题</h2>
+<p>这是我上手这个浏览器仅仅一天就觉得不适应的地方，排名不分先后。</p>
+<h3>本地化</h3>
+<ol>
+<li>界面无中文，桌面端没有，移动端也没有，简体中文没有，繁体中文也没有。很难想象这是一个从 2022 年 4 月 19 日发布至今的产品。硬要说一点也没有那倒也不是，网页的右键菜单是中文，<code>arc://settings/</code>页面有中文，但是又没翻译全，仍然有部分英文。</li>
+<li>同步数据需要科学上网，这点很麻烦。你可能会说：“那 Chrome 也需要啊”，你说的对，而且不止 Chrome ，Vivaldi 现在也需要……但是它们与 Arc 不同的地方在于，当它们使用扩展程序来接管浏览器的代理时，它们就可以通过扩展程序代理的网络来进行数据同步，但是 Arc 就不行，它一定要是 TUN 模式这种接管系统流量的方案才能进行同步。</li>
+</ol>
+<h3>体验感撕裂</h3>
+<p>当你打开浏览器的「偏好设置」（也就是 Preferences ）时，Arc 会弹出一个窗口，你可以在其中进行部分主要设定，但是当你点击「 Advanced 」标签，然后点击「 More Settings…」按钮时，Arc 就会打开 Chromium 原生的设置页面，这种体验上的割裂感让我十分不适。我觉得你要么就直接把所有设置项都放到你自己创建的窗口里，不然你就直接把 Chromium 原生的设置界面搬过来用也不会有人说什么，做了一半剩一半你不如不做呢？</p>
+<h3>喜欢吗？喜欢就砍了！</h3>
+<p>Note 功能到哪去了？从这支影片 <a href="https://www.youtube.com/watch?v=nlNsCB4SbVc" rel="nofollow">Arc 真香！腦洞大開的功能讓超多 Chrome 死忠粉決定把 Arc 當作預設瀏覽器了！</a> 的 9:57 处可以看到，当你点击侧边栏下方的 + 号时可以在弹出的菜单中看到「 New Note 」这个选项，通过点击它你可以创建一个笔记。但是我现在在使用时却没有这个选项了，我估计它应该是和 Easel 整合起来了。可是为什么要这么做呢？在 Easel 上你可以在页面的任何位置创建文字，这在联想或者记录灵感时十分有用，但是当我只想一行一行有序地记录文字时（就像使用 Word 那样），Easel 明显就不行了。</p>
+<h3>强制垂直标签页</h3>
+<p>在 Microsoft Edge 、Vivaldi 等浏览器中，你可以选择标签页的位置，或位于顶部，或位于左/右。但是在 Arc 中，你只有一个选择，那就是放在左边。无论这是否挤占了网页的显示空间，无论这是否能提升你的效率，你都只能放在左边。当然，你可以选择将侧边栏隐藏，在这种情况下，当浏览器上没有活动标签时，侧边栏会自动出现，有标签时，侧边栏会隐藏，当你把鼠标移动到屏幕左侧时，侧边栏也会弹出——就看你能不能习惯和接受了。</p>
+<h2>「无书签」并不适合所有人</h2>
+<p>「无书签」的设定可以说是 Arc 浏览器的一个特点，它把书签所承载的功能移交到 tab 、space 等概念上了，再结合 pin 这个动作，试图取代书签。事实上，书签功能在 Arc 中并没有被完全移除，只是被藏起来了。我们仍然可以在地址栏手动输入<code>arc://bookmarks/</code>来跳转到书签页面，在这里我们依然可以编辑书签、导入和导出。但是问题在于，这个功能现在和浏览器已经是一点都不相干了，就算你导入了书签，你也无法在地址栏中通过输入已有书签的部分地址，然后让浏览器进行地址补全，因为浏览器根本就不补，它根本就不管你有没有导入书签，它同步数据的时候也不会去同步书签，并且 Arc 浏览器也没有「添加当前网址到书签」的功能。</p>
+<p>但我感觉用户的使用习惯并不是能那么轻易改变的，至少我个人还是很依赖书签，经过这么多年的使用和维护，我现在依然存有上百个书签。确实，每个人每天要打开的网站可能也就那么几个，但是这不代表剩下那上百个书签对我来说毫无意义。既然你要“去书签化”，那你就把相关的功能给删干净了吧，删又不删干净，搞得我用也不是不用也不是。</p>
+<h2>Max 里的功能简直可有可无</h2>
+<p>Max 是 Arc 提供的一些由 AI 驱动的功能，这些功能的动作基本上都是整理、重命名、快速预览、快速提问。这些功能共有 7 个，其中有一个叫「 Ask on Page 」，我输入了问题，Arc 加载了半天没响应。我以为是网络问题，我就开启 Clash 的系统代理——没响应，我开启 TUN 模式——还是没响应，那我还用个屁？后来我看了相关的介绍视频，发现这个「 Ask on Page 」的功能应该是结合网页来回答你的问题，也就是你问的问题要和网页内容有关……无论怎样我反正用不了。</p>
+<p>如果你想不受限制地发问，你可以使用 Max 中内置的 ChatGPT 快速提问功能，但是这个功能也只是提供一个输入框给你输入问题，然后它就会跳转到 ChatGPT 的网页版，也就是说，当你输入完问题按下搜索以后，就没 Arc 什么事了……而且通过这个搜索框创建的对话，ChatGPT 那边似乎使用的还是 3.5 版本的模型……</p>
+<p>我再说说自动重命名功能吧，这个重命名主要分为标签页重命名和下载重命名，前者是对你 pin 的标签进行命名，我个人感觉没什么卵用，比如我 pin 了 ChatGPT ，Arc 浏览器就把标签页的名字改成「聊天 GPT 」，不是，这有什么必要吗？这也没让标签页变得更加直观啊。后者这个下载重命名我则是因为没下载文件所以没体验到，不过我觉得也是可有可无。</p>
+<h2>也不能光骂不夸</h2>
+<p>浏览器本身也并非毫无亮点，且听我慢慢道来。</p>
+<h3>界面设计优雅清爽</h3>
+<p>Arc 浏览器的各种窗口效果、动画都做得很好，或者说都做得和 macOS 很搭，都有一种很优雅的感觉。你说颜值重要吗，它固然不是一个工具的核心，但「美」是人无法拒绝的。尽管这个浏览器用起来可能不是很顺手，让用户想立刻卸载了它，但是超高的颜值却又让用户在按下卸载按钮前多了几分犹豫。只是在新鲜感过后，Arc 要靠什么来留住用户，那就不得而知了。</p>
+<p>好看又好用那就是宝藏，就是杀手级 app ；好看不中用，那就是花里胡哨，就是花瓶。</p>
+<h3>还有吗？</h3>
+<p>还有……还有……呃……，哦对了，还有浏览器内置的截图功能，这应该是我用过的最好用的内置截图工具，截图时可以选择单个网页元素进行截取（跟 Firefox 一样），对强迫症非常友好，截图完成后还可以进行标注……不过这个功能不知道对于国人来说有没有用，毕竟大家都喜欢用微信和 QQ 的截图。</p>
+<p>还有吗？</p>
+<p>还真没了，整体下来，Arc 浏览器能让我发现的优点也就只有「好看」这一个了。只能说独特的设计理念让它注定无法成为大众产品，我提到的毛病就有一堆，真要说实话那我是用哪哪不顺手，用了才一天就已经想要换回 Safari 或者 Firefox 了。其实最主要的还是网络问题，让体验大打折扣，GFW 真的该死啊。</p>
+]]></content:encoded>
+<pubDate>2024-09-16T16:43:46Z</pubDate>
+<pubDate>2024-09-16T16:48:22Z</pubDate>
+</item>
+<item>
+<title>基于 LangChain 的开源 GPT 向量 + 知识数据库，帮助个人或企业实现自己的专属 AI 问答助手</title>
+<link>https://www.v2ex.com/t/1022439</link>
+<guid>https://www.v2ex.com/t/1022439</guid>
+<content:encoded><![CDATA[
+
+<p>Casibase （ <a href="https://github.com/casibase/casibase" rel="nofollow">https://github.com/casibase/casibase</a> ）是一套开源的基于 Web 的 AI 知识数据库，适合个人或者组织作为自己的专属内部 AI 知识库来使用。GitHub 已达到 1600+ stars ，欢迎体验~</p>
+<p>主要功能如下：</p>
+<ul>
+<li>支持 OpenAI GPT-4 模型、GPT Vision 图片解析、DALL-E 画图等功能；</li>
+<li>支持最新的 Claude 3 Opus 、Sonnet 等模型，超越 GPT-4 ；</li>
+<li>国际模型支持：Azure OpenAI 、Google Gemini Pro 、HuggingFace 、Cohere 等；</li>
+<li>国内模型支持：文心一言、通义千问、ChatGLM 、Minimax 、讯飞星火等；</li>
+<li>支持多种 Embedding 嵌入 API 接口，如 OpenAI V3, Ada V2, 百度文心一言等；</li>
+<li>支持多种通用文档格式：TXT, Markdown, Docx, PDF 等，支持 PDF 文件智能解析；</li>
+<li>支持以会话或消息为单位，计算所有大模型 API 的 Token 数和价格（美元或人民币），方便管理员进行 API 成本统计；</li>
+<li>支持 AI 小助手通过右下角弹框嵌入到应用网站，进行在线实时聊天，支持聊天会话人工接入；</li>
+<li>知识库文档存储支持本地存储，或云端存储（阿里云 OSS 、Amazon S3 、群晖 NAS 等几乎所有主流云存储都有支持）；</li>
+<li>支持多用户、多租户，支持管理员进行用户管理、角色管理、权限管理，既适合个人使用，也适合组织使用；</li>
+<li>支持 QQ 、微信、企业微信、钉钉、Google 、GitHub 等多种第三方登录，支持短信登录、邮箱验证码登录登；</li>
+<li>支持谷歌 reCAPTCHA 、hCaptcha 、阿里云、GEETEST 极验、Cloudflare Turnstile 等多种人机验证方式，专业防盗刷；</li>
+<li>聊天会话云端存储，所有设备实时消息同步，随时可查看，不会丢失；</li>
+<li>支持中文、英文等在内的十几种界面语言。</li>
+</ul>
+<p>在线体验：</p>
+<ul>
+<li>机器人聊天（前台）： <a href="https://demo.casibase.com/" rel="nofollow">https://demo.casibase.com/</a></li>
+<li>后台管理（后台）： <a href="https://demo-admin.casibase.com/" rel="nofollow">https://demo-admin.casibase.com/</a></li>
+</ul>
+<p>源码：</p>
+<ul>
+<li>GitHub： <a href="https://github.com/casibase/casibase" rel="nofollow">https://github.com/casibase/casibase</a></li>
+<li>官网文档： <a href="https://casibase.org" rel="nofollow">https://casibase.org</a></li>
+</ul>
+<p>社区反馈：</p>
+<ul>
+<li>Discord: <a href="https://discord.gg/devUNrWXrh" rel="nofollow">https://discord.gg/devUNrWXrh</a></li>
+<li>QQ 群：963536134</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-03-11T02:32:55Z</pubDate>
+<pubDate>2024-09-14T12:08:13Z</pubDate>
+</item>
+
+<item>
 <title>[Android] Pixel 8a 无限重启</title>
 <link>https://www.v2ex.com/t/1073393</link>
 <guid>https://www.v2ex.com/t/1073393</guid>
 <content:encoded><![CDATA[
-
 <p>前天中午正常且平静地使用手机刷微信，突然手机黑屏，开始重启，持续无限重启。
 开始抢救，发现只能进 fastboot ，fastbootd+recovery 都进不去。尝试刷原厂 boot （之前刷面具了），无济于事。
 一度怀疑是电源键卡住了，喷了 wd-40 ，疯狂按电源键，无济于事。</p>
 <p>补充：重启发生前，没有进行过任何玩机操作。只有 fastboot 可用，其余模式都要归于重启的命运。无限重启会卡在第一屏，也就是 Google 六个字母，大概会停留 1 分钟左右，然后再次重启。</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T16:04:12Z</pubDate>
 <pubDate>2024-09-16T16:03:12Z</pubDate>
 </item>
 <item>
@@ -23,13 +454,11 @@
 <link>https://www.v2ex.com/t/1073391</link>
 <guid>https://www.v2ex.com/t/1073391</guid>
 <content:encoded><![CDATA[
-
 <p>仿照 Flomo 开发了一个笔记软件，macOS 原生。</p>
 <p>介绍视频在这里：</p>
 <p><a href="https://www.bilibili.com/video/BV1s8t4ejEj2/?vd_source=eac57d23025c06a23af985f3ce0640d3" rel="nofollow">https://www.bilibili.com/video/BV1s8t4ejEj2/?vd_source=eac57d23025c06a23af985f3ce0640d3</a></p>
 <p>基本就是：项目分组 + Flomo + Markdown （ Markdown 还在开发中）</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:46:43Z</pubDate>
 <pubDate>2024-09-16T16:26:18Z</pubDate>
 </item>
 <item>
@@ -37,7 +466,6 @@
 <link>https://www.v2ex.com/t/1073390</link>
 <guid>https://www.v2ex.com/t/1073390</guid>
 <content:encoded><![CDATA[
-
 <p>朋友介绍的，说女孩要找一个合肥本地的，她自己家也是安徽的，看着条件基本符合就加了微信</p>
 <p>加完发现对方目前在上海工作，就问了准备什么时候回合肥，对方说得有理由才会回，后面沟通完明白她完整的意思是等确定了关系才会回合肥，暂时没打算。</p>
 <p>我心里觉得没谱了，网恋怎么可能确定关系？完。
@@ -47,7 +475,6 @@
 3.如果可以接受异地，那么我提的问题应该由我自己来想办法解决  </p>
 <p>她的观点我是希望发出来让 v 友来评价一下的，所以我不做过多的评论，不产生引导</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:43:31Z</pubDate>
 <pubDate>2024-09-16T16:17:32Z</pubDate>
 </item>
 <item>
@@ -55,10 +482,8 @@
 <link>https://www.v2ex.com/t/1073389</link>
 <guid>https://www.v2ex.com/t/1073389</guid>
 <content:encoded><![CDATA[
-
 <p>这多少年没关注都去到十位数</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:34:54Z</pubDate>
 <pubDate>2024-09-16T15:40:04Z</pubDate>
 </item>
 <item>
@@ -66,13 +491,11 @@
 <link>https://www.v2ex.com/t/1073388</link>
 <guid>https://www.v2ex.com/t/1073388</guid>
 <content:encoded><![CDATA[
-
 <p>OK ，被裁第一个月，上周接了个私活，有收入进账了，我鼓励自己，已经非常成功了，哈哈😄，坚守理想的同时，也要顾得上家人的生活。</p>
 <p>被裁一个月，在持续的感受自由，也在重塑自己的生活。回想上班几年，匆匆而已，忽地觉得那几年过的如重复同一天一样，打卡，做一些无意义的工作，等周末了，在 20km 范围内游玩一下，重复而麻了的感觉。</p>
 <p>前半个月，还是会担心一些没有进账的情况。但是经过这一个月的思考，我的心态坚定下来，不去着急挣钱，做自己认为是正确的事情，哪怕那个东西短期没有收益，先去探索，去扩大自己的视野。</p>
 <p>这一个月，定下了三个小项目的方向，代码也写了一部分，这些项目会不会产生收益，多久产生，不得而知，继续用爱发电，做自己爱做的事情。</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:16:07Z</pubDate>
 <pubDate>2024-09-16T15:39:29Z</pubDate>
 </item>
 <item>
@@ -81,9 +504,7 @@
 <guid>https://www.v2ex.com/t/1073387</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-09-16T15:13:38Z</pubDate>
 <pubDate>2024-09-16T15:11:38Z</pubDate>
 </item>
 <item>
@@ -91,7 +512,6 @@
 <link>https://www.v2ex.com/t/1073385</link>
 <guid>https://www.v2ex.com/t/1073385</guid>
 <content:encoded><![CDATA[
-
 <p>最近新出了不少的 AI 视频生成技术，如 minimax ai ，luma ai 。想帮助大家了解更多关于 AI 视频生成领域的信息，并且能够抢先使用。所以搭建了一个 AI 视频生成网站，现在支持：</p>
 <ul>
 <li>AI 视频生成资讯收集。</li>
@@ -101,7 +521,6 @@
 </ul>
 <p>快来试试吧： <a href="https://videoaihub.ai/" rel="nofollow">https://videoaihub.ai/</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:06:52Z</pubDate>
 <pubDate>2024-09-16T16:05:32Z</pubDate>
 </item>
 <item>
@@ -109,13 +528,11 @@
 <link>https://www.v2ex.com/t/1073384</link>
 <guid>https://www.v2ex.com/t/1073384</guid>
 <content:encoded><![CDATA[
-
 <p>先声明啊，我没玩过。周围的人也没有玩过（都是理工男）。只在几个电视剧上看过。
 但是刚才我看了《凡人歌》里李晓悦玩剧本杀那段剧情，整个剧本被那隽理工计算机思维很快推导出来。
 主持人还说提前下班了。然后其他人还说本来玩 5 小时，结果 2 小时就没了。玩了个寂寞。</p>
 <p>我就想这玩意，本来应该是没有什么好玩的吧？ 所以就有题目一推论，就是文科生想起来的逻辑浅显的一种消遣，用来促进文科生就业的？</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:06:32Z</pubDate>
 <pubDate>2024-09-16T16:16:27Z</pubDate>
 </item>
 <item>
@@ -123,12 +540,10 @@
 <link>https://www.v2ex.com/t/1073383</link>
 <guid>https://www.v2ex.com/t/1073383</guid>
 <content:encoded><![CDATA[
-
 <p>感觉不够 chill ，
 1.上班做人体工学椅，下班了也做人体工学椅，产生厌倦的感觉
 2.自己的腰背核心什么的还可以，最近也准备 DIY 一个实木升降桌</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T15:01:29Z</pubDate>
 <pubDate>2024-09-16T11:00:29Z</pubDate>
 </item>
 <item>
@@ -137,9 +552,7 @@
 <guid>https://www.v2ex.com/t/1073382</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-09-16T14:54:10Z</pubDate>
 <pubDate>2024-09-16T16:20:08Z</pubDate>
 </item>
 <item>
@@ -147,7 +560,6 @@
 <link>https://www.v2ex.com/t/1073381</link>
 <guid>https://www.v2ex.com/t/1073381</guid>
 <content:encoded><![CDATA[
-
 <p>我搞了个小项目，用的是 goreleaser 来编译各环境应用，由于需要用到 sqlite 便在配置文件中把<code>CGO_ENABLED</code> 的值设置为 1 ，但是在编译过程中遇到各种各样的问题。</p>
 <pre><code>build failed after 10s                   error=failed to build for darwin_arm64: exit status 1: # runtime/cgo
 cgo: C compiler "clang" not found: exec: "clang": executable file not found in %PATH%
@@ -161,10 +573,8 @@ arm-linux-gnueabi-gcc: error: unrecognized command-line option '-m64'
 </code></pre>
 <p>我觉得我已经脑掺了🙈🙈🙈</p>
 ]]></content:encoded>
-<pubDate>2024-09-16T14:23:08Z</pubDate>
 <pubDate>2024-09-16T16:05:05Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 大家对微信的服务号怎么看？消息都不提醒了。</title>
 <link>https://www.v2ex.com/t/1073378</link>
@@ -15108,180 +15518,6 @@ ps.无论通过哪个注册都能获得获得一些积分，积分可以换更�
 分享下大厂在筛选简历，面试时的侧重点</p>
 ]]></content:encoded>
 <pubDate>2024-09-12T02:44:46Z</pubDate>
-</item>
-<item>
-<title>[JavaScript] 淘宝 NPM 源竟然会篡改包的下载版本</title>
-<link>https://www.v2ex.com/t/1072195</link>
-<guid>https://www.v2ex.com/t/1072195</guid>
-<content:encoded><![CDATA[
-<p>淘宝源擅自把 path-to-regexp 1.8.0 版本的下载地址改成了 1.9.0 版本，导致使用了 package-lock.json, yarn.lock 的工程安装依赖失败（ checksum 校验失败）。</p>
-<ul>
-<li>淘宝源: <a href="https://registry.npmmirror.com/path-to-regexp/1.8.0" rel="nofollow">https://registry.npmmirror.com/path-to-regexp/1.8.0</a></li>
-<li>官方源: <a href="https://registry.npmjs.org/path-to-regexp/1.8.0" rel="nofollow">https://registry.npmjs.org/path-to-regexp/1.8.0</a></li>
-</ul>
-<p><img alt="https://i.imgur.com/kJbQ1hZ.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/kJbQ1hZ.png" /></p>
-<p>好像是这里引入的: <a href="https://github.com/cnpm/bug-versions/pull/257/files" rel="nofollow">https://github.com/cnpm/bug-versions/pull/257/files</a></p>
-<p>虽然是出于安全考虑，但这样篡改下载地址却影响了存量的 CICD 流程，给开发者造成不便，也破坏了与 NPM 官方源的兼容性（不能自由切换 NPM 源了）。</p>
-<p>一直以为淘宝源是官方源的纯净代理呢，没想到竟会做这样的事，看来要慎用了。</p>
-<p>同事说用腾讯云、华为云的 NPM 源也遇到过一些坑，看来想找个靠谱的国内 NPM 代理都不容易（前端圈这是怎么了？）。</p>
-<p>中科大镜像站有个 NPM 源的反向代理(<a href="https://npmreg.proxy.ustclug.org" rel="nofollow">https://npmreg.proxy.ustclug.org</a>)，似乎是比较纯净的，准备试用下。</p>
-]]></content:encoded>
-<pubDate>2024-09-12T02:44:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 预算 3500-5000 ，请帮忙推荐一款商务办公的笔记本？</title>
-<link>https://www.v2ex.com/t/1072194</link>
-<guid>https://www.v2ex.com/t/1072194</guid>
-<content:encoded><![CDATA[
-使用场景：<br /><br />outlook 、office 、浏览器、网银、pdf 编辑、看 cad 图，再加少许视频娱乐，0 游戏。<br /><br />外观商务，质感好看一点，不要花哨，，无需独显。<br /><br />14 寸，能再小点更好，目前在用的 Thinkpad x 系列，想继续同系列换新，感觉价格有点贵了，而且手里这个也坏过一次，对 Thinkpad x 不再那么信任了。<br /><br />本着能省则省原则，本次换新预算 3500-5000 元。<br /><br />屏幕素质考量度不高，因为 99%的场景都是外接显示器使用，1080p 就够用了，貌似现在手边的显示器就是 1080p 的<br />好久没有关注笔记本了，现在商务本一般都是 16G 内存哈，好像也就少许几款支持扩展到 32G ？<br /><br />然后 cpu ，还是锐龙的性价比高吧？<br /><br />还是想主要考虑传统的几家大品牌的，小米荣耀华为啥的新晋笔记本厂商暂时不想考虑。<br /><br />看了一下这个价格区间热度稍高的，联想小新 14 ，战 66 ，thinkbook 的 14 存的锐龙版，价格差距也就在两三百。<br />只是不知道这些本子有没有硬伤，或者设计缺陷？<br /><br />早年听过什么联想低温锡啥的，现在没有了吧？<br /><br />谢谢。
-]]></content:encoded>
-<pubDate>2024-09-12T02:15:14Z</pubDate>
-</item>
-<item>
-<title>[Apple] 突然想到一个国行 applewatch 的巨坑</title>
-<link>https://www.v2ex.com/t/1072193</link>
-<guid>https://www.v2ex.com/t/1072193</guid>
-<content:encoded><![CDATA[
-<p>看官网说明，国行 applewatch （以后的 ultra2 和 applewatch10 ）是配了一个单独型号的充电器的，而且官网兼容性里这个新充电器只支持国行版本的新版 ultra2 和 applewatch10 。
-那这里就有一个问题，国行版本的新版 applewatch 兼容老版充电器么？看老版充电器的兼容列表，似乎是不支持。那大量的第三方充电器、N 合一充电支架不就歇菜了，买了新版国行 applewatch 的人现在去买第三方是不支持，以前已有的第三方充电器一样也不支持，可以预见以后这些配件还要单独出国行 applewatch 充电版本。
-巨坑啊！</p>
-]]></content:encoded>
-<pubDate>2024-09-12T02:39:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 不耻打扰大家，我这算是被利用完就丢弃吗？</title>
-<link>https://www.v2ex.com/t/1072192</link>
-<guid>https://www.v2ex.com/t/1072192</guid>
-<content:encoded><![CDATA[
-身边有这样一个同事，平时因工作意见分歧偶尔还会发生些小郁闷。<br />上周末突然联系我请我帮忙办一件事。当时答应会帮他办好不用担心。可之后没多久又时微信又时钉钉的来问。搞得周末玩得很扫兴。<br /><br />周一他主动和我搭话，非常难得的看到了笑容。然后答应她的帮我也办完办妥了，然后他请假去落地事情。<br /><br />周三他回来了，因为工作得和他沟通，我刚过去好家伙满脸写着不高兴。沟通非常不舒服。搞得自己心情不好不说还郁闷。<br /><br />所以我产生了如题得困惑。大家认为这种情况时个例还是普通呢？
-]]></content:encoded>
-<pubDate>2024-09-12T02:47:20Z</pubDate>
-</item>
-<item>
-<title>[科技] [日志] 关于日志查询系统选项的几个疑问， ES 系 与 Loki 系。</title>
-<link>https://www.v2ex.com/t/1072191</link>
-<guid>https://www.v2ex.com/t/1072191</guid>
-<content:encoded><![CDATA[
-<p>最近要给公司搭建日志查询系统。几点疑问请教各位。</p>
-<ol>
-<li>
-<p>日志查询系统里的数据一般<strong>存放多久</strong>的日志？我们的日志有原始备份在 s3 上，查询系统上的数据是不是就可以定期删除掉了？</p>
-</li>
-<li>
-<p>Loki 动态标签问题。Loki 不推荐<strong>动态标签</strong>，其理由是影响性能、增加索引体积。但是我怎么感觉少了动态标签，查询就很鸡肋。下面是我的想法，不知道符不符合实践经验，望指正！想法：</p>
-<p>a. 分布式系统，少不了要用 reqeustId 去链接起一个请求经过不同服务产生的日志。</p>
-<p>b. 不同的子业务，会有不同重要的数据 ID 。比如，一个订单系统的请求，打印出来的每一条日志，至少都要带上订单 ID 吧？这类数据 ID 也是动态标签。</p>
-<p>c. 如果这些动态数据都不用 labels ，而是用正则匹配 log 内容查询。个人直觉告诉我，这个有点鸡肋。</p>
-</li>
-<li>
-<p>如果用 Loki 索引动态标签。数据量大的时候，性能会不会比 ES 拉跨？</p>
-</li>
-</ol>
-<p>两个种服务都在本地实验性的搭建起来过。</p>
-<p>Kibana 确实感觉有点吃性能，web 页面还偶尔会有点卡卡的，功能很多眼花缭乱（不过这个可以选择使用，逐步深入），但是查询的功能确实更强大。</p>
-<p>Loki 真的很轻量就是不知道这动态标签用起来之后，会不会卡。不过查询真的差点意思。</p>
-<p>相关文章：</p>
-<p><a href="https://www.v2ex.com/t/814812" rel="nofollow">V2: 最近我安装了 Loki + Promtail + Grafana ，感觉这一组合可以取代 Elasticsearch + Logstash</a></p>
-<p><a href="https://cn.v2ex.com/t/721266" rel="nofollow">V2: Grafana Loki 开源日志聚合系统代替 ELK 或 EFK</a></p>
-<p><a href="https://juejin.cn/post/6878188974645444621" rel="nofollow">掘金：Loki 最佳实践（译）</a></p>
-]]></content:encoded>
-<pubDate>2024-09-12T01:49:47Z</pubDate>
-</item>
-<item>
-<title>[服务器] hyper V 里的网络配置像一个迷一样</title>
-<link>https://www.v2ex.com/t/1072190</link>
-<guid>https://www.v2ex.com/t/1072190</guid>
-<content:encoded><![CDATA[
-太恶心了。微软做的这个虚假机系统。比 vmware 差了不止一条街。<br /><br />笔记本只有 wifi 网卡，设置了网络，共享，桥接，然后可以正常连通网络；<br /><br />后面不知道什么原因就不行了；<br /><br />重置网络，重新配置了一下，又可以了；<br /><br />过一阵子之后主机和虚拟机可以通讯，可是虚拟机上不了网；<br /><br />实在不懂它的配置设置是怎样的。<br /><br />PS：op 大学考过 cisco ccna ，
-]]></content:encoded>
-<pubDate>2024-09-12T02:34:26Z</pubDate>
-</item>
-<item>
-<title>基于 LangChain 的开源 GPT 向量 + 知识数据库，帮助个人或企业实现自己的专属 AI 问答助手</title>
-<link>https://www.v2ex.com/t/1022439</link>
-<guid>https://www.v2ex.com/t/1022439</guid>
-<content:encoded><![CDATA[
-<p>Casibase （ <a href="https://github.com/casibase/casibase" rel="nofollow">https://github.com/casibase/casibase</a> ）是一套开源的基于 Web 的 AI 知识数据库，适合个人或者组织作为自己的专属内部 AI 知识库来使用。GitHub 已达到 1600+ stars ，欢迎体验~</p>
-<p>主要功能如下：</p>
-<ul>
-<li>支持 OpenAI GPT-4 模型、GPT Vision 图片解析、DALL-E 画图等功能；</li>
-<li>支持最新的 Claude 3 Opus 、Sonnet 等模型，超越 GPT-4 ；</li>
-<li>国际模型支持：Azure OpenAI 、Google Gemini Pro 、HuggingFace 、Cohere 等；</li>
-<li>国内模型支持：文心一言、通义千问、ChatGLM 、Minimax 、讯飞星火等；</li>
-<li>支持多种 Embedding 嵌入 API 接口，如 OpenAI V3, Ada V2, 百度文心一言等；</li>
-<li>支持多种通用文档格式：TXT, Markdown, Docx, PDF 等，支持 PDF 文件智能解析；</li>
-<li>支持以会话或消息为单位，计算所有大模型 API 的 Token 数和价格（美元或人民币），方便管理员进行 API 成本统计；</li>
-<li>支持 AI 小助手通过右下角弹框嵌入到应用网站，进行在线实时聊天，支持聊天会话人工接入；</li>
-<li>知识库文档存储支持本地存储，或云端存储（阿里云 OSS 、Amazon S3 、群晖 NAS 等几乎所有主流云存储都有支持）；</li>
-<li>支持多用户、多租户，支持管理员进行用户管理、角色管理、权限管理，既适合个人使用，也适合组织使用；</li>
-<li>支持 QQ 、微信、企业微信、钉钉、Google 、GitHub 等多种第三方登录，支持短信登录、邮箱验证码登录登；</li>
-<li>支持谷歌 reCAPTCHA 、hCaptcha 、阿里云、GEETEST 极验、Cloudflare Turnstile 等多种人机验证方式，专业防盗刷；</li>
-<li>聊天会话云端存储，所有设备实时消息同步，随时可查看，不会丢失；</li>
-<li>支持中文、英文等在内的十几种界面语言。</li>
-</ul>
-<p>在线体验：</p>
-<ul>
-<li>机器人聊天（前台）： <a href="https://demo.casibase.com/" rel="nofollow">https://demo.casibase.com/</a></li>
-<li>后台管理（后台）： <a href="https://demo-admin.casibase.com/" rel="nofollow">https://demo-admin.casibase.com/</a></li>
-</ul>
-<p>源码：</p>
-<ul>
-<li>GitHub： <a href="https://github.com/casibase/casibase" rel="nofollow">https://github.com/casibase/casibase</a></li>
-<li>官网文档： <a href="https://casibase.org" rel="nofollow">https://casibase.org</a></li>
-</ul>
-<p>社区反馈：</p>
-<ul>
-<li>Discord: <a href="https://discord.gg/devUNrWXrh" rel="nofollow">https://discord.gg/devUNrWXrh</a></li>
-<li>QQ 群：963536134</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-09-10T08:27:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 你假如有钱 还会让孩子上公立学校吗？</title>
-<link>https://www.v2ex.com/t/1072189</link>
-<guid>https://www.v2ex.com/t/1072189</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-09-12T01:37:26Z</pubDate>
-</item>
-<item>
-<title>[淘宝] 拼夕夕真是售假宝地，对商家售假的态度 = 纵容+提倡</title>
-<link>https://www.v2ex.com/t/1072188</link>
-<guid>https://www.v2ex.com/t/1072188</guid>
-<content:encoded><![CDATA[
-<p>因公司旗下商品在 pdd 低价出售，于是安排购买鉴定，买来果然是假货。</p>
-<p>整个拆箱过程有视频，另外还拍了真假对比。</p>
-<p>反馈了 2 次给 pdd 官方客服+投诉商家售假，说处理完毕。</p>
-<p>几天后，查看假货链接并没有下架，链接依旧存在，商家仍旧在售假。</p>
-<p>再次联系拼夕夕人工客服说安排专人处理，提供了品牌方盖章的真假鉴定报告、购买订单截图、发货物流截图、拆箱视频、真假对比等等。</p>
-<p>大概又等了 3 天，有人工电话联系说会处理，第 4 天短信说处理完毕，会监督商家。</p>
-<p>结果就是：商家依旧在售假、假货商品依旧在售。</p>
-<p>可见拼夕夕对售假的处理态度，真是假货天堂。</p>
-<p>商家可以持续违法犯罪，拼夕夕也不管，买家也继续买到假货无任何保障。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/wqkezUl.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2024-09-12T01:38:38Z</pubDate>
-</item>
-<item>
-<title>[生活] 应该要去拍婚纱照了，有什么需要避雷的点吗</title>
-<link>https://www.v2ex.com/t/1072187</link>
-<guid>https://www.v2ex.com/t/1072187</guid>
-<content:encoded><![CDATA[
-<p>看了一些影楼拍出来的，乱花迷人眼，看着都差不多。
-V 友比外面那些实在多了，如果过来人能给一些诚恳的建议，就太谢谢大家啦</p>
-]]></content:encoded>
-<pubDate>2024-09-12T01:40:33Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone15pro 有推荐的数据线吗</title>
-<link>https://www.v2ex.com/t/1072186</link>
-<guid>https://www.v2ex.com/t/1072186</guid>
-<content:encoded><![CDATA[
-<p>同样都是 C 口，小米手机 120W 可以给 15pro 充电吗</p>
-]]></content:encoded>
-<pubDate>2024-09-12T01:37:50Z</pubDate>
 </item>
 </channel>
 </rss>
