@@ -5,14 +5,361 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Apple] macos15 的外接屏幕无法显示 dock 了吗？</title>
+<link>https://www.v2ex.com/t/1073487</link>
+<guid>https://www.v2ex.com/t/1073487</guid>
+<content:encoded><![CDATA[
+
+以前可以通过鼠标移动至外接屏幕的下边缘呼出 dock ，但是更新了 macos15 之后，这个功能移除了？
+]]></content:encoded>
+<pubDate>2024-09-17T08:22:15Z</pubDate>
+<pubDate>2024-09-17T08:20:15Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 别再用 tcpdump 抓包了！我开发了 kyanos 帮你秒级排查网络问题</title>
+<link>https://www.v2ex.com/t/1073483</link>
+<guid>https://www.v2ex.com/t/1073483</guid>
+<content:encoded><![CDATA[
+
+<h1>我为什么要开发 Kyanos</h1>
+<blockquote>
+<p><strong>你有没有遇到过这样的问题 ?</strong><br />
+你刚入职新公司，负责一个了后端服务，一切都很顺利~<br />
+在一个星期五下午 5 点，还有一个小时你就下班了，但这时~<strong>麻烦来了</strong>，你的上游突然气势汹汹地找你😡，问你的接口为什么调用超时?<br />
+你慌了😩但强作镇定查看监控，发现自己服务的接口<em>耗时正常</em><br />
+在你刚想回怼他之前你突然想到公司的监控 <strong>仅能监控到服务端应用的耗时, 可中间内核和网络的耗时没有监控</strong>！<br />
+于是你们谁也说服不了谁👿, 接下来开始互相扯皮甩锅，最后问题不了了之。。。</p>
+</blockquote>
+<blockquote>
+<p>反过来，你调用下游接口超时，但对方监控显示并没有超时，于是又开始新的扯皮流程，不同的是你站在了另一边...</p>
+</blockquote>
+<p>所以要解决这个问题该怎么办呢？</p>
+<ol>
+<li>
+<p><strong>tcpdump 抓包！</strong> 但 tcpdump 最大的一个劣势就是排查：<strong>太 慢 了</strong>。<br />
+比如说你现在需要排查一个线上问题：<br />
+a. 首先你需要在生产环境安装一个 tcpdump 💤，<br />
+b. 然后找到出现问题的服务端的 ip 和 port👁👁<br />
+c. 然后自己写过滤表达式（可能你忘了怎么写，花了 5min 在搜索~😂）<br />
+d. 费了九牛二虎之力你终于从生产机器上下载下来一个数百 MB 的 pcap 文件💤<br />
+e. 然后安装 tcpdump 客户端（如果你还没安装的话）💤<br />
+f. 加载 pcap 文件让你的 CPU 风扇狂转 😡<br />
+g. 几分钟后你睁大双眼👁👁人肉确认你想要的那个接口在不在这这个 pcap 文件里，因为包含了太多无效信息，可不幸的是你发现根本没有🤡。。。<br />
+h. 然后你重新开始抓包，检查自己的 tcpdump 命令是否写对... 😔</p>
+</li>
+<li>
+<p><strong>让运维装监控啊！</strong> 幸好现在出现了<a href="https://ebpf.io" rel="nofollow">eBPF</a>这一强大的技术，可以深入采集内核打点实现全栈的可观测性。 现在的 skywalking 、pixie 、deepflow 等都有着不错的产品。<br />
+但这可不容易！上述这些监控要么需要<strong>很高的内核版本</strong>(5.x)，要么<strong>只能监控 K8s 的流量</strong>，要么会产生每小时 TB 级的监控数据需要<strong>很重的存储依赖</strong>。  </p>
+</li>
+</ol>
+<p>那么有没有一款<strong>轻量级、兼容低版本内核、并且能高效率的排查</strong> 网络问题的工具呢？</p>
+<blockquote>
+<p>kyanos 来了！</p>
+</blockquote>
+<h2>what is kyanos</h2>
+<p><strong>kyanos</strong> 是我开源的一个命令行工具<a href="https://github.com/hengyoush/kyanos" rel="nofollow">👉kyanos 仓库地址👈</a>，它支持<strong>最低 3.10 版本的内核，不需要安装任何依赖就可运行</strong>，你需要做的只是下载它的可执行文件（<a href="https://github.com/hengyoush/kyanos/releases" rel="nofollow">Release 下载地址</a>）。</p>
+<blockquote>
+<p><strong>那么 kyanos 的功能是什么？</strong><br />
+在详细介绍之前，上一个例子让大家了解 kyanos</p>
+</blockquote>
+<p>你不需要了解任何过滤语法，你只需要执行一行命令（<code>kyanos stat http ...</code>），kyanos 就能找到最慢的几个 HTTP 请求，并且发现它们耗时详情（想一想如果使用 tcpdump 会花费多少时间）：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://media.dev.to/cdn-cgi/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F6eqlclghhbwyiy9r5c3c.gif" /></p>
+<p>这里一行命令就找到了几个最慢的请求。</p>
+<p>如果你想打印请求响应的内容怎么办呢？，你可以这样：</p>
+<p><img alt="kyanos-demo-2.gif" class="embedded_image" rel="noreferrer" src="https://media.dev.to/cdn-cgi/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Ff61o7pzza6couh0m8qwm.gif" /></p>
+<p>可以看到请求响应内容直接打印出来了。</p>
+<blockquote>
+<p>kyanos 不仅仅<strong>安装特别方便</strong>，而且用起来特别符合咱们业务开发的<strong>排查模式</strong>~ 因为 kyanos 不是基于数据包维度的，这种粒度太细。通常包含大量无效信息，<strong>不适合快速排查问题</strong>，而 kyanos：<strong>完全无侵入，基于七层协议维度，能够过滤大量无效信息，保留对排查问题最有价值的信息</strong>。</p>
+</blockquote>
+<p>那么 kyanos 它具体能够做什么呢？ kyanos 的主要功能包括两点：<br />
+1 、 抓取各种协议（ HTTP 、MySQL 、Redis 等）的请求响应。<br />
+2 、 通过聚合 1 中抓取的流量进行更高维度的分析。</p>
+<p>这里我不做过多介绍，直接上例子！🤞</p>
+<h2>细致入微--watch</h2>
+<p>watch 命令可以使用各种过滤条件抓取各种协议（ HTTP 、MySQL 、Redis 等）的请求响应。你不需要了解任何过滤表达式的知识就能轻松抓取你想要的任何请求响应进行分析。</p>
+<p>比如你有一个 Spring Cloud 应用，监控告警发现访问远程一个接口 /foo/bar 有时候有一些 p99 尖刺（比如超过了 1s 的请求），说明有一些长尾请求，这时你该如何确定问题的根因呢？</p>
+<p>很简单，通过 kyanos 的 watch 命令查看那些超过 1s 耗时的请求具体耗时在哪：</p>
+<pre><code class="language-bash">kyanos watch http --pid {your_pid} --latency 1000 --path /foo/bar
+</code></pre>
+<p>它会输出类似下面的结果：</p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://media.dev.to/cdn-cgi/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpq0loezd1g4uiatiifko.png" />
+可以看到 watch 会输出下面几个部分：</p>
+<ol>
+<li>请求响应的内容（注：如果太长超过 1024 字节会截断）。</li>
+<li>总耗时，即用户发起请求到接收完所有响应的耗时。</li>
+<li>内核及外部耗时：包括从 <strong>socket 缓冲区读取响应的耗时</strong> 以及 <strong>网络耗时</strong>（请求到达网卡 到 响应从网卡接收完毕的耗时）</li>
+<li>系统调用部分：包括进行了多少次读写系统调用以及读写的字节数量。</li>
+</ol>
+<p>可以看到 kyanos 不仅支持请求响应的内容抓取，甚至把网络和内核的耗时都计算出来了，对排查问题是非常有帮助的！</p>
+<p>目前 watch 支持 HTTP 、MySQL 和 Redis 协议流量的抓取（这当然不会是全部，后续会支持更多），并且支持各种过滤条件, 更多见 Github 文档：<a href="https://github.com/hengyoush/kyanos?tab=readme-ov-file#-watch" rel="nofollow">Kyanos 命令详解 Watch 部分</a></p>
+<h2>总览全局-stat</h2>
+<p>仅有 watch 命令只能提供一个细粒度分析的视角，Stat 则提供了更为灵活和高维度的分析能力，简单来说就是将请求响应的指标按照一些维度聚合起来，比如我想知道哪些远程 ip 的接口最慢，就通过聚合相同 ip 的请求响应来获取最慢的远程 ip 。  </p>
+<p>所以它能回答下面这些问题：</p>
+<blockquote>
+<p>帮我找到现在这台机器上调用的哪些远程 ip 的 HTTP 接口最慢？   </p>
+</blockquote>
+<p>一行命令搞定：<code>./kyanos stat http --side client -i 5 -m n -l 10 -g conn</code>，每 5 秒输出请求响应在网络中的耗时最长的前 10 个 HTTP 连接，输出如下：</p>
+<p><img alt="kyanos-demo-3.png" class="embedded_image" rel="noreferrer" src="https://media.dev.to/cdn-cgi/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F0an30gtf9rmajuo2mhol.png" /></p>
+<p>结果输出找到了两个连接，还有耗时的 avg 、max 、pxx 等信息。</p>
+<blockquote>
+<p>我的机器出口流量非常大，到底哪些 HTTP 请求造成的？</p>
+</blockquote>
+<p>一行命令搞定：<code>./kyanos stat http --side client -i 5 -m p -s 10 -g none</code>, 每 5 秒按输出响应大小最大的前 10 个 HTTP 请求响应, 输出如下：</p>
+<p><img alt="kyanos-demo-4.png" class="embedded_image" rel="noreferrer" src="https://media.dev.to/cdn-cgi/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpdfj7gevju6juzv8gas4.png" /></p>
+<p>可以看到结果中包含了响应的大小的 avg 、max 、pxx 等，还包含了 HTTP 请求的 path 信息。</p>
+<blockquote>
+<p>使用 stat 命令的一般步骤</p>
+</blockquote>
+<ol>
+<li>首先确定你关心的是什么指标，使用 <code>--metrics</code> 指定。kyanos 支持以下指标的聚合。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>观测指标</th>
+<th>flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>总耗时</td>
+<td>t</td>
+</tr>
+<tr>
+<td>响应数据大小</td>
+<td>p</td>
+</tr>
+<tr>
+<td>请求数据大小</td>
+<td>q</td>
+</tr>
+<tr>
+<td>在网络中的耗时</td>
+<td>n</td>
+</tr>
+<tr>
+<td>从 Socket 缓冲区读取的耗时</td>
+<td>s</td>
+</tr>
+</tbody></table><ol>
+<li>然后确定聚合的维度，使用 <code>--group-by</code> 或者 <code>-g</code>指定 。比如我们关注不同远程服务提供的服务质量是否有差异，就可以指定-g remote-ip ，这样请求响应的统计信息就会按照不同的远程 ip 地址聚合，最终我们将会得到一个不同远程 ip 的耗时情况，更容易看出哪个远程服务存在问题。kyanos 支持以下聚合方式：</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>聚合维度</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最细的粒度，只聚合到单个连接</td>
+<td>conn</td>
+</tr>
+<tr>
+<td>远程 ip</td>
+<td>remote-ip</td>
+</tr>
+<tr>
+<td>远程端口</td>
+<td>remote-port</td>
+</tr>
+<tr>
+<td>本地端口</td>
+<td>local-port</td>
+</tr>
+<tr>
+<td>连接协议</td>
+<td>protocol</td>
+</tr>
+<tr>
+<td>最粗粒度，聚合所有的请求响应</td>
+<td>none</td>
+</tr>
+</tbody></table><p>更完整的使用说明见 Github： <a href="https://github.com/hengyoush/kyanos" rel="nofollow">https://github.com/hengyoush/kyanos</a></p>
+<p><em><strong>stat 通过 watch 观察的结果，根据用户指定的聚合维度聚合(--group-by 参数)，最后按照用户最关心的指标输出（--metrics 参数）.</strong></em></p>
+<blockquote>
+<p>如果要用 tcpdump 该花多少时间啊，<strong>使用 kyanos 几秒就搞定了！</strong></p>
+</blockquote>
+<h2>结语</h2>
+<p>啊其实有些标题党了~😄, kyanos 其实还不能真正取代 tcpdump ，比如 kyanos 目前支持的应用层协议比较有限，对于网络环境更加复杂的部署的支持还有待改进，但总的来说，其确实能提高咱们业务开发的排查效率👍。  </p>
+<p>我为什么这么自信呢？因为我是用 kyanos <strong>真正解决过问题</strong> 的，看过我文章的朋友可能知道我是搞 Redis 的（专栏：<a href="https://juejin.cn/column/7403629671685062691" rel="nofollow">Redis 疑难杂症 - 烈香的专栏</a>，我的 Blog：<a href="http://blog.deadlock.cloud" rel="nofollow">烈香的 Blog</a>），kyanos 帮我解决了一个非常诡异的 Redis 客户端超时但 Redis 服务端没有任何异常的问题（这个解决过程我近期会发一篇文章出来，感兴趣的朋友可以关注我哦~），这个问题在 30min 内排查出来定位到原因，kyanos 通过这一次真正验证了自身价值。所以我敢开源出来，我相信 kyanos 也能帮助到大家~</p>
+<blockquote>
+<p>最后的最后可不可以点一个 star 鼓励我，哼，别逼我求你😡 <a href="https://github.com/hengyoush/kyanos" rel="nofollow">Kyanos</a></p>
+</blockquote>
+<blockquote>
+<p>我是烈香，我们下篇文章再见~</p>
+</blockquote>
+]]></content:encoded>
+<pubDate>2024-09-17T08:12:40Z</pubDate>
+<pubDate>2024-09-17T08:09:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] gap 一年简历</title>
+<link>https://www.v2ex.com/t/1073482</link>
+<guid>https://www.v2ex.com/t/1073482</guid>
+<content:encoded><![CDATA[
+
+如题，去年 8 月底毕业，一年内接过私活，目前简历模版是工作经历、项目经历分开写，工作经历最后停留在去年，项目经历放了接私活的项目，最后结束时间是最近，还能怎么优化感谢🙏
+]]></content:encoded>
+<pubDate>2024-09-17T08:12:38Z</pubDate>
+<pubDate>2024-09-17T08:11:38Z</pubDate>
+</item>
+<item>
+<title>[生活] 中国银行莫奈卡重新支持全国网申了</title>
+<link>https://www.v2ex.com/t/1073481</link>
+<guid>https://www.v2ex.com/t/1073481</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-17T08:10:11Z</pubDate>
+<pubDate>2024-09-17T08:22:39Z</pubDate>
+</item>
+<item>
+<title>[Flutter] 想问下大家 flutter 开发 web 用得多吗</title>
+<link>https://www.v2ex.com/t/1073480</link>
+<guid>https://www.v2ex.com/t/1073480</guid>
+<content:encoded><![CDATA[
+
+<p>最近考虑项目要写 web 应用还有桌面端，想把技术栈统一为 flutter ，具体调研下来好像 flutter 还是更适合移动端，有 flutter 写 web 或者桌面端有过经验的吗？ web 应用偏向后台管理，表格为主；桌面端比较偏向移动端风格了</p>
+]]></content:encoded>
+<pubDate>2024-09-17T07:50:15Z</pubDate>
+<pubDate>2024-09-17T07:52:46Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 一次让我以后只用小米手机的遭遇</title>
+<link>https://www.v2ex.com/t/1073479</link>
+<guid>https://www.v2ex.com/t/1073479</guid>
+<content:encoded><![CDATA[
+
+<p>今天中午，去公园遛狗，我家狗狗冲着水里水鸟咬，我在走廊上看不见水鸟，就下去看，一蹲下，兜里的小米 13“出溜”就划出去了，那是个公园人工湖，很陡的斜坡，直接滑进去了，停都没停，看不见了</p>
+<p>我赶紧用一个一米多的树枝进去捞，根本捞不到，太滑了</p>
+<p>当时想想怎么办，跳进去吗，然后想算了，不要，跳进去捞上来里面肯定也坏了</p>
+<p>三分钟过去了，让自己拼命的冷静，千万不要因为手机自己再掉水里</p>
+<p>叫人吗，这附近没人，怎么办怎么办</p>
+<p>然后看到附近有废弃工地的绳子，我就赶紧拴在岸边的栏杆上，用手捞，水没了一个胳膊那么长，使劲捞，终于捞上来了</p>
+<p>想想整个过程一定超过五分钟了，我在岸边徘徊踌躇了很久</p>
+<p>第一件事情就是点开机</p>
+<p>直接点亮了！！！当时内心大喊小米手机牛逼！！！！！卧槽！！！这都行！！！</p>
+<p>太兴奋了，忽略了很严重的问题，应该直接关机，但是我直接拿去晒了</p>
+<p>20 分钟后回来再看就一直自己开机关机，一直循环不停，当时感觉完蛋了，这次主板 g 了</p>
+<p>回家后我拆掉手机背板，发现里面都没啥水，就把手机直接塞到米袋子了</p>
+<p>中午睡了一觉，醒了之后发现，可以开机了哈哈哈哈哈哈哈哈</p>
+<p>以后我只用小米手机！！</p>
+<p>不过还是提醒大家，不要去水边玩（我会游泳），裤兜浅别蹲下，手机容易划出去，手机进水先关机 emmm</p>
+]]></content:encoded>
+<pubDate>2024-09-17T07:44:21Z</pubDate>
+<pubDate>2024-09-17T08:22:18Z</pubDate>
+</item>
+<item>
+<title>[Apple] 升级 iOS18 后哪个小组件可以看实时网速？</title>
+<link>https://www.v2ex.com/t/1073478</link>
+<guid>https://www.v2ex.com/t/1073478</guid>
+<content:encoded><![CDATA[
+
+<p>升级后发现原来的 sysbox 旧式小组件没了，大家推荐个新的，收费的也可以</p>
+]]></content:encoded>
+<pubDate>2024-09-17T07:42:41Z</pubDate>
+<pubDate>2024-09-17T08:05:40Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 美团联合中国物业管理协会发布“畅通配送最后一百米倡议”，外卖骑手进小区扫码一键登记</title>
+<link>https://www.v2ex.com/t/1073477</link>
+<guid>https://www.v2ex.com/t/1073477</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.ithome.com/0/796/376.htm" rel="nofollow">https://www.ithome.com/0/796/376.htm</a></p>
+]]></content:encoded>
+<pubDate>2024-09-17T07:39:44Z</pubDate>
+<pubDate>2024-09-17T07:36:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] DNS 服务商知道你解析的整个网址还是一部分？</title>
+<link>https://www.v2ex.com/t/1073475</link>
+<guid>https://www.v2ex.com/t/1073475</guid>
+<content:encoded><![CDATA[
+
+比如你使用 114.114.114.114 解析这个网址 <a href="https://nihao.buzhidao.com/chilemafantong" rel="nofollow noopener" target="_blank">https://nihao.buzhidao.com/chilemafantong</a><br /><br />请问 114 服务商，只知道你解析了 <a href="http://buzhidao.com" rel="nofollow noopener" target="_blank">buzhidao.com</a> ，还是知道你解析了 <a href="http://nihao.buzhidao.com" rel="nofollow noopener" target="_blank">nihao.buzhidao.com</a> ，难道连后缀 chilemafantong ，他都知道吗？
+]]></content:encoded>
+<pubDate>2024-09-17T07:27:04Z</pubDate>
+<pubDate>2024-09-17T07:49:49Z</pubDate>
+</item>
+<item>
+<title>[VXNA] 申请收录个人博客： make for fun</title>
+<link>https://www.v2ex.com/t/1073474</link>
+<guid>https://www.v2ex.com/t/1073474</guid>
+<content:encoded><![CDATA[
+
+<p>地址:blog.mk4.fun
+rss:blog.mk4.fun/index.xml</p>
+]]></content:encoded>
+<pubDate>2024-09-17T07:27:02Z</pubDate>
+<pubDate>2024-09-17T07:27:02Z</pubDate>
+</item>
+<item>
+<title>[Apple] 国行 iPhone 的 Apple TV 小组件都被阉割了吗？</title>
+<link>https://www.v2ex.com/t/1073473</link>
+<guid>https://www.v2ex.com/t/1073473</guid>
+<content:encoded><![CDATA[
+
+这个有办法可以显示出来吗，我改成了英语 + 美国地区都不能显示出来，这个不会都被硬件阉割了吧？
+]]></content:encoded>
+<pubDate>2024-09-17T07:21:31Z</pubDate>
+<pubDate>2024-09-17T08:25:37Z</pubDate>
+</item>
+<item>
+<title>[NAS] 想用 NUC9 幽灵峡谷组一台家用全闪 NAS，求推荐 NAS 系统。</title>
+<link>https://www.v2ex.com/t/1073472</link>
+<guid>https://www.v2ex.com/t/1073472</guid>
+<content:encoded><![CDATA[
+
+目前系统盘有一块傲腾 905P ，安装了 2 块 7.68 的 U.2 ，想把现在的 TVS675 更换掉，6 盘的待机功耗有点高，而且成品 NAS 的系统不大好折腾
+]]></content:encoded>
+<pubDate>2024-09-17T07:10:34Z</pubDate>
+<pubDate>2024-09-17T08:14:32Z</pubDate>
+</item>
+<item>
+<title>[Safari] 都 iOS18 了这 safari 的 bug 还没解决…</title>
+<link>https://www.v2ex.com/t/1073471</link>
+<guid>https://www.v2ex.com/t/1073471</guid>
+<content:encoded><![CDATA[
+
+safari 百度网站对应的图标变成了房地产的图标。清空缓存历史记录+系统还原+4G 访问百度，都无解<br /><br />![]( <a href="https://www.v2ex.com/i/0He4aM9g.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 0He4aM9g.jpeg"><img class="embedded_image" src="https://i.v2ex.co/0He4aM9g.jpeg" /></a>)<br /><br /><br /><br />类似的问题： <a href="https://discussionschinese.apple.com/thread/253937463?sortBy=rank" rel="nofollow noopener" target="_blank">https://discussionschinese.apple.com/thread/253937463?sortBy=rank</a>
+]]></content:encoded>
+<pubDate>2024-09-17T07:05:17Z</pubDate>
+<pubDate>2024-09-17T08:01:50Z</pubDate>
+</item>
+<item>
+<title>[macOS] macmini 外置硬盘系统更新 sequoia15 没有效果</title>
+<link>https://www.v2ex.com/t/1073470</link>
+<guid>https://www.v2ex.com/t/1073470</guid>
+<content:encoded><![CDATA[
+
+正常内置更新都没有任何问题。<br />外置硬盘更新 15.0 不行。<br />甚至我都试过更新 14.7 也不行。<br />更新都能正常进行，但是重启后还是原系统。<br />mac mini m2<br />硬盘是三星 870evo<br />有没有成功的兄弟。
+]]></content:encoded>
+<pubDate>2024-09-17T06:55:08Z</pubDate>
+<pubDate>2024-09-17T07:11:44Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 一个头疼的问题，路由器端口转发，挂了 singbox 透明代理无法连接</title>
+<link>https://www.v2ex.com/t/1073467</link>
+<guid>https://www.v2ex.com/t/1073467</guid>
+<content:encoded><![CDATA[
+
+内网一台软路由（ 192.168.1.222 ）开启了 singbox 的 tun 模式做旁路由。内网 ps5 将网关手动设为了 singbox ，主路由（ 192.168.1.1 ）将端口转发设置到 ps5 的 ip ，在公网尝试连接 ps5 不成功。singbox 关闭后可以正常连通，问题可能出在 ps5 在返回流量时经过了旁路由的虚拟网卡出现问题。<br />但 singbox 即使开启了最详细级别的日志，也看不到来自 ps5 的流量记录。用 tcpdump 能看到流量确实经过了 tun 网卡。<br />请教大神，这种情况应该如何设置呢
+]]></content:encoded>
+<pubDate>2024-09-17T06:35:44Z</pubDate>
+<pubDate>2024-09-17T03:33:44Z</pubDate>
+</item>
+
+<item>
 <title>[NAS] 求一个 docker 应用代替群晖 surveillance</title>
 <link>https://www.v2ex.com/t/1073466</link>
 <guid>https://www.v2ex.com/t/1073466</guid>
 <content:encoded><![CDATA[
-
 只有一个监控头，目前弄了个黑群，如果有平替的黑群晖不要了。
 ]]></content:encoded>
-<pubDate>2024-09-17T06:22:48Z</pubDate>
 <pubDate>2024-09-16T22:22:48Z</pubDate>
 </item>
 <item>
@@ -20,10 +367,8 @@
 <link>https://www.v2ex.com/t/1073465</link>
 <guid>https://www.v2ex.com/t/1073465</guid>
 <content:encoded><![CDATA[
-
 可不可以打开外文网站就自动翻译，不用每次点三下。提高效率。有时没有翻译这个按钮，有时没有翻译成功要重新点翻译。
 ]]></content:encoded>
-<pubDate>2024-09-17T06:22:44Z</pubDate>
 <pubDate>2024-09-17T06:26:36Z</pubDate>
 </item>
 <item>
@@ -31,10 +376,8 @@
 <link>https://www.v2ex.com/t/1073464</link>
 <guid>https://www.v2ex.com/t/1073464</guid>
 <content:encoded><![CDATA[
-
 我发现电梯或是门禁上的这些数字的“o”型部分，都是拼凑成的，而不是闭合的。<br /><br />我想了解下这背后的原因，我进行了一些搜索，但没有找到相关的解释，要是大家知道背后的 h 原因，麻烦解答下。谢谢。
 ]]></content:encoded>
-<pubDate>2024-09-17T06:20:46Z</pubDate>
 <pubDate>2024-09-17T06:23:30Z</pubDate>
 </item>
 <item>
@@ -43,9 +386,7 @@
 <guid>https://www.v2ex.com/t/1073463</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-09-17T05:45:48Z</pubDate>
 <pubDate>2024-09-17T05:45:48Z</pubDate>
 </item>
 <item>
@@ -53,7 +394,6 @@
 <link>https://www.v2ex.com/t/1073462</link>
 <guid>https://www.v2ex.com/t/1073462</guid>
 <content:encoded><![CDATA[
-
 <p>年近 30 ，前两年回县城老家接手家里的药材店，卖点药食同源的药材滋补品。
 这两年经历了 单纯理工男 到 半成熟小商贩 的过渡。
 每天在门店接触接待顾客，强行外向，琐碎的工作和吵闹的工作环境让我莫名有点烦躁。
@@ -67,7 +407,6 @@
 看着身边的同学结婚生子，突然有点迷茫，
 平时没有 抽烟 喝酒 钓鱼 养宠物 玩游戏的喜好</p>
 ]]></content:encoded>
-<pubDate>2024-09-17T05:31:20Z</pubDate>
 <pubDate>2024-09-17T06:26:55Z</pubDate>
 </item>
 <item>
@@ -75,10 +414,8 @@
 <link>https://www.v2ex.com/t/1073461</link>
 <guid>https://www.v2ex.com/t/1073461</guid>
 <content:encoded><![CDATA[
-
 网址： <a href="https://lerry.me/" rel="nofollow noopener" target="_blank">https://lerry.me/</a><br />RSS： <a href="https://lerry.me/feed" rel="nofollow noopener" target="_blank">https://lerry.me/feed</a>
 ]]></content:encoded>
-<pubDate>2024-09-17T05:29:12Z</pubDate>
 <pubDate>2024-09-17T05:29:12Z</pubDate>
 </item>
 <item>
@@ -86,11 +423,9 @@
 <link>https://www.v2ex.com/t/1073460</link>
 <guid>https://www.v2ex.com/t/1073460</guid>
 <content:encoded><![CDATA[
-
 <p>Site: <a href="https://cheng.st" rel="nofollow">https://cheng.st</a></p>
 <p>RSS:  <a href="https://cheng.st/atom.xml" rel="nofollow">https://cheng.st/atom.xml</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-17T05:18:01Z</pubDate>
 <pubDate>2024-09-17T05:18:01Z</pubDate>
 </item>
 <item>
@@ -98,10 +433,8 @@
 <link>https://www.v2ex.com/t/1073457</link>
 <guid>https://www.v2ex.com/t/1073457</guid>
 <content:encoded><![CDATA[
-
 <p>我都不知道联通还有这功能</p>
 ]]></content:encoded>
-<pubDate>2024-09-17T05:03:52Z</pubDate>
 <pubDate>2024-09-17T06:16:08Z</pubDate>
 </item>
 <item>
@@ -109,11 +442,9 @@
 <link>https://www.v2ex.com/t/1073455</link>
 <guid>https://www.v2ex.com/t/1073455</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://chromewebstore.google.com/detail/button-stealer/iiikidmnimlpahbeknmkeonmemajpccj" rel="nofollow">Button Stealer</a>这个扩展能把你访问过的网页中的所有按钮都提取出来，并展示。</p>
 <p>我已经偷了 199 个按钮了</p>
 ]]></content:encoded>
-<pubDate>2024-09-17T05:00:16Z</pubDate>
 <pubDate>2024-09-17T04:57:16Z</pubDate>
 </item>
 <item>
@@ -121,10 +452,8 @@
 <link>https://www.v2ex.com/t/1073454</link>
 <guid>https://www.v2ex.com/t/1073454</guid>
 <content:encoded><![CDATA[
-
 人在东京，多抢了 1 台 16Pro 256GB 沙漠色，20 号首发日邮寄上门到货，有人在东京有兴趣的话联系哈
 ]]></content:encoded>
-<pubDate>2024-09-17T04:58:53Z</pubDate>
 <pubDate>2024-09-15T04:57:53Z</pubDate>
 </item>
 <item>
@@ -132,10 +461,8 @@
 <link>https://www.v2ex.com/t/1073453</link>
 <guid>https://www.v2ex.com/t/1073453</guid>
 <content:encoded><![CDATA[
-
 iOS18 现在内置了游戏模式, 每次进游戏都会弹出一个游戏模式的弹窗, 请问下各位 V 友现在能关掉这个弹窗吗? 我今年曾经更新过 iOS18 beta 版, 因为觉得这个弹窗太 low, 我就降级了(因为没备份只能清空所有数据😭), 麻烦大家帮我看看!
 ]]></content:encoded>
-<pubDate>2024-09-17T04:58:02Z</pubDate>
 <pubDate>2024-09-17T04:57:02Z</pubDate>
 </item>
 <item>
@@ -143,10 +470,8 @@ iOS18 现在内置了游戏模式, 每次进游戏都会弹出一个游戏模式
 <link>https://www.v2ex.com/t/1073452</link>
 <guid>https://www.v2ex.com/t/1073452</guid>
 <content:encoded><![CDATA[
-
 我发现最近自己合租的 ChatGPTplus 有了一个 o1 mini 和 o1preview 这两个有什么区别啊 求请教
 ]]></content:encoded>
-<pubDate>2024-09-17T04:53:26Z</pubDate>
 <pubDate>2024-09-17T04:50:26Z</pubDate>
 </item>
 <item>
@@ -154,10 +479,8 @@ iOS18 现在内置了游戏模式, 每次进游戏都会弹出一个游戏模式
 <link>https://www.v2ex.com/t/1073450</link>
 <guid>https://www.v2ex.com/t/1073450</guid>
 <content:encoded><![CDATA[
-
 更新后发现这个问题，看了站内两个月前更新 beta 的朋友也有遇到<br /><br />习惯了底部 dock+放在外接屏，在“显示器”设置里把外接屏设置主显示器和拓展显示器都无法解决
 ]]></content:encoded>
-<pubDate>2024-09-17T04:50:48Z</pubDate>
 <pubDate>2024-09-17T05:02:49Z</pubDate>
 </item>
 <item>
@@ -165,11 +488,9 @@ iOS18 现在内置了游戏模式, 每次进游戏都会弹出一个游戏模式
 <link>https://www.v2ex.com/t/1073448</link>
 <guid>https://www.v2ex.com/t/1073448</guid>
 <content:encoded><![CDATA[
-
 <p>假设按自己喜欢的生活方式过日子
 不奢侈也不拮据</p>
 ]]></content:encoded>
-<pubDate>2024-09-17T04:24:32Z</pubDate>
 <pubDate>2024-09-17T05:59:49Z</pubDate>
 </item>
 <item>
@@ -177,17 +498,14 @@ iOS18 现在内置了游戏模式, 每次进游戏都会弹出一个游戏模式
 <link>https://www.v2ex.com/t/1072253</link>
 <guid>https://www.v2ex.com/t/1072253</guid>
 <content:encoded><![CDATA[
-
 <p>这个经济环境下。最近面上了一个大厂。目前正在走背调程序。背调前，和 HR 坦白有一段 4 个月的工作被裁经历，没有写进去。HR 说向上级领导反馈后，领导给出来的答案是：继续推进背调</p>
 <p>背调查出我名下有一个软件公司。尽管提供的背调联系人都是信得过的领导，同事，HR 。 </p>
 <p>但是还是担心 背调到 不对盘的领导哪里去了。如某绿厂，离职被 C ，被说能力不足，所以给 C 。</p>
 <p>背调公司是：凯莱德 感觉非常严格，底裤都被调查出来了。</p>
 <p>从周一度过到周四实属不易。每天都是煎熬</p>
 ]]></content:encoded>
-<pubDate>2024-09-12T03:35:12Z</pubDate>
 <pubDate>2024-09-13T23:57:35Z</pubDate>
 </item>
-
 <item>
 <title>[macOS] 无法卸载 Magnet</title>
 <link>https://www.v2ex.com/t/1073447</link>
@@ -15455,168 +15773,6 @@ iPhone 微信朋友圈照片浏览体验：刷到一条 9 宫格照片朋友圈�
 求解决方案，感恩！</p>
 ]]></content:encoded>
 <pubDate>2024-09-12T05:16:08Z</pubDate>
-</item>
-<item>
-<title>[Apple] 现在买 HomePod 或者 HomePod mini 是个好时间吗？</title>
-<link>https://www.v2ex.com/t/1072279</link>
-<guid>https://www.v2ex.com/t/1072279</guid>
-<content:encoded><![CDATA[
-<p>苹果全家桶，Mac 、iPhone 、Apple TV 。</p>
-<p>在考虑家里用投影仪，但是没有布线，所以安排音响不是很方便，但是投影仪接的是 Apple TV ，要不就是有线要不就是 HomePod 才没有延长吧？（想过买漫步者什么的有源音箱，就是线比较麻烦）</p>
-<p>准备是买 2 个 HomePod 二代，组一对的。一代现在收有点老了，据说芯片是带硬盘的，估计不行了，二代其实音质听起来不错的。
-另外想买个 HomePod mini ，用于电脑平时用一下，而且带麦克风。</p>
-<p>想问下 V 友们，现在入手 HomePod 二代和 HomePod mini 怎么样？有什么建议吗？什么价格比较合适或者有什么渠道么？估计是入手都是黑色或者白色了，大家都选什么颜色啊？</p>
-<p>在网上还看到很多资源机，搜了下，完全不是官方承认的，有点不敢上车，可能还是等 pdd 真香吧。</p>
-]]></content:encoded>
-<pubDate>2024-09-12T06:25:59Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 日本 IT|更新最近 IT 现场案件信息需求，有考虑转职的看过来，高度人才签证+20 分</title>
-<link>https://www.v2ex.com/t/1072276</link>
-<guid>https://www.v2ex.com/t/1072276</guid>
-<content:encoded><![CDATA[
-日本 IT 现场案件部分信息：<br /><br />1.<br /> [案　件　 J ] ：(端末担当)千葉市全学校におけるインフラ大規模案件<br /> [開始　日付] ：11 月開始<br /> [期　　　間] ：長期<br /> [作業　場所] ：週 3 以上リモート、出社の場合は飯田橋 稀に千葉市内日帰り出張、月に1 回あるか、ないか程度<br /> [リモート日] ：週 3 以上リモート<br /> [募集　人数] ：2 名<br /> [必須スキル] ：FAT 端末のマスター管理を理解し、マスター更新作業に関する知識、SKYSEA 、もしくは下記の代替製品の経験があること 　→代替製品：Endpoint （旧称：Desktop Central ）,LandScape, QND 等、脆弱性情報からの脆弱性調査、パッチ適用経験<br /><br /><br />2.<br />BtoBマッチングサイトのリニューアル開発<br /><br /> [必須スキル] <br />・Javaの開発経験<br />・性能改善のご経験<br />・MW(Tomcat)やDB 周り(JDBC, チューニング)に精通している<br /><br /> [尚可スキル] <br />・HeartCoreの知見<br />・アーキテクト経験<br />・AWS 経験<br /><br /> 時期: 即日～<br />場所: フルリモート(※初日のみ神谷町出社)<br />外国籍: 可(※日本語ネイティブのみ)<br />面談: Web1 回<br /><br /><br /><br />3.<br />10 月～ SAP 案件<br />ーーーーーーーーーーーーーーー<br />秋葉原（リモート併用） 、日本語ビジネスレベル必須<br />　・ロジ系のジュニアコンサルか基本設計者レベル 　　　　　　<br />　・結合テスト経験者（標準の受注、発注伝票を叩いて在庫を動かした経験がある方） <br /><br /><br />4.<br /> [案　件　 J ] ：(認証基盤担当)千葉市全学校におけるインフラ大規模案件<br /> [開始　日付] ：11 月<br /> [期　　　間] ：長期<br /> [作業　場所] ：週 3 以上リモート、出社の場合は飯田橋、稀に千葉市内日帰り出張、月に1 回あるか、ないか程度<br /> [リモート日] ：週 3 以上リモート<br /><br /> [必須スキル] ：Windows serverの詳細設計、構築経験 2-3 年以上、Active Directory の設定変更作業の経験、認証基盤のPJに携わった経験、RADUIUS, M365, MACアドレス認証などなど、運用保守の経験<br /><br /> [尚可スキル] ：エンジニア様向け資料のp11 参照、もしくは営業の方向け資料のp12をご参照<br /><br /><br />5.<br />案件名　　：銀行システムの勘定系パッケージ開発<br />作業場所　：新川崎（常駐）<br />作業期間　：10 月～長期<br />業務内容　：アプリケーションの設計（母体不良の追付き）<br />　　　　　　シミュレータによる結合テスト<br />スキル　　：・open-COBOL 開発<br />　　　　　　・Linux, Shell 経験<br />　　　　　　・SQL 開発に長けている方（尚可）<br />　　　　　　・銀行預金業務（尚可）<br />募集人数　：3 名<br />年齢制限　：50 歳まで希望<br /><br /><br />-----------------------------------------------------------------------<br />株式会社 GSD<br />本社所在地：〒 112-0012 東京都文京区大塚 5-9-2 新大塚プラザ 801 号<br />設立年月：2015 年 6 月 ​<br />資本金：5,000 万円<br /><br />🔴株式会社 GSD 正在招聘的需求如下：<br />🔻对象：IT 转职-PM/PL/SE/PG<br />ソフトウェア開発経験者<br />🔻年龄：22-55 周岁<br />🔻日语：n2 及以上，口语可应对全程日语面试<br />🔻学历：全日制本科及以上<br /><br />〈仕事内容〉<br />🔸JAVA 、<a href="http://VB.Net" rel="nofollow noopener" target="_blank">VB.Net</a> 、C#、VC ／ C++、PL/SQLなど言語での設計、製造及びテスト作業<br />※ 未経験者の方もご相談ください<br /><br />〈薪资福利〉<br />🔸500w-1000w 円／年；<br />交通费补贴+高度人才加 20 分+工作签证+保险年金+社员旅行等等<br /><br />〈勤務时间〉<br />🔸9:00-18:00✔️日本法定节假日休息，有給休假<br /><br /><br />由于留言区无法回复，大家如有问题，可以直接投递简历至 base64 码咨询：<br />YmVpYmVpNjc4MjAyM0AxNjMuY29t
-]]></content:encoded>
-<pubDate>2024-09-04T04:49:56Z</pubDate>
-</item>
-<item>
-<title>[互联网] 各位 v 友最近有没有收到 z-lib 的催钱广告</title>
-<link>https://www.v2ex.com/t/1072275</link>
-<guid>https://www.v2ex.com/t/1072275</guid>
-<content:encoded><![CDATA[
-大体是说要冲个会员了，不充就要永久消失账号之类的，甚至还是中文，想问问各位大佬有没有收到类似的邮件，或者如果 z-lib 寄了有什么可以平替的网站吗？感谢指点
-]]></content:encoded>
-<pubDate>2024-09-12T04:53:29Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 这几天在看东南亚的岗位，有去过或者正在东南亚工作的吗？</title>
-<link>https://www.v2ex.com/t/1072274</link>
-<guid>https://www.v2ex.com/t/1072274</guid>
-<content:encoded><![CDATA[
-到下个月就失业一年了，一年来，每天都投简历，要么是三四千的岗位，要么就是秒拒和已读不回。<br />最近看到不少东南亚的岗位，都是国内公司在那么建的新厂，工资还可以，不过还是有点怕。<br />想问下有没有有经验的老哥？
-]]></content:encoded>
-<pubDate>2024-09-12T06:02:46Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone 14Pro 换 16 好还是 16Pro</title>
-<link>https://www.v2ex.com/t/1072272</link>
-<guid>https://www.v2ex.com/t/1072272</guid>
-<content:encoded><![CDATA[
-<p>iPhone 14Pro 换 16 好还是 16Pro ，有点纠结，主要日常拍视频的频率都比较少，求建议</p>
-]]></content:encoded>
-<pubDate>2024-09-12T05:48:43Z</pubDate>
-</item>
-<item>
-<title>[作业帮武汉] 招聘 android 驻场外包</title>
-<link>https://www.v2ex.com/t/1072290</link>
-<guid>https://www.v2ex.com/t/1072290</guid>
-<content:encoded><![CDATA[
-岗位职责：<br />	1 、参与 Android 客户端软件负责需求的评估与研发工作。<br />	2 、负责持续优化代码的架构与设计。<br />	<br />任职要求：<br />	1 、本科及以上学历，计算机相关专业。<br />	2 、3 年以上 android 开发经验，熟悉 android 体系结构。<br />	3 、熟练掌握 Kotlin 语言，可以灵活的使用 Kotlin 高级特性优化代码流程，掌握 Java 语言<br />	4 、具备基本的算法能力，熟练掌握常用的设计模式，熟练掌握多线程编程等，具有良好的编程习惯与编程风格。<br />    5 、熟练掌握 Android Jetpack 组件，Lifecycles.LiveData 等,了解 Android Framework 。<br />    6 、有较好的调试、性能优化、崩溃分析经验。<br />    7 、具备积极的工作态度，对产品质量有较高的要求，具备良好的沟通表达能力及团队合作精神，抗压能力强。<br /><br />联系方式：<br />    1 、请邮件到： yancb0902@gmail.com<br />工作地点：<br />    1 、湖北省武汉市江夏区高新大道宜科中心 1 栋
-]]></content:encoded>
-<pubDate>2024-09-12T05:58:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求问 windows udp 关播包 wireshark 能抓到但是程序接收不到是啥问题</title>
-<link>https://www.v2ex.com/t/1072270</link>
-<guid>https://www.v2ex.com/t/1072270</guid>
-<content:encoded><![CDATA[
-<pre><code>Frame 12326: 130 bytes on wire (1040 bits), 130 bytes captured (1040 bits) on interface \Device\NPF_{ADED3968-3BF4-44A4-BDFF-B9B3F7384432}, id 0
-Ethernet II, Src: MarquetteEle_05:36:a1 (00:00:a1:05:36:a1), Dst: Broadcast (ff:ff:ff:ff:ff:ff)
-Internet Protocol Version 4, Src: 192.168.2.17, Dst: 192.168.2.255
-User Datagram Protocol, Src Port: 3783, Dst Port: 7000
-Data (88 bytes)
-</code></pre>
-<p>wireshark 抓包看到是这样的，但是程序就是收不到，socket bind 0.0.0.0 7000 端口，并且已设置 setsockopt(SOL_SOCKET, SO_BROADCAST, 1)，python 程序，有知道这是啥问题的否？感谢感谢！</p>
-]]></content:encoded>
-<pubDate>2024-09-12T04:26:00Z</pubDate>
-</item>
-<item>
-<title>[Linux] 大四上准备读研，未来想从事内核相关的工作</title>
-<link>https://www.v2ex.com/t/1072269</link>
-<guid>https://www.v2ex.com/t/1072269</guid>
-<content:encoded><![CDATA[
-想在研究生阶段多往这边深挖一下，有没有 v2 老哥推荐一下学习路径<br /><br />平常打 CTF 相关的 Pwn 的，对内核有一点点了解<br /><br />目前也给 linux 提过 patch ，不过是硬件配置缺失相关的（ i.e. 给 ACPI 高低电平写反了的主板加例外规则）<br /><br />目前准备跟着 rCore 造一个内核深化理解，但是在这之后还有什么是能提升的吗？
-]]></content:encoded>
-<pubDate>2024-09-12T04:18:26Z</pubDate>
-</item>
-<item>
-<title>[Python] 服务器被注入！发现是一个 Python 进程该怎么办</title>
-<link>https://www.v2ex.com/t/1072268</link>
-<guid>https://www.v2ex.com/t/1072268</guid>
-<content:encoded><![CDATA[
-2024-09-11 17:53:14	/home/wwwroot/<a href="http://ecupl.xxxx.com/application/admin/template/filemanager/index.htm" rel="nofollow noopener" target="_blank">ecupl.xxxx.com/application/admin/template/filemanager/index.htm</a>	编辑文件	www	python	<br />只有这点线索了，各位大哥帮帮忙😭😭😭
-]]></content:encoded>
-<pubDate>2024-09-12T04:15:24Z</pubDate>
-</item>
-<item>
-<title>[上海] 以图会友第 6 期</title>
-<link>https://www.v2ex.com/t/1072267</link>
-<guid>https://www.v2ex.com/t/1072267</guid>
-<content:encoded><![CDATA[
-<img class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GXP4zLIbgAEOI_n?format=jpg&amp;name=4096x4096" />
-]]></content:encoded>
-<pubDate>2024-09-12T04:13:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] T-mobile 卡 0 刀月租卡收不到短信</title>
-<link>https://www.v2ex.com/t/1072266</link>
-<guid>https://www.v2ex.com/t/1072266</guid>
-<content:encoded><![CDATA[
-<p>年初买了个 T-mobile 0 刀月租卡，用了几个月，突然发现最近收不到短信了。余额有效期到明年，有大佬知道咋解决么
-![]( <a href="https://nightwish.oss-cn-beijing.aliyuncs.com/uPic/CleanShot" rel="nofollow">https://nightwish.oss-cn-beijing.aliyuncs.com/uPic/CleanShot</a> 2024-09-12 at 12.08.53.png)</p>
-]]></content:encoded>
-<pubDate>2024-09-12T04:11:41Z</pubDate>
-</item>
-<item>
-<title>[macOS] [技术求助帖] Mac 屏幕使用时间出现奇怪的网站占用</title>
-<link>https://www.v2ex.com/t/1072265</link>
-<guid>https://www.v2ex.com/t/1072265</guid>
-<content:encoded><![CDATA[
-<h3>问题描述</h3>
-<p>Mac 合盖后，屏幕使用时间开始出现奇怪的网站占用，例如 <a href="http://tb.cn" rel="nofollow">tb.cn</a> ，并且占用时间非常长（甚至出现过一天 24 小时占用）。本人电脑中也没有安装 tb 等购物软件。</p>
-<h3>尝试过的解决方法</h3>
-<ol>
-<li><strong>在屏幕使用时间里的 App Limits 添加时间限制</strong>：失败，App 选择栏内没有可选项。</li>
-<li><strong>关闭 Safari</strong>：失败，网站和 Safari 的时间不相同，且关闭后网站的使用时间还在增加。</li>
-<li><strong>重启 Mac</strong>：成功，不过频繁重启总是不太方便。</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-09-12T04:05:30Z</pubDate>
-</item>
-<item>
-<title>[Apple] 今天都在传 16 系列充电速率最高到 45w 了 但是官方文档并没有这么写啊</title>
-<link>https://www.v2ex.com/t/1072264</link>
-<guid>https://www.v2ex.com/t/1072264</guid>
-<content:encoded><![CDATA[
-<p>～～ 9to5mac 看到的消息</p>
-]]></content:encoded>
-<pubDate>2024-09-12T04:24:57Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 作为一个 cursor 受益人，推荐一下自己用 cursor 写的小玩具</title>
-<link>https://www.v2ex.com/t/1072263</link>
-<guid>https://www.v2ex.com/t/1072263</guid>
-<content:encoded><![CDATA[
-<p>灵感来自于之前总有人通过你喜欢玩的 LOL 英雄，分析你是什么性格。
-分析结果图一乐，大家可以玩一玩。</p>
-<p>网站地址： <a href="https://test.diyun.site" rel="nofollow">https://test.diyun.site</a></p>
-<p>另外希望 cursor 官方看到我，联系我接一下商单，我这么自发的推荐，给个商单不过分吧。</p>
-<p><img alt="截图" class="embedded_image" rel="noreferrer" src="https://files.diyun.site/blog/2024/09/a862035d4be4f0f6384fc65cebe81ea0.webp" /></p>
-]]></content:encoded>
-<pubDate>2024-09-12T03:55:26Z</pubDate>
-</item>
-<item>
-<title>[求职] 寻海外 remoting 开发工作</title>
-<link>https://www.v2ex.com/t/1072262</link>
-<guid>https://www.v2ex.com/t/1072262</guid>
-<content:encoded><![CDATA[
-<p>本人 10 年+技术经验，近 3 年擅长技术（能深入诊断问题/代码重构/性能优化）主要是 C#.Net Core （ aspnetcore ）, Web 技术（ Vue 前端框架、Nuxt ），Pgsql ，可全栈独立完成一套 BS 系统的设计、编码及上线的全流程；熟练掌握 Docker 、Linux 运维、Bash 自动化脚本编写等技术；很多年前重度使用过 MsSqlServer 、.Net Framework 、WPF 框架、<a href="http://Asp.net" rel="nofollow">Asp.net</a> 、IIS 等技术，需要的话给点时间也还是能很快掌握的。</p>
-<p>当前自由职业，给一些公司兼职做技术顾问，想找找有没有海外一线开发的工作，目的之一是考虑将来润出去的话能提前适应海外工作文化（因此暂不考虑国内企业，很抱歉）。</p>
-<p>出于合规风险的考虑，不考虑在境内违规或灰色地带的业务，即使在国外是合法的。请见谅。对具体开发业务没有要求，只要不是那种需要常年业务经验甚至考证才能开发的项目，基本都是没问题的。</p>
-<p>每周可全时 4 天在线，时间相对有保障，短长期合作均可；英文阅读写作水平完全没问题，口语缺乏实践；有过中型技术团队管理经验，外企管理风格、为人 nice 好沟通、责任心强，不必担心我的远程沟通、协作效率以及自我管理的问题。</p>
-<p>微信号（ base64 防爬虫）：d3N5eWM4MDgw  求带，感谢~~~</p>
-]]></content:encoded>
-<pubDate>2024-09-12T03:48:44Z</pubDate>
 </item>
 </channel>
 </rss>
