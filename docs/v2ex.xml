@@ -5,14 +5,56 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[游戏] 沉迷日本的某款冷门少女偶像养成游戏好几年，打算放弃了</title>
+<link>https://www.v2ex.com/t/1074524</link>
+<guid>https://www.v2ex.com/t/1074524</guid>
+<content:encoded><![CDATA[
+
+名字就不说了，国内没什么热度，已经十几年了还在运营。和大部分抽卡游戏一样，每天都是和上班一样领奖励刷日常、活动，充钱抽卡。今天肝了一天，策略错了，注定又进不了排行榜前 5 了（没多少活跃玩家的游戏，以前上学的时候随便玩玩不充钱都能进前 200 ）。思考了一下继续肝也没有什么意义了，就为了数据库里的几个数字，都是虚拟的东西，迟早会关服然后就和什么都没发生过一样了。主要是投入了很多时间，钱倒是充的不多，算了下几年加起来充了大概 10 万人民币，我认识的朋友有充了 100 万的。就当是支持游戏公司不要太快放弃这个企划吧，这样我还能有新歌听。
+]]></content:encoded>
+<pubDate>2024-09-20T20:23:50Z</pubDate>
+<pubDate>2024-09-20T20:20:50Z</pubDate>
+</item>
+<item>
+<title>[Apple] ios 也变得越来越臃肿了</title>
+<link>https://www.v2ex.com/t/1074523</link>
+<guid>https://www.v2ex.com/t/1074523</guid>
+<content:encoded><![CDATA[
+
+<p>对比了一下新旧手机，发现 ios 占的空间越来越多，在通用-储存空间里面，最下面有一个 ios 空间。<br />
+从 iPhone OS 1.0 95.6 MB 到现在的 ios18 9.0GB ，不知道大了多少倍。几年前的 ios13 仅仅 4.6gb 。外观没什么大变化，占的储存大了不少。越来越贵的存储空间，越来越大的 ios ，当年 16gb 的手机也够用，现在 2024 年，64gb 储存都有些紧凑了。<br />
+很想知道 ios20 会占多少空间，什么时候苹果能做得精简一点，才是最大的创新。</p>
+]]></content:encoded>
+<pubDate>2024-09-20T19:50:57Z</pubDate>
+<pubDate>2024-09-20T20:22:35Z</pubDate>
+</item>
+<item>
+<title>[程序员] 给 RSSHub 写第三方源写的绷不住了，上来吐槽下</title>
+<link>https://www.v2ex.com/t/1074522</link>
+<guid>https://www.v2ex.com/t/1074522</guid>
+<content:encoded><![CDATA[
+
+<p>看我这大晚上发帖，你们应该能想到我现在的心情，纯粹牢骚一下。也许你会说发牢骚干嘛不去 RSSHub repo 下。额，主要还是因为我已经放弃了给它写源了，所以也不打算去 repo 下多引发争议。</p>
+<p>事情经过：</p>
+<p>有个喜欢的歌手的网站没有 rss ，rsshub 也没有相应的源，于是看了下 rsshub 的开发文档开始写源，想着写好了我也能提个 pr</p>
+<p>结果写到后来直接把我写得绷不住了，最大的问题：rsshub 作为专门将网页解析成 rss 的项目，实际上本质就是个大型的爬虫。而作为一个爬虫，请求各种网站的时候你肯定需要有一点反爬对策的。比如我期待就是 RSSHub 会提供一些网络请求的接口如 .get() .post() 来给我们调用，底层一些简单的杂活累活就由 RSSHub 来负责，我只需要提供相应请求信息之类的，然后对结果进行解析 or 处理更复杂的页面逻辑 or 反爬逻辑</p>
+<p>结果在请求网页的时候，RSSHub 几乎没有提供任何工具。它让开发者直接用 ofetch 这个包跳过 RSSHub 直接去请求网页。网络请求的所有细节和繁杂工作全都要每个源作者自己去处理。</p>
+<p>最让我难受非 cookie 莫属。所有涉及到 cookie 的操作全都需要第三方源作者自己来处理。而很多网站反爬又很依赖 cookie 。ofetch 作为一个网络请求包并不具备任何 cookie 相关功能，一切都要你手动处理。你需要提取出返回头里的 Set-Cookie 信息，然后解析出来，然后手动放到下一次请求头里，下次如果返回值 Set-Cookie 你又要手动更新处理等等。关键是 js 里 cookie 解析，CookieJar 之类包又极其难用。体验极其坐牢</p>
+<p>你也许会说，处理这么麻烦你不会写点 helper 函数？是的，其他源作者也是这么想的，所以导致现在 RSSHub 项目数不清的源里，非常多作者都各自独立造了 cookie 轮子或者单独用自己的方式在用 cookie</p>
+<p>除此之外网络请求没有比较统一的资源池，要爬取一个列表中所有文章信息，官方文档直接让你 Promise.all([get(), get(), get()]) 暴力请求，也没有任何针对网站请求速率进行控制的相关工具。所有东西全要自己实现。我越是写到后来越觉得奇怪，我感觉 RSSHub 怎么看着就是个非常简陋的前端展示框架啊。整个系统中最麻烦复杂的网络请求部分全都一股脑地扔给了源开发者，RSSHub 本身地工作实际上就是调用源然后渲染成 rss 这么简单</p>
+<p>那么这就有个问题了，RSSHub 写源花费的这功夫和我直接新建个项目起个简单服务器然后直接调用 http clinet 然后整形成 rss 好像没区别啊？那我干嘛不去选其他在网络请求方面更适合人类的语言和工具</p>
+]]></content:encoded>
+<pubDate>2024-09-20T18:36:41Z</pubDate>
+<pubDate>2024-09-20T19:02:07Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 站里有做灰产黑产的吗？谁能讲讲苹果盗刷拿权限的原理。</title>
 <link>https://www.v2ex.com/t/1074521</link>
 <guid>https://www.v2ex.com/t/1074521</guid>
 <content:encoded><![CDATA[
-
 据我所知有两种主流盗刷方法：<br /><br />一、给目标发假的苹果安全提醒短信，诱导目标点击链接，输入 ID 密码和两步验证码，拿到后为所欲为，直接登录设备盗刷，或登录官网添加信任手机建立家庭组拉其他 ID 盗刷，都可以。这种好理解。<br /><br />二、用盗刷者的 ID 发起绑定支付方式的请求，把这种请求做成链接发给目标，目标点击后可能压根不仔细看就习惯性密码、生物验证了，支付方式就绑到盗刷者的 ID 上了。<br /><br />我对第二种盗刷方式的绑定时间有点不理解。链接发给目标，目标点击链接，密码、生物验证后，盗刷者可以选择延迟绑定支付方式吗？<br /><br />我一个网友说在闲鱼买视频会员上当了，对方发个链接他点了，习惯性验证了，当时也没什么反应，就没在意。凌晨四点多，支付 App 内通知显示支付方式绑上了，接着开始盗刷了。第二天才发现支付方式是凌晨四点多绑上的，那个时间绝对在睡觉。<br /><br />还有个疑问，如果被第二种方式绑定后，自行通过支付 App 端解除了支付方式绑定，盗刷者可以通过先前拿到的权限不用密码、生物验证再绑定上吗？
 ]]></content:encoded>
-<pubDate>2024-09-20T18:20:57Z</pubDate>
 <pubDate>2024-09-20T14:20:57Z</pubDate>
 </item>
 <item>
@@ -20,10 +62,8 @@
 <link>https://www.v2ex.com/t/1074520</link>
 <guid>https://www.v2ex.com/t/1074520</guid>
 <content:encoded><![CDATA[
-
 <p>酗酒，情非得已。</p>
 ]]></content:encoded>
-<pubDate>2024-09-20T18:07:10Z</pubDate>
 <pubDate>2024-09-20T18:07:10Z</pubDate>
 </item>
 <item>
@@ -31,10 +71,8 @@
 <link>https://www.v2ex.com/t/1074519</link>
 <guid>https://www.v2ex.com/t/1074519</guid>
 <content:encoded><![CDATA[
-
 时间	   型号	      价格<br />2007	黑莓 7290	 430<br />2009	黑莓 8800	 1680<br />2011	Nexus S 	1868<br />2012	黑莓 9780	 1570<br />2013	Lumia 520 黄	 749<br />2013	Lumia 520 黑	 777<br />2015	Lumia 638 白	 658<br />2015	夏普翻盖手机	 462<br />2016	iPhone 6s	 4888<br />2016	360 N4S	 1099<br />2018	iPhone 8	 4799<br />2019	vivo IQOO Neo	 1798<br />2020	iPhone 12	 5999<br />2021	iPhone 12	 6399<br />2023	iPhone 14	 6099<br />2023	金立翻盖手机	 178<br />2023	诺基亚翻盖手机	 399
 ]]></content:encoded>
-<pubDate>2024-09-20T17:48:43Z</pubDate>
 <pubDate>2024-09-20T18:00:46Z</pubDate>
 </item>
 <item>
@@ -42,13 +80,11 @@
 <link>https://www.v2ex.com/t/1074517</link>
 <guid>https://www.v2ex.com/t/1074517</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.v2ex.com/t/1074431" rel="nofollow">https://www.v2ex.com/t/1074431</a></p>
 <p>OneQuick ，Windows 工具，分享创造节点，是我发的节点不对？标题不对？时间不对？被降权了？大家都不感兴趣？ Windows 软件完蛋了？我人品有问题？</p>
 <p>不是我自夸，这软件好评率挺高，用过的都回不去了。</p>
 <p>深夜发点牢骚，希望明天不要想删帖🤣</p>
 ]]></content:encoded>
-<pubDate>2024-09-20T16:41:08Z</pubDate>
 <pubDate>2024-09-20T18:25:34Z</pubDate>
 </item>
 <item>
@@ -56,13 +92,10 @@
 <link>https://www.v2ex.com/t/1074516</link>
 <guid>https://www.v2ex.com/t/1074516</guid>
 <content:encoded><![CDATA[
-
 看软技能作者推荐程序员多参加行业技术会议。 除了顶级的会议，基本上都不知道什么时候办的，也不知道在哪里办的。 希望有了解的 V 友们都分享下近期技术会议的名称、时间、地点等。我想做个行动派。
 ]]></content:encoded>
-<pubDate>2024-09-20T16:32:10Z</pubDate>
 <pubDate>2024-09-20T16:31:10Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 你会觉得你做的工作对公司和社会有贡献吗？是否感觉自己有成长？</title>
 <link>https://www.v2ex.com/t/1074515</link>
@@ -15287,54 +15320,6 @@ Partition 1 does not start on physical sector boundary.
 求各位大佬帮小弟分析一下折腾一些什么东西比较好。</p>
 ]]></content:encoded>
 <pubDate>2024-09-16T08:10:44Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 115 凉了吗</title>
-<link>https://www.v2ex.com/t/1073343</link>
-<guid>https://www.v2ex.com/t/1073343</guid>
-<content:encoded><![CDATA[
-<p>alist 的电报群看到有人在发
-<img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.img2ipfs.com/ipfs/QmfPCpaETEbC2WtdaN4YGUmYwwUBuyR3pifWtJtWCR853v?filename=image.png" /></p>
-]]></content:encoded>
-<pubDate>2024-09-16T04:56:34Z</pubDate>
-</item>
-<item>
-<title>[生活] 请教一下各位大厨，有什么好吃，好做，好看的家常菜吗？</title>
-<link>https://www.v2ex.com/t/1073342</link>
-<guid>https://www.v2ex.com/t/1073342</guid>
-<content:encoded><![CDATA[
-<p>打算中秋节给家人做几道菜，平时没做过菜，别太难了。</p>
-]]></content:encoded>
-<pubDate>2024-09-16T07:48:51Z</pubDate>
-</item>
-<item>
-<title>[京东] jd 自营买的 s9</title>
-<link>https://www.v2ex.com/t/1073341</link>
-<guid>https://www.v2ex.com/t/1073341</guid>
-<content:encoded><![CDATA[
-快递员打电话说放驿站了，没直接本人签收（小区很小，三轮车就在楼下停着），外包装盒是挤扁的，watch 盒子脏手印很多，两个封口贴也是开启的（售后专员说封口贴是 jd 自己贴的，那苹果本来的包装盒也是直接可以打开不封口的吗？），直接售后退了<br /><br />https://mjj.today/i/jC6g3J<br />https://mjj.today/i/jC6leI<br />https://mjj.today/i/jC6G06
-]]></content:encoded>
-<pubDate>2024-09-16T08:01:58Z</pubDate>
-</item>
-<item>
-<title>[Windows] 需要长时开机，又不愿出现高能耗：一个小技巧</title>
-<link>https://www.v2ex.com/t/1073340</link>
-<guid>https://www.v2ex.com/t/1073340</guid>
-<content:encoded><![CDATA[
-新建电源计划，命名为“Low”：<br />电源接入时：永不睡眠<br />修改高级设置：处理器状态，最高 5%；接入电源时永不休眠。<br /><br />Process Lasso：选项-电源-Idle Saver<br />当电脑闲置 30 分钟时切换到电源计划“Low”<br /><br />解释一下：<br />当 30 分钟电脑无任何操作的时候，自动切换到 Low 电源计划，此时 CPU 最高频率只有 5%，笔记本大约 400MHz 。此时能耗是很低的，适合长时间挂机、下载、更新、杀毒……<br />如果你觉得 5%太低，也可以把 CPU 最高频率设到 99%，就是不用睿频，只有默频。<br />只要你鼠标键盘一动，或者远程桌面一接入，自动恢复到之前的电源计划，比如“平衡”“高性能”。<br />非常时候需要长期开机的场景
-]]></content:encoded>
-<pubDate>2024-09-16T08:28:01Z</pubDate>
-</item>
-<item>
-<title>[计算机] 笔记本电脑怎么平衡防尘、散热、不留痕三者之间的关系？</title>
-<link>https://www.v2ex.com/t/1073339</link>
-<guid>https://www.v2ex.com/t/1073339</guid>
-<content:encoded><![CDATA[
-<p>我的笔记本电脑存在一个问题———键盘容易进灰尘，而厂商的除尘服务因为设计结构问题并不包括键盘，也就是说键盘的灰尘积累多了是不好清理的。</p>
-<p>于是上了一个键盘膜，虽然解决了灰尘问题，但影响被动散热，日常电脑温度提升了 2-3 度。此外键盘膜还有一个问题，就是合上盖子次数多了容易在屏幕上留下膜印，后来的解决方案是在合盖时插入一张 A4 纸，但这样就更影响散热了。</p>
-<p>因此，这三种需求该怎么平衡呢？有没有更加便捷的解决方案呢？感觉实在是一个难题。</p>
-]]></content:encoded>
-<pubDate>2024-09-16T08:18:29Z</pubDate>
 </item>
 </channel>
 </rss>
