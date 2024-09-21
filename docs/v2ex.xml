@@ -5,11 +5,522 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[宽带症候群] 个人家庭网络布局分享</title>
+<link>https://www.v2ex.com/t/1074592</link>
+<guid>https://www.v2ex.com/t/1074592</guid>
+<content:encoded><![CDATA[
+
+<h1>个人家庭网络布局分享</h1>
+<h2>整体网络架构图</h2>
+<p>整个家庭网络的架构如下：</p>
+<p><img alt="家庭网络架构" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/10G/home_network_architecture.png" /></p>
+<p>整体的网络架构非常的扁平化和简单:</p>
+<ul>
+<li>弱电箱 3 根网线和+3 根光纤分别通往主卧、次卧和客厅。</li>
+<li>弱电箱中的入户光猫接主路由。</li>
+<li>主路由、旁路由、无线 AP 、NAS 、PVE 服务器、黑苹果、Apple TV 等设备都通过有线接入交换机。</li>
+<li>手机、笔记本等其他无线设备以及智能家居等设备都通过无线 AP 接入。</li>
+<li>各个设备各司其职，避免了 All in Boom 。</li>
+</ul>
+<p>物理设备图如下：</p>
+<p><img alt="家庭网络设备" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/10G/wire_effect.jpg" /></p>
+<h2>网络架构说明</h2>
+<h3>入户光猫改桥接</h3>
+<p>坐标上海嘉定。我是直接微信询问的宽带运维小哥，很爽快的就帮我在后台查询了超级密码，自己进入光猫后台修改桥接即可。</p>
+<p>如果运维小哥不肯帮忙查询，也可以闲鱼搜索"地名+运营商+光猫"等关键字，花一点小钱即可解决。</p>
+<p>光猫修改桥接的目的是为了搭配后面的主路由进行拨号上网和获取公网 IP 来使用的。</p>
+<h3>获取公网 IP</h3>
+<p>直接打运营商客服电话说需要开通公网 IP 即可，上海联通宽同时分配有公网 IPv4 和 IPv6 的地址。</p>
+<p>当然各个地方运营商可能存在差别，据了解联通和电信都会给公网 IPV4 ，移动不会给公网 IPV4 地址，但是 IPV6 的地址应该会给的。</p>
+<h3>主路由负责拨号上网</h3>
+<p>主路由上正常的设置好拨号上网，这样主路由上获取的 IP 就是公网 IP ，这个 IP 是互联网上其它设备可以直接进行访问的。</p>
+<p><img alt="公网 IP" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/network_architecture/dial_up.png" /></p>
+<p>很多人都存在一个误解，认为这个公网 IP 是固定的。实际上每次重启主路由，或者一段时间后，分配的这个公网 IP 都会变更的。IP 每次都发生变化很难记忆，所以后面需要搭配 DDNS 服务进行动态域名解析。</p>
+<p>其次，运营商为了阻止个人用户在家里架设网站等服务，家庭宽带一般都会封禁了 80 、443 等重要的低位端口。</p>
+<p>主路由设置好后，基本无需各种折腾，能正常的上网即可。虽然 iStoreOS 支持非常丰富的插件，能够实现各种功能，但是为了整个家庭网络的稳定性，<strong>建议尽可能少在主路由上面安装各种插件。</strong></p>
+<h3>旁路由负责科学上网</h3>
+<p>使用旁路由模式一般都是为了科学上网服务的。</p>
+<p>iStoreOS 的网络设置向导中就带有拨号上网、旁路由设置等入口。界面清爽简洁，对小白用户来说非常友好。</p>
+<p><img alt="旁路由设置" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/network_architecture/network_guide.png" /></p>
+<p>在旁路由上搭建好了科学上网的服务之后，需要科学上网的设备，只需要将网关和 DNS 修改为旁路由的 IP 地址，即可享受科学上网的服务。例如个人使用的手机、黑苹果、AppleTV 等设备都可以非常方便的修改网关和 DNS 指向旁路由的地址。</p>
+<p>推荐一个 iStoreOS 的插件包： <a href="https://github.com/AUK9527/Are-u-ok" rel="nofollow">https://github.com/AUK9527/Are-u-ok</a></p>
+<h3>无线 AP</h3>
+<p>无线 AP 采用的是一台红米 AX6000+小米 AX6000 组的有线 mash 。</p>
+<p><img alt="小米 AX6000" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/network_architecture/mi_router.png" /></p>
+<p>红米 AX6000 在无线信号覆盖、散热以及稳定性等方面都极其出色，理论上一台红米 AX6000 即可覆盖，无需 2 台路由器。<strong>缺点就是红米 AX6000 不带 2.5G 网口，小米 AX6000 带有一个 2.5G 网口。</strong> </p>
+<p>如果不在意 2.5G 网口的话，个人还是非常推荐红米 AX6000 的。体积比小米 AX6000 小巧，300 元左右，性价比极高。设置好 Wi-Fi 之后，基本上就会忽略它的存在。</p>
+<p>由于主路由是软路由，负责 DHCP 和路由相关的功能。所以不需要硬路由器的路由等功能，只需硬路由器的无线信号发射功能，所以将硬路由设置为<strong>有线中继模式</strong>即可。 </p>
+<h3>核心交换机</h3>
+<p>由于有线设备较多，交换机我选择的是磊科 GS10 （ 8 个 2.5G + 2 个万兆 SFP+），618 入手不到 300 块，性价比极高。</p>
+<p>该交换机外壳为金属外壳，体积非常小巧。8 个 2.5G 网口可以满足绝大多数家庭用户的需求，额外的 2 个万兆光口适合连接 NAS 和台式机等设备。</p>
+<p><img alt="磊科交换机" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/network_architecture/netcoretec_switch.png" /></p>
+<h2>旁路由架构带来的好处</h2>
+<p>该架构带来的好处非常多：</p>
+<ul>
+<li>除了光猫外，家庭内所有设备处于同一个局域网段内，都由主路由分配 IP 地址，非常容易管理。</li>
+<li>整个家庭网络只有一个 DHCP 服务器，一层 NAT 转换。</li>
+<li>主路由可以采用性能强大的 X86 软路由，也可以替换为性价比较高的硬路由器。</li>
+<li>旁路由模式只需单网口即可，单口的 J1900 的小主机就能跑满千兆，且价格在 200 块左右，性价比极高。</li>
+<li>旁路由的接入对于整个家庭网络几乎没有任何侵入性，可以在现有的家庭网络下，完美接入交换机即可。</li>
+<li>整个网络非常的稳定，只要主路由不坏，整个家庭网络就不会崩掉。所以尽量别折腾主路由。</li>
+<li>旁路由可以随意折腾，假设旁路由挂了，家庭的主要网络还是好的，不用面对媳妇的怒火。</li>
+</ul>
+<h2>后续</h2>
+<p>后面会基于上述的物理网络架构，继续分享《家庭内网服务》、《在外访问家庭内网服务的最佳姿势》等更多内容。</p>
+]]></content:encoded>
+<pubDate>2024-09-21T04:23:22Z</pubDate>
+<pubDate>2024-09-21T04:21:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] macOS Sequoia Version 15.0 无法读取外部存储设备</title>
+<link>https://www.v2ex.com/t/1074591</link>
+<guid>https://www.v2ex.com/t/1074591</guid>
+<content:encoded><![CDATA[
+
+RT,刚刚在升级完 macOS 15 之后，突然发现无论是 SSD 还是 USB 都无法读取。插入存储设备后是有跳出对话框，让我选择是否允许连接（大概的意思）。但我点击过允许后，原本应该出现外部存储设备的 finder 侧边栏没有任何提示。请问有人遇到过类似的情况吗？
+]]></content:encoded>
+<pubDate>2024-09-21T04:23:02Z</pubDate>
+<pubDate>2024-09-21T04:22:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐一个开源的用于自己部署的图片演示站程序</title>
+<link>https://www.v2ex.com/t/1074590</link>
+<guid>https://www.v2ex.com/t/1074590</guid>
+<content:encoded><![CDATA[
+
+<p>使用场景：
+1 ，可以自己后台开通帐号，并禁止外部注册。。。
+2 ，可以简单上传照片，并编辑相关的描述等信息。
+3 ，有漂亮的模版，前台 （ web 和移动端）可以访问。</p>
+<p>试了 photoprism 和 immish ，貌似都只有管理员才能上传，不能开放出来一个对外的版本。。。不知道各位佬们有类似的产品推荐吗。。。</p>
+]]></content:encoded>
+<pubDate>2024-09-21T04:14:01Z</pubDate>
+<pubDate>2024-09-21T04:12:01Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 大模型 Tools(Function Calling)实用性分析 - 以媒体信息解析为例</title>
+<link>https://www.v2ex.com/t/1074588</link>
+<guid>https://www.v2ex.com/t/1074588</guid>
+<content:encoded><![CDATA[
+
+<p>作为一个喜欢收集影视资源的人，笔者面临的一个任务是：从文件名中解析出格式化的媒体信息（信息源统一为<a href="https://www.themoviedb.org/?language=zh-CN" rel="nofollow">The Movie Database (TMDB)</a>），方便整理文件，如：</p>
+<table>
+<thead>
+<tr>
+<th>文件名</th>
+<th>格式化信息</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Young.Woman.and.the.Sea.2024.2160p.DSNP.WEB-DL.H265.HDR.DDP5.1.Atmos-ADWeb.mkv</td>
+<td><code>{'title': '泳者之心', 'genre': 'movie', 'year': 2024}</code></td>
+</tr>
+<tr>
+<td>[動畫瘋] 物語系列 第外季＆第怪季[9][1080P].mp4</td>
+<td><code>{'title': '物语系列', 'genre': 'tv(anime)', 'year': 2009, 'tv_season_num': 5, 'tv_episode': 9}</code></td>
+</tr>
+</tbody></table><p>那么，在给定文件名的情况下，怎么用大语言模型（ LLM ，以下简称大模型） + TMDB API 来完成媒体信息的解析工作呢？这篇文章应运而生。</p>
+<blockquote>
+<p>当然，解析媒体信息 + 整理媒体文件（或者说媒体文件刮削），已经有很多现成的解决方案，如<code>nas-tools</code>、<code>jellyfin</code>，笔者更多是想探索大模型的可能性。</p>
+</blockquote>
+<hr />
+<p>"太长不看"的总结：</p>
+<ul>
+<li>qwen-plus-latest (qwen 2.5) 强于 deepseek-chat (v2.5)，gpt-4o-mini/gemini-1.5-flash 落后</li>
+<li>Tools(Function Calling)在机器间交互不好用，笔者的 JSON 调用模式效率&amp;效果更优。</li>
+</ul>
+<hr />
+<p>原文链接：<a href="https://www.yooo.ltd/2024/09/21/parcticality-analysis-of-llm-tools/" rel="nofollow">大模型 Tools(Function Calling)实用性分析 - 以媒体信息解析为例 - OrangeWolf 的博客</a></p>
+]]></content:encoded>
+<pubDate>2024-09-21T04:00:31Z</pubDate>
+<pubDate>2024-09-21T04:22:59Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 国内用户最容易开的离岸账户，不用去香港新加坡，不用提前预约，不用找代办</title>
+<link>https://www.v2ex.com/t/1074587</link>
+<guid>https://www.v2ex.com/t/1074587</guid>
+<content:encoded><![CDATA[
+
+<p>昨天终于拿到卡了，OCBC 华侨银行应该是目前国内用户最容易开的离岸账户，不用去香港，不用去新加坡，也不用提前预约，不用找代办，直接在 APP 线上开户即可，节省大量的时间和精力。</p>
+<p>而且可以获得 VISA 卡用来开 ChatGPT 、Midjourney 等服务，也可以用来开通 Apple ID 新加坡区等，还有很多国内限制的平台可以挖掘</p>
+<p>之前因为信箱一直没收到卡还以为寄丢了，直到上周发邮件给银行询问单号才发现早就到了。虽然申请很简单，但是实际过程中也踩了不少坑。完整内容可以看我写的这篇文章：<a href="https://chuhaime.com/shoukuan/ocbc-bank-account/?utm_source=v2ex&amp;utm_medium=social" rel="nofollow">OCBC 华侨银行开户指南：开户+入金验证+VISA 实体卡</a></p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:57:11Z</pubDate>
+<pubDate>2024-09-21T03:54:11Z</pubDate>
+</item>
+<item>
+<title>[远程工作] [前端 招聘 远程] Work From Home React/Vue</title>
+<link>https://www.v2ex.com/t/1074586</link>
+<guid>https://www.v2ex.com/t/1074586</guid>
+<content:encoded><![CDATA[
+
+<p>招一个远程的前端，技术栈 React/Vue 最好都使用过，至少工作 3 年起，有过授课经验或团队分享经验者优先，需要普通话流利。 薪资 12K~15K 左右，（远程懂的都懂，只要工作干完，剩下的时间自行安排）</p>
+<p>日常负责内容：基础研发，日常答疑，引流视频的录制 优势：可以跟业界内 Top Level 的大佬共事，对个人技术成长和项目经验有很大帮助。</p>
+<p>详情请加 wx Laplan_d ，（ Tips 请提供简历）</p>
+<p>岗位职责:
+1.按照教学规范和教学大纲高质量完成 web 前端课程的授课任务；
+2.带领学员参加实训并指导学员完成实操项目。
+3.根据学生及市场需要，高质量完成公开课、讲座、网络直播课等授课任务；
+4.完成相关的教学资料（实训大纲、教学 PPT 、教学用书、教学案例等）的研发工作。
+5.负责所属教学方向的工作计划和课程优化、改进教学方法，完善教学体系；
+6.完成课程辅导工作，解答学员课程疑问，保证学员的学习质量。</p>
+<p>任职要求：
+1.本科及以上学历，25-45 周岁；
+2.至少 3 年以上 Web 开发经验或 1 年以上教育行业 Web 讲师教学经验；
+3.精通 H5 、JavaScript 应用和 web APP 开发；
+4.有 Angular.js/React.js/Vue.js/Backbone.js/TypeScript 等前端框架实践经验；
+5.熟悉 node.JS 的开发实践，如 expressjs 或 koa 框架等；
+6.热爱教育行业、良好的职业素养及与人沟通、表达能力,有教育行业教学工作经验者优先录用</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:48:39Z</pubDate>
+<pubDate>2024-09-21T03:45:39Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] MacBook Pro 自检显示 ppp007</title>
+<link>https://www.v2ex.com/t/1074585</link>
+<guid>https://www.v2ex.com/t/1074585</guid>
+<content:encoded><![CDATA[
+
+<p>拼多多上买了台 MacBook Pro m1 ，用苹果自己的硬件检测程序跑了一遍，结果显示 code ppp007 ，这说明电源还是电缆不是原配的吗？</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:45:25Z</pubDate>
+<pubDate>2024-09-21T03:45:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有 iPad 后还有必要留着 mbp 吗？</title>
+<link>https://www.v2ex.com/t/1074584</link>
+<guid>https://www.v2ex.com/t/1074584</guid>
+<content:encoded><![CDATA[
+
+公司有 mbp ，家里有 pc ，刚入手了 iPad ，家里自己的 mbp 是不是可以出掉回血了？<br />岗位是产品经理，回想一下好像也没有需要移动生产力的场景
+]]></content:encoded>
+<pubDate>2024-09-21T03:41:58Z</pubDate>
+<pubDate>2024-09-21T03:38:58Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有支持 steam 的科学网络吗，注册的时候一直提示网络问题，国区注册成功了。可以转区吗</title>
+<link>https://www.v2ex.com/t/1074583</link>
+<guid>https://www.v2ex.com/t/1074583</guid>
+<content:encoded><![CDATA[
+
+有转区的网络推荐吗<br />感谢~~~
+]]></content:encoded>
+<pubDate>2024-09-21T03:41:10Z</pubDate>
+<pubDate>2024-09-17T03:41:10Z</pubDate>
+</item>
+<item>
+<title>[投资] 债券 ETF 怎么进行估值</title>
+<link>https://www.v2ex.com/t/1074582</link>
+<guid>https://www.v2ex.com/t/1074582</guid>
+<content:encoded><![CDATA[
+
+<p>已知当前债券 ETF 的净值、利率和央行的基准利率，与未来央行的基准利率。</p>
+<p>有两个问题：</p>
+<ol>
+<li>怎么能判断当前的债券 ETF 是否属于高估了？</li>
+<li>怎么判断在未来央行的基准利率下，这个债券 ETF 的净值应该是多少？</li>
+</ol>
+<p>考虑到风险收益，这里讨论的是国债 ETF ，默认无风险。</p>
+<p>有什么资料可以推荐吗？</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:38:03Z</pubDate>
+<pubDate>2024-09-21T03:48:48Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPhone 16 有史以来最无感的一年（纯吐槽）</title>
+<link>https://www.v2ex.com/t/1074581</link>
+<guid>https://www.v2ex.com/t/1074581</guid>
+<content:encoded><![CDATA[
+
+虽然每年都升级，今年对 desert titanium 实在无感，所以选了和 15pm 一样的 natural titanium 。<br /><br />结果就是迁移的过程中好几次拿起来旧的以为在设置新的手机，放一起不去看 camera control ，根本分不清<br /><br />另外就是 eSIM 迁移真是痛苦，物理卡可以直接还，eSIM 不知道是运营商限制还是啥，都是各种找客服，客服提示 iOS 直接可以迁移，但实际提示不支持。然后又跟 Apple watch 的 eSIM 有冲突，取消重新激活一顿操作，最后几个小时后，找了 N 个客服和电话之后重新发了 eSIM QR code 才更换成功。<br /><br />还好是不支持年年换新，否则去店里，迁移数据慢，然后 eSIM 得找运营商，估计苹果都得让大家自己把手机带回去迁移完再把老得回收。<br /><br />总结，iPhone 16 多了一个超级难用的 camera control button 。
+]]></content:encoded>
+<pubDate>2024-09-21T03:36:28Z</pubDate>
+<pubDate>2024-09-21T04:21:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在 AI 能不能生成音乐，或者有没有一款 AI 可以生成音乐的</title>
+<link>https://www.v2ex.com/t/1074580</link>
+<guid>https://www.v2ex.com/t/1074580</guid>
+<content:encoded><![CDATA[
+
+<p>直接生成音频，而不是只生成音乐的描述</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:33:15Z</pubDate>
+<pubDate>2024-09-21T03:59:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家旅游的时候是如何解决洗衣服的问题的？</title>
+<link>https://www.v2ex.com/t/1074579</link>
+<guid>https://www.v2ex.com/t/1074579</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-21T03:29:45Z</pubDate>
+<pubDate>2024-09-21T04:10:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] 有没有朋友升级到 iOS18 之后遇到字体问题呀</title>
+<link>https://www.v2ex.com/t/1074578</link>
+<guid>https://www.v2ex.com/t/1074578</guid>
+<content:encoded><![CDATA[
+
+我用 reeder 看 V 站的帖子会碰到很多莫名其妙的字变成下图这种条条，打开网页看又正常，把这个字粘贴到别的位置又正常。<br />![]( <a href="https://www.v2ex.com/i/Pfz10U1m.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 Pfz10U1m.jpeg"><img class="embedded_image" src="https://i.v2ex.co/Pfz10U1m.jpeg" /></a>)<br /><br />还有就是我的 iPad 升级之后 plex 播中文字幕的视频字幕会变成框框，而且视频基本上卡住不动。<br /><br />大家有碰到这种情况吗
+]]></content:encoded>
+<pubDate>2024-09-21T03:28:24Z</pubDate>
+<pubDate>2024-09-21T03:28:24Z</pubDate>
+</item>
+<item>
+<title>[分享创造] c2story AI 写作助手更新：多模型支持、版本控制及故事类型定制</title>
+<link>https://www.v2ex.com/t/1074577</link>
+<guid>https://www.v2ex.com/t/1074577</guid>
+<content:encoded><![CDATA[
+
+<p>各位好，最近我们对 c2story AI 写作助手进行了重大更新，想和大家分享新功能，也欢迎各位试用反馈。</p>
+<p>更新要点：</p>
+<ol>
+<li>
+<p>多模型集成：</p>
+<ul>
+<li>新增支持 GPT 、Claude 、DeepSeek 、Gemini 等多种 AI 模型</li>
+<li>用户可自由切换或组合使用不同模型，优化输出效果</li>
+</ul>
+</li>
+<li>
+<p>持续写作流：</p>
+<ul>
+<li>实现了无缝的写作体验，减少等待时间</li>
+<li>后端优化，提高了响应速度和稳定性</li>
+</ul>
+</li>
+<li>
+<p>版本控制：</p>
+<ul>
+<li>引入类 Git 的版本管理系统</li>
+<li>支持多版本比较、回滚等操作</li>
+</ul>
+</li>
+<li>
+<p>故事类型定制：</p>
+<ul>
+<li>新增多个预设故事类型（如悬疑、言情等）</li>
+<li>针对不同类型优化输出，提高特定场景下的写作质量</li>
+</ul>
+</li>
+</ol>
+<p>技术栈：</p>
+<ul>
+<li>前端：Next.js</li>
+<li>后端：Java</li>
+<li>数据存储：MySQL + Redis</li>
+</ul>
+<p>性能优化：</p>
+<ul>
+<li>使用 Redis 进行缓存，显著提升了响应速度</li>
+<li>针对大规模并发写作场景进行了优化</li>
+</ul>
+<p>安全性：</p>
+<ul>
+<li>实现了端到端加密，保护用户的创作内容</li>
+<li>严格的数据隔离，确保多用户环境下的数据安全</li>
+</ul>
+<p>Demo 地址： <a href="https://c2story.com/" rel="nofollow">https://c2story.com/</a></p>
+<p>欢迎各位体验并提供反馈。如果遇到任何问题或有改进建议，请随时在评论中提出。我们特别关注：</p>
+<ol>
+<li>多模型切换的使用体验</li>
+<li>不同故事类型下的 AI 输出质量</li>
+<li>在持续写作模式下的性能表现</li>
+</ol>
+<p>对于技术细节感兴趣的朋友，我也可以在评论里进一步解释我们在实现这些功能时遇到的挑战和解决方案。</p>
+<p>期待听到大家的想法和建议！</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:27:59Z</pubDate>
+<pubDate>2024-09-21T03:27:59Z</pubDate>
+</item>
+<item>
+<title>[macOS] 想问下 macOS15 不能用 option 作为快捷键以后，影响大吗。</title>
+<link>https://www.v2ex.com/t/1074576</link>
+<guid>https://www.v2ex.com/t/1074576</guid>
+<content:encoded><![CDATA[
+
+<p>相当于所有和 option 有关联的快捷键包括一些 hyper key 只要包含 option 是不是都不能用了。</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:25:00Z</pubDate>
+<pubDate>2024-09-20T23:23:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] 编程初学者， MAC 上有什么好用的 C++编程软件？</title>
+<link>https://www.v2ex.com/t/1074574</link>
+<guid>https://www.v2ex.com/t/1074574</guid>
+<content:encoded><![CDATA[
+
+小侄子报了个编程培训班，10 月份开学但他家用的是 macbook pro 2018 笔记本，孩子父母啥都不懂，用不用给装一个双系统，担心老师让用 windows 下的软件。。。坐标：苏州
+]]></content:encoded>
+<pubDate>2024-09-21T03:20:07Z</pubDate>
+<pubDate>2024-09-21T03:59:08Z</pubDate>
+</item>
+<item>
+<title>[服务器] nodejs 后端项目如何部署？</title>
+<link>https://www.v2ex.com/t/1074572</link>
+<guid>https://www.v2ex.com/t/1074572</guid>
+<content:encoded><![CDATA[
+
+<p>使用 Midwayjs 开发的后端项目，包括 api 项目和管理项目，使用 mongoo 数据库，后续可能会使用 redis ，请问这种单进程的项目怎样部署会比较好呢？</p>
+<p>项目的特性决定了会有比较明显的流量潮汐，就是大部分时间流量不会很多，小部分时间流量会突然增多，但总体流量会持续增加这种。</p>
+<p>目前的困惑在于</p>
+<p>使用云服务器+pm2 的部署方案，可以很简单的实现均衡负载，可以根据云服务器核数灵活的决定 pm2 要 cluster 的数量，db 等可以和服务器装在一台云服务器。当流量增加时，可以增加云服务器核数和内存就行了。 但是感觉现在云服务器越来越贵，要实现灵活的增减配就只能买短时间，但是折扣就会很低。要买长时间的话，变更配置又要补很多差价。。。</p>
+<p>另外问下大佬们，你们通过代理最多能少几个点的折扣？</p>
+<p>另一种部署方案就是使用 Serverless ，麻烦的地方在于前期配置，比较麻烦。配置好了，只需要根据流量情况动态调整实例数量就好了，但是不清楚像 redis ，db 这些是需要另外云服务器来部署，还是买 云 db 或者去 redis 更方便。Serverless 另一个好处就是不像云服务器还要管理服务器的环境，软件版本，bug 修复，漏洞这些。</p>
+<p>对于这两种方法，希望有经验的大佬些能不吝赐教，感谢。希望是能在产品早期找到一个能持续增加，成本可控的方案。</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:15:34Z</pubDate>
+<pubDate>2024-09-21T04:03:41Z</pubDate>
+</item>
+<item>
+<title>[NAS] 求一个视频流可行的 nas 传输方案</title>
+<link>https://www.v2ex.com/t/1074570</link>
+<guid>https://www.v2ex.com/t/1074570</guid>
+<content:encoded><![CDATA[
+
+公司每天会产生大量的监控视频。需要保存 1-2 个月。目前采用内网 nas （黑裙） smb 的方式，5-6 个电脑一起录制就会非常卡顿（录制电脑）。<br />nas 监控表明 nas 上面的负载非常低，网络占用也不足 100m （ 2.4g 网卡）。<br /><br />初步认为问题应该是因为电信 fttr 子路由负载过高导致。<br /><br />同时视频是直接在 smb 的共享文件上录制，就是文件会直接生成在 smb 上（即便是没完全录制完成的）这导致每次传输的文件块体积很小，据了解 smb 在小文件传输上不具备优势，但是 windows 装 nfs 又过于麻烦，特别是录制电脑的 windows 版本并不统一。<br /><br />请问有什么可行的优化方案么？<br /><br />最后 windows 的映射驱动器和添加网络位置有传输性能上的差异么
+]]></content:encoded>
+<pubDate>2024-09-21T03:06:42Z</pubDate>
+<pubDate>2024-09-21T03:06:42Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 有无拼夕夕下单 iPhone 16 系列的老哥？发货了吗？</title>
+<link>https://www.v2ex.com/t/1074569</link>
+<guid>https://www.v2ex.com/t/1074569</guid>
+<content:encoded><![CDATA[
+
+<p>拼多多入手了 16pro ，商品页写的最迟 9 月 30 号前发货，今年受电池影响估计有不少退单的，不知道有没有从拼多多购入的大哥，你们有发货了的吗？</p>
+]]></content:encoded>
+<pubDate>2024-09-21T03:00:25Z</pubDate>
+<pubDate>2024-09-21T03:52:33Z</pubDate>
+</item>
+<item>
+<title>[深圳] 目前在西乡上班，一个月后准备搬过去，自如合租有优惠可领么</title>
+<link>https://www.v2ex.com/t/1074568</link>
+<guid>https://www.v2ex.com/t/1074568</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-21T02:51:53Z</pubDate>
+<pubDate>2024-09-21T02:51:53Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] Apple Watch S10（亮黑色铝金属国行版）速评</title>
+<link>https://www.v2ex.com/t/1074566</link>
+<guid>https://www.v2ex.com/t/1074566</guid>
+<content:encoded><![CDATA[
+
+<h2>背景</h2>
+<p>在下从初代开始使用 Apple Watch 至今，保有 S8 ，今年是例行升级的年份。本来想换成 Ultra 3 ，因为 Ultra 的外观硬朗一些，更靠拢本人审美。奈何今年没有更新，只能继续走常规款了。</p>
+<p>今年的常规款有以下几点颇让人在意：</p>
+<ul>
+<li>亮面质感的铝金属表壳有点意思，不知搭配好久没用的黑色不锈钢链式表带如何？</li>
+<li>内地版（国行）不能快充，怎么办？更重要的是，以前的各种充电配件还能不能充国行？</li>
+</ul>
+<h2>结论</h2>
+<p><strong>总体还行</strong>。有亮点，有不及预期的地方，但总的来说还是留下不退了。</p>
+<h2>要点速评</h2>
+<ul>
+<li>
+<p>亮黑色外观：</p>
+<ul>
+<li>通体深邃的黑色，在非点亮状态下表面外观呈现得很好。</li>
+<li>但是这个亮黑色不够「亮」，没有以前黑色不锈钢版本的那种金属高光亮泽。亮黑色的工艺本身已算为数不多的创新点，但是想媲美不锈钢的抛光效果果然还是太勉强了。</li>
+<li>搭配古早的黑色不锈钢链式表带（ 2015 年入），能看，但表带显然更具光泽。考虑到 Watch 已经有好多代没黑色不锈钢表壳（而且以后大概率也不会有），现在也只能用这个亮黑色版本来填房了。</li>
+</ul>
+</li>
+<li>
+<p>充电问题：</p>
+<ul>
+<li>作为一个装备党，配件实在太多了，因此我从来不用自带的充电线。要是以前的配件不能用，我必不用国行！经过我实际测试，还好还好，都能正常充电。</li>
+<li>具体的充电效率没有再测。</li>
+</ul>
+</li>
+<li>
+<p>薄爆表：</p>
+<ul>
+<li>本来没在意变薄这件事，结果上手后明显感觉轻了、薄了，感受特别明显。</li>
+</ul>
+</li>
+</ul>
+<h2>国行否？</h2>
+<p>拿到实物前我也在研究非国行的入手渠道，肉身去香港或日本游玩然后顺手买一个是比较好的选择。</p>
+<p>但是考虑到以下几点，我却步了：</p>
+<ul>
+<li>非国行的 Apple Watch 毫无价格优势。</li>
+<li>按照我自己的日常行为路径，倒是有时间给它慢充满电。</li>
+<li>出去买太麻烦了。</li>
+</ul>
+<p>所以，最终还是决定就这么着吧！</p>
+<h2>注释</h2>
+<p>已测试的充电配件如下：</p>
+<ul>
+<li>Apple MagSafe Duo 二合一充电器</li>
+<li>Belkin BOOST↑CHARGE™ PRO Portable 手表充电底座</li>
+<li>Anker MagGo (Qi2) 3-in-1 三合一充电底座</li>
+<li>Satechi Dual Sided 2-in-1 USB-C 二合一便携充电器</li>
+<li>Satechi 3-in-1 Foldable Qi2 三合一充电底座</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-09-21T02:49:48Z</pubDate>
+<pubDate>2024-09-21T03:32:06Z</pubDate>
+</item>
+<item>
+<title>[Apple] 在防止用户自定义快速启动上面，苹果真是尽心尽力 [iOS18]</title>
+<link>https://www.v2ex.com/t/1074565</link>
+<guid>https://www.v2ex.com/t/1074565</guid>
+<content:encoded><![CDATA[
+
+<p>我估计是更新完 iOS18 对苹果骂的最多的，当然不排除是我无能。
+更新完 iOS18 后 负一屏旧版的小组件不能使用了 就是那个正式上小组件前可以编辑的 widget 我记得当时叫挂件。
+那个时候诞生了很多有趣又实用的应用：Pin 、Ai search 等
+尽管他们有的已经不再更新，我通过数据备份还原一直沿用至今。
+其中我最常用的是 Air launch
+<img alt="airlaunch 截图" class="embedded_image" rel="noreferrer" src="https://images.iphonemod.net/wp-content/uploads/2016/11/airlaunch-pro2.jpg" />
+可以自定义快速启动各种 APP 和 APP 的一些特定功能
+现在它们都在负一屏消失了……
+我捣鼓了半天 只能在桌面上把他们作为 APP 放上去 然后到这个特定桌面 点击使用
+之前试图使用快捷指令代替 不行 负一屏快捷指令显示的内容太少了 而且排版麻烦。</p>
+<p>还有就是右上下滑的控制中心
+又一次改变了我的习惯，原来可以方便的一键关闭打开 WIFI 、蜂窝网络、蓝牙
+现在我只能把他们单独放在控制中心，然后发现没有单独的 WIFI 和飞行模式，还要再把自带网络模块放进去
+现在网络模块+单独的蜂窝网络、蓝牙占据了两行，功能还重叠；真棒！ Amazing ！</p>
+]]></content:encoded>
+<pubDate>2024-09-21T02:47:19Z</pubDate>
+<pubDate>2024-09-21T04:25:30Z</pubDate>
+</item>
+<item>
+<title>宣传一下 RIFE 视频插帧 / 补帧方案</title>
+<link>https://www.v2ex.com/t/984548</link>
+<guid>https://www.v2ex.com/t/984548</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/megvii-research/ECCV2022-RIFE" rel="nofollow">项目主页</a> | <a href="https://www.bilibili.com/video/BV1J3411t7qT/" rel="nofollow">b 站宣传视频</a></p>
+<p>对比<a href="https://www.v2ex.com/t/757211" rel="nofollow">两年多前在 V2EX 发的贴</a>，我们的项目有了发表论文，积攒了数千个 star ，特别感谢 V2EX 的第一波流量</p>
+<p>在社区贡献的帮助下，RIFE 插帧算法有了很不错的进步，速度和效果都有大幅改进，也有很多下游的衍生项目和 GUI</p>
+<p>有很多小伙伴借助我们的算法和软件处理视频</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/PokPo5yGl.jpeg" /></p>
+<p>给个 star 鼓励一下呗（我们的进步离不开社区伙伴的支持 <a href="https://github.com/megvii-research/ECCV2022-RIFE/stargazers" rel="nofollow">star</a>）</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Vd8Z44hD.png" /></p>
+<p>友情推荐： <a href="https://github.com/Justin62628/Squirrel-RIFE" rel="nofollow">https://github.com/Justin62628/Squirrel-RIFE</a></p>
+<p><a href="https://github.com/n00mkrad/flowframes" rel="nofollow">https://github.com/n00mkrad/flowframes</a></p>
+<p><a href="https://github.com/nihui/rife-ncnn-vulkan" rel="nofollow">https://github.com/nihui/rife-ncnn-vulkan</a></p>
+]]></content:encoded>
+<pubDate>2023-10-23T07:48:15Z</pubDate>
+<pubDate>2024-09-21T03:35:53Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 私有化 Excalidraw，支持多种中文字体选择</title>
 <link>https://www.v2ex.com/t/1074564</link>
 <guid>https://www.v2ex.com/t/1074564</guid>
 <content:encoded><![CDATA[
-
 <p>之前大部分的私有化 Excalidraw 都只支持一种中文字体，最近 Excalidraw 更新了字体选择器功能，可以更方便的添加想要的字体。</p>
 <p>自己就也搭建部署了一个： <a href="https://draw.vfox.me/" rel="nofollow">https://draw.vfox.me/</a>。</p>
 <p>新增的内容：</p>
@@ -23,14 +534,12 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/vJmy1l1.png" /></p>
 ]]></content:encoded>
 <pubDate>2024-09-21T02:45:54Z</pubDate>
-<pubDate>2024-09-21T02:45:54Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 《程序员的生活周刊》第一期发布啦 🎉</title>
 <link>https://www.v2ex.com/t/1074563</link>
 <guid>https://www.v2ex.com/t/1074563</guid>
 <content:encoded><![CDATA[
-
 <p>周刊内容除了常规的工具推荐，也会涉及一些<strong>日常生活、运动健康、法律案例</strong>等，所以叫做《生活周刊》</p>
 <p>目前更新渠道主要是公众号 程序员楷鹏 和网站 <a href="https://wukaipeng.com/weekly" rel="nofollow">https://wukaipeng.com/weekly</a></p>
 <h2>一、为什么考虑做周刊？</h2>
@@ -49,7 +558,6 @@
 <p>后续会考虑 RSS 订阅或者小报童专栏</p>
 <p>如果各位程序员朋友想要投稿，或者提提意见，欢迎发邮箱 <a href="mailto:wkpcoder@163.com">wkpcoder@163.com</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-21T02:45:32Z</pubDate>
 <pubDate>2024-09-21T02:43:32Z</pubDate>
 </item>
 <item>
@@ -57,10 +565,8 @@
 <link>https://www.v2ex.com/t/1074561</link>
 <guid>https://www.v2ex.com/t/1074561</guid>
 <content:encoded><![CDATA[
-
 都已经到货了，珠海面交或邮寄。<br /><br />16 和 16pro 都是黑色，256 。<br /><br />绿色：cHBwcHBsYXU=
 ]]></content:encoded>
-<pubDate>2024-09-21T02:40:47Z</pubDate>
 <pubDate>2024-09-21T02:40:47Z</pubDate>
 </item>
 <item>
@@ -69,9 +575,7 @@
 <guid>https://www.v2ex.com/t/1074560</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-09-21T02:34:47Z</pubDate>
 <pubDate>2024-09-21T02:31:47Z</pubDate>
 </item>
 <item>
@@ -79,10 +583,8 @@
 <link>https://www.v2ex.com/t/1074557</link>
 <guid>https://www.v2ex.com/t/1074557</guid>
 <content:encoded><![CDATA[
-
 上次看到一个人分享 2024 还剩几天，做了个好玩的，把剩下几个月的愿望留下，年底来还愿，看看愿望实现了没...<br /><a href="https://2024wishlist.vercel.app" rel="nofollow noopener" target="_blank">https://2024wishlist.vercel.app</a><br />还剩 103 天，2024 已经过去 72%...
 ]]></content:encoded>
-<pubDate>2024-09-21T02:21:10Z</pubDate>
 <pubDate>2024-09-21T02:21:10Z</pubDate>
 </item>
 <item>
@@ -90,10 +592,8 @@
 <link>https://www.v2ex.com/t/1074555</link>
 <guid>https://www.v2ex.com/t/1074555</guid>
 <content:encoded><![CDATA[
-
 <p>今年发布的华为三折叠手机 Mate XT 和苹果 16 到底哪方能够赢得市场</p>
 ]]></content:encoded>
-<pubDate>2024-09-21T02:20:04Z</pubDate>
 <pubDate>2024-09-21T02:18:04Z</pubDate>
 </item>
 <item>
@@ -101,10 +601,8 @@
 <link>https://www.v2ex.com/t/1074554</link>
 <guid>https://www.v2ex.com/t/1074554</guid>
 <content:encoded><![CDATA[
-
 搜索 “free best 噶 u 你记住”  <br /><br />但是出现的谷歌搜索 却不是任何相关的 被污染过的结果 这是如何做到的？ <br /><br /><br />&gt;备注<br /><br />噶 u 你记住 原本拼音想打 “ 关键字” 输错导致的<br /><br />结果预览 <br /><br /><a href="https://justpaste.it/fudzh" rel="nofollow noopener" target="_blank">https://justpaste.it/fudzh</a>
 ]]></content:encoded>
-<pubDate>2024-09-21T02:16:01Z</pubDate>
 <pubDate>2024-09-21T02:29:07Z</pubDate>
 </item>
 <item>
@@ -112,10 +610,8 @@
 <link>https://www.v2ex.com/t/1074552</link>
 <guid>https://www.v2ex.com/t/1074552</guid>
 <content:encoded><![CDATA[
-
 openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备都有一个 ipv6 地址，那就是一台设备做一个 ddns ，linux 还好说点，一条命令的事，但是 win 就有点尴尬了。<br /><br />有没有一个插件，在 openwrt 里，能搞定内网其它的 ipv6 ？目前用的 ddns 用网口的方式获取路由器本身的 ipv6 ，也只能搞定一个 ipv6 ，其它的 nas 也想用单独的动态域名去连。<br /><br />例如通过 hostname 、mac 地址绑定、内网 ipv6 地址等方法，搞定公网 ipv6 ，然后 ddns ，省得每台设备折腾一回。
 ]]></content:encoded>
-<pubDate>2024-09-21T02:05:36Z</pubDate>
 <pubDate>2024-09-20T18:05:36Z</pubDate>
 </item>
 <item>
@@ -123,11 +619,9 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <link>https://www.v2ex.com/t/1074550</link>
 <guid>https://www.v2ex.com/t/1074550</guid>
 <content:encoded><![CDATA[
-
 <p>之前在做图片处理的时候，对比了几种阈值方式，最后使用 hsv 阈值进行二值化化，但是 hsv 的范围不太好确定，就自己写了一个小工具，动态观察图片变化确定阈值的工具
 <img alt="" class="embedded_image" rel="noreferrer" src="https://bbs.125.la/forum.php?mod=image&amp;aid=1338766&amp;size=300x300&amp;key=d749e6fd3ce7f1b2&amp;nocache=yes&amp;type=fixnone" /></p>
 ]]></content:encoded>
-<pubDate>2024-09-21T02:01:42Z</pubDate>
 <pubDate>2024-09-21T01:58:42Z</pubDate>
 </item>
 <item>
@@ -135,10 +629,8 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <link>https://www.v2ex.com/t/1074549</link>
 <guid>https://www.v2ex.com/t/1074549</guid>
 <content:encoded><![CDATA[
-
 个人目的只是想从 应用使用的角度来理解，非对称加密、公钥私钥这些概念。<br /><br />对于 ssh 的`authorized_keys`的应用使用过程为：<br />● 服务器检查 `authorized_keys` 文件，找到与客户端提供的公钥匹配的条目。<br />● 服务器生成一个随机数，并使用公钥对其进行加密，然后将加密后的消息发送给客户端。<br />● 客户端使用私钥解密该消息，并将解密后的随机数返回给服务器。<br />● 服务器验证返回的随机数是否正确。如果正确，服务器接受客户端的连接请求。<br />从这个过程，理解了"正因为客户端使用了私钥来解密，所以才能证明客户端的身份。"，而且反过来，“私钥加密，公钥解密”是无法证明身份的。<br />自己也去 ssh 连接了多个服务器，查看了`authorized_keys`的内容。也看了客户端自己`~/.ssh/id_rsa.pub`。<br /><br /><br />那对于“私钥签名，公钥验证”，有什么应用场景是平时接触得到的？<br />- 而且最好有实物可以查看，帮助理解。<br />- 而且要是能有一个和我上面差不多的简单分析，就更好了。
 ]]></content:encoded>
-<pubDate>2024-09-21T02:00:21Z</pubDate>
 <pubDate>2024-09-21T02:45:22Z</pubDate>
 </item>
 <item>
@@ -146,10 +638,8 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <link>https://www.v2ex.com/t/1074548</link>
 <guid>https://www.v2ex.com/t/1074548</guid>
 <content:encoded><![CDATA[
-
 现在英特尔这么没落了吗 在我印象中曾经的英特尔 i3 默秒全,i5 秒全家,i7 轰成渣
 ]]></content:encoded>
-<pubDate>2024-09-21T02:00:17Z</pubDate>
 <pubDate>2024-09-21T02:33:53Z</pubDate>
 </item>
 <item>
@@ -157,12 +647,10 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <link>https://www.v2ex.com/t/1074547</link>
 <guid>https://www.v2ex.com/t/1074547</guid>
 <content:encoded><![CDATA[
-
 <p>有用-滴答清单的吗？ ios18 上面桌面小组件用不了了
 之前还能用，这次一升级，用不了了。</p>
 <pre><code>有推荐其他同类 app 的嘛？</code></pre>
 ]]></content:encoded>
-<pubDate>2024-09-21T01:57:02Z</pubDate>
 <pubDate>2024-09-21T02:33:09Z</pubDate>
 </item>
 <item>
@@ -170,7 +658,6 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <link>https://www.v2ex.com/t/1074546</link>
 <guid>https://www.v2ex.com/t/1074546</guid>
 <content:encoded><![CDATA[
-
 <h2>结论</h2>
 <p><strong>差强人意</strong>。预期提得太高了，以至于我实际使用后的感受是「还行，不退了」，而不是「卧槽，果然牛逼」。</p>
 <h2>横评决策</h2>
@@ -229,10 +716,8 @@ openwrt 的路由器，最近想在外面用 ipv6 来连，发现每一台设备
 <li><a href="https://www.v2ex.com/t/737533" rel="nofollow">AirPods / AirPods Pro / Powerbeats Pro 速评</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-09-21T01:48:59Z</pubDate>
 <pubDate>2024-09-21T02:37:26Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 关于亚马逊境外云 IP</title>
 <link>https://www.v2ex.com/t/1074544</link>
@@ -14981,295 +15466,6 @@ RT, 迫不及待.
 2.自己的腰背核心什么的还可以，最近也准备 DIY 一个实木升降桌</p>
 ]]></content:encoded>
 <pubDate>2024-09-16T11:00:29Z</pubDate>
-</item>
-<item>
-<title>[iPhone] 我分别买日版的 magsafe 充电器和 iPhone 在中国 25w 无线充电会被无协问候吗</title>
-<link>https://www.v2ex.com/t/1073382</link>
-<guid>https://www.v2ex.com/t/1073382</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-09-16T16:20:08Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 请教一下各位老哥，在 Windows go 程序交叉编译时候使用什么编译链？</title>
-<link>https://www.v2ex.com/t/1073381</link>
-<guid>https://www.v2ex.com/t/1073381</guid>
-<content:encoded><![CDATA[
-<p>我搞了个小项目，用的是 goreleaser 来编译各环境应用，由于需要用到 sqlite 便在配置文件中把<code>CGO_ENABLED</code> 的值设置为 1 ，但是在编译过程中遇到各种各样的问题。</p>
-<pre><code>build failed after 10s                   error=failed to build for darwin_arm64: exit status 1: # runtime/cgo
-cgo: C compiler "clang" not found: exec: "clang": executable file not found in %PATH%
------------
-  ⨯ build failed after 11s                   error=failed to build for linux_arm_6: exit status 1: # runtime/cgo
-gcc: error: unrecognized command line option '-marm'; did you mean '-mabm'?
-----------
-failed to build for linux_amd64_v1: exit status 1: # runtime/cgo
-arm-linux-gnueabi-gcc: error: unrecognized command-line option '-m64'
-
-</code></pre>
-<p>我觉得我已经脑掺了🙈🙈🙈</p>
-]]></content:encoded>
-<pubDate>2024-09-16T16:05:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家对微信的服务号怎么看？消息都不提醒了。</title>
-<link>https://www.v2ex.com/t/1073378</link>
-<guid>https://www.v2ex.com/t/1073378</guid>
-<content:encoded><![CDATA[
-这几天突然发现服务号的各种消息都不提醒了，才发现微信把各种服务号的消息都折叠了。点进去看消息要点两次，第一次点进去的页面全是广告，再点一次才能看消息。<br />再发展下去怕不是要把用户的消息也放进三、四级页面，再到每级页面塞广告吧。<br /><br />另外 QQ 从今年也开始时不时弹广告了。
-]]></content:encoded>
-<pubDate>2024-09-16T14:21:10Z</pubDate>
-</item>
-<item>
-<title>[Android] 有没有在线看视频的优秀手机浏览器推荐</title>
-<link>https://www.v2ex.com/t/1073377</link>
-<guid>https://www.v2ex.com/t/1073377</guid>
-<content:encoded><![CDATA[
-<p>有时候会在线看电影，但电影网站自带的播放器太垃圾了，没有倍速播放，上拉提高亮度和音量等等，求推荐优秀的手机浏览器（ Android ），最好是海外的浏览器，国内的浏览器要各种登录输入手机号，好恶心。</p>
-]]></content:encoded>
-<pubDate>2024-09-16T14:15:46Z</pubDate>
-</item>
-<item>
-<title>[程序员] 新配的台式电脑鼠标和键盘偶尔丢键，按了没反应，何解？</title>
-<link>https://www.v2ex.com/t/1073376</link>
-<guid>https://www.v2ex.com/t/1073376</guid>
-<content:encoded><![CDATA[
-键盘是新买的小米的 TKL 全键无冲机械键盘；<br />鼠标是旧的罗技的 G102 。<br /><br />玩的游戏是 PUBG ，键盘丟键主要是在 Q 和 E 键，我手一直按着，但是游戏里没有反应，我得再按一下。鼠标就更离谱了，鼠标左键丟键，一直按着有时候没有反应，枪开不出来，得再按一下。键鼠都是有线插在台式机上。<br /><br />这些都是偶尔但是很容易复现的事情，实在是想不通啥原因。这事和内存应该没关系吧，但我想换一下排除下看看。也有可能就是键盘和鼠标的问题。
-]]></content:encoded>
-<pubDate>2024-09-16T14:03:38Z</pubDate>
-</item>
-<item>
-<title>[推广] 分享一个 API 站点，支持 o1-mini， o1-preview</title>
-<link>https://www.v2ex.com/t/1073375</link>
-<guid>https://www.v2ex.com/t/1073375</guid>
-<content:encoded><![CDATA[
-<p><a href="https://llm.indrin.cn/" rel="nofollow">https://llm.indrin.cn/</a></p>
-<p>免费使用，支持各种国产模型，开源大模型，欢迎体验。</p>
-]]></content:encoded>
-<pubDate>2024-09-16T13:53:44Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 西安联通集团 G7615V2 FTTR 设备 发热重启</title>
-<link>https://www.v2ex.com/t/1073374</link>
-<guid>https://www.v2ex.com/t/1073374</guid>
-<content:encoded><![CDATA[
-<p>FTTR 设备发热实在是太过于严重了，后台中兴智家显示不到 50 度，隔三差五的就重启，昨天晚上直接重启了 5 次。直到我插了一个 USB 风扇，才未重启，可是风扇外置，温度根本压不下去，保持在 42 度左右。一旦我断电，他就又开始重启了，网络体验实在是糟糕。
-目前 FTTR 业务，还有两年半的合约未到期，违约金 600 元。个人觉得这台设备不如 100 元装机费的普通联通千兆光猫。
-这个设备仅有一年的厂家保修，估计也坏不掉，就是软件方面的配置，太差劲了。
-100 元的普通千兆光猫都支持每天断电重启，这个 399 元装机费的 FTTR 设备却不支持。
-399 元装机费的设备，这个光衰的控制也差劲，-28db 的光，设备都上线不了，100 元装机费的设备，-35 的光，照样在那里刷抖音。</p>
-<p>目前使用了一台 AMD 幽灵散热器，可以温度控制在 35 度。十分稳定，可是盖子扣不上，幽灵散热器铝板，摆在上边，不知用什么方式固定起来，只是只能只能反面朝上放，也比较担心积灰。</p>
-<p>V 友们有什么解决办法吗？
-<img alt="1000030833.jpg" class="embedded_image" rel="noreferrer" src="https://cdn-fusion.imgimg.cc/i/2024/3449f7e6567291e9.jpg" title="1000030833.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-09-16T13:27:45Z</pubDate>
-</item>
-<item>
-<title>[Apple] AirPods 4 系列评测已出</title>
-<link>https://www.v2ex.com/t/1073373</link>
-<guid>https://www.v2ex.com/t/1073373</guid>
-<content:encoded><![CDATA[
-<p>数码区博主们集体更新。省流：AirPods 4 降噪水平在 AirPods Pro 1 和 2 之间，无脑冲就完事了</p>
-<ul>
-<li><a href="https://www.bilibili.com/video/BV1du4RezE2P/" rel="nofollow">AirPods 4 评测：AirPods Pro 2 的最强对手登场_哔哩哔哩_bilibili</a></li>
-<li><a href="https://www.bilibili.com/video/BV1gZtseEEsp/" rel="nofollow"> [爱否]  AirPods 4 降噪录音丨对比 AirPods Pro 1 、2_哔哩哔哩_bilibili</a></li>
-<li><a href="https://www.bilibili.com/video/BV1Fp4deSEHG/" rel="nofollow">AirPods 4 降噪版：出乎意料的降噪效果 极致舒适的佩戴感受 ｜凰家评测_哔哩哔哩_bilibili</a></li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-09-16T14:18:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 一紧张就没胃口怎么办？</title>
-<link>https://www.v2ex.com/t/1073372</link>
-<guid>https://www.v2ex.com/t/1073372</guid>
-<content:encoded><![CDATA[
-平时也挺能喝的。一到特别重要的场合。比如中秋去女朋友家里吃饭。就放不开。一紧张就一点胃口也吃不下。喝也喝不了。就做那筷子也动不了几次。。太没出息了。怎么缓解啊？救命啊
-]]></content:encoded>
-<pubDate>2024-09-14T12:52:26Z</pubDate>
-</item>
-<item>
-<title>[程序员] 搞了个 ri.bi 域名 有啥好想法参考</title>
-<link>https://www.v2ex.com/t/1073371</link>
-<guid>https://www.v2ex.com/t/1073371</guid>
-<content:encoded><![CDATA[
-<p>嘿嘿，发现这个域名没注册，果断注册了
-各位大佬有啥好想法，我也参考参考</p>
-]]></content:encoded>
-<pubDate>2024-09-16T13:45:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 我看到有人给 Ahrefs 博客进行翻译，获取外链，有什么渠道吗</title>
-<link>https://www.v2ex.com/t/1073370</link>
-<guid>https://www.v2ex.com/t/1073370</guid>
-<content:encoded><![CDATA[
-<p>大概就是给文章进行翻译，留下了翻译者的外链，请问这是如何做到的？</p>
-]]></content:encoded>
-<pubDate>2024-09-16T12:47:02Z</pubDate>
-</item>
-<item>
-<title>[实习] Casbin 开源社区《Talent 2024》远程开源预选生招募中！</title>
-<link>https://www.v2ex.com/t/966666</link>
-<guid>https://www.v2ex.com/t/966666</guid>
-<content:encoded><![CDATA[
-<h2>Casbin 明日之星预选生计划-Talent for Casbin 2024</h2>
-<h3>“Casbin 明日之星预选生计划-Talent for Casbin 2024”是什么？</h3>
-<p>“Casbin 明日之星预选生计划-Talent for Casbin 2024”（以下简称 Talent 2024 ）是由 Casbin 开源社区举办的一项面向高校学生的编程活动，旨在鼓励在校学生积极参与 Casbin 社区旗下开源软件的开发维护，促进国内优秀开源软件的蓬勃发展。</p>
-<p>2020 年，Casbin 以开源社区的身份首次参加了由 Google 公司主办的<a href="https://summerofcode.withgoogle.com/archive/2020/organizations/6587176113930240/" rel="nofollow">Google Summer of Code 2020</a> 和由中科院软件所、OpenEuler 社区主办的<a href="https://isrc.iscas.ac.cn/summer2020" rel="nofollow">开源软件供应链点亮计划-暑期 2020</a> 。在上述活动中，Casbin 社区共派出 7 位来自国内外（中国、法国等）互联网一线的资深社区导师，共培养、指导了国内外 15 名学生（ 14 位中国同学、1 位印度同学）进行为期 3 个月的开源编程活动。Casbin 项目已毕业的同学，有的成长为 Casbin 项目核心维护者、以开源大牛的身份活跃于 GitHub ，有的毕业后全职加入腾讯微信事业部等互联网头部公司，有的凭借在 Casbin 社区的出色经历拿到全球顶级投行 Morgan Stanley （摩根士丹利）的 offer ，在工业界和学术界发挥着重要作用。</p>
-<p>2021 年和 2022 年，Casbin 社区继续参加上述两项活动，Google Summer of Code 和开源软件供应链点亮计划-暑期编程之夏，题目的数量与招纳的学生人数均创下新高。</p>
-<table>
-<thead>
-<tr>
-<th>活动</th>
-<th>学生人数</th>
-<th>最终考核通过人数</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>GSoC 2020</td>
-<td>3</td>
-<td>3</td>
-</tr>
-<tr>
-<td>暑期 2020</td>
-<td>12</td>
-<td>10</td>
-</tr>
-<tr>
-<td>GSoC 2021</td>
-<td>9</td>
-<td>9</td>
-</tr>
-<tr>
-<td>暑期 2021</td>
-<td>11</td>
-<td>11</td>
-</tr>
-<tr>
-<td>GSoC 2022</td>
-<td>12</td>
-<td>11</td>
-</tr>
-<tr>
-<td>暑期 2022</td>
-<td>6</td>
-<td>5</td>
-</tr>
-</tbody></table><p>为了在非暑期时间能够继续促进 Casbin 开源软件的发展，同时挖掘有潜力的学生作为 Google Summer of Code 2024 和暑期 2024 （若该赛事仍举行并且 Casbin 社区获得参加资格）的有力竞争者，Casbin 社区将自筹资金，在 Google Summer of Code 等活动的闭幕期间，开展常态化的“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动，针对 Casbin 社区旗下开源软件的开发与维护提供 mini 项目，并向全国高校学生开放报名。学生可自主选择感兴趣的项目进行申请，并在中选后获得该软件资深维护者（社区导师）亲自指导的机会。</p>
-<p>根据项目的难易程度和完成情况，参与者可获取“Casbin 明日之星预选生计划-Talent for Casbin 2024”活动奖金和加盖 Casbin 社区公章的参与（实习）证明。</p>
-<p><strong>“Talent 2024”项目在 2024 年第四次举办，与 Google Summer of Code 等活动类似，不同点是“Talent 2024”在非 GSoC 申请时间举行，与 GSoC 等活动是互补的关系。</strong></p>
-<ol>
-<li>Casbin 明日之星预选生计划-Talent for Casbin 2024 官网： <a href="https://github.com/casbin/Talent2024" rel="nofollow">https://github.com/casbin/Talent2024</a></li>
-<li>Google Summer of Code 官网： <a href="https://summerofcode.withgoogle.com/" rel="nofollow">https://summerofcode.withgoogle.com/</a></li>
-<li>Google Summer of Code 中文介绍： <a href="https://github.com/gsoc-cn/gsoc-cn" rel="nofollow">https://github.com/gsoc-cn/gsoc-cn</a> 或 <a href="https://zhuanlan.zhihu.com/p/27823910" rel="nofollow">https://zhuanlan.zhihu.com/p/27823910</a> 或 <a href="https://zhuanlan.zhihu.com/p/27330699" rel="nofollow">https://zhuanlan.zhihu.com/p/27330699</a></li>
-<li>开源软件供应链点亮计划-暑期活动官网： <a href="https://summer.iscas.ac.cn/" rel="nofollow">https://summer.iscas.ac.cn/</a></li>
-</ol>
-<h3>活动的主要参与方有哪些？</h3>
-<p>活动组织方：Casbin 开源软件社区。</p>
-<p>活动参与方主要角色为学生和导师。</p>
-<ol>
-<li>学生：学生自由选择项目，与导师沟通实现方案并撰写项目计划书。被选中的学生将在导师指导下，按计划完成开发工作，并将成果贡献给社区。社区评估学生的完成度，主办方根据评估结果发放资助金额给学生。</li>
-<li>社区：社区提供项目列表和描述，并安排项目对应的导师，导师与申请者沟通方案、并从申请者中选中一位承接项目。在为期三个月的开发周期中，导师指导学生进行对应项目的开发工作。</li>
-<li>导师：社区针对每一个项目指定一个导师，与学生一起制定合适的开发计划和方案，指导学生按计划完成开发。</li>
-</ol>
-<h3>本项目的资助额度是多少？</h3>
-<p>资助金按月发放，分为基础资助金：600 元 + 奖金：0~400 元
-（均为每月税后，根据上手快慢程度及技术栈匹配程度会有浮动，项目开始前会协商好。）</p>
-<h2>Casbin 开源项目介绍</h2>
-<p>Casbin 是一个强大的、高效的开源访问控制框架，支持 Go, Java, Node.js, Javascript (React), Python, PHP, .NET, C++, Rust 等十几种语言。Casbin 开源项目由北京大学罗杨博士创立于 2017 年，核心维护团队有二十多人。Casbin 在业界具有广泛影响力。目前已经被 Intel 、VMware 、Orange 、RedHat 、T-Mobile 等公司开源使用，被腾讯云、Cisco 、Verizon 等公司闭源使用。具体详见 Casbin 主页。Casbin Go 主项目目前 GitHub 10000+ stars ，加上所有语言的实现、插件等可达到 15000+ stars 。</p>
-<p>Casbin 技术已经被列入多个国内外权威机构、政府部门的白皮书：</p>
-<ol>
-<li>国家广电总局《广播电视和网络视听区块链系统》白皮书（第 85 页）： <a href="http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf" rel="nofollow">http://www.nrta.gov.cn/module/download/downfile.jsp?classid=0&amp;filename=e2ed95c223c34e38aa163b01030655aa.pdf</a></li>
-<li>美国国家标准与技术研究院（ NIST ）《 Attribute-based Access Control for Microservices-based Applications Using a Service Mesh 》白皮书（第 10 页）： <a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf" rel="nofollow">https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204B.pdf</a></li>
-</ol>
-<p>Casbin 也曾经在国际上进行多次线下宣讲：</p>
-<ol>
-<li>新加坡政府技术部 Open Government Products： <a href="https://www.youtube.com/watch?v=OTT84oplR9o" rel="nofollow">https://www.youtube.com/watch?v=OTT84oplR9o</a></li>
-<li>俄罗斯最大在线旅游平台 <a href="http://tutu.ru" rel="nofollow">tutu.ru</a>： <a href="https://www.youtube.com/watch?v=Z5dUxH4PqYM" rel="nofollow">https://www.youtube.com/watch?v=Z5dUxH4PqYM</a></li>
-</ol>
-<p>具体请了解 Casbin 官网： <a href="https://casbin.org/" rel="nofollow">https://casbin.org/</a></p>
-<h2>可选项目列表</h2>
-<p>所有可选项目详见： <a href="https://github.com/casbin/Talent2024#%E5%8F%AF%E9%80%89%E9%A1%B9%E7%9B%AE%E5%88%97%E8%A1%A8" rel="nofollow">https://github.com/casbin/Talent2024#可选项目列表</a></p>
-<h2>候选人要求</h2>
-<h3>工作职责：</h3>
-<ul>
-<li>每周与项目导师进行线上讨论，完成项目规定的开发任务。项目导师由开源项目创始人或其他核心成员担任；</li>
-<li>积极参与开源社区的建设，参与代码提交、解决 Issue 、审核 PR 等日常工作；</li>
-<li>配合完成官方要求的材料提交等事项，包括项目申请书撰写、社区反馈任务完成度追踪等。</li>
-</ul>
-<h3>职位要求：</h3>
-<ul>
-<li>本科、硕士或博士在读（已毕业、工作的无法参加）；</li>
-<li>对开源软件、开源社区感兴趣；</li>
-<li>熟悉一种或多种编程语言，有较强的工程能力，代码格式清晰规范，善于团队协作；</li>
-<li>有一定英文读写能力，能够熟练运用英语在 GitHub 进行开发、协作；</li>
-<li>较强的沟通能力和逻辑表达能力。</li>
-</ul>
-<h3>具有以下条件者优先：</h3>
-<ul>
-<li>熟悉 Go, Javascript 、React 等语言或框架、Web 系统、分布式系统、微服务架构，有相关项目经验；</li>
-<li>在 GitHub 较为活跃，有自己的开源项目，或参与过知名开源项目；</li>
-<li>可以在项目结束后继续长期参与开源社区的开发、建设或维护。</li>
-</ul>
-<h2>投递要求</h2>
-<p>申请学生需要同时完成以下“联系社区”和“官网投递”两个环节：</p>
-<h3>1. 联系社区（ 2023 年 8 月 1 日 - 2023 年 12 月 31 日）</h3>
-<ol>
-<li>加入《 Casbin 访问控制社区群》（ QQ 大群）：<a href="https://shang.qq.com/wpa/qunwpa?idkey=8ac8b91fc97ace3d383d0035f7aa06f7d670fd8e8d4837347354a31c18fac885" rel="nofollow">546057381</a></li>
-<li>加入《 Casbin 明日之星预选生计划-Talent for Casbin 2024-群》（ QQ 小群）：<a href="https://qm.qq.com/cgi-bin/qm/qr?k=5MjIdZuPmAio6lfAr-NTxBY0CcoGL1yl&amp;jump_from=webapi" rel="nofollow">540163681</a> ，联系导师，与导师沟通项目细节和方案，完成社区指定的 Easy Tasks</li>
-</ol>
-<div>
-<img alt="qrcode-casbin" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-casbin.png" />
-<img alt="qrcode-talent" class="embedded_image" rel="noreferrer" src="https://cdn.casbin.com/activity/qrcode-talent.png" />
-</div>
-<h3>2. 官网投递（ 2023 年 8 月 1 日 - 2023 年 12 月 31 日）</h3>
-<p>发送 [中文简历 PDF ] 至 Casbin 社区官方邮箱： <a href="mailto:admin@casbin.org">admin@casbin.org</a></p>
-]]></content:encoded>
-<pubDate>2024-09-16T13:35:13Z</pubDate>
-</item>
-<item>
-<title>[程序员] 独立开发周记 83：新 App 连续六次被拒</title>
-<link>https://www.v2ex.com/t/1073369</link>
-<guid>https://www.v2ex.com/t/1073369</guid>
-<content:encoded><![CDATA[
-<h1>2024 ，0909-0915</h1>
-<p>这个周记的标题一改再改，因为被拒的次数不断增加。</p>
-<h1>Google Play 账户验证</h1>
-<p>这周一次性通过了 Google Play 的身份验证和银行账户验证。
-之前听闻有的开发者卡在这里好久，提交各种资料就是不能通过。我也害怕这种事发生在我身上，好在没有。就是按照要求提交了身份证、水电费和银行流水，就直接通过验证了。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/73796/cc316263-d84f-4a58-84f9-b2f75404c3d8.png" /></p>
-<p>虽然来自 GP 的收入一直在下降，但是也是目前收入的重要组成的一部分，占到美元收入的差不多四成左右。</p>
-<p>上周有人留言要买我的账号的 App ，向群友请教了一番，结果并不能卖多少钱，连一两特斯拉 Model Y 都不够。算了，还是别杀鸡取卵了。</p>
-<h1>Shipaton 第五周</h1>
-<p>距离截止日期还剩 3 天。
-第五周生产力大爆发，一共完成了 56 个番茄钟，是最多的一周！</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/73796/0b913781-65fb-4203-a3ce-73ad1dff8625.jpeg" /></p>
-<p>因为马上就要到 deadline 了，为了能够顺利提交 App ，不得不又砍掉了一个 Jar Type 。剩余的工作就是 UI 调整，修复 bug ，加入动画和声效以提高交互性。设计师列了几十个 UI 调整事项，还好我很快就完成了大部分，一天发四五个 TestFlight 的 build ，只剩几项我认为比较费时就先搁置了。</p>
-<p><a href="https://youtu.be/F12HzTVRrT0" rel="nofollow">https://youtu.be/F12HzTVRrT0</a></p>
-<h2>连续被拒 6 次</h2>
-<p>终于，周五下午四点提交了第一版，没想到过了 30 个小时才进入审核。整个周六的精神状态都是心不在焉的，什么都干不进去，总在期待收到审核结果的邮件，然后意料之中地被拒了。第一次被拒的原因还好，只是元数据的问题，填补后顺便修复了一个小组件的问题第二次提交（周六晚上）。</p>
-<p>在等待审核的间隙，完善了 Ship-A-Ton 的各种资料，还第一次用 Rotato 录了一个演示视频。</p>
-<p><a href="https://youtu.be/IRKSo2Txclc" rel="nofollow">https://youtu.be/IRKSo2Txclc</a></p>
-<p>然而，第二次被拒就是周日下午了，直到午夜连着拒绝了五次……</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/73796/8fc330e6-513b-458f-aff7-81a79c101aa9.png" /></p>
-<p>第二次被拒的原因：Paywall 页面里缺少付费后用户得到的功能或服务（我选择的这个 Revenue Cat Paywall 模板没有关于付费解锁内容的配置）。</p>
-<p>第三次和第四次被拒都是同样的原因：说是 Paywall 页面无法加载，影响用户付费体验。但我这个 Paywall 是 RevenueCat 提供的，加载过程不由我控制，RC 的建议就是如果一切配置没问题的话，那就是苹果审核环境导致的，没有其他办法，只能是一遍遍的重复提交。</p>
-<p>第五次被拒的原因：页面存在难以阅读的文字。其实就是 Onboarding 部分的大段文字颜色有些浅，而且在小屏幕的手机上会显示不全。</p>
-<p>第六次被拒的原因有三个：</p>
-<ol>
-<li>付费页面的按钮文案不符合要求，而我这还是借鉴了 Mobbin 发布的关于提高付费转化率的最佳实践。</li>
-<li>付费后遇到错误，我猜是因为 App 销售范围和订阅的销售范围不一致导致的，因为我还没有时间备案，所以第一版就不打算在国内上架了。虽然 App 销售范围去掉了中国大陆，但是订阅的销售范围还是所有国家和地区，这里不一致，另外我也回复给审核人员说这个 App 不在中国大陆销售，请用其他国家的配置环境来审核。</li>
-<li>技术支持 URL 留的网址不符合要求，我本以为用 Notion 搭一个包含隐私政策和使用协议的简单页面就可以了，但是苹果说必须要是能和开发者直接联系的网站才行。</li>
-</ol>
-<p>第七次提交后就马上是午夜十二点了，心情已经麻木和崩溃了，十分沮丧和忐忑地入睡了。我还梦见了第七次被拒，审核员还给我发了一封巨长巨长的邮件，里面罗列了各种素材和命名的截图，说我的 App 抄袭黑神话·悟空……</p>
-<p>还好，没有第七次被拒，一觉醒来，审核通过了！</p>
-<h1>我偏要贪图完满，搜个干净</h1>
-<p>黑神话·悟空，二周目，白金达成。
-这游戏白金的达成，不是能力问题，也不是时间问题，而是运气问题。
-花了两天在收集各种概率掉落的物品上，感觉我人品还不错，并没有刷到崩溃就收集全了，不过就凭这一点也应该给这个游戏减 0.1 分。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/73796/2f750d88-4102-4593-8a6b-be66a2951ca5.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-09-16T12:22:34Z</pubDate>
 </item>
 </channel>
 </rss>
