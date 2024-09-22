@@ -5,11 +5,387 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Apple] 随着 M4 的 MAC 迷你发布，会更新 studio display 显示器么</title>
+<link>https://www.v2ex.com/t/1074871</link>
+<guid>https://www.v2ex.com/t/1074871</guid>
+<content:encoded><![CDATA[
+
+这显示器也改换代了吧，毕竟 A13 芯片外加堪比 480P 的前置摄像头
+]]></content:encoded>
+<pubDate>2024-09-22T14:17:49Z</pubDate>
+<pubDate>2024-09-22T14:15:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] IOS 端的 Karing 可以替代 shadowrocket 吗？</title>
+<link>https://www.v2ex.com/t/1074870</link>
+<guid>https://www.v2ex.com/t/1074870</guid>
+<content:encoded><![CDATA[
+
+在 IOS 端找到了一个类似 shadowrocket 的 app 叫做 Karing ，用了一下，貌似也可以起到相同的作用，因此就没有购买 shadowrocket 。<br /><br />但是最近遇到个问题，通过这个 app 翻的墙，人肉体感上速度不如 PC 端 clash 的，但是自己计算机网络没学好，因此前来问一下大家，不同的 app 会影响节点转发的效率吗？<br /><br />谢谢大家的指导。
+]]></content:encoded>
+<pubDate>2024-09-22T14:16:07Z</pubDate>
+<pubDate>2024-09-22T14:13:07Z</pubDate>
+</item>
+<item>
+<title>[程序员] 在闲鱼被骂了，如何反制？</title>
+<link>https://www.v2ex.com/t/1074869</link>
+<guid>https://www.v2ex.com/t/1074869</guid>
+<content:encoded><![CDATA[
+
+<p>在闲鱼准备买个汽车脚垫，全程都没沟通几句。
+卖家态度不怎么好，说了句：好吧 这态度 再见。然后被商家发骂 sb ，我刚看到他就立刻撤回了，我也没截到屏，并拉黑了我，感觉怎么会有这种人，我怎么反制？还是只能受下这气？</p>
+]]></content:encoded>
+<pubDate>2024-09-22T14:13:43Z</pubDate>
+<pubDate>2024-09-22T14:15:44Z</pubDate>
+</item>
+<item>
+<title>[iCloud] Safari 下载位置自动重定向到 iCloud，这么想卖存储空间？</title>
+<link>https://www.v2ex.com/t/1074868</link>
+<guid>https://www.v2ex.com/t/1074868</guid>
+<content:encoded><![CDATA[
+
+快被这个 bug 逼疯了，不知道从什么时候开始，下载文件自动就切换到 iCloud ，在 Safari 设置里保存了下载到我的 iPhone ，但压根没用一下载就自动变成了 iCloud 里，看 Reddit 上也有好些人遇到，已经持续好几个版本了最新系统也没解决😖<br /><a href="https://discussions.apple.com/thread/255542998?sortBy=rank" rel="nofollow noopener" target="_blank">https://discussions.apple.com/thread/255542998?sortBy=rank</a><br /><a href="https://www.reddit.com/r/ios/comments/1cp4ffl/ios_1741_every_download_is_being_redirected_to/" rel="nofollow noopener" target="_blank">https://www.reddit.com/r/ios/comments/1cp4ffl/ios_1741_every_download_is_being_redirected_to/</a><br /><a href="https://www.reddit.com/r/ios/comments/1d2jm46/ios_1751_download_folder_location_keeps_reverting/?share_id=GqikLfGMmaTeqW7Ui0yIV&amp;utm_content=1&amp;utm_medium=ios_app&amp;utm_name=iossmf&amp;utm_source=share&amp;utm_term=22" rel="nofollow noopener" target="_blank">https://www.reddit.com/r/ios/comments/1d2jm46/ios_1751_download_folder_location_keeps_reverting/?share_id=GqikLfGMmaTeqW7Ui0yIV&amp;utm_content=1&amp;utm_medium=ios_app&amp;utm_name=iossmf&amp;utm_source=share&amp;utm_term=22</a>
+]]></content:encoded>
+<pubDate>2024-09-22T14:07:17Z</pubDate>
+<pubDate>2024-09-22T14:07:17Z</pubDate>
+</item>
+<item>
+<title>[Rust] rust TcpStream 为什么设计读写一体</title>
+<link>https://www.v2ex.com/t/1074867</link>
+<guid>https://www.v2ex.com/t/1074867</guid>
+<content:encoded><![CDATA[
+
+<pre><code class="language-rust">fn main(){
+    let mut ts1=TcpStream::connect(("127.0.0.1", 6666)).unwrap();
+    //读写全都在一起
+    ts1.write("hello".as_bytes()).unwrap();
+    let mut buf=[0;1024];
+    ts1.read(&amp;mut buf).unwrap();
+    //这样设计，在一些情况不方便
+
+    //1 两个 TcpStream 需要全双工拷贝
+    let mut ts2=TcpStream::connect(("127.0.0.1", 6667)).unwrap();
+    //这里不得不进行 clone
+    let mut ts11=ts1.try_clone().unwrap();
+    let mut ts22=ts2.try_clone().unwrap();
+    thread::spawn(move||{
+       std::io::copy(&amp;mut ts1,&amp;mut ts2).unwrap();
+    });
+
+    thread::spawn(move||{
+        std::io::copy(&amp;mut ts22,&amp;mut ts11).unwrap();
+    });
+    // 以下两种情况以开发一个 http server 为场景
+    //2 当需要将 TcpStream 使用 BufReader  和  BufWriter 封装构造一个结构体给上层使用
+    
+    struct Req{
+        br:BufReader&lt;TcpStream&gt;,
+        bw:BufWriter&lt;TcpStream&gt;,
+    }
+    //3 如果不进行 buf 封装，底层处理也不能使用 buf 进行读取，因为 buf 读取可能会读取超过底层处理的数据的长度，这样底层
+    // 只能使用非 buf 方式进行读取，效率就比较低下
+    struct Req1{
+        ts:TcpStream
+    }
+    
+    
+}
+
+</code></pre>
+<p>目前我能想到的 TcpStream 读写一体，是为了 drop 时候自动关闭 tcp 连接，但是这样确实带来了诸多不便。 同样 BufReader 、BufWriter 在 new 的时候传&amp;TcpStream ，不能生成一个具有所有权的 br 、bw ，会依赖&amp;TcpStream 。TcpStream 为什么不提供一个 getWriter 和 getReader 两个分离的函数呢？</p>
+]]></content:encoded>
+<pubDate>2024-09-22T14:05:50Z</pubDate>
+<pubDate>2024-09-22T14:18:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] 阿里云的 PAI 平台如何访问外网啊</title>
+<link>https://www.v2ex.com/t/1074866</link>
+<guid>https://www.v2ex.com/t/1074866</guid>
+<content:encoded><![CDATA[
+
+<p>好不容易找到一个能免费试用 3 个月的 GPU 平台，但是访问不了外网，装了 clash 都不行，在虚拟机上我试过了，clash 是可以的。请问有比较懂行的大佬能告知一下如何解决吗，万分感谢。</p>
+]]></content:encoded>
+<pubDate>2024-09-22T14:05:08Z</pubDate>
+<pubDate>2024-09-22T14:02:08Z</pubDate>
+</item>
+<item>
+<title>[程序员] [野路子开发] 不会编程的设计师如何做网站? Cursor AI 带我一周开发 App 图标库</title>
+<link>https://www.v2ex.com/t/1074865</link>
+<guid>https://www.v2ex.com/t/1074865</guid>
+<content:encoded><![CDATA[
+
+<h1><a href="https://app.uiboy.com" rel="nofollow">APPLORE - 探索 App 图标设计的宝库</a></h1>
+<p>大家好,我是一名设计师，现在算半个独立开发者。最近我花了一周的时间,开发了一个叫 APPLORE 的网站,专门用于探索和分析 App 图标设计。给大家介绍一下这个项目: <a href="https://app.uiboy.com" rel="nofollow">APPLORE</a></p>
+<p><img alt="APPLORE 预览图" class="embedded_image" rel="noreferrer" src="https://app.uiboy.com/og-image.webp" /></p>
+<h2>项目背景</h2>
+<p>作为一个搞了 8 年的设计师,我一直对 App 图标 LOGO 的设计很感兴趣。每次浏览 App Store ,有很多好看的图标，但是也有很多辣眼睛的图标。如果有一个专门收集展示和分析好看的 App 图标的平台就好了。于是, APPLORE 的想法应运而生。</p>
+<h2>开发过程</h2>
+<p>整个开发过程大约花了一周时间。用 Next.js 作为主要框架, <strong>借助 Cursor AI</strong> 的帮助快速编写代码。我不是专业的开发，所以我是完全借助 Cursor AI 帮我开发的这个项目</p>
+<h2>主要功能</h2>
+<p>APPLORE 的核心功能包括:</p>
+<ol>
+<li>按类别、颜色或发布日期浏览 App 图标</li>
+<li>查看每个 App 的详细信息</li>
+<li>分析 App 图标的配色方案</li>
+<li>创建和管理自定义图标收藏</li>
+<li>强大的搜索功能</li>
+<li>提交新的 App 图标到数据库</li>
+</ol>
+<p><img alt="APPLORE 截图" class="embedded_image" rel="noreferrer" src="https://app.uiboy.com/screenshot.webp" /></p>
+<h2>技术亮点</h2>
+<p>在开发过程中,我特别关注了以下几个技术点:</p>
+<ol>
+<li>使用 R2 存储来高效管理大量图标文件</li>
+<li>实现了流畅的无限滚动加载</li>
+<li>采用响应式设计,确保在各种设备上的良好体验</li>
+<li>优化了图标加载速度,提供流畅的浏览体验</li>
+</ol>
+<h2>未来计划</h2>
+<p>APPLORE 目前还处于初期阶段,我计划在未来添加更多功能,如:</p>
+<ol>
+<li>图标设计趋势分析</li>
+<li>图标风格筛选查看</li>
+</ol>
+<h2>结语</h2>
+<p>开发 APPLORE 对于一直做设计的人来说非常有趣。我希望这个工具能为设计师、开发者以及 App 爱好者们提供价值。欢迎大家访问 <a href="https://app.uiboy.com" rel="nofollow">APPLORE</a> 体验,也期待听到你们的反馈和建议!</p>
+<p>也可以在 <a href="https://x.com/decohack" rel="nofollow">twitter</a> 上找到我</p>
+]]></content:encoded>
+<pubDate>2024-09-22T14:02:56Z</pubDate>
+<pubDate>2024-09-22T14:08:16Z</pubDate>
+</item>
+<item>
+<title>[优惠信息] 大家能帮忙看看北京补贴能买神州战神 S8 那款 4060 么？</title>
+<link>https://www.v2ex.com/t/1074864</link>
+<guid>https://www.v2ex.com/t/1074864</guid>
+<content:encoded><![CDATA[
+
+我看领了补贴也是原价，i5 ，12 代，4060
+]]></content:encoded>
+<pubDate>2024-09-22T13:52:51Z</pubDate>
+<pubDate>2024-09-22T13:52:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 关于 Apple intelligence 的疑惑</title>
+<link>https://www.v2ex.com/t/1074862</link>
+<guid>https://www.v2ex.com/t/1074862</guid>
+<content:encoded><![CDATA[
+
+最近观各论坛都在想办法买非国行 iphone 去体验 AI 功能（此处不谈国行阉割无线充电等部分）<br />从苹果发布会来看，AI 可以通过拍照查询店铺评分，以及可能有的一些地图联动。<br />那么未来国行手机的 AI 是否可以通过美团，大众点评等 APP 进行交互联动？<br />而非国行除了用一些 AI 基础功能外，其他与真实世界的交互完全无法使用？
+]]></content:encoded>
+<pubDate>2024-09-22T13:43:30Z</pubDate>
+<pubDate>2024-09-22T13:42:30Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 在外优雅访问家庭内网服务的姿势</title>
+<link>https://www.v2ex.com/t/1074861</link>
+<guid>https://www.v2ex.com/t/1074861</guid>
+<content:encoded><![CDATA[
+
+<h1>在外优雅访问家庭内网服务的姿势</h1>
+<h2>前情提要</h2>
+<p><a href="https://www.v2ex.com/t/1057803" rel="nofollow">《低成本家庭万兆内网搭建指北》</a><br />
+<a href="https://www.v2ex.com/t/1074592" rel="nofollow">《个人家庭网络布局分享》</a><br />
+<a href="https://www.v2ex.com/t/1074688" rel="nofollow">《家庭内网服务分享》</a><br />
+<a href="https://www.v2ex.com/t/1074771" rel="nofollow">《局域网内优雅的访问家庭内网服务》</a> </p>
+<h2>起源</h2>
+<p>前面的文章中讲到了如何搭建内网服务，以及如何通过内网 DNS 重写并结合子域名以及个人服务导航页来优雅的访问局域网内搭建的各种服务。</p>
+<p>很多小伙伴还是对在外远程访问家庭内网服务有很大需求的，下面就来讲解一下，我个人认为的比较不错的方式。</p>
+<h2>安全原则</h2>
+<p>远程访问家庭内网服务的原则只有一个，那就是安全性。</p>
+<p>五星上将麦克阿瑟曾经说过：<strong>不要为了方便而将内网服务直接暴露在公网上，那相当于在裸奔。</strong></p>
+<h2>选择的原因</h2>
+<p>所有第三方的远程访问服务个人都不推荐。主要从速度、安全性、便捷性三个方面考虑如下：</p>
+<ol>
+<li>速度方面：cloudflare 、tailscale 、zerotier 、frp 、蒲公英等所有需要第三方服务器中转的，速度都不太行。</li>
+<li>安全性方面：数据经过了第三方服务安全性无法得到保障。</li>
+<li>便捷性方面：最好能和在家里访问家里的局域网服务一样。或者能够一键连接访问家里的网络。</li>
+</ol>
+<p>我自己亲自实践过 cloudflare 、tailscale 、frp 等等很多的方案。最后觉得最理想的方案还是：公网 IP + DDNS + Wireguard 。</p>
+<p>这个方案是如何保证上述三点的呢？</p>
+<ol>
+<li>速度方面。公网 IP 属于直连，比所有第三方服务都要快。能够完美的跑满家里的上传带宽。</li>
+<li>安全性方面。不经过任何的第三方服务，且 wireguard 是开源软件，安全性有保障。</li>
+<li>便捷性方面。可以将 wireguard 理解为一个 VPN 服务。一键即可连回家庭网络。和在家里访问家里局域网一样没有任何区别，不用改变自己的使用习惯。</li>
+</ol>
+<p><strong>此外，上面的方案还带来了一个额外的优势，如果家里部署了科学上网服务，可以在外无缝使用家里的科学上网服务。</strong></p>
+<h2>实现步骤</h2>
+<p>下面以公网 ipv4 作为演示。搞懂了原理，公网 ipv6 其实也是一样的道理，B 站有大佬发过 ipv6 的视频，这里就不在赘述了。</p>
+<h3>前提条件</h3>
+<ul>
+<li>具备公网 ipv4 或者 ipv6 。</li>
+<li>光猫最好桥接，路由器直接拨号上网。这样路由器上获取的 IP 直接就是公网 ipv4 或 ipv6 。</li>
+</ul>
+<p>光猫桥接其实不是必须的，只是为了操作更加的简单。不过个人还是强烈建议光猫改桥接路由器直接拨号的模式，这样可以省去光猫后台设置端口转发到主路由的步骤。</p>
+<h3>步骤 1：动态域名解析</h3>
+<p>具备了公网 IP 后，还存在着一个问题，那就是这个公网 IP 会随着拨号设备的每次重启而变化。即使拨号设备一直不重启，过一段时间后这个公网 IP 还是会变化的。</p>
+<p>所以需要 DDNS 动态域名解析服务来解决上面的问题，个人比较推荐 DDNS-GO 这个开源项目。</p>
+<p>既可以采用 Docker 部署的方式，iStoreOS 的应用商店中也有这个插件，安装部署非常的方便。</p>
+<pre><code class="language-java">https://github.com/jeessy2/ddns-go
+</code></pre>
+<p>DNS 解析服务商选择国内的阿里、腾讯或者国外的 cloudflare 都没有问题（个人还是比较推荐互联网大善人 cloudflare ）。</p>
+<p>一个可有可无的小 Tip：DDNS-GO 可以设置 Webhook 通知，当你家里的公网 IP 变化了，可以直接微信通知你。</p>
+<pre><code class="language-java">URL: 
+https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx
+
+Request Body：
+{
+    "msgtype": "text",
+    "text": {
+        "content": "公网 IP 变更：\n 新 IPV4 地址：#{ipv4Addr} \n 已解析的域名：#{ipv4Domains} \n 域名更新结果：#{ipv4Result}"
+    }
+}
+</code></pre>
+<p>上面 key 的获取可以参考 DDNS-GO 项目文档中的 Webhook 配置参考，个人比较推荐微信通知的方式，通过企业微信的个人团队来获取 key 。</p>
+<p>通知的效果如下：</p>
+<p><img alt="微信通知" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/notify.png" /></p>
+<h3>步骤 2：部署 Wireguard</h3>
+<p>虽然 Wireguard 在 iStoreOS （ OpenWRT ）下有对应的插件，个人还是比较推荐采用 Docker 的方式来部署 Wireguard 。</p>
+<p>Wireguard Docker 项目地址如下：</p>
+<pre><code class="language-java">https://github.com/wg-easy/wg-easy
+</code></pre>
+<p>Wireguard Docker 部署命令如下：</p>
+<pre><code class="language-java">docker run -d \
+  --name=wg-easy \
+  -e LANG=chs \
+  -e WG_HOST=binhome.cn \
+  -e WG_DEFAULT_DNS=192.168.0.2 \
+  -e WG_PERSISTENT_KEEPALIVE=25 \
+  -e PORT=51821 \
+  -e WG_PORT=51820 \
+  -v ~/.wg-easy:/etc/wireguard \
+  -p 51820:51820/udp \
+  -p 51821:51821/tcp \
+  --cap-add=NET_ADMIN \
+  --cap-add=SYS_MODULE \
+  --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+  --sysctl="net.ipv4.ip_forward=1" \
+  --restart unless-stopped \
+  ghcr.io/wg-easy/wg-easy
+</code></pre>
+<ul>
+<li>需要将 <code>WG_HOST</code> 中的域名替换为你自己的域名</li>
+<li>需要将 <code>WG_DEFAULT_DNS</code> 替换为你自己的内网 DNS 服务器。</li>
+</ul>
+<p>最新版本的 wg-easy 修改了密码生成的方式，如果 Wireguard 的管理后台需要密码进行保护，可以这样做：</p>
+<pre><code class="language-java"># 使用下面的 Docker 命令生成密码 Hash
+docker run -it ghcr.io/wg-easy/wg-easy wgpw 你的密码
+
+# 然后在上面的 Docker 执行命令中添加一条密码配置（记住密码前后需要有单引号）：
+-e PASSWORD_HASH='上面生成的密码' \
+</code></pre>
+<p>Android 、iOS 、Mac 等等各大平台都有对应的客户端软件，大家自行下载安装。</p>
+<p>Wireguard 的使用比较简单：wg-easy 的管理后台为需要远程访问的机器生成一个配置，客户端扫码进行连接即可。详细的步骤就不再演示了。</p>
+<p>如果是在主路由上安装的 Wireguard ，通过上面简单的 2 步就已经可以实现远程访问的需求了。</p>
+<h3>步骤 3：设置端口转发</h3>
+<p>Docker 部署 Wireguard 既可以在主路由上，也可以在旁路由上。我个人是在旁路由上安装的 Wireguard ，所以多了第三步：还需要在主路由上设置端口转发到旁路由。</p>
+<p>iStoreOS （ OpenWRT ）的端口转发设置路径：网络 -&gt; 防火墙 -&gt; 端口转发。</p>
+<p><img alt="防火墙" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/firewall.png" /></p>
+<p>添加一条端口转发：将外部端口 51820 的 UDP 协议转发到内部旁路由（ 192.168.0.2 ）的 51820 端口去。</p>
+<p><img alt="端口转发" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/port_sent.png" /></p>
+<h2>实现效果</h2>
+<p>下面演示一下手机远程连接的效果：</p>
+<p><img alt="远程访问" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/homepage.png" /></p>
+<p>旁路由部署附带的另外一个好处就是，如果家里的旁路由部署了科学上网服务，在外手机可以无缝享受到科学上网的环境：</p>
+<p><img alt="科学上网" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/search_google.png" /></p>
+<h2>分析总结</h2>
+<p>从始至终，只在主路由上对外暴露了一个 Wireguard 的 UDP 协议的连接端口，没有对外暴露任何的内网服务，别人想扫描爆破密码都没可能。</p>
+<p>整个原理和流程如下：</p>
+<ul>
+<li>由于具有公网 IP 并且设置了 DDNS ，所以在外访问 <code><a href="http://binhome.cn" rel="nofollow">binhome.cn</a></code> 就相当于直接访问家里的主路由。</li>
+<li>手机客户端通过 <code><a href="http://binhome.cn:51820" rel="nofollow">binhome.cn:51820</a></code> 的 UDP 协议来连接家里的主路由。</li>
+<li>主路由将 51820 端口的 UDP 数据全部转发到旁路由（ 192.168.0.2 ）的 Wireguard 监听端口 51820 。</li>
+</ul>
+<p>因此，上面就完成了远程回家的步骤。</p>
+<p>在手机上内网子域名也能正常访问的原因在于：Wireguard 的配置中 <code>-e WG_DEFAULT_DNS=192.168.0.2</code> 指定了 DNS 服务器的 IP 。</p>
+<p>手机客户端能够无缝科学上网的原因在于：默认情况下所有流量都会走 Wireguard 的接口，并且在旁路由上部署了科学上网服务。</p>
+<p><img alt="Wireguard APP 设置" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/setting_wireguard.png" /></p>
+<p>Mac 电脑上的配置也是一样的，可以修改为只有家里的局域网段走 Wireguard 的接口。</p>
+<p><img alt="Wireguard Mac 设置" class="embedded_image" rel="noreferrer" src="https://img.binhome.cn/remote_access/wireguard_mac.png" /></p>
+<p>这样当 Mac 电脑在公司 24 小时连接家庭网络的时候，可以避免公司内网环境无法访问的问题。</p>
+]]></content:encoded>
+<pubDate>2024-09-22T13:37:48Z</pubDate>
+<pubDate>2024-09-22T13:48:05Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 有没有双实体卡+苹果 AI 的版本</title>
+<link>https://www.v2ex.com/t/1074860</link>
+<guid>https://www.v2ex.com/t/1074860</guid>
+<content:encoded><![CDATA[
+
+看了下国行阉割部分，我最近受不了的是关于 AI 的部分，甚至有可能和百度合作我想一下都觉得恶寒，其他的我确实没用到，有一些甚至第一次听说，esim 更是不但用不到反而目前用的正好的两张实体卡，所以有没有双实体卡+苹果 AI 的版本，或者我目前的需求买哪个版本更合适，向各位老哥求教
+]]></content:encoded>
+<pubDate>2024-09-22T13:35:08Z</pubDate>
+<pubDate>2024-09-22T05:35:08Z</pubDate>
+</item>
+<item>
+<title>[Apple] 国行 iphone14 加手表换澳洲 iphone16 问题</title>
+<link>https://www.v2ex.com/t/1074859</link>
+<guid>https://www.v2ex.com/t/1074859</guid>
+<content:encoded><![CDATA[
+
+<p>现在是国行 iphone14 移动开通了 esim 的国行 s9 手表</p>
+<p>打算换澳洲的 iphone16</p>
+<p>问题是 还是用移动的实体 sim 卡 这个国行的手表能迁移过去么？</p>
+]]></content:encoded>
+<pubDate>2024-09-22T13:28:03Z</pubDate>
+<pubDate>2024-09-22T13:28:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 最近有打流感疫苗的吗？有看到可以选北京科兴或长春生物，怎么选？</title>
+<link>https://www.v2ex.com/t/1074858</link>
+<guid>https://www.v2ex.com/t/1074858</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-22T13:19:51Z</pubDate>
+<pubDate>2024-09-22T13:19:51Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 一款端到端加密的网盘，上传下载不限速</title>
+<link>https://www.v2ex.com/t/1074857</link>
+<guid>https://www.v2ex.com/t/1074857</guid>
+<content:encoded><![CDATA[
+
+阿里云盘这种泄漏隐私的漏洞都存在,搞了一款加密的网盘,防止泄漏隐私<br /><br />特点: 上传文件之前本地加密,每个文件都是随机的密钥<br />上传完成之后,密钥会被添加到文件的分享码中,<br />分享码中包含了文件的大小，名称 地址 密钥等信息,<br />服务器不知道您上传的文件的内容,就连文件大小都无法得知<br />每个文件都是被分成 1mb 的切片后上传的<br />无需注册登录即可使用,加密的视频支持在线播放<br /><br />不过由于文件列表是本地维护的,卸载软件后文件列表信息将会丢失<br />没有账号系统,而且因为是本地维护的，数据过多会导致卡顿,所以限制最多 10000 个文件<br />支持批量上传,批量导出导入文件<br />项目地址: <a href="https://gitlab.com/ivgeek/mixfile" rel="nofollow noopener" target="_blank">https://gitlab.com/ivgeek/mixfile</a><br /><br />各位有什么建议的可以提出来
+]]></content:encoded>
+<pubDate>2024-09-22T13:03:17Z</pubDate>
+<pubDate>2024-09-22T13:37:44Z</pubDate>
+</item>
+<item>
+<title>[程序员] [开源] HanAnalytics 访问分析 Web 统计托管于（Cloudflare Pages）</title>
+<link>https://www.v2ex.com/t/1074856</link>
+<guid>https://www.v2ex.com/t/1074856</guid>
+<content:encoded><![CDATA[
+
+<h3>在线体验</h3>
+<p><a href="https://analytics.vvhan.com/" rel="nofollow">HanAnalytics</a></p>
+<h3>项目地址</h3>
+<p><a href="https://github.com/uxiaohan/HanAnalytics" rel="nofollow">HanAnalytics</a></p>
+<h3>页面截图</h3>
+<p><img alt="Han-Analytics" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/uxiaohan.github.io/v2/2024/09/1726993735.webp" /></p>
+]]></content:encoded>
+<pubDate>2024-09-22T12:43:26Z</pubDate>
+<pubDate>2024-09-22T12:42:26Z</pubDate>
+</item>
+<item>
+<title>[Windows] windows 上有不需要共享文件夹，就能在局域网同步的软件？</title>
+<link>https://www.v2ex.com/t/1074855</link>
+<guid>https://www.v2ex.com/t/1074855</guid>
+<content:encoded><![CDATA[
+
+<p>Resilio Sync 类似的软件都是被公司封掉的。
+不想一直开局域网共享，只想同步的时候用。</p>
+]]></content:encoded>
+<pubDate>2024-09-22T12:41:18Z</pubDate>
+<pubDate>2024-09-22T13:00:07Z</pubDate>
+</item>
+
+<item>
 <title>[宽带症候群] 广东电信去外省联通也不行了</title>
 <link>https://www.v2ex.com/t/1074853</link>
 <guid>https://www.v2ex.com/t/1074853</guid>
 <content:encoded><![CDATA[
-
 <p>我因为每个月都会去广东出差，因为各种需求，所以手机和电脑会通过 VPN 连接回去，我家有 3 条联通上行都是 200M ，我今天在珠海，用 1000M 电信网络，发现比月初来的时候慢多了，于是测速。</p>
 <p>图 1
 珠海电信-长沙联通
@@ -39,18 +415,15 @@
 <p>至于 iperf3 ，我也测了，udp 和 tcp 都测了，都差不多。所以基本断定跨省有毒了。</p>
 ]]></content:encoded>
 <pubDate>2024-09-22T12:39:41Z</pubDate>
-<pubDate>2024-09-22T12:39:41Z</pubDate>
 </item>
 <item>
 <title>[分享发现] 有哪些优质的滑冰教学 UP 主？</title>
 <link>https://www.v2ex.com/t/1074852</link>
 <guid>https://www.v2ex.com/t/1074852</guid>
 <content:encoded><![CDATA[
-
 <p>在 V 站上看游泳相关的讨论，很多人提到 "梦觉教游泳"。</p>
 <p>学滑冰各位同学推荐哪位 UP 主？</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T12:35:32Z</pubDate>
 <pubDate>2024-09-22T12:35:32Z</pubDate>
 </item>
 <item>
@@ -58,10 +431,8 @@
 <link>https://www.v2ex.com/t/1074851</link>
 <guid>https://www.v2ex.com/t/1074851</guid>
 <content:encoded><![CDATA[
-
 <p>这几天女友撤退性出血 加头晕 应该是紧急避孕药副作用发作了 有啥好的办法可以缓解吗？</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T12:31:20Z</pubDate>
 <pubDate>2024-09-22T12:35:47Z</pubDate>
 </item>
 <item>
@@ -69,12 +440,10 @@
 <link>https://www.v2ex.com/t/1074849</link>
 <guid>https://www.v2ex.com/t/1074849</guid>
 <content:encoded><![CDATA[
-
 <p>研一仅一个月，我被分配到一个全新的研究方向，组内设备和理论都要从头开始，目前只有一位研二的师兄在摸索着进行研究。开学伊始就感到对未来的毕业问题充满忧虑。</p>
 <p>我的课表非常紧张，几乎每天都有满满的课程安排。闲暇时会阅读相关文献，但总感觉没有什么收获。每天的生活基本就是上课、下课，回到宿舍继续看文献，几乎没有社交活动。室友之间关系一般，各忙各的事，连吃饭和上下课都经常一个人独自行动，身边的环境也显得格外陌生。</p>
 <p>我想请教如何排解这种孤独感？随着时间推移，适应研究生生活后，这种孤独感会有所缓解吗？</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T12:20:57Z</pubDate>
 <pubDate>2024-09-22T12:22:56Z</pubDate>
 </item>
 <item>
@@ -82,11 +451,9 @@
 <link>https://www.v2ex.com/t/1074848</link>
 <guid>https://www.v2ex.com/t/1074848</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="1727006875286.png" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2024/09/22/2500659b5640c.png" />
 每周工作小时也屡创新高，这还是国家统计局的数据，有没有懂哥，这是一种什么程度？</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T12:16:05Z</pubDate>
 <pubDate>2024-09-22T12:22:51Z</pubDate>
 </item>
 <item>
@@ -94,7 +461,6 @@
 <link>https://www.v2ex.com/t/1074847</link>
 <guid>https://www.v2ex.com/t/1074847</guid>
 <content:encoded><![CDATA[
-
 <p>凹语言是国内首个面向 WebAssembly 设计通用编程语言，也是目前被 <a href="https://landscape.cncf.io/?item=wasm--languages--wa-lang" rel="nofollow">CNCF 基金会 wasm 全景图</a> 收录的的唯一一个来自中国的开源编程语言项目。</p>
 <p>凹语言最初在 2022 年底增加了对 Arduino-wasm 平台的支持，后来在 2023 年底因为聚焦 MVP 开发临时去掉了 Arduino 目标的支持。最近在下个发布的 v0.17.0 版本中将恢复对 Arduino nano 33 开发版的支持，相对于之前的版本现在的凹语言特性更加丰富。</p>
 <ul>
@@ -264,7 +630,6 @@ void loop() {
 <p>目前流行 Arduino 单片机的配置还是比较低的，可能难以运行 WASM 程序。不过可以乐观估计 Arduino Nano 33 将会很快普及。而且，Wasm3 不仅仅可以支持 Arduino ，还可以支持树莓派 Pico （淘宝价格 30 元）。因此，从长远看 WASM 是一个兼具灵活性和性价比的可选方案。</p>
 <p>原文: <a href="https://wa-lang.org/smalltalk/st0052.html" rel="nofollow">https://wa-lang.org/smalltalk/st0052.html</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-22T12:10:21Z</pubDate>
 <pubDate>2024-09-21T20:10:21Z</pubDate>
 </item>
 <item>
@@ -272,12 +637,10 @@ void loop() {
 <link>https://www.v2ex.com/t/1074846</link>
 <guid>https://www.v2ex.com/t/1074846</guid>
 <content:encoded><![CDATA[
-
 <p>确实解放了后端接口的开发量，前端需要什么，后端扩展一下 GraphQL 的定义就行。</p>
 <p>但是感觉很多都下放给前端了，可能会导致优化工作不好优化，权限不好控制，有点裸奔的感觉。</p>
 <p>大家平时有在用吗？</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T11:58:19Z</pubDate>
 <pubDate>2024-09-22T11:58:19Z</pubDate>
 </item>
 <item>
@@ -285,13 +648,11 @@ void loop() {
 <link>https://www.v2ex.com/t/1074844</link>
 <guid>https://www.v2ex.com/t/1074844</guid>
 <content:encoded><![CDATA[
-
 <p>工欲善其事，必先利其器。出海第一站，搞定工具链。</p>
 <p>为了更好的做好出海这件事情，特意花了点时间整理了 150+跨境需要用到的工具，涵盖了建站、支付、选品、关键词、SEO 、营销等各个环节，旨在帮助出海用户不为工具烦恼，可以更加聚焦核心业务。</p>
 <p>有付费的也有免费的，内容会持续更新，持续挖掘更多有价值的工具</p>
 <p>跨境工具集: <a href="https://chuhaime.com/tools/index.html?utm_source=v2ex&amp;utm_medium=social" rel="nofollow">https://chuhaime.com/tools/index.html</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-22T11:14:05Z</pubDate>
 <pubDate>2024-09-22T11:11:05Z</pubDate>
 </item>
 <item>
@@ -299,10 +660,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074843</link>
 <guid>https://www.v2ex.com/t/1074843</guid>
 <content:encoded><![CDATA[
-
 如题<br />1C 1G 20G 300Mbps 1T 双向流量<br />25.09.15 到期，145 包 push<br />tg @<a href="https://www.v2ex.com/member/sixhejw" rel="nofollow noopener" target="_blank">sixhejw</a><br /><br />--------------------- A Bench Script By spiritlhl ----------------------<br />                   测评频道: <a href="https://t.me/vps_reviews" rel="nofollow noopener" target="_blank">https://t.me/vps_reviews</a>                    <br />VPS 融合怪版本：2024.08.29<br />Shell 项目地址： <a href="https://github.com/spiritLHLS/ecs" rel="nofollow noopener" target="_blank">https://github.com/spiritLHLS/ecs</a><br />Go 项目地址： <a href="https://github.com/oneclickvirt/ecs" rel="nofollow noopener" target="_blank">https://github.com/oneclickvirt/ecs</a><br />---------------------基础信息查询--感谢所有开源项目---------------------<br /> CPU 型号          : Intel(R) Xeon(R) CPU E5-2698 v3 @ 2.30GHz<br /> CPU 核心数        : 1<br /> CPU 频率          : 2297.338 MHz<br /> CPU 缓存          : L1: 32.00 KB / L2: 256.00 KB / L3: 40.00 MB<br /> AES-NI 指令集      : ✔ Enabled<br /> VM-x/AMD-V 支持    : ✔ Enabled<br /> 内存              : 380.42 MiB / 957.52 MiB<br /> Swap              : 555.39 MiB / 1.00 GiB<br /> 硬盘空间          : 15.90 GiB / 19.20 GiB<br /> 启动盘路径        : /dev/vda1<br /> 系统在线时间      : 341 days, 13 hour 40 min<br /> 负载              : 1.03, 0.25, 0.08<br /> 系统              : Ubuntu 22.04 LTS (x86_64)<br /> 架构              : x86_64 (64 Bit)<br /> 内核              : 5.15.0-86-generic<br /> TCP 加速方式       : bbr<br /> 虚拟化架构        : KVM<br /> NAT 类型           : Port Restricted Cone<br /> IPV4 ASN          : AS979 NetLab Global<br /> IPV4 位置         : Los Angeles / California / US<br />----------------------CPU 测试--通过 sysbench 测试-------------------------<br /> -&gt; CPU 测试中 (Fast Mode, 1-Pass @ 5sec)<br /> 1 线程测试(单核)得分:          816 Scores<br />---------------------内存测试--感谢 lemonbench 开源-----------------------<br /> -&gt; 内存测试 Test (Fast Mode, 1-Pass @ 5sec)<br /> 单线程读测试:          15339.33 MB/s<br /> 单线程写测试:          12080.79 MB/s<br />------------------磁盘 dd 读写测试--感谢 lemonbench 开源--------------------<br /> -&gt; 磁盘 IO 测试中 (4K Block/1M Block, Direct Mode)<br /> 测试操作               写速度                                  读速度<br /> 100MB-4K Block         8.9 MB/s (2169 IOPS, 11.80s)            8.6 MB/s (2102 IOPS, 12.18s)<br /> 1GB-1M Block           591 MB/s (564 IOPS, 1.77s)              1.0 GB/s (998 IOPS, 1.00s)<br />---------------------磁盘 fio 读写测试--感谢 yabs 开源----------------------<br />Block Size | 4k            (IOPS) | 64k           (IOPS)<br />  ------   | ---            ----  | ----           ---- <br />Read       | 8.02 MB/s     (2.0k) | 122.71 MB/s   (1.9k)<br />Write      | 8.05 MB/s     (2.0k) | 123.35 MB/s   (1.9k)<br />Total      | 16.08 MB/s    (4.0k) | 246.07 MB/s   (3.8k)<br />           |                      |                     <br />Block Size | 512k          (IOPS) | 1m            (IOPS)<br />  ------   | ---            ----  | ----           ---- <br />Read       | 637.40 MB/s   (1.2k) | 549.12 MB/s    (536)<br />Write      | 671.27 MB/s   (1.3k) | 585.69 MB/s    (571)<br />Total      | 1.30 GB/s     (2.5k) | 1.13 GB/s     (1.1k)<br />------------流媒体解锁--基于 oneclickvirt/CommonMediaTests 开源-----------<br />以下测试的解锁地区是准确的，但是不是完整解锁的判断可能有误，这方面仅作参考使用<br />----------------Netflix-----------------<br />[IPV4]<br />您的出口 IP 完整解锁 Netflix ，支持非自制剧的观看<br />NF 所识别的 IP 地域信息：美国<br />[IPV6]<br />您的网络可能没有正常配置 IPv6 ，或者没有 IPv6 网络接入<br />----------------Youtube-----------------<br />[IPV4]<br />连接方式: Youtube Video Server<br />视频缓存节点地域: 美国  旧金山(SFO03S20)<br />[IPV6]<br />Youtube 在您的出口 IP 所在的国家不提供服务<br />---------------DisneyPlus---------------<br />[IPV4]<br />当前出口所在地区解锁 DisneyPlus<br />区域：US 区<br />[IPV6]<br />DisneyPlus 在您的出口 IP 所在的国家不提供服务<br />解锁 Netflix ，Youtube ，DisneyPlus 上面和下面进行比较，不同之处自行判断<br />----------------流媒体解锁--感谢 RegionRestrictionCheck 开源--------------<br /> 以下为 IPV4 网络测试，若无 IPV4 网络则无输出<br />============[ Multination ]============<br /> Dazn:                                  Yes (Region: US)<br /> Disney+:                               Yes (Region: US)<br /> Netflix:                               Yes (Region: US)<br /> YouTube Premium:                       Yes (Region: US)<br /> Amazon Prime Video:                    Yes (Region: US)<br /> TVBAnywhere+:                          Yes<br /> Spotify Registration:                  Yes (Region: US)<br /> Instagram Licensed Audio:              No<br /> OneTrust Region:                       US [California]<br /> iQyi Oversea Region:                   US<br /> Bing Region:                           US<br /> YouTube CDN:                           San Francisco, CA<br /> Netflix Preferred CDN:                 Los Angeles, CA<br /> ChatGPT:                               Yes<br /> Google Gemini:                         Yes (Region: USA)<br /> Wikipedia Editability:                 No<br /> Google Search CAPTCHA Free:            Yes<br /> Steam Currency:                        USD<br /> ---Forum---<br /> Reddit:                                Yes<br />=======================================<br /> 以下为 IPV6 网络测试，若无 IPV6 网络则无输出<br />---------------TikTok 解锁--感谢 lmc999 的源脚本及 fscarmen PR--------------<br /> Tiktok Region:          [ US ] <br />-------------IP 质量检测--基于 oneclickvirt/securityCheck 使用-------------<br />数据仅作参考，不代表 100%准确，如果和实际情况不一致请手动查询多个数据库比对<br />以下为各数据库编号，输出结果后将自带数据库来源对应的编号<br />ipinfo 数据库  [0] | scamalytics 数据库 [1] | virustotal 数据库   [2] | abuseipdb 数据库   [3] | ip2location 数据库    [4]<br />ip-api 数据库  [5] | ipwhois 数据库     [6] | ipregistry 数据库   [7] | ipdata 数据库      [8] | db-ip 数据库          [9]<br />ipapiis 数据库 [A] | ipapicom 数据库    [B] | bigdatacloud 数据库 [C] | cheervision 数据库 [D] | ipqualityscore 数据库 [E]<br />IPV4:<br />安全得分:<br />声誉(越高越好): 0 [2] <br />信任得分(越高越好): 47 [8] <br />VPN 得分(越低越好): 6 [8] <br />代理得分(越低越好): 100 [8] <br />社区投票-无害: 0 [2] <br />社区投票-恶意: 0 [2] <br />威胁得分(越低越好): 54 [8] <br />欺诈得分(越低越好): 0 [1 E] <br />滥用得分(越低越好): 0 [3] <br />ASN 滥用得分(越低越好): 0.0011 (Low) [A] <br />公司滥用得分(越低越好): 0.0015 (Low) [A] <br />威胁级别: low [9 B] <br />黑名单记录统计:(有多少黑名单网站有记录):<br />无害记录数: 0 [2] 恶意记录数: 0 [2]  可疑记录数: 0 [2]  无记录数: 94 [2]  <br />安全信息:<br />使用类型: hosting [A] corporate [9] business [0 7 8] hosting ASN [C] DataCenter/WebHosting/Transit [3]<br />公司类型: isp [7] business [0 A]<br />是否云提供商: No [7 D] <br />是否数据中心: No [0 5 6 8 A] Yes [1 C]<br />是否移动设备: No [5 A C] Yes [E]<br />是否代理: No [0 1 4 5 6 7 8 9 A B C D E]<br />是否 VPN: No [0 1 6 7 A C D E] <br />是否 Tor: No [0 1 3 6 7 8 A B C D E] <br />是否 Tor 出口: No [1 7 D] <br />是否网络爬虫: No [9 A B E] <br />是否匿名: No [1 6 7 8 D] <br />是否攻击者: No [7 8 D] <br />是否滥用者: No [7 8 A C D E] <br />是否威胁: No [7 8 C D] <br />是否中继: No [0 7 8 C D] <br />是否 Bogon: No [7 8 A C D] <br />是否机器人: No [E] <br />DNS-黑名单: 313(Total_Check) 0(Clean) 5(Blacklisted) 20(Other) <br />Google 搜索可行性：YES<br />-------------邮件端口检测--基于 oneclickvirt/portchecker 开源-------------<br />Platform  SMTP  SMTPS POP3  POP3S IMAP  IMAPS<br />LocalPort ✘     ✔     ✔     ✔     ✔     ✔    <br />QQ        ✘     ✔     ✘     ✘     ✘     ✘    <br />163       ✘     ✔     ✘     ✘     ✘     ✘    <br />Sohu      ✘     ✔     ✘     ✘     ✘     ✘    <br />Yandex    ✘     ✔     ✘     ✘     ✘     ✘    <br />Gmail     ✘     ✔     ✘     ✘     ✘     ✘    <br />Outlook   ✘     ✘     ✘     ✘     ✘     ✘    <br />Office365 ✘     ✘     ✘     ✘     ✘     ✘    <br />Yahoo     ✘     ✔     ✘     ✘     ✘     ✘    <br />MailCOM   ✘     ✔     ✘     ✘     ✘     ✘    <br />MailRU    ✘     ✔     ✘     ✘     ✘     ✘    <br />AOL       ✘     ✔     ✘     ✘     ✘     ✘    <br />GMX       ✘     ✘     ✘     ✘     ✘     ✘    <br />Sina      ✘     ✘     ✘     ✘     ✘     ✘    <br />----------------三网回程--基于 oneclickvirt/backtrace 开源----------------<br />北京电信 219.141.140.10  联通 4837   [普通线路] <br />北京联通 202.106.195.68  联通 4837   [普通线路] <br />北京移动 221.179.155.161 联通 4837   [普通线路] <br />上海电信 202.96.209.133  联通 4837   [普通线路] <br />上海联通 210.22.97.1     联通 4837   [普通线路] <br />上海移动 211.136.112.200 联通 4837   [普通线路] <br />广州电信 58.60.188.222   联通 4837   [普通线路] <br />广州联通 210.21.196.6    联通 4837   [普通线路] <br />广州移动 120.196.165.24  联通 4837   [普通线路] <br />成都电信 61.139.2.69     联通 4837   [普通线路] <br />成都联通 119.6.6.6       联通 4837   [普通线路] <br />成都移动 211.137.96.205  联通 4837   [普通线路] <br />准确线路自行查看详细路由，本测试结果仅作参考<br />同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效<br />---------------------回程路由--感谢 fscarmen 开源及 PR---------------------<br />依次测试电信/联通/移动经过的地区及线路，核心程序来自 <a href="http://ipip.net" rel="nofollow noopener" target="_blank">ipip.net</a> 或 nexttrace ，请知悉!<br />广州电信 58.60.188.222<br />0.53 ms         * RFC1918<br />1.84 ms         AS979 美国 加利福尼亚 洛杉矶 <a href="http://as979.net" rel="nofollow noopener" target="_blank">as979.net</a><br />1.94 ms         * RFC1918<br />0.95 ms         * RFC1918<br />9.44 ms         AS10099 [CUG-BACKBONE] 美国 加利福尼亚 洛杉矶 <a href="http://chinaunicomglobal.com" rel="nofollow noopener" target="_blank">chinaunicomglobal.com</a> 联通<br />164.28 ms       * 中国 北京<br />196.55 ms       AS4837 [CU169-BACKBONE] 中国 北京 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />200.89 ms       AS4837 [CU169-BACKBONE] 中国 北京 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a><br />315.16 ms       AS4837 [CU169-BACKBONE] 中国 广东 广州 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />228.13 ms       AS4134 中国 广东 深圳 福田区 <a href="http://www.chinatelecom.com.cn" rel="nofollow noopener" target="_blank">www.chinatelecom.com.cn</a> 电信<br />广州联通 210.21.196.6<br />0.33 ms         * RFC1918<br />8.38 ms         AS979 美国 加利福尼亚 洛杉矶 <a href="http://as979.net" rel="nofollow noopener" target="_blank">as979.net</a><br />0.79 ms         * RFC1918<br />0.95 ms         * RFC1918<br />2.14 ms         * RFC1918<br />2.63 ms         AS4837 [CU169-BACKBONE] 美国 加利福尼亚 洛杉矶 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />154.93 ms       AS4837 [CU169-BACKBONE] 中国 广东 广州 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />156.44 ms       AS4837 [CU169-BACKBONE] 中国 广东 广州 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />153.02 ms       AS4837 [CU169-BACKBONE] 中国 广东 广州 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />163.29 ms       AS17816 [UNICOM-GD] 中国 广东 深圳 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />165.06 ms       AS17623 [APNIC-AP] 中国 广东 深圳 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />161.00 ms       AS17623 [APNIC-AP] 中国 广东 深圳 宝安区 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />广州移动 120.196.165.24<br />0.40 ms         * RFC1918<br />3.10 ms         AS979 美国 加利福尼亚 洛杉矶 <a href="http://as979.net" rel="nofollow noopener" target="_blank">as979.net</a><br />0.96 ms         * RFC1918<br />1.08 ms         * RFC1918<br />9.44 ms         AS10099 [CUG-BACKBONE] 美国 加利福尼亚 洛杉矶 <a href="http://chinaunicomglobal.com" rel="nofollow noopener" target="_blank">chinaunicomglobal.com</a> 联通<br />165.50 ms       * 中国 北京<br />169.21 ms       AS4837 [CU169-BACKBONE] 中国 北京 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a> 联通<br />170.00 ms       AS4837 [CU169-BACKBONE] 中国 北京 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a><br />172.12 ms       AS4837 [CU169-BACKBONE] 中国 北京 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a><br />177.61 ms       AS4837 [CU169-BACKBONE] 中国 广东 广州 <a href="http://chinaunicom.cn" rel="nofollow noopener" target="_blank">chinaunicom.cn</a><br />278.52 ms       AS9808 [CMNET] 中国 广东 广州 <a href="http://chinamobileltd.com" rel="nofollow noopener" target="_blank">chinamobileltd.com</a> 移动<br />176.68 ms       AS9808 [CMNET] 中国 广东 广州 <a href="http://chinamobileltd.com" rel="nofollow noopener" target="_blank">chinamobileltd.com</a> 移动<br />178.96 ms       AS9808 [CMNET] 中国 广东 广州 <a href="http://chinamobileltd.com" rel="nofollow noopener" target="_blank">chinamobileltd.com</a> 移动<br />177.68 ms       AS56040 [APNIC-AP] 中国 广东 深圳 <a href="http://gd.10086.cn" rel="nofollow noopener" target="_blank">gd.10086.cn</a> 移动<br />--------------------自动更新测速节点列表--本脚本原创--------------------<br />位置             上传速度        下载速度        延迟     丢包率<br /><a href="http://Speedtest.net" rel="nofollow noopener" target="_blank">Speedtest.net</a>    284.68 Mbps     284.13 Mbps     0.70     0.0%<br />洛杉矶           282.16 Mbps     279.90 Mbps     1.47     0.0%<br />日本东京         263.34 Mbps     281.90 Mbps     115.53   0.0%<br />联通成都         260.19 Mbps     7.96 Mbps       219.30   NULL<br />联通 WuXi         267.33 Mbps     284.47 Mbps     199.58   0.0%<br />电信浙江         181.62 Mbps     296.65 Mbps     176.98   NULL<br />电信 Zhenjiang5G  228.14 Mbps     299.31 Mbps     157.21   NULL<br /><a href="http://该运营商.net" rel="nofollow noopener" target="_blank">该运营商.net</a> 的节点列表为空，<a href="http://正在替换为.cn" rel="nofollow noopener" target="_blank">正在替换为.cn</a> 的节点列表。。。cat: /tmp/pingtest: No such file or directory<br />------------------------------------------------------------------------<br /> 总共花费      : 6 分 12 秒<br /> 时间          : Sun Sep 22 11:09:03 UTC 2024<br />------------------------------------------------------------------------<br />  短链:<br />    <a href="http://hpaste.spiritlhl.net/u/POEBP7.txt" rel="nofollow noopener" target="_blank">http://hpaste.spiritlhl.net/u/POEBP7.txt</a>
 ]]></content:encoded>
-<pubDate>2024-09-22T11:11:25Z</pubDate>
 <pubDate>2024-09-22T11:10:25Z</pubDate>
 </item>
 <item>
@@ -310,7 +669,6 @@ void loop() {
 <link>https://www.v2ex.com/t/1074842</link>
 <guid>https://www.v2ex.com/t/1074842</guid>
 <content:encoded><![CDATA[
-
 <p>4 年 java ，4 月被裁员，找工作至今。</p>
 <p>这几个月机会很少，还没找到合适的工作。</p>
 <p>寻求一份成都的工作 ，希望能拿 8-10k,稳定就很好了，双非本科，肯学习肯干</p>
@@ -318,7 +676,6 @@ void loop() {
 <p>微信号：ZG9nbGFpOGh1YW5n</p>
 <p>各位有合适的岗位推荐的话，可以加我，我发一下简历，真心感谢。</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T11:07:34Z</pubDate>
 <pubDate>2024-09-22T11:05:34Z</pubDate>
 </item>
 <item>
@@ -326,10 +683,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074841</link>
 <guid>https://www.v2ex.com/t/1074841</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/zMy4WdJ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zMy4WdJ.png" /></a><br />求助这有什么解决办法吗？
 ]]></content:encoded>
-<pubDate>2024-09-22T11:07:03Z</pubDate>
 <pubDate>2024-09-21T19:07:03Z</pubDate>
 </item>
 <item>
@@ -337,10 +692,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074839</link>
 <guid>https://www.v2ex.com/t/1074839</guid>
 <content:encoded><![CDATA[
-
 <p>iPad 升级后默认全都成黑色 icon 了，iPhone 升级后还是原来的 icon ，不知道怎么切换成黑色 icon</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T10:58:02Z</pubDate>
 <pubDate>2024-09-22T11:27:27Z</pubDate>
 </item>
 <item>
@@ -348,10 +701,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074838</link>
 <guid>https://www.v2ex.com/t/1074838</guid>
 <content:encoded><![CDATA[
-
 <p>之前在 /t/1074154 问 V 友有没有开源的 SSH 客户端推荐，很多人推荐了 Tabby ，今天闲下来打算试试，这类工具我用前都会先简单测试一下安全性，结果我都还没开始用，第一个测试就发现了大问题 <a href="https://github.com/Eugeny/tabby/issues/9955" rel="nofollow">https://github.com/Eugeny/tabby/issues/9955</a></p>
 ]]></content:encoded>
-<pubDate>2024-09-22T10:54:01Z</pubDate>
 <pubDate>2024-09-22T12:36:40Z</pubDate>
 </item>
 <item>
@@ -359,10 +710,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074836</link>
 <guid>https://www.v2ex.com/t/1074836</guid>
 <content:encoded><![CDATA[
-
 除了一些山寨厂商以外，几乎没看到有什么 Windows 平板了，买了一个 1500 的，感觉质感很山寨。。。
 ]]></content:encoded>
-<pubDate>2024-09-22T10:46:08Z</pubDate>
 <pubDate>2024-09-22T11:24:41Z</pubDate>
 </item>
 <item>
@@ -370,10 +719,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074835</link>
 <guid>https://www.v2ex.com/t/1074835</guid>
 <content:encoded><![CDATA[
-
 有没有一种方法或者软件可以在本地加密文件（但同时在本地打开是无感的或者说不需要漫长的解密），然后使用网盘同步加密后的文件（同步过程就像同步未加密的文件一样），同步完成后在云端可以看到文件，但是要求无法打开文件（因为没有解密）。<br /><br /><br /><br />想解决的问题是<br /><br />1.利用商业云服务来备份重要数据，保证数据的安全，同时又避免了自行备份的麻烦，同时保证本地数据的无感使用；<br /><br />2.避免重要数据被厂商窥探。<br /><br /><br /><br />兄弟们，请问有这样的好方法吗？以及这样做是否有其他缺陷？
 ]]></content:encoded>
-<pubDate>2024-09-22T10:45:30Z</pubDate>
 <pubDate>2024-09-22T12:01:05Z</pubDate>
 </item>
 <item>
@@ -381,10 +728,8 @@ void loop() {
 <link>https://www.v2ex.com/t/1074834</link>
 <guid>https://www.v2ex.com/t/1074834</guid>
 <content:encoded><![CDATA[
-
 <p>还是我客户告诉我的，这个咋办？手机都登录不进去了。</p>
 ]]></content:encoded>
-<pubDate>2024-09-22T10:33:56Z</pubDate>
 <pubDate>2024-09-22T11:48:05Z</pubDate>
 </item>
 <item>
@@ -392,13 +737,10 @@ void loop() {
 <link>https://www.v2ex.com/t/1074832</link>
 <guid>https://www.v2ex.com/t/1074832</guid>
 <content:encoded><![CDATA[
-
 Airpods4 降噪版 走路上风噪太大了完全没法用，准备换成新 Pro ，但是发现今年发布的怎么还是 Pro 2 ？<br /><br />现在有旧的 Airpods Pro 2 A2931 ，官方显示是 2022 年的 Pro 2 。<br />京东在售的 Airpods Pro 2 A3049 ，官方显示是 2023 年的 Pro 2 。<br /><a href="https://support.apple.com/zh-cn/109525" rel="nofollow noopener" target="_blank">https://support.apple.com/zh-cn/109525</a><br /><br />印象里今年发布了新的 Pro 2 ，那今年的型号是多少，除了充电盒，和 2022 的 Pro 2 有区别吗？
 ]]></content:encoded>
-<pubDate>2024-09-22T10:26:07Z</pubDate>
 <pubDate>2024-09-22T11:09:18Z</pubDate>
 </item>
-
 <item>
 <title>[随想] 买房 15%的首付 觉得挺吓人的</title>
 <link>https://www.v2ex.com/t/1074831</link>
@@ -15289,196 +15631,6 @@ rt<br /><br />求求,路过的大佬塞一个
 如题，喜欢干活的时候放点音频播客类的视频，弹幕也不会很多，一分钟几条。<br /><br />B 站自己的播放页面，滚动到评论区的时候会转成小窗播放，这个小窗是有弹幕的，但只能显示在当前页面，换个标签页就没这个小窗了。<br /><br />浏览器自带的小窗播放可以全局置顶，最小化浏览器也能看，但是不播放弹幕。<br /><br />有没有什么方法，既能全局置顶小窗播放，又能播放弹幕？
 ]]></content:encoded>
 <pubDate>2024-09-18T03:59:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位同学，抢高铁票都用什么工具呀</title>
-<link>https://www.v2ex.com/t/1073656</link>
-<guid>https://www.v2ex.com/t/1073656</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-09-18T04:25:20Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 大佬们，想请教一下你们是如何保持高强度学习</title>
-<link>https://www.v2ex.com/t/1073655</link>
-<guid>https://www.v2ex.com/t/1073655</guid>
-<content:encoded><![CDATA[
-小弟毕业一年了，干了一年了，对技术什么的毫无追求，只想着完成，用能就行的心态，几乎不会去找东西来学；不知道大佬们是如何驱动自己持续去学习的，小弟好像个混子，想着考公但是没怎么认真复习，总是觉得自己精神不太正能量。
-]]></content:encoded>
-<pubDate>2024-09-18T04:09:17Z</pubDate>
-</item>
-<item>
-<title>[macOS] 关于 macos sequoia 更新的 iPhone 镜像</title>
-<link>https://www.v2ex.com/t/1073653</link>
-<guid>https://www.v2ex.com/t/1073653</guid>
-<content:encoded><![CDATA[
-<p>iphone 镜像就是我关于这次版本更新最期待的功能了，一定程度上弥补了我上班不想掏手机的问题。
-但也发现几个问题。</p>
-<ol>
-<li>我平时挺喜欢用闲鱼，买卖东西。这个还就手机上有。但是在 iphone 镜像里用的时候点击宝贝详情，没法下滑。不过闲鱼这个 app 一直有各种问题，在手机上用的时候编辑文件也经常各种 Bug 。</li>
-<li>没找到办法下滑看 ios 的通知，和控制中心。鼠标点击下拉不行，也没找到什么快捷键。</li>
-<li>通知问题。我 iphone 和 mac 上都装了微信。这样，mac 上默认就接收不到 iphone 上的微信通知了 (就算 mac 的微信没启动)。但是我不工作的时候，mac 上不登微信，也想从 iphone 上接收到微信通知。</li>
-</ol>
-<p>整体感觉还行，不过还有改进空间。</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:30:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 红米死机后强制重启要求要密码。</title>
-<link>https://www.v2ex.com/t/1073652</link>
-<guid>https://www.v2ex.com/t/1073652</guid>
-<content:encoded><![CDATA[
-<p>RT. 红米 5Plus ，使用中突然死机，然后强制重启，重启完要求输入密码，但是以前用的都是图案密码，没设置过文本密码的印象，用了常用的文本密码测试还是不行，现在提示剩余 6 次。没有 USB 调试模式，还有救么？里面有数据需要留存。。。</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:30:03Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 请教一下远程办公的人</title>
-<link>https://www.v2ex.com/t/1073650</link>
-<guid>https://www.v2ex.com/t/1073650</guid>
-<content:encoded><![CDATA[
-找到了一份没签合同的工作，每个月给 20k+ 直接支付工具转账的工作。这份工作暂且不讨论靠不靠谱，我想请教一下有过类似这种经验的人，我要自己去交税吗，我需要考虑对方有没有交吗？
-]]></content:encoded>
-<pubDate>2024-09-18T03:46:20Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 家庭组网求抄作业，越简单越好</title>
-<link>https://www.v2ex.com/t/1073649</link>
-<guid>https://www.v2ex.com/t/1073649</guid>
-<content:encoded><![CDATA[
-<p>家里在装修，要规划下网络布置，求大佬们给点简单方案来抄一抄</p>
-<p>需求：</p>
-<ol>
-<li>客厅+书房各一个无线路由器组网 覆盖全屋，支持千兆网络</li>
-<li>书房放电脑小主机等，客厅电视要方便连接，方便点播小主机里面的影音，最好能用电视来玩电脑游戏。</li>
-<li>全屋网络+代理，国外被墙的默认走代理，不用客户端额外设置。</li>
-</ol>
-<p>目前想法：</p>
-<ol>
-<li>猫+客厅路由器 放客厅，书房路由器通过六类网线连接到客厅路由器</li>
-<li>书房和客厅之间预埋 hdmi 光纤线方便投屏</li>
-<li>书房和客厅之间预埋 3 条光纤，方便后期拓展。</li>
-</ol>
-<p>代理目前没有想法</p>
-<p>求大佬们给点简易的方案意见，V 站之前看了一些帖子，设备一堆看着头大</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:51:45Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 突然有一个想法，是否可以使用邮件系统作为用户系统？</title>
-<link>https://www.v2ex.com/t/1073648</link>
-<guid>https://www.v2ex.com/t/1073648</guid>
-<content:encoded><![CDATA[
-<p>一个突然崩出来的想法，没啥实践过程。</p>
-<p>假如自己开发了几个 APP ，想使用同一套用户帐号密码，那可以把帐号密码独立开发成一个用户系统，然后使用 OAuth2 作为身份验证，做如果不想自己开发的话。</p>
-<p>这时候，我在想，能不能使用别人已经开发并且稳定的邮件系统作为用户中心，使用 API 进行调用，那用户中心比较基础的帐号密码和站内信就拥有了？剩下其它比如积分或签到之类的功能，再自己开发？</p>
-<p>是不是可以这样做？</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:51:13Z</pubDate>
-</item>
-<item>
-<title>[求职] 6 年前端上海求内推</title>
-<link>https://www.v2ex.com/t/1073647</link>
-<guid>https://www.v2ex.com/t/1073647</guid>
-<content:encoded><![CDATA[
-个人情况：本科学历，六年前端，react 和 vue 都会(都有 3 年左右的使用经验)。react 会更熟一点。<br /><br />上任工资 20k ，这次薪资预期持平即可，已离职随时到岗，另外现在还不在上海，最好一面能够远程面试。<br /><br />如果有意向可以加我 v：jarvan_king(不用解 base64)，我发简历或者留下联系方式我联系你
-]]></content:encoded>
-<pubDate>2024-09-18T03:22:53Z</pubDate>
-</item>
-<item>
-<title>[iPad] Mini 5 千万不要升级到 18.0</title>
-<link>https://www.v2ex.com/t/1073646</link>
-<guid>https://www.v2ex.com/t/1073646</guid>
-<content:encoded><![CDATA[
-日常 pad 需求不大，本着再用几年的想法加上进几个版本来 Mini 5 表现都挺好的，没想太多刚出就升了上去，结果<br /><br />界面迟缓动画卡顿<br />触觉反应延迟<br />照片 app 经常冻结，<br />控制中心操作迟缓，定位不准<br />桌面日常滑动明显掉帧<br />照片 Apps 经常的冻结<br />Safari 关闭标签页迟缓（特别是影音类网站）<br /><br /><br />好在有备份，当晚就果断 DFU 回去。目前不清楚是否为 18.0 适配问题，有想法的建议再等两版本观望观望。
-]]></content:encoded>
-<pubDate>2024-09-18T03:21:00Z</pubDate>
-</item>
-<item>
-<title>[Apple] 钟文泽 AirPods 4 评测疑似用原曲造假，大家怎么看</title>
-<link>https://www.v2ex.com/t/1073645</link>
-<guid>https://www.v2ex.com/t/1073645</guid>
-<content:encoded><![CDATA[
-<p>本站竟然没人讨论这事，我自己听了下感觉 4 实在强的过分了。</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:48:16Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 同事就是同事，不能当朋友</title>
-<link>https://www.v2ex.com/t/1073644</link>
-<guid>https://www.v2ex.com/t/1073644</guid>
-<content:encoded><![CDATA[
-我不是被裁一年了吗，天天刷招聘，当时和一起被裁的同事建了一个群，目前群里只剩我没找到工作，我看到同事岗位有好的招聘，也会发在群里，推给他们。<br />前几天我发了一个，结果被嘲讽了，意思就是你一个还没找到工作的，还给他们指点工作，然后又说帮我也看看吧，然后给我发了好几个工厂流水线普工打螺丝的招聘，让我去应聘……<br />刚才我听另一个同事给我说，嘲讽我的那位投了我推给他的岗位，一面还过了……<br />哎，不知道说什么……
-]]></content:encoded>
-<pubDate>2024-09-18T04:03:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 妹妹马上要结婚了给多少好？</title>
-<link>https://www.v2ex.com/t/1073643</link>
-<guid>https://www.v2ex.com/t/1073643</guid>
-<content:encoded><![CDATA[
-妹妹马上要结婚了给多少好？目前失业状态
-]]></content:encoded>
-<pubDate>2024-09-18T04:12:56Z</pubDate>
-</item>
-<item>
-<title>[生活] 求推荐睡眠耳塞</title>
-<link>https://www.v2ex.com/t/1073642</link>
-<guid>https://www.v2ex.com/t/1073642</guid>
-<content:encoded><![CDATA[
-各位大爹，隔壁新搬来一个，洗漱时间很早，开水龙头的声音很大，因为是隔断房，隔音不好，影响睡眠<br />戴那种普通的睡眠耳塞感觉用处不太大，带 AirPods Pro 开降噪又不舒适，有没有那种降噪效果好一点的睡眠耳塞😭
-]]></content:encoded>
-<pubDate>2024-09-18T03:47:26Z</pubDate>
-</item>
-<item>
-<title>[Python] 中年高龄开始学习 Deep Learning</title>
-<link>https://www.v2ex.com/t/1073641</link>
-<guid>https://www.v2ex.com/t/1073641</guid>
-<content:encoded><![CDATA[
-<p>把学习过程记录在：</p>
-<p><a href="https://github.com/twinsant/ML" rel="nofollow">https://github.com/twinsant/ML</a></p>
-<p>有兴趣的同学可以参考</p>
-]]></content:encoded>
-<pubDate>2024-09-18T00:16:22Z</pubDate>
-</item>
-<item>
-<title>[程序员] smart-doc 3.0.8 发布， Java 零注解 API 文档生成工具</title>
-<link>https://www.v2ex.com/t/1073639</link>
-<guid>https://www.v2ex.com/t/1073639</guid>
-<content:encoded><![CDATA[
-<p>smart-doc 是一款同时支持 JAVA REST API 和 Apache Dubbo RPC 接口文档生成的工具，smart-doc 利用接口泛型和 javadoc 注释自动分析生成 api 接口文档，不采用任何注解侵入到业务代码中。只需要在项目中引入 smart-doc 提供的 maven 或者是 gradle 插件，然后按照规范写好 javadoc 注释即可生成 api 文档。同时 smart-doc 也支持生成 openapi 和 postman 这些规范的文档，生成后可以直接导入相关工具做测试。</p>
-<p>目前在国内已被小米、科大讯飞、同程旅行、快手、马蜂窝、顺丰等知名公司所使用。</p>
-<h1>仓库地址</h1>
-<p><a href="https://github.com/TongchengOpenSource/smart-doc" rel="nofollow">https://github.com/TongchengOpenSource/smart-doc</a></p>
-<h1>重要更新内容</h1>
-<ul>
-<li>导出 Postman collection 支持分组</li>
-<li>完善使用 Enum 作为 Java Map key 的支持</li>
-<li>支持 Enum 上使用 @JsonValue 序列化的解析。</li>
-</ul>
-<h1>未来计划</h1>
-<p>新增对其它开发语言的支持, 欢迎对 golang 和 rust 语言感兴趣的同学加入社区，后续一起构建对 golang 和 rust 的支持</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:13:40Z</pubDate>
-</item>
-<item>
-<title>[macOS] macos15 出来了 但是我想安装 14.6 怎么弄呢</title>
-<link>https://www.v2ex.com/t/1073638</link>
-<guid>https://www.v2ex.com/t/1073638</guid>
-<content:encoded><![CDATA[
-<p>我目前是 13.3</p>
-]]></content:encoded>
-<pubDate>2024-09-18T03:19:29Z</pubDate>
-</item>
-<item>
-<title>[项目管理] 项目流程管理：如何创建成功的项目工作流程？</title>
-<link>https://www.v2ex.com/t/1073635</link>
-<guid>https://www.v2ex.com/t/1073635</guid>
-<content:encoded><![CDATA[
-<p>传送门：<a href="https://www.hellopms.com/project-team/244.html" rel="nofollow">项目流程管理：如何创建成功的项目工作流程？</a></p>
-]]></content:encoded>
-<pubDate>2024-09-18T02:57:45Z</pubDate>
 </item>
 </channel>
 </rss>
