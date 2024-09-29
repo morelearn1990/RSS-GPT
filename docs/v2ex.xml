@@ -5,14 +5,136 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[信息安全] Clash 检测工具的原理</title>
+<link>https://www.v2ex.com/t/1076961</link>
+<guid>https://www.v2ex.com/t/1076961</guid>
+<content:encoded><![CDATA[
+
+<p>我在 <a href="https://www.v2ex.com/t/1076579" rel="nofollow">/t/1076579</a> 给出了 Clash 检测的在线工具，有评论希望我能说明以下其中的原理。</p>
+<p>对此比较感兴趣的，可以阅读一下本文。</p>
+<hr />
+<h1>1. 基于跨域缺陷的利用</h1>
+<p>首先，需要了解两个术语：「<a href="https://zh.wikipedia.org/zh-cn/%E5%90%8C%E6%BA%90%E7%AD%96%E7%95%A5" rel="nofollow">同源策略</a>」和「<a href="https://zh.wikipedia.org/zh-cn/%E8%B7%A8%E4%BE%86%E6%BA%90%E8%B3%87%E6%BA%90%E5%85%B1%E4%BA%AB" rel="nofollow">跨域资源共享</a>」。</p>
+<h2>同源策略（ Same-origin Policy ）</h2>
+<p>当 B 网站的脚本，想请求 A 网站的资源时，浏览器的「同源策略」会禁止这一行为：防止 B 网站伪造您的请求，同时防止您在 A 网站上隐私的泄露。</p>
+<blockquote>
+<p><strong>举例：</strong><br />
+在 <a href="http://www.google.com" rel="nofollow">www.google.com</a> 下按 F12 ，输入 <code>await fetch("<a href="https://bing.com" rel="nofollow">https://bing.com</a>")</code> 回车，然后你会看到一条报错信息。浏览器默认阻止这一行为。</p>
+</blockquote>
+<h2>跨域资源共享（ CORS ）</h2>
+<p>而这一限制有时也会过于严格，因为 A 网站和 B 网站可能是来自同一家。因此 A 网站可以设置一个列表，允许特定的网站去访问它的数据。这就是「跨域资源共享」，这个列表就是「 Access-Control-Allow-Origin 」。</p>
+<blockquote>
+<p><strong>举例（不好的例子）：</strong><br />
+Clash / Clash Meta 核心设置了「<code>Access-Control-Allow-Origin: *</code>」，通配符允许了所有网站的脚本都能调用它。<br />
+假设 9090 是您的 Clash API 端口（ Clash Verge 默认是 9097 ）。在 <a href="http://www.google.com" rel="nofollow">www.google.com</a> 下按 F12 ，输入 <code>await fetch("http://127.0.0.1:9090")</code> 回车，你会发现请求成功了。</p>
+</blockquote>
+<h2>Clash 为什么这么做？</h2>
+<p>Clash 系列核心没有用户界面（ GUI ），但它可以在本地运行一个 HTTP 服务，方便各种 GUI 通过 HTTP 请求调用它的接口。</p>
+<p>其中一些 GUI 以网页形式呈现，例如「<a href="https://d.metacubex.one/" rel="nofollow">https://d.metacubex.one/</a>」。Clash 系列核心必须开一个“后门”，也就是允许跨域资源访问，否则这些 GUI 将无法运作。</p>
+<p>不过，这个“后门”显然开得过大了。应该增加一个配置项，只允许特定网站，而不应使用 <code>*</code> 通配符。</p>
+<h2>怎么利用呢？</h2>
+<p>无密码保护的情况下，任意网站调用 <code>await fetch("http://127.0.0.1:{{port}}")</code> 就能利用。<br />
+常见的端口有 <code>9090</code> 和 <code>9097</code>。如果不是，还可以遍历 1 - 65535 全部尝试一次。  </p>
+<p>成功利用可以获得对 Clash 核心的全部操控权限，包括获取服务器列表，修改代理规则等。</p>
+<h1>2. 基于已知路径的识别</h1>
+<p>上一节中，能利用的前提是「无密码保护」。有密码的情况下，访问接口会得到 <code>401</code> 的错误响应。单从 <code>401</code> 错误，没有证据表明用户在使用 Clash 。但我们可以通过已知路径，去识别是否为 Clash 。</p>
+<h2>Clash 的接口路径</h2>
+<p>在源码 <code>/hub/route/server.go</code> 中，可以获得接口的路径：</p>
+<ul>
+<li><code>/logs</code></li>
+<li><code>/traffic</code></li>
+<li><code>/memory</code></li>
+<li><code>/version</code></li>
+<li>...</li>
+</ul>
+<p>明显的特征是：访问这些路径，会得到 <code>401</code> 响应，而访问其他路径则会得到 <code>404</code>。</p>
+<p>另外，不同的 Clash 版本，支持的 API 也不完全相同。通过探测支持的 API （返回 <code>401</code> 而不是 <code>404</code>），我们能进一步推断出 Clash 的版本号。</p>
+<h2>利用前提</h2>
+<p>利用的前提依然是上一节的跨域缺陷，因为如果不具备这一条，请求会直接出错失败，而不会得到 HTTP 响应码。</p>
+<h1>3. 基于代理端口的识别</h1>
+<p>前两节都是针对 API 端口的利用。我们还可以通过检测常见的代理端口（默认的 <code>7890</code> 和 Clash Verge 默认的 <code>7897</code>），判断用户是否在使用 Clash 。</p>
+<h2>普通端口的情况</h2>
+<p>对于普通的端口，不总是能碰到跨域缺陷，甚至可能都不是 HTTP 端口。对于非 HTTP 端口，不论怎么请求肯定都会是失败的。</p>
+<h2>耗时检测</h2>
+<p>参考以下 JavaScript 函数：</p>
+<pre><code class="language-javascript">async function portTime(port) {
+    const st = performance.now();
+    try {
+        await fetch("http://127.0.0.1:" + port);
+    } catch (error) {}
+    const et = performance.now();
+    return et - st;
+}
+</code></pre>
+<p>该函数可以检测访问一个端口的耗时，并忽略失败。</p>
+<p>一般情况下，用户本地的端口大多处于关闭状态。对于关闭状态的端口，耗时均是差不多的。我们可以随机抽取几个端口进行检测，认为是关闭端口的耗时。</p>
+<p>如果 <code>7890</code> 或 <code>7897</code> 端口的访问耗时明显区分于抽选端口的耗时，我们可以推测 Clash 代理的端口是打开的。</p>
+<h2>耗时检测为什么可行？</h2>
+<p>上文提到过，只有 <code>Access-Control-Allow-Origin</code> 允许，才能进行跨域资源的访问，否则会出错。</p>
+<p>实际上，出错不意味着没有请求发生。浏览器首先需要发送 HTTP OPTIONS 请求，才能知道 <code>Access-Control-Allow-Origin</code> 的情况。这个请求称为「 Preflight request 」。跨域检测通过之后，浏览器才会再去执行脚本指定的 HTTP 请求。</p>
+<p>因此，即便浏览器报错拦截，实际上还是有请求发生了。这就是耗时检测的原理。</p>
+<h2>可利用情况</h2>
+<p>在 Windows 平台，操作系统收到 TCP RST 报文后，并不会立即认为端口关闭，而会重试 2 秒后返回错误。因此对于耗时检测，耗时两秒左右的端口是关闭的，毫秒级别耗时的端口是打开的。</p>
+<p>在 macOS 和 Linux 平台，情况则相反，端口关闭的耗时比端口打开的短。不过由于区分度太小，准确性较低。</p>
+]]></content:encoded>
+<pubDate>2024-09-29T20:02:41Z</pubDate>
+<pubDate>2024-09-29T20:02:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 那些政府街道里面的人靠后台运作，比谁的后台硬和大</title>
+<link>https://www.v2ex.com/t/1076960</link>
+<guid>https://www.v2ex.com/t/1076960</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-09-29T19:42:28Z</pubDate>
+<pubDate>2024-09-29T19:42:28Z</pubDate>
+</item>
+<item>
+<title>base 上海/广州，大量外企外包捞人， WLB+商业保险</title>
+<link>https://www.v2ex.com/t/1075773</link>
+<guid>https://www.v2ex.com/t/1075773</guid>
+<content:encoded><![CDATA[
+
+<p>先上主菜：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://cdn-fusion.imgimg.cc/i/2024/3eaf9b8cb5f19f35.png" /></p>
+<h3>说一哈自己的情况：</h3>
+<p>楼主内推的，自己是开发，并不是猎头或者 hr, 所以佛系捞捞，有没有都 ok ，有效果的话估计可以长期开着帖子哈哈，觉得需要过渡一下的友可以考虑下，当然有更好的选择最好不过.</p>
+<h3>这家公司：</h3>
+<p>Teksystems, 在上海的老哥可能听过这家，也是个外企，专做其他外企的外包，我也是拿的这家的 offer ；目前感觉还很不错，薪资的话 senior 一般 package 32+，这个自己去谈，一般是固定 14 薪，junior 估计 25 26 左右吧，给商业医疗保险，去的公司一般也不会小，上面的 hc 来源有 LN,Nike,HSBC,迪士尼,日产等等，部分公司能转正式 hc ，转不了的公司面试的时候就会跟你说，哦对了有口语要求也会提前说，有些公司是真的要开英文会议</p>
+<h3>福利待遇：</h3>
+<ul>
+<li>Teksystem 的给中秋福利和生日礼券</li>
+<li>商业医疗保险</li>
+<li>每年的调薪窗口</li>
+<li>入职就有年假，每月一天，可以提前透支</li>
+<li>一般去的外企也会给节日礼物或者直接打钱</li>
+<li>WLB, 一般一周 1-2 天</li>
+</ul>
+<h3>楼主的一点经历</h3>
+<p>上一份工作是在电商公司，被裁了之后，发现现在行情确实差，挺难找的，boss 上都是创业公司要不就是外包在真的招人，本来对外包也很排斥，因为风评确实不怎么样，但是找了两个多月有点慌，就试了下外企的外包，也拿到了 offer ；</p>
+<p>以前没做过外包，挺害怕被歧视啥的，去了之后发现外企其实还好，我去的这家没这情况，感觉外企也挺怕这种东西的吧，一个投诉 email 然后全公司抄送，lead 直接就跪了</p>
+<p>工作强度上，朝九晚六不加班，终于能在下班的时候看到太阳了。。其他人也都是到点就走，lead 会跟你说没事早点走；平时工作大部分时候可能是在和同事或者老外沟通，打代码的部分并不多，当然和老外大多时候是 im 上或者 email ，所以我感觉还蛮轻松的，有一说一感觉国内互联网是真的卷，我在的外企没那种提效的氛围，也没有上一家公司恐怖的 oncall,刚去的时候一阵恍惚，怪自己被上家公司驯化太久了；</p>
+<p>其他的暂时没想到啥，等想到了再说好了，或者也可以直接问我，看到了就回</p>
+<h3>需要考虑的地方</h3>
+<p>毕竟是外包公司，不是天降神仙工作，我签的时候就发现这种外包合同就挺不公平，比如你被所在的外企裁了的话，不会赔你钱，而是退回外包公司，外包公司给你分配别的公司，这期间你是拿基础工资的；</p>
+<p>不过还好，一般要人的也不咋裁，除非整个办公室要撤离中国，像迪士尼 nike 我看都是一直招，或者可以转正的话可以试试找 lead 提前转正式 hc, 我有个同事就是干了半年就去跟老板提了，老板也给他转了，这就看 lead 人咋样了</p>
+<p>anyway ，看自己考虑了，实在受不了卷的氛围或者需要一份工作来过渡可以试试的</p>
+<h3>留个联系方式</h3>
+<p>绿泡泡：dHJlZTI4MDc4</p>
+]]></content:encoded>
+<pubDate>2024-09-25T10:43:09Z</pubDate>
+<pubDate>2024-09-27T22:27:27Z</pubDate>
+</item>
+
+<item>
 <title>[VPS] rn vps 有点坑</title>
 <link>https://www.v2ex.com/t/1076959</link>
 <guid>https://www.v2ex.com/t/1076959</guid>
 <content:encoded><![CDATA[
-
 刚买了个洛杉矶的，全球 ping 不通，我👀没防火墙设置，但是系统运行了，进 vnc 密码太长不能粘贴就直接换个 ip ，还是不行。想再还发现收费了。然后我去控制面板看 vnc 发现不用密码。进去了发现应该是启动失败嗯界面，不停报错，然后选择重装系统发现点了内反应，现在提交就工单等回复......<br /><br />买 vps 头一次遇到这种情况。
 ]]></content:encoded>
-<pubDate>2024-09-29T17:59:24Z</pubDate>
 <pubDate>2024-09-29T11:59:24Z</pubDate>
 </item>
 <item>
@@ -20,10 +142,8 @@
 <link>https://www.v2ex.com/t/1076958</link>
 <guid>https://www.v2ex.com/t/1076958</guid>
 <content:encoded><![CDATA[
-
 Surge 下（开启包含所有网络），微信视频通话和微信语音通话仍然无法被代理，各位有没有解决方案？
 ]]></content:encoded>
-<pubDate>2024-09-29T17:39:43Z</pubDate>
 <pubDate>2024-09-29T17:38:43Z</pubDate>
 </item>
 <item>
@@ -31,13 +151,10 @@ Surge 下（开启包含所有网络），微信视频通话和微信语音通�
 <link>https://www.v2ex.com/t/1076957</link>
 <guid>https://www.v2ex.com/t/1076957</guid>
 <content:encoded><![CDATA[
-
 现在官老爷们翻大饼间隔越来越短了啊。<br /><br /><br />       治大国，若烹小鲜。以道莅天下，其鬼不神。非其鬼不神，其神不伤人；非其神不伤人，圣人亦不伤人。夫两不相伤，故德交归焉
 ]]></content:encoded>
 <pubDate>2024-09-29T16:36:13Z</pubDate>
-<pubDate>2024-09-29T16:36:13Z</pubDate>
 </item>
-
 <item>
 <title>[C++] c++多线程如何配置环境看线程的调试信息</title>
 <link>https://www.v2ex.com/t/1076956</link>
@@ -14418,59 +14535,6 @@ if(data &amp; 0x2 == 0)
 <p>麻烦大伙推荐自己用过的（配合 iPhone 使用）比较好用的充电宝谢谢。</p>
 ]]></content:encoded>
 <pubDate>2024-09-25T12:24:41Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 为什么非常经常看到有人 mac 电池鼓包，其它品牌就很少看到？</title>
-<link>https://www.v2ex.com/t/1075775</link>
-<guid>https://www.v2ex.com/t/1075775</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-09-25T11:18:56Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有人 JD 上买过雪糕吗?</title>
-<link>https://www.v2ex.com/t/1075774</link>
-<guid>https://www.v2ex.com/t/1075774</guid>
-<content:encoded><![CDATA[
-<p>雪糕瘾犯了,去镇上买不了一件的,想去 JD 买,JD 买来是怎样的?
-会化掉吗?</p>
-]]></content:encoded>
-<pubDate>2024-09-25T11:06:48Z</pubDate>
-</item>
-<item>
-<title>[酷工作] base 上海/广州，大量外企外包捞人， WLB+商业保险</title>
-<link>https://www.v2ex.com/t/1075773</link>
-<guid>https://www.v2ex.com/t/1075773</guid>
-<content:encoded><![CDATA[
-<p>先上主菜：</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://cdn-fusion.imgimg.cc/i/2024/3eaf9b8cb5f19f35.png" /></p>
-<h3>说一哈自己的情况：</h3>
-<p>楼主内推的，自己是开发，并不是猎头或者 hr, 所以佛系捞捞，有没有都 ok ，有效果的话估计可以长期开着帖子哈哈，觉得需要过渡一下的友可以考虑下，当然有更好的选择最好不过.</p>
-<h3>这家公司：</h3>
-<p>Teksystems, 在上海的老哥可能听过这家，也是个外企，专做其他外企的外包，我也是拿的这家的 offer ；目前感觉还很不错，薪资的话 senior 一般 package 32+，这个自己去谈，一般是固定 14 薪，junior 估计 25 26 左右吧，给商业医疗保险，去的公司一般也不会小，上面的 hc 来源有 LN,Nike,HSBC,迪士尼,日产等等，部分公司能转正式 hc ，转不了的公司面试的时候就会跟你说，哦对了有口语要求也会提前说，有些公司是真的要开英文会议</p>
-<h3>福利待遇：</h3>
-<ul>
-<li>Teksystem 的给中秋福利和生日礼券</li>
-<li>商业医疗保险</li>
-<li>每年的调薪窗口</li>
-<li>入职就有年假，每月一天，可以提前透支</li>
-<li>一般去的外企也会给节日礼物或者直接打钱</li>
-<li>WLB, 一般一周 1-2 天</li>
-</ul>
-<h3>楼主的一点经历</h3>
-<p>上一份工作是在电商公司，被裁了之后，发现现在行情确实差，挺难找的，boss 上都是创业公司要不就是外包在真的招人，本来对外包也很排斥，因为风评确实不怎么样，但是找了两个多月有点慌，就试了下外企的外包，也拿到了 offer ；</p>
-<p>以前没做过外包，挺害怕被歧视啥的，去了之后发现外企其实还好，我去的这家没这情况，感觉外企也挺怕这种东西的吧，一个投诉 email 然后全公司抄送，lead 直接就跪了</p>
-<p>工作强度上，朝九晚六不加班，终于能在下班的时候看到太阳了。。其他人也都是到点就走，lead 会跟你说没事早点走；平时工作大部分时候可能是在和同事或者老外沟通，打代码的部分并不多，当然和老外大多时候是 im 上或者 email ，所以我感觉还蛮轻松的，有一说一感觉国内互联网是真的卷，我在的外企没那种提效的氛围，也没有上一家公司恐怖的 oncall,刚去的时候一阵恍惚，怪自己被上家公司驯化太久了；</p>
-<p>其他的暂时没想到啥，等想到了再说好了，或者也可以直接问我，看到了就回</p>
-<h3>需要考虑的地方</h3>
-<p>毕竟是外包公司，不是天降神仙工作，我签的时候就发现这种外包合同就挺不公平，比如你被所在的外企裁了的话，不会赔你钱，而是退回外包公司，外包公司给你分配别的公司，这期间你是拿基础工资的；</p>
-<p>不过还好，一般要人的也不咋裁，除非整个办公室要撤离中国，像迪士尼 nike 我看都是一直招，或者可以转正的话可以试试找 lead 提前转正式 hc, 我有个同事就是干了半年就去跟老板提了，老板也给他转了，这就看 lead 人咋样了</p>
-<p>anyway ，看自己考虑了，实在受不了卷的氛围或者需要一份工作来过渡可以试试的</p>
-<h3>留个联系方式</h3>
-<p>绿泡泡：dHJlZTI4MDc4</p>
-]]></content:encoded>
-<pubDate>2024-09-25T11:18:55Z</pubDate>
 </item>
 </channel>
 </rss>
