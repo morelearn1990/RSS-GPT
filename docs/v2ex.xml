@@ -5,14 +5,221 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[配件] 跟风求个官方 c2c 编织数据线的平替</title>
+<link>https://www.v2ex.com/t/1077795</link>
+<guid>https://www.v2ex.com/t/1077795</guid>
+<content:encoded><![CDATA[
+
+<p>买了个其他品牌的，图片看着很相似，实际手感差很多，没有官方的细没有官方的软。有没有买到价格实惠的平替版本</p>
+]]></content:encoded>
+<pubDate>2024-10-05T12:29:47Z</pubDate>
+<pubDate>2024-10-05T12:26:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] 当前自由男女市场，男性地位低到严重失衡，放开两点即可迎刃而解</title>
+<link>https://www.v2ex.com/t/1077794</link>
+<guid>https://www.v2ex.com/t/1077794</guid>
+<content:encoded><![CDATA[
+
+1 、pc 合法<br />2 、代孕合法
+]]></content:encoded>
+<pubDate>2024-10-05T12:28:25Z</pubDate>
+<pubDate>2024-10-05T12:38:35Z</pubDate>
+</item>
+<item>
+<title>[GitHub] github ssh 协议也被封了？</title>
+<link>https://www.v2ex.com/t/1077793</link>
+<guid>https://www.v2ex.com/t/1077793</guid>
+<content:encoded><![CDATA[
+
+<p>今天开始，push 的时候报错：</p>
+<pre><code>git push
+Connection to 20.205.243.160 port 443 timed out
+致命错误：无法读取远程仓库。
+
+请确认您有正确的访问权限并且仓库存在。
+</code></pre>
+<p>看了下 Github 没问题，估计 ssh 协议也被搞了。。之前的 .ssh/config 需要给 ssh 也加个代理了：</p>
+<pre><code>Host github.com
+    Hostname ssh.github.com
+    Port 443
+    ProxyCommand nc -X 5 -x 127.0.0.1:7890 %h %p
+</code></pre>
+<p>真的是醉醉的</p>
+]]></content:encoded>
+<pubDate>2024-10-05T12:22:55Z</pubDate>
+<pubDate>2024-10-04T20:22:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] qBittorrent 自动硬链接如何设置？</title>
+<link>https://www.v2ex.com/t/1077792</link>
+<guid>https://www.v2ex.com/t/1077792</guid>
+<content:encoded><![CDATA[
+
+<p>之前一直是按照那是云的这篇文章设置的，<a href="http://www.nasyun.com/thread-77024-1-1.html#:%7E:text=%E6%96%B9%E4%BE%BFqBittorr" rel="nofollow">http://www.nasyun.com/thread-77024-1-1.html#:~:text=%E6%96%B9%E4%BE%BFqBittorr</a>
+网页 2022 年 5 月 18 日 — 方便 qBittorrent 下载完成后 做种和刮削，搞了个脚本来自动按分类文件，创建视频文件硬链接。 主要 为了解决*.nfo 文件和海报图片
+可惜这篇文章打不开了。
+问一下大佬，qBittorrent 需要怎么设置？
+<img alt="" class="embedded_image" rel="noreferrer" src="https://p.sda1.dev/19/a9b8d2ece8ac9cd2230292cc035b532f/explorer_paezwOzG7V.png" /></p>
+<p>#!/bin/bash
+set -x
+#qBittorrent 命令参数：
+#qBittorrent %N：Torrent 名称
+#qBittorrent %F：内容路径（与多文件 torrent 的根目录相同）
+#qBittorrent %L：分类
+#qBittorrent %G：标签（以逗号分隔）
+#qBittorrent %R：根目录（第一个 torrent 的子目录路径）
+#qBittorrent %D：保存路径
+#qBittorrent %C：文件数
+#qBittorrent %Z：Torrent 大小（字节）
+#qBittorrent %T：当前 tracker
+#qBittorrent %I：哈希值
+#在 qBittorrent 分别按如上顺序键入参数，ex:/downloads/<a href="http://qbittorrent.sh" rel="nofollow">qbittorrent.sh</a> "%N" "%F" "%L"</p>
+<p>#设置想保存的位置
+your_path=/downloads/link
+#获取种子名称
+torrent_name="$1"
+#获取种子路径
+torrent_path="$2"
+#获取种子分类
+torrent_category="$3"
+#根据分类、种子路径类型创建保存路径
+link_path_directory="$your_path"/"$3"
+link_path_file="$your_path"/"$3"/"$1"
+tmp_path="$your_path"/"$3"/tempfile
+#清空临时目录
+rm -rf "$tmp_path"/</p>
+<p>#只对电影和电视剧分类的常见电影文件创建软连接
+if [[ "$torrent_category" == "study" || "$torrent_category" == "book" || "$torrent_category" == "animetv" || "$torrent_category" == "music" ]]; then
+#判断种子路径是目录还是文件夹
+if [ -d "$torrent_path" ]; then
+mkdir -p "$tmp_path"
+cp -lR "$torrent_path"/ "$tmp_path"/
+find "$tmp_path"/ -type f -regextype posix-extended -regex ".<em>.(mp4|avi|mkv|rmvb|mov|rm|mpeg)" -print0 | xargs -0 -i rm -f {}
+cp -R "$tmp_path"/</em> "$link_path_directory"/
+cp -lnR "$torrent_path"/ "$link_path_directory"/
+rm -rf "$tmp_path"/
+#删除链接的*.nfo 元数据文件
+#find "$link_path_file" -regextype posix-extended -regex ".<em>.(nfo)" -print0 | xargs -0 -i rm {}
+#仅链接指定类型文件,默认是链接全部文件
+#find "$torrent_path" -regextype posix-extended -regex ".</em>.(mp4|avi|mkv|rmvb|mov|rm|mpeg|ass|srt|nfo)" -print0 | xargs -0 -i cp -lR {} "$link_path_directory"
+elif [ -f "$torrent_path" ]; then
+#创建链接文件夹
+mkdir -p "$link_path_file"/
+#仅链接指定类型文件,默认是链接全部文件
+#find "$torrent_path" -regextype posix-extended -regex ".*.(p4|avi|mkv|rmvb|mov|rm|mpeg|ass|srt|nfo)" -print0 | xargs -0 -i cp -lR {} "$link_path_file"
+cp -lR "$torrent_path" "$link_path_file"/
+fi
+fi</p>
+]]></content:encoded>
+<pubDate>2024-10-05T12:20:23Z</pubDate>
+<pubDate>2024-10-05T12:20:23Z</pubDate>
+</item>
+<item>
+<title>[创业组队] 心理健康测评 AI 解读报告 寻求市场/商务/销售/渠道合作</title>
+<link>https://www.v2ex.com/t/1077791</link>
+<guid>https://www.v2ex.com/t/1077791</guid>
+<content:encoded><![CDATA[
+
+详情： <a href="https://v2ex.com/t/1077287" rel="nofollow noopener" target="_blank">https://v2ex.com/t/1077287</a><br /><br /><a href="https://i.imgur.com/y75SsBU.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/y75SsBU.jpeg" /></a><br /><br />计划中的 B 端应用场景：<br />1. 团队/教育测评工具，公司员工团体测评或校园教育目的测评用。<br />2. 招聘测评工具，公司 HR 招聘时评估应聘者用。<br />3. 科研测评工具，科研调查用。<br />4. 咨询测评工具，心理咨询师评估来访者心理用。<br /><br />394 140 2803 at qq # com
+]]></content:encoded>
+<pubDate>2024-10-05T12:18:49Z</pubDate>
+<pubDate>2024-10-05T12:18:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] M2 Air 使用 RDP，画面在 mac 屏幕就流畅，在外接显示器上就卡顿严重</title>
+<link>https://www.v2ex.com/t/1077790</link>
+<guid>https://www.v2ex.com/t/1077790</guid>
+<content:encoded><![CDATA[
+
+mac 用的微软 RDP 客户端，设置为画质最高，开启了 Optimize for Retina displays 。<br />本地局域网有线连接，win 正在播放视频，RDP 画面只要把播放画面移到外接屏上，就卡顿严重，回到 mac 就流畅了。<br /><br />这是 m2 性能不够吗？还是 win 的原因？
+]]></content:encoded>
+<pubDate>2024-10-05T12:05:22Z</pubDate>
+<pubDate>2024-10-05T12:04:22Z</pubDate>
+</item>
+<item>
+<title>[Apple] 听说可以在日本官网预定，然后凭护照自提</title>
+<link>https://www.v2ex.com/t/1077789</link>
+<guid>https://www.v2ex.com/t/1077789</guid>
+<content:encoded><![CDATA[
+
+<p>有没有 v 友知道具体怎么操作的</p>
+]]></content:encoded>
+<pubDate>2024-10-05T12:01:33Z</pubDate>
+<pubDate>2024-10-05T12:23:05Z</pubDate>
+</item>
+<item>
+<title>[程序员] 迅雷会自动监听剪切板然后推荐迅雷网盘资源?</title>
+<link>https://www.v2ex.com/t/1077788</link>
+<guid>https://www.v2ex.com/t/1077788</guid>
+<content:encoded><![CDATA[
+
+<p>有点奇怪, 昨天写代码, 同时开着迅雷下东西, 过了一会打开迅雷之后, 弹出一个推荐网盘资源弹窗, 网盘里的文件夹名正好是复制的变量, 这也太吓人了吧!!!???</p>
+]]></content:encoded>
+<pubDate>2024-10-05T11:39:51Z</pubDate>
+<pubDate>2024-10-05T11:44:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] PDD 上面的耐克鞋应该是假的吧， AF1 空军一号 ，官方 799，但是 pdd 上只要 460，便宜这么多</title>
+<link>https://www.v2ex.com/t/1077787</link>
+<guid>https://www.v2ex.com/t/1077787</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-10-05T11:33:07Z</pubDate>
+<pubDate>2024-10-05T12:24:16Z</pubDate>
+</item>
+<item>
+<title>[配件] [求官网平替推荐] lighting to type-c 的转接器</title>
+<link>https://www.v2ex.com/t/1077783</link>
+<guid>https://www.v2ex.com/t/1077783</guid>
+<content:encoded><![CDATA[
+
+<p>刚换 C 口 iPhone ，家里一堆旧的 lighting 充电线和 earpods ，最稳的肯定是<a href="https://www.apple.com.cn/shop/product/MUQX3FE/A?fnode=ff31e49a16c677913d0963ae382e57b0dc50d4bb165133372ab84c34ef29aa2bb0b18d2e4207b62c77745645dbaae4a7bcd5b46843b4e291d462d6000906f214b62e14b6a09e8ff12e4ecf515ff8aa1e8f196caf7f6a1013eb44ae60f2688c5d" rel="nofollow">官网那款 243 的转接器</a>，贵麻了</p>
+<h2>大家有亲自用过的、好用的平替推荐吗？</h2>
+<p>最好是同样的全功能款，也就是同时支持：</p>
+<ul>
+<li>快充（ 27W ？）</li>
+<li>传数据</li>
+<li>音频传输（通话控制、切歌、录歌…）</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-10-05T10:43:20Z</pubDate>
+<pubDate>2024-10-05T12:31:56Z</pubDate>
+</item>
+<item>
+<title>[全球工单系统] iOS 18 相册的奇怪 bug：无法存入 ProRaw 照片</title>
+<link>https://www.v2ex.com/t/1077782</link>
+<guid>https://www.v2ex.com/t/1077782</guid>
+<content:encoded><![CDATA[
+
+基本情况<br />机型：iPhone 12 Pro<br />系统版本：iOS 18.0.0<br />iCloud 账户区域：美区<br />iCloud 照片开启，且选项为“为 iPhone 最佳化存储空间”，iPhone 本地存储空间和 iCloud 存储空间均充足<br />我遇到的故障从 10 月 1 日下午突然出现，当时我在香港旅游，在路上用原相机拍摄 proraw 的时，拍完照片以后，照片在左下角的预览框闪了一下就变成了全黑，马上点进相册，照片无法显示，照片记录的部分 exif 数据可以显示，但是没有文件大小，用第三方 App 也是显示成灰白色，而且完全无法打开<br /><a href="https://i.imgur.com/7wPFy9i.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7wPFy9i.png" /></a><br />在文件名旁边有一个叹号标记，点进去以后会进入一个“无法上传”的隐藏相册，目前我用原相机 proraw 拍摄照片时，此症状仍然不断复现，把相机和相册的后台划掉，重启手机，关闭“iCloud 照片”再打开，均不能解决问题。如果关闭拍摄 proraw 照片的选项，则不会复现<br />目前手机升级到 iOS 18.0.1 以后，问题暂时没有复现<br /><a href="https://i.imgur.com/a7MvpU8.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/a7MvpU8.png" /></a><br />我在小红书搜了一下，出现灾情的用户不少，但是他们总结出来的原因主要是用户还没有同意云贵版 iCloud 的一个新版服务协议，但我的 iCloud 区域在美区，所以我仍然非常困惑出现问题的原因是什么<br />鉴于 iOS 18 相册的更新幅度相当大，所以我仍然不明确出现此问题的原因，先记录一下，看看有没有彦祖能讨论出原因在哪里
+]]></content:encoded>
+<pubDate>2024-10-05T10:41:34Z</pubDate>
+<pubDate>2024-10-05T10:40:34Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 写了个 Flux 生成动画风格图片工具站</title>
+<link>https://www.v2ex.com/t/1077781</link>
+<guid>https://www.v2ex.com/t/1077781</guid>
+<content:encoded><![CDATA[
+
+<p>上链接： <a href="https://animeaigenerator.net/" rel="nofollow">https://animeaigenerator.net/</a></p>
+<p>主打一个又不是不能用，第一版做得比较简单。支持所有版本的 Flux 模型，包括最新的 Flux1.1[pro]，风格暂时支持最基本的。</p>
+<p><img alt="animeaigenerator" class="embedded_image" rel="noreferrer" src="https://cdn.sanity.io/images/ntncowsx/production/0905ad589cee307f5c2612cf2dd968938511ec86-1381x864.png" /></p>
+]]></content:encoded>
+<pubDate>2024-10-05T10:25:18Z</pubDate>
+<pubDate>2024-10-05T10:23:18Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 大陆可以直连 V2EX 了</title>
 <link>https://www.v2ex.com/t/1077780</link>
 <guid>https://www.v2ex.com/t/1077780</guid>
 <content:encoded><![CDATA[
-
 <p>启用 ECH ，再打开 chrome 的安全 DNS ，选 cloudflare 就可以直连了</p>
 ]]></content:encoded>
-<pubDate>2024-10-05T10:10:28Z</pubDate>
 <pubDate>2024-10-05T10:09:28Z</pubDate>
 </item>
 <item>
@@ -20,7 +227,6 @@
 <link>https://www.v2ex.com/t/1077779</link>
 <guid>https://www.v2ex.com/t/1077779</guid>
 <content:encoded><![CDATA[
-
 <p>[Window Title]<br />
 Cursor   </p>
 <p>[Content]<br />
@@ -29,17 +235,14 @@ Can't install 'ms-python.python' extension because it is not compatible with the
 想选个旧版本提示没有其他版本可选</p>
 ]]></content:encoded>
 <pubDate>2024-10-05T10:08:07Z</pubDate>
-<pubDate>2024-10-05T10:08:07Z</pubDate>
 </item>
 <item>
 <title>[问与答] 相亲，我这是哪里出现问题，是否有什么步骤可以参考</title>
 <link>https://www.v2ex.com/t/1077777</link>
 <guid>https://www.v2ex.com/t/1077777</guid>
 <content:encoded><![CDATA[
-
 陆续多年家人推荐了几个相亲对象。但我算家管严类型，就是不像我朋友家人那样推荐相亲，就是基本自己聊就行，我已经有 3 个次相亲对象，每次都是介绍一下，基本第二天就是开始各种催，来自两边的父母间和介绍人的催促，什么问题都有，细节到每个微信上，口头上的聊天内容，一般是比如我父母会说女方说我微信上说了什么，不应该怎么样，应该怎么样，然后发生了什么，就会推我去做什么，但我又不情愿那样做，具体比如就一天时间，非得跨地 100 多 km 吃饭等。<br /><br />而我回顾一下，很可能是没办法一眼喜欢上相亲对象，至少 3 次都是，我也怀疑对面也不可能就见一面就能完全喜欢上我，但我当然能接受至少适当了解一下对方，就好像以前喜欢的同班女同学，也不可能一见到就非常喜欢。
 ]]></content:encoded>
-<pubDate>2024-10-05T09:42:56Z</pubDate>
 <pubDate>2024-10-05T05:42:56Z</pubDate>
 </item>
 <item>
@@ -47,10 +250,8 @@ Can't install 'ms-python.python' extension because it is not compatible with the
 <link>https://www.v2ex.com/t/1077776</link>
 <guid>https://www.v2ex.com/t/1077776</guid>
 <content:encoded><![CDATA[
-
 小白一个，从最早的 openwrt ssr ，到 openclash ，昨天路由器出了点问题又换到这个 mihomo ，也看过不少教学视频，但碍于网络基础知识有限，有些文档和教程看的有些困难。<br /><br />插件混入设置里有个编辑 DNS 服务器功能，打开以后默认给了几个直连和代理的服务器，我看了一些资料，如果想把国内的网站跑的快一点，那么就把 nameserver 填两个电信下发的 DNS 就行了吧？<br /><br />另外还有个编辑 DNS 查询策略的功能，我把第一行的 geosite:cn,private 服务器也该为了运营商的 DNS ，这样设置是否妥当？<br /><br />又或者对于我这种小白，这两个 DNS 设置功能干脆关掉最好？<br /><br />请大佬解惑，谢谢！
 ]]></content:encoded>
-<pubDate>2024-10-05T09:40:40Z</pubDate>
 <pubDate>2024-10-05T09:53:29Z</pubDate>
 </item>
 <item>
@@ -58,10 +259,8 @@ Can't install 'ms-python.python' extension because it is not compatible with the
 <link>https://www.v2ex.com/t/1077775</link>
 <guid>https://www.v2ex.com/t/1077775</guid>
 <content:encoded><![CDATA[
-
 <a href="https://meee.com.tw/KysfaaG" rel="nofollow noopener" target="_blank">https://meee.com.tw/KysfaaG</a><br />我这么设置了 1 分钟后是进行屏保状态了 然后过了十分钟 屏幕还是亮的 之前都是直接黑屏了
 ]]></content:encoded>
-<pubDate>2024-10-05T09:39:06Z</pubDate>
 <pubDate>2024-10-05T09:37:06Z</pubDate>
 </item>
 <item>
@@ -69,13 +268,11 @@ Can't install 'ms-python.python' extension because it is not compatible with the
 <link>https://www.v2ex.com/t/1077774</link>
 <guid>https://www.v2ex.com/t/1077774</guid>
 <content:encoded><![CDATA[
-
 <p>我记得 其实这里有不少人做了投资相关的产品</p>
 <p>都来推荐下啊</p>
 <p>最好是 A 股的产品</p>
 <p>因为我记得有不少人做的网站啥的, 居然不支持 A 股</p>
 ]]></content:encoded>
-<pubDate>2024-10-05T09:14:00Z</pubDate>
 <pubDate>2024-10-05T10:14:06Z</pubDate>
 </item>
 <item>
@@ -83,10 +280,8 @@ Can't install 'ms-python.python' extension because it is not compatible with the
 <link>https://www.v2ex.com/t/1077773</link>
 <guid>https://www.v2ex.com/t/1077773</guid>
 <content:encoded><![CDATA[
-
 https://sgyunc.vip
 ]]></content:encoded>
-<pubDate>2024-10-05T09:03:25Z</pubDate>
 <pubDate>2024-10-05T09:30:49Z</pubDate>
 </item>
 <item>
@@ -94,13 +289,10 @@ https://sgyunc.vip
 <link>https://www.v2ex.com/t/1077772</link>
 <guid>https://www.v2ex.com/t/1077772</guid>
 <content:encoded><![CDATA[
-
 是这样的，我想用 V 屁恩的客户端 10.88.77.9 做路由 ，服务器为 10.88.77.1 ，<br /><br />在另一个客户端设置了路由为 10.88.77.9 ，但是还是通过 10.88.77.1 出去，不走 10.88.77.9<br /><br />如图：<br /><br />[Imgur]( <a href="https://imgur.com/6yD5Yl7" rel="nofollow noopener" target="_blank">https://imgur.com/6yD5Yl7</a>)<br /><br />[img]<a href="https://i.imgur.com/6yD5Yl7.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/6yD5Yl7.png" /></a>[/img]
 ]]></content:encoded>
 <pubDate>2024-10-05T08:44:49Z</pubDate>
-<pubDate>2024-10-05T08:44:49Z</pubDate>
 </item>
-
 <item>
 <title>[分享发现] 下午在本地万达广场华为店看了 Mate X5，发现两台展示机内屏中间部分均出现了三五道竖向裂痕</title>
 <link>https://www.v2ex.com/t/1077771</link>
@@ -15044,219 +15236,6 @@ AdSense 金额到了一定程度会自动锁住广告金额输入让人输入身
 有教程或者更好的方案吗</p>
 ]]></content:encoded>
 <pubDate>2024-09-28T09:35:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 是否有多种类型代码项目的管理软件？</title>
-<link>https://www.v2ex.com/t/1076560</link>
-<guid>https://www.v2ex.com/t/1076560</guid>
-<content:encoded><![CDATA[
-1.前提：客户端，安装在开发机中。<br /><br />2.功能：类似 jetbrains toolbox ，可以将多种语言的项目汇总在一个管理窗口，点击某个项目即可以打开对应的 ide 。例如点击微信小程序，自动打开微信开发者工具； Java 项目点击后打开 IDEA 。<br /><br />3.特殊需求：支持 macOS
-]]></content:encoded>
-<pubDate>2024-09-24T08:58:11Z</pubDate>
-</item>
-<item>
-<title>[Apple] [亲测]日版 iPhone16pm 海淘教程</title>
-<link>https://www.v2ex.com/t/1076559</link>
-<guid>https://www.v2ex.com/t/1076559</guid>
-<content:encoded><![CDATA[
-<p>首先结论是不便宜，所以图外版便宜的这个文章不适合你。适用于需要完整体验 iPhone 但是又不想出国旅游的内地机友。</p>
-<p>Apple 日本官网下单，使用 tenso 转运，线路为日本 EMS 直邮到内地。从 9.20 首发到 9.28 ，历时 9 天到手。</p>
-<hr />
-<h2>费用：</h2>
-<ol>
-<li>iPhone16pm 白 256 官网 189800 日元（招行 visa 转美金入账汇率 7.0735 ，最后入账为 9571.15 元）</li>
-<li>转运 EMS 快递费加了保价一共 137.87 元（给 tenso 报了 180000 日元，报的越高保价越高，当然不能报的太离谱， 因为海关还要计税）</li>
-<li>关税 1119.73 元（ 8613.31*13%）</li>
-</ol>
-<p>共计 10828.75 元</p>
-<hr />
-<h2>海淘准备：</h2>
-<ol>
-<li>真实邮寄地址证明，用于 tenso 注册认证和邮寄（必须）。</li>
-<li>一张 visa/万事达/JCB 信用卡，用于 Apple 官网下单（非银联储蓄卡据说也可以，未测试。建议 JCB ，visa/万事达可能需要货币转换，已踩坑）</li>
-<li>一张银联储蓄卡/信用卡，用于 tenso 支付转运费（不建议用非银联卡，会有汇率转换损失，已踩坑）</li>
-<li>钱足够。</li>
-</ol>
-<hr />
-<h2>难点，tenso 真实地址证明推荐：</h2>
-<p>由于 tenso 要求第一次邮寄需要为你的身份认证地址，不能添加别的地址，所以认证的地址必须能够收到邮包。</p>
-<ul>
-<li>
-推荐：使用驾照认证，操作一次以后可以作为其他产品的地址证明文件。<ul>
-<li>驾照需要修改地址为实际居住地址，拿上你的大头照去车管所驾照窗口说修改地址就可以了，当场 10 分钟就可以换下来。</li>
-<li>准备你的驾照翻译件，支付宝搜驾照翻译件就有了，一般只需要付邮费就可以在 1-3 天内邮寄给你。</li>
-<li>都准备好后将驾照和翻译件有地址那一页合照即可。</li>
-</ul>
-</li>
-<li>不推荐：银行账单、手机缴费单、水电缴费单、有线电视缴费单（等等缴费单据）上有所显示的地址的单据，如果确实要用的话，准备好英文版本（未测试）。</li>
-</ul>
-<hr />
-<h2>注册 tenso：</h2>
-<ol>
-<li>
-<p>邮箱注册，地址：<a href="https://www.tenso.com/chs/pre_regist/input" rel="nofollow">tenso 注册</a></p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7UmU8nT.png" /></p>
-</li>
-<li>
-<p>填写信息</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/uiiGVo1.png" /></p>
-</li>
-<li>
-<p>注册完成后会给你一个转运地址，点击下边的提交身份认证提交认证资料。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/bDrbcSe.png" /></p>
-</li>
-<li>
-<p>填写认证资料，注意电话要留对，内地海关交税时给你发短信也会用到。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/7TAuUBz.png" /></p>
-</li>
-<li>
-<p>下一步，提交证明等待审核即可</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/D8UMvCx.png" /></p>
-</li>
-<li>
-<p>绑定银联卡，自己绑定即可。</p>
-</li>
-</ol>
-<hr />
-<h2>iPhone 下单：</h2>
-<p>官网下单链接：<a href="https://www.apple.com/jp/shop/buy-iphone/iphone-16-pro/6.9%E3%82%A4%E3%83%B3%E3%83%81%E3%83%87%E3%82%A3%E3%82%B9%E3%83%97%E3%83%AC%E3%82%A4-256gb-%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%81%E3%82%BF%E3%83%8B%E3%82%A6%E3%83%A0-sim%E3%83%95%E3%83%AA%E3%83%BC" rel="nofollow">iPhone16 pro</a></p>
-<ol>
-<li>
-<p>登录 apple id ，使用自己常用的 apple id 登录即可，不需要注册日区账号。</p>
-</li>
-<li>
-<p>注意通讯运营商要选第二项：</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/ilDlkaL.png" /></p>
-</li>
-<li>
-<p>一路下一步，让你填写地址时姓名需要输入片假名，不能用中文也不能用英文，片假名转换地址：<a href="https://www.sljfaq.org/cgi/e2k.cgi" rel="nofollow">我是地址</a>。姓填写在姓框内，名字合起来填在名框内。</p>
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/c6yl75Z.png" /></p>
-</li>
-<li>
-<p>注意下，地址填写时根据 tenso 的入库规则，必须填写 TS 号对应才能快速入库，所以照填就可以了。</p>
-</li>
-<li>
-<p>官网会让留电话，有个固话的勾选框，需要勾上，这时候就可以填写 tenso 给的电话了。</p>
-</li>
-<li>
-<p>绑定你的银行卡，这时候会扣款 100 日元用于验证，后续会退回来。</p>
-</li>
-<li>
-<p>然后下单就行了，有一定概率会砍单，玄学，砍单不用担心，钱会退回卡里。</p>
-</li>
-<li>
-<p>日本官网在发货前才会扣除全款，下单不扣。</p>
-</li>
-</ol>
-<hr />
-<ul>
-<li>步骤全部完成后，就等待 tenso 入库，入库完成后会发邮件，然后去 tenso 选 EMS 支付运费就可以了，后续可以查看 tenso 给的 EMS 的运单在国内 EMS 官网查询。</li>
-<li>注意如果海关计税不是 13%，在 EMS 国际邮件代理报关小程序中申请复核即可。</li>
-<li>如果你的时间充足，又不想被税的话，可以先在日亚买个小东西用 tenso 转运回来，这样就可以添加香港地址了。然后再下单 iPhone 转运到香港即可。</li>
-</ul>
-<hr />
-<p>总体进度流程：</p>
-<ul>
-<li>
-<p>9.20 日发货下午 tenso 签收。</p>
-</li>
-<li>
-<p>9.21 日 tenso 入库。</p>
-</li>
-<li>
-<p>9.21 支付运费。</p>
-</li>
-<li>
-<p>9.23 日 tenso 发货。</p>
-</li>
-<li>
-<p>9.24 日进入国内海关。</p>
-</li>
-<li>
-<p>9.25 日支付关税。</p>
-</li>
-<li>
-<p>9.28 日到手。</p>
-<p><img alt="图片_20240928163646.jpg" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/QkEpVeo.jpeg" /></p>
-</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-09-28T10:19:07Z</pubDate>
-</item>
-<item>
-<title>[程序员] 避免 Math.ceil(1.1 * 100) == 111 的最佳实践是什么？用户支付金额不对不能入账，排查了半天才发现 JS 这个逆天设计，好像别的语言也有这样的</title>
-<link>https://www.v2ex.com/t/1076556</link>
-<guid>https://www.v2ex.com/t/1076556</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-09-28T10:06:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在还有啥在内地免费接短信的香港手机卡推荐。</title>
-<link>https://www.v2ex.com/t/1076555</link>
-<guid>https://www.v2ex.com/t/1076555</guid>
-<content:encoded><![CDATA[
-<p>不需要实名最好，也不在香港本地使用，只接短信。</p>
-]]></content:encoded>
-<pubDate>2024-09-28T08:30:50Z</pubDate>
-</item>
-<item>
-<title>[Pixel] Pixel 7 + 🛫 🛫🛫</title>
-<link>https://www.v2ex.com/t/1076554</link>
-<guid>https://www.v2ex.com/t/1076554</guid>
-<content:encoded><![CDATA[
-Google One VPN 将于 2024 年 6 月 20 日停止提供服务。<br /><br />使用 Pixel 7 、7 Pro 、7a 和 Fold 设备及更新的 pixel 设备可继续通过 VPN by Google 来使用 VPN 功能<br /><br />前置代理工具 <br />1 、飞机机型：v2rayNG 、Clash 均可<br />2 、机场选择：机场自备<br />3 、飞行线路：US<br />重点：对机场的飞行路线会有很高的要求，可能你选择的 US ，但是会提示你所在地无法使用该服务。<br /><br />这种情况下，您只能选择换机场，换线路。<br /><br />一、手机移动数据下起飞<br /><br />1 、修改 APN  （限于手机移动数据下起飞）<br />设置-网络和互联网-SIM 卡-中国移动-接入点名称- + 新建一个 APN<br />名称、APN 、MCC 、MNC 、APN 类型、APN 协议、APN 漫游协议全部按照 原有的中国移动 GPRS 填写 <br />代理 填写  127.0.0.1  端口 10809  保存<br />选用 新建的 APN <br /><br />2 、飞机进入机场<br />将您的飞机驶入机场、以机场和 v2RayNG 为例，<br />机场准备：将机场订阅链接 导入到 v2RayNG ，并对 v2RayNG 进行下列修改<br />1 、飞机设置 左上角 三 设置<br />进阶设置  模式 选用 仅代理  http 代理端口 填写 10809<br />路由设置  域名策略 选用 IPIfNonMatch  <br />预定义规则 选用 绕过局域网及大陆代理而后代理<br />自定义规则 代理的网址或 IP 填写<br />*.cloud.cupronickel.goog,<br />*.googleapis.com,<br />*.gstatic.com<br /><br />2 、机场设置 测试真连接速度，选择并启用 US 的节点 <br /><br />3 、打开 GOV ，点击 VPN ，即可起飞！！！<br /><br />Wifi 模式下 同理<br /><br />pixel 使用 VPN  官方说明 请看 <br /><br /><a href="https://support.google.com/pixelphone/answer/2819573?sjid=140733030294803112-NC" rel="nofollow noopener" target="_blank">https://support.google.com/pixelphone/answer/2819573?sjid=140733030294803112-NC</a>
-]]></content:encoded>
-<pubDate>2024-09-28T08:26:27Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有佬用过 123pan 的文件直链功能吗, 是否稳定?</title>
-<link>https://www.v2ex.com/t/1076553</link>
-<guid>https://www.v2ex.com/t/1076553</guid>
-<content:encoded><![CDATA[
-<p>主要是用来作为盒子固件升级用, 盒子没几块钱利润 :), 所以得找个低成本的升级包存储下载服务(升级文件一般不到 100MB).</p>
-<p>看起来 123pan 比使用云服务的对象存储便宜, 就是不知道靠不靠谱...</p>
-]]></content:encoded>
-<pubDate>2024-09-28T09:10:54Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 在玩的学校（PT）9 月 30 日至 10 月 1 日开放自由注册</title>
-<link>https://www.v2ex.com/t/1076552</link>
-<guid>https://www.v2ex.com/t/1076552</guid>
-<content:encoded><![CDATA[
-<p>RT ，时间按东八区算。</p>
-<p>今天登录学习发现开放他们开放自由注册两天，遂分享给各位 v2er ，有兴趣的朋友注册看看。</p>
-<p>说下我对学校的印象</p>
-<p>学校顶多算 PT 中的第二梯队，目前总种子数 148000 ，断种率在 25.86%，建站在 10 年以上了。教育资源算是他的特色。新手任务上传 50GB ，下载 50GB ，魔力 5000 。魔力虽然看着高，电子书战神策略可破。过了新手任务，后期更多是保种。下载量跟个人需求去刷。</p>
-<p>祝各位 v2er 玩的开心</p>
-<p>地址：<a href="https://pt.btschool.club/" rel="nofollow">btschool</a></p>
-]]></content:encoded>
-<pubDate>2024-09-28T10:03:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在 AI Chat 软件这么多了，有支持深度定制和总结的吗？</title>
-<link>https://www.v2ex.com/t/1076551</link>
-<guid>https://www.v2ex.com/t/1076551</guid>
-<content:encoded><![CDATA[
-<p>自己平时 OpenAI ChatGPT 用得也挺多的了，给自己和家人都开了 Team 版。<br />
-对我个人来说，有这么几个小痛点： </p>
-<ol>
-<li>
-<p>支持更深的定制<br />
-比如有时候不喜欢 AI 讲很多开场白废话，做铺垫啥的，希望能开门见山一点。<br />
-有时候我希望它能按照特定格式进行回复，比如练习英语的时候，先帮我点评或者修改，然后再回复聊天内容。  </p>
-</li>
-<li>
-<p>能帮我总结并输出文章<br />
-用了那么久，每次感觉都是用完即走。<br />
-其实有蛮多问题感觉都挺有价值的(对自己来说)，结果就那么晾在那里，直到有一天删除对话、忘记内容。<br />
-一个有质量的问答，其实也花了蛮多心思一次次追问、验证，也是自己的智力投入。<br />
-但要我自己再去仔细梳理成文，感觉也挺麻烦。</p>
-</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-09-28T00:26:13Z</pubDate>
 </item>
 </channel>
 </rss>
