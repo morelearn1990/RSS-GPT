@@ -5,11 +5,242 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 怎么看待谷歌公司废弃了 android beam 的相关功能？ 导致碰一碰的交互场景无法使用？</title>
+<link>https://www.v2ex.com/t/1077929</link>
+<guid>https://www.v2ex.com/t/1077929</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>多设备登陆不在需要扫码， 直接碰一碰就行了。 </li>
+<li>也可以做 android 的碰一碰交互名片。 </li>
+</ol>
+<p>有大佬知道背后的故事？</p>
+<p>目前华为设备(不清楚是 harmoney os 还是 harmoney next)还在支持</p>
+]]></content:encoded>
+<pubDate>2024-10-06T12:15:38Z</pubDate>
+<pubDate>2024-10-06T12:15:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 无法从公网 RDP 连接到家庭内网设备的公网 ipv6 地址</title>
+<link>https://www.v2ex.com/t/1077928</link>
+<guid>https://www.v2ex.com/t/1077928</guid>
+<content:encoded><![CDATA[
+
+<p>内网 RDP 没有任何问题，无论是使用内网 v4 地址、内网 v6 地址还是公网 v6 地址，所以 Windows 设备的 RDP 服务和防火墙肯定是没问题的。</p>
+<p>上海移动家庭宽带，有什么折腾经验吗？</p>
+]]></content:encoded>
+<pubDate>2024-10-06T12:10:35Z</pubDate>
+<pubDate>2024-10-06T12:09:35Z</pubDate>
+</item>
+<item>
+<title>[Apache] 请教下 Apache2 代理二级域名的问题</title>
+<link>https://www.v2ex.com/t/1077927</link>
+<guid>https://www.v2ex.com/t/1077927</guid>
+<content:encoded><![CDATA[
+
+<p>主机上有两个 web 服务，分别占用 4000 端口和 3000 端口，基于域名+端口可成功访问</p>
+<p>希望实现子域名访问对应端口，如下：</p>
+<p><a href="http://sub1.domain.com" rel="nofollow">sub1.domain.com</a> -- ip:3000</p>
+<p><a href="http://sub2.domain.com" rel="nofollow">sub2.domain.com</a> -- ip:4000</p>
+<h2>添加域名解析</h2>
+<p>在域名解析供应商处完成如下配置</p>
+<p><img alt="20241006-1910-Fig-1" class="embedded_image" rel="noreferrer" src="https://tuchuang-wangpeng.oss-cn-hangzhou.aliyuncs.com/tuchuang-wangpeng/20241006-1910-Fig-1.png" /></p>
+<h2>Apache2 反向代理配置</h2>
+<p>参考以下步骤，在服务器上完成 apache2 反向代理配置子 </p>
+<p>在 Apache 中，你可以使用<code>mod_proxy</code>模块来设置反向代理，从而隐藏后端服务的真实端口号。通过这种方式，用户访问子域名时就像访问普通的 HTTP 或 HTTPS 网站一样，而不会看到后端服务运行的具体端口。</p>
+<p>以下是基于 Apache 完成反代配置的步骤：</p>
+<ol>
+<li>
+<p><strong>确保安装了 Apache 和必要的模块</strong>：
+确保你的 Apache 服务器已经安装了<code>mod_proxy</code>、<code>mod_proxy_http</code>等模块。如果没有安装，可以通过以下命令安装（以 Debian/Ubuntu 系统为例）：</p>
+<pre><code class="language-bash">sudo a2enmod proxy
+sudo a2enmod proxy_http
+</code></pre>
+<p>安装完成后需要重启 Apache 服务：</p>
+<pre><code class="language-bash">sudo systemctl restart apache2
+</code></pre>
+</li>
+<li>
+<p><strong>配置虚拟主机</strong>：
+在 Apache 的配置文件目录下（通常是<code>/etc/apache2/sites-available/</code>），创建一个新的虚拟主机配置文件，或者编辑现有的配置文件。假设你想要为子域名<code><a href="http://service.example.com" rel="nofollow">service.example.com</a></code>配置反向代理，并且该子域名将指向本地机器上运行的一个服务，例如运行在 3000 端口上的 Web 应用。</p>
+</li>
+<li>
+<p><strong>添加反向代理配置</strong>：
+编辑配置文件并添加如下内容：</p>
+<pre><code class="language-apache">&lt;VirtualHost *:80&gt;
+    ServerName service.example.com
+
+    # 可选：重定向所有请求到 HTTPS
+    Redirect permanent / https://service.example.com/
+
+&lt;/VirtualHost&gt;
+
+&lt;IfModule mod_ssl.c&gt;
+    &lt;VirtualHost *:443&gt;
+        ServerName service.example.com
+
+        # SSL 证书配置
+        SSLEngine on
+        SSLCertificateFile /path/to/certificate.crt
+        SSLCertificateKeyFile /path/to/private.key
+        # 如果有中间证书
+        SSLCertificateChainFile /path/to/chain.pem
+
+        # 开启日志记录
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        # 反向代理配置
+        ProxyRequests Off
+        &lt;Proxy *&gt;
+            Order deny,allow
+            Allow from all
+        &lt;/Proxy&gt;
+        ProxyPass / http://localhost:3000/
+        ProxyPassReverse / http://localhost:3000/
+    &lt;/VirtualHost&gt;
+&lt;/IfModule&gt;
+</code></pre>
+<p>这个配置做了几件事：</p>
+<ul>
+<li>设置了一个监听 80 端口的虚拟主机，它会把所有请求永久重定向到 HTTPS 。</li>
+<li>设置了一个监听 443 端口的安全虚拟主机，用于处理加密连接。</li>
+<li>配置了 SSL 证书。</li>
+<li>启用了反向代理，并指定了后端服务的地址（这里假设是同一台机器上的 8080 端口）。</li>
+</ul>
+</li>
+<li>
+<p><strong>启用站点并重启 Apache</strong>：
+保存更改后的配置文件，然后启用这个站点配置：</p>
+<pre><code class="language-bash">sudo a2ensite your-config-file.conf
+sudo systemctl reload apache2
+</code></pre>
+</li>
+<li>
+<p><strong>测试配置</strong>：
+使用浏览器或其他工具（如 curl ）访问<code><a href="http://service.example.com" rel="nofollow">http://service.example.com</a></code>，应该会被自动重定向到<code><a href="https://service.example.com" rel="nofollow">https://service.example.com</a></code>，并且最终可以看到运行在 8080 端口上的服务内容。</p>
+</li>
+</ol>
+<h2>问题</h2>
+<p>完成配置后，访问<code><a href="http://sub1.example.com" rel="nofollow">http://sub1.example.com</a></code> ，无法访问，提示 502 </p>
+<h2>请教</h2>
+<ol>
+<li>
+<p>上述配置方法可能是哪里出错了？请有实操经验的大佬指导下</p>
+</li>
+<li>
+<p>除了上面这个方法，有没有其他方法？（已尝试宝塔面板）</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-10-06T11:44:33Z</pubDate>
+<pubDate>2024-10-06T11:43:33Z</pubDate>
+</item>
+<item>
+<title>[Apple] 去 Apple Store 试了新手机，拍照还是不尽如人意啊！</title>
+<link>https://www.v2ex.com/t/1077926</link>
+<guid>https://www.v2ex.com/t/1077926</guid>
+<content:encoded><![CDATA[
+
+这十来年的生态一直是用苹果，手机其实等了有两代产品了，就是觉得拍照跟三星 U22/23 相比实在是硬气不起来，没有比较就没有伤害，这次 16PM 是铁了新要换的，但是今天去拍了一圈，人像和静物的照片一点细节都没有……感觉是劝退的节奏。<br /><br /><br />色彩还原 &amp; 大场景的效果都感觉没问题，只是一放大看，这像素，怎么看都不应该这水平啊……<br /><br />想听听大家的吐槽，判断下是我要的太多了么……
+]]></content:encoded>
+<pubDate>2024-10-06T11:34:24Z</pubDate>
+<pubDate>2024-10-06T12:34:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] 香港最大的地产商新鸿基地产一天内以 8 折出售 204 套住宅，国内现在还在炒作取消优惠...</title>
+<link>https://www.v2ex.com/t/1077925</link>
+<guid>https://www.v2ex.com/t/1077925</guid>
+<content:encoded><![CDATA[
+
+刚刚看到一个报道， [香港最大的地产商新鸿基地产一天内以 8 折出售 204 套住宅] :<br /><br />据开发商代表称，在提供折扣以促进销售后,位于香港前机场启德区的天玺‧天项目的 204 套可供购买的房屋已于周六全部售出。天玺‧天第一期折扣后平均售价比附近新项目的价格低约 20%<br /><br />---<br /><br />而国内的报道则是售楼处这几天很忙，要取消之前的优惠。<br /><br />---<br /><br />对于房产，大家怎么看？
+]]></content:encoded>
+<pubDate>2024-10-06T11:24:37Z</pubDate>
+<pubDate>2024-10-06T12:36:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 搜狗输入法右下角这个中英文怎么隐藏? 其他输入法都没有这个图标,每次切换窗口都导致状态栏错位</title>
+<link>https://www.v2ex.com/t/1077924</link>
+<guid>https://www.v2ex.com/t/1077924</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/55eeec7b13804e059ab22785a07169c2%7Etplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgdG9taWFh:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMTQ5NTgxNTM0Mjc5NjM0MyJ9&amp;rk3s=e9ecf3d6&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1728298353&amp;x-orig-sign=Bq0Qf%2B4XBywm5AWtufKEWuy2loc%3D" /></p>
+]]></content:encoded>
+<pubDate>2024-10-06T10:53:31Z</pubDate>
+<pubDate>2024-10-06T10:51:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] apple ID 登陆 iMessage 出错</title>
+<link>https://www.v2ex.com/t/1077923</link>
+<guid>https://www.v2ex.com/t/1077923</guid>
+<content:encoded><![CDATA[
+
+<p>v 友们，你们退出 iMessage 还能重新激活登陆吗？</p>
+]]></content:encoded>
+<pubDate>2024-10-06T10:50:32Z</pubDate>
+<pubDate>2024-10-06T12:38:57Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 大陆可直连免费 git 服务商</title>
+<link>https://www.v2ex.com/t/1077922</link>
+<guid>https://www.v2ex.com/t/1077922</guid>
+<content:encoded><![CDATA[
+
+考虑用于大陆 app 运行时文件下载，比如模型权重。如果 huggingface 能直连就不用考虑了。<br /><br />国内 ai 相关<br /><a href="http://modelscope.cn" rel="nofollow noopener" target="_blank">modelscope.cn</a><br /><a href="http://aistudio.baidu.com" rel="nofollow noopener" target="_blank">aistudio.baidu.com</a><br /><a href="http://swanhub.co" rel="nofollow noopener" target="_blank">swanhub.co</a>  (可邮箱注册)<br /><a href="http://opencsg.com" rel="nofollow noopener" target="_blank">opencsg.com</a><br /><a href="http://wisemodel.cn" rel="nofollow noopener" target="_blank">wisemodel.cn</a><br /><br />国内<br /><a href="http://gitee.com" rel="nofollow noopener" target="_blank">gitee.com</a><br /><a href="http://gitcode.com" rel="nofollow noopener" target="_blank">gitcode.com</a><br /><a href="http://gitlink.org.cn" rel="nofollow noopener" target="_blank">gitlink.org.cn</a> (可邮箱注册)<br /><a href="http://coding.net" rel="nofollow noopener" target="_blank">coding.net</a><br /><br />国外<br /><a href="http://dev.azure.com" rel="nofollow noopener" target="_blank">dev.azure.com</a><br /><a href="http://codeberg.org" rel="nofollow noopener" target="_blank">codeberg.org</a><br /><a href="http://sr.ht" rel="nofollow noopener" target="_blank">sr.ht</a><br /><br />镜像<br /><a href="http://hf-mirror.com" rel="nofollow noopener" target="_blank">hf-mirror.com</a> + huggingface<br /><a href="http://ghp.ci" rel="nofollow noopener" target="_blank">ghp.ci</a> + github<br /><br />自建<br /><a href="http://github.com/gogs/gogs" rel="nofollow noopener" target="_blank">github.com/gogs/gogs</a><br /><a href="http://github.com/go-gitea/gitea" rel="nofollow noopener" target="_blank">github.com/go-gitea/gitea</a><br /><a href="http://github.com/theonedev/onedev" rel="nofollow noopener" target="_blank">github.com/theonedev/onedev</a><br /><br />其他<br /><a href="http://git.code.tencent.com" rel="nofollow noopener" target="_blank">git.code.tencent.com</a>：仅私有<br /><a href="http://codeup.aliyun.com" rel="nofollow noopener" target="_blank">codeup.aliyun.com</a>：仅私有<br /><a href="http://kkgithub.com" rel="nofollow noopener" target="_blank">kkgithub.com</a> + github：慢<br /><a href="http://gitclone.com" rel="nofollow noopener" target="_blank">gitclone.com</a> + github: 非及时，每日刷新缓存
+]]></content:encoded>
+<pubDate>2024-10-06T10:35:11Z</pubDate>
+<pubDate>2024-10-06T10:35:11Z</pubDate>
+</item>
+<item>
+<title>[广州番禺万博]招聘一名初级 Java 后端 7k-9k</title>
+<link>https://www.v2ex.com/t/1076693</link>
+<guid>https://www.v2ex.com/t/1076693</guid>
+<content:encoded><![CDATA[
+
+<h2>初级 Java 后端开发工程师</h2>
+<h2>公司名：广东欧科空调制冷有限公司</h2>
+<p>实体制造业，比较稳。我们部门的技术栈都会比较新，不需要担心技术提升问题，好好做好技术反哺业务就好。</p>
+<p>长话短说：您只需要有比较良好的 Java 基础，核心参与物联网平台功能开发（需要熟悉相关的技术），个人思路活跃，比较有想法，主观能动性强即可（并不是要求主动加班，公司不提倡低效加班）</p>
+<p>工作地点：广州番禺南村万博海印星钥</p>
+<h2>联系方式（我们的 Java 后端负责人）</h2>
+<p>加微信发简历 base64 解密：emRhbmp4YQ==</p>
+<h2>基本福利</h2>
+<ol>
+<li>7k-9k</li>
+<li>年终奖最高 3 个月，最低 1 个月，每月 300 元 餐补</li>
+<li>有明确的晋升通道，技术和管理两大方向</li>
+<li>公司有额外的医疗报销（非商业险）</li>
+<li>每个月月底最后一天发本月的工资，与节假日提前发，不会有压工资情况</li>
+<li>公司还有福利假，直接送至少 10 天；为了部分同学需要请假但是没有调休、年假余额的。</li>
+</ol>
+<p>上班时间 8:30 - 18:00 、中午 12 点吃饭，13:30 开始上班；晚上加班到 9 点有 50 块补贴，并且会有调休（从 18:30 开始计算，必须到 21:00 才行）</p>
+<p>备注：之前的帖子中的福利有一部分属于东莞总部那边的</p>
+<h2>工作地点</h2>
+<p>广州番禺南村万博海印星钥</p>
+<h2>部门基本说明</h2>
+<p>我们是公司的新兴部门，AIoT 事业部，因此主要做的产品也是 B 端的物联网、能源管理相关的。</p>
+<h2>工作职责</h2>
+<ol>
+<li>参与物联网平台功能规划、需求分析设计、所属模块的开发与测试，持续优化平台的用户体验和可用性；</li>
+<li>开发文档的编写、维护</li>
+</ol>
+<h2>任职要求</h2>
+<ol>
+<li>扎实的 Java 基础，2 年以上开发工作经验，熟练使用 Spring 、SpringBoot 、SpringCloud 、Mybatis 等常见开发框架;</li>
+<li>熟练使用 Redis 、RabbitMQ 、MySQL 、TDengine 等中间件;</li>
+<li>熟悉 Linux 操作系统和常用命令;</li>
+<li>熟悉物联网相关技术、协议（ MQTT 等）和应用开发模式，具有大规模物联上层应用系统的开发经验优先；</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-09-29T02:00:10Z</pubDate>
+<pubDate>2024-10-01T11:47:53Z</pubDate>
+</item>
+
+<item>
 <title>[生活] 大专毕业在家啃老一年，准备出去找工作，聊聊过去的经历，希望能获得一些建议</title>
 <link>https://www.v2ex.com/t/1077920</link>
 <guid>https://www.v2ex.com/t/1077920</guid>
 <content:encoded><![CDATA[
-
 <p>我是去年毕业的大专生，现在 22 岁了，专科学的软件，目前在家啃老一年了。至于为什么走到现状，我总结为以下原因：家庭、认知以及生活常识的缺失。</p>
 <h3>毕业前</h3>
 <p>我家是粤东地区的农村，父母典型的封建形象，我爸大男子主义，对家人冷漠，从来不管家内事；我妈愚昧无知、只会宣泄情绪。大概是在小学的时候，我爸就出轨了，我妈开始天天疑神疑鬼，家务也不好好干，每天基本只做三餐其余事不管，就这样矛盾积累。</p>
@@ -39,7 +270,6 @@
 <p>不小心就写成了一篇流水账，对能看完的人我表示感谢，也希望能收到大家给的建议或批评。</p>
 <p>附上去年找工作时写的简历(脱敏)，简历中有包装成分： <a href="https://ibb.co/dW7j9Fb" rel="nofollow">https://ibb.co/dW7j9Fb</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-06T10:14:46Z</pubDate>
 <pubDate>2024-10-06T10:13:46Z</pubDate>
 </item>
 <item>
@@ -47,7 +277,6 @@
 <link>https://www.v2ex.com/t/1077919</link>
 <guid>https://www.v2ex.com/t/1077919</guid>
 <content:encoded><![CDATA[
-
 <p>差点因为这个去重装浏览器。</p>
 <p>第一次碰到居然还有这样的软件逻辑，从任务栏或者搜索浏览器名称点击 GNOME 快捷方式没有反应，鼠标图标变成转圈圈，不给用户任何反馈，改从命令行启动才有错误信息。</p>
 <p>一款具有广泛用户基础的软件，其设计应当考虑普通用户的错误排查能力，可以弹窗提示主机名称变化，让用户选择更新用户配置还是建立全新配置，而不是默默装死。</p>
@@ -55,17 +284,14 @@
 <p>另，国庆假期升级了<strong>Fedora 41</strong>，无明显体验差别，依然流畅，系统自带 python 升级至 3.13 ，仍在 rc3 。</p>
 ]]></content:encoded>
 <pubDate>2024-10-06T10:12:20Z</pubDate>
-<pubDate>2024-10-06T10:12:20Z</pubDate>
 </item>
 <item>
 <title>[生活] 欢迎 v 友友善讨论：高速公路上在最左侧车道开 80-90 码的司机内心活动？</title>
 <link>https://www.v2ex.com/t/1077916</link>
 <guid>https://www.v2ex.com/t/1077916</guid>
 <content:encoded><![CDATA[
-
 不带后视镜开车，甚至和大货车长时间并排行驶，后面能堵一串车急着超车… <br /><br />这种司机并不全是新手，观察发现有些还是老司机呢，开车像儿戏一样 仰着头，座椅往后调，往后躺着开车…悠然自在得开车（前面一片开阔，没人挡他路………
 ]]></content:encoded>
-<pubDate>2024-10-06T09:54:19Z</pubDate>
 <pubDate>2024-10-06T09:56:45Z</pubDate>
 </item>
 <item>
@@ -73,10 +299,8 @@
 <link>https://www.v2ex.com/t/1077914</link>
 <guid>https://www.v2ex.com/t/1077914</guid>
 <content:encoded><![CDATA[
-
 一直提示说不要使用 vpn,或者有人有直连的方法吗,真的连不上啊!
 ]]></content:encoded>
-<pubDate>2024-10-06T09:37:26Z</pubDate>
 <pubDate>2024-10-06T10:14:03Z</pubDate>
 </item>
 <item>
@@ -84,10 +308,8 @@
 <link>https://www.v2ex.com/t/1077912</link>
 <guid>https://www.v2ex.com/t/1077912</guid>
 <content:encoded><![CDATA[
-
 非村里住户，能办村里的停车位吗？停车难不，早上出门堵不？<br />珠江新城日间月保，有低于 700 的吗？
 ]]></content:encoded>
-<pubDate>2024-10-06T08:46:02Z</pubDate>
 <pubDate>2024-10-06T08:45:02Z</pubDate>
 </item>
 <item>
@@ -95,7 +317,6 @@
 <link>https://www.v2ex.com/t/1077911</link>
 <guid>https://www.v2ex.com/t/1077911</guid>
 <content:encoded><![CDATA[
-
 <h1>Movie Gen: AI 驱动的视频生成革命 - 你们怎么看?</h1>
 <p><a href="https://moviegen.studio" rel="nofollow">Movie Gen</a></p>
 <p>大家好,我最近了解到一个即将推出的 AI 视频生成工具 - Movie Gen,感觉很有意思,想和大家讨论一下。</p>
@@ -136,7 +357,6 @@
 <p>期待听到大家的想法和讨论!</p>
 <p><a href="https://moviegen.studio" rel="nofollow">Movie Gen</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-06T08:40:21Z</pubDate>
 <pubDate>2024-10-06T10:11:02Z</pubDate>
 </item>
 <item>
@@ -144,10 +364,8 @@
 <link>https://www.v2ex.com/t/1077910</link>
 <guid>https://www.v2ex.com/t/1077910</guid>
 <content:encoded><![CDATA[
-
 同事听网络公司的人这么说，开始走流程申请付款了...... 但是我从来没听说过啊
 ]]></content:encoded>
-<pubDate>2024-10-06T08:31:57Z</pubDate>
 <pubDate>2024-10-03T08:31:57Z</pubDate>
 </item>
 <item>
@@ -155,7 +373,6 @@
 <link>https://www.v2ex.com/t/1077909</link>
 <guid>https://www.v2ex.com/t/1077909</guid>
 <content:encoded><![CDATA[
-
 <p>今天终于还是鼓起勇气，拿起手机打开抖音，拍下了自己人生中的首个真人露脸视频并公 开发布了。虽然面对镜头时和我想象中的一样，有很多的不自然和羞涩，但我还是勇敢地走出了这一步，为自己点赞。</p>
 <p>我最初想要做抖音的时候可能是想跟别人一样通过抖音赚钱，但后来想明白了一件事就是你能赚多少钱取决于你能有多少粉丝，你能有多少粉丝取决于你有多大的吸引力。</p>
 <p>我觉得我并不具备通过抖音来实现赚钱的能力，同时我也不想把每一件事都做的那么功利。我想把抖音当作我的微博、当作我的个人博客一样，单纯的用来记录，记录生活琐碎、记录想法感悟等等，正如抖音的 slogan——记录美好生活。</p>
@@ -163,7 +380,6 @@
 <p>以前总是太在意形象，觉得长得不好看不想露脸，声音不好听不想说话，但现在我真的是勇敢迈出了这一步，我就以刚起床洗漱后的形象，这个形象在我眼中其实是头发丑、衣服丑、皮肤差、形象差的，但我不在乎了，因为这就是最真实的自己，内心强大的人是不会在意外表的。视频剪辑也没有，也没说什么内容，就 3 分钟时长，直接就是：录制、说话（任何想到的内容）、生成字幕、发布。</p>
 <p>原文地址：<a href="https://blog.axiaoxin.com/post/first-douyin-video/" rel="nofollow">https://blog.axiaoxin.com/post/first-douyin-video/</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-06T08:30:50Z</pubDate>
 <pubDate>2024-10-06T09:26:44Z</pubDate>
 </item>
 <item>
@@ -171,7 +387,6 @@
 <link>https://www.v2ex.com/t/1076579</link>
 <guid>https://www.v2ex.com/t/1076579</guid>
 <content:encoded><![CDATA[
-
 <h1>ClashScan</h1>
 <p>（推荐使用最新 Chrome 内核浏览器） <a href="https://mikewang000000.github.io/ClashScan/" rel="nofollow">https://mikewang000000.github.io/ClashScan/</a></p>
 <p>代码开源在 GitHub ，页面部署在 GitHub Pages 上。</p>
@@ -186,10 +401,8 @@
 <li>默认配置下相对安全的：最新的 Clash for Windows / Clash Nyanpasu</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-09-28T10:55:59Z</pubDate>
 <pubDate>2024-10-04T18:26:44Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 寻找一份远程工作</title>
 <link>https://www.v2ex.com/t/1077908</link>
@@ -15387,139 +15600,6 @@ N305 双网口 16G + 512 1380 元</p>
 <p>顺便贴几张图吧</p>
 ]]></content:encoded>
 <pubDate>2024-09-29T02:41:43Z</pubDate>
-</item>
-<item>
-<title>[Dropbox] Dropbox Family 订阅合租</title>
-<link>https://www.v2ex.com/t/1076697</link>
-<guid>https://www.v2ex.com/t/1076697</guid>
-<content:encoded><![CDATA[
-<p>长续的来 年 84
-联系方式看历史贴</p>
-]]></content:encoded>
-<pubDate>2024-09-29T02:04:36Z</pubDate>
-</item>
-<item>
-<title>[生活] 装修工在我家露台吃瓜的美妙时光</title>
-<link>https://www.v2ex.com/t/1076696</link>
-<guid>https://www.v2ex.com/t/1076696</guid>
-<content:encoded><![CDATA[
-<p>昨日下午，水电工来局改管道，橱柜安装工来改孔，都是收尾小活儿。</p>
-<p>水哥临时被工长派过来，工具没带齐全，正好橱哥这边，他缺啥我啥不缺。于是两人交错着在略显逼仄的厨房里各自操作，礼貌想让，胡不妨碍。</p>
-<p>干完活儿，水哥给橱哥一边道谢，一边递烟。突然想起到我的露台看看，那些菜啊花的，长势如何了？</p>
-<p>“走走走，正好黄瓜熟了一根，摘了，给你俩一人一半，尝尝，没打半滴点儿的农药哦”</p>
-<p>于是仨人大步流星冲上露台，视野瞬时开阔，微风习习，惬意是写在每个人脸上的。</p>
-<p>我剪下那根长得贼俊的黄瓜，冲洗后折断，欢心分享之。</p>
-<p>看着他们手握黄瓜，在露台边吃边聊的画面，真觉美妙。这番吃瓜场景，在我关于几个月来各路工种来也匆匆，去也匆匆的记忆里，反倒独显奢侈、难得。</p>
-<p>甚至当我此刻再回想时，会有点得意：一根 30 公分长的黄瓜，怎么会如此那番让哥俩品咂半天？一定是因为那短暂时光里的风太凉爽，一定是因为我摘下并递到他们鼻孔的茉莉花香太迷人，一定是因为这浑身带刺屁股开花的黄瓜，太嫩太脆。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T02:52:44Z</pubDate>
-</item>
-<item>
-<title>[京东] 又找到一个不用京东的理由，购买百亿补贴商品居然强制要求绑银行卡</title>
-<link>https://www.v2ex.com/t/1076695</link>
-<guid>https://www.v2ex.com/t/1076695</guid>
-<content:encoded><![CDATA[
-如题，京东啊京东。<br />之前发现价保的钱有的不会原路返，也不会到账户余额，而是到钱包余额，要用就必须绑卡就已经跟客服掰扯过。现在变本加厉，那我不买了还不行嘛。。。
-]]></content:encoded>
-<pubDate>2024-09-29T02:56:34Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 发现用百度翻译 AI 对英文润色非常好用</title>
-<link>https://www.v2ex.com/t/1076694</link>
-<guid>https://www.v2ex.com/t/1076694</guid>
-<content:encoded><![CDATA[
-<p>虽然 AI 出来这么久了，但我一直没有主动去用过它，因为平常也没有用它的需求。</p>
-<p>今天发现 百度翻译 AI 对英文的润色还是挺好用的。</p>
-<p>有时候跟别人用英文交流，虽然意思大体写出来了，但自己知道是不怎么流畅的。<br />
-平常听英文没什么问题，但写就是另一回事了，自己英文还没有好到把想法 1:1 的还原成文字的水平，试了一把这个，感觉非常不错。</p>
-<p>这是我写的：</p>
-<pre><code>Oh, another thing, I would like the Icon Refresh app to come back cause every time I change an icon on the device, I have to switch different theme then switch back in the setting to force icons to be applied. I think it can be added to the expert apps bundle due to it not meeting normal user's needs.
-</code></pre>
-<p>这是 AI 润色后的</p>
-<pre><code>Oh, and one more thing, I would like to see the return of the Icon Refresh app. Every time I need to modify an icon on my device, I find myself having to switch to a different theme and then switch back in the settings to ensure the icons are applied. Given that this feature doesn't cater to the average user's needs, I believe it could be included in the expert apps bundle.
-</code></pre>
-<p>百度翻译：<a href="https://fanyi.baidu.com/mtpe-individual/multimodal#/" rel="nofollow">https://fanyi.baidu.com/mtpe-individual/multimodal#/</a></p>
-<h3>如果有其它更好用的工具也可以推荐下</h3>
-]]></content:encoded>
-<pubDate>2024-09-19T01:59:55Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [广州番禺万博]招聘一名初级 Java 后端 7k-9k</title>
-<link>https://www.v2ex.com/t/1076693</link>
-<guid>https://www.v2ex.com/t/1076693</guid>
-<content:encoded><![CDATA[
-<h2>初级 Java 后端开发工程师</h2>
-<h2>公司名：广东欧科空调制冷有限公司</h2>
-<p>实体制造业，比较稳。我们部门的技术栈都会比较新，不需要担心技术提升问题，好好做好技术反哺业务就好。</p>
-<p>长话短说：您只需要有比较良好的 Java 基础，核心参与物联网平台功能开发（需要熟悉相关的技术），个人思路活跃，比较有想法，主观能动性强即可（并不是要求主动加班，公司不提倡低效加班）</p>
-<p>工作地点：广州番禺南村万博海印星钥</p>
-<h2>联系方式（我们的 Java 后端负责人）</h2>
-<p>加微信发简历 base64 解密：emRhbmp4YQ==</p>
-<h2>基本福利</h2>
-<ol>
-<li>7k-9k</li>
-<li>年终奖最高 3 个月，最低 1 个月，每月 300 元 餐补</li>
-<li>有明确的晋升通道，技术和管理两大方向</li>
-<li>公司有额外的医疗报销（非商业险）</li>
-<li>每个月月底最后一天发本月的工资，与节假日提前发，不会有压工资情况</li>
-<li>公司还有福利假，直接送至少 10 天；为了部分同学需要请假但是没有调休、年假余额的。</li>
-</ol>
-<p>上班时间 8:30 - 18:00 、中午 12 点吃饭，13:30 开始上班；晚上加班到 9 点有 50 块补贴，并且会有调休（从 18:30 开始计算，必须到 21:00 才行）</p>
-<p>备注：之前的帖子中的福利有一部分属于东莞总部那边的</p>
-<h2>工作地点</h2>
-<p>广州番禺南村万博海印星钥</p>
-<h2>部门基本说明</h2>
-<p>我们是公司的新兴部门，AIoT 事业部，因此主要做的产品也是 B 端的物联网、能源管理相关的。</p>
-<h2>工作职责</h2>
-<ol>
-<li>参与物联网平台功能规划、需求分析设计、所属模块的开发与测试，持续优化平台的用户体验和可用性；</li>
-<li>开发文档的编写、维护</li>
-</ol>
-<h2>任职要求</h2>
-<ol>
-<li>扎实的 Java 基础，2 年以上开发工作经验，熟练使用 Spring 、SpringBoot 、SpringCloud 、Mybatis 等常见开发框架;</li>
-<li>熟练使用 Redis 、RabbitMQ 、MySQL 、TDengine 等中间件;</li>
-<li>熟悉 Linux 操作系统和常用命令;</li>
-<li>熟悉物联网相关技术、协议（ MQTT 等）和应用开发模式，具有大规模物联上层应用系统的开发经验优先；</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-09-29T02:53:48Z</pubDate>
-</item>
-<item>
-<title>[Arduino] ESP32 设备怎么连接 wap2 企业 WiFi（校园网）</title>
-<link>https://www.v2ex.com/t/1076692</link>
-<guid>https://www.v2ex.com/t/1076692</guid>
-<content:encoded><![CDATA[
-rt ，ESP32 设备怎么连接 wap2 企业 WiFi （校园网）？比如 arduino ，wpa2 企业认证要用户名密码证书，请问应该怎么配置？
-]]></content:encoded>
-<pubDate>2024-09-29T02:40:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问更新到 IOS18 后，你们的钉钉打卡 GPS 定位有延迟吗？</title>
-<link>https://www.v2ex.com/t/1076691</link>
-<guid>https://www.v2ex.com/t/1076691</guid>
-<content:encoded><![CDATA[
-<p>上周帮老婆升级到 ios18 ，最近她天天早上打卡都找我抱怨定位不准，而且一开始偏移很远，然后就要刷很久才能定位成功。有时候要开飞行模式然后恢复才能定位成功。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T02:22:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 相亲对象非要我解析她给我的的 mcZ 文件才……</title>
-<link>https://www.v2ex.com/t/1076690</link>
-<guid>https://www.v2ex.com/t/1076690</guid>
-<content:encoded><![CDATA[
-<p>我有一个朋友，被相亲对象刁难必须要解析她的文件做出修改才能……今天早点下班，文件是格式的 20240929.mcZ 结果集，加密二进制的，想解析文件内容并做出修改，网上苦寻无果，求大佬指点</p>
-]]></content:encoded>
-<pubDate>2024-09-29T02:43:44Z</pubDate>
-</item>
-<item>
-<title>[问与答] 世纪互联 onedrive 有大于 1t 的版本吗？</title>
-<link>https://www.v2ex.com/t/1076689</link>
-<guid>https://www.v2ex.com/t/1076689</guid>
-<content:encoded><![CDATA[
-<p>商业版、教育版，子账户大于 1T 的容量的 plan 。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T02:30:55Z</pubDate>
 </item>
 </channel>
 </rss>
