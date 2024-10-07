@@ -5,11 +5,440 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Apple] 经过这么久的迭代， iPhone 16 Pro Max 的手感趋近于完美了</title>
+<link>https://www.v2ex.com/t/1078029</link>
+<guid>https://www.v2ex.com/t/1078029</guid>
+<content:encoded><![CDATA[
+
+<p>Pro Max 系列从 12 代开始割手，到 13 代，14 代不锈钢加强割手感（又变重），到 15 代（钛金属还不成熟）剌手，16 Pro Max 拿在手里终于变得圆润...</p>
+<p>只能说是好事吧，但这么大一个公司。。这么多年才做好一件事情。。。</p>
+]]></content:encoded>
+<pubDate>2024-10-07T06:26:00Z</pubDate>
+<pubDate>2024-10-07T06:24:00Z</pubDate>
+</item>
+<item>
+<title>[Rust] RUST 调用 C++的 lib 请教</title>
+<link>https://www.v2ex.com/t/1078028</link>
+<guid>https://www.v2ex.com/t/1078028</guid>
+<content:encoded><![CDATA[
+
+<p>新人学习 rust ffi ，实在搞不定，特来请教一下
+下面段代码主要是实现一个简单的字符串然后通过 FFI 调用 hyperscan （这是一个 C++写的库，我通过 lib 调用，完全静态编译）的正则表达式同时匹配多个 pattern ，然后打印每一个 pattern 出现的第一个位置即可，如果没出现打印-1 。
+但是这个代码我怎么改都是-1 或者 0 ，就是不能有正确结果，我问了多个 AI ，但是都始终无法解决这个问题，所以想向大神请教一下，非常感谢。</p>
+<p>运行结果如下：</p>
+<pre><code>Hyperscan 版本: 5.4.2 2024-10-06
+模式 "test" 未出现，位置: -1
+模式 "string" 未出现，位置: -1
+模式 "example" 未出现，位置: -1
+模式 "中文" 未出现，位置: -1
+
+</code></pre>
+<p>完整代码如下：</p>
+<pre><code class="language-rust">use std::ffi::{CStr, CString};
+use std::os::raw::{c_int, c_uint, c_void};
+use std::ptr;
+
+const HS_MODE_BLOCK: c_uint = 1;
+const HS_FLAG_LITERAL: c_uint = 1 &lt;&lt; 10; // 添加 HS_FLAG_LITERAL 常量
+
+#[link(name = "hs")]
+extern "C" {
+    fn hs_version() -&gt; *const i8;
+
+    pub fn hs_compile_multi(
+        expressions: *const *const i8,
+        flags: *const c_uint,
+        ids: *const c_uint,
+        elements: c_uint,
+        mode: c_uint,
+        platform: *const c_void,
+        db: *mut *mut hs_database_t,
+        compile_err: *mut *mut hs_compile_error_t,
+    ) -&gt; c_int;
+
+    pub fn hs_alloc_scratch(
+        db: *const hs_database_t,
+        scratch: *mut *mut hs_scratch_t,
+    ) -&gt; c_int;
+
+    pub fn hs_free_scratch(
+        scratch: *mut hs_scratch_t,
+    ) -&gt; c_int;
+
+    pub fn hs_scan(
+        db: *const hs_database_t,
+        data: *const i8,
+        length: c_uint,
+        flags: c_uint,
+        scratch: *mut hs_scratch_t,
+        match_event_handler: Option&lt;
+            extern "C" fn(
+                id: c_uint,
+                from: u64,
+                to: u64,
+                flags: c_uint,
+                context: *mut c_void,
+            ) -&gt; c_int,
+        &gt;,
+        context: *mut c_void,
+    ) -&gt; c_int;
+
+    pub fn hs_free_database(db: *mut hs_database_t) -&gt; c_int;
+
+    pub fn hs_free_compile_error(error: *mut hs_compile_error_t);
+}
+
+pub enum hs_database_t {}
+pub enum hs_scratch_t {}
+
+#[repr(C)]
+pub struct hs_compile_error_t {
+    pub message: *const i8,
+    pub expression: c_int,
+}
+
+const HS_SUCCESS: c_int = 0;
+
+extern "C" fn event_handler(
+    id: c_uint,
+    from: u64,
+    _to: u64,
+    _flags: c_uint,
+    context: *mut c_void,
+) -&gt; c_int {
+    unsafe {
+        let positions = context as *mut u64;
+        let pos_ptr = positions.add(id as usize);
+        if *pos_ptr == u64::MAX {
+            *pos_ptr = from;
+        }
+    }
+    0
+}
+
+fn main() {
+    unsafe {
+        // 获取并打印 Hyperscan 版本
+        let version = hs_version();
+        let c_str = CStr::from_ptr(version);
+        let str_slice = c_str.to_str().unwrap();
+        println!("Hyperscan 版本: {}", str_slice);
+
+        // 定义要匹配的模式列表
+        let patterns = vec!["test", "string", "example", "中文"];
+
+        // 将模式转换为 CString
+        let c_patterns: Vec&lt;CString&gt; = patterns
+            .iter()
+            .map(|s| CString::new(*s).unwrap())
+            .collect();
+
+        // 创建 expressions 、flags 、ids 数组
+        let expressions: Vec&lt;*const i8&gt; = c_patterns.iter().map(|s| s.as_ptr()).collect();
+
+        // 使用 HS_FLAG_LITERAL 标志
+        let flags: Vec&lt;c_uint&gt; = vec![HS_FLAG_LITERAL; patterns.len()];
+
+        let ids: Vec&lt;c_uint&gt; = (0..patterns.len() as c_uint).collect();
+
+        // 编译模式
+        let mut db: *mut hs_database_t = ptr::null_mut();
+        let mut compile_err: *mut hs_compile_error_t = ptr::null_mut();
+
+        let compile_result = hs_compile_multi(
+            expressions.as_ptr(),
+            flags.as_ptr(),
+            ids.as_ptr(),
+            patterns.len() as c_uint,
+            HS_MODE_BLOCK,
+            ptr::null(),
+            &amp;mut db,
+            &amp;mut compile_err,
+        );
+
+        if compile_result != HS_SUCCESS {
+            if !compile_err.is_null() {
+                let err = &amp;*compile_err;
+                let message = CStr::from_ptr(err.message).to_string_lossy();
+                println!("编译错误: {}", message);
+                hs_free_compile_error(compile_err);
+            } else {
+                println!("未知的编译错误");
+            }
+            return;
+        }
+
+        // 分配 scratch 空间
+        let mut scratch: *mut hs_scratch_t = ptr::null_mut();
+        let alloc_result = hs_alloc_scratch(db, &amp;mut scratch);
+        if alloc_result != HS_SUCCESS {
+            println!("hs_alloc_scratch 失败");
+            hs_free_database(db);
+            return;
+        }
+
+        // 定义输入字符串
+        let input = "This is a test string for example purposes 中文测试.";
+
+        // 初始化匹配位置数组
+        let mut match_positions: Vec&lt;u64&gt; = vec![u64::MAX; patterns.len()];
+
+        // 执行扫描
+        let scan_result = hs_scan(
+            db,
+            input.as_ptr() as *const i8,
+            input.len() as c_uint,
+            0,
+            scratch,
+            Some(event_handler),
+            match_positions.as_mut_ptr() as *mut c_void,
+        );
+
+        if scan_result != HS_SUCCESS {
+            println!("hs_scan 失败，错误代码: {}", scan_result);
+            hs_free_scratch(scratch);
+            hs_free_database(db);
+            return;
+        }
+
+        // 输出结果
+        for (i, pattern) in patterns.iter().enumerate() {
+            let pos = match_positions[i];
+            if pos != u64::MAX {
+                println!("模式 \"{}\" 首次出现位置: {}", pattern, pos);
+            } else {
+                println!("模式 \"{}\" 未出现，位置: -1", pattern);
+            }
+        }
+
+        // 释放资源
+        hs_free_scratch(scratch);
+        hs_free_database(db);
+    }
+}
+
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-10-07T06:24:34Z</pubDate>
+<pubDate>2024-10-07T06:23:34Z</pubDate>
+</item>
+<item>
+<title>[问与答] c 盘有爆了！各位大佬都是怎么清理的啊....</title>
+<link>https://www.v2ex.com/t/1078027</link>
+<guid>https://www.v2ex.com/t/1078027</guid>
+<content:encoded><![CDATA[
+
+c 盘好难弄啊，呜呜，想知道大佬都是怎么清理的，谢谢啦
+]]></content:encoded>
+<pubDate>2024-10-07T06:24:18Z</pubDate>
+<pubDate>2024-10-07T06:32:02Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 「BatteryBuddy」分享一款 Mac APP 电池充放电监控小工具</title>
+<link>https://www.v2ex.com/t/1078026</link>
+<guid>https://www.v2ex.com/t/1078026</guid>
+<content:encoded><![CDATA[
+
+<p>APP 名称：BatteryBuddy</p>
+<p><img alt="image1" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/E13Lau/BatteryBuddy/refs/heads/main/image1.png" /></p>
+<p>BatteryBuddy 是一个 macOS 应用程序，用于监控和管理您的 Mac 电池状态。它可以帮助您优化电池使用，延长电池寿命，并在关键时刻提醒您。</p>
+<p>代码开源，欢迎大家使用</p>
+<p>下载点击： <a href="https://github.com/E13Lau/BatteryBuddy/releases/" rel="nofollow">https://github.com/E13Lau/BatteryBuddy/releases/</a></p>
+]]></content:encoded>
+<pubDate>2024-10-07T06:18:34Z</pubDate>
+<pubDate>2024-10-07T06:17:34Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] 现在 win 平台 PC 用什么开源独立客户端可以调用 API，能在 PC 上使用 Voice 和图片？</title>
+<link>https://www.v2ex.com/t/1078025</link>
+<guid>https://www.v2ex.com/t/1078025</guid>
+<content:encoded><![CDATA[
+
+<p>github 上搜到好像有那么几个像是，但不敢轻易使用，所以先问问<br /></p>
+<p>1 、可以全走 SOCKS5(打算通过代理中继，去落地 ip 再去访问 API)<br />
+2 、维护积极<br />
+3 、可以赞助后，全开功能也无妨<br />
+<br />
+我目前还是低度使用，大多数时候 free 的 4o-mini 互动都能解决我的需求了<br />
+但最近图片对话互动多了，现在每次要 gpt 问图片进行互动，得先把外区手机支棱起来，把图片弄到手机上，再发送，非常麻烦<br />
+这次借到了一个好友订阅会员的账号，担心把它账号弄砸，所以比较谨慎<br />
+<br />
+另问：
+4：好友现在是纯手机 App 和偶然 Web 浏览器使用，如果我使用客户端 API 消耗他账户里的 token 去互动的内容，好友能看到这些历史内容吗？</p>
+]]></content:encoded>
+<pubDate>2024-10-07T06:14:43Z</pubDate>
+<pubDate>2024-10-07T06:14:43Z</pubDate>
+</item>
+<item>
+<title>[问与答] 楼上小孩跑来跑去发出各种噪音是真的无解吗？</title>
+<link>https://www.v2ex.com/t/1078023</link>
+<guid>https://www.v2ex.com/t/1078023</guid>
+<content:encoded><![CDATA[
+
+如题，各位国师！
+]]></content:encoded>
+<pubDate>2024-10-07T06:06:27Z</pubDate>
+<pubDate>2024-09-29T18:11:50Z</pubDate>
+</item>
+<item>
+<title>[Android] 现在的高端安卓机摄像头都那么丑, 一大坨在后面</title>
+<link>https://www.v2ex.com/t/1078022</link>
+<guid>https://www.v2ex.com/t/1078022</guid>
+<content:encoded><![CDATA[
+
+<p>本人很少拍照, 求推荐摄像头不那么夸张的</p>
+]]></content:encoded>
+<pubDate>2024-10-07T06:06:04Z</pubDate>
+<pubDate>2024-10-07T06:20:38Z</pubDate>
+</item>
+<item>
+<title>[Surge] Surge For Mac 5 车位招人</title>
+<link>https://www.v2ex.com/t/1078021</link>
+<guid>https://www.v2ex.com/t/1078021</guid>
+<content:encoded><![CDATA[
+
+<h3>Surge For Mac 5</h3>
+<ul>
+<li>车位剩余：5 人车招 4 人，目前剩余 <em><strong>4</strong></em> 人</li>
+<li>购入日期：2024-10-07</li>
+<li>车位价格：142 ¥/人</li>
+<li>联系方式：<a href="https://t.me/Bigshowzyb" rel="nofollow">TG</a></li>
+</ul>
+<hr />
+<p>!!! 注意事项：<br /></p>
+<ol>
+<li>招长期稳定车友，主动跳车不退费用</li>
+<li>后期大版本必须强制升级，费用平摊。若因个人原因不想升级，退还个人在此车位上所花费用的 50%，并强制踢出车位</li>
+<li>换设备可自行反击活</li>
+<li>拉 TG 群,  若后面成员同意，拉 WX 群</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-10-07T05:41:42Z</pubDate>
+<pubDate>2024-10-07T05:38:42Z</pubDate>
+</item>
+<item>
+<title>[macOS] 如何将 Fn/Globe (🌐︎) 分配给自定义快捷键？</title>
+<link>https://www.v2ex.com/t/1078020</link>
+<guid>https://www.v2ex.com/t/1078020</guid>
+<content:encoded><![CDATA[
+
+打算将窗口填满屏幕的快捷键 🌐︎⌃F 改为 🌐︎⌃↩，因为在右手边的 ↩ 用起来会更快更方便些。<br /><br />可是在设置系统的键盘自定义快捷键时， 带有 🌐︎ 的快捷键组合似乎都不被接受。<br /><br />请问，如何将 Fn/Globe (🌐︎) 分配给自定义快捷键？系统的快捷键设置存在哪个 plist 里，好让人在那里直接修改呢？
+]]></content:encoded>
+<pubDate>2024-10-07T05:17:07Z</pubDate>
+<pubDate>2024-10-07T05:34:15Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] openwrt 做主路由如何限制部分终端的网速？</title>
+<link>https://www.v2ex.com/t/1078019</link>
+<guid>https://www.v2ex.com/t/1078019</guid>
+<content:encoded><![CDATA[
+
+<p>看了半天，openwrt 自身不带这个功能，这个系统做路由器还是有很明显的不足啊</p>
+]]></content:encoded>
+<pubDate>2024-10-07T05:14:49Z</pubDate>
+<pubDate>2024-10-07T05:19:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 馋置换补贴，奈何名下无车，能否现在买个二手车等明年的置换补贴？</title>
+<link>https://www.v2ex.com/t/1078018</link>
+<guid>https://www.v2ex.com/t/1078018</guid>
+<content:encoded><![CDATA[
+
+有没有什么操作空间？
+]]></content:encoded>
+<pubDate>2024-10-07T05:09:08Z</pubDate>
+<pubDate>2024-10-07T05:52:21Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [西安] 产品经理线下兼职</title>
+<link>https://www.v2ex.com/t/1078017</link>
+<guid>https://www.v2ex.com/t/1078017</guid>
+<content:encoded><![CDATA[
+
+团队有开发一个结算系统的需求，寻专业产品经理梳理需求和文档，需要线下交流，具体可详聊(负责人 v:zworkonline)
+]]></content:encoded>
+<pubDate>2024-10-07T04:59:17Z</pubDate>
+<pubDate>2024-10-07T04:58:17Z</pubDate>
+</item>
+<item>
+<title>[程序员] 股票回测平台（Demo）</title>
+<link>https://www.v2ex.com/t/1078016</link>
+<guid>https://www.v2ex.com/t/1078016</guid>
+<content:encoded><![CDATA[
+
+<p>之前用过聚宽来跑过策略，感觉太太太慢了，一个策略要跑好久。后来突发奇想用 Swift 写个回测平台但是解析 Python 策略，所以有了这个网站 <a href="https://stock.farambi.top" rel="nofollow">https://stock.farambi.top</a> 。后端采用 Vapor 框架，前端用的 React 。
+说实话我写不出满意的策略，后来就没优化的动力了。
+网站使用说明：注册登录 》 我的策略 》 新增，然后新增页面包含模版策略右边有个开始回测，股票数据包含 A 股 20030101 到 20240501 的日 k 。</p>
+]]></content:encoded>
+<pubDate>2024-10-07T04:56:41Z</pubDate>
+<pubDate>2024-10-07T04:56:41Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 前端/全栈工程师-远程全职</title>
+<link>https://www.v2ex.com/t/1078015</link>
+<guid>https://www.v2ex.com/t/1078015</guid>
+<content:encoded><![CDATA[
+
+岗位描述<br />参与一款基于 Next.js⽹站应用的前端业务模块开发<br />对用户与产品经理提出的前端问题及时维护、修补<br />持续优化⽤户端体验<br /><br /><br />工作地点：远程，周一至周五 8 小时全职<br />职位要求<br /> 基本要求： <br />3 年以上工作经验<br />扎实的前端基础，精通 TypeScript 、HTML5 、CSS3 技术栈<br />熟练使⽤ React 、Next.js 、TailwindCSS<br />熟悉前端工程化与模块化，并有实践经验，熟悉 webpack 构建工具<br />有良好的全栈架构思维、以及基于 Git 版本控制、代码评审和自动化测试的团队协作模式<br />熟悉 Core Web Vitals 指标和 SEO 的优化，有前端性能优化经验者优先。<br /><br /><br /> 加分项： <br />有 GitHub 开源项⽬的加分。<br />有独⽴个⼈技术博客的加分。<br />我们是谁<br />我们是一个小而灵活的技术开发团队，正在打造一款好用的企业投研工具。产品经理是有丰富经验的职业投资人，技术团队成员来自微软、阿里。我们热爱技术，专注打磨极致产品，以解决实际工作中遇到的问题。<br />简历请发到： rma@invret.co
+]]></content:encoded>
+<pubDate>2024-10-07T04:52:47Z</pubDate>
+<pubDate>2024-10-07T04:50:47Z</pubDate>
+</item>
+<item>
+<title>[macOS] Sequoia wifi 断网</title>
+<link>https://www.v2ex.com/t/1078014</link>
+<guid>https://www.v2ex.com/t/1078014</guid>
+<content:encoded><![CDATA[
+
+<p>Sequoia 什么问题啊,m1 更新到 版本 15.0.1 (24A348),每天晚上关闭电脑之后,第二天打开电脑是铁定没网络的,必须重启才能恢复,悲伤</p>
+]]></content:encoded>
+<pubDate>2024-10-07T04:48:08Z</pubDate>
+<pubDate>2024-10-07T06:14:16Z</pubDate>
+</item>
+<item>
+<title>[生活] 大家最近股票如何，有新人入局吗</title>
+<link>https://www.v2ex.com/t/1078012</link>
+<guid>https://www.v2ex.com/t/1078012</guid>
+<content:encoded><![CDATA[
+
+<p>本人不懂股票，前些年跟着朋友玩了一下，不多，赚了几千块，自己对这个东西还是不太懂。所以就没有再碰了，自己也不想去赚这个钱，自己还是很相信自己认知以外的钱很难赚。
+看到身边朋友有去年开始学习，在这中行情下，收益率还得有百分之 70 的，还是很羡慕</p>
+]]></content:encoded>
+<pubDate>2024-10-07T04:45:10Z</pubDate>
+<pubDate>2024-10-07T05:59:48Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 2024 自用软件分享--美化工具+效率工具</title>
+<link>https://www.v2ex.com/t/1078011</link>
+<guid>https://www.v2ex.com/t/1078011</guid>
+<content:encoded><![CDATA[
+
+<p>回首今年 从 V2 大佬们的分享帖子收获了不少</p>
+<p>纯分享 分享一些自用的觉得好用的软件</p>
+<p>软件+简单分类介绍+下载连接</p>
+<p><a href="https://flowus.cn/rico/share/abc32d74-072a-4e22-8e63-1a9574b07953?code=ERGYSM" rel="nofollow">https://flowus.cn/rico/share/abc32d74-072a-4e22-8e63-1a9574b07953?code=ERGYSM</a></p>
+<p>左上角 Table 和 Gallery 按钮可以切换表格和画廊格式</p>
+]]></content:encoded>
+<pubDate>2024-10-07T04:43:19Z</pubDate>
+<pubDate>2024-10-07T05:51:51Z</pubDate>
+</item>
+<item>
+<title>[投资] 2024 年美元定存/货基，各位现在都放在哪里？</title>
+<link>https://www.v2ex.com/t/1078010</link>
+<guid>https://www.v2ex.com/t/1078010</guid>
+<content:encoded><![CDATA[
+
+<p>目前只在渣打定存部分新资金 3.9%和长桥证券美元货基年 4.8+%(不一定)。</p>
+]]></content:encoded>
+<pubDate>2024-10-07T04:35:50Z</pubDate>
+<pubDate>2024-10-07T04:51:41Z</pubDate>
+</item>
+
+<item>
 <title>[创业组队] Web3 创业合伙人(前端，后端，链对接)</title>
 <link>https://www.v2ex.com/t/1078007</link>
 <guid>https://www.v2ex.com/t/1078007</guid>
 <content:encoded><![CDATA[
-
 <p>目前项目一期基本完成，但需要快速发展。</p>
 <p>1.前端(熟悉 nuxtjs,或者 nextjs 框架)
 2.后端(熟悉 go ，及相关微服务框架)
@@ -18,7 +447,6 @@
 <p>目前团队扩充中...</p>
 <p>联系： <a href="https://t.me/shibainufather" rel="nofollow">https://t.me/shibainufather</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-07T04:25:11Z</pubDate>
 <pubDate>2024-10-07T04:24:11Z</pubDate>
 </item>
 <item>
@@ -26,10 +454,8 @@
 <link>https://www.v2ex.com/t/1078006</link>
 <guid>https://www.v2ex.com/t/1078006</guid>
 <content:encoded><![CDATA[
-
 两周前试水做自媒体，起号失败，号废了，发什么都是零播放。不知道能不能利用这个特点，将废号改成网盘使用。这样做会有什么风险
 ]]></content:encoded>
-<pubDate>2024-10-07T04:24:11Z</pubDate>
 <pubDate>2024-10-07T04:24:11Z</pubDate>
 </item>
 <item>
@@ -37,10 +463,8 @@
 <link>https://www.v2ex.com/t/1078005</link>
 <guid>https://www.v2ex.com/t/1078005</guid>
 <content:encoded><![CDATA[
-
 医院做了个 ct ，有个云网址可以在线看片子，链接开头是 <a href="https://szryefilm.szhospital.com" rel="nofollow noopener" target="_blank">https://szryefilm.szhospital.com</a><br />有办法下载到 dicom 文件吗?
 ]]></content:encoded>
-<pubDate>2024-10-07T04:15:20Z</pubDate>
 <pubDate>2024-10-07T01:15:20Z</pubDate>
 </item>
 <item>
@@ -48,7 +472,6 @@
 <link>https://www.v2ex.com/t/1078004</link>
 <guid>https://www.v2ex.com/t/1078004</guid>
 <content:encoded><![CDATA[
-
 <p>Nuxt3 搞了一个项目, 在 Public 文件夹下面放了一些
 1.favicon.ico
 2.robots.txt
@@ -56,17 +479,14 @@
 <p>现在碰到一个问题, 发布后的 nuxt3 项目, 如果我更新一个.html 文件或者修改了服务器上的 robots.txt, 都不会生效, 必须要在开发环境新增/修改文件,再重新 build 打包更新到服务器才可以, 这样搞好麻烦, 有没有真正意义上的静态文件夹, 类似于.netcore 的 wwwroot 的这种</p>
 ]]></content:encoded>
 <pubDate>2024-10-07T04:05:40Z</pubDate>
-<pubDate>2024-10-07T04:05:40Z</pubDate>
 </item>
 <item>
 <title>[杭州] 提车作业，国庆节第一天提了奔驰 GLC 300L 动感</title>
 <link>https://www.v2ex.com/t/1078003</link>
 <guid>https://www.v2ex.com/t/1078003</guid>
 <content:encoded><![CDATA[
-
 终于在人生的第 37 个年头提了奔驰，作为 80 后，相信多多少少有点 BBA 的念想，虽然现在都在调侃没钱才去买 BBA 。<br /><br />国庆节第一天，因为台风影响，杭州天气也不算很好，阴天。<br /><br />来 4S 店发现其实没几个人，真的还是消费降级了，都不愿意消费了大家。<br /><br />这款 GLC 卖得还是很火的，上午据说就有十几辆车待提。<br /><br />还是提车的流程，签字画押，然后去验车，7 公里，还有厚厚的皮革味，膜还未撕等等。<br /><br />然后是常规的拍照流程，然后去加满一箱 95 汽油，大概 500 多块，显示能跑 600 公里。<br /><br />就操控和坐感来说，比之前的车都要丝滑不少，还是蛮香的。
 ]]></content:encoded>
-<pubDate>2024-10-07T04:03:13Z</pubDate>
 <pubDate>2024-10-07T04:19:11Z</pubDate>
 </item>
 <item>
@@ -74,10 +494,8 @@
 <link>https://www.v2ex.com/t/1078002</link>
 <guid>https://www.v2ex.com/t/1078002</guid>
 <content:encoded><![CDATA[
-
 <p>16 的后置镜头比之前的大一些，手上的第三方磁吸卡包和新买的磁吸充电宝都会“卡镜头”。</p>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:59:11Z</pubDate>
 <pubDate>2024-10-07T03:59:11Z</pubDate>
 </item>
 <item>
@@ -85,10 +503,8 @@
 <link>https://www.v2ex.com/t/1078001</link>
 <guid>https://www.v2ex.com/t/1078001</guid>
 <content:encoded><![CDATA[
-
 自己工作时突然想到的，和工作实质内容无关。衍生出来的一个立体几何问题，自己十一节假日断断续续想了些时间了，还没解答出来。让有兴趣的网友帮忙一起来想想。<br /><br /><a href="https://i.imgur.com/KMPouOZ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KMPouOZ.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:55:32Z</pubDate>
 <pubDate>2024-10-07T03:58:10Z</pubDate>
 </item>
 <item>
@@ -96,10 +512,8 @@
 <link>https://www.v2ex.com/t/1078000</link>
 <guid>https://www.v2ex.com/t/1078000</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.bilibili.com/video/BV14LpWe8E9m" rel="nofollow">https://www.bilibili.com/video/BV14LpWe8E9m</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:53:50Z</pubDate>
 <pubDate>2024-10-07T04:19:35Z</pubDate>
 </item>
 <item>
@@ -107,10 +521,8 @@
 <link>https://www.v2ex.com/t/1077998</link>
 <guid>https://www.v2ex.com/t/1077998</guid>
 <content:encoded><![CDATA[
-
 <p>感觉 Mac 版的 ChatGPT 好鸡肋啊，其他的也都是基础的对话框</p>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:37:35Z</pubDate>
 <pubDate>2024-10-07T03:47:43Z</pubDate>
 </item>
 <item>
@@ -118,7 +530,6 @@
 <link>https://www.v2ex.com/t/1077997</link>
 <guid>https://www.v2ex.com/t/1077997</guid>
 <content:encoded><![CDATA[
-
 <p>昨天我在官网订购了一台 Apple watch 手表跟一个充电器适配器.在取货的过程中我想确认下 Fitness++是否可用,不可用的话就买港版或者美版,这个就当场退了.那个工作人员无法给我准确的答复,我说先试试吧,不能用的话就退了.好家伙! 他突然把货往身后一撤,急赤白脸的说:我们 Apple 从来不支持 14 天无理由退货!你先确定好!
 因为我之前是用的安卓,我也没试过,就无法确定.但是我前几天取手机和耳机的时候店员说 14 天内不满意可以退货的.我就说:我前几天取手机的时候都是 14 天内可以退的,为什么这个就不行呢??
 好嘛,立马就给我吵吵什么他们苹果从来不支持 14 天无理由退货,我说那我录一下,你再说一边.然后令我炸裂的一段来了,他忽然问我是不是生活不如意找他们撒气来了!!我当场红温,跟他吵了起来.他还在念叨 他们 Apple 从来不支持 14 天无理由退货.我寻思当场试,不能用的话就退,会损坏设备么?或者说我就是想退,就是不喜欢,是否 Apple 就不予退货呢?
@@ -126,7 +537,6 @@
 我也咨询了 Apple Store 的在线客服和电话客服,反馈的是苹果中国目前是没有受理投诉的渠道的!
 请大家帮帮我如何才能投诉这个员工呢?谢谢大家</p>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:33:41Z</pubDate>
 <pubDate>2024-09-27T05:55:35Z</pubDate>
 </item>
 <item>
@@ -134,13 +544,11 @@
 <link>https://www.v2ex.com/t/1077996</link>
 <guid>https://www.v2ex.com/t/1077996</guid>
 <content:encoded><![CDATA[
-
 <p>背景：今年 26 岁，目前单身，在上海工作了几年，攒了点存款。现在我正面临一个选择题：是用这笔钱来买车呢，还是通过海外代孕要一个小孩？</p>
 <p>先说买车吧，我去 4S 店看了，看上的一款车落地得 70 万左右。说实话，有了车以后上下班、周末出去玩都方便多了，感觉生活质量会提升不少。</p>
 <p>再说代孕这事，因为我没有结婚的打算，我联系了一些代孕中介，他们说整个流程下来也要差不多 70 万。这样做了，也算是给家里一个交代吧。</p>
 <p>现在我在这两个选择间摇摆不定，买车的话是即刻享受，代孕则是为将来打算。大家有什么建议吗？（请不要关注代孕的合规问题）</p>
 ]]></content:encoded>
-<pubDate>2024-10-07T03:32:25Z</pubDate>
 <pubDate>2024-10-07T04:19:23Z</pubDate>
 </item>
 <item>
@@ -148,13 +556,10 @@
 <link>https://www.v2ex.com/t/1077995</link>
 <guid>https://www.v2ex.com/t/1077995</guid>
 <content:encoded><![CDATA[
-
 今天完全没听到起床闹钟，手表没有振动，手机也没响，一觉睡到了十点过
 ]]></content:encoded>
-<pubDate>2024-10-07T03:31:49Z</pubDate>
 <pubDate>2024-10-07T04:27:15Z</pubDate>
 </item>
-
 <item>
 <title>[OpenAI] 有没有用过 spring ai 的，感觉怎么样</title>
 <link>https://www.v2ex.com/t/1077989</link>
@@ -15660,133 +16065,6 @@ RT<br />路透社的消息，首都要不要跑步进场？感觉可能是近些
 </div>
 ]]></content:encoded>
 <pubDate>2024-09-29T02:14:48Z</pubDate>
-</item>
-<item>
-<title>分享一下我刚做的个人站 /about</title>
-<link>https://www.v2ex.com/t/1075558</link>
-<guid>https://www.v2ex.com/t/1075558</guid>
-<content:encoded><![CDATA[
-<p>访问链接 : <a href="https://about.songlh.top/" rel="nofollow">https://about.songlh.top/</a></p>
-<p>vercel 部署的, 需要翻墙</p>
-<p>从开始到结束大概历时半个月, 耗掉了三个周末时光... 要做这个个人站是因为突然有一天在小红书刷到了一个设计大佬的网站, 然后就一直给我推相关文章, 看的是真心痒痒, 认为自己一个做了好几年 C 端的, 搞一个这种酷炫的个人站应该是手拿把掐的 😂, 谁知道做下来才知道自己的动手能力跟不上脑补能力, 在还没开始做时, 脑补了好多高级特效的页面, 但是做的时候才发现自己是除了开发以外是真的菜鸡, 设计和配色太过于青涩, 我还专门在 B 站学了 blender, 但是费了好大劲捏了几个四不像就放弃了. 不过建模是真的有成就感, 如果有时间我是想要深入一下的, 说不定会碰撞出不一样的火花</p>
-<p>截图贴下面了, 算是一个删删减减掉各种奇怪动效后自认为比较美观的版本, 欢迎访问提建议 👻, 建议 PC 端, 也欢迎大佬们贴一下你们的网站, 互相观摩学习 🐶</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/LHRUN/file-store/refs/heads/main/post/one-space.png" /></p>
-]]></content:encoded>
-<pubDate>2024-09-27T11:46:23Z</pubDate>
-</item>
-<item>
-<title>[WireGuard] wireguard 国内都不行了？</title>
-<link>https://www.v2ex.com/t/1076778</link>
-<guid>https://www.v2ex.com/t/1076778</guid>
-<content:encoded><![CDATA[
-<p>手机外网连家里 wireguard v4 和 v6 都不能握手了，局域网倒是可以连接。</p>
-<p>如果用 upd2raw 加套如果手机客户端也要启用，那这个方案不大合适我了。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T04:25:19Z</pubDate>
-</item>
-<item>
-<title>[分享创造] js 写的节拍器</title>
-<link>https://www.v2ex.com/t/1076777</link>
-<guid>https://www.v2ex.com/t/1076777</guid>
-<content:encoded><![CDATA[
-<p><a href="https://lab.est.im/metronome/" rel="nofollow">https://lab.est.im/metronome/</a></p>
-<p>主要特色是计时准，操作简单，无广告。</p>
-<p>前因后果<a href="https://blog.est.im/2024/stdout-19" rel="nofollow">写了个 blog</a></p>
-]]></content:encoded>
-<pubDate>2024-09-29T04:22:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教一下 Hugging Face 上的模型怎么下载下来使用</title>
-<link>https://www.v2ex.com/t/1076776</link>
-<guid>https://www.v2ex.com/t/1076776</guid>
-<content:encoded><![CDATA[
-如题，比如如何把 LLama 3.2 内嵌到一个 Java 应用让 Java 调用呢？ 我看上面都是作为一个 Python 库给 Python 调用
-]]></content:encoded>
-<pubDate>2024-09-29T04:21:08Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 写了一个简单易用的 Cloudflare D1 database viewer，支持本地 sqlite 和远程 d1 数据库</title>
-<link>https://www.v2ex.com/t/1076774</link>
-<guid>https://www.v2ex.com/t/1076774</guid>
-<content:encoded><![CDATA[
-<p><a href="https://cloudflare-d1-viewer.pages.dev/" rel="nofollow">https://cloudflare-d1-viewer.pages.dev/</a></p>
-<p>如果你正在在使用 Cloudflare D1 的话，可以很方便的查看账号下的 D1 数据库信息。</p>
-<p>本地开发的话，D1 会使用 sqlite ，但不会持久存储，如果需要持久化可以加上 <code>--persist</code> 的 flag ，例如 <code>wrangler pages dev src --d1=&lt;BINDING&gt; --persist</code>，会写入到项目文件夹下 <code>.wrangler/state/d1/&lt;BINDING&gt;.sqlite3</code> 位置。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T00:11:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家现在怎么充值 claude 或者 openai 的 api 啊?之前的虚拟卡服务商用不了了</title>
-<link>https://www.v2ex.com/t/1076773</link>
-<guid>https://www.v2ex.com/t/1076773</guid>
-<content:encoded><![CDATA[
-<p>dupay 最近不能用了,说是对接的银行政策调整</p>
-<p>还有什么其他渠道充值 api 和购买 claude 吗?</p>
-]]></content:encoded>
-<pubDate>2024-09-29T04:13:57Z</pubDate>
-</item>
-<item>
-<title>[投资] 股市疯涨，普通人该如何找到属于自己的机会？</title>
-<link>https://www.v2ex.com/t/1076772</link>
-<guid>https://www.v2ex.com/t/1076772</guid>
-<content:encoded><![CDATA[
-每当股市波动，总有一群人在制造恐慌，鼓吹各种无稽之谈，仿佛下一秒你的财富就会灰飞烟灭，要么鼓吹各种 all in 仿佛下一秒就会错过。这些声音搞得你焦虑不安？而这恰恰是他们的目的，让你失去理智，盲目跟风。但今天，我要告诉你一个真相——真正的财富从来不是由那些谣言左右的。<br /><br />我已经受够了这些不负责任的言论，所以我创建了这个频道，目的只有一个：！！分享真正有用的投资知识，帮你看清金钱的本质，打破财富的幻象。！！ 这里没有花里胡哨的噱头，只有实实在在的经验和见解，带你直面财富的真相。<br /><br />想要在这个充满波动的市场中站稳脚跟，就要学会不被情绪左右，不被流言牵着鼻子走。我的频道将分享那些被大多数人忽略的投资策略，以及如何通过理性思考和科学方法，让你的财富在任何市场中都能稳步增长。<br /><br />我的频道包括不仅限投资策略，更有适合不同年龄段，不同家庭，不同资产的各种财富管理和思考。<br /><br />如果你厌倦了那些让你焦虑不安的声音，想要找到一条通向财富自由的清晰路径，关注我，一起揭穿财富的迷雾，突破润，卷，躺，打破金钱的幻想！！<br /><br /><br /> [中国股市：被忽视的金矿，如何抓住财富机会？]  <br /><div class="embedded_video_wrapper"></div>?si=7b3eLa15IaKjZtSl<br /><a href="https://www.bilibili.com/video/BV1NRxKeDECL" rel="nofollow noopener" target="_blank">https://www.bilibili.com/video/BV1NRxKeDECL</a><br /><br /><br />立即关注，拒绝焦虑，直面财富的真相！
-]]></content:encoded>
-<pubDate>2024-09-16T04:10:16Z</pubDate>
-</item>
-<item>
-<title>[macOS] Mac mini m4 值得等吗？</title>
-<link>https://www.v2ex.com/t/1076768</link>
-<guid>https://www.v2ex.com/t/1076768</guid>
-<content:encoded><![CDATA[
-原来的不好用了，想趁着教育优惠买一个，但是看到有人说 Q4 会发新的，appletv 大小的 mac mini ，瞬间心动了，但没看到比较靠谱的信息源，请问有人了解这方面的消息吗？
-]]></content:encoded>
-<pubDate>2024-09-29T04:19:32Z</pubDate>
-</item>
-<item>
-<title>[AirPods] AirPods 2/AirPods 4，二选一，大家给点建议</title>
-<link>https://www.v2ex.com/t/1076767</link>
-<guid>https://www.v2ex.com/t/1076767</guid>
-<content:encoded><![CDATA[
-<p>背景：</p>
-<p>AirPods 2 前后买过两副，舒适度无敌，但总是会出现戴上耳机后某一侧耳机连不上的问题，解决方案就是要把耳机放回盒子里，再重新戴上。比较麻烦</p>
-<p>AirPods 4 ，官网首发入，跟手机/电脑的连接非常快，也不会出现单侧断联的情况。但舒适度感觉一般，带久了（超 10 mins ）耳朵就会难受。之前买过 AirPods 3 ，就因为太难受，用了 2 周还是退了。</p>
-<p>主要场景：</p>
-<p>通电话用，偶尔戴耳机看视频。对于稳固性（反正都是静态室内居多）和降噪、音效（还有副 AirPods pro ）不太在意。</p>
-<p>核心需求及问题：</p>
-<p>舒适、连接快。貌似这两点，2 代跟 4 代刚好相反。想问问大家有没有啥办法，如何解决 2 代总是戴上容易单侧断联的情况（每次初戴，需要把断联的那侧耳机放回盒子，但之后就一切正常，就是麻烦。之前因为是耳机老了，后面又买了副全新 2 代，发现问题依旧）</p>
-<p>如能解决，那我就果断退 4 代了，如果不行，那看来得纠结下要不要退 4 代了</p>
-]]></content:encoded>
-<pubDate>2024-09-29T03:56:44Z</pubDate>
-</item>
-<item>
-<title>[AirPods] 请问大家 airpods4 和 AirPods pro2 哪个音质更好一些？</title>
-<link>https://www.v2ex.com/t/1076766</link>
-<guid>https://www.v2ex.com/t/1076766</guid>
-<content:encoded><![CDATA[
-我感觉我的 airpods3 是比 AirPods pro 1 代好一些的，只是没降噪，新出了 AirPods 4 也有了降噪，纠结是买 AirPods 4 还是 AirPods pro2 ，更追求音质一些。
-]]></content:encoded>
-<pubDate>2024-09-29T03:45:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教如何定位家里的网络是哪里出问题了。</title>
-<link>https://www.v2ex.com/t/1076765</link>
-<guid>https://www.v2ex.com/t/1076765</guid>
-<content:encoded><![CDATA[
-<p>目前使用 tp-link 的 ac+ap 方案，ac 是 TL-ER3220G,通过一个 POE 交换机（供电功率上限 121W ）连接到 ap ，ap 是 2 个面板 ap+一个吸顶 ap 。运营商网络是中国联通 1200M 光纤。路由器交换机供电中间连了 ups 。</p>
-<p>家里设备有一些智能灯，摄像头，绿米网关，一个常年开机的 mac 挂了 qb （排除 qb 的问题，因为退出了仍然会有问题），homeassistant,Plex,cloudflare tunnel 暴露了一些服务。</p>
-<p>目前的问题是，网络奇差，但是有时又正常，感觉像是第一次连接的时候非常非常非常慢，但是如果连接上了似乎又正常，ping 的时候正常，traceroute 中间会有星号，但是星号是已经出了家里的网络的。这种现象在手机上尤为明显，有线（也是通过面板上的网线口连接的）也会出现但是频率较低，LOL 第一次启动甚至会在客户端上显示网络异常，多启动几次就没有问题了，游戏过程中 ping 值稳定。路由器重置过无效。3 个 ap 都会有这个问题。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T03:44:14Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 为什么江西的电信资费比广东贵，体验比广东电信差很多。</title>
-<link>https://www.v2ex.com/t/1076763</link>
-<guid>https://www.v2ex.com/t/1076763</guid>
-<content:encoded><![CDATA[
-<p>在江西赣州工作，用广州电信手机卡做主卡，我广州电信手机卡 135b ，每个月 59 元，带宽带。（宽带租给房东了）。最近想在江西办宽带，发现江西电信营业厅的套餐很多都比广东贵。比如几年前的畅享不限量套餐，广东已经提速 3mbps ，刷个视频没问题，江西还是限 1 ，而且连微信发个文字消息都费劲。同样的 100 多的 5g 套餐，在广州给的都是 100 个 g ，江西只有 30-40g 。最近也在赣州办了一张本地的联通流量卡，开 5g 用（江西联通 5g 用的电信基站），联通卡体验无论是测速还是刷视频还是打游戏比我那张广州电信卡插一大截，广州电信测速随随便便上 500mbps ，江西联通只有 100-200mbps ，而且江西联通刷哔哩哔哩老是断流，切换到广州电信卡就很流畅，一点也没有断过。就连扫个共享单车或者付款有的时候都会提示网络异常。工作电信卡基本上都没有卡过。</p>
-]]></content:encoded>
-<pubDate>2024-09-29T03:40:20Z</pubDate>
 </item>
 </channel>
 </rss>
