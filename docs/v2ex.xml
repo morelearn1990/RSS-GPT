@@ -5,11 +5,55 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] reactive 编程+redisson 如何分页的问题</title>
+<link>https://www.v2ex.com/t/1079060</link>
+<guid>https://www.v2ex.com/t/1079060</guid>
+<content:encoded><![CDATA[
+
+<ul>
+<li>SpringBoot WebFlux 3.1.0 + redisson 3.27.1 + redis stack 7 单机</li>
+<li>webflux control 要求业务代码返回 mono</li>
+</ul>
+<pre><code class="language-java">    @Bean
+    public RouterFunction&lt;ServerResponse&gt; route(CacheHandler cacheHandler) {
+        return RouterFunctions.route()
+                .GET("......", cacheHandler::xxxxxxx)
+                .build();
+</code></pre>
+<ul>
+<li>
+<p>redissonReactiveClient 是 client</p>
+<ul>
+<li>redissonReactiveClient.getSearch(codec).search(.....); 查询 redis 返回 mono&lt;SearchResult&gt;</li>
+<li>所以 cacheHandler::xxxxxxx 中 call 上面的查询</li>
+<li>如果做分页的话，SearchResult 里面有 total 和 List&lt;Document&gt;当前页数据</li>
+</ul>
+</li>
+<li>
+<p>但是我如何在一个请求中查出所有数据呢，也就是 reactive 编程怎么搞个循环查询啊</p>
+<ul>
+<li>只能将第一次查询的 mono block()拿到 total 吗，但是貌似 reactive 编程不该是这个写法...</li>
+<li>
+如果 Mono&lt;SearchResult&gt; cc = client.search(..第一页数据).cache(); <ul>
+<li>然后 return cc.flatMap(c -&gt; client.search(.. c.getTotal, 然后传参剩下所有数据)).concatWith(cc).collectList();</li>
+<li>测试之后返回空的，因为 client.search 本身也是异步多线程的，这个操作在另一个线程进行，webflux 就给我空数据了，还有就是第二个 search 也拿不到真正的 total</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>所以这个该咋做啊
+-</p>
+]]></content:encoded>
+<pubDate>2024-10-10T21:13:09Z</pubDate>
+<pubDate>2024-10-10T21:11:09Z</pubDate>
+</item>
+
+<item>
 <title>[MacBook Pro] m1max64g8t14'⇋m3pro18g512G14'</title>
 <link>https://www.v2ex.com/t/1079059</link>
 <guid>https://www.v2ex.com/t/1079059</guid>
 <content:encoded><![CDATA[
-
 <p>如何选择？</p>
 <p>二手的 m1 顶配，大概 1.7w 可以搞定。硬盘 1t 的话 1.3w 也能搞定。
 一手的 m3pro ，当前全国补贴，大概也差不多 1.5w 。</p>
@@ -20,7 +64,6 @@
 <p>一个是新的，一个是 21 年的二手货，这块也相当考验心态。</p>
 <p>对于够用来说，m3pro 肯定足够了。但 m1max 可以跑更多任务。无法说服自己买 M1max,还是得专业人士来说说 m3pro 到底哪些硬指标可以和 m1max 一战。</p>
 ]]></content:encoded>
-<pubDate>2024-10-10T18:34:26Z</pubDate>
 <pubDate>2024-10-10T18:52:46Z</pubDate>
 </item>
 <item>
@@ -28,15 +71,12 @@
 <link>https://www.v2ex.com/t/1073120</link>
 <guid>https://www.v2ex.com/t/1073120</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/hzwer/WritingAIPaper" rel="nofollow">https://github.com/hzwer/WritingAIPaper</a></p>
 <p>前些年不会写论文吃了很多亏，最近帮别人改论文也很痛苦</p>
 <p>于是整了一个指南</p>
 ]]></content:encoded>
-<pubDate>2024-09-14T14:53:16Z</pubDate>
 <pubDate>2024-10-10T20:01:21Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] FacePoke - 免费在线使用 FacePoke 拖放式面部表情编辑</title>
 <link>https://www.v2ex.com/t/1079058</link>
@@ -15880,48 +15920,6 @@ Ultra 2, WatchOS 11.1 (22R5554e)<br /><br />本来智能叠放的左上角是会
 显卡驱动死活装不上，设备管理器里 VirtualBox Graphics Adapter 始终显示叹号
 ]]></content:encoded>
 <pubDate>2024-10-05T16:00:22Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] docker macvlan 运行 openwrt 后，其它机器都能使用 openwrt 作为网关，而宿主机不行，为什么</title>
-<link>https://www.v2ex.com/t/1077817</link>
-<guid>https://www.v2ex.com/t/1077817</guid>
-<content:encoded><![CDATA[
-<p>宿主机使用 openwrt 作为网关，且已经设置了 macvlan 的桥接访问
-使用 ping 8.8.8.8
-结果
-PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
-From 192.168.0.11 icmp_seq=1 Destination Host Unreachable
-From 192.168.0.11 icmp_seq=2 Destination Host Unreachable</p>
-<p>但是可以通过使用 openwrt 的 http 代理来访问
-如：curl -x <a href="http://192.168.0.188:10809" rel="nofollow">http://192.168.0.188:10809</a> <a href="https://www.youtube.com" rel="nofollow">https://www.youtube.com</a></p>
-]]></content:encoded>
-<pubDate>2024-10-05T15:53:12Z</pubDate>
-</item>
-<item>
-<title>[NAS] 求个有官方压制组的 pt 药</title>
-<link>https://www.v2ex.com/t/1077816</link>
-<guid>https://www.v2ex.com/t/1077816</guid>
-<content:encoded><![CDATA[
-<p>柠檬和瓷器的相继关闭真的很可惜。馒头号很早之前被别人违规导致连坐封了更可惜。</p>
-<p>之前也在站里发过观众药，趁国庆求求其他有官方压制组的大站药。</p>
-<p>佛系求，随缘～～</p>
-<p>目前还在的站的数据，因为都是看啥下啥，数据比较一般。
-笔记本小硬盘挂 724 ，有动态公网 IP 。</p>
-<p>邮箱 MzM0NzQzMDc2NEBxcS5jb20=</p>
-<p>Audiences	(步履不停)Insane User	</p>
-<p>13.749 TiB 上传</p>
-<p>3.934 TiB 下载 2 年 10 月前	</p>
-<p>PT@KEEPFRDS	Elite User	</p>
-<p>2.010 TiB 上传</p>
-<p>1.332 TiB 下载 4 年 4 月前	</p>
-<p>PTHome	(钢铁)Power User	</p>
-<p>362.89 GiB 上传</p>
-<p>281.59 GiB 下载 3 年 1 月前	</p>
-<p>烧包	贵人(Elite User)	</p>
-<p>3.337 TiB 上传</p>
-<p>299.58 GiB 下载 4 年 4 月前</p>
-]]></content:encoded>
-<pubDate>2024-10-05T15:30:22Z</pubDate>
 </item>
 </channel>
 </rss>
