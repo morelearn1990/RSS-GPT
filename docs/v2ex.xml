@@ -5,14 +5,248 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[iCloud] 细思极恐， icloud 让我找到了 10 年前用过的 app</title>
+<link>https://www.v2ex.com/t/1079402</link>
+<guid>https://www.v2ex.com/t/1079402</guid>
+<content:encoded><![CDATA[
+
+<h2>先说结论：icloud 同步属于黑盒，同步和保存什么内容全靠苹果设定</h2>
+<p>icloud 一直帮用户记得安装过的 app ，尽管卸载了，只要这个 app 支持“使用 icloud 的 app”，永远会有痕迹。</p>
+<p>背景：我的新手机从来没有恢复过旧手机的备份，都是设置为新手机。十年之间也换过 appleid ，所以跟 app store 的已购项目没关系。 </p>
+<p>在 iphone 上打开 filza 文件管理，找到/var/mobile/Library/Application Support/CloudDocs/session/db/server.db
+这是一个数据库，点开表 server_zones ，里面就是曾经下载过并且支持 icloud 同步的 app 。有些 app 已经删掉了 10 年以上了，比如神庙逃亡。</p>
+<p>在/var/mobile/Library/Application Support/CloudDocs/session/containers 里，有许多 app 包名的 plist 的文件（例如 iCloud.com.meituan.imeituan ），里面 BRContainerName 是 app 名称。</p>
+<p>在/var/mobile/Library/Application Support/CloudDocs/session/db/server.db
+打开表 devices ，里面是苹果 id 所有登陆过的设备的信息，设备名字会写在里面永久记录（尽管那个手机已经卖了）。</p>
+<p>表 server-items 里，记录了 icloud drive 的所有文件，包含文件信息，有些名称奇怪的文件，item-mode=3 ，不知道是不是用户删除过的文件。看到过有人说 icloud 上删掉的文件仍然可以秒传。</p>
+<p>同一个目录里，有另一个数据库 client.db ，里面有表 telemetry_events ，telemetry_failure-counts 。翻译过来是遥测的意思，不多做解释。</p>
+<p>我更换 id 的时候并没有重置手机，为了方便同步照片，把旧的 id 退掉就直接登录新的，导致旧 id 这些信息也被同步过去了。</p>
+<p>同时苹果也保留其他痕迹，以下内容和 icloud 无关，只在本地存储。可以称为 ios 司法取证指南：
+1./var/mobile/Library/Preferences/com.apple.mt.killed.plist 储存了被系统结束过的 app ，尽管卸载了，记录依然存在。</p>
+<p>2.设置-隐私-分析与改进-诊断数据 储存了崩溃过或者被杀后台的 app 记录。尽管卸载了，记录依然存在。</p>
+<p>3./var/preferences/com.apple.networkextension.uuidcache 如果是国行手机，会记录所有请求过联网的应用名。尽管卸载了，记录依然存在。</p>
+<p>有什么用？可以查查对象手机</p>
+]]></content:encoded>
+<pubDate>2024-10-11T18:15:34Z</pubDate>
+<pubDate>2024-10-11T18:12:34Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] 睡眠呼吸暂停通知真的能在国内用？</title>
+<link>https://www.v2ex.com/t/1079401</link>
+<guid>https://www.v2ex.com/t/1079401</guid>
+<content:encoded><![CDATA[
+
+国庆期间去了趟新加坡，打开了睡眠呼吸暂停通知。回国一周，发现“呼吸紊乱”数据只记录了在新加坡呆的几晚，回国后没有记录过。
+]]></content:encoded>
+<pubDate>2024-10-11T18:06:58Z</pubDate>
+<pubDate>2024-10-11T18:06:58Z</pubDate>
+</item>
+<item>
+<title>[分享发现] Wayback Machine 10 月 10 日开始关闭了</title>
+<link>https://www.v2ex.com/t/1079400</link>
+<guid>https://www.v2ex.com/t/1079400</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.forbes.com/sites/daveywinder/2024/10/10/internet-hacked-wayback-machine-down-31-million-passwords-stolen/" rel="nofollow noopener" target="_blank">https://www.forbes.com/sites/daveywinder/2024/10/10/internet-hacked-wayback-machine-down-31-million-passwords-stolen/</a><br /><br />想找一个 404 的网页，结果备份 404 的网站也没了，想查 Google 快照，结果 Google 快照也彻底关闭了。还有个 <a href="http://Archive.is" rel="nofollow noopener" target="_blank">Archive.is</a> 还活着，数据的数量级和前两者完全没法比
+]]></content:encoded>
+<pubDate>2024-10-11T17:32:57Z</pubDate>
+<pubDate>2024-10-11T17:29:57Z</pubDate>
+</item>
+<item>
+<title>[Kotlin] kotlin 没有受检异常真太难顶了。吐槽</title>
+<link>https://www.v2ex.com/t/1079399</link>
+<guid>https://www.v2ex.com/t/1079399</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>比如我要统一处理登陆失败和网络错误。 </li>
+</ol>
+<p>如果是在 java 里面直接在方法里面抛出 2 个异常即可。 但是在 kotlin 里面必须</p>
+<pre><code>	val runResult = runCatching{
+       HttpResponse(it.isSuccessful,it.code,it.message)
+    }
+    if(runResult.isFailure){
+       when(moveFileAgain.exceptionOrNull()){
+        // 单独处理异常
+          
+       }
+    
+    }
+    // 还有写一些(这里请求成功了)
+    if(result.code == 404){
+       return runResult.getOrDefault()
+    }
+      if(result.code == 401){
+        // 认证失败了
+       return runResult.getOrDefault()
+    }
+   
+
+</code></pre>
+<p>如果是在 java 里面就再简单不过了，直接定义两个异常，全局处理.  受检查异常是真的爽。 特别是在嵌套请求，1 个 api 要请求好几次的情况。</p>
+<p>这么说吧。 这里面的很多常见使用 java 来写代码可能要简单的多。 哪有这么多的破事。</p>
+<p>大佬们有什么办法处理这种事情， 我的要求就是登陆 401 或者有异常直接返回就是了。kotlin 实在是太繁琐了。</p>
+]]></content:encoded>
+<pubDate>2024-10-11T17:28:19Z</pubDate>
+<pubDate>2024-10-11T18:14:55Z</pubDate>
+</item>
+<item>
+<title>[macOS] 江湖救急兄弟们，升级 MacOS15 后连接不上网络了</title>
+<link>https://www.v2ex.com/t/1079396</link>
+<guid>https://www.v2ex.com/t/1079396</guid>
+<content:encoded><![CDATA[
+
+<p>Wi-Fi 能连上，但是没法做任何的连接</p>
+]]></content:encoded>
+<pubDate>2024-10-11T16:43:35Z</pubDate>
+<pubDate>2024-09-11T16:42:35Z</pubDate>
+</item>
+<item>
+<title>[随想] 尴尬症是怎么来的？</title>
+<link>https://www.v2ex.com/t/1079395</link>
+<guid>https://www.v2ex.com/t/1079395</guid>
+<content:encoded><![CDATA[
+
+我有时候看到一些电影、电视剧画面，会感觉很不舒服，就是一些评论说的“尬”的感觉。很好奇我为什么会有这种感觉……
+]]></content:encoded>
+<pubDate>2024-10-11T16:43:02Z</pubDate>
+<pubDate>2024-10-11T17:58:55Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 纯后端，借助 Cursor 搓了一个练手网站（Vue+ Python ），大家看看怎么样</title>
+<link>https://www.v2ex.com/t/1079394</link>
+<guid>https://www.v2ex.com/t/1079394</guid>
+<content:encoded><![CDATA[
+
+纯后端，对前端的了解仅为知道一些名词和概念。最近借助 Cursor 写了一个网站，技术栈是 vue+fastapi （ Python ），被震惊到了。<br /><br />前端项目截图： <a href="https://i.imgur.com/QyWqiLr.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/QyWqiLr.png" /></a><br /><br />后端项目截图： <a href="https://i.imgur.com/1qwrbkp.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/1qwrbkp.png" /></a><br /><br />前端一行代码都没有写，整个项目所有文件都是通过和 Cursor 聊天生成的；后端改过个位数行数的代码，其它也都是通过对话生成。<br /><br />网站地址： <a href="https://word2card.com" rel="nofollow noopener" target="_blank">https://word2card.com</a> ，下面是网站的效果图：<br /><br /><a href="https://i.imgur.com/TQYeh2a.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/TQYeh2a.png" /></a><br /><br /><a href="https://i.imgur.com/0Hz6isT.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/0Hz6isT.png" /></a><br /><br />网站功能比较简单，就是实现了输入了一个单词或者短语，展示一张卡片的功能。参考的是网上流行 prompt ，用的是 claude3.5 的接口。<br /><br />作为一个纯后端，第一次上线了一个具备一些功能的网站，十分兴奋！各位前端大佬和全栈大佬估计难以体会我这种前端小白的兴奋🤦‍♀️<br /><br />兴奋之余，也对 AI 的发展感到十分震惊。年初的时候我还只认为类似 Cursor 这种的代码辅助工具只是个玩具，现在已经完完全全变成了生产力工具了。<br /><br />不知道未来基于 AI 的代码辅助开发工具能进化到什么程度，另外也对自己未来的产生了一些疑问，有了这些编程辅助工具，普通程序员存在的意义还有多少呢？<br /><br />最后，虽然上面的这个网站只是个练手的项目，也欢迎大家提提意见，有好的建议我也加上去，毕竟现在我也是“全栈”工程师了😄
+]]></content:encoded>
+<pubDate>2024-10-11T16:39:27Z</pubDate>
+<pubDate>2024-10-11T17:25:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求大家推荐🐔场</title>
+<link>https://www.v2ex.com/t/1079392</link>
+<guid>https://www.v2ex.com/t/1079392</guid>
+<content:encoded><![CDATA[
+
+<p>自己之前用的，觉得有点拉，问了别人，大家一致认为很拉，所以想问一下大家有无推荐的，中度使用吧，有三个人一起用，设备乘以 2 吧，流量 200 以内，足够了，价格 50/月以内吧。
+这个需求，请问大家有推荐吗</p>
+]]></content:encoded>
+<pubDate>2024-10-11T16:32:34Z</pubDate>
+<pubDate>2024-09-04T04:48:21Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 远程岗位(remote) - 品牌实习生 ✖️ 3</title>
+<link>https://www.v2ex.com/t/1079391</link>
+<guid>https://www.v2ex.com/t/1079391</guid>
+<content:encoded><![CDATA[
+
+远程岗位(remote) - 品牌实习生 ✖️ 3<br /><br />招聘人数:<br />3<br /><br />你将获得：<br />工业界的实际经验(US 本土产品，主要团队为美国本土团队)<br /><br />工作内容：<br />主要做美国 AI 产品的品牌设计<br /><br />要求：<br />要求懂英文，懂得视频/直播/引流<br /><br />请给我投简历<br />本岗位为远程工作(remote)<br />简历请发:info@marv.ee<br /><br />加微信 WX(base64)请注明品牌实习生:<br />am9obmluY2VwdGlvbg==
+]]></content:encoded>
+<pubDate>2024-10-11T16:32:17Z</pubDate>
+<pubDate>2024-10-11T16:31:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有个海外 h5 站，目前有些流量。想加点广告增加点收入，求推荐</title>
+<link>https://www.v2ex.com/t/1079390</link>
+<guid>https://www.v2ex.com/t/1079390</guid>
+<content:encoded><![CDATA[
+
+<p>如题，目前只面向海外用户，海外有视频激励类似的广告吗？</p>
+]]></content:encoded>
+<pubDate>2024-10-11T16:31:13Z</pubDate>
+<pubDate>2024-10-11T17:10:10Z</pubDate>
+</item>
+<item>
+<title>[随想] 国内其他视频平台（除了 B 站）的会员用户码率怎么样？</title>
+<link>https://www.v2ex.com/t/1079389</link>
+<guid>https://www.v2ex.com/t/1079389</guid>
+<content:encoded><![CDATA[
+
+我看视频就 B 站（非会员），Youtube 和 Netflix ，再其他就 PT 站下载了。<br />爱优腾的会员最高清晰度选项码率怎么样？抖音快手呢？
+]]></content:encoded>
+<pubDate>2024-10-11T16:27:53Z</pubDate>
+<pubDate>2024-10-11T18:15:09Z</pubDate>
+</item>
+<item>
+<title>被垃圾网页激怒，做了个搜索工具 Luxirty Search : 无内容农场、无广告、干净、简洁、快、为程序员优化，开源、可自建，比 Google 好</title>
+<link>https://www.v2ex.com/t/1078147</link>
+<guid>https://www.v2ex.com/t/1078147</guid>
+<content:encoded><![CDATA[
+
+<h1>Luxirty Search</h1>
+<p>立即体验-&gt; <a href="https://search.luxirty.com" rel="nofollow">search.luxirty.com</a></p>
+<p>一个搜索引擎，基于 Google ，屏蔽内容农场，无广告，干净，简洁，快。</p>
+<p>如果想添加到浏览器中，搜索语法是 <code><a href="http://search.luxirty.com/search?q=" rel="nofollow">search.luxirty.com/search?q=</a></code></p>
+<p>开源地址： <a href="https://github.com/KoriIku/luxirty-search" rel="nofollow">https://github.com/KoriIku/luxirty-search</a></p>
+<h2>特性&amp;功能</h2>
+<ol>
+<li>
+<p>内置内容农场屏蔽，目前包括了 csbn 、华 x 云、百 xxx 智能、腾 x 云开发者等，还有一些 StackOverflow 翻译站。（欢迎提新的黑名单）</p>
+</li>
+<li>
+<p>点击 <code>For Program</code>，一键提高 GitHub 、Stackoverflow 、v2ex 、cnblog 的权重，免去反复手打 site:<a href="http://github.com" rel="nofollow">github.com</a> 的麻烦。（同样欢迎补充新域名，只需要发在回复里就好）</p>
+</li>
+<li>
+<p>一键搜索 V2EX 、Raddit 。</p>
+</li>
+</ol>
+<h2>真比 Google 好吗？</h2>
+<ol>
+<li>
+<p>当然！因为<strong>本质上就是基于 google cse</strong> 所以搜索质量跟 google 一样好，再加上屏蔽了几个大垃圾，所以总体来说比 Google 好（逃</p>
+</li>
+<li>
+<p>虽然用了 google ，但我直接把 Google 加载广告的 js 拦截了，所以应该也没广告。（</p>
+</li>
+</ol>
+<h2>与 uBlackList, Hit by Hidden 这类工具有什么区别？</h2>
+<p>这些工具在前端屏蔽搜索结果，也就是等到内容农场已经出现在搜索结果中，再将其删除或隐藏。</p>
+<p>而 Luxirty Search 通过配置 Annotations 让 Google 直接屏蔽垃圾网站，服务器在执行搜索时就已经将网站排除，可以理解为内置多条 '-site:<a href="http://domain.com" rel="nofollow">domain.com</a>' 。详细的可以看文档 <a href="https://developers.google.com/custom-search/docs/annotations" rel="nofollow">https://developers.google.com/custom-search/docs/annotations</a></p>
+<h2>你这输入框等那么久才出来怎么好意思说快的</h2>
+<p>这是 Google CSE 的限制，我也没办法，用 <code><a href="http://search.luxirty.com/search?q=" rel="nofollow">search.luxirty.com/search?q=</a></code> 体感上会稍微顺畅点。</p>
+<p>不过出搜索结果是很快的。这里说的快还有一层意思是那几个优化标签用起来很方便，省掉了手动打 site:语法的过程。</p>
+<h2>基于 Google 说什么可自建？</h2>
+<p>（好吧是有点标题党，我谢罪，</p>
+<p>但如果说这个项目本身，实际试一下原始 cse 页面就知道确实有必要自建这么个项目了。</p>
+<h2>这地址会长期维护吗？</h2>
+<p>纯静态页面，没啥成本，应该能长期用，不放心的话自建一个吧，两分钟就能搞定。</p>
+<p>关于具体的部署方式，因为可能会经常变化，请查看项目 readme 。</p>
+<h2>存在的问题</h2>
+<p>无法根据时间片过滤，比如搜索一年以内的，cse 本身不支持。</p>
+<p>不会根据语言和地区排序（好像某些情况下是个优点。）</p>
+<h2>其它</h2>
+<p>更多信息会写在博客 <a href="http://luxirty.com/posts/luxirty-search" rel="nofollow">luxirty.com/posts/luxirty-search</a></p>
+]]></content:encoded>
+<pubDate>2024-10-08T01:29:48Z</pubDate>
+<pubDate>2024-10-10T09:06:57Z</pubDate>
+</item>
+<item>
+<title>因为每天都会读 Hacker News 和 AI 论文，我做了一个工具</title>
+<link>https://www.v2ex.com/t/1078143</link>
+<guid>https://www.v2ex.com/t/1078143</guid>
+<content:encoded><![CDATA[
+
+<p>我每天都会看<a href="https://news.ycombinator.com/" rel="nofollow">Hacker News</a> 和 HuggingFace 的<a href="https://huggingface.co/papers" rel="nofollow">Daily Paper</a>，但它们都是英文的，每次我想挑选感兴趣的帖子来读就很麻烦，使用翻译插件的问题在于，它们只能翻译标题，而不知道每个链接点进去大意是什么，所以我做了这个: <a href="https://zeli.app/zh" rel="nofollow">Zeli</a></p>
+<p>它会在你打开浏览器的那一刻，<strong>实时解析每个帖子的原文、重写标题、引用一句原文，并生成摘要</strong>，然后翻译成你的浏览器语言(是的，不仅支持中文)，方便你快速挑选感兴趣的文章深入阅读。</p>
+<p>我对 AI 总结类的工具都比较抵触，但我认为 Zeli 并不试图总结文章，而是“帮助你快速判断这篇文章你会不会想深入阅读“。</p>
+<p>模型用的是硅基流动免费 Qwen2.5 7B 模型，但它每分钟 Token 额度只有 5 万，所以可能偶尔会翻译失败，等 1 分钟之后就好，试试看！也许它能帮你更无痛地阅读科技新闻。</p>
+<h2>预览</h2>
+<p><img alt="Zeli - 用中文读 Hacker News 和最新 AI 论文" class="embedded_image" rel="noreferrer" src="https://github.com/mazzzystar/tinymind-blog/blob/main/assets/images/2024-10-08/1728350142575.jpg?raw=true" /></p>
+<h2>网址</h2>
+<p><a href="https://zeli.app/zh" rel="nofollow">Zeli - 用中文读 Hacker News 和最新 AI 论文</a></p>
+]]></content:encoded>
+<pubDate>2024-10-08T01:20:42Z</pubDate>
+<pubDate>2024-10-10T08:26:31Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 求推荐半入耳主动降噪耳机</title>
 <link>https://www.v2ex.com/t/1079388</link>
 <guid>https://www.v2ex.com/t/1079388</guid>
 <content:encoded><![CDATA[
-
 <p>暂不考虑 AirPods 4 ，现在已经有 AirPods Pro ，音质拉垮并且佩戴体验不好</p>
 ]]></content:encoded>
-<pubDate>2024-10-11T16:10:17Z</pubDate>
 <pubDate>2024-10-11T16:10:17Z</pubDate>
 </item>
 <item>
@@ -20,10 +254,8 @@
 <link>https://www.v2ex.com/t/1079387</link>
 <guid>https://www.v2ex.com/t/1079387</guid>
 <content:encoded><![CDATA[
-
 公测版本出来了，有人测过么？<br /><br />比如翻墙，谷歌什么的还可以么？还有微信的体验。<br /><br />以及系统本身还有安卓痕迹么？
 ]]></content:encoded>
-<pubDate>2024-10-11T15:54:32Z</pubDate>
 <pubDate>2024-10-11T16:25:08Z</pubDate>
 </item>
 <item>
@@ -31,7 +263,6 @@
 <link>https://www.v2ex.com/t/1079386</link>
 <guid>https://www.v2ex.com/t/1079386</guid>
 <content:encoded><![CDATA[
-
 <p>今天闲着没事，就清理“自己个人项目代码”，在 Github 上把一些“同类项目”归类到新建的“组织”里。</p>
 <p>我创建了一个 organization ，然后从我个人主账号项目 fork 到 organization 里。</p>
 <p>项目是私有项目，fork 之后，我直接在个人主账号了删除了项目。</p>
@@ -39,7 +270,6 @@
 <p>我印象里 fork 后，原项目删除也不影响 fork 后的。。。谁知道在 organization 里会被删除啊。。。</p>
 <p>好在项目不是那么重要，以后还是得留备份啊。。。</p>
 ]]></content:encoded>
-<pubDate>2024-10-11T15:51:09Z</pubDate>
 <pubDate>2024-10-11T11:51:09Z</pubDate>
 </item>
 <item>
@@ -47,7 +277,6 @@
 <link>https://www.v2ex.com/t/1079385</link>
 <guid>https://www.v2ex.com/t/1079385</guid>
 <content:encoded><![CDATA[
-
 <p>详细介绍： <a href="https://docs.qq.com/slide/DYnROQW9STGdiVGxz" rel="nofollow">https://docs.qq.com/slide/DYnROQW9STGdiVGxz</a>
 联系人：夹克酥 Alter 联系方式：wx 同电话：17813023302</p>
 <p>我们在帮谁解决什么问题？</p>
@@ -87,14 +316,12 @@
 <p>贾攀（高级后端工程师） 后端开发，现就职于 360 ，丰富的 Java 、Python 研发经验</p>
 ]]></content:encoded>
 <pubDate>2024-10-11T15:48:03Z</pubDate>
-<pubDate>2024-10-11T15:48:03Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 分享最新开发的基于 Flux 1.1 Pro 的 Flux Pro 生图工具</title>
 <link>https://www.v2ex.com/t/1079381</link>
 <guid>https://www.v2ex.com/t/1079381</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，我是 Leo ，最近 Flux AI 生图模型的出现，真的很令人振奋。怀着对 AI 生图技术充满热情，经过半个月的熬夜和不懈努力，我终于完成了这款基于 <strong>Flux 1.1 Pro</strong> 的 <strong>Flux Pro 生图工具</strong>。</p>
 <h2>Flux Pro 的开发背景</h2>
 <p>在开发 <strong>Flux Pro</strong> 的过程中，我发现现有的图像生成工具虽然功能强大，但用户体验上还有很大的提升空间。于是，我决定结合 <strong>Flux 1.1 AI</strong> 的所有模型，并引入 AI 视频技术，优化用户体验，让图像生成过程变得更加直观和高效。经过无数个夜晚的调试与改进，我不断完善 <strong>Flux Pro</strong> 的每一个细节，力求为用户提供最佳的使用体验。</p>
@@ -126,7 +353,6 @@
 <h2>结尾：欢迎体验 Flux Pro</h2>
 <p>作为一名自由开发者，我希望 <strong>Flux Pro 生图工具</strong> 能够帮助更多人实现他们的创意愿景。经过半个月的努力与坚持，我对这款产品充满信心。欢迎大家访问 <a href="https://fluxproweb.com/" rel="nofollow">Flux Pro 官网</a> 体验这款我倾注心血的工具！</p>
 ]]></content:encoded>
-<pubDate>2024-10-11T15:30:27Z</pubDate>
 <pubDate>2024-10-11T11:27:27Z</pubDate>
 </item>
 <item>
@@ -134,7 +360,6 @@
 <link>https://www.v2ex.com/t/1079379</link>
 <guid>https://www.v2ex.com/t/1079379</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>A 、B 在甲地网络，C 在乙地网络，D 在丙地网络</li>
 <li>B 只允许 A 访问</li>
@@ -143,7 +368,6 @@
 </ol>
 <p>现在 C 怎么访问 B （ C-&gt;A-&gt;B ）是最佳的<strong>安全方案</strong>？</p>
 ]]></content:encoded>
-<pubDate>2024-10-11T15:23:17Z</pubDate>
 <pubDate>2024-10-11T16:04:35Z</pubDate>
 </item>
 <item>
@@ -151,10 +375,8 @@
 <link>https://www.v2ex.com/t/1079376</link>
 <guid>https://www.v2ex.com/t/1079376</guid>
 <content:encoded><![CDATA[
-
 找到两个支持蓝牙耳机 mic 的，但不能用 DJI mic2：<br /><a href="https://play.google.com/store/apps/details?id=com.sufiantech.wirelessmicvideoaudiorecorder" rel="nofollow noopener" target="_blank">https://play.google.com/store/apps/details?id=com.sufiantech.wirelessmicvideoaudiorecorder</a><br /><a href="https://apkpure.net/tw/wireless-video-recorder/com.webmirchi.Wirelessvideorecorder" rel="nofollow noopener" target="_blank">https://apkpure.net/tw/wireless-video-recorder/com.webmirchi.Wirelessvideorecorder</a><br /><br />请教各位有支持 DJI mic2 的 app 推荐吗？
 ]]></content:encoded>
-<pubDate>2024-10-11T15:08:33Z</pubDate>
 <pubDate>2024-10-11T15:06:33Z</pubDate>
 </item>
 <item>
@@ -162,10 +384,8 @@
 <link>https://www.v2ex.com/t/1079375</link>
 <guid>https://www.v2ex.com/t/1079375</guid>
 <content:encoded><![CDATA[
-
 9 月中旬，我老婆刚生了个男宝，休了 15 天陪产假。10 月 6 日，公司宣布新规：末位淘汰，KPI 最后两名将被辞退。<br /><br />（ 10.7 ）我上班第二天，领导通知我修改 KPI 。休假前 8.27 才刚修改过，现在工作量又增加了 3.5 倍，奖金却没变。这个量根本完成不了，所以我没有签字确认，并向领导明确表达 KPI 不合理。但公司并不想辞退我，而是通过提高要求逼我自己走。很多前同事也是这样被迫离职，没有拿到赔偿。后面聊了一会说我态度不好，然后我考虑还是不要直接，我就说讲我可以尝试，但是结果能不能完成另一回事，但是新的 KPI 我没办法签。 <br /><br />（ 10.8 ）尝试后，我发现只能完成 2 倍任务，质量严重下降，我自己也不满意结果，领导也不满意。我再次强调，原任务已饱和，增加量不现实，沟通了 2 小时无果。<br /><br />（ 10.10 ）公司在管理群里直接通知 10 月正式实施新 KPI ，过渡期两个月，工作量依次增加到 2 倍、2.5 倍、3.5 倍。我公开表态不接受。<br /><br />（ 10.11 ）下班后再度沟通 3 小时 9 点才下班，改为 2.5 倍工作量，质量要求不降，要求加薪被拒，会议还故意放大部门小问题，最后我主动结束会议。<br /><br />（中间沟通有上级、老板、HR ，我部门同时共 5 个人参加，新 KPI 针对我们部门仅 2 人。）
 ]]></content:encoded>
-<pubDate>2024-10-11T15:06:06Z</pubDate>
 <pubDate>2024-10-11T16:27:17Z</pubDate>
 </item>
 <item>
@@ -173,7 +393,6 @@
 <link>https://www.v2ex.com/t/1079372</link>
 <guid>https://www.v2ex.com/t/1079372</guid>
 <content:encoded><![CDATA[
-
 <p>项目代码： <a href="https://github.com/AndersonBY/aliyun-oss-x" rel="nofollow">https://github.com/AndersonBY/aliyun-oss-x</a></p>
 <p>起因是我的一些服务跑在阿里云的函数计算上，最近感觉冷启动实在是太慢了，查了一下发现阿里云官方的 oss2 模块的导入实在是相当耗时，我用最低配的函数计算服务冷启动大概需要花 5 秒才能导入完 oss2 。而我大部分的函数计算实际上只需要简单的文件上传和下载，所以打算自己改写一下官方的 oss2 模块，于是就有了这个 aliyun-oss-x 模块。</p>
 <p>我大概花了一天多的时间把 oss2 项目简单重构了一下，底层从 requests 改成了 httpx ，所以可以支持异步方法的使用了，而且我花了不少时间把尽量能懒加载的模块都延迟加载了，以及把类型标注给补上了一些。</p>
@@ -189,18 +408,15 @@
 <p>欢迎有兴趣的朋友可以试试看，有问题的话随时提 issue 。</p>
 ]]></content:encoded>
 <pubDate>2024-10-11T14:44:13Z</pubDate>
-<pubDate>2024-10-11T14:44:13Z</pubDate>
 </item>
 <item>
 <title>[程序员] Java 模块化通信</title>
 <link>https://www.v2ex.com/t/1079371</link>
 <guid>https://www.v2ex.com/t/1079371</guid>
 <content:encoded><![CDATA[
-
 <p>有没有 java 项目，可以控制服务中模块通信的方式，通过配置去切换使用 springbean 注入的方式调用，还是使用 http 调用，或者是 dubbo 调用；</p>
 <p>简单来说就是两个模块，放在一个 war 包的时候，可以通过注入的方式相互调用；把两个模块拆成两个 war 包的时候，就使用 http 调用或者 dubbo 调用</p>
 ]]></content:encoded>
-<pubDate>2024-10-11T14:42:53Z</pubDate>
 <pubDate>2024-10-11T15:37:08Z</pubDate>
 </item>
 <item>
@@ -208,7 +424,6 @@
 <link>https://www.v2ex.com/t/1079370</link>
 <guid>https://www.v2ex.com/t/1079370</guid>
 <content:encoded><![CDATA[
-
 <h1>Nerd</h1>
 <p>因为原本的公司业务调整, 我们项目组没了. 本人刻苦钻研, 爱好 ts 社区和开发工作, 求捞啊.</p>
 <ul>
@@ -277,7 +492,6 @@
 </li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-10-11T14:40:30Z</pubDate>
 <pubDate>2024-10-11T16:08:05Z</pubDate>
 </item>
 <item>
@@ -285,16 +499,13 @@
 <link>https://www.v2ex.com/t/1079369</link>
 <guid>https://www.v2ex.com/t/1079369</guid>
 <content:encoded><![CDATA[
-
 <p>前段时间在手机上从 Firefox Beta 换到 Waterfox 尝鲜（上架了 Play 商店），用的时候发现以前就不能用的 WebAuthn 和密码填充还是用不了，遂提 issue 反馈，但一星期后仍没有官方回复。
 翻了一下项目才发现 Android 版囤了近 50 个 issues 没有处理，本家 PC 版也是 500 多条一个没关，有些 bug 和安全更新是随着上游更新修复这没问题，而有些独有的老问题则是不看不回也不修，这算是什么现象？忘记开私有仓库了？</p>
 <p>项目 issues 链接： <a href="https://github.com/BrowserWorks/Waterfox/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen" rel="nofollow">https://github.com/BrowserWorks/Waterfox/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen</a>
 <a href="https://github.com/BrowserWorks/Waterfox-Android/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen" rel="nofollow">https://github.com/BrowserWorks/Waterfox-Android/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen</a></p>
 ]]></content:encoded>
 <pubDate>2024-10-11T14:23:28Z</pubDate>
-<pubDate>2024-10-11T14:23:28Z</pubDate>
 </item>
-
 <item>
 <title>[MacBook Air] 请问 mac air m3 能长时间使用么</title>
 <link>https://www.v2ex.com/t/1079367</link>
@@ -15610,180 +15821,6 @@ replited （ <a href="https://github.com/lichuang/replited" rel="nofollow noopen
 </ul>
 ]]></content:encoded>
 <pubDate>2024-10-08T01:39:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 假期后遗症</title>
-<link>https://www.v2ex.com/t/1078152</link>
-<guid>https://www.v2ex.com/t/1078152</guid>
-<content:encoded><![CDATA[
-<p>大家 7 天假期后，有什么后遗症吗？</p>
-<p>本人假期去草原玩，防晒没做好，被晒伤了，呜呜呜</p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:42:11Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] Watch 潮汐 APP 无法添加新地点</title>
-<link>https://www.v2ex.com/t/1078151</link>
-<guid>https://www.v2ex.com/t/1078151</guid>
-<content:encoded><![CDATA[
-<p>潮汐 APP 无法添加新地点</p>
-<p>表盘添加潮汐,可以显示实时位置的,潮汐数据.</p>
-<p>APP 里却无法添加新的位置,1.卡搜索 2.搜索报错误 3.有时会显示地图界面,下面显示"错误".</p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:39:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 安卓 Gmail 客户端，怎样设置成英文？</title>
-<link>https://www.v2ex.com/t/1078150</link>
-<guid>https://www.v2ex.com/t/1078150</guid>
-<content:encoded><![CDATA[
-安卓 14 貌似系统设置成英文的话，Gmail 自动转变为英文，但是这样全局所有 app 都成了英文了啊，很不方便，怎样单独对 Gmail 设置成英文？
-]]></content:encoded>
-<pubDate>2024-10-07T19:37:26Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 国庆假期搓了一个「概念股搜索器」</title>
-<link>https://www.v2ex.com/t/1078149</link>
-<guid>https://www.v2ex.com/t/1078149</guid>
-<content:encoded><![CDATA[
-<p>国庆假期没事搓了一个「<a href="https://stock.greatdk.com" rel="nofollow">概念股搜索器</a>」，可以实现通过任意查询关键词甚至句子描述来搜索 A 股所有的上市公司</p>
-<p>原理其实很简单，就是把五千多家上市公司的公司介绍，产品介绍，以及部分公告全部 embedding 后存入向量数据库，然后用余弦相似度来获得相关性最高的数据，进行展示</p>
-<p>我不确定对买股票有没有帮助，因为我买股票的朋友好像也不看这个，但我国庆前因为气氛过于热烈，也想看看一些在某个行业的上市公司时，发现很难通过「行业」或者「产业」这些概念来找到相关的上市公司，所以有了做个这个小工具的想法</p>
-<p>至少娱乐性应该是有的，通过一些脑洞大开的搜索词来发现一些相关的上市公司，也挺有意思的</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/w9JYdrCP.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/AZdvjNoz.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/3i7yAhvM.png" /></p>
-<p>地址： <a href="https://stock.greatdk.com" rel="nofollow">https://stock.greatdk.com</a></p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:50:35Z</pubDate>
-</item>
-<item>
-<title>[分享发现] EzyGraph： AI 一键转换博客文章成视觉吸引力强的信息图表</title>
-<link>https://www.v2ex.com/t/1078148</link>
-<guid>https://www.v2ex.com/t/1078148</guid>
-<content:encoded><![CDATA[
-<p>前后花了三个月，从 0 到 1 开发了这个网站，功能很简单，使用 AI 将文章转换成图表，可以发到 twitter 和小红书上为文章引流，欢迎大家体验：<a href="http://www.ezygraph.com" rel="nofollow">www.ezygraph.com</a></p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:30:17Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 被垃圾网页激怒，做了个搜索工具 Luxirty Search : 无内容农场、无广告、干净、简洁、快、为程序员优化，开源、可自建，比 Google 好</title>
-<link>https://www.v2ex.com/t/1078147</link>
-<guid>https://www.v2ex.com/t/1078147</guid>
-<content:encoded><![CDATA[
-<h1>Luxirty Search</h1>
-<p>立即体验-&gt; <a href="https://search.luxirty.com" rel="nofollow">search.luxirty.com</a></p>
-<p>一个搜索引擎，基于 Google ，屏蔽内容农场，无广告，干净，简洁，快。</p>
-<p>如果想添加到浏览器中，搜索语法是 <code><a href="http://search.luxirty.com/search?q=" rel="nofollow">search.luxirty.com/search?q=</a></code></p>
-<p>开源地址： <a href="https://github.com/KoriIku/luxirty-search" rel="nofollow">https://github.com/KoriIku/luxirty-search</a></p>
-<h2>特性&amp;功能</h2>
-<ol>
-<li>
-<p>内置内容农场屏蔽，目前包括了 csbn 、华 x 云、百 xxx 智能、腾 x 云开发者等，还有一些 StackOverflow 翻译站。（欢迎提新的黑名单）</p>
-</li>
-<li>
-<p>点击 <code>For Program</code>，一键提高 GitHub 、Stackoverflow 、v2ex 、cnblog 的权重，免去反复手打 site:<a href="http://github.com" rel="nofollow">github.com</a> 的麻烦。（同样欢迎补充新域名，只需要发在回复里就好）</p>
-</li>
-<li>
-<p>一键搜索 V2EX 、Raddit 。</p>
-</li>
-</ol>
-<h2>真比 Google 好吗？</h2>
-<ol>
-<li>
-<p>当然！因为<strong>本质上就是基于 google cse</strong> 所以搜索质量跟 google 一样好，再加上屏蔽了几个大垃圾，所以总体来说比 Google 好（逃</p>
-</li>
-<li>
-<p>虽然用了 google ，但我直接把 Google 加载广告的 js 拦截了，所以应该也没广告。（</p>
-</li>
-</ol>
-<h2>与 uBlackList, Hit by Hidden 这类工具有什么区别？</h2>
-<p>这些工具在前端屏蔽搜索结果，也就是等到内容农场已经出现在搜索结果中，再将其删除或隐藏。</p>
-<p>而 Luxirty Search 通过配置 Annotations 让 Google 直接屏蔽垃圾网站，服务器在执行搜索时就已经将网站排除，可以理解为内置多条 '-site:<a href="http://domain.com" rel="nofollow">domain.com</a>' 。详细的可以看文档 <a href="https://developers.google.com/custom-search/docs/annotations" rel="nofollow">https://developers.google.com/custom-search/docs/annotations</a></p>
-<h2>你这输入框等那么久才出来怎么好意思说快的</h2>
-<p>这是 Google CSE 的限制，我也没办法，用 <code><a href="http://search.luxirty.com/search?q=" rel="nofollow">search.luxirty.com/search?q=</a></code> 体感上会稍微顺畅点。</p>
-<p>不过出搜索结果是很快的。这里说的快还有一层意思是那几个优化标签用起来很方便，省掉了手动打 site:语法的过程。</p>
-<h2>基于 Google 说什么可自建？</h2>
-<p>（好吧是有点标题党，我谢罪，</p>
-<p>但如果说这个项目本身，实际试一下原始 cse 页面就知道确实有必要自建这么个项目了。</p>
-<h2>这地址会长期维护吗？</h2>
-<p>纯静态页面，没啥成本，应该能长期用，不放心的话自建一个吧，两分钟就能搞定。</p>
-<p>关于具体的部署方式，因为可能会经常变化，请查看项目 readme 。</p>
-<h2>存在的问题</h2>
-<p>无法根据时间片过滤，比如搜索一年以内的，cse 本身不支持。</p>
-<p>不会根据语言和地区排序（好像某些情况下是个优点。）</p>
-<h2>其它</h2>
-<p>更多信息会写在博客 <a href="http://luxirty.com/posts/luxirty-search" rel="nofollow">luxirty.com/posts/luxirty-search</a></p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:45:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 长袖 T 恤求推荐</title>
-<link>https://www.v2ex.com/t/1078146</link>
-<guid>https://www.v2ex.com/t/1078146</guid>
-<content:encoded><![CDATA[
-<p>之前 88kg ，穿的是班尼路的 100 元 3 件的 t 恤，现在 78kg ，原来的穿着大了，不知道买啥样的了。</p>
-<p>需求：</p>
-<ul>
-<li>单件 50 左右</li>
-<li>穿着舒服</li>
-<li>别太花哨</li>
-<li>最好显瘦</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-10-08T01:41:40Z</pubDate>
-</item>
-<item>
-<title>[问与答] 4K 显示器 2 选 1 求助</title>
-<link>https://www.v2ex.com/t/1078145</link>
-<guid>https://www.v2ex.com/t/1078145</guid>
-<content:encoded><![CDATA[
-预算 3K ，LG27GP95U 和华硕 XG27UCG 怎么选？ LG 的好像有人说瞎眼有人说还行，华硕的好像评价都还行，不刚需华硕的双模 1080P320Hz 高刷，144Hz 以上就行，或者还有啥别的推荐的吗？
-]]></content:encoded>
-<pubDate>2024-10-08T01:24:21Z</pubDate>
-</item>
-<item>
-<title>[钓鱼] 我发现魔都家门口是地狱难度</title>
-<link>https://www.v2ex.com/t/1078144</link>
-<guid>https://www.v2ex.com/t/1078144</guid>
-<content:encoded><![CDATA[
-<p>回了老家，找个小池塘，台钓一小时 9 条，从未有过的高度，哈哈。魔都这边太难了，也得开发小点的水域里</p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:22:05Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 因为每天都会读 Hacker News 和 AI 论文，我做了一个工具</title>
-<link>https://www.v2ex.com/t/1078143</link>
-<guid>https://www.v2ex.com/t/1078143</guid>
-<content:encoded><![CDATA[
-<p>我每天都会看<a href="https://news.ycombinator.com/" rel="nofollow">Hacker News</a> 和 HuggingFace 的<a href="https://huggingface.co/papers" rel="nofollow">Daily Paper</a>，但它们都是英文的，每次我想挑选感兴趣的帖子来读就很麻烦，使用翻译插件的问题在于，它们只能翻译标题，而不知道每个链接点进去大意是什么，所以我做了这个: <a href="https://zeli.app/zh" rel="nofollow">Zeli</a></p>
-<p>它会在你打开浏览器的那一刻，<strong>实时解析每个帖子的原文、重写标题、引用一句原文，并生成摘要</strong>，然后翻译成你的浏览器语言(是的，不仅支持中文)，方便你快速挑选感兴趣的文章深入阅读。</p>
-<p>我对 AI 总结类的工具都比较抵触，但我认为 Zeli 并不试图总结文章，而是“帮助你快速判断这篇文章你会不会想深入阅读“。</p>
-<p>模型用的是硅基流动免费 Qwen2.5 7B 模型，但它每分钟 Token 额度只有 5 万，所以可能偶尔会翻译失败，等 1 分钟之后就好，试试看！也许它能帮你更无痛地阅读科技新闻。</p>
-<h2>预览</h2>
-<p><img alt="Zeli - 用中文读 Hacker News 和最新 AI 论文" class="embedded_image" rel="noreferrer" src="https://github.com/mazzzystar/tinymind-blog/blob/main/assets/images/2024-10-08/1728350142575.jpg?raw=true" /></p>
-<h2>网址</h2>
-<p><a href="https://zeli.app/zh" rel="nofollow">Zeli - 用中文读 Hacker News 和最新 AI 论文</a></p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:37:10Z</pubDate>
-</item>
-<item>
-<title>[投资] 今天大 A 还没开盘已经快要全部涨停了</title>
-<link>https://www.v2ex.com/t/1078142</link>
-<guid>https://www.v2ex.com/t/1078142</guid>
-<content:encoded><![CDATA[
-<p>还好我满仓创业板</p>
-]]></content:encoded>
-<pubDate>2024-10-08T01:45:19Z</pubDate>
-</item>
-<item>
-<title>[投资] 今天准备了多少子弹</title>
-<link>https://www.v2ex.com/t/1078141</link>
-<guid>https://www.v2ex.com/t/1078141</guid>
-<content:encoded><![CDATA[
-<p>再一次全民炒股，憋了一个假期了，今天应该见证不少新记录</p>
-]]></content:encoded>
-<pubDate>2024-09-28T01:12:44Z</pubDate>
 </item>
 </channel>
 </rss>
