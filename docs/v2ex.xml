@@ -5,17 +5,377 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[C++] C++ 新手想问下关于 Linux 下如何实现类似 Windows 的 Pause 功能的问题</title>
+<link>https://www.v2ex.com/t/1081614</link>
+<guid>https://www.v2ex.com/t/1081614</guid>
+<content:encoded><![CDATA[
+
+<p>最近几天看了一点黑马程序员的视频（没什么基础），试着跟着写了一下实现通讯录管理的代码（暂时只完成了一部分功能），想要在 Linux 系统下实现类似 Windows 里 <code>system("pause")</code> 的功能，比如在通讯录中写完一个联系人的信息或者显示一个联系人的信息的时候能够 Pause 一下。。代码如下</p>
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+#include &lt;string&gt;
+#include &lt;limits&gt; // 定义 pause 函数以及 getValidInput 函数中使用
+
+#define MAX 1000 // 通讯录最大人数
+
+void showMenu ();
+void pause ();
+
+int getValidInput ();
+
+// 联系人结构体
+struct Person {
+    string m_Name;
+    int m_Gender;
+    int m_Age;
+    long m_Phone;
+    string m_Address;
+};
+
+// 通讯录结构体
+struct Addressbooks {
+    struct Person personArray[MAX];
+    int m_Size; // 通讯录中人员个数
+};
+
+void addPerson (Addressbooks *abs);
+void showPerson (Addressbooks *abs);
+
+int main () {
+    struct Addressbooks abs;
+    abs.m_Size = 0;
+
+    while (true) {
+        showMenu(); // 菜单调用
+        // cin &gt;&gt; select;
+
+        // 检查输入是否有效
+        // if (cin.fail()) {
+        //     cin.clear(); // 清除错误状态
+        //     cin.ignore(numeric_limits&lt;streamsize&gt;::max(),'\n'); // 清空缓冲区
+        //     cout &lt;&lt; "请输入有效的数字！" &lt;&lt; endl;
+        //     continue; // 重新进入循环
+        // }
+        int select = getValidInput ();
+
+        switch (select) {
+            case 1: // 添加联系人
+                addPerson(&amp;abs); // 利用地址传递，可以修饰实参
+                break;
+            case 2:
+                showPerson(&amp;abs);
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+            case 5:
+                break;
+            case 6:
+                break;
+            case 0:
+                cout &lt;&lt; "欢迎下次使用" &lt;&lt; endl;
+                // pause();
+                return 0;
+                // break;
+            default:
+                cout &lt;&lt; "请输入数字 1-6 或 0" &lt;&lt; endl;
+                break;
+        }
+    }
+
+    return 0;
+}
+
+void showMenu () {
+    cout &lt;&lt; "1 、添加联系人" &lt;&lt; endl;
+    cout &lt;&lt; "2 、显示联系人" &lt;&lt; endl;
+    cout &lt;&lt; "3 、删除联系人" &lt;&lt; endl;
+    cout &lt;&lt; "4 、查找联系人" &lt;&lt; endl;
+    cout &lt;&lt; "5 、修改联系人" &lt;&lt; endl;
+    cout &lt;&lt; "6 、清空联系人" &lt;&lt; endl;
+    cout &lt;&lt; "0 、退出通讯录" &lt;&lt; endl;
+}
+
+// 实现类似 Windows 系统上的 system("pause") 功能
+void pause () {
+    cin.clear();
+    // if (cin.eof()) {
+        cin.ignore(numeric_limits&lt;streamsize&gt;::max(), '\n'); // 忽略输入流中的内容直到换行符，但因为输入内容已经被清空，这里程序会等待输入一个回车（换行符）
+    // }
+    cout &lt;&lt; "请按回车键继续" &lt;&lt; endl;
+    cin.get();
+}
+
+// 检测输入数据是否为整数，是则返回该输入
+int getValidInput () {
+    int input;
+    while (true) {
+        cin &gt;&gt; input;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits&lt;streamsize&gt;::max(), '\n');
+            cout &lt;&lt; "请输入有效的数字！" &lt;&lt; endl;
+        }
+        else {
+            if (cin.eof()) {
+                cin.ignore(numeric_limits&lt;streamsize&gt;::max(), '\n');
+            }
+            return input;
+        }
+    }
+}
+
+// 添加联系人
+void addPerson (Addressbooks *abs) {
+    // 判断通讯录是否已满
+    if (abs-&gt;m_Size == MAX) {
+        cout &lt;&lt; "通讯录已满，无法添加联系人！" &lt;&lt; endl;
+        return;
+    }
+    else {
+        string name;
+        cout &lt;&lt; "请输入联系人姓名：" &lt;&lt; endl;
+        cin &gt;&gt; name;
+        abs-&gt;personArray[abs-&gt;m_Size].m_Name = name;
+
+        cout &lt;&lt; "请输入联系人性别：" &lt;&lt; endl;
+        cout &lt;&lt; "输入数字 1 为男性" &lt;&lt; endl;
+        cout &lt;&lt; "输入数字 2 为女性" &lt;&lt; endl;
+
+        while (true) {
+            // cin &gt;&gt; gender;
+
+            // if (cin.fail()) {
+            //     cin.clear();
+            //     cin.ignore(numeric_limits&lt;streamsize&gt;::max(), '\n');
+            //     cout &lt;&lt; "请输入有效的数字！" &lt;&lt; endl;
+            //     continue;
+            // }
+
+            int gender = getValidInput ();
+
+            if (gender == 1 || gender == 2) {
+                abs-&gt;personArray[abs-&gt;m_Size].m_Gender = gender;
+                break;
+            }
+
+            cout &lt;&lt; "输入有误，请重新输入" &lt;&lt; endl;
+        }
+
+        cout &lt;&lt; "请输入联系人年龄：" &lt;&lt; endl;
+        int age = getValidInput ();
+        abs-&gt;personArray[abs-&gt;m_Size].m_Age = age;
+
+        cout &lt;&lt; "请输入联系人电话号码：" &lt;&lt; endl;
+        long phone;
+        cin &gt;&gt; phone;
+        abs-&gt;personArray[abs-&gt;m_Size].m_Phone = phone;
+
+        cout &lt;&lt; "请输入联系人家庭住址：" &lt;&lt; endl;
+        string address;
+        cin &gt;&gt; address;
+        abs-&gt;personArray[abs-&gt;m_Size].m_Address = address;
+
+        cout &lt;&lt; "已成功添加联系人 " &lt;&lt; abs-&gt;personArray[abs-&gt;m_Size].m_Name &lt;&lt; endl;
+        abs-&gt;m_Size++;
+
+        pause();
+        system("clear"); // 对于 Windows 系统，应该使用 system("cls")
+    }
+}
+
+void showPerson (Addressbooks *abs) {
+    if (abs-&gt;m_Size == 0) {
+        cout &lt;&lt; "当前记录为空" &lt;&lt; endl;
+    }
+    else {
+        for (int i=0;i&lt;abs-&gt;m_Size;i++) {
+            cout &lt;&lt; "姓名：" &lt;&lt; abs-&gt;personArray[i].m_Name &lt;&lt; endl;
+            cout &lt;&lt; "性别：" &lt;&lt; abs-&gt;personArray[i].m_Gender &lt;&lt; endl;
+            cout &lt;&lt; "年龄：" &lt;&lt; abs-&gt;personArray[i].m_Age &lt;&lt; endl;
+            cout &lt;&lt; "电话：" &lt;&lt; abs-&gt;personArray[i].m_Phone &lt;&lt; endl;
+            cout &lt;&lt; "地址：" &lt;&lt; abs-&gt;personArray[i].m_Address &lt;&lt; endl;
+        }
+    }
+    pause();
+    system("clear");
+}
+</code></pre>
+<p>然后我发现在我定义的函数 <code>getValidInput</code> 里面加入一个 <code>cin.eof()</code> 的判断就基本实现了我想要的效果，但其实我不太理解原因是什么，特别是如果我把 <code>getValidInput</code> 函数的这个判断给注释掉的话，那么在我输入 "2" 使用 "显示联系人" 这个功能时，需要再输入一个回车才会显示 "请按回车键继续" 的字符；而如果我仍然注释 <code>getValidInput</code> 中的这个判断，但取消 <code>pause</code> 函数定义中关于 <code>cin.eof()</code> 的注释（见上面的代码），那么在我输入 "1" 使用 "添加联系人" 的功能的时候，在我输入完联系人信息之后，<code>pause()</code> 似乎不会起作用，<code>system("clear")</code> 会直接清屏。。</p>
+]]></content:encoded>
+<pubDate>2024-10-18T12:17:48Z</pubDate>
+<pubDate>2024-10-18T12:16:48Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 爱快老是掉 v6 的 pd 前缀是啥情况?</title>
+<link>https://www.v2ex.com/t/1081611</link>
+<guid>https://www.v2ex.com/t/1081611</guid>
+<content:encoded><![CDATA[
+
+成都电信，爱快拨号获取 ipv6 前缀，两天基本固定掉一次，重新拨号才能好，好烦<br /><br />是我宽带的问题还是爱快的问题？最近上传都少了，PT 都基本没玩了<br /><br /><a href="https://i.imgur.com/P0XKPpo.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/P0XKPpo.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-10-18T11:59:57Z</pubDate>
+<pubDate>2024-10-18T12:24:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] po 于上班喝咖啡，求推荐胶囊咖啡机</title>
+<link>https://www.v2ex.com/t/1081610</link>
+<guid>https://www.v2ex.com/t/1081610</guid>
+<content:encoded><![CDATA[
+
+<p>如题，不想折腾，半自动磨豆子和清洗有点麻烦，目前考虑小米的胶囊咖啡机，不知道各位有没有更好的推荐</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:57:22Z</pubDate>
+<pubDate>2024-10-18T12:18:53Z</pubDate>
+</item>
+<item>
+<title>[程序员] 字节跳动有个实习生往商业化整个 gpu 集群里注入病毒，导致一个月的训练结果不可用</title>
+<link>https://www.v2ex.com/t/1081609</link>
+<guid>https://www.v2ex.com/t/1081609</guid>
+<content:encoded><![CDATA[
+
+<a href="https://i.imgur.com/EwVCArx.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/EwVCArx.jpeg" /></a><br /><br /><a href="https://i.imgur.com/XVVfdh8.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XVVfdh8.jpeg" /></a><br /><br /><a href="https://i.imgur.com/yGIz0O4.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/yGIz0O4.jpeg" /></a><br /><br />大家怎么看？
+]]></content:encoded>
+<pubDate>2024-10-18T11:53:45Z</pubDate>
+<pubDate>2024-10-10T11:53:45Z</pubDate>
+</item>
+<item>
+<title>[全球工单系统] 京东以旧换新活动的离谱规定</title>
+<link>https://www.v2ex.com/t/1081608</link>
+<guid>https://www.v2ex.com/t/1081608</guid>
+<content:encoded><![CDATA[
+
+<h1>京东自营店以旧换新不粘锅经历</h1>
+<h2>购买情况</h2>
+<p>在京东自营店购买了一口不粘锅，正好看到有个 <strong>以旧换新</strong> 补贴 10 元的活动。这个活动仅仅是补贴 10 元，旧锅是 <strong>无残值代处理</strong>。我家的旧不粘锅早已变成超粘锅了，于是就选了这个活动。</p>
+<h2>收到快递的意外</h2>
+<p>新锅送到时，快递员说因为 <strong>旧锅没有锅盖</strong>（我的旧锅本来就是 <strong>无盖款</strong>），所以要 <strong>收回新锅的锅盖</strong>。最后他们只把新锅留下， <strong>新锅的锅盖和包装盒</strong> 一并被拿走了。家里的老人反馈快递员态度很差，而且 <strong>没耐心</strong>。</p>
+<h2>联系客服的曲折</h2>
+<p>我随后联系了京东自营店的客服，但客服表示这是 <strong>京东官方的服务</strong>，让我去找官方客服。我尝试联系官方客服，但经过一番折腾，经过各种机器人回复后，终于接入了人工客服。人工客服表示会去联系落实。</p>
+<h2>快递站点的回应</h2>
+<p>没过多久，快递站点打电话给我，说明知道 <strong>新锅盖被收回</strong> 的事，强调 <strong>以旧换新活动</strong> 的确是这样的政策：缺什么就少给什么。我反复强调我的旧锅本来就 <strong>没有盖子</strong>，而 <strong>新锅是有盖款</strong>，但他们依然坚持这个做法。我表示不能接受，并指出京东客服从未提到这样的规定。</p>
+<h2>官方客服的电话</h2>
+<p>接着，又有一位 <strong>自称京东官方</strong> 的人员打来电话，大概意思和快递站点的解释一样。对此，我感到困惑。</p>
+<h2>问题讨论</h2>
+<p>大家觉得这件事离谱吗？还是说是我有哪里搞错了呢？</p>
+<p>PS：GPT 排版真好用</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:51:29Z</pubDate>
+<pubDate>2024-10-18T12:06:39Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 假如有这么个政策，是不是可以解决当下的问题</title>
+<link>https://www.v2ex.com/t/1081607</link>
+<guid>https://www.v2ex.com/t/1081607</guid>
+<content:encoded><![CDATA[
+
+<p>假如，从现在开始，国家每个月给全国人民的父母、爷爷奶奶外公外婆发钱。
+年龄在 25 岁以下的，父母共发 1000 元，爷爷奶奶外公外婆共发 1000 元。
+年龄在 25 岁以上的，父母不发，爷爷奶奶外公外婆共发 1000 元。</p>
+<p>父母共发 1000 元的意思是父亲、母亲各发 500 元。有一方过世的，则在世的拿 1000 元。父母双亡的，发给本人。
+爷爷奶奶外公外婆共发 1000 元的意思是四位隔代长辈各发 250 元。隔代长辈若有过世的，其余人平分 1000 元；四位老人全部过世的，不再发放隔代长辈的钱。</p>
+<p>这个方法既可以解决养老问题，又可以促进消费，还迫使大家争先恐后地造娃。虽然少生、晚生、不生表面上不罚款，但是因为每年变相给有娃人群定向放水 10 万亿左右，其实等于被收了生育不积极税。</p>
+<p>为了鼓励大家重视下一代培养质量，这里的 1000 元还可以改为差异化设置：高学历或者高纳税人群的长辈发 3000 ，普通人群的长辈发 1200 ；低学历且低纳税人群的长辈发 800 。</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:44:11Z</pubDate>
+<pubDate>2024-10-18T12:31:50Z</pubDate>
+</item>
+<item>
+<title>[程序员] 同样功能界面，是不是 H5 开发比 iOS 原生开发速度快</title>
+<link>https://www.v2ex.com/t/1081606</link>
+<guid>https://www.v2ex.com/t/1081606</guid>
+<content:encoded><![CDATA[
+
+<p>假设差不多能力经验的情况下。</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:27:38Z</pubDate>
+<pubDate>2024-10-18T11:42:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] ChatGPT 的 stt 是用的 whisper 吗？ 感觉比所有其他的语音输入都要强</title>
+<link>https://www.v2ex.com/t/1081605</link>
+<guid>https://www.v2ex.com/t/1081605</guid>
+<content:encoded><![CDATA[
+
+中英文混输比讯飞强，纯中文和讯飞差不多<br />说的是这个东西<br /><br /><a href="https://i.imgur.com/zLIvD7Q.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zLIvD7Q.png" /></a>
+]]></content:encoded>
+<pubDate>2024-10-18T11:10:37Z</pubDate>
+<pubDate>2024-10-18T11:43:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2024 有什么能用的网络电话，国内环境使用，不会奇怪的号码</title>
+<link>https://www.v2ex.com/t/1081604</link>
+<guid>https://www.v2ex.com/t/1081604</guid>
+<content:encoded><![CDATA[
+
+<p>好些年前见过这种东西，我知道个阿里通网络电话，然后我没需求也没用过。</p>
+<p>一个诉求是防拉黑，呃，我真不是用来干坏事的，就是正常电话。防拉黑的一个方法好像是打一次电话，这个网络电话给你换一个号。。。</p>
+<p>谢谢 V 友，谢谢了</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:02:14Z</pubDate>
+<pubDate>2024-10-17T18:59:14Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 记一次杭州银行面试，踩雷</title>
+<link>https://www.v2ex.com/t/1081603</link>
+<guid>https://www.v2ex.com/t/1081603</guid>
+<content:encoded><![CDATA[
+
+<p>最近在找工作，看到一份离家很近的杭州银行外包工作，经过外包的初试及杭州银行笔试之后，就进入到了杭州银行的视频面试流程之中， 万万没想到的是<strong>此次面试是我求职以来最令人不爽的一次面试，差点给我气吐血</strong>。只能说我还是面试少了，经历不多。</p>
+<p>面试安排在下午，总共 15 个人，我是第 15 位（背。。。）， 从一点多面试开始等待等到五点多好不容易轮到我了</p>
+<p>面试官 1 问了几个问题，最近的项目，项目中 webpack 用法， 这加起来不超过三个问题，不超过五分钟。
+问 async await 知道吗？知道。 那你知道 await 后面的代码语法有什么限制吗？ 没有限制 你确定？嗯，可以写任意表达式。（差点给我搞得不自信了，我也不知道面试官他自己是咋想这个问题的，也没有深入。。。）</p>
+<h3><strong>然后大雷来了</strong></h3>
+<p>vue 基础，vue 双向绑定知道吗，说下原理？
+主要是通过绑定值实现数据 data 层到视图层的更新，又通过监听事件实现视图到数据 data 的更新。
+还有呢？</p>
+<p>(当时我就在想，这还不够吗？)然后问题了下面试官 1 你需要我把更底层的原理（八股文）讲一下吗？他说可以。</p>
+<p>然后我就开始了 observer watcher xxx...
+没讲几句就被面试官打断：我问的是双向绑定不是响应式数据，你知道他们的区别吗？
+（我当时真的很不爽，出于礼貌我只好把之前说的答案再重复一遍，但是很明显的，他不满意，开始噼里啪啦在那打字，应该是在给我下判决书)。</p>
+<hr />
+<p>至此之后，面试官 1 就没任何问题了，总时长不超过十分钟。这也是我工作以来以来面试时间最短的一次。
+而面试官 2 呢，自面试开始就在那打电话，也没任何问题问我，我不知道面试官 2 的作用是什么，咱也不敢问。</p>
+<p>这次杭银面试，真的是长见识了。面试官面试一下午辛苦了，我一直在等，我的时间就不值钱了？敷衍的问了几个问题，给人粗暴的下判决，我充分的感受到了什么叫不尊重。</p>
+]]></content:encoded>
+<pubDate>2024-10-18T11:01:37Z</pubDate>
+<pubDate>2024-10-18T12:36:49Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 上海张江国企： Java 架构师， 40-50W，希望可以快速到岗</title>
+<link>https://www.v2ex.com/t/1081601</link>
+<guid>https://www.v2ex.com/t/1081601</guid>
+<content:encoded><![CDATA[
+
+工作职责：<br />1 、参与产品的需求分析、设计和开发等各项工作；<br />2 、参与编写相关设计文档和测试文档；<br />3 、与团队其他成员合作，确保工作任务交付质量和进度。<br />任职要求：<br />1 、5 年以上开发经验，全日制大学计算机相关专业，本科或以上学历；<br />2 、精通 Java 语言，了解 JVM 运行原理与调优，熟悉常见设计模式、多线程等；<br />3 、熟悉 elasticsearch 分布式搜索引擎,了解 Lucene 常用语法与工作原理；<br />4 、熟悉常用框架，如 Springboot 、springcloud ，熟悉 MySQL 、NoSQL ，熟悉 Redis 、mongodb 、Kafka 、Zookeeper 等常见的分布式存储相关技术；<br />5 、掌握 Maven,Git/Svn 等代码管理工具的使用；<br />6 、熟悉 Linux 操作系统；<br />7 、熟悉软件建模语言，UML/SYSML 者优先考虑<br />8 、精通 Python/JavaScript/HTML 者优先考虑；<br /><br />微信：18621580540
+]]></content:encoded>
+<pubDate>2024-10-18T10:51:56Z</pubDate>
+<pubDate>2024-10-10T10:51:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 天天坐在电脑前，到底该选一个什么样的椅子？</title>
+<link>https://www.v2ex.com/t/1081600</link>
+<guid>https://www.v2ex.com/t/1081600</guid>
+<content:encoded><![CDATA[
+
+是该选所谓的人体工学椅还是电竞椅？大家有什么推荐吗？
+]]></content:encoded>
+<pubDate>2024-10-18T10:42:55Z</pubDate>
+<pubDate>2024-10-18T12:11:48Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 想换个手机求推荐</title>
 <link>https://www.v2ex.com/t/1081598</link>
 <guid>https://www.v2ex.com/t/1081598</guid>
 <content:encoded><![CDATA[
-
 <p>现在用的是 红米 K60 Pro ，本来还挺满意的，结果这周二一次，周四一次，手机发烫，然后操作一会儿就关机了。再然后反复重启也无法正常使用。我揣摩了一下,可能是熄屏侧键坏了，反复触发。。。</p>
 <p>还好都是晚上坏的，但是因为 NFC 还有支付这两个功能太重要了，门禁、坐地铁、消费都要用，万一哪天上班坏了，后果不堪设想。。。</p>
 <p>想求个推荐，结实耐用的手机，预算 2k-3k 。</p>
 <p>平时上班也就空隙玩玩知乎、聊聊微信。基本不玩手游了。</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T10:23:08Z</pubDate>
 <pubDate>2024-10-18T10:23:08Z</pubDate>
 </item>
 <item>
@@ -23,10 +383,8 @@
 <link>https://www.v2ex.com/t/1081597</link>
 <guid>https://www.v2ex.com/t/1081597</guid>
 <content:encoded><![CDATA[
-
 <p>到手后，感觉这条线比上代的充的慢，要 2 个小时才能充满，而且还不能充耳机了</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T10:22:22Z</pubDate>
 <pubDate>2024-10-18T06:22:22Z</pubDate>
 </item>
 <item>
@@ -34,10 +392,8 @@
 <link>https://www.v2ex.com/t/1081595</link>
 <guid>https://www.v2ex.com/t/1081595</guid>
 <content:encoded><![CDATA[
-
 先上配置和价格吧：<br /><br />CPU：AMD Ryzen 7500F 散片                     773<br />内存：长城 16G DDR5 5600 x2                   399<br />主板：七彩虹 A620M-D PRO V14                  479<br />显卡：盈通 RX 7800XT                          3199<br /><br />其他硬件利旧。<br /><br />此配置主打高性价比玩单机 3A 游戏，所以 CPU 并不重要，把预算给显卡拉满，既然前提是性价比，所以 N 卡就不用考虑了，我是 2K 显示器，所以直接选择能畅玩 2K 的 7800XT ，主板的话我 1 不超频，2 对扩展性没要求，所以 A620 完全足够，同理，内存也不用挑颗粒，默频能稳定运行就行了。
 ]]></content:encoded>
-<pubDate>2024-10-18T10:19:34Z</pubDate>
 <pubDate>2024-10-18T10:21:44Z</pubDate>
 </item>
 <item>
@@ -45,10 +401,8 @@
 <link>https://www.v2ex.com/t/1081594</link>
 <guid>https://www.v2ex.com/t/1081594</guid>
 <content:encoded><![CDATA[
-
 空调坏了，运行时会发出巨大噪音和震动，开启时会疯狂喷射冰块，关闭后还在以 800w 功率运行，需要拔掉插头。<br />想双十一换一个，大家有推荐吗？由于租房带不走，不需要太好，省电即可（坐标广东，夏天全天 35°）。
 ]]></content:encoded>
-<pubDate>2024-10-18T10:18:11Z</pubDate>
 <pubDate>2024-10-18T10:18:57Z</pubDate>
 </item>
 <item>
@@ -56,7 +410,6 @@
 <link>https://www.v2ex.com/t/1081593</link>
 <guid>https://www.v2ex.com/t/1081593</guid>
 <content:encoded><![CDATA[
-
 <h2>公司介绍</h2>
 <p>深圳至简天成科技有限公司成立于 2019 年，旗下产品「 ShowMeBug 」是一个支持实战编程的技术能力评估平台。2020 年 -2022 年连续完成真格基金、高瓴创投、红杉资本等顶级风投机构 PreA 及 A 轮融资，累计总金额超亿元，是数字化技术招聘领域中的头部企业。</p>
 <p>我们正在开发一款革命性的 AI 辅助编程软件，致力于重塑软件开发的未来。</p>
@@ -131,7 +484,6 @@
 <p>公司主页： <a href="https://www.showmebug.com/" rel="nofollow">https://www.showmebug.com/</a></p>
 <p>联系邮箱： <a href="mailto:hr@dao42.com">hr@dao42.com</a> （简历注明来自 V2EX ）</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T10:11:49Z</pubDate>
 <pubDate>2024-10-14T10:11:49Z</pubDate>
 </item>
 <item>
@@ -139,10 +491,8 @@
 <link>https://www.v2ex.com/t/1081592</link>
 <guid>https://www.v2ex.com/t/1081592</guid>
 <content:encoded><![CDATA[
-
 时间过得好快啊，想当初这个初代刚发布的时候骂声一片，这玩意儿没啥音质卖一千多简直垃圾。<br /><br />没想到没过多久用户发现这个耳机使用方便续航长，佩戴无感，风评逐渐好转，再加上稍微降价以及很多名人佩戴的宣传效应，越来越火爆，逐渐引领了 tws 耳机的风潮。<br /><br />2017 年 10 月我也跟风在 JD 上买了一个，真的太香了。其实音质什么的归根结底还是小众需求，一个产品如果能把简单易用、佩戴舒适这种朴实无华的简单的需求做到极致就是优秀的产品，AirPods 显然就是这样的优秀产品。<br /><br />如今 7 个年头过去，换个电池依然好用，就是想问问大家，有对比过新的 AirPods 3/4/pro 音质提升大吗？如果音质提升大的话我就换新款
 ]]></content:encoded>
-<pubDate>2024-10-18T09:58:31Z</pubDate>
 <pubDate>2024-10-18T10:00:13Z</pubDate>
 </item>
 <item>
@@ -150,7 +500,6 @@
 <link>https://www.v2ex.com/t/1081591</link>
 <guid>https://www.v2ex.com/t/1081591</guid>
 <content:encoded><![CDATA[
-
 <p>标题吸引火力。其实派出所态度挺好。</p>
 <p>2 年多了自行车都不锁，上班就停路边。
 结果被偷了。
@@ -170,7 +519,6 @@
 <p>我以上说笔录，是我理解的笔录，不清楚法律意义上是不是叫笔录还是啥。</p>
 <p>体验还好，没遇到啥不耐烦不理人的，就是事也没解决，态度好也没啥用。</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:57:11Z</pubDate>
 <pubDate>2024-10-18T10:24:06Z</pubDate>
 </item>
 <item>
@@ -178,10 +526,8 @@
 <link>https://www.v2ex.com/t/1081589</link>
 <guid>https://www.v2ex.com/t/1081589</guid>
 <content:encoded><![CDATA[
-
 <p>有人遇到吗？</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:48:14Z</pubDate>
 <pubDate>2024-10-17T17:48:14Z</pubDate>
 </item>
 <item>
@@ -189,14 +535,12 @@
 <link>https://www.v2ex.com/t/1081588</link>
 <guid>https://www.v2ex.com/t/1081588</guid>
 <content:encoded><![CDATA[
-
 <p>现在 27 岁，4 年工作经验，做了 3 年的游戏后端，之前一直在中小公司，我想进<strong>游戏</strong>中/大厂（库洛/鹰角/腾讯/网易/米哈游等），请问我应该怎么做？<strong>我听劝</strong>！提前谢谢各位！</p>
 <p>粗略的个人基本信息：</p>
 <p>主语言：Go</p>
 <p>项目经历：SLG 、MMO 、ARPG 和 JRPG 类型的手游</p>
 <p>待过的公司：4 家，其中 3 家游戏公司。最好的游戏项目有 100 万以上的预约量。</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:39:40Z</pubDate>
 <pubDate>2024-10-18T09:46:13Z</pubDate>
 </item>
 <item>
@@ -204,10 +548,8 @@
 <link>https://www.v2ex.com/t/1081586</link>
 <guid>https://www.v2ex.com/t/1081586</guid>
 <content:encoded><![CDATA[
-
 结婚 3 年，娃还没周岁，自认为老婆很优秀的<br /><br />结婚彩礼 10w,老丈人加 12w,带回来 22w;<br /><br />没买房/车;<br /><br />我的工资自己管，超过 10w 再上交(自己定的);<br /><br />日常开支她负责，房租我负责;<br /><br />相互扶持，共同带娃，打算定居上海，日子向好。
 ]]></content:encoded>
-<pubDate>2024-10-18T09:34:10Z</pubDate>
 <pubDate>2024-10-18T10:08:50Z</pubDate>
 </item>
 <item>
@@ -216,9 +558,7 @@
 <guid>https://www.v2ex.com/t/1081584</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-10-18T09:24:29Z</pubDate>
 <pubDate>2024-10-18T10:02:42Z</pubDate>
 </item>
 <item>
@@ -227,9 +567,7 @@
 <guid>https://www.v2ex.com/t/1081583</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-10-18T09:23:24Z</pubDate>
 <pubDate>2024-10-18T07:23:24Z</pubDate>
 </item>
 <item>
@@ -237,10 +575,8 @@
 <link>https://www.v2ex.com/t/1081582</link>
 <guid>https://www.v2ex.com/t/1081582</guid>
 <content:encoded><![CDATA[
-
 好像在 windows 10 系统下就打不开了，win7 还正常，win11 和 win 10 都显示“无法访问此页  确保 web 地址正确”，这应该和 IE 有关吧？
 ]]></content:encoded>
-<pubDate>2024-10-18T09:23:17Z</pubDate>
 <pubDate>2024-10-18T09:23:17Z</pubDate>
 </item>
 <item>
@@ -248,11 +584,9 @@
 <link>https://www.v2ex.com/t/1081581</link>
 <guid>https://www.v2ex.com/t/1081581</guid>
 <content:encoded><![CDATA[
-
 <p>目前考虑的网络拓扑图，大家看有没有改进的建议。
 <a href="https://imgse.com/i/pAUrIqe" rel="nofollow"><img alt="pAUrIqe.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/10/18/pAUrIqe.png" /></a></p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:22:29Z</pubDate>
 <pubDate>2024-10-18T10:07:09Z</pubDate>
 </item>
 <item>
@@ -260,10 +594,8 @@
 <link>https://www.v2ex.com/t/1081580</link>
 <guid>https://www.v2ex.com/t/1081580</guid>
 <content:encoded><![CDATA[
-
 <p>rt ，想问一下结婚的 v 友，彩礼的钱是自己出还是父母出的？</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:18:45Z</pubDate>
 <pubDate>2024-10-18T09:24:19Z</pubDate>
 </item>
 <item>
@@ -273,9 +605,7 @@
 <guid>https://www.v2ex.com/t/1081578</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-10-18T09:12:29Z</pubDate>
 <pubDate>2024-10-18T09:42:43Z</pubDate>
 </item>
 <item>
@@ -283,7 +613,6 @@
 <link>https://www.v2ex.com/t/1081577</link>
 <guid>https://www.v2ex.com/t/1081577</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>WLB</li>
 <li>补充医疗险</li>
@@ -351,14 +680,12 @@
 </ul>
 ]]></content:encoded>
 <pubDate>2024-10-18T09:11:19Z</pubDate>
-<pubDate>2024-10-18T09:11:19Z</pubDate>
 </item>
 <item>
 <title>[搜索引擎优化] 零基础学 SEO 第 3 步 - 零基础学 SEO 第 3 步：优质外链</title>
 <link>https://www.v2ex.com/t/1081574</link>
 <guid>https://www.v2ex.com/t/1081574</guid>
 <content:encoded><![CDATA[
-
 <p>1. SEO-优质外链</p>
 <p>① 如何算 SEO 优质外链</p>
 <ul>
@@ -466,7 +793,6 @@
 <img class="embedded_image" rel="noreferrer" src="https://ckbox.cloud/a5c7ffe16f63f7fd8e6f/assets/B7AKeBn7LPPi/images/900.png" />
 <img class="embedded_image" rel="noreferrer" src="https://ckbox.cloud/a5c7ffe16f63f7fd8e6f/assets/a5pFYLdBrkZv/images/900.png" />
 ]]></content:encoded>
-<pubDate>2024-10-18T09:08:22Z</pubDate>
 <pubDate>2024-10-18T09:07:22Z</pubDate>
 </item>
 <item>
@@ -474,7 +800,6 @@
 <link>https://www.v2ex.com/t/1081572</link>
 <guid>https://www.v2ex.com/t/1081572</guid>
 <content:encoded><![CDATA[
-
 <p>日常主要是打游戏, 但是有几个点不知道咋绕过去, 望大佬指点一下</p>
 <ol>
 <li>
@@ -485,7 +810,6 @@
 <li>硬盘格式问题 : 因为现在 windows 下硬盘格式全部是 ntfs, Linux 下使用会有性能影响大吗?</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:55:53Z</pubDate>
 <pubDate>2024-10-18T09:56:07Z</pubDate>
 </item>
 <item>
@@ -493,10 +817,8 @@
 <link>https://www.v2ex.com/t/1081570</link>
 <guid>https://www.v2ex.com/t/1081570</guid>
 <content:encoded><![CDATA[
-
 <p>以前一直没觉得充电慢，因为我都是用 parsce 摸鱼，现在这玩意老连不上，就改用手机摸了，结果摸一会又卡又烫电量还见底，真的好难等哦</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:54:35Z</pubDate>
 <pubDate>2024-10-18T08:54:35Z</pubDate>
 </item>
 <item>
@@ -504,10 +826,8 @@
 <link>https://www.v2ex.com/t/1081569</link>
 <guid>https://www.v2ex.com/t/1081569</guid>
 <content:encoded><![CDATA[
-
 AirPods4 被拔草了，想买个 AirPods2 ，路过的大佬求推荐(咸鱼拼多多全是华强北，之前用过一年想转正)
 ]]></content:encoded>
-<pubDate>2024-10-18T08:53:19Z</pubDate>
 <pubDate>2024-10-18T08:56:39Z</pubDate>
 </item>
 <item>
@@ -515,10 +835,8 @@ AirPods4 被拔草了，想买个 AirPods2 ，路过的大佬求推荐(咸鱼拼
 <link>https://www.v2ex.com/t/1081568</link>
 <guid>https://www.v2ex.com/t/1081568</guid>
 <content:encoded><![CDATA[
-
 <p>不通过有线的方式。</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:50:37Z</pubDate>
 <pubDate>2024-10-18T08:54:27Z</pubDate>
 </item>
 <item>
@@ -526,10 +844,8 @@ AirPods4 被拔草了，想买个 AirPods2 ，路过的大佬求推荐(咸鱼拼
 <link>https://www.v2ex.com/t/1081567</link>
 <guid>https://www.v2ex.com/t/1081567</guid>
 <content:encoded><![CDATA[
-
 10 个帖子有 8 个是离职，被裁，要彩礼，离婚，被割韭菜，runrunrun<br /><br />外面媒体全是暖文，胜利，涨涨涨冲冲冲<br /><br />遥想好几年前这里全是 offer 对比，学 xxxx ，谈薪怎么谈，开源作品，大厂体验<br /><br />唉
 ]]></content:encoded>
-<pubDate>2024-10-18T08:49:48Z</pubDate>
 <pubDate>2024-10-18T10:12:24Z</pubDate>
 </item>
 <item>
@@ -537,11 +853,9 @@ AirPods4 被拔草了，想买个 AirPods2 ，路过的大佬求推荐(咸鱼拼
 <link>https://www.v2ex.com/t/1081566</link>
 <guid>https://www.v2ex.com/t/1081566</guid>
 <content:encoded><![CDATA[
-
 <p>我先说我的，我是郑州新密的，媳妇平顶山的定居郑州了（及其普通的家庭，下面有弟弟，她房里是老工房）。给了 8.8 ，领证后装修我媳妇都拿出来用了（掏钱的时候很利索，掏完后看着她的“闺蜜”们都留着了，然后开始痛苦了）
 目前还没办婚礼，有没有嫁妆还不知道</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:45:32Z</pubDate>
 <pubDate>2024-10-18T09:55:48Z</pubDate>
 </item>
 <item>
@@ -549,7 +863,6 @@ AirPods4 被拔草了，想买个 AirPods2 ，路过的大佬求推荐(咸鱼拼
 <link>https://www.v2ex.com/t/1081565</link>
 <guid>https://www.v2ex.com/t/1081565</guid>
 <content:encoded><![CDATA[
-
 <p>trojan-go config:</p>
 <p>{
 "run_type": "server",
@@ -576,7 +889,6 @@ p4gefau1t/trojan-go <br />
 <p>cloudfare 在只 [ DNS only ] 模式下，是可以代理的。</p>
 <p>但是我在设置为 [ proxied ] ,我可以访问我的 VPS 网页，但是其他通过代理的流量 VPS 都没有收到。</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:41:36Z</pubDate>
 <pubDate>2024-10-18T09:06:07Z</pubDate>
 </item>
 <item>
@@ -584,13 +896,11 @@ p4gefau1t/trojan-go <br />
 <link>https://www.v2ex.com/t/1081564</link>
 <guid>https://www.v2ex.com/t/1081564</guid>
 <content:encoded><![CDATA[
-
 <p>工作需求：PC 从不关机登录着微信，出门在外使用 macbook air M3 ，但 mac 版微信一旦登录就会把 PC 的微信给踢下线。</p>
 <p>我想了 2 个办法：</p>
 <p>1 、macbook 装个向日葵远程连 PC 操作微信，但是会有诸多不变，比如收到文件想无缝转移到 mac 上很痛苦；又比如远程桌面是整个 PC 桌面没有独立程序好操控，更不用提糟糕的分辨率调整了。</p>
 <p>2 、M 芯片的 macbook 应该可以安装 ipad 版本的微信，这样微信应该检测不到我是在 mac 上登录的，可 mac 的 store 里没有 ipad 版本微信提供，该如何得到 ipad 版本微信的 ipa 呢？</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:37:51Z</pubDate>
 <pubDate>2024-10-18T10:15:50Z</pubDate>
 </item>
 <item>
@@ -598,11 +908,9 @@ p4gefau1t/trojan-go <br />
 <link>https://www.v2ex.com/t/1081563</link>
 <guid>https://www.v2ex.com/t/1081563</guid>
 <content:encoded><![CDATA[
-
 <p>1 、<a href="http://106.15.186.69:8061/" rel="nofollow">http://106.15.186.69:8061/</a></p>
 <p>2 、<a href="http://106.15.186.69:8097/" rel="nofollow">http://106.15.186.69:8097/</a></p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:36:16Z</pubDate>
 <pubDate>2024-10-18T09:47:19Z</pubDate>
 </item>
 <item>
@@ -611,10 +919,8 @@ p4gefau1t/trojan-go <br />
 <link>https://www.v2ex.com/t/1081562</link>
 <guid>https://www.v2ex.com/t/1081562</guid>
 <content:encoded><![CDATA[
-
 Java 后端开发工程师（ 3-5 年经验）<br /><br />职位描述:<br />我们正在寻找一名具有 3-5 年 Java 开发经验的后端工程师加入我们的团队。您将负责设计和实现高效、可扩展的后端系统，并与前端开发人员、产品经理和其他团队成员密切合作，确保应用程序的高性能和稳定性。<br /><br />岗位职责:<br /><br />	1.	负责后端系统的设计、开发、维护及优化，确保系统的高性能、高可用性和可扩展性。<br />	2.	编写高质量、可维护的 Java 代码，按时完成开发任务。<br />	3.	参与项目的需求分析、系统设计，解决复杂的技术问题。<br />	4.	与前端开发人员、产品经理紧密合作，确保系统接口的稳定性和数据的准确性。<br />	5.	优化现有系统，提升系统性能，维护和更新相关文档。<br />	6.	负责后端接口设计与开发，熟练使用 RESTful API 。<br />	7.	根据需求编写单元测试及集成测试，保证代码的稳定性和可测试性。<br />	8.	支持和优化数据库设计，进行 SQL 优化和数据库性能调优。<br /><br />任职要求:<br /><br />	1.	计算机相关专业本科及以上学历，3-5 年 Java 后端开发经验。<br />	2.	熟练掌握 Java 语言，精通 Spring Framework （包括 Spring Boot 、Spring Cloud 等）。<br />	3.	熟悉微服务架构，有 Spring Cloud 或 Dubbo 等微服务框架经验优先。<br />	4.	熟悉常用数据库，如 MySQL 、PostgreSQL ，熟悉数据库设计、优化及 SQL 性能调优。<br />	5.	熟练掌握 Redis 、MQ （如 RocketMQ 、Kafka ）等常见中间件技术。<br />	6.	熟悉 RESTful API 设计及开发，有良好的接口设计经验。<br />	7.	熟悉常见的设计模式，能够编写高质量、可维护的代码。<br />	8.	熟悉 Git 、Maven 等常用开发工具，了解持续集成工具如 Jenkins 优先。<br />	9.	良好的问题分析和解决能力，能够独立完成模块开发和优化工作。<br />	10.	具有较强的团队合作意识、沟通能力及学习能力，能够承受工作压力。<br /><br />加分项:<br /><br />	•	有大规模分布式系统开发经验。<br />	•	具备 Docker 、Kubernetes 等容器化部署经验。<br />	•	熟悉 DevOps 实践和工具。<br /><br />福利:<br /><br />	•	具有竞争力的薪资和福利待遇。<br />	•	定期技术培训和成长机会。<br />	•	弹性工作时间和友好的工作环境。<br /><br /><br /><br /><br />有意者发下简历和联系方式到<br /><br />kevin.952803@gmail.com
 ]]></content:encoded>
-<pubDate>2024-10-18T08:35:46Z</pubDate>
 <pubDate>2024-10-18T09:27:33Z</pubDate>
 </item>
 <item>
@@ -622,10 +928,8 @@ Java 后端开发工程师（ 3-5 年经验）<br /><br />职位描述:<br />我
 <link>https://www.v2ex.com/t/1081561</link>
 <guid>https://www.v2ex.com/t/1081561</guid>
 <content:encoded><![CDATA[
-
 看到大家都在议论彩礼和婚姻来着，还有原生家庭带了的性格影响。<br />不免让我好奇人是不是有悲伤才会找个无人认识的地方疏解自己的情绪，说完就好很多了？<br />其一彩礼，大家进入婚姻或多或少都会面临，看了大部分的帖子和回答，低彩礼就广东 2-3W 的和湖南的那位岳父岳母帮衬，高彩礼和谈判拉扯也居多，是不是没有彩礼的保障，大家都不结婚啦？越来越恐婚了<br />其二婚姻，可以看看大家分享一下自己恋爱到婚姻的正常历程，可以给大家借鉴或者学习一下，比如大家恋爱多久步入婚姻殿堂，还有和对象发生的各种有趣的事情，如何准备告白和求婚的。多点正面的来救救恐婚的我吧。
 ]]></content:encoded>
-<pubDate>2024-10-18T08:35:44Z</pubDate>
 <pubDate>2024-10-18T09:57:18Z</pubDate>
 </item>
 <item>
@@ -633,10 +937,8 @@ Java 后端开发工程师（ 3-5 年经验）<br /><br />职位描述:<br />我
 <link>https://www.v2ex.com/t/1081560</link>
 <guid>https://www.v2ex.com/t/1081560</guid>
 <content:encoded><![CDATA[
-
 <p>本地有几台 4080S 的 PC, CPU 性能也不差. 平时 95%的时间没有计算工作, 电脑是空闲的. 可以利用这些时间做些什么有意义的事情? 除了挖矿和游戏.</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T08:33:39Z</pubDate>
 <pubDate>2024-10-18T08:55:49Z</pubDate>
 </item>
 <item>
@@ -645,9 +947,7 @@ Java 后端开发工程师（ 3-5 年经验）<br /><br />职位描述:<br />我
 <guid>https://www.v2ex.com/t/1081559</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-10-18T08:29:03Z</pubDate>
 <pubDate>2024-10-18T00:27:03Z</pubDate>
 </item>
 <item>
@@ -655,16 +955,13 @@ Java 后端开发工程师（ 3-5 年经验）<br /><br />职位描述:<br />我
 <link>https://www.v2ex.com/t/1081587</link>
 <guid>https://www.v2ex.com/t/1081587</guid>
 <content:encoded><![CDATA[
-
 <p>非黑灰产，需要有过类似开发经验，提供公司或团队介绍
 当面沟通开发需求</p>
 <p>联系方式：U2FsdGVkX1/VaVOjMphPIfhqrs8AoTKqjyAe2pjtdrI=
 加我备注 v2</p>
 ]]></content:encoded>
-<pubDate>2024-10-18T09:34:19Z</pubDate>
 <pubDate>2024-10-18T05:34:19Z</pubDate>
 </item>
-
 <item>
 <title>[Android] 万分紧急，卸载软件，不小心把微信卸载了，新装如何恢复？</title>
 <link>https://www.v2ex.com/t/1081557</link>
@@ -14591,401 +14888,6 @@ v2ex-whtIiRQw6B8xu5EMECNGR6ubSkr
 <a href="https://www.uber.com/en-JO/blog/upgrading-ubers-mysql-fleet/" rel="nofollow">https://www.uber.com/en-JO/blog/upgrading-ubers-mysql-fleet/</a></p>
 ]]></content:encoded>
 <pubDate>2024-10-15T02:49:53Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 准备弄一下家里的网络，请问如何处理下面这种需求？</title>
-<link>https://www.v2ex.com/t/1080348</link>
-<guid>https://www.v2ex.com/t/1080348</guid>
-<content:encoded><![CDATA[
-<p>家用网络
-现状：</p>
-<ol>
-<li>入户光纤进入到弱电箱</li>
-<li>现在存在光猫连接入户光纤，客厅放有运营商送的路由器并且链接（自动 IP 拨号，暂时没有宽度密码）</li>
-<li>本人不是网络专业，只是一个单纯的软件开发</li>
-</ol>
-<p>开发商预留网线和管道：</p>
-<ul>
-<li>弱电箱到客厅留有网线（目前只有一根网线，再走一根估计进不去管道）</li>
-<li>弱电箱到主卧留有网线（目前只有一根网线，再走一根估计进不去管道）</li>
-<li>弱电箱到次卧留有管道和线（需要自己使用网线穿线）</li>
-</ul>
-<p>目标改修：</p>
-<ul>
-<li>品牌最好小米，如果小米设备不行或者没有替换的可以更换为其他品牌</li>
-<li>在客厅和主卧可能需要子母路由或者扩展路由，否则主卧信号不行</li>
-<li>全屋准备做小米智能设备，比如智能开关、插座、天然气卫士、摄像头等，可能需要小米中枢网关或者 Mesh 、蓝牙等中枢设备</li>
-<li>家里存在一个极空间 NAS ，需要手机、台式电脑、电视都能内网连接上</li>
-<li>准备使用一个迷你主机或者现有旧台式主机做虚拟机（可能开多个虚拟机），也能够内网相互联系上</li>
-</ul>
-<p>下面改修需要看图：</p>
-<ul>
-<li>现在准备在儿童房或者阳台书桌放电脑，但是这两个地方都没有网线（如何处理让和使用网线一样稳定，不受干扰）</li>
-</ul>
-<p>自己拙见：</p>
-<ul>
-<li>光猫进来后直接接运营商送的路由器，然后从路由器接交换机，然后分到客厅和主卧，客厅和主卧直接使用小米的子母路由进行设置</li>
-<li>但是感觉上面设置交换机好像没有锤子用 o((&gt;ω&lt; ))o</li>
-</ul>
-<p>具体平面图看下面链接：</p>
-<ul>
-<li><a href="https://www.yuque.com/r/note/e64f8b92-1bd5-4e0a-a567-78b2024facdd" rel="nofollow">https://www.yuque.com/r/note/e64f8b92-1bd5-4e0a-a567-78b2024facdd</a></li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-10-15T02:39:00Z</pubDate>
-</item>
-<item>
-<title>[Android] 求助使用一加手机并 Root 的大佬现身说法</title>
-<link>https://www.v2ex.com/t/1080347</link>
-<guid>https://www.v2ex.com/t/1080347</guid>
-<content:encoded><![CDATA[
-求助求助 使用一加手机并 Root 的大佬现现身说法 用大侠阿木教程 APatch Root 一加手机之后 是否可以任意给手机 App （注：不是手机自带 App 是 王者荣耀 ，微信，QQ ，高德，携程，美团 这种下载之后的 App ） 设置上 Root 权限？<br /><br /><a href="https://optool.daxiaamu.com/install_apatch" rel="nofollow noopener" target="_blank">https://optool.daxiaamu.com/install_apatch</a> 连接是大侠阿木 Root 教程 里面提到了 APatch 给需要 Root 权限的软件授权，但是不确定是否可以给任意 App 设置，特此发帖求助。。。。。
-]]></content:encoded>
-<pubDate>2024-10-15T02:34:25Z</pubDate>
-</item>
-<item>
-<title>[微信] 一个民间慈善组织请教微信二维码问题</title>
-<link>https://www.v2ex.com/t/1080346</link>
-<guid>https://www.v2ex.com/t/1080346</guid>
-<content:encoded><![CDATA[
-<p>我是一名慈善组织志工，组织已取得公募资格，也开设了认证公众号。现在想法是要取一个微信二维码，以便放在公众号中，接收他人扫码后的零星捐款。因不是网络专业，所以当前遇上上技术问题，特来此地请教，寻求指导。
-自己在设置时：
-腾讯提示：appid 需是已认证的服务号、政府或媒体类型的订阅号。
-这让我感到困惑，服务号没开（因为当时考虑到发表文章月限制），政府类型不行，媒体也不可能啊，怎么可能有新闻证件。
-我们本来就是爱心人士、中国好人的民间协会和志愿团队。
-特此请教、寻求支持。
-感谢</p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:32:14Z</pubDate>
-</item>
-<item>
-<title>[生活] 湖北城乡居民养老保险缴费、补缴及子女资助经验分享</title>
-<link>https://www.v2ex.com/t/1080344</link>
-<guid>https://www.v2ex.com/t/1080344</guid>
-<content:encoded><![CDATA[
-<p>老家湖北的,其他省份可供参考.</p>
-<h3>是否参保</h3>
-<p>①首先需确认父母是否参保.一般农村都有村里集体收缴,每年年底按时收次年医保及提前收次年养老(最低档)</p>
-<p>医保有集中缴纳期,一般为 9-12 年缴次年,养老为自然年缴纳,年初到年底,按时缴纳由政府补贴,湖北 2000 以上档 402,其他地方仅供参考</p>
-<p>确认父母是否参保的方法,一般可以通过电子社保卡参保信息查询亦或者缴费(代缴)查看页面信息时了解</p>
-<p>未参保请及时参保登记</p>
-<h3>查询缴费信息</h3>
-<p>②查询缴费信息,一般可以通过电子社保卡或者当地政务 app 查询,例如湖北是鄂汇办 app.</p>
-<h3>正常缴费、补缴</h3>
-<p>③为父母正常缴费、补缴(代缴),一般通过政务 app(湖北省为鄂汇办),税务 app(湖北为楚税通),支付宝等渠道,也可以通过电子税务局进行缴纳</p>
-<p>湖北的正常缴费,以个人为例,缴费最高档 8000(最高档各县市不一),补贴 402(2000 以上档补贴标准</p>
-<p>一般未缴年份可以补缴,满 60 但缴纳年限不足 15 的可以向前一次性补缴以满足最低缴纳年限
-(广东、海南等,已不允许 60 岁一次性补缴,得延迟缴纳至 65 岁,还不满足缴纳年限方可补缴</p>
-<p>湖北没有已缴年份提档补差,部分其他省份有</p>
-<h3>子女资助(集体补助)</h3>
-<p>④子女资助,在正常缴费外,还能通过资助的手段再缴纳一笔</p>
-<p>相关政策很早就有,但具体落实好像自去年开始,湖北税务已对此业务电子化</p>
-<p>一般需要村里集体账户在湖北电子税务局进行申报(对村干部要求较高),可在手机上完成缴费</p>
-<p>亦或者需要找人社或者税务相关窗口工作人员办理</p>
-<p>个人今年也办理了子女资助,标准不得超过最高档,也缴纳了 8000</p>
-<h3>待遇领取</h3>
-<p>⑤待遇领取,城乡养老的养老金为基础养老金(湖北还有基于年限的年限基础养老金)+个人账户养老金(退休时个人账户余额/139)</p>
-<p>湖北武汉基础养老金在 327+30 左右,其他地方 140+15 左右</p>
-<p>自己能做的就是尽量提高个人账户余额,</p>
-<p>目前我能做的也就是通过正常缴费最高档,子女资助最高档以及补缴等手段将自己母亲的个账余额由不足 5k 提高至 8w 左右,然后等年底办理退休手续</p>
-<p>自己了解相关政策太晚了,导致能缴高档的年份很少,能补救一些是一些吧!</p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:46:55Z</pubDate>
-</item>
-<item>
-<title>[生活] 没有单独的储藏室空间，如何规划储藏</title>
-<link>https://www.v2ex.com/t/1080343</link>
-<guid>https://www.v2ex.com/t/1080343</guid>
-<content:encoded><![CDATA[
-如题，想了解下大家家里如果没有单独的储藏室，比如说就三室一厅（三个卧室），如何规划储物空间？怎么放一些乱七八糟的东西
-]]></content:encoded>
-<pubDate>2024-10-15T02:53:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 第一次买车是不是享受不了国补/省补/区补？</title>
-<link>https://www.v2ex.com/t/1080342</link>
-<guid>https://www.v2ex.com/t/1080342</guid>
-<content:encoded><![CDATA[
-<p>新手还没有买过车，看帖子很多人有省补置换/报废补贴，能拿到 1.2w-1.5w ，这到手价格就低好多。</p>
-<p>想问过来人，第一次买车怎么能享受到这些补贴呀？</p>
-<p>坐标深圳或者南昌。</p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:24:19Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐洗车装备和保养用品</title>
-<link>https://www.v2ex.com/t/1080341</link>
-<guid>https://www.v2ex.com/t/1080341</guid>
-<content:encoded><![CDATA[
-最近很喜欢看洗车视频，想尝试下自己洗车，场地应该就是小区里的空地。。所以想请各位大佬推荐下洗车装备，比如：洗车水枪、洗车海绵~  另外求推荐下保养用品，比如：防雨剂、洗车泡沫液、水蜡液。
-]]></content:encoded>
-<pubDate>2024-10-15T02:54:15Z</pubDate>
-</item>
-<item>
-<title>[Telegram] 怎么继续使用 Telegram 旧版本</title>
-<link>https://www.v2ex.com/t/1080340</link>
-<guid>https://www.v2ex.com/t/1080340</guid>
-<content:encoded><![CDATA[
-受不了 Stories 了，想要用回旧版（ 8 版本），现在旧版已经不允许登录了
-]]></content:encoded>
-<pubDate>2024-10-15T02:54:24Z</pubDate>
-</item>
-<item>
-<title>[RSS] Follow, the app</title>
-<link>https://www.v2ex.com/t/1080339</link>
-<guid>https://www.v2ex.com/t/1080339</guid>
-<content:encoded><![CDATA[
-<p>发表了一些自己对 Follow 这个 app 的看法：</p>
-<p><a href="https://garden.luozx.org/posts/follow-the-app/follow-the-app.html" rel="nofollow">https://garden.luozx.org/posts/follow-the-app/follow-the-app.html</a></p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:34:40Z</pubDate>
-</item>
-<item>
-<title>[Linux] debian 笔记本电脑键盘不对怎么办</title>
-<link>https://www.v2ex.com/t/1080338</link>
-<guid>https://www.v2ex.com/t/1080338</guid>
-<content:encoded><![CDATA[
-笔记本是京东京造，在 ubuntu 下键盘正常，debian 下 home 键和其他三个键:最大化，锁定，工具不对，keycode 底层就是不对的，隐射啥的都没用，怎么办？
-]]></content:encoded>
-<pubDate>2024-10-13T02:08:43Z</pubDate>
-</item>
-<item>
-<title>[RSS] 浏览器插件分享（1.tab 自动分组。2.favicon 图标下载）</title>
-<link>https://www.v2ex.com/t/1080336</link>
-<guid>https://www.v2ex.com/t/1080336</guid>
-<content:encoded><![CDATA[
-<ol>
-<li><a href="https://microsoftedge.microsoft.com/addons/detail/tabgo/fpldifjlbnibhdcgofmijeechmehogfh" rel="nofollow">tabGo</a></li>
-</ol>
-<ul>
-<li>支持白名单</li>
-<li>支持匹配方式，子域名或者是一级域名</li>
-<li>支持分组在前</li>
-<li>支持手风琴模式</li>
-<li>支持扩展程序别名</li>
-</ul>
-<p><img alt="Alt text" class="embedded_image" rel="noreferrer" src="https://linux.do/uploads/default/original/3X/b/8/b8065703d1ae52465babb8da250d9a3f77fb93ae.png" /></p>
-<ol>
-<li><a href="https://microsoftedge.microsoft.com/addons/detail/favicongo/milkmgmgipdlinndhhigfefodnjbamlb" rel="nofollow">favicon</a></li>
-</ol>
-<blockquote>
-<p>抓取网页上的 favicon</p>
-</blockquote>
-<p><img alt="Alt text" class="embedded_image" rel="noreferrer" src="https://linux.do/uploads/default/original/3X/0/9/090a107979368958dc092c04e3a956368ad91242.png" /></p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:05:50Z</pubDate>
-</item>
-<item>
-<title>[Apple] 苹果“最大的优点在于系统流畅，比较省心”么？</title>
-<link>https://www.v2ex.com/t/1080335</link>
-<guid>https://www.v2ex.com/t/1080335</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-10-15T02:51:29Z</pubDate>
-</item>
-<item>
-<title>[V2EX] 有在 0755 的大佬么,企业站单接吗?</title>
-<link>https://www.v2ex.com/t/1080334</link>
-<guid>https://www.v2ex.com/t/1080334</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-10-14T22:05:54Z</pubDate>
-</item>
-<item>
-<title>[问与答] 鼠标 dpi 的迷惑宣传</title>
-<link>https://www.v2ex.com/t/1080332</link>
-<guid>https://www.v2ex.com/t/1080332</guid>
-<content:encoded><![CDATA[
-<p>现在鼠标宣传 ，dpi 支持 1w 、2w ，有的甚至 3w ，我测试这些高 dpi 根本没法用。我用的 4k 显示器，将鼠标 dpi 设置为 1w ，速度快的根本没法用，更别提设置为 3w 的 dpi 后，想点一个按钮，那是相当考验手的稳定性。<br />
-dpi 看解释，移动一段距离时候鼠标上送的点数，越多代表鼠标越精确，但给我直观的感受是，dpi 就是鼠标移动的快慢，调节操作系统中指针的快慢也可以达到类似效果。<br />
-个人觉得那些 1w 以上的 dpi ，基本没什么用，基于这个原因，鼠标厂商应该知道太高的 dpi 没法用，但是还要这么宣传呢？</p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:38:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 准备在双十一买个新手柄。想买个国产的试试。价格不超过 500 左右都行。
-飞智的八爪鱼 4 值得买吗？
-
-另外旧的 xbox 手柄， B 键（相较于 A/X/Y）要较大力按下去才有反应，有 v 友知道这种病情的解决方法么？</title>
-<link>https://www.v2ex.com/t/1080331</link>
-<guid>https://www.v2ex.com/t/1080331</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-10-15T02:52:07Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] watchOS 11 有一个很烦的点，害我今天差点迟到。</title>
-<link>https://www.v2ex.com/t/1080329</link>
-<guid>https://www.v2ex.com/t/1080329</guid>
-<content:encoded><![CDATA[
-先说场景，我睡眠闹钟是 8 点，8 点闹钟响了之后我会习惯性的点一下稍后提醒再睡 10 分钟。<br /><br />但是这个版本有个问题，就是你点击了稍后提醒后，会自动出现一个稍后提醒倒计时的界面，然后它默认是亮屏状态，右侧有个大✖。<br /><br />按照上个版本的话，我这个时候是睡眠状态，需要长按解锁才能操作，但是它现在直接默认解锁，我必须手动捂一下，否则误操作点到✖的话，闹钟就不响了。
-]]></content:encoded>
-<pubDate>2024-10-15T02:54:23Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] 2024 年 1024 有啥优惠活动不容错过吗</title>
-<link>https://www.v2ex.com/t/1080328</link>
-<guid>https://www.v2ex.com/t/1080328</guid>
-<content:encoded><![CDATA[
-<p>今年订阅费用感觉飞涨
-这里 10 刀那里 20 刀感觉都不贵，算算帐吓死个人</p>
-<p>openai key 大概 500/年
-JB 全家桶 1000 多/年
-cursor 25 刀/月
-GitHub Copilot 100 刀/年</p>
-<p>还想搞个 chatgpt plus 学学英语 看着也 150/月</p>
-<p>明年感觉不用续 GitHub Copilot 了 一点不好用。
-都用 cursor 的话感觉也不用续费 JB 全家桶了。</p>
-<p>大家今年 1024 有什么想法吗</p>
-]]></content:encoded>
-<pubDate>2024-10-15T02:35:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 零下二十度的环境下如何保存充电宝</title>
-<link>https://www.v2ex.com/t/1080327</link>
-<guid>https://www.v2ex.com/t/1080327</guid>
-<content:encoded><![CDATA[
-如题，本人在哈尔滨上学，寒假需要回南方，但手上的的四五个充电宝不可能全带上飞机，故问一下这种寒冷环境该怎么保存充电宝？
-]]></content:encoded>
-<pubDate>2024-10-15T02:46:03Z</pubDate>
-</item>
-<item>
-<title>一个新手 AI 会议论文写作指南</title>
-<link>https://www.v2ex.com/t/1073120</link>
-<guid>https://www.v2ex.com/t/1073120</guid>
-<content:encoded><![CDATA[
-<p><a href="https://github.com/hzwer/WritingAIPaper" rel="nofollow">https://github.com/hzwer/WritingAIPaper</a></p>
-<p>前些年不会写论文吃了很多亏，最近帮别人改论文也很痛苦</p>
-<p>于是整了一个指南</p>
-]]></content:encoded>
-<pubDate>2024-10-14T18:31:52Z</pubDate>
-</item>
-<item>
-<title>[求职]感觉自己能力很强，但是现实面试却处处碰壁</title>
-<link>https://www.v2ex.com/t/1078950</link>
-<guid>https://www.v2ex.com/t/1078950</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://blog.klusfq.cn/images/ablility.png" /></p>
-<p>28 岁的五年后端老狗，普通双非一本，目前在二线城市小厂混日子（清闲但是钱少）</p>
-<p>没在大厂呆过，现在去大厂好像门槛好高。</p>
-<p>被现实磨平了棱角，唉，心累啊，该怎样找到好工作？？</p>
-]]></content:encoded>
-<pubDate>2024-10-13T01:32:21Z</pubDate>
-</item>
-<item>
-<title>[Android] vivo x200 pro 值得购买吗？有哪些缺点？</title>
-<link>https://www.v2ex.com/t/1080324</link>
-<guid>https://www.v2ex.com/t/1080324</guid>
-<content:encoded><![CDATA[
-<p>vivo x200 pro 昨晚发布，目前有购买打算</p>
-<p>发布会同一时间 b 站大量 up 都发布了测评视频，基本都只讲了优点
-但是这些大 up 的视频下面都有一些阴阳怪气的负面评论，我有点搞不懂原因。之前也没有关注这个厂商，vivo 是有做过什么恶吗？</p>
-<p>pro 的价格区间在 5300/12+256 - 6800/16+1T+卫星，我目前看到是争议最多的地方，不过我反而觉得这个见仁见智吧</p>
-<p>想来 v 站看看大家对这部手机有什么看法，请尽量避免情绪化评论，如果要情绪化评论烦请说明你为什么讨厌这个厂商</p>
-]]></content:encoded>
-<pubDate>2024-10-15T01:43:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 朋友工作选择的困惑！</title>
-<link>https://www.v2ex.com/t/1080321</link>
-<guid>https://www.v2ex.com/t/1080321</guid>
-<content:encoded><![CDATA[
-<p>朋友问我！国庆期间找了个远程工作，已经远程签了劳动合同；这几天，国庆之前面试的一家公司，忽然通知要朋友去上班，这家公司不是远程。每天要去实地上班，路上地铁转公交起码一个小时。现在朋友有点纠结了！是两个工作是同时进行。还是二选一？远程工作底薪 15000 （试用期 12000 ）+绩效（不确定是否真的能拿到继续）试用期两个月；实地工作试用期 16000.转正后是 16000+，试用期一个月；大家帮忙看看~</p>
-]]></content:encoded>
-<pubDate>2024-10-15T01:36:50Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 贷款求 follow 码，五天后连本带息还</title>
-<link>https://www.v2ex.com/t/1080318</link>
-<guid>https://www.v2ex.com/t/1080318</guid>
-<content:encoded><![CDATA[
-邮箱：eGl1c2hlbmd5dWFuQGdtYWlsLmNvbQ==
-]]></content:encoded>
-<pubDate>2024-10-15T01:31:15Z</pubDate>
-</item>
-<item>
-<title>[RSS] 分享我的 follow 订阅源 曹贼主题</title>
-<link>https://www.v2ex.com/t/1080316</link>
-<guid>https://www.v2ex.com/t/1080316</guid>
-<content:encoded><![CDATA[
-<a href="https://app.follow.is/list/68315511024752640?view=3" rel="nofollow noopener" target="_blank">https://app.follow.is/list/68315511024752640?view=3</a>
-]]></content:encoded>
-<pubDate>2024-10-15T01:43:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 逆向复刻 qt 程序的界面设计有什么简单方法吗？</title>
-<link>https://www.v2ex.com/t/1080315</link>
-<guid>https://www.v2ex.com/t/1080315</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-10-15T01:28:27Z</pubDate>
-</item>
-<item>
-<title>[RSS] 勇敢的人先享受世界,求一个 follow 码</title>
-<link>https://www.v2ex.com/t/1080313</link>
-<guid>https://www.v2ex.com/t/1080313</guid>
-<content:encoded><![CDATA[
-aGtpYWoyMzMzQGdtYWlsLmNvbQ==
-]]></content:encoded>
-<pubDate>2024-10-14T21:28:13Z</pubDate>
-</item>
-<item>
-<title>[程序员] 做开发和做逆向安全哪个有前途</title>
-<link>https://www.v2ex.com/t/1080312</link>
-<guid>https://www.v2ex.com/t/1080312</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-10-15T01:45:08Z</pubDate>
-</item>
-<item>
-<title>[服务器] 双十一买个迷你主机当小服务器 AIO 有推荐的吗？</title>
-<link>https://www.v2ex.com/t/1080309</link>
-<guid>https://www.v2ex.com/t/1080309</guid>
-<content:encoded><![CDATA[
-<p>直接装 PVE 搞 AIO ，然后上面装个 win11 、黑群晖、若干个 ubuntu 跑 k8s 和相关服务。双 2.5g 网口，硬盘位越多越好。希望功耗尽量低一些省电。目前看上了零刻 eq13 ，但是担心 N100 性能带不起太多虚拟机。有更好的推荐的吗？</p>
-]]></content:encoded>
-<pubDate>2024-10-15T01:45:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] window 如何让网线当做主网络， wifi 当做备用网络</title>
-<link>https://www.v2ex.com/t/1080308</link>
-<guid>https://www.v2ex.com/t/1080308</guid>
-<content:encoded><![CDATA[
-<p>我的电脑目前可以连接网线与 wifi ，如何设置当网线完全连接不可用事，再自动使用 wifi 连接，因为是两个路由器分开的，网线的那个是老毛子，我怕他不稳定，远程就链接不上了</p>
-]]></content:encoded>
-<pubDate>2024-10-15T01:39:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为什么还有人在双十一买东西？</title>
-<link>https://www.v2ex.com/t/1080307</link>
-<guid>https://www.v2ex.com/t/1080307</guid>
-<content:encoded><![CDATA[
-双十一刚出来的时候，确实是降价便宜。<br /><br />不过回首近十年的双十一，基本都在使用从 9 月开始涨价，然后双十一再降回九月之前日常价的套路，实际上一点也没便宜。<br /><br />感觉现在的人都被双十一的思维惯性给迷惑了，条件反射认为会便宜，实际并不是。
-]]></content:encoded>
-<pubDate>2024-10-14T09:18:38Z</pubDate>
-</item>
-<item>
-<title>[问与答] iPhone +华为手表 体验怎么样？</title>
-<link>https://www.v2ex.com/t/1080306</link>
-<guid>https://www.v2ex.com/t/1080306</guid>
-<content:encoded><![CDATA[
-用了好多年 apple watch 了，<br /><br />只用来看通知和记录运动/健康数据，从不在手表上回消息、用 app 。<br /><br />最近看华为手表 gt5 pro 挺好看的，主要是待机时间长。<br /><br />不知 iphone+华为手表体验怎么样？<br />只看通知和记录运动/健康数据的话，是否能替代 apple watch ？
-]]></content:encoded>
-<pubDate>2024-10-15T01:47:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 猜猜今天大 A 涨还是跌，猜中的今天收盘后打赏感谢</title>
-<link>https://www.v2ex.com/t/1080305</link>
-<guid>https://www.v2ex.com/t/1080305</guid>
-<content:encoded><![CDATA[
-有效时间截止到上午收盘。<br /><br />为了不当韭菜，很多 V 友最近在疯狂充电，<br /><br />如果你赚了钱或者亏了钱，欢迎来分享你的经验：<br /><br /><a href="https://www.v2ex.com/t/1079085" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1079085</a>
-]]></content:encoded>
-<pubDate>2024-10-15T02:15:22Z</pubDate>
 </item>
 </channel>
 </rss>
