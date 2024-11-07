@@ -5,14 +5,674 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[SSH] 通过 OSC 52 在 SSH 中调用本地 clipboard</title>
+<link>https://www.v2ex.com/t/1087392</link>
+<guid>https://www.v2ex.com/t/1087392</guid>
+<content:encoded><![CDATA[
+
+<p>我日常使用 MacbookPro, 但有一半的开发工作通过 SSH 在 Linux/amd64 的环境下完成.
+考虑到我基本使用 vim 做为编辑器, 上述方案的唯一痛点在于两台机器无法共享剪贴盘.</p>
+<p>昨天乘着配置新环境的机会, 搜索了一下解决方案, 选择了 OSC 52.</p>
+<p>OSC 是 Operating System Command 的缩写, 其约定了一系列特殊符号的含义.
+<a href="https://www.reddit.com/r/vim/comments/k1ydpn/a_guide_on_how_to_copy_text_from_anywhere/" rel="nofollow">OSC 52</a>
+是其一个子类, 用于控制系统剪贴板. 我们引用 tmux 的文档来总结其原理:</p>
+<blockquote>
+<p>Some terminals offer an escape sequence to set the clipboard.
+This is one of the operating system control sequences so it is known as OSC 52.</p>
+<p>The way it works is that when text is copied in tmux it is packaged up and sent to the outside terminal in a similar way to how tmux draws the text and colours and attributes. The outside terminal recognises the clipboard escape sequence and sets the system clipboard.</p>
+</blockquote>
+<p>当前大部分的终端都已经支持了这项功能,
+当你在终端执行 <code>echo -en "\e]52;c;$(base64 &lt;&lt;&lt; OSC)\a"</code> 后再黏贴可以看到 OSC 这三个字符串.</p>
+<p>OSC 52 在 tmux 中的定义是 <code>\033]52;%p1%s;%p2%s\a</code>, 其中各项的含义是:</p>
+<ul>
+<li><code>\033</code> 是一个八进制表示的 27, 对应控制符号 ESC. 我们也可以使用 <code>\x1B</code>(十六进制) 或 <code>\e</code>(简写). </li>
+<li><code>]52</code> 代表 OSC 52</li>
+<li><code>%p1%s</code> 是 tmux 的占位符, 实际使用时 <code>c</code> 代表剪贴板</li>
+<li><code>%p2%s</code> 对应 base64 后的剪贴内容.</li>
+<li><code>\a</code> 是控制字符 BEL 的缩写, 也可以使用 <code>\x7</code> 或 <code>\07</code>.</li>
+</ul>
+<p>我在 iterm2 中使用 tmux, 参考 <a href="https://github.com/tmux/tmux/wiki/Clipboard" rel="nofollow">tmux 的官方文档</a>, 可以知道关键的几项设置:</p>
+<ol>
+<li>iterm2 需要允许内部应用访问系统剪贴板, <a href="https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---iterm2" rel="nofollow">Link</a></li>
+<li>tmux 配置 TERM, 检查方式为 <code>tmux info | grep Ms</code>, 设置方式为 <code>set-option -as terminal-overrides ",xterm-256color:clipboard"</code></li>
+<li>tmux 配置 set-clipboard, 设置访问是 <code>set -g set-clipboard on</code></li>
+<li>通过 <code>tmux source-file</code> 更新配置</li>
+</ol>
+<p>需要额外谈的是 set-clipboard, 文档推荐的设置是 external, 但我选择的是 on.
+二者的区别在于 on 允许 tmux 和 tmux 内的应用设置剪贴板, external 仅允许 tmux 设置剪贴板.
+所以当我通过 ssh 访问开发机并希望在开发机内访问本机的剪贴板时需要将 set-clipboard 设置为 on.</p>
+<p>最后通过 <a href="https://github.com/skaji/remote-pbcopy-iterm2/tree/master" rel="nofollow">remote-pbcopy-iterm2</a> 将 OSC 52 的逻辑封装成了命令 pbcopy.</p>
+]]></content:encoded>
+<pubDate>2024-11-07T04:22:16Z</pubDate>
+<pubDate>2024-11-07T04:22:16Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 京东的 mbp 两年免费换新服务靠谱吗？会不会是智商税？</title>
+<link>https://www.v2ex.com/t/1087391</link>
+<guid>https://www.v2ex.com/t/1087391</guid>
+<content:encoded><![CDATA[
+
+<p>有人体验过的吗？</p>
+]]></content:encoded>
+<pubDate>2024-11-07T04:17:06Z</pubDate>
+<pubDate>2024-11-07T04:15:06Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 还是牛的</title>
+<link>https://www.v2ex.com/t/1087390</link>
+<guid>https://www.v2ex.com/t/1087390</guid>
+<content:encoded><![CDATA[
+
+<p>换了小米 15pro ，发现照片少了很多，仔细一排查发现小米连 cr3 都无法识别。</p>
+<p>仔细想想我是 21 年 618 买的 佳能 r6 ，一直都是拍完导入到 iPhone 修图，从来没意识到 cr3 他其实是 2020 年佳能才推出的一个很新的 raw 格式，而 iPhone 很快就支持了浏览编辑。</p>
+<p>我是没想到这都 4 年了，小米居然都没想过支持一下这个东西。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T04:13:22Z</pubDate>
+<pubDate>2024-11-07T04:13:22Z</pubDate>
+</item>
+<item>
+<title>[English] 站内的背单词帖子都打不开了，各位还有推荐的吗？</title>
+<link>https://www.v2ex.com/t/1087389</link>
+<guid>https://www.v2ex.com/t/1087389</guid>
+<content:encoded><![CDATA[
+
+<p>刚把百度翻译和谷歌翻译收藏的生词导出来了。百度翻译里的用 Potplayer 看美剧时遇到的，赞一个 Potplayer; 谷歌翻译里的是平时看网页时遇到的。
+请各位分享推荐可以导入单词表的 app 。🤞</p>
+]]></content:encoded>
+<pubDate>2024-11-07T04:12:06Z</pubDate>
+<pubDate>2024-11-07T04:10:06Z</pubDate>
+</item>
+<item>
+<title>[酷工作] DevOps [远程] [20-25K] work life balance 外企</title>
+<link>https://www.v2ex.com/t/1087388</link>
+<guid>https://www.v2ex.com/t/1087388</guid>
+<content:encoded><![CDATA[
+
+公司：Xometry<br /><br />新增一个 DevOps 岗位，可以远程，work life balance<br /><br />英语面试(简单沟通即可)，英文简历<br /><br />目前中国团队没有运维，所以需要遇到些运维问题需要一个 DevOps Engineer 来解决，初步看下来不会有太花里胡哨的操作.<br /><br />加 V 内推：Ace151314<br /><br />以前加过我的有需要再 V 我一下<br /><br /><br />具体要求如下:<br /><br />The platform<br /><br />Our in-house platform is built on Ruby on Rails stack with PostgreSQL database. We are building the uber-like platform for manufacturing, deploying updates almost every working day, so there is a lot of interesting work to be done. Xometry’s platform and corporate functions utilize multiple cloud service providers. The ideal candidate would be well versed in cloud technologies, including IaaS,PaaS, SaaS, hybrid, and multi-cloud.<br /><br />Successful candidate has<br /><br />● 3+ years of experience as DevOps&amp;IT support engineer.<br /><br />● Basic Linux infrastructure skills: ability to connect to a server via ssh, view vital metrics and logs on the<br />server, edit configuration files and restart related system-based services and docker containers if necessary.<br /><br />● Basic skills in working with cloud providers (AWS, GCE, Azure, Tencent, etc.) will be a big plus.<br /><br />● Ability to work with git: read file change history, edit text files with ACLs managed via GitOps, make a pull-request with proposed changes.<br /><br />● Basic knowledge of Chinese IT law specifications: things like ICP licenses, or at least the ability and willingness to study related official documents.<br /><br />● Chinese language skills to communicate with the team on site (for non-Chinese candidates).<br /><br />● Proficiency in English for communication with EU and US based IT teams.<br /><br />● Experience installing and customizing MacOS<br /><br />● Ability to diagnose a problem remotely.<br /><br />● Experience with MS Azure and Google for Business will be a plus.<br /><br />● Willingness to document your work. (Writing instructions for the team or users)<br />Work conditions<br /><br />● English and Chinese speaking tech team in the Chinese branch of a large international company.<br /><br />● A developing startup (65 people in China) inside the world market leader (~1000 people in total).<br /><br />● Full-time position.<br /><br />● Salary is negotiable with each candidate.
+]]></content:encoded>
+<pubDate>2024-11-07T04:05:58Z</pubDate>
+<pubDate>2024-11-07T04:02:58Z</pubDate>
+</item>
+<item>
+<title>[买买买] 双 11 有什么值得囤的租车的活动/商品之类的呀</title>
+<link>https://www.v2ex.com/t/1087387</link>
+<guid>https://www.v2ex.com/t/1087387</guid>
+<content:encoded><![CDATA[
+
+<p>冬天骑车太冷，想提前囤一些租车的券之类的，不知道有没有什么合适的</p>
+]]></content:encoded>
+<pubDate>2024-11-07T04:01:18Z</pubDate>
+<pubDate>2024-11-07T04:01:18Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] ChatGPT 变笨？你可能正在被偷偷降级！我做了个小工具，用来检测 IP 是否被 ChatGPT 判定为高风险 IP</title>
+<link>https://www.v2ex.com/t/1087386</link>
+<guid>https://www.v2ex.com/t/1087386</guid>
+<content:encoded><![CDATA[
+
+<p><strong>省流版：</strong></p>
+<p>项目地址： <a href="https://github.com/KoriIku/chatgpt-degrade-checker" rel="nofollow">https://github.com/KoriIku/chatgpt-degrade-checker</a></p>
+<p>安装后打开 ChatGPT ，鼠标挪到右侧小圆圈上即可看到检测结果。</p>
+<h2>ChatGPT 服务降级</h2>
+<p>ChatGPT 有一个服务降级策略：</p>
+<p>如果 ip 不干净，ChatGPT 会偷偷把模型换成更笨的。模型变傻了、回复变快了、明明是 4o 却说不会网络搜索、明明是 o1 却不思考就回答，遇到这些情况，就是你被降级了。</p>
+<p>这个降级有两个非常恶心的地方：</p>
+<ol>
+<li>它没有明确提示，依然显示你正在用 o1 或者 4o 模型。</li>
+<li>它对 plus 用户也一样降级。</li>
+</ol>
+<p>也就是说，我花大价钱开个 plus ，就因为 ip 被它认为不干净，所以没有任何提示地把 o1 和 4o 换成了 4o-mini ，也没有提供恢复的措施。</p>
+<h2>检测方法</h2>
+<p>目前已知的检测方法有几个：隐私模式打开 chatgpt 看能否不登陆使用 4o-mini ，或者直接命令 4o 进行网络搜索。但不是那么量化，有时也不太直观。</p>
+<p>所以我做了个工具，用来检测 chatgpt 对你 ip 的风险评级。由于服务降级和 ip 强相关，这个工具也可以在一定程度上帮助判断降级。</p>
+<p>安装地址： <a href="https://github.com/KoriIku/chatgpt-degrade-checker" rel="nofollow">https://github.com/KoriIku/chatgpt-degrade-checker</a></p>
+<p>安装脚本之后打开 ChatGPT ，右侧会有一个圆圈，鼠标挪上去就能看到检测结果。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/I2hyWt6.png" /></p>
+<p>它的原理是 ChatGPT 会要求 PoW ，对不同的 ip 所要求的 PoW 难度也不同，因此我们可以根据 PoW 的难度来判断当前 IP 在服务端的风险评级。</p>
+<p>这个工具仍然不是百分百可靠的，毕竟 openai 的风控手段是个黑盒，但提供了一个可参考的依据。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:58:28Z</pubDate>
+<pubDate>2024-11-07T04:22:36Z</pubDate>
+</item>
+<item>
+<title>[香港] 看到新闻说：境外发行的银联卡全面支持绑定微信支付和支付宝。问题中银香港的借记卡能绑定吗，有人绑定成功吗</title>
+<link>https://www.v2ex.com/t/1087384</link>
+<guid>https://www.v2ex.com/t/1087384</guid>
+<content:encoded><![CDATA[
+
+<p>中银香港的借记卡，不是信用卡，没有背面的 CVV,有人在微信支付或支付宝绑定吗</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:53:41Z</pubDate>
+<pubDate>2024-11-07T04:23:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] 最近流行开源+云服务模式吗？</title>
+<link>https://www.v2ex.com/t/1087383</link>
+<guid>https://www.v2ex.com/t/1087383</guid>
+<content:encoded><![CDATA[
+
+<p>看到很多项目都提供了开源版本，也有官方云服务收费版本，这样收入会更高吗？</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:49:39Z</pubDate>
+<pubDate>2024-11-07T04:22:09Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 最近有同学遇到 imessage 无法激活的吗？</title>
+<link>https://www.v2ex.com/t/1087382</link>
+<guid>https://www.v2ex.com/t/1087382</guid>
+<content:encoded><![CDATA[
+
+<p>江西某地电信</p>
+<p>包括 facetime ，激活时弹窗：激活出错，请重试。</p>
+<p>苹果客服说：激活短信运营商屏蔽了，请联系运营商解决。</p>
+<p>电信客服说：市里省里都查了，所有下发一切正常，请联系苹果客服解决。</p>
+<p>皮球循环了两次，接下来怎么办？</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:48:50Z</pubDate>
+<pubDate>2024-11-07T04:22:35Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] 万能的 v 友, 在双十一我想选购一款显示器, 需求如下</title>
+<link>https://www.v2ex.com/t/1087381</link>
+<guid>https://www.v2ex.com/t/1087381</guid>
+<content:encoded><![CDATA[
+
+<p>用途主要连接台式机和 MacBook + 4k 分辨率 + 120hz 刷新率及以上 + 可以一线通 macbook + 直面屏 16:9 + 最好是镜面屏 雾面也可以 + 性价比高
+想请教万能的 v 友有没有推荐的</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:46:59Z</pubDate>
+<pubDate>2024-11-07T04:22:42Z</pubDate>
+</item>
+<item>
+<title>[Apple] 刚在京东执行上门服务换了个 13pm 原装电池,有几个疑问</title>
+<link>https://www.v2ex.com/t/1087380</link>
+<guid>https://www.v2ex.com/t/1087380</guid>
+<content:encoded><![CDATA[
+
+<p>1.他们开屏幕就用的刀片,往里面滴了一些什么液体,然后慢慢划开,这种怎么感觉好不专业啊
+2. 里面的面容和前置摄像头也没加保护贴纸,不怕有尘土粘上?
+3. 那个旧电池他们说苹果让拿回去,旧电池是不是对苹果来说还有用?</p>
+<p>电池费用是 545 .</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:46:23Z</pubDate>
+<pubDate>2024-11-07T03:55:19Z</pubDate>
+</item>
+<item>
+<title>[macOS] mac Sonoma 14 对比 12 的耗电 差异有多大？</title>
+<link>https://www.v2ex.com/t/1087379</link>
+<guid>https://www.v2ex.com/t/1087379</guid>
+<content:encoded><![CDATA[
+
+<p>1 、有应用需要高版本的 但是短期不更新也行
+2 、因为有外带需求 所有对耗电比较关注</p>
+<p>所以希望问问大家这两个版本使用耗电的情况 我也好有个判断 感谢各位</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:42:22Z</pubDate>
+<pubDate>2024-11-07T03:53:08Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 买了个香港阿里云，快的时候 5M/s 下载速度，慢的时候 200k/s，实在是郁闷。</title>
+<link>https://www.v2ex.com/t/1087377</link>
+<guid>https://www.v2ex.com/t/1087377</guid>
+<content:encoded><![CDATA[
+
+我放 APK 下载，对于 100M 的文件下载，遇到 200k/s 是真的遭不住。<br /><br />这个下载速度，和高峰时间段/电信还是移动都有关系。ping 值也不太稳定，高的时候掉包率 10%，TCP 完全没办法用了，低的时候 1%。<br /><br />纠结了半天，还是退货了。
+]]></content:encoded>
+<pubDate>2024-11-07T03:40:42Z</pubDate>
+<pubDate>2024-11-07T03:49:30Z</pubDate>
+</item>
+<item>
+<title>[Apple] 关于 ac+</title>
+<link>https://www.v2ex.com/t/1087376</link>
+<guid>https://www.v2ex.com/t/1087376</guid>
+<content:encoded><![CDATA[
+
+<a href="https://i.imgur.com/IyCiA91.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/IyCiA91.png" /></a><br />要不要买 ac+
+]]></content:encoded>
+<pubDate>2024-11-07T03:38:03Z</pubDate>
+<pubDate>2024-11-07T04:06:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 焦虑症复发了，求开导</title>
+<link>https://www.v2ex.com/t/1087375</link>
+<guid>https://www.v2ex.com/t/1087375</guid>
+<content:encoded><![CDATA[
+
+<p><strong>病因</strong></p>
+<pre><code>疫情刚放开的时候阳了，当时 zf 发布的通知，出现体温出现 35 度以下、呼吸困难就需要紧急就医，当时住在沙河村里，冬天不暖和，阳了的第二天起来量体温，水银体温计都不动，去了诊所，用人家的也不动，重点当时流行这株那株的，我一个同事调侃我这是渐冻株，给我吓的去医院了，大夫说没事，然后当晚就出现呼吸困难（怀疑是心理作用），然后给 120 打电话，好不容易打通了，接线员说现在能哌，但是到了医院排队，现在好多医院都是吐血急救的，给我吓得连夜买票跑回老家了
+
+回老家呆到年后，居家办公（领导非常 nice ），期间医院都跑了七八次，总感觉心悸、胸口刺痛，一个人不敢睡觉，一个同学年后结婚，经常去人家婚房蹭睡，在老家最后一次去医院，大夫说你这该检查的都检查了没问题，不行吃点治焦虑的药吧，然后到了北京去了北大三院，确诊重度焦虑，轻度抑郁，开始吃药
+</code></pre>
+<p><strong>过程</strong></p>
+<pre><code>刚开始吃的罗拉还是劳拉来着，当时虽然控制住了，但是网上说这药的戒断反应十分强烈，当时还在焦虑期，担心这个问题，前后换了三种药，最后一直吃盐酸度洛西汀，去年后半年开始逐步减药，今年年初停药
+
+吃药期间，我一直忘不了有次跟同事出去团建吃饭，吃完下楼一吹风，有种蒙在心理的雾化开了的感觉，真好
+
+直到九月份，心理总会想起，我如果死了，我媳妇、父母该怎么办（去年五月份结婚），然后又开始怕死，特别前两天万圣节，媳妇和同事去环球玩，有一天不在家睡觉，那种焦虑感铺面而来，怎么都睡不着，我就知道复发了
+</code></pre>
+<p><strong>心理变化</strong></p>
+<pre><code>犯病前：正常人心理，有选择困难症，做一个决定犹犹豫豫，考虑特别多，有跑步习惯，一年路跑五六百公里，同学、家人、同事都不信我会有这毛病
+
+犯病后：一开始没反应过来，后来随着正面这种心理，也调整过来了，一些躯体症状能做到熟视无睹，加上药物辅助也好起来了
+
+现在：以前不管犯病前后，工作都不算忙，但是现在忙得一批，新同事卷的我无暇他顾，复发应该不是工作导致的，这个病确实大概率会复发，但没想到是这个节点，特别是 10 月 30 号去体检，检查出一系列的问题，颈椎韧带钙化、幽门螺旋杆菌阳性、甲状腺结节、肺部玻璃结节（ 4mm ，大夫说小于 8mm 的不用管)，最严重的是同型半胱氨酸 76 ，正常 0-15.。。。属于危险了，这周一去医院挂心内科了、呼吸科、消化科，心内科主任级大夫说影响不大，但也不能说知道了不管，让吃叶酸。大夫都说没啥大事了，可是我属于焦虑期呀！三个科室零零总总给我开了一书包药（幽门螺旋杆菌 14 盒药。。）
+</code></pre>
+<p><strong>最后</strong></p>
+<pre><code>从心理上，我能正视这个问题，但问题是，它属于发病了，我已经胡思乱想一段时间了我才反应过来发病了，然后再转移思绪正面躯体症状，这期间有过程，导致我现在工作提不起劲儿，晚上睡不好，去过北医三院，大夫让吃药，现在吃着最小剂量，起点辅助作用
+
+有没有有经验的 v 友提供一些宝贵的经验呀，这种病不害人但是折磨人呀
+</code></pre>
+<p>ps：别人犯病是想死，我 TMD 是怕死</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:36:07Z</pubDate>
+<pubDate>2024-11-07T03:33:07Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] WR30U 刷官方 openwrt 的一些疑问</title>
+<link>https://www.v2ex.com/t/1087374</link>
+<guid>https://www.v2ex.com/t/1087374</guid>
+<content:encoded><![CDATA[
+
+刷机链接： <a href="https://github.com/openwrt/openwrt/pull/12770" rel="nofollow noopener" target="_blank">https://github.com/openwrt/openwrt/pull/12770</a><br /><br />这个 WR30U 是双系统分区，第三步骤：<br />If you find firmware=0 or mtd=ubi, use these commands:<br />nvram set flag_last_success=1<br />nvram commit<br /><br />If you find firmware=1 or mtd=ubi1, use these commands:<br />nvram set flag_last_success=0<br />nvram commit<br /><br />我的理解:如果当前是 A 分区系统（ firmware=0 ）,就刷 B 分区系统（ firmware=1 ）,反之亦然，flag_last_success 查资料得知是上次的启动状态，用于执行一些故障恢复操作等，<br /><br />疑问 1：为什么 A 分区系统下刷机要 set flag_last_success=1, B 分区系统下刷机 set  flag_last_success=0<br />疑问 2：步骤五中的 setup uboot-env 又设置一遍 fw_setenv flag_boot_rootfs 0<br />fw_setenv flag_last_success 1 ，是干什么用的
+]]></content:encoded>
+<pubDate>2024-11-07T03:34:08Z</pubDate>
+<pubDate>2024-11-07T03:33:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 不知不觉，抖音黑名单里面已经有这么多大 V 了</title>
+<link>https://www.v2ex.com/t/1087373</link>
+<guid>https://www.v2ex.com/t/1087373</guid>
+<content:encoded><![CDATA[
+
+我先来：<br />保安阿斌<br />大小杨哥<br />吴艳妮<br />何同学<br />褚会长<br />周鸿祎<br />反诈老陈<br />李湘<br />解清帅<br />刘耕宏<br />张国伟<br />高晓松<br />胡锡进<br />丁真<br />韩美娟<br />田一名<br />广东夫妇<br />贾乃亮<br /><br />根本屏蔽不过来，越来越多的主播走上了带货的道路
+]]></content:encoded>
+<pubDate>2024-11-07T03:33:47Z</pubDate>
+<pubDate>2024-11-07T03:36:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 忍不住吐槽最近碰到的妖魔鬼怪，微 S 成长中，芸芸众生有几个行的？</title>
+<link>https://www.v2ex.com/t/1087372</link>
+<guid>https://www.v2ex.com/t/1087372</guid>
+<content:encoded><![CDATA[
+
+大概有 ABCDEF 这么多个吧，每一位都很奇葩，<br />但共同点大概是时间上都很不行，从上楼按电梯到下楼最多半小时。<br />流程大约是关灯拉窗帘，魔爪之手盘核桃嗷嗷叫<br />倒着往前吐槽吧<br /><br />E 是个 21 岁男大学生也是背着女友出来玩，晚上还有晚自习那种，卡时间。<br /><br />会低头脱穿鞋，舔脚心，闻袜子，乖乖等捆绑，腰腹收缩厉害。<br /><br />在女朋友面前类似 S ，占据主导地位，但不知道是不是青错觉，身上有股难闻的味道，洗了澡也没去掉。<br /><br />由于什么道具和油什么的都没带，灭火器太干巴，E 主动拿来了沐浴露玩，没玩几下就交代了，玩完又害怕感染。<br /><br />交代之后就变脸了，翻脸贼快，洗手穿鞋走人。<br /><br />寒风凛冽，男人其实没几个行的，这么大秘密为什么没人吐槽呢，小说影视电影资料全都渲染它很行很棒，实际寥寥无几，当然也可能青玩的实验本数量还不够。
+]]></content:encoded>
+<pubDate>2024-11-07T03:31:29Z</pubDate>
+<pubDate>2024-11-07T04:25:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] 求推荐好用的 Mac 软件或者使用指南</title>
+<link>https://www.v2ex.com/t/1087371</link>
+<guid>https://www.v2ex.com/t/1087371</guid>
+<content:encoded><![CDATA[
+
+<p>比如怎么管理文件呀真的不想在把文件夹摞在桌面了啊啊啊啊啊</p>
+<p>Raycast 功能很多但是也真的很少用，有什么好用的功能吗，个人最喜欢的也就是可以永远 float 在顶层的 Note 了其他的功能和插件都很少用。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:30:22Z</pubDate>
+<pubDate>2024-11-07T03:27:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 刚看了个宣传视频说 XJ 叔叔说微信团队会自动截屏录屏上报？从技术层面分析这是真的吗？</title>
+<link>https://www.v2ex.com/t/1087370</link>
+<guid>https://www.v2ex.com/t/1087370</guid>
+<content:encoded><![CDATA[
+
+<p>原视频 <a href="https://www.bilibili.com/video/BV15uDjYzExv/" rel="nofollow">https://www.bilibili.com/video/BV15uDjYzExv/</a></p>
+<p>如果是这样的话  那界定违法信息的标准是谁定的 我和女朋友还有隐私吗</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:28:07Z</pubDate>
+<pubDate>2024-11-07T03:49:04Z</pubDate>
+</item>
+<item>
+<title>[Android] 入手 Y700 二代 感觉系统真是坑</title>
+<link>https://www.v2ex.com/t/1087368</link>
+<guid>https://www.v2ex.com/t/1087368</guid>
+<content:encoded><![CDATA[
+
+RT 系统像个毛坯房 但是竟然还心眼坏的 block 掉跳开屏广告软件的使用 <br />请问如果暂时不想刷系统 有办法解决这个吗哈哈
+]]></content:encoded>
+<pubDate>2024-11-07T03:25:12Z</pubDate>
+<pubDate>2024-11-07T03:50:22Z</pubDate>
+</item>
+<item>
+<title>[问与答] 什么？让我去做综合部经理，认真的吗？</title>
+<link>https://www.v2ex.com/t/1087367</link>
+<guid>https://www.v2ex.com/t/1087367</guid>
+<content:encoded><![CDATA[
+
+<p>今天正在上班，微信突然有一个好友请求，看备注应该是猎头，我就加了。
+对方说是中美大都会保险公司的，公司看了我的简历，觉得非常不错，想招聘综合部管理岗位，title 是经理，我心想，这家伙，我这么多年了，一只是搞技术的，突然怎么找我应聘综合部经理了。
+然后我说我一直是技术岗您了解吧，对方表示知道，公司看中的是我的经历，觉得很不错。聊到这我就觉的不对劲了，于是我上网查了这个家公司，果然，在知乎里面看到了具有相同经历的小伙伴，根据知乎的那位朋友说的，最后其实就是招销售。
+后面我就没有再回复了，差点约了周一上午去面试，哈哈哈。事实证明，我对自己几斤几两还是很清楚的，天上不会掉馅饼，主要是这个馅饼有点假，再真点我就信了。
+大家有类似经历吗？分享出来让大家避避坑!
+下面附上截图吧：
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://www.huhailong.vip/laolu/file/loadImg/1854362722007859202?widthPix=600&amp;heightPix=600" />
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://www.huhailong.vip/laolu/file/loadImg/1854362955144052738?widthPix=600&amp;heightPix=600" />
+<img alt="image.png" class="embedded_image" rel="noreferrer" src="https://www.huhailong.vip/laolu/file/loadImg/1854363094944399362?widthPix=600&amp;heightPix=600" /></p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:22:14Z</pubDate>
+<pubDate>2024-11-07T03:54:08Z</pubDate>
+</item>
+<item>
+<title>[ WATCH] 从 redmi watch4 换到 apple watch10 感受</title>
+<link>https://www.v2ex.com/t/1087366</link>
+<guid>https://www.v2ex.com/t/1087366</guid>
+<content:encoded><![CDATA[
+
+<p>s10 是刚刚发布的时候官网买的，实际使用下来感觉没红米手表 4 好用：</p>
+<p>1 、s10 不支持 NFC 刷门禁，有办法实现但是麻烦，红米直接就支持。</p>
+<p>2 、红米手表的睡眠统计非常直观，我以前每天都会去看一眼。但是 Apple 的健康 APP 感觉设计的不符合我的审美习惯，内容繁杂，统计功能较弱，我到现在只看了几次。没有让人每天去看的欲望。</p>
+<p>3 、s10 每天充电而且慢，红米五天一次。</p>
+<p>4 、s10 表盘皮肤太少，缺少个性化，而且我喜欢看精确到秒的时间。红米好看的表盘多。</p>
+<p>5 、s10 内的 app 不少，但是感觉我大部分用不到。</p>
+<p>总结：后悔了</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:20:23Z</pubDate>
+<pubDate>2024-11-07T03:50:36Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在 13、14 代的 CPU 可以入了吗？</title>
+<link>https://www.v2ex.com/t/1087364</link>
+<guid>https://www.v2ex.com/t/1087364</guid>
+<content:encoded><![CDATA[
+
+前段时间出了爆缸问题，后面说更新微码解决了。<br /><br />我搜了些文章看了看，搞的很复杂，又是更新微码，又是调整主板 BIOS 设置，麻烦的很。<br />本人小白，不会搞这些东西。<br /><br />如果现在买的话，是不是都是更新过微码的 CPU ？还需要调整主板 BIOS 设置吗？<br />需要注意 CPU 的出厂日期吗？
+]]></content:encoded>
+<pubDate>2024-11-07T03:16:42Z</pubDate>
+<pubDate>2024-11-07T04:21:44Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 字节的加拿大办公室被禁了</title>
+<link>https://www.v2ex.com/t/1087363</link>
+<guid>https://www.v2ex.com/t/1087363</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.xiaohongshu.com/explore/672be966000000003c0185b6?app_platform=android&amp;ignoreEngage=true&amp;app_version=8.59.0&amp;share_from_user_hidden=true&amp;xsec_source=app_share&amp;type=normal&amp;xsec_token=CBtEsLP5CCr5AFjZsfUYsJjerkbMx34lKWhfF7SBfyHpg=&amp;author_share=1&amp;xhsshare=WeixinSession&amp;shareRedId=ODY1NzQ7ST02NzUyOTgwNjY0OTc7PUxL&amp;apptime=1730938557&amp;share_id=b510b2d37cb348e2a88ca02856a11e68" rel="nofollow">https://www.xiaohongshu.com/explore/672be966000000003c0185b6?app_platform=android&amp;ignoreEngage=true&amp;app_version=8.59.0&amp;share_from_user_hidden=true&amp;xsec_source=app_share&amp;type=normal&amp;xsec_token=CBtEsLP5CCr5AFjZsfUYsJjerkbMx34lKWhfF7SBfyHpg=&amp;author_share=1&amp;xhsshare=WeixinSession&amp;shareRedId=ODY1NzQ7ST02NzUyOTgwNjY0OTc7PUxL&amp;apptime=1730938557&amp;share_id=b510b2d37cb348e2a88ca02856a11e68</a></p>
+<p>本来昨天 Trump 获胜，很多同事们都还燃起了希望，没想到今天一大早看到这个消息，加拿大政府先下手为强，直接把字节的办公室给关停了。</p>
+<p>有些同事本来明年初就要去加拿大的，这下要重新规划了。</p>
+<p>逆全球化的浪潮下，要出去越来越难了。</p>
+<p>想起那句老话：“一个人的命运啊，当然要靠自我奋斗，但是也要考虑到历史的进程”</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:16:06Z</pubDate>
+<pubDate>2024-11-07T04:20:10Z</pubDate>
+</item>
+<item>
+<title>[汽车] 搞车推荐，城市代步为主</title>
+<link>https://www.v2ex.com/t/1087362</link>
+<guid>https://www.v2ex.com/t/1087362</guid>
+<content:encoded><![CDATA[
+
+<p>现在油车代步，开 5-6 年了。
+每日通勤来回 45km
+加上周末出去耍 每个月油费 1000+
+每年回山里 3-5 趟，单程 150km, 山路可能 30km</p>
+<p>想说上电车，降成本。 预算 10-20w
+电车眼花缭乱，看不来了。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:15:22Z</pubDate>
+<pubDate>2024-11-07T03:37:21Z</pubDate>
+</item>
+<item>
+<title>[程序员] 在尝试了多个独立开发的项目以后，终于迎来了第一个盈利的项目</title>
+<link>https://www.v2ex.com/t/1087361</link>
+<guid>https://www.v2ex.com/t/1087361</guid>
+<content:encoded><![CDATA[
+
+<p>前段时间跟朋友一起做了一款<a href="https://tempmail100.com" rel="nofollow">临时邮箱</a>的产品，我写服务器和接口，他写 iOS 。经过一段时间，终于开始有收入了。 </p>
+<p>图床我使用的是朋友的 <a href="https://stardots.ink/" rel="nofollow">星光图床</a></p>
+<p><img alt="707shots_so.png(via stardots.ink)" class="embedded_image" rel="noreferrer" src="https://i.stardots.ink/v2ex/707shots_so.png" title="707shots_so.png(via stardots.ink)" /></p>
+<p>临时邮箱访问地址： <a href="https://tempmail100.com" rel="nofollow">https://tempmail100.com</a></p>
+<p><img alt="logo-128x128.png(via stardots.ink)" class="embedded_image" rel="noreferrer" src="https://i.stardots.ink/v2ex/logo-128x128.png" title="logo-128x128.png(via stardots.ink)" /></p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:14:08Z</pubDate>
+<pubDate>2024-11-07T04:19:39Z</pubDate>
+</item>
+<item>
+<title>[IPv6] ikuai 已经拿到 IPV6 的地址 但是无法访问 IPV6 的网站</title>
+<link>https://www.v2ex.com/t/1087360</link>
+<guid>https://www.v2ex.com/t/1087360</guid>
+<content:encoded><![CDATA[
+
+<p>光猫已经改桥接路由器拨号，协议开启了 ipv4/ipv6 ， 但是无法访问 IPV6 的网站
+请大佬们帮忙看看</p>
+<p>光猫配置
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/J6Czwag.png" /></p>
+<p>ikuai
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fpD9OTP.png" /></p>
+<p>ikuai wan 配置
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/IgTkMEr.png" /></p>
+<p>ikuai lan 配置
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/jzNJMb8.png" /></p>
+<p>ipv6 test result
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/RbEfluN.png" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Og1b7Jv.png" /></p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:11:16Z</pubDate>
+<pubDate>2024-11-07T04:20:33Z</pubDate>
+</item>
+<item>
+<title>[Apple TV] apple tv 经常跳 ipv4</title>
+<link>https://www.v2ex.com/t/1087359</link>
+<guid>https://www.v2ex.com/t/1087359</guid>
+<content:encoded><![CDATA[
+
+<p>为啥我家的 apple tv 在看 aptv 时过几天就会跳到 ipv4 ，每次我都是拔掉电源重新插一下就变成 ipv6 了，哪位大神知道是什么情况，目前用的移动宽带。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:09:38Z</pubDate>
+<pubDate>2024-11-07T03:09:38Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] plex 如何在电视端保留关机时的播放界面</title>
+<link>https://www.v2ex.com/t/1087358</link>
+<guid>https://www.v2ex.com/t/1087358</guid>
+<content:encoded><![CDATA[
+
+<p>现在安卓电视上装了 plex 客户端。看电视的操作：</p>
+<ol>
+<li>打开电视</li>
+<li>打开 plex</li>
+<li>选择上次播放的剧集</li>
+<li>播放</li>
+</ol>
+<p>如上所述，我想省略 2 、3 两步。有啥办法可以实现？</p>
+<p><em>排除使用电视自带媒体播放器，这样就失去了媒体库的作用。</em></p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:09:08Z</pubDate>
+<pubDate>2024-11-07T03:09:08Z</pubDate>
+</item>
+<item>
+<title>[健康] 有没有 V 友做过牙齿的根管治疗以及戴牙冠？</title>
+<link>https://www.v2ex.com/t/1087357</link>
+<guid>https://www.v2ex.com/t/1087357</guid>
+<content:encoded><![CDATA[
+
+牙冠是不是必须要戴？价格差距咋 那么大 ？
+]]></content:encoded>
+<pubDate>2024-11-07T03:08:55Z</pubDate>
+<pubDate>2024-11-07T03:58:08Z</pubDate>
+</item>
+<item>
+<title>[Linux] 求助大佬， fat32 预分配空间要怎么做？</title>
+<link>https://www.v2ex.com/t/1087356</link>
+<guid>https://www.v2ex.com/t/1087356</guid>
+<content:encoded><![CDATA[
+
+<p>大佬们，fat32 这个文件系统有办法实现预分配嘛？快速预分配的那种，在 ubuntu 下好像可以，不过再 sync 的时候很慢但是自己的 linux 直接提示不支持这个操作。不知道 ubuntu 对他做了什么优化，有没有什么其他办法在 fat32 上实现快速分配空间。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:08:22Z</pubDate>
+<pubDate>2024-11-07T03:16:28Z</pubDate>
+</item>
+<item>
+<title>[iOS] 买国内版本的 mac mini 还是买港澳版？</title>
+<link>https://www.v2ex.com/t/1087355</link>
+<guid>https://www.v2ex.com/t/1087355</guid>
+<content:encoded><![CDATA[
+
+1.国内的补贴，我看都基本没了。3400 上不了车；天猫玩不起，啥补贴都用不了。<br />2.计划 12 月会去一趟澳门（买不买都会去），有朋友可以用学生优惠，再加上澳币汇率，估计也是 3600 左右入手。估计支持 AI.
+]]></content:encoded>
+<pubDate>2024-11-07T03:08:09Z</pubDate>
+<pubDate>2024-11-07T03:27:27Z</pubDate>
+</item>
+<item>
+<title>[游戏] 最近被 crazygames 游戏迷住了</title>
+<link>https://www.v2ex.com/t/1087354</link>
+<guid>https://www.v2ex.com/t/1087354</guid>
+<content:encoded><![CDATA[
+
+<p>crazygames 的游戏太多了。基本可以玩很久。还有其他新游戏推荐吗？只要小游戏</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:07:26Z</pubDate>
+<pubDate>2024-11-07T03:30:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] V 站来了一帮知乎的人？编故事一套一套的</title>
+<link>https://www.v2ex.com/t/1087353</link>
+<guid>https://www.v2ex.com/t/1087353</guid>
+<content:encoded><![CDATA[
+
+<p>昨天<a href="https://v2ex.com/member/wantstark" rel="nofollow">@wantstark</a>创建的热门贴：
+<a href="https://v2ex.com/t/1087052?p=2#reply158" rel="nofollow">出狱半年，一无所获</a>，里面把狱内生活描述的一样一样的</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XLYnRHN.png" /></p>
+<p>然后在他主页有主题<a href="https://v2ex.com/t/1050876?p=2#reply102" rel="nofollow">10 年程序员，左胸隐痛，偶尔伴随牙疼，是什么病？</a>里面写：</p>
+<blockquote>
+<p>不知不觉已经 10 年互联网了，虽然现在做小管理，但是还是写代码。而且经常要熬夜做方案、ppt 、解决问题什么的，kpi 压力很大，毕竟年纪不小了。
+最近几年，两胸中间，偏左经常隐痛，要深呼吸才能平复。去医院查也没结果；网上说是什么胸肌炎啊什么的医生都不认可，就说检查没问题。
+最近更严重，痛的时候大概会持续 30 秒-1 分钟左右，不是刺痛，就是那种神经痛的感觉，而且还伴随左侧牙龈疼。
+这是啥问题呀？有没有人碰到的。
+我已经在车里备了速效救心丸小瓶。。。。</p>
+</blockquote>
+<p>从知乎转站外网吗，不知道原贴主是不是可以出来回应一下</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:06:56Z</pubDate>
+<pubDate>2024-10-30T03:06:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 扶梯时 Acrobat Pro 总提示“此非正版 Adobe 应用程序已被禁用”</title>
+<link>https://www.v2ex.com/t/1087351</link>
+<guid>https://www.v2ex.com/t/1087351</guid>
+<content:encoded><![CDATA[
+
+<p>正常情况下使用 Acrobat Pro 一点问题没有，唯独在使用 VPN 时，总会跳出这个提示“This non-genuine Adobe app has been disabled”，告诉“此非正版 Adobe 应用程序已被禁用”。
+而且不能关闭，只能将进程杀死。网上的各种方法都试了，解决不了问题。</p>
+<p>V 友们，这个问题怎么解决？
+Acrobat Pro 版本：2023.003.20284</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:04:35Z</pubDate>
+<pubDate>2024-11-07T00:04:35Z</pubDate>
+</item>
+<item>
+<title>[VPS] 求稳定 netflix 解锁和 hbo 解锁</title>
+<link>https://www.v2ex.com/t/1087350</link>
+<guid>https://www.v2ex.com/t/1087350</guid>
+<content:encoded><![CDATA[
+
+<p>用 bgp 解锁 netflix 有几年了，很稳定，但是感觉网站要跑路，工单没人回，t 群里也没人回复问题。
+最近 hbo 又要上线亚洲，想替换一下 bgp 的解锁，能稳定解锁 netflix 和 hbo ，求推荐</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:02:32Z</pubDate>
+<pubDate>2024-11-07T03:58:08Z</pubDate>
+</item>
+<item>
+<title>[Linux] Linux 如何保持 Nvidia 驱动稳定</title>
+<link>https://www.v2ex.com/t/1087349</link>
+<guid>https://www.v2ex.com/t/1087349</guid>
+<content:encoded><![CDATA[
+
+<p>在 Linux 上装了驱动，一开始能用，后来过一段时间可，nvidia-smi 就用不了。</p>
+<p>提示：
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.</p>
+<p>我印象中没有主动更新 NVIDIA 驱动，但是我在使用中确实装过其他软件。可能是这个原因更新了 NVIDIA 驱动。</p>
+<p>之前遇到过几次这个问题，每次都是重装驱动。</p>
+<p>求一个稳定的解决方法。</p>
+]]></content:encoded>
+<pubDate>2024-11-07T03:00:01Z</pubDate>
+<pubDate>2024-11-07T04:22:45Z</pubDate>
+</item>
+<item>
+<title>[程序员] H265 是最优的压缩格式吗？ ISO 转成 H265，实际体验上有多大差别？</title>
+<link>https://www.v2ex.com/t/1087348</link>
+<guid>https://www.v2ex.com/t/1087348</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-11-07T02:58:55Z</pubDate>
+<pubDate>2024-11-07T04:03:08Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 双宽带怎么放设备比较合理？</title>
+<link>https://www.v2ex.com/t/1087347</link>
+<guid>https://www.v2ex.com/t/1087347</guid>
+<content:encoded><![CDATA[
+
+<p>目前有 2 条宽带，200M 的宽带带公网 IP ，1000M 的 NAT1 无公网 IP</p>
+<p>我打算在弱电箱放 2 个光猫。</p>
+<ol>
+<li>1000M 的宽带光猫桥接到冰箱旁边的路由器(全屋主路由)</li>
+<li>200M 的宽带直接拉到电视柜</li>
+</ol>
+<p>最后从电视柜开始拉网线到各个房间。</p>
+<p><img alt="布线图" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OW74mqp.jpeg" title="布线图" /></p>
+<p><img alt="弱电箱" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/jJafJdX.png" /></p>
+<p>这样不知道能不能放得下 2 个光猫呢</p>
+<p>纠结要不要扩大弱电箱。。。</p>
+<p>求各位大佬指点指点这样做有什么缺点吗</p>
+]]></content:encoded>
+<pubDate>2024-11-07T02:57:12Z</pubDate>
+<pubDate>2024-11-07T03:40:12Z</pubDate>
+</item>
+<item>
+<title>[Apple] 日本 Apple 店买 iPhone 可以用 visa 24 期分期免息么?</title>
+<link>https://www.v2ex.com/t/1087346</link>
+<guid>https://www.v2ex.com/t/1087346</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-11-07T02:55:11Z</pubDate>
+<pubDate>2024-11-07T03:05:35Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐 3000 元左右的拍照手机</title>
+<link>https://www.v2ex.com/t/1087345</link>
+<guid>https://www.v2ex.com/t/1087345</guid>
+<content:encoded><![CDATA[
+
+<ul>
+<li>
+<p>需求：最近给孩子拍照，红米 K50 的 1/2 的大底，拍出来很糊，想换个拍照手机。</p>
+</li>
+<li>
+<p>非需求：不玩游戏、手机每天轻度使用，看看微信消息、同花顺、bilibli 。</p>
+</li>
+<li>
+<p>可选需求：电池听说碳化硅锂电池提升很大，可以选个碳化硅电池，选不到也行。</p>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-11-07T02:53:02Z</pubDate>
+<pubDate>2024-11-07T02:53:02Z</pubDate>
+</item>
+<item>
+<title>8 年开发经验，靠谱接单</title>
+<link>https://www.v2ex.com/t/1087352</link>
+<guid>https://www.v2ex.com/t/1087352</guid>
+<content:encoded><![CDATA[
+
+8 年开发经验，靠谱接单，寻求长期的客户，诚信第一，在合肥的可以面谈<br /><br />可以单独接项目，自己有团队，或者担当技术支持等等。<br /><br />后台: Java 、C#<br /><br />前端: vue un-app(微信小程序，app)<br /><br />联系方式：QQ：MTUyMjk2Mjg3Mg== (base64) wx：Z2lzZXJtYW4wMDE= (base64)
+]]></content:encoded>
+<pubDate>2024-11-07T03:06:29Z</pubDate>
+<pubDate>2024-11-07T03:42:28Z</pubDate>
+</item>
+
+<item>
 <title>[京东] 京东购买 MacBook Pro 提示"销售火爆，请关注其他活动或商品"</title>
 <link>https://www.v2ex.com/t/1087344</link>
 <guid>https://www.v2ex.com/t/1087344</guid>
 <content:encoded><![CDATA[
-
 <p>我用同事的账号买同样的 MacBook Pro 就没任何问题，我的账号就买不了，尝试多次依然这样，大家有遇到过这种情况吗，怎么处理，或者有京东的技术能解答下吗。</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:51:07Z</pubDate>
 <pubDate>2024-11-07T02:51:07Z</pubDate>
 </item>
 <item>
@@ -20,10 +680,8 @@
 <link>https://www.v2ex.com/t/1087342</link>
 <guid>https://www.v2ex.com/t/1087342</guid>
 <content:encoded><![CDATA[
-
 我遇到一个很诡异的问题，我在 WSL 中安装了 AlmaLinux ，<br />在 bash 中，方向键是正常的，可以调出历史命令，<br />在其他程序中也正常，<br />就是 GATE 这个程序，方向键失灵了，无法调出历史命令，<br />出现的是字符”^[[A ^[[B ^[[D ^[[C“，对应”上下左右“。<br />求大佬帮帮忙，这个问题困扰我好久了。
 ]]></content:encoded>
-<pubDate>2024-11-07T02:48:36Z</pubDate>
 <pubDate>2024-11-07T02:45:36Z</pubDate>
 </item>
 <item>
@@ -31,12 +689,10 @@
 <link>https://www.v2ex.com/t/1087340</link>
 <guid>https://www.v2ex.com/t/1087340</guid>
 <content:encoded><![CDATA[
-
 <p>给自动改成了阿猫阿狗的名字
 头像改成了彩虹
 没有任何通知</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:44:37Z</pubDate>
 <pubDate>2024-11-07T02:41:37Z</pubDate>
 </item>
 <item>
@@ -44,10 +700,8 @@
 <link>https://www.v2ex.com/t/1087339</link>
 <guid>https://www.v2ex.com/t/1087339</guid>
 <content:encoded><![CDATA[
-
 <p>接了个 shopify 二次开发的项目，项目要的比较急，想找一个有 shopify 开发经验的人一起来做，有兴趣的可以聊一下。vx：amVzc2U3ODI4MDk=</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:42:29Z</pubDate>
 <pubDate>2024-11-07T02:41:29Z</pubDate>
 </item>
 <item>
@@ -55,7 +709,6 @@
 <link>https://www.v2ex.com/t/1087337</link>
 <guid>https://www.v2ex.com/t/1087337</guid>
 <content:encoded><![CDATA[
-
 <p>duxapp 是基于 Taro 二次开发的模块化框架</p>
 <p>使用这个框架，结合框架提供的 UI 库和工具库，能帮助你快速且高质量的完成项目，且能实现同时开发小程序、H5 、APP （ React Native ），并且保证各个端的一致性</p>
 <p>duxapp 还针对 APP 开发（ React Native ）做了大量优化，大大降低了 APP 发开的难度，你可以阅读<a href="http://duxapp.cn/docs/course/rn/start" rel="nofollow">React Native 教程</a>，了解详情</p>
@@ -466,17 +1119,14 @@ export default config
 <p>GitHub：<a href="https://github.com/duxapp" rel="nofollow">https://github.com/duxapp</a></p>
 ]]></content:encoded>
 <pubDate>2024-11-07T02:40:18Z</pubDate>
-<pubDate>2024-11-07T02:40:18Z</pubDate>
 </item>
 <item>
 <title>[问与答] 有可以保留状态的文件复制软件吗?</title>
 <link>https://www.v2ex.com/t/1087335</link>
 <guid>https://www.v2ex.com/t/1087335</guid>
 <content:encoded><![CDATA[
-
 目前用 opus,可以暂停恢复,多个复制 剪切任务也可以排队<br />不过如果暂停后关机了,那么再开机就没法从中断的地方继续了<br /><br />另外我记得好像有一些专门的备份软件,也许应该换成这种?<br /><br />动机:<br />将文件备份到另一个位置,但是晚上要关机
 ]]></content:encoded>
-<pubDate>2024-11-07T02:38:08Z</pubDate>
 <pubDate>2024-11-07T02:37:08Z</pubDate>
 </item>
 <item>
@@ -484,7 +1134,6 @@ export default config
 <link>https://www.v2ex.com/t/1087333</link>
 <guid>https://www.v2ex.com/t/1087333</guid>
 <content:encoded><![CDATA[
-
 <h4>写在最前面</h4>
 <ul>
 <li>抱歉这个帖子可能包含负能量（或者是一些不好的情绪），还请大家理性回复</li>
@@ -506,7 +1155,6 @@ export default config
 <p>目前更多的是希望 ta 发育不够，希望 ta 过几天就能慢慢长起来</p>
 <p>另外也挂了这周六遗传学的医生号，到时候看医生给出什么建议，正好下次产检在下周一</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:35:32Z</pubDate>
 <pubDate>2024-11-07T02:50:47Z</pubDate>
 </item>
 <item>
@@ -514,7 +1162,6 @@ export default config
 <link>https://www.v2ex.com/t/1087332</link>
 <guid>https://www.v2ex.com/t/1087332</guid>
 <content:encoded><![CDATA[
-
 <h1>求租国内云服务器</h1>
 <p>我想入手一台闲置的云服务器，目前还没有购买，计划从以下知名大厂中选择：</p>
 <ul>
@@ -532,7 +1179,6 @@ export default config
 </ul>
 <p>请有意向出售或出租闲置云服务器的朋友联系我。</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:33:57Z</pubDate>
 <pubDate>2024-11-07T02:47:33Z</pubDate>
 </item>
 <item>
@@ -540,10 +1186,8 @@ export default config
 <link>https://www.v2ex.com/t/1087331</link>
 <guid>https://www.v2ex.com/t/1087331</guid>
 <content:encoded><![CDATA[
-
 目前看最顶的也就是单 4090 了（游戏用途），但是 10 前还有组什么 gtx 680 双卡的。现在看到 4K 的帧率上不去，能通过组双卡解决么？
 ]]></content:encoded>
-<pubDate>2024-11-07T02:31:09Z</pubDate>
 <pubDate>2024-11-07T02:31:09Z</pubDate>
 </item>
 <item>
@@ -551,11 +1195,9 @@ export default config
 <link>https://www.v2ex.com/t/1087330</link>
 <guid>https://www.v2ex.com/t/1087330</guid>
 <content:encoded><![CDATA[
-
 <p>我装了 Applist Detector ，但是这个 App 只是显示了手机中“存疑”的 app ，我想要单纯把获取到的应用列表直接列出来的那种，就不管有啥，列出来就行。</p>
 <p>我也在 github 找了几个，但全都不提供 apk 的，没有开发环境编译。</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:30:51Z</pubDate>
 <pubDate>2024-11-07T02:40:20Z</pubDate>
 </item>
 <item>
@@ -563,10 +1205,8 @@ export default config
 <link>https://www.v2ex.com/t/1087329</link>
 <guid>https://www.v2ex.com/t/1087329</guid>
 <content:encoded><![CDATA[
-
 <p>想开发一个桌面美化工具，现在有一个需求是保持窗口一直显示在桌面上并且置底，免疫最小化窗口和返回桌面</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:28:47Z</pubDate>
 <pubDate>2024-11-07T02:50:58Z</pubDate>
 </item>
 <item>
@@ -574,10 +1214,8 @@ export default config
 <link>https://www.v2ex.com/t/1087328</link>
 <guid>https://www.v2ex.com/t/1087328</guid>
 <content:encoded><![CDATA[
-
 <p>请问低端千元机更费电吗？在运行一些主流 app 的时候，感觉有些千元机续航不如旗舰机。一些千元手机可能用了四五个小时亮屏，不打游戏，电池就见底了。e 而一些旗舰机，电池可能更小一些，用同样的时间可能还有一半电量。</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:25:49Z</pubDate>
 <pubDate>2024-11-07T02:46:15Z</pubDate>
 </item>
 <item>
@@ -585,10 +1223,8 @@ export default config
 <link>https://www.v2ex.com/t/1087327</link>
 <guid>https://www.v2ex.com/t/1087327</guid>
 <content:encoded><![CDATA[
-
 18 年，听朋友的话，说股市今年要来牛市，赚钱的机会来了，加上 15 年身边确实有人通过炒股买车买房发了一笔大财的真实案例，经不住诱惑的我把工作积累的 50 万全部拿出来投入股市，也不知道是新手光环还是赶上了一波行情，最开始的几单交易买什么赚什么，重仓加对了好几只牛股，让我整个人都尤其膨胀，那感觉比去天上人间还要起飞，从最开始的激进到后面的狂热，账户的收益一度让我想辞职，上什么屁班，一个月累死累活那么点工作，还不如我买一只股票赚的多。
 ]]></content:encoded>
-<pubDate>2024-11-07T02:23:25Z</pubDate>
 <pubDate>2024-11-07T02:47:56Z</pubDate>
 </item>
 <item>
@@ -596,10 +1232,8 @@ export default config
 <link>https://www.v2ex.com/t/1087326</link>
 <guid>https://www.v2ex.com/t/1087326</guid>
 <content:encoded><![CDATA[
-
 家里人买了 TCL 电视（ Q9K ），因为广告少界面比较简洁，而且似乎屏幕好一些。<br />本人是小米电视用户，习惯性安装文件管理器+第三方播放器（比如 mxplayer ）连 nas 播放视频，还有一些其他 app 例如 psp 模拟器。<br />但是发现 TCL 虽然可以安装第三方 app ，但是除了自家的 app ，第三方无法授权[文件管理权限]（ MANAGE_EXTERNAL_STORAGE ）。所以文件管理器和播放器都会卡在启动界面。试了一下 adb 不能授权这个权限。<br />是因为厂商限制还是 tcl 没玩明白安卓 11 ？<br />有知道这个问题如何解决的 TCL 用户吗？？？...<br />（不要说让我用自带的媒体管理，那个连 rmvb 都不支持，功能很少...至于外接盒子暂时不想，因为能解决本体当然最好
 ]]></content:encoded>
-<pubDate>2024-11-07T02:22:46Z</pubDate>
 <pubDate>2024-11-07T02:37:56Z</pubDate>
 </item>
 <item>
@@ -607,10 +1241,8 @@ export default config
 <link>https://www.v2ex.com/t/1087324</link>
 <guid>https://www.v2ex.com/t/1087324</guid>
 <content:encoded><![CDATA[
-
 <p>本人程序员一枚，目前空余时间比较多，想搞点副业。独立开发还有搞头么？</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:19:31Z</pubDate>
 <pubDate>2024-11-07T02:44:40Z</pubDate>
 </item>
 <item>
@@ -618,7 +1250,6 @@ export default config
 <link>https://www.v2ex.com/t/1087323</link>
 <guid>https://www.v2ex.com/t/1087323</guid>
 <content:encoded><![CDATA[
-
 <h2>公司名称</h2>
 <p>深圳市格子科技有限公司 </p>
 <h2>公司介绍</h2>
@@ -645,19 +1276,16 @@ export default config
 <p>绿色软件：18382356996</p>
 ]]></content:encoded>
 <pubDate>2024-11-07T02:19:18Z</pubDate>
-<pubDate>2024-11-07T02:19:18Z</pubDate>
 </item>
 <item>
 <title>[北京] 搬家了，有一条北京移动宽带不知道该怎么办</title>
 <link>https://www.v2ex.com/t/1087322</link>
 <guid>https://www.v2ex.com/t/1087322</guid>
 <content:encoded><![CDATA[
-
 <p>以前在天通苑住的时候，办了一条北京移动 500M 宽带，如今搬家了，不知道该怎么处理。</p>
 <p>退宽带吧，感觉有点可惜，宽带是免费的，套餐也还挺合适。</p>
 <p>转卖似乎也有点不靠谱，不知道怎么办了。</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:19:10Z</pubDate>
 <pubDate>2024-11-07T02:28:02Z</pubDate>
 </item>
 <item>
@@ -665,10 +1293,8 @@ export default config
 <link>https://www.v2ex.com/t/1087321</link>
 <guid>https://www.v2ex.com/t/1087321</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://discuss.logseq.com/t/why-the-database-version-and-how-its-going" rel="nofollow">https://discuss.logseq.com/t/why-the-database-version-and-how-its-going</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:18:28Z</pubDate>
 <pubDate>2024-11-07T02:21:57Z</pubDate>
 </item>
 <item>
@@ -676,10 +1302,8 @@ export default config
 <link>https://www.v2ex.com/t/1087320</link>
 <guid>https://www.v2ex.com/t/1087320</guid>
 <content:encoded><![CDATA[
-
 <p>搜索过解决办法,包括改注册表,下载还原字体的软件恢复,怎么也跟以前不一样,有解决办法么</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:17:22Z</pubDate>
 <pubDate>2024-11-07T02:50:04Z</pubDate>
 </item>
 <item>
@@ -687,7 +1311,6 @@ export default config
 <link>https://www.v2ex.com/t/1087319</link>
 <guid>https://www.v2ex.com/t/1087319</guid>
 <content:encoded><![CDATA[
-
 <p>Github：<a href="https://github.com/lantongxue/netboot.xyz.cn" rel="nofollow">https://github.com/lantongxue/netboot.xyz.cn</a></p>
 <h2>为什么做这个</h2>
 <p>原因是使用了某大厂的云服务器，装系统的时候发现默认提供的系统模板实在是太少，例如没有 debian12 。</p>
@@ -705,21 +1328,18 @@ export default config
 <p><strong><a href="https://github.com/lantongxue/netboot.xyz.cn" rel="nofollow">点个 Star 再走</a>？</strong></p>
 ]]></content:encoded>
 <pubDate>2024-11-07T02:16:36Z</pubDate>
-<pubDate>2024-11-07T02:16:36Z</pubDate>
 </item>
 <item>
 <title>[推广] 尝试做了一个产品迈向独立开发者的第一步</title>
 <link>https://www.v2ex.com/t/1087318</link>
 <guid>https://www.v2ex.com/t/1087318</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://kuaishouvideodownloader.com/" rel="nofollow">https://kuaishouvideodownloader.com/</a></p>
 <p>花了一天时间用 wordpress 做了一个快手短视频下载工具，也不指望这个产品能有多好的效果，主要是熟悉独立产品需求调研，需求实现的过程。</p>
 <p>纯小白，本来想用 next.js 做的，但是发现短时间内即使是用 cousor 和 GPT4 配合也很难搭建出理想的产品，最后放弃了，还是改用 wordpress 了。后续还是要边实践边学习，这个貌似是现在国内独立开发者开发产品很流行的框架。</p>
 <p><strong>朋友没有社区账号，我帮他发一下</strong></p>
 <p><img alt="快手短视频下载界面" class="embedded_image" rel="noreferrer" src="https://my-image.askcheng.xyz/cheng-img/2024/11/1d1cd1bf563f658195dd794f5defc5a2.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:16:15Z</pubDate>
 <pubDate>2024-11-07T02:39:29Z</pubDate>
 </item>
 <item>
@@ -727,11 +1347,9 @@ export default config
 <link>https://www.v2ex.com/t/1087317</link>
 <guid>https://www.v2ex.com/t/1087317</guid>
 <content:encoded><![CDATA[
-
 <p>中国银行汇款到中银香港提示"您暂时无法通过电子银行渠道办理跨境汇款业务"
 原本填的用途是 LIVINGFEE 改成 LIVING FEE 就行了，真的是大无语</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:11:10Z</pubDate>
 <pubDate>2024-11-07T02:36:14Z</pubDate>
 </item>
 <item>
@@ -739,10 +1357,8 @@ export default config
 <link>https://www.v2ex.com/t/1087316</link>
 <guid>https://www.v2ex.com/t/1087316</guid>
 <content:encoded><![CDATA[
-
 <p>逛了一圈闲鱼，都是带 48 个 10g 光口或者电口的交换机，都是网吧酒店用的，家庭组网感觉太浪费了(而且感觉声音比较大)，所以口要求少一点的话，最低功率实现 40g 内网的方案是啥？</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T02:06:08Z</pubDate>
 <pubDate>2024-11-07T02:26:29Z</pubDate>
 </item>
 <item>
@@ -750,12 +1366,10 @@ export default config
 <link>https://www.v2ex.com/t/1087314</link>
 <guid>https://www.v2ex.com/t/1087314</guid>
 <content:encoded><![CDATA[
-
 <p>希望抓取自己所在飞书群聊的聊天记录，保存下来，然后做些数据分析。</p>
 <p>但飞书客户端有加密，不好搞。
 请问下各位大佬们有什么建议吗，或者有没有啥成熟的方案可以介绍，感谢🙏</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T01:57:31Z</pubDate>
 <pubDate>2024-11-07T02:27:15Z</pubDate>
 </item>
 <item>
@@ -763,7 +1377,6 @@ export default config
 <link>https://www.v2ex.com/t/1087313</link>
 <guid>https://www.v2ex.com/t/1087313</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>支付宝无孔不入无处不在的随意弹窗与浮窗。相比而言，微信在弹窗广告方面可以称得上标杆，使用微信的核心功能，基本上完全看不到广告与浮窗。另一个标杆数字人民币，功能极其简洁界面美观。</li>
 <li>快捷指令，可以看下面的截图，支持快捷指令的逻辑简直令人摸不着头脑，蚂蚁森林，粑粑农场，我不玩，但是加入快捷指令可以理解，因为真的认识人常点这些。读书听书、生活缴费，什么样的情况下，会需要把这些放入快捷指令，然而常用的查快递菜鸟没有快捷指令入口。</li>
@@ -781,7 +1394,6 @@ export default config
 <img alt="随便点的一个" class="embedded_image" rel="noreferrer" src="https://files.catbox.moe/iw3vwa.png" />
 <img alt="快捷指令" class="embedded_image" rel="noreferrer" src="https://files.catbox.moe/52v87a.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-11-07T01:55:27Z</pubDate>
 <pubDate>2024-11-07T02:48:26Z</pubDate>
 </item>
 <item>
@@ -789,13 +1401,11 @@ export default config
 <link>https://www.v2ex.com/t/1087312</link>
 <guid>https://www.v2ex.com/t/1087312</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="IMG_0359.PNG" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2024/11/07/981b8d45bc37b.PNG" />
 <img alt="IMG_0358.PNG" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2024/11/07/40ce814705427.PNG" />
 <img alt="IMG_0357.PNG" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2024/11/07/b678e11736f30.PNG" /></p>
 <p>待机掉电也很快，已经关了自动刷新，全天候显示...</p>
 ]]></content:encoded>
-<pubDate>2024-11-07T01:52:35Z</pubDate>
 <pubDate>2024-11-07T02:26:03Z</pubDate>
 </item>
 <item>
@@ -803,10 +1413,8 @@ export default config
 <link>https://www.v2ex.com/t/1087311</link>
 <guid>https://www.v2ex.com/t/1087311</guid>
 <content:encoded><![CDATA[
-
 我看很多人都是 cd2 套 alist 挂载网盘，难道只有这样才能使网盘进行 302 访问吗？
 ]]></content:encoded>
-<pubDate>2024-11-07T01:50:04Z</pubDate>
 <pubDate>2024-11-07T02:36:01Z</pubDate>
 </item>
 <item>
@@ -814,7 +1422,6 @@ export default config
 <link>https://www.v2ex.com/t/1085849</link>
 <guid>https://www.v2ex.com/t/1085849</guid>
 <content:encoded><![CDATA[
-
 <p>rsseverything 收费之后一直找不到类似的，于是自己写了一个，暂时就叫 <code>RssWebAll</code> 吧</p>
 <p>功能不多</p>
 <p>1 、支持自定义 cookie</p>
@@ -824,10 +1431,8 @@ export default config
 <p>5 、暂时绕不过有些网站的 cf 验证 (sad</p>
 <p>地址： <a href="https://rssweball.top/" rel="nofollow">https://rssweball.top/</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-01T10:34:55Z</pubDate>
 <pubDate>2024-11-03T15:52:11Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 能帮忙看一下配置单么，谢谢！</title>
 <link>https://www.v2ex.com/t/1087310</link>
@@ -14446,425 +15051,6 @@ bool f = e == jsovon::null;
 <p>目前的内部架构设计可能有点丑，不过未来有时间还会继续优化性能与架构 ：）</p>
 ]]></content:encoded>
 <pubDate>2024-11-02T13:23:29Z</pubDate>
-</item>
-<item>
-<title>[生活] 告别舅舅老家</title>
-<link>https://www.v2ex.com/t/1086072</link>
-<guid>https://www.v2ex.com/t/1086072</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<p>在那遥远的小山村，小呀小山村</p>
-</blockquote>
-<p>“是 xxx 吧？”电话那头传来一个老人的声音。</p>
-<p>“是的啊，舅妈你怎么给我打电话了？”</p>
-<p>昨天突然接到舅妈打过来的电话，平常舅妈是不打给我的，一般都是爸爸妈妈跟她沟通，大概的意思就是问我们什么时候回去，他们已经搬到县城里了，表哥表嫂在县城买了新房子。</p>
-<p>匆匆说了几句之后，舅妈说打电话比较贵，就不多说了。他们那个年代的人一直认为打电话很贵，所以一般不是急事就不会打电话的，打电话也是先确认好是本人，然后直接开门见山，切入正题，说完之后就迅速的好像很无情的挂断了。我每次接到老家的电话，总是有些心惊胆战。</p>
-<p>我和舅妈说了不到 5 分钟就挂了,电话虽然打完了，心却一直很难平静下来，心想：这下估计基本告别舅舅老家了。</p>
-<p>舅舅家属于在另外一个镇子上，虽然听上去不是很远，但每次去他家都要翻过好几座大山。以前去往他家的路只有一条公路，盘山的公路一直在修，，曲曲折折的，印象深刻的是，每到下雨天，这条未修缮的路就会变成一条泥巴路，这里一个坑，那里一个坑，没坑的地方路都是松松软软的，有坑的地方往往都积了一滩水，车子稍微开的快一点，就会左右摇晃，贱的路人一身泥，但是在这种路上，你又不能开的太快，因为急转弯的地方很多，路旁边就是悬崖，有些地方只有树木栏杆简单的遮挡一下，有些地方连这种栏杆都没有。碰到转弯处两辆车会车，都得异常小心。</p>
-<p>关于去舅舅家，有好几种交通方式。</p>
-<p>第一种方式是靠腿，那还是我很小的时候，爸爸，妈妈和我徒步去舅舅家，全程要两个多小时，什么是翻山越岭，就是你从山底一路向上爬，爬到了一个山的高处，又沿着山路走到另一个山的谷底，然后又继续爬到另一座山的山峰，循环往复，翻过好几座山。我那时候年纪还小，完全不懂得疲惫。每次跟爸爸妈妈爬山，都会走在最前面，走了一段路之后，在前面等待爸爸妈妈很久，嫌弃他们怎么走的这么慢。</p>
-<p>在我看来，爬山就跟在玩一样，山上大部分地方一个人都没有，很安静，仿佛整座山都是自己的，走到一片密林里，有时候没有路，需要把一些茂密的草拨开，感觉就跟丛林探险一样，树上时不时的有野生松鼠窜过去，他们速度很快，很怕人，只有在这种茂密的树林里见到，平时见不到，很稀奇。走出密林之后，有时候也会短暂的碰到一小块平原，有一个小村子，村里只有三两户人家，土房子像抱团似的聚在一起，屋顶上的烟囱升起缕缕炊烟，在准备中午的午饭吧。我觉得很神奇，小时候总以为深山里住的有神仙：他们难道就是隐居在此的世外高人或者武林侠客？</p>
-<p>等在山头看到了远处舅舅家的村子，就更兴奋了，总算爬到尽头了，兴奋的朝着爸妈喊：我们快到了，我们马上就要到了，像是完成了一件很伟大的事。</p>
-<p>现在想想，我对山的热情似乎在童年时代用光，在这一次次爬山过程中，憧憬着山，敬畏着山，敬畏着山，习惯了山，厌倦了山。现在长大了，对山没有任何感觉了，爬过泰山，爬过黄山，内心毫无波澜，这跟老家的爬山体验有什么两样？</p>
-<p>第二种方式在路上拦车，简单一点的就是那种非法改装的三轮车，本来是拉少量货的，焊上顶之后就能遮风挡雨，就可以载人了，有时候也会碰到一些面包车，这种就是豪华一点的载人的交通工具了。要坐车时就在马路边上等，看到有搭车的可能性的车子，就站在马路边招手，司机就会停下来，有时候司机去的方向跟我们要去的方向相同，相当于是就是顺路车了，这时候就按照按照人头的价格收费，有时候司机也是漫无目的，我们就得请车，请他专门送我们一趟，土话叫做请车，其实就是包车了，这时候收费就很贵了，因为路上不一定能捡到人，按我们包下整辆车来算。</p>
-<p>第三种方式就是自己开车了，现在每次回家过年，逐年发现大家买车的越来越多了，就算是家里房子很破，为啥不花钱先让自己住的好一点呢？为什么要先买车呢？原来我不理解，现在逐渐明白：在农村，有一辆自己的车真的太方便了，没有出租车可以打，没有便捷的公共交通，一个目的地与另一个目的地动不动就距离十几二十公里，谁现在能动不动徒步几个小时去啊？更何况走家串户的还会带些东西过去，带些东西回来，没有车实在很难办。</p>
-<p>说了这么多去舅舅家的方式，就算是徒步这种落后的方式，还是自己开车这种便捷的方式，都是要去舅舅家的。为什么呢？因为舅舅家是比较铁的关系，长辈众多，外婆，外公，小外公，舅舅，舅妈，是老家数量最多，关系最硬的亲戚了；在我留守在家，无人愿意收留我时，也是舅舅一家照顾了我两年多，照顾我吃喝，带我体验农活，陪伴成长。现在回顾那段时间，也是我一个人在故乡最无忧无虑，自由自在的一段生活。所以即使就算有时候真的在外地过年，别人拜年电话可以不打，但是舅舅家的是一定要打的。</p>
-<p>而现在，随着外公，外婆，舅舅相继离世，长辈层只剩下舅妈在老家带孩子，这次他们在县城里买了房子，以后估计也很少会回到老家了把。有时候一搬离老家，老家立刻就成为了一家旅馆一样，一年中回来几次，房子也是和人一样，需要经常维系和搭理，一个房子经常没人住，就会缺少人气，房间里到处都会生灰，每次回家第一件事，就是大扫除三天。回到老家也什么都没有，什么都得买，其实跟外面没什么区别，甚至还没有外面方便。</p>
-<p>不知道外面情况怎么样，现在我们老家住在村里的越来越少了，更多的人开始往城里搬迁，甚至往大城市搬迁。</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:46:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求监控网页变化的软件或开源代码</title>
-<link>https://www.v2ex.com/t/1086071</link>
-<guid>https://www.v2ex.com/t/1086071</guid>
-<content:encoded><![CDATA[
-需要第一时间爬取网站最新内容，求大佬推荐软件，最好是开源程序，谢谢。
-]]></content:encoded>
-<pubDate>2024-11-02T13:16:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 同一网络下 mac 不能访问路由器管理页，求助</title>
-<link>https://www.v2ex.com/t/1086070</link>
-<guid>https://www.v2ex.com/t/1086070</guid>
-<content:encoded><![CDATA[
-PC(有线连接) 和 iPhone 可以登陆，mac(无线) 无法登陆。<br />chrome 提示 HTTP ERROR 502, safari 则显示空白页面（加载完成）。<br />此前 mac 是可以登陆路由器管理页的，请问是哪里设置不对？
-]]></content:encoded>
-<pubDate>2024-11-02T13:11:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 360 极速浏览器不支持手动更新 Widevine 吗</title>
-<link>https://www.v2ex.com/t/1086069</link>
-<guid>https://www.v2ex.com/t/1086069</guid>
-<content:encoded><![CDATA[
-<p>家里老电脑 win7 平时很少用，之前播放 apple music 和一些需要 widevine 插件的网页流媒体服务时候都正常，今天浏览器自动更新后发现一直提示 widevine 组件需要更新，按照网上的提示找到了 360 极速浏览器插件的目录。
-在浏览器地址输入 chrome://media-internals/</p>
-<p>显示信息如下：
-Registered Content Decryption Modules</p>
-<p>Clear Key ("org.w3.clearkey") is always supported and not listed here.</p>
-<p>Empty video codec profile list means we are not differentiating and assume all profiles are supported.</p>
-<p>Codecs marked with "*" signals clear lead not supported.</p>
-<p>Key System: com.widevine.alpha</p>
-<p>Robustness: Software Secure</p>
-<p>Name: Widevine Content Decryption Module</p>
-<p>Version: 4.10.2662.3
-Path: E:\ProgramFiles(x86)\360\360ChromeX\Chrome\Application\22.3.3087.64\WidevineCdm_platform_specific\win_x64\widevinecdm.dll</p>
-<p>Status: Enabled</p>
-<p>Capabilities: {"Audio Codecs":["aac","vorbis","flac","opus"],"Encryption Schemes":["CENC","CBCS"],"Session Types":["temporary"],"Video Codecs":{"av1":[],"h264":[],"vp8":[],"vp9":[]}}</p>
-<p>我已经更新了最新版本的 widevine 插件 4.10.2830.0 浏览器还是无法播放 DRM 保护的媒体，问应该如何操作？
-这台电脑上还装了 firefox ，更新 widevine 后可以播放 apple music 音频了，想知道是 360 浏览器不支持手动更新 widevine 吗？</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:09:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] Typora 的代码块的行高 怎么调整呀？</title>
-<link>https://www.v2ex.com/t/1086068</link>
-<guid>https://www.v2ex.com/t/1086068</guid>
-<content:encoded><![CDATA[
-<p>按照网上的一些方法，修改了 css 文件。调整了段落的 margin 和标题的 margin （也就是段前段后）。终于变成了想要的效果了。</p>
-<p>但是代码块的每行代码的行高 太高了，最好能像 Vscode 的行高 差不多，反正需要调小一点。</p>
-<p>有大佬知道怎么改 css 吗？最好只影响到代码块，不影响正常的文字段落。</p>
-<p>我知道可以用开发者工具，和浏览器的 F12 一样，可以去找 css 。奈何我网页方面实在不熟。
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/11/02/8906cc687b97a3a5.png" />
-另外，还有个问题。
-就是在标题里面，0 和 o 的显示效果几乎一样的，有时候有点误导人。但是在大纲里看是 正常的。这个你们有遇到过吗</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:06:39Z</pubDate>
-</item>
-<item>
-<title>[程序员] 网站动态内容太多了， CDN 加速简直就是杯水车薪</title>
-<link>https://www.v2ex.com/t/1086066</link>
-<guid>https://www.v2ex.com/t/1086066</guid>
-<content:encoded><![CDATA[
-<p>[img]<a href="https://upload.cc/i1/2024/11/02/nAfvFP.png" rel="nofollow">https://upload.cc/i1/2024/11/02/nAfvFP.png</a>[/img]</p>
-<p>[img]<a href="https://upload.cc/i1/2024/11/02/1zYrIj.png" rel="nofollow">https://upload.cc/i1/2024/11/02/1zYrIj.png</a>[/img]</p>
-<p>是不是没办法解决了</p>
-]]></content:encoded>
-<pubDate>2024-11-02T14:16:20Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 7615 买了一年坏掉了...现在有什么便宜的 2.5G 猫推荐吗</title>
-<link>https://www.v2ex.com/t/1086065</link>
-<guid>https://www.v2ex.com/t/1086065</guid>
-<content:encoded><![CDATA[
-好像是电源接口接触不良了, 不确定, 反正莫名其妙就会重启<br />闲鱼买的也不存在质保,虽然刚好买来才 1 年.<br />现在有什么便宜的 2.5G 猫推荐吗<br />只做桥接, 要能删掉 TR069(不删掉突破不了千兆)
-]]></content:encoded>
-<pubDate>2024-11-02T13:39:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] 从『学习者』『创作者』两个视角，开发了一个开源的 [编程学习] 和 [教程课程搭建] 的工具, 欢迎大家来交流想法</title>
-<link>https://www.v2ex.com/t/1086063</link>
-<guid>https://www.v2ex.com/t/1086063</guid>
-<content:encoded><![CDATA[
-学习者(编程)<br /><br />- 一键安装常用软件和环境配置<br />- 实时编译运行代码 + AI 错误代码提示<br /><br />创作者(教程/课程)<br /><br />- 教程/课程项目搭建和模拟 [Book + Code + Video + X]<br />- 练习代码自动化检测(类似 rustlings)<br />- 项目管理, 方便管理教程/课程相关的资源<br /><br />功能介绍页: <a href="https://d2learn.org/xlings" rel="nofollow noopener" target="_blank">https://d2learn.org/xlings</a><br />xlings 开源仓库: <a href="https://github.com/d2learn/xlings" rel="nofollow noopener" target="_blank">https://github.com/d2learn/xlings</a><br /><br />欢迎大家交流想法或提一些意见<br /><br /><div class="embedded_video_wrapper"></div>
-]]></content:encoded>
-<pubDate>2024-11-02T12:52:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有人试过两台 mac 办公吗</title>
-<link>https://www.v2ex.com/t/1086061</link>
-<guid>https://www.v2ex.com/t/1086061</guid>
-<content:encoded><![CDATA[
-<p>公司配的 m1 mac 实在太卡了，申请换机说没有更好电脑了，也不能采购。</p>
-<p>打算自己买一台 mac mini ，请问下 2 台 mac 能互通吗？ 代码在主力机运行，能不能到另一台电脑看效果，键鼠我知道可以互通</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:51:57Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] WG 回国流量也被墙么?</title>
-<link>https://www.v2ex.com/t/1086060</link>
-<guid>https://www.v2ex.com/t/1086060</guid>
-<content:encoded><![CDATA[
-<p>阿里云部署了一个 wg 做内网穿透一直没什么问题. </p>
-<p>这几天在香港玩, wg 一开始还能回国.第二天早上发现无论是手机还是电脑都连不上 wg 了,倒是可以查看在公网上布置在阿里云的服务,也可以直接 ssh 回去阿里云. 难道 wg 流量是被专门阻断了么? </p>
-<p>如果是的话,请问一下:海外大家怎么给在大陆的服务提供内网服务?</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:52:04Z</pubDate>
-</item>
-<item>
-<title>[DNS] 测试了几家主流 DNS 的 ECS 功能</title>
-<link>https://www.v2ex.com/t/1086059</link>
-<guid>https://www.v2ex.com/t/1086059</guid>
-<content:encoded><![CDATA[
-这几天折腾了一下自建 AdGuard Home 的上游 DNS ，发现某些号称支持 ECS 的 dns 比如 nextdns 、cloudflare-gateway 都不太适合作为 AGH 的上游。因为一旦这么设置了，AGH 的根据 subnet 来进行缓存的功能无法生效，反而会认为这些 dns 不支持 ECS ，继而使用通用的缓存策略。这样移动/联通/电信/海外发过去的请求会一致得到缓存里的应答，这样的 ECS 名存实亡。<br /><br />我一开始以为这是 AGH 的 bug ，去 issue 里面找到了这个类似问题，看他们扯皮半天 AGH 一口咬定这不是 bug<br /><a href="https://github.com/AdguardTeam/AdGuardHome/issues/5757" rel="nofollow noopener" target="_blank">https://github.com/AdguardTeam/AdGuardHome/issues/5757</a><br />而是认为 cloudflare-gateway dns 的应答里面缺少下述的 CLIENT-SUBNET 信息，所以不知道怎么根据 subnet 来缓存<br />;; OPT PSEUDOSECTION:<br />; EDNS: version: 0, flags:; udp: 512<br />; CLIENT-SUBNET: 192.0.0.0/16/16<br /><br />不过我尝试搭建 unbound 之后，发现 unbound 对 cf-gateway nextdns 上游的 ecs 缓存策略也是一样的，看来也许是某些宣称支持 ECS 的 dns 有点不完美<br /><br />经过一番测试，我锁定了几个完美支持 ECS 的 dns ，具体测试结果如下：<br /><br /><br />- 完美支持 ECS：<br /><br />	alidns （建议开通阿里云的免费版，每月 1000 万次查询）<br />    dnspod （建议开通 dnspod 的免费版，每月 300 万次查询，比公共的免费版快得多了去了）<br />    google （ doh dot 国内较难连上，需要走隧道，也可以在海外 vps 上 unbound 自建来转发 ecs ）<br />    quad9 的 9.9.9.9.11 或 9.9.9.12 （作为上游偶尔会抽风不支持 ECS 的缓存……不知何故）<br />    adguard dns （注意不是 adguard home 自建，而是去 <a href="http://adguard-dns.io" rel="nofollow noopener" target="_blank">adguard-dns.io</a> 免费开通）<br />    使用 unbound 自建的 dns （上游需要使用前述几家之一）<br /> <br /> 以上这些均完美支持 ECS ，因为<br /> 	1. 根据 AGH 使用它们作为上游，根据 subnet 缓存请求的功能均一切正常<br />    2. 请求直接发到这几家 dns ，ecs 的缓存策略也完美<br /> <br /><br />- 不完美支持 ECS：<br /> 	360dns<br />    nextdns<br />    cloudflare-gateway<br />    AdGuard Home 自建 dns （这里应该是 AGH 自己的 bug 了，下游的 AGH 无法识别到 subnet 来缓存 ecs 请求）<br />  <br />  以上几家不适合作为 AGH/unbound 的上游，但直接发请求过去是可以正常根据 subnet 来缓存的<br />  <br /><br />- 废柴般支持 ECS：<br /> 	cisco opendns （根据客户端 IP 来缓存，而无视客户端传过来的 subnet ）
-]]></content:encoded>
-<pubDate>2024-11-02T13:50:25Z</pubDate>
-</item>
-<item>
-<title>[程序员] 对于 WebAssembly 2.0 的一些看法</title>
-<link>https://www.v2ex.com/t/1086058</link>
-<guid>https://www.v2ex.com/t/1086058</guid>
-<content:encoded><![CDATA[
-<p>最近在做 wasm 2.0 的一些工作, 由于我是 wasm 1.0 draft 时代入坑并退坑的人, 错过了 wasm 1.0 release 和 wasm 2.0 draft, 因此花了差不多两周时间追上了当前的 wasm 2.0 draft 的进度. 长话短说,
-wasm 2.0 从技术上来说, 不是一个很符合我哲学的设计, 只能称它"又一个平平无奇的通用计算架构".</p>
-<p>wasm 2.0 增加了引用类型, 并且贴心的增加了 "null" 值. 很难在 2024 年评价这个行为, 因为 "null" 最早的发明者, 在 2009 年就发表了著名的 "Null References: The Billion Dollar Mistake - Tony Hoare".</p>
-<p>向量指令. wasm 2.0 支持 128 位向量指令. 我认为这个行为让 wasm 的定位非常模糊. 最早 wasm 的定位是轻量级的嵌入式虚拟机, 向量指令的加入让整个技术栈非常复杂(重量化). 不能说这个行为是错的, 但是向量长度目前只支持 128 位, 其实对性能的提升非常有限. 也就是代价太高, 而收益不足.</p>
-<p>槽点比较大的就这两条. 未来 wasm 如何发展, 不好预言, 但可以确认的是它已经丧失了技术的美感.</p>
-]]></content:encoded>
-<pubDate>2024-11-02T12:45:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在有什么好的照片管理工具吗？支持 nas 的，群辉的 photo 好用吗？</title>
-<link>https://www.v2ex.com/t/1086057</link>
-<guid>https://www.v2ex.com/t/1086057</guid>
-<content:encoded><![CDATA[
-现在有什么好的照片管理工具吗？支持 nas 的，群辉的 photo 好用吗？<br /><br />这么多年手机里几万张照片，有没有什么软件比较好管理这些照片？<br />我现在的方法是建不同的文件夹，比如 家人、工作、生活、风景，<br />然后也会根据一些内容，比如 2021 年 7 月古镇旅游，之类的这种文件夹放一些照片<br />但是依然很乱很乱，有什么好方法进行照片、视频管理吗，有什么好的软件吗？比如 群辉的 photo 好用吗？<br />还有什么好方法好软件，求各位推荐一下，真的头都大了
-]]></content:encoded>
-<pubDate>2024-11-02T14:13:29Z</pubDate>
-</item>
-<item>
-<title>[程序员] 真心请教 rk3588 等板子的安卓开发大佬</title>
-<link>https://www.v2ex.com/t/1086056</link>
-<guid>https://www.v2ex.com/t/1086056</guid>
-<content:encoded><![CDATA[
-<h1>背景</h1>
-<p>我在做 aosp14 移植，目前用 uboot2025.01-rc1,linux 5.10 现在能运行内核，内核能调用 android 的第一阶段 init （ bl 把 init_boot+vendor_boot 的 ramdisk 读取到内存后传递给内核，内核把 initramfs unpack 到 rootfs ），metadata 分区 16MB ，刷入了生成的空白 ext4 文件系统镜像。</p>
-<h1>问题</h1>
-<p>第一阶段 init 可以运行，但是只能运行一部分，大概运行到</p>
-<pre><code class="language-cpp">if (!fsm) {
-            fsm = CreateFirstStageMount(cmdline);
-        }
-</code></pre>
-<p>设备就会自动重启，cmdline 加了 init_fatal_panic=true 但是没任何 panic 还是 reboot 到 bootloader 。
-如果 fstab 里不写 metadata 会跳过 metadata ，此时串口日志显示创建了几个逻辑分区给 system 、vendor 等，但是也会突然自动重启。</p>
-<p>所有串口日志最后一条的下一条就是设备重启的日志：<code>rk860-regulator 1-0042: rk860..... reset</code>等，无参考价值。
-串口日志（ fstab 有 metadata ）：</p>
-<pre><code class="language-log">[   18.277402] Run /init as init process
-[   18.280593] init: init first stage started!
-[   18.280826] init: Unable to open /lib/modules, skipping module loading.
-[   18.281153] init: Copied ramdisk prop to /second_stage_resources/system/etc/ramdisk/build.prop
-[   18.281316] init: Using generic ramdisk copy of snapuserd /system/bin/snapuserd_ramdisk
-[   18.281417] init: hard linking /system/bin/snapuserd_ramdisk to /first_stage_ramdisk/system/bin/snapuserd succeeded
-[   18.281754] init: Switching root to '/first_stage_ramdisk'
-[   18.282159] init: [libfstab] Using Android DT directory /proc/device-tree/firmware/android/
-[   18.282286] init: [libfstab] ReadFstabFromDt(): failed to read fstab from dt
-[   18.355352] init: [libfs_mgr] superblock s_max_mnt_count:65535,/dev/block/by-name/metadata
-[   18.355625] EXT4-fs (mmcblk0p21): Ignoring removed nomblk_io_submit option
-[   18.357141] EXT4-fs (mmcblk0p21): mounted filesystem with ordered data mode. Opts: errors=remount-ro,nomblk_io_submit
-[   18.357185] init: [libfs_mgr] check_fs(): mount(/dev/block/by-name/metadata,/metadata,ext4)=0: Success
-[   18.361990] EXT4-fs (mmcblk0p21): mounted filesystem with ordered data mode. Opts: discard
-</code></pre>
-<p>串口日志（无 metadata 或挂载失败）：</p>
-<pre><code class="language-log">[   18.276158] Run /init as init process
-[   18.279226] init: init first stage started!
-[   18.279431] init: Unable to open /lib/modules, skipping module loading.
-[   18.279750] init: Copied ramdisk prop to /second_stage_resources/system/etc/ramdisk/build.prop
-[   18.279911] init: Using generic ramdisk copy of snapuserd /system/bin/snapuserd_ramdisk
-[   18.280010] init: hard linking /system/bin/snapuserd_ramdisk to /first_stage_ramdisk/system/bin/snapuserd succeeded
-[   18.280335] init: Switching root to '/first_stage_ramdisk'
-[   18.280730] init: [libfstab] Using Android DT directory /proc/device-tree/firmware/android/
-[   18.280848] init: [libfstab] ReadFstabFromDt(): failed to read fstab from dt
-[   18.282054] init: Check Point2
-[   18.282082] init: Check Point3.22
-[   18.456015] usb 2-1.1: new full-speed USB device number 3 using ehci-platform
-[   18.557933] usb 2-1.1: New USB device found, idVendor=0bda, idProduct=b85b, bcdDevice= 0.00
-[   18.558009] usb 2-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
-[   18.558032] usb 2-1.1: Product: Bluetooth Radio
-[   18.558053] usb 2-1.1: Manufacturer: Realtek
-[   18.558073] usb 2-1.1: SerialNumber: 00e04c000001
-[   20.194029] rk_hdmirx fdee0000.hdmirx-controller: hdmirx_cancel_cpu_limit_freq freq qos nod add
-[   20.276050] rk-pcie fe170000.pcie: PCIe Link Fail, LTSSM is 0x3, hw_retries=0
-[   20.286057] rk-pcie fe150000.pcie: PCIe Link Fail, LTSSM is 0x0, hw_retries=0
-[   20.286119] rk-pcie fe150000.pcie: failed to initialize host
-[   22.602724] rk_pcie_establish_link: 232 callbacks suppressed
-[   22.602741] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.629398] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.656059] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.682736] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.709494] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.736063] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.762728] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.789396] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.816061] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   22.842733] rk-pcie fe170000.pcie: PCIe Linking... LTSSM is 0x3
-[   24.176058] rk-pcie fe170000.pcie: PCIe Link Fail, LTSSM is 0x3, hw_retries=1
-[   25.196063] rk-pcie fe170000.pcie: failed to initialize host
-[   38.369022] init: [libfs_mgr] Skipping mounting '/dev/block/bootdevice/by-name/metadata'
-[   38.369297] init: [libfs_mgr] Failed to open '/dev/block/bootdevice/by-name/metadata': No such file or directory
-[   38.369580] init: [libfs_mgr] __mount(source=/dev/block/bootdevice/by-name/metadata(missing),target=/metadata,type=ext4)=-1: No such file or directory
-[   38.374465] init: [libfs_mgr] Created logical partition odm_a on device /dev/block/dm-0
-[   38.374503] init: [libfs_mgr] Skipping zero-length logical partition: odm_b
-[   38.375365] init: [libfs_mgr] Created logical partition system_a on device /dev/block/dm-1
-[   38.375389] init: [libfs_mgr] Skipping zero-length logical partition: system_b
-[   38.376232] init: [libfs_mgr] Created logical partition system_ext_a on device /dev/block/dm-2
-[   38.376255] init: [libfs_mgr] Skipping zero-length logical partition: system_ext_b
-[   38.377209] init: [libfs_mgr] Created logical partition vendor_a on device /dev/block/dm-3
-</code></pre>
-<p>fstab 如下：</p>
-<pre><code class="language-fstab">/dev/block/platform/ff0f0000.dwmmc/by-name/user     /mnt/internal_sd    vfat    defaults                defaults
-/dev/block/mmcblk0p1                                /mnt/external_sd    vfat    /dev/block/mmcblk0      defaults
-# /dev/block/by-name/
-system          /system             ext4    rw,barrier=1,discard        wait,slotselect,logical,first_stage_mount,avb=vbmeta_system
-system_ext      /system_ext         ext4    rw                          wait,slotselect,logical,first_stage_mount,avb=vbmeta_system
-product         /product            ext4    rw                          wait,slotselect,logical,first_stage_mount
-vendor          /vendor             ext4    rw                          wait,slotselect,logical,first_stage_mount
-odm             /odm                ext4    ro                          wait,slotselect,logical,first_stage_mount
-
-/dev/block/by-name/dtbo             /dtbo           emmc    defaults                            slotselect,first_stage_mount,avb=vbmeta
-/dev/block/by-name/boot             /boot           emmc    defaults                            slotselect,first_stage_mount,avb=vbmeta
-/dev/block/by-name/init_boot        /init_boot      emmc    defaults                            slotselect,first_stage_mount,avb=vbmeta
-/dev/block/by-name/vendor_boot      /vendor_boot    emmc    defaults                            slotselect,first_stage_mount,avb=vbmeta
-/dev/block/by-name/recovery         /recovery       emmc    defaults                            slotselect,first_stage_mount,avb=vbmeta
-/dev/block/by-name/metadata         /metadata       ext4    noatime,nosuid,nodev,discard        wait,check,formattable,first_stage_mount
-
-/dev/block/bootdevice/by-name/misc          /misc   emmc    defaults                        defaults
-/dev/block/bootdevice/by-name/userdata      /data   ext4    noatime,nosuid,nodev,discard    latemount,wait,check,formattable,reservedsize=128M
-</code></pre>
-<p>关键词：
-rockchip 、瑞芯微、rk3588 、rk3399 、安卓、android 、aosp 、开发板</p>
-]]></content:encoded>
-<pubDate>2024-11-02T13:00:48Z</pubDate>
-</item>
-<item>
-<title>[开源]Flutter+Gin 带来丝滑流畅的体验</title>
-<link>https://www.v2ex.com/t/1084799</link>
-<guid>https://www.v2ex.com/t/1084799</guid>
-<content:encoded><![CDATA[
-<p>这是个记账工具，仅需要 docker 就可以部署服务器和构建 Android 安装包</p>
-<p>项目地址： <a href="https://github.com/ZiRunHua/LeapLedger" rel="nofollow">https://github.com/ZiRunHua/LeapLedger</a></p>
-<p>体验 Android 安装包下载： <a href="https://github.com/ZiRunHua/LeapLedger-App/releases/tag/v1.0.0" rel="nofollow">https://github.com/ZiRunHua/LeapLedger-App/releases/tag/v1.0.0</a></p>
-<p>如果你觉得不够丝滑流畅，但它会是一直追求的目标</p>
-<p>主要介绍在 Github 上这里就发下开发心路</p>
-<h2>心路省流版</h2>
-<p>后端开发，当初自负选了 Flutter ，开发中途想放弃，中断了一段时间，但回想当初的热情不甘心，于是去看了两本 Flutter 书籍之后，重新捡起来，虽然没有打算做 flutter 开发的工作，但成为了一个业余的兴趣爱好，隐约感觉背后一颗庞大的知识树，还会继续探索，未来持续更新，希望得到大家的支持，别忘了点点收藏谢谢大家</p>
-<h2>心路</h2>
-<h3>开发初心</h3>
-<p>最初因为找不到可以导入支付宝账单的安卓记账工具，就想自己简单开发一个，只要达到“能用就行”这个标准，当时就认为不管什么技术都行，因为只要浅浅学下，所以当时就<code>FLutter</code>和<code>RN</code>二选一了，是的，当初就是这么的自信，了解到<code>FLutter</code>的状态管理，看着像微服务加事件驱动，当时感觉还蛮不错的也和后端差不多，就决定用<code>FLutter</code>了，实际上还是有一定差异的，因为状态是持久存在的。开始看官方文档，跟着写几个 demo ，“哎呦，不错哦”，于是就开启了开发之路。</p>
-<p>ps:后来我了解到，安卓读取系统的非媒体文件属于敏感权限。作为记账工具，获取这些权限可能会导致难以在应用商城上架。不过，由于我们自己并不需要上架，因此无需过于担心这些问题。这也是自我部署使用的一个优势。</p>
-<h3>中途放弃</h3>
-<p>刚开始学习<code>FLutter</code>时，心里想着写一个自己用的 app 太棒，再弄个 window 桌面记账太好了，就感觉这事特别有意义，一点一点的就热情起来，这也推动了自己的学习动力，然后标准也提高了，要弄成开源项目，要弄成每个人都能部署服务器使用，但仅看了官方文档就开始开发，可想而知开发过程会碰到许多的问题，这些问题让开发非常缓慢，在不停的搜谷歌问 AI ，AI 时不时还胡说八道你还听不出来，当你不知道有<code>Flutter</code>的<code>Element</code>树存在时，你会以为有灵异事件发生，开发的热情就这样一点一点的消减了，然后就有段时间没怎么写了。</p>
-<h3>重新捡起来</h3>
-<p>回想当初的热情，不愿意放弃，有种不甘心，而且已经投入了许多时间了。回过头来看标准提高了但是知识没跟上，所以决定看本书，找了亚马逊上评分靠前的 Flutter 书籍《 Flutter Cookbook 》——Simone Alessandria ，这本书很棒每节都有让你动手的机会，看完这本书后对 flutter 有了系统的认识，也在这里推荐下，还有《 Flutter 组件详解与实战》——王浩然，那之后就可以比较流畅的开发了，但还是可以感受到背后还有一个庞大的知识树，虽然没有打算做<code>flutter</code>开发，但是当做一个兴趣，开发过程感觉也挺满足，现在开源后如果可以得到大家的支持，我会更有动力去做。</p>
-<h2>为什么叫 LeapLedger</h2>
-<p>中文应该叫飞记，“飞”来自于金克丝的台词——“起飞咯”,在没有“双城之战”前，金克丝给人一种极度自由的形象，这也是现实生活中不太能达到状态，这个飞也是“飞越疯人院”的飞，也是飞跃困难的飞，所以在这里希望大家，能够了解自己，突破束缚，在更多时候做自己。</p>
-<p>但其实这个记账好像没事关系 哈哈</p>
-<p>有什么需求或建议欢迎提交<code>issue</code>,希望可以得到大家的支持别忘了收藏下</p>
-]]></content:encoded>
-<pubDate>2024-10-30T15:49:54Z</pubDate>
-</item>
-<item>
-<title>[京东] 昨天京东给我个 5 元的话费优惠券，然后我充了，今天又自动给我退了。逗我那</title>
-<link>https://www.v2ex.com/t/1086055</link>
-<guid>https://www.v2ex.com/t/1086055</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-11-02T12:39:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在独立老师这么赚吗？年 50 打底 100 一大排，这比程序员还猛啊！</title>
-<link>https://www.v2ex.com/t/1086054</link>
-<guid>https://www.v2ex.com/t/1086054</guid>
-<content:encoded><![CDATA[
-<p>小红书看的，大家可以自己搜，</p>
-<p>文化课+独立老师，</p>
-<p>我寻思着 985 的本硕在大厂 996 的干，也没那么多 50 以上的，更别说 100 了。</p>
-<p>知道独立老师赚，但不知道赚这么多！</p>
-]]></content:encoded>
-<pubDate>2024-11-02T12:28:17Z</pubDate>
-</item>
-<item>
-<title>[生活] 京东真是越来越垃圾了啊</title>
-<link>https://www.v2ex.com/t/1086053</link>
-<guid>https://www.v2ex.com/t/1086053</guid>
-<content:encoded><![CDATA[
-<p>被恶意退单两单了，浪费了我两张云闪付积分兑换的优惠券。
-说是拼购失败，可我看拼购界面是成功的，而且付款成功，一付款就立马自动退款了。
-联系人工客服联系不上，一直都是自动回复。
-原来说转人工或者人工客服，马上就走人工回复了，现在怎么说都是自动回复，有人知道怎么联系人工客服吗？</p>
-]]></content:encoded>
-<pubDate>2024-11-02T12:21:14Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 入职新公司一周，去还是留？</title>
-<link>https://www.v2ex.com/t/1086052</link>
-<guid>https://www.v2ex.com/t/1086052</guid>
-<content:encoded><![CDATA[
-本人菜鸡做了 2 年 web 后端，2 年 java 游戏后端，刚入职新公司一周，这周接触到了很多，犹豫要不要跑路。<br /><br />这家公司优点是:<br />1. 双休，过节都有小礼物。<br />2. 同事人很好，很热心指点工作，有几个同事之前也是做游戏的，所以能接受没有相关经验的。<br /><br />缺点是:<br />1. 公司只有 20 多人，成立 1 年，离职率很高。入职的是 web 后端，但实际上要负责的内容很多，包括后端、前端、运维、测试、大数据。至于流程规范几乎没有，都是自己干了。<br />2. 公司的业务不稳定，虽然是广告行业，但是主营业务是流氓套壳的快应用，感觉不是很正规，前景不看好。<br />3. 领导喜欢午休的时候聚餐，然后让我们汇报工作，还准备每个月搞一次。这个算是个人不喜欢的。<br />4. 入职一周，加了 4 天班，基本都是 8 点左右下班，老板之前还会给加班最多的人发红包。<br /><br />因为缺点挺多，所以挺纠结留下还是跑路继续找工作。之前 gap 一个多月才找到这份工作，再跑路的话，不知道多久才能找到新的工作，而且 java 游戏后端找工作真是地狱难度，唯一安心的大概就是没车没房没贷款。<br />所以求大佬指点一下，先谢过各位大佬！
-]]></content:encoded>
-<pubDate>2024-11-02T12:01:18Z</pubDate>
-</item>
-<item>
-<title>[macOS] surge 体验有感</title>
-<link>https://www.v2ex.com/t/1086051</link>
-<guid>https://www.v2ex.com/t/1086051</guid>
-<content:encoded><![CDATA[
-<p>抓包真他妈句好用</p>
-]]></content:encoded>
-<pubDate>2024-11-02T11:53:22Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 小县城真的没钱了</title>
-<link>https://www.v2ex.com/t/1086050</link>
-<guid>https://www.v2ex.com/t/1086050</guid>
-<content:encoded><![CDATA[
-今天去吃饭，在一个商场里面，饭店门前是内部路。我理解这种停车场也算内部停车场了，吃着饭吃个饭看见交警开着摩托车来贴罚单了，给我都 tm 看傻了，这有点离谱吧。  最后给一个刚下车的人开了单子。那个人就在车旁边。
-]]></content:encoded>
-<pubDate>2024-11-02T11:44:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问目前最好的远程控制软件是什么？ todesk？ AnyDesk？</title>
-<link>https://www.v2ex.com/t/1086049</link>
-<guid>https://www.v2ex.com/t/1086049</guid>
-<content:encoded><![CDATA[
-还有没有其他更好的软件，最好能直接远程打游戏的更好。。
-]]></content:encoded>
-<pubDate>2024-11-02T12:02:57Z</pubDate>
-</item>
-<item>
-<title>[Python] pywb</title>
-<link>https://www.v2ex.com/t/1086048</link>
-<guid>https://www.v2ex.com/t/1086048</guid>
-<content:encoded><![CDATA[
-一个类似 Internet Archive Wayback Machine 的开源软件。<br /><br /><a href="https://github.com/webrecorder/pywb" rel="nofollow noopener" target="_blank">https://github.com/webrecorder/pywb</a><br /><br />虽然可以很方便在本地就安装搭建，但我好奇的是，有没有人用 pywb 搭建一个面向公众服务的，类似 IA 那样的系统？<br /><br />Wayback Machine:<br /><br /><a href="https://archive.org/" rel="nofollow noopener" target="_blank">https://archive.org/</a>
-]]></content:encoded>
-<pubDate>2024-11-02T12:25:20Z</pubDate>
-</item>
-<item>
-<title>[Apple] 苹果 Mac 系列 M 芯片性能跑分对比, 大家可以参考下</title>
-<link>https://www.v2ex.com/t/1086047</link>
-<guid>https://www.v2ex.com/t/1086047</guid>
-<content:encoded><![CDATA[
-<p>M4 系列提升挺大的</p>
-]]></content:encoded>
-<pubDate>2024-11-02T12:27:36Z</pubDate>
-</item>
-<item>
-<title>[iPhone] 外版 iPhone 无法跟国行 iPhone 打 FaceTime 视频是什么问题</title>
-<link>https://www.v2ex.com/t/1086046</link>
-<guid>https://www.v2ex.com/t/1086046</guid>
-<content:encoded><![CDATA[
-设备 1: 日版 iPhone16pm ，登录的澳洲 icloud 账号，插国内电信单卡<br />设备 2: 国行 iphone15 plus ，登陆的国内 icloud 账号，插国内电信单卡<br /><br />网络环境 1: Wifi 情况下<br />日版 iPhone 拨打国行 iPhone 打不出去，直接显示对方名字不可用，反过来国行 iPhone 拨打日版 iPhone ，日版 iPhone 可以看到界面，点击接听但无法接通，直接自动挂断。<br /><br />网络环境 2:移动数据情况下<br />日版 iPhone 无法拨打 FaceTime ，国行 iPhone 可以拨打日版 iPhone ，跟 Wi-Fi 情况下一样，可以看到界面，点击接听无法接通，直接自动挂断。<br /><br />两种情况下都无法使用，请有经验的兄弟指导下如何能解决这个问题。
-]]></content:encoded>
-<pubDate>2024-11-02T12:31:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于《嗯背单词 JP》抄袭作者 ViolaH 分组词表的致歉声明</title>
-<link>https://www.v2ex.com/t/1086045</link>
-<guid>https://www.v2ex.com/t/1086045</guid>
-<content:encoded><![CDATA[
-大家好，我在《嗯背单词 JP 》中使用了搜索来的 N5-N1 单词列表，发现是来自作者 @<a href="https://www.v2ex.com/member/ViolaH" rel="nofollow noopener" target="_blank">ViolaH</a> 整理的 Anki 卡组，是原作者自行编辑的劳动成果<br /><br />这里向原作者说声对不起，下个版本中将会替换成其它词表<br /><br />再次感谢原作者的付出<br /><br />相关链接如下<br /><br /><a href="https://www.v2ex.com/t/1086017" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1086017</a><br /><a href="https://www.v2ex.com/t/1086042" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1086042</a>
-]]></content:encoded>
-<pubDate>2024-11-02T12:31:42Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 国补的 24G M4 Pro，还是教育优惠的 32G M4？</title>
-<link>https://www.v2ex.com/t/1086044</link>
-<guid>https://www.v2ex.com/t/1086044</guid>
-<content:encoded><![CDATA[
-<p>准备买新款的 14 寸 MBP ，纠结国补的 24G M4 Pro ，还是教育优惠的 32G M4 。其他情况相同，大家会怎么选。或者有没有这个价位的其他配置推荐。</p>
-]]></content:encoded>
-<pubDate>2024-11-02T11:55:17Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] vscode 里的 go 项目 有没有包视图扩展？</title>
-<link>https://www.v2ex.com/t/1086043</link>
-<guid>https://www.v2ex.com/t/1086043</guid>
-<content:encoded><![CDATA[
-<p>就是能把整个项目按 package 组织显示<br />
-试了下 Go Outline 以及 Go: Show All Packages 命令都不理想</p>
-]]></content:encoded>
-<pubDate>2024-10-23T11:00:50Z</pubDate>
 </item>
 </channel>
 </rss>
