@@ -5,11 +5,823 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Linux] Linux 上编译安装 atop 和 netatop , atop 进行性能监控的详解</title>
+<link>https://www.v2ex.com/t/1089122</link>
+<guid>https://www.v2ex.com/t/1089122</guid>
+<content:encoded><![CDATA[
+
+<p>Linux 系统的资源使用情况，你可以通过使用命令如<code>free</code>、<code>top</code>和<code>netstat</code>来实时监控内存、CPU 及端口的使用状态。对于需要追踪历史资源消耗动态的场景，<code>atop</code>命令则能有效帮助用户查看过去的系统负载情况。</p>
+<p>本篇教程的灵感源自一位小伙伴的真实经历：她曾遇到服务器不定期卡顿的问题，<strong>没想到腾讯云的客服指导她使用 <code>atop</code> 进行故障排查，结果发现是 <code>dnf-makecache</code> 周期性执行导致的系统卡顿</strong>。腾讯云客服的专业性让人印象深刻。</p>
+<p><img alt="很 Nice 的客服" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/emoticon/watchPhone.webp" /></p>
+<p>鉴于此，本次使用腾讯云的轻量应用服务器详解 <code>atop</code> 的使用，更好地监控服务器性能。</p>
+<p>文章教程可能比较长，本文尽可能提炼。完整教程可以访问我的博客：</p>
+<ul>
+<li><a href="https://www.mintimate.cn/2024/11/11/GuideToATop/" rel="nofollow">洞悉 Linux 系统运行细节，使用 atop 监测和回看系统负载状态</a></li>
+</ul>
+<p><strong>如果你对云服务器、CDN 、云数据库和 Linux 等云计算感兴趣，亦或者喜欢编程、设计、产品、运营等领域，欢迎加入我们的开发者爱好群，一起交流学习: 812198734</strong> (目前可能就我一个人？毕竟才刚刚创建 ~）。</p>
+<h1>什么是 atop</h1>
+<p><code>atop</code> 是一个用于 Linux 和 Unix 类操作系统的时间间隔内系统活动分析工具。看它的名字，很容易联想到 Linux 自带的 <code>top</code>，其实确实挺像的，不过与 <code>top</code> 更像的，应该是 <code>btop</code> 和 <code>htop</code>。<code>atop</code> 主要是允许用户从命令行界面上查看系统过去的 CPU 使用率、磁盘 I/O 、内存与交换分区使用情况。甚至可以记录进程统计以及网络接口活动在内的多种信息。</p>
+<p><img alt="atop" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atoplogo.webp" /></p>
+<p><code>atop</code> 的 GitHub 项目地址: <a href="https://github.com/Atoptool/atop" rel="nofollow">https://github.com/Atoptool/atop/</a></p>
+<h2>选择 atop?</h2>
+<p>主要的原因，还是 <code>atop</code> 的历史数据回放功能。虽然我们自己也可以用 crontab 来定时记录系统活动快照，但是，<code>atop</code> 的 <code>systemctl</code> 服务，可以自动记录系统活动快照，而且，<code>atop</code> 还可以<strong>自动删除过期的系统活动快照</strong>，非常方便。与其自己造造轮子，不如直接使用 <code>atop</code> 的 <code>systemctl</code> 服务。</p>
+<p><img alt="很 Nice 的客服" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/emoticon/watchPhone.webp" /></p>
+<h1>atop 基础使用</h1>
+<p>其实，<code>atop</code> 大体可以分为两个模式：</p>
+<ul>
+<li>实时检测模式: 直接使用 <code>atop</code> 进入 <code>atop</code> 的交互界面，查看实时的数据，并且可以使用命令进行交互。</li>
+<li>历史数据模式: 通过预先设定的监控定时器配置，查看历史数据快照。</li>
+</ul>
+<p><strong>历史数据模式</strong>其实就是历史的<strong>实时检测模式</strong>快照，所以我们使用 <code>atop</code> 命令，只需要知道 <code>atop</code> 交互模式如何使用，以及配置历史数据模式即可。</p>
+<h2>交互模式</h2>
+<p>我们直接使用 <code>atop</code> 进入类似于 <code>top</code> 的交互模式，查看实时数据:</p>
+<pre><code class="language-bash"># 进入 atop 交互模式
+atop
+</code></pre>
+<p><img alt="atop 交互模式" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopInteractiveMode.webp" /></p>
+<p>上方是 <strong>CPU 、内存、磁盘、网络、GPU 的利用率以及使用量</strong>。下方是进程列表，以及进程的详细信息。介绍一下常用的字段含义：</p>
+<ul>
+<li><strong>PID</strong>: 进程 ID （ Process ID ），唯一标识一个进程的编号。</li>
+<li><strong>CID/POD</strong>: 容器 ID 或 Pod 名称，表示进程所属的容器或 Pod 。</li>
+<li><strong>SYSCPU</strong>: 系统 CPU 时间，进程在内核态运行所消耗的 CPU 时间。</li>
+<li><strong>USRCPU</strong>: 用户 CPU 时间，进程在用户态运行所消耗的 CPU 时间。</li>
+<li><strong>RDELAY</strong>: 资源延迟时间，进程等待资源（如 CPU 、内存、I/O 等）所消耗的时间。</li>
+<li><strong>BDELAY</strong>: 块设备延迟时间，进程等待块设备（如磁盘 I/O ）所消耗的时间。</li>
+<li><strong>VGROW</strong>: 虚拟内存增长量，进程的虚拟内存使用量的变化。</li>
+<li><strong>RGROW</strong>: 常驻内存增长量，进程的常驻内存（物理内存）使用量的变化。</li>
+<li><strong>RDDSK</strong>: 读取磁盘的数据量，进程从磁盘读取的数据量。</li>
+<li><strong>WRDSK</strong>: 写入磁盘的数据量，进程向磁盘写入的数据量。</li>
+<li><strong>RNET</strong>: 接收网络数据量，进程从网络接收的数据量。</li>
+<li><strong>SNET</strong>: 发送网络数据量，进程向网络发送的数据量。</li>
+<li><strong>RUID</strong>: 实际用户 ID （ Real User ID ），启动进程的用户的 ID 。</li>
+<li><strong>EUID</strong>: 有效用户 ID （ Effective User ID ），进程当前运行时的用户 ID 。</li>
+<li><strong>ST</strong>: 进程状态（ State ），表示进程的当前状态（如运行、睡眠、僵尸等）。</li>
+<li><strong>EXC</strong>: 进程的退出代码（ Exit Code ），进程终止时的退出状态码。</li>
+<li><strong>THR</strong>: 线程数（ Threads ），进程中当前运行的线程数量。</li>
+<li><strong>S</strong>: 进程的调度优先级（ Scheduling priority ），进程的调度优先级。</li>
+<li><strong>CPUNR</strong>: CPU 编号（ CPU Number ），进程当前运行的 CPU 编号。</li>
+<li><strong>MEM</strong>: 内存使用量，进程当前使用的内存量。</li>
+<li><strong>CMD</strong>: 命令行，启动进程的命令行。</li>
+</ul>
+<p>这些字段提供了关于系统中各个进程的详细信息，帮助用户监控和分析系统性能。</p>
+<p>这个时候，你按下 <code>q</code> 即可退出，或者按住 <code>Ctrl + C</code> 退出。如果你保持这个界面，并不退出，可以按 <code>h</code> 或者 <code>?</code> 查看帮助信息：</p>
+<p><img alt="atop 帮助信息" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopHelpInfo.webp" /></p>
+<p>比如: <strong>如果你想看那个进程占用了最多的 CPU ，那么我们只需要进入交互模式</strong>，然后按 <code>C</code> (按 CPU 消耗资源排序) 排序，然后按 <code>g</code> (显示通用信息) 查看进程信息，这个时候，你可以按 <code>z</code> 冻结刷新，观察好后按 <code>q</code> 退出即可。</p>
+<p>在进入交互模式的时候，你可以直接追加参数，就不用进入交互模式后，再按相关指令排序进程列表或者切换展示视图了：</p>
+<pre><code class="language-bash"># 进入交互模式并按使用 CPU 占用率排序
+atop -C
+# 进入交互模式并按使用内存的占用率排序
+atop -M
+</code></pre>
+<p>接下来，我们看几个具体使用的场景。</p>
+<h2>kill 进程</h2>
+<p>我们使用 <code>atop</code> 的时候，如果想杀掉某个进程，那么使用 <code>atop</code> 也是可以操作的。先使用 <code>z</code> 冻结刷新，之后你可以选择资源排序(比如: <strong>按 <code>C</code> 就是使用 CPU 占用率排序[默认]，按 <code>M</code> 就是使用内存的占用率排序</strong>)：</p>
+<p><img alt="atop 冻结刷新" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopFreeze.webp" /></p>
+<p>我们只需要按 <code>k</code> (终止一个进程) ，进入选择进程的输入界面:</p>
+<p><img alt="atop 输入杀死的进程" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopInputProcess.webp" /></p>
+<p>比如，我们这里 kill 掉 chromium 进程，输入进程的 PID: 619981</p>
+<p><img alt="输入目标进程" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopInputProcess2.webp" /></p>
+<p>之后，询问发送的信号:</p>
+<pre><code class="language-bash">Signal [15]
+</code></pre>
+<p>默认情况，我们直接填 <code>15</code> 就可以了，也就是我们 <code>kill 「 pid 」</code> 的默认信号。如果无法 <code>kill</code> 可以考虑使用 <code>root</code> 权限运行 <code>atop</code>，或者使用 <code>9</code>：</p>
+<ul>
+<li><strong>SIGKILL (9)：强制终止信号。不能被捕获或忽略，进程必须立即终止。</strong></li>
+<li><strong>SIGTERM (15)：终止信号。通常用于请求进程正常终止。</strong></li>
+</ul>
+<p>就可以杀掉这个进程了。</p>
+<p><img alt="进程杀死成功" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopKillProcess.webp" /></p>
+<h2>查看网络流量</h2>
+<p>首先，网络模块 <code>netatop</code> 并不是 <code>atop</code> 自带的模块。是需要手动安装的，和 <code>atop</code> 不同的是，它使用 <a href="https://zh.wikipedia.org/wiki/%E5%8A%A8%E6%80%81%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%94%AF%E6%8C%81" rel="nofollow">动态内核模块支持(DKMS)</a> 来装载到 <code>atop</code>。安装方法，可以看下一个章节的 <a href="https://www.v2ex.com/#%E7%BD%91%E7%BB%9C%E6%89%A9%E5%B1%95%E6%8F%92%E4%BB%B6" rel="nofollow">网络扩展插件</a> 。</p>
+<p>在安装好后，我们只需要进入交互模式，然后按 <code>n</code> (网络流量) 排序，就可以看到网络流量了。</p>
+<p>不过可能会出现错误 <code>Module 'netatop' or 'netatop-bpf' not active or no root privs; request ignored!</code>:</p>
+<p><img alt="atop 查看网络流量错误" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopNetworkError.webp" /></p>
+<p>这个时候，有两种可能:</p>
+<ul>
+<li>权限不足: <code>atop</code> 没有权限查看网络流量，这个时候，我们只<strong>需要使用 root 权限运行 atop 即可</strong>。</li>
+<li><code>netatop</code> 进程没有启动: <code>atop</code> 会自动关联 <code>netatop</code> 进程，如果 <code>netatop</code> 进程没有启动，那么就会报错。可以使用 <code>systemctl status netatop</code> 查看 <code>netatop</code> 进程是否启动，如果没启动，那么可以<strong>使用 systemctl start netatop 启动 netatop 进程</strong>。</li>
+</ul>
+<h1>安装 atop</h1>
+<p>安装好后的 <code>atop</code> 主要包括两个部分:</p>
+<ul>
+<li><code>atop</code> 命令: 用于实时查看系统负载状态。</li>
+<li><code>atop</code> 的 <code>systemnctl</code> 服务: 用于定期记录系统活动快照。如果要查看历史数据，<code>atop</code> 的 <code>systemctl</code> 服务是必不可少的。</li>
+</ul>
+<p>至于安装 <code>atop</code>， 方法很多，主要有：</p>
+<ul>
+<li>软件包管理器安装: <code>atop</code> 已经在各个软件包管理器内发布，不过版本可能不是最新的。</li>
+<li>源码编译安装: 下载 <code>atop</code> 的源码，可以直接安装最新或者指定版本的 <code>atop</code>。</li>
+</ul>
+<p>安装 <code>atop</code> 命令，都会自动配置 <code>atop</code> 的 <code>systemctl</code> ；接下来我们都简单介绍一下上述两种安装方法。</p>
+<p><img alt="好奇" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/emoticon/peekCat.webp" /></p>
+<h2>源码编译</h2>
+<p>如果你想用高版本的 <code>atop</code> ，那么就需要手动编译，可以在 <a href="https://www.atoptool.nl/downloadatop.php" rel="nofollow">atop 官方下载界面</a> 找到下载地址，之后下载到本地编译安装，比如我这里使用腾讯云轻量应用服务器操作：</p>
+<pre><code class="language-bash"># 下载源代码
+wget https://www.atoptool.nl/download/atop-2.11.0.tar.gz
+# 解压并进入
+tar -xf atop-2.11.0.tar.gz
+cd atop-2.11.0
+</code></pre>
+<p><img alt="下载 2.11 版本的源码" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/downloadSourceOfATop.webp" /></p>
+<p>之后，进行编译：</p>
+<pre><code class="language-bash"># 编译
+make
+# 安装
+make install
+# 查看版本信息
+atop -V
+</code></pre>
+<p><img alt="手动编译安装" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/makeInstallFinishedForATop.webp" /></p>
+<h2>网络扩展插件</h2>
+<p>默认情况下，<code>atop</code> 没有自带网络监控模块(即可: netaop)，需要我们自己安装。同样，首先前往官网，下载最新的 <code>netatop</code> 源码:</p>
+<pre><code class="language-bash"># 这里下载 3.2.2 版本的
+wget https://www.atoptool.nl/download/netatop-3.2.2.tar.gz
+# 解压并进入
+tar -xf netatop-3.2.2.tar.gz
+cd netatop-3.2.2
+</code></pre>
+<p>之后进行安装：</p>
+<pre><code class="language-bash"># 编译
+make
+# 安装
+make install
+</code></pre>
+<p>如果编译过程出现内核头文件找不到，类似于：</p>
+<pre><code class="language-bash">./mkversion
+make -C /lib/modules/5.10.0-32-amd64/build M=/usr/local/src/netatop-3.2.2 modules
+make[1]: *** /lib/modules/5.10.0-32-amd64/build: No such file or directory.  Stop.
+make: *** [Makefile:13: netatop.ko] Error 2
+</code></pre>
+<p>这个时候，我们可以使用<code>uname -r</code>查看 Linux 内核版本，并使用软件包管理器安装内核头部文件：</p>
+<pre><code class="language-bash"># Debian/Ubuntu 
+apt install linux-headers-$(uname -r)
+# CentOS/RedHat/OpenCloudOS
+yum install kernel-devel-$(uname -r)
+</code></pre>
+<p><img alt="内核头文件安装" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/installHeaderFiles.webp" /></p>
+<p>如果出现</p>
+<pre><code class="language-bash">cd /usr/src; dkms add -m netatop -v 3.2.2
+Error! Could not find module source directory.
+Directory: /usr/src/netatop-3.2.2 does not exist.
+make: *** [Makefile:23: install] Error 2
+</code></pre>
+<p>那么是 <code>netatop</code> 的源码需要放在 <code>/usr/src</code> 下的原因。比如:</p>
+<p><img alt="移动源码并继续编译" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/mvSourceToUsrSrc.webp" /></p>
+<p>这个时候 <code>netatop</code> 就已经安装好了:</p>
+<pre><code class="language-bash"># 使用 systemctl 查看 netatop 的运行状态
+systemctl status netatop
+</code></pre>
+<p><img alt="netatop 运行状态" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/checkNetAtopStatus.webp" /></p>
+<h1>历史监控日志</h1>
+<p>上文说到，<code>atop</code> 部署和安装后，会自动配置一个由 <code>systemctl</code> 所管理的守护进程，这个守护进程会自动运行 <code>atop</code>。如果想卸载这个守护进程，可以使用 <code>systemctl stop atop</code> 停止 <code>atop</code> 守护进程，然后使用 <code>systemctl disable atop</code> 禁用 <code>atop</code> 守护进程。</p>
+<p>查看这个守护进程的状态，可以使用 <code>systemctl status atop</code> 命令：</p>
+<p><img alt="查看 atop 守护进程状态" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopStatus.webp" /></p>
+<p>根据上面的输出，我们可以看到，<code>atop</code> 守护进程的配置文件是 <code>/lib/systemd/system/atop.service</code>，我们可以通过 <code>/lib/systemd/system/atop.service</code> 查看这个配置文件的内容：</p>
+<pre><code class="language-yaml">[Unit]
+Description=Atop advanced performance monitor
+Documentation=man:atop(1)
+
+[Service]
+Type=simple
+Environment="LOGOPTS="
+Environment="LOGINTERVAL=600"
+Environment="LOGGENERATIONS=28"
+Environment="LOGPATH=/var/log/atop"
+EnvironmentFile=/etc/default/atop
+ExecStartPre=/bin/sh -c 'test -d "${LOGPATH}" || mkdir -p "${LOGPATH}"'
+ExecStartPre=/bin/sh -c 'test -n "$LOGINTERVAL" -a "$LOGINTERVAL" -eq "$LOGINTERVAL"'
+ExecStartPre=/bin/sh -c 'test -n "$LOGGENERATIONS" -a "$LOGGENERATIONS" -eq "$LOGGENERATIONS"'
+ExecStart=/bin/sh -c 'exec /usr/bin/atop ${LOGOPTS} -w "${LOGPATH}/atop_$(date +%%Y%%m%%d)" ${LOGINTERVAL}'
+ExecStartPost=/usr/bin/find "${LOGPATH}" -name "atop_*" -mtime +${LOGGENERATIONS} -exec rm -v {} \;
+KillSignal=SIGUSR2
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>解释一下各个参数:</p>
+<ul>
+<li>LOGOPT: 控制日志文件记录，允许您自定义日志文件的保存路径、命名规则、滚动周期以及其他与日志记录相关的选项。为<code>""</code>表示不使用任何额外选项;</li>
+<li>LOGINT: 监控周期，单位是秒；</li>
+<li>LOGGEN: 日志保留时间，单位是天；</li>
+<li>LOGPATH: 指定 atop 日志文件的路径。</li>
+</ul>
+<p>当然，你也不用修改这个配置文件，只需要修改 <code>/etc/default/atop</code> 文件即可覆写 <code>/lib/systemd/system/atop.service</code> 内的相关配置。</p>
+<h2>覆写配置文件</h2>
+<p>使用 <code>vim</code> 覆写或新建 <code>/etc/default/atop</code> 文件，比如，我们想修改 <code>atop</code> 的日志间隔时间，那么只需要修改 <code>LOGINTERVAL</code> 即可，比如:</p>
+<pre><code class="language-yaml">LOGOPTS=""
+LOGINTERVAL=30
+LOGGENERATIONS=7
+LOGPATH=/var/log/atop
+</code></pre>
+<p>上述的配置，表示 <code>atop</code> 的日志间隔时间是 30 秒，日志保留时间是 7 天，日志文件保存在 <code>/var/log/atop</code> 目录下。</p>
+<p>之后，我们只需要重启 <code>atop</code> 守护进程即可生效:</p>
+<pre><code class="language-bash">systemctl restart atop
+</code></pre>
+<p><img alt="配置 atop 守护进程" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopConfig.webp" /></p>
+<p>那么，<code>atop</code> 守护进程产生的日志文件，如何有效地查看某段时间内的系统负载变化呢？</p>
+<p>我们只需要用 <code>atop -r 「日志文件」</code> 命令即可，比如:</p>
+<pre><code class="language-bash"># 查看 20241029 日志文件
+atop -r /var/log/atop/atop_20241029
+</code></pre>
+<p><img alt="查看 atop 守护进程历史日志" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopHistory.webp" /></p>
+<p>这个时候，我们按 <code>t</code> 可以查看下一个时间快照节点，按 <code>shift + t</code> 可以查看上一个时间快照节点。如果你想直接查看某个时间节点，那么可以使用 <code>b</code>，之后出现的提示框：</p>
+<pre><code class="language-txt"># 输入时间戳，其中年月日和秒是可选的
+Enter new time (format [YYYYMMDD]hhmm[ss]):
+</code></pre>
+<p><img alt="查看 atop 守护进程历史日志" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/post_GuideToATop/atopHistory2.webp" /></p>
+<p>是不是很方便呢？还有更方便的，你可以直接用组合键：</p>
+<pre><code class="language-bash"># 查看 20241029 日志文件，时间戳为 23 点
+atop -r /var/log/atop/atop_20241029 -b 2300
+</code></pre>
+<h1>atop 卸载</h1>
+<p>其实，我个人认为 <code>atop</code> 是没有必要卸载的，因为 <code>atop</code> 的功能非常强大，而且 <code>atop</code> 的守护进程对系统资源的消耗不大（可能只有 10M 左右的内存占用）；</p>
+<p>如果还是想卸载 <code>atop</code> ~~</p>
+<p><img alt="Keep Going" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/emoticon/overAndOverAgain.gif" /></p>
+<h2>反编译 atop</h2>
+<p>如果你是手动编译安装的 <code>atop</code>，那么卸载 <code>atop</code> 就需要手动删除(其实就是把 <code>make install</code> 自动执行的反过来（因为源码包内没有提供 <code>uninstall</code> 的脚本，只能手动反操作了)：</p>
+<pre><code class="language-bash"># 停止并禁用 atop 服务
+systemctl stop atop
+systemctl disable atop
+# 停止并禁用 atopacct 服务
+systemctl stop atopacct
+systemctl disable atopacct
+# 删除 systemd 服务文件
+rm /lib/systemd/system/atop.service
+rm /lib/systemd/system/atopgpu.service
+rm /lib/systemd/system/atop-rotate.service
+rm /lib/systemd/system/atop-rotate.timer
+rm /lib/systemd/system/atopacct.service
+# 删除 systemd 系统服务的软链接
+rm /etc/systemd/system/multi-user.target.wants/atopacct.service
+rm /etc/systemd/system/multi-user.target.wants/atop.service
+rm /etc/systemd/system/timers.target.wants/atop-rotate.timer
+# 删除二进制文件和配置文件
+rm /usr/bin/atop
+rm /usr/bin/atopsar
+rm /usr/sbin/atopacctd
+rm /usr/sbin/atopgpud
+rm /usr/bin/atopconvert
+rm /usr/bin/atopcat
+rm /usr/bin/atophide
+rm /etc/default/atop
+# 删除 man 页面
+rm /usr/share/man/man1/atop.1
+rm /usr/share/man/man1/atopsar.1
+rm /usr/share/man/man1/atopconvert.1
+rm /usr/share/man/man1/atopcat.1
+rm /usr/share/man/man1/atophide.1
+rm /usr/share/man/man5/atoprc.5
+rm /usr/share/man/man8/atopacctd.8
+rm /usr/share/man/man8/atopgpud.8
+# 删除 atop 日志目录
+rm -rf /var/log/atop
+</code></pre>
+<h2>卸载 netatop</h2>
+<p>既然 <code>atop</code> 已经卸载，那么也没必要保留 <code>netatop</code> 了，同样根据编译步骤，逆向操作即可：</p>
+<pre><code class="language-bash"># 停止并禁用 netatop 服务
+systemctl stop netatop
+systemctl disable netatop
+# dkms 移除 netatop 模块
+dkms remove -m netatop -v 3.2.2 --all
+</code></pre>
+<h1>END</h1>
+<p>哈哈，我们了解了 <code>atop</code> 的优势，<strong>特别是其自动周期性记录和历史数据回放功能</strong>。本次的 <code>atop</code> 分享就到这里啦~~ 感谢阅读。<strong>也给腾讯云的服务团队点个赞，非常专业和耐心，帮用户解决实际的问题</strong>。</p>
+<p>其实和 <code>atop</code> 类似的工具还有很多(比如: <code>htop</code>、<code>glances</code>、<code>nmon</code> 等)，主要还是看个人的使用习惯。就好比，查看端口的占用情况，你可以使用 <code>netstat</code>、<code>ss</code>、<code>lsof</code> 等命令，也可以使用 <code>nmap</code>、<code>ncat</code> 等工具；</p>
+<p>如果你有更好的工具推荐，欢迎在评论区留言；有机会，我也给大家出一些其他工具的使用教程。</p>
+<p><img alt="稳了" class="embedded_image" rel="noreferrer" src="https://imagehost.mintimate.cn/emoticon/peaceful.gif" /></p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:49:58Z</pubDate>
+<pubDate>2024-11-13T02:46:58Z</pubDate>
+</item>
+<item>
+<title>[前端开发] 使用论坛里推广那个 casdoor 系统，每次部署更新页面都白屏</title>
+<link>https://www.v2ex.com/t/1089120</link>
+<guid>https://www.v2ex.com/t/1089120</guid>
+<content:encoded><![CDATA[
+
+需要用户强制刷新下浏览器缓存才正常，没接触过前端，这个是什么问题呢？
+]]></content:encoded>
+<pubDate>2024-11-13T02:48:38Z</pubDate>
+<pubDate>2024-11-12T22:48:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] 光猫需要重启（电源复位）才能恢复网速，可能是什么原因，如何排查？</title>
+<link>https://www.v2ex.com/t/1089118</link>
+<guid>https://www.v2ex.com/t/1089118</guid>
+<content:encoded><![CDATA[
+
+<p>介绍下背景：</p>
+<ol>
+<li>
+<p>家里不大，全部是默认设置，没有搞 mesh 什么的，应该也是默认光猫路由模式、光猫拨号的，家里就光猫接了一台路由器。</p>
+</li>
+<li>
+<p>家里是四川电信 1000Mbps 的带宽。</p>
+</li>
+<li>
+<p>copy 的光猫背后的参数：</p>
+<ul>
+<li>
+<p>10G-EPON 天翼网关</p>
+</li>
+<li>
+<p>型号：TEWA-1000E</p>
+</li>
+<li>
+<p>制造：四川天邑康和通信股份有限公司</p>
+</li>
+</ul>
+</li>
+<li>
+<p>出现网速异常的时候，差不多可以从 1000Mbps 降为 80Mbps 左右，我尝试过重启路由器，没有用，但重启光猫就好了</p>
+</li>
+<li>
+<p>没有关注过过多久会出现这种情况，因为家里对带宽利用不算高，只有明显降速了才会感知到。</p>
+</li>
+<li>
+<p>目前尝试登录光猫的普通用户 web 管理后台，把光猫自带的 wifi 关了，不知道会不会有改善。</p>
+</li>
+<li>
+<p>家里的设备情况：比较多的 2.4G 家庭智能设备接入：冰箱、扫地机、电饭煲等，可能十来个设备。5G 接入的一般就家人的 3~4 台手机+2 台笔记本。  </p>
+</li>
+</ol>
+<p>一些猜测：</p>
+<ol>
+<li>光猫做路由+wifi 发射+光转电+挂比较多的设备，对于这个设备来说负担过大？</li>
+<li>这个光猫内软件有什么 bug ，比如 mem leak? 导致一定时间后就会影响到网速？</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-11-13T02:47:23Z</pubDate>
+<pubDate>2024-11-13T02:47:23Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 工作该何去何从</title>
+<link>https://www.v2ex.com/t/1089116</link>
+<guid>https://www.v2ex.com/t/1089116</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>现在国企三级单位(发展不是很好，今年没有项目，领导说年终奖会受到影响)</li>
+</ol>
+<p>薪资：年包 16 万（包含年终奖），现在每个月到手 10k + 500 礼品卡</p>
+<p>base: 杭州</p>
+<ol>
+<li>500 人公司做电网相关（未知发展，在多个城市有分公司）</li>
+</ol>
+<p>薪资：17k+餐补 400+电脑补贴 200+通讯 100 * （ 13-14 ）</p>
+<p>base: 北京（家人在北京）</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:43:41Z</pubDate>
+<pubDate>2024-11-13T02:48:01Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有没有 Python web 相关的视频或者书籍</title>
+<link>https://www.v2ex.com/t/1089115</link>
+<guid>https://www.v2ex.com/t/1089115</guid>
+<content:encoded><![CDATA[
+
+<p>最近想学习一下用 python 写后台接口，有没有相关的资料呀。想要一些比较全的视频或者书籍。</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:42:42Z</pubDate>
+<pubDate>2024-11-13T02:40:42Z</pubDate>
+</item>
+<item>
+<title>[投资] 上海爷叔： 2026 年上证指数能涨到 14600 点，真的假的？</title>
+<link>https://www.v2ex.com/t/1089114</link>
+<guid>https://www.v2ex.com/t/1089114</guid>
+<content:encoded><![CDATA[
+
+爱在深秋”上海爷叔曾大胆预言 2026 年上证指数涨到 14600 点，4 年赚 5 千万的 00 后股神随之便许下了赚一个亿的宏愿。2026 年，上证指数涨到 14600 点的牛逼能实现吗？机构、游资、2 亿散户和 7 亿基民都共赢吗？答案是：14600 点会达到，但要稍微迟一些，因为上面要的是慢牛，不是“疯牛”。<br /><br />如果想让 A 股涨到 14600 点，每个票的业绩和估值都得大涨才行，我们就假设从今年三季度开始，A 股的整体业绩每年涨 10%，那 2026 年也就涨个 21%左右，股价如果跟着同步涨，大约就撑死就涨到 4100-4200 点。<br /><br />既然业绩不够，那就估值来凑。估值拉升行情一般比业绩要涨的快、猛，可是要涨到 14600 点还是有不小的压力，就拿现在的市盈率看：14.8 倍，而 14600 点对应的估值是多少？ 50 倍左右。50 倍的估值只在 2007 年是出现过，即便 2015 年的大牛也才 21 倍。
+]]></content:encoded>
+<pubDate>2024-11-13T02:42:23Z</pubDate>
+<pubDate>2024-11-13T02:51:28Z</pubDate>
+</item>
+<item>
+<title>[Apple] 2024MacMini 与一线通/充电宝 未来有望吗？</title>
+<link>https://www.v2ex.com/t/1089113</link>
+<guid>https://www.v2ex.com/t/1089113</guid>
+<content:encoded><![CDATA[
+
+<p>今年爆款的 Macmini 什么都好，但我还是想期待一下一线通和充电宝的可能性。<br />
+虽然从产品角度 mini 属于一台主机，不负责移动场景，不能接充电宝合情合理。<br />
+但这个体积很难不让人联想更多的玩法，官方会不会在后续更新会补上这个功能，或者第三方会不会捣鼓出来？<br />
+所说的充电宝不是那种带 220v 插座的移动电源，就跟 MBP 可以插充电宝一样，虽然我知道 MBP 那个只是提供充电。<br />
+瓶颈是否在充电宝的输出功率？ typc-c 供电这个不能阉割掉吧？一线通这个一般 WIN 的小主机都能实现，为何 mini 要卡一道？内置电源和 typc-c 供电也没冲突吧？                     </p>
+<p>彦祖们可以科普一下吗</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:40:45Z</pubDate>
+<pubDate>2024-11-13T02:38:45Z</pubDate>
+</item>
+<item>
+<title>[问与答] 是 HDMI 还是 Mac mini M4 的 HDMI 接口更容易拔插 or 松动脱落？</title>
+<link>https://www.v2ex.com/t/1089112</link>
+<guid>https://www.v2ex.com/t/1089112</guid>
+<content:encoded><![CDATA[
+
+<p>因为之前接口都是带自锁的 DP 、或 DVI 、VGA 等接口，很少用 HDMI ，最近换上 Mac mini M4 后发现 HDMI 比较容易在挪动主机时松动脱落。</p>
+<p>为了保持桌面干净，我是将线材统一从桌子后面折倒桌面下面再固定的，但挪动设备时多次出现 HDMI 接口线脱落的问题。</p>
+<p>一起固定的电源线，TypeC 线都没有掉，我起初以为是 HDMI 线的问题，就买了个新线，发现上面也没有增加固定的逻辑(类似 A 口的两个坑除外，也许是便宜的原因？)</p>
+<p>且拔插过程中异常的丝滑，拔插的阻力感觉跟 TypeC 相似，但 TypeC 线材比 HDMI 线可柔软了不是一个量级，且 TypeC 会有明显的卡扣紧固设计。</p>
+<p>同时测试了 Switch 底座的 HDMI 与另一个显示器的 HDMI （接口、线材交叉测试）。</p>
+<p>发现 Mac mini M4 的 HDMI 似乎比其他 HDMI 接口相比，更容易拔插，也导致了更容易脱落，只有 Switch 底座感受到了疑似紧固的设计(推到尽头时需要更用力，有卡扣的“声音”or 感觉？拔出时需要稍微用力)。</p>
+<p>情问这是 HDMI 标准中设计如此，还是只是 mini 上的 HDMI 就是更容易拔插、松动？</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:37:26Z</pubDate>
+<pubDate>2024-11-13T02:36:26Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 我在设计开发的编程语言， Hello， World 跑通了</title>
+<link>https://www.v2ex.com/t/1089110</link>
+<guid>https://www.v2ex.com/t/1089110</guid>
+<content:encoded><![CDATA[
+
+<p>语言暂时取名叫：Emo 。</p>
+<p>目前实现了函数和类的调用。</p>
+<p>看图说话：</p>
+<p><a href="https://imgse.com/i/pAgSuVg" rel="nofollow"><img alt="pAgSuVg.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/11/13/pAgSuVg.png" /></a></p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:35:37Z</pubDate>
+<pubDate>2024-11-13T02:51:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 要交今年的农村医保了，这个东西真的有用吗？</title>
+<link>https://www.v2ex.com/t/1089108</link>
+<guid>https://www.v2ex.com/t/1089108</guid>
+<content:encoded><![CDATA[
+
+<p>刚帮爸妈交了农村医保。我完全没体验过农村医保，真的不知道这个医保实际有什么？
+有用过这个医保的没？说说农村医保到底有没有用？是不是交了农村医保，医院给你开的药都会变成安慰的药，父母吃药和不吃效果差不多？</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:34:40Z</pubDate>
+<pubDate>2024-11-13T02:51:35Z</pubDate>
+</item>
+<item>
+<title>[Apple] jd mac mini4 pro 版本可以预约国补了，但是只有 24GB+512</title>
+<link>https://www.v2ex.com/t/1089106</link>
+<guid>https://www.v2ex.com/t/1089106</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-11-13T02:27:21Z</pubDate>
+<pubDate>2024-11-13T02:50:59Z</pubDate>
+</item>
+<item>
+<title>[程序员] macOS 中有 Oh My Zsh 的上位替代么？</title>
+<link>https://www.v2ex.com/t/1089105</link>
+<guid>https://www.v2ex.com/t/1089105</guid>
+<content:encoded><![CDATA[
+
+<p>新购入了一台 Mac ，准备不迁移环境而是从头配置一下环境，现在准备安装 shell 插件了。</p>
+<p>之前一直用着 Oh My Zsh ，确实很好用，但是感觉初始化时间越来越长，一个新的 session 要 1 ～ 2 秒才初始化完成，可能是插件有点多了，而且看有人说 Oh My Zsh 的性能差点意思。</p>
+<p>问下各位现在有 Oh My Zsh 的上位替代么？可以从使用体验、易用度、生态、性能之类的方面讲讲。</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:25:20Z</pubDate>
+<pubDate>2024-11-13T02:46:33Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS 越来越不面向开发者了， macOS 15 上竟然无法修改网卡 mac 并在重启后保持？</title>
+<link>https://www.v2ex.com/t/1089104</link>
+<guid>https://www.v2ex.com/t/1089104</guid>
+<content:encoded><![CDATA[
+
+<p>改 mac 地址很简单就是用 ifconfig 命令，root 权限执行。
+但问题是 ifconfig 在 wifi 连接的情况下是直接返回执行失败的（大概资源被当前网络连接占用），需要先将当前网络断开，但是这一步在 macOS 15 上没有对应的 命令行，14 以前的版本可以用 airport -z 实现，但是 airport 命令已经被苹果废弃了...</p>
+<p>大家有什么好办法么？</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:25:03Z</pubDate>
+<pubDate>2024-11-13T02:25:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] Mac 可以创建这样的捷径吗， Mac 连接 AirPods 时，自动调节音量到 30% ？</title>
+<link>https://www.v2ex.com/t/1089103</link>
+<guid>https://www.v2ex.com/t/1089103</guid>
+<content:encoded><![CDATA[
+
+<p>试了好久没找到方法</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:22:18Z</pubDate>
+<pubDate>2024-11-13T02:25:27Z</pubDate>
+</item>
+<item>
+<title>[程序员] 纯文本编辑器，一般选择什么样的前背景色组合比较好？</title>
+<link>https://www.v2ex.com/t/1089102</link>
+<guid>https://www.v2ex.com/t/1089102</guid>
+<content:encoded><![CDATA[
+
+<p>是这样的，最近在写小说，正好又写了个网页来作为编辑器，写好的小说就放在服务器上，便于多端同步编写</p>
+<p>纯文本，很难做语法高亮（除非可以用来高亮主角的名字什么的），所以一开始我设置的就是白底黑字，但是感觉晚上会有点刺眼，想加一个黑底白字模式</p>
+<p>不过，前两天和群友聊天的时候，群友提到过，黑底白字有光通量不够的嫌疑，比较伤眼睛，还得在电脑屏幕旁边放一个灯作为辅助照明</p>
+<p>问一下各位 V 友，一般来说会选择什么样的前背景色组合，才不会很快出现眼睛疲劳的情况？</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:21:49Z</pubDate>
+<pubDate>2024-11-13T02:51:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 空闲时间写了一个"稿定设计"， V 友们先看</title>
+<link>https://www.v2ex.com/t/1089100</link>
+<guid>https://www.v2ex.com/t/1089100</guid>
+<content:encoded><![CDATA[
+
+<p>Demo: <a href="https://pro.yft.design/editor" rel="nofollow">https://pro.yft.design/editor</a><br />
+Github: <a href="https://github.com/dromara/yft-design" rel="nofollow">https://github.com/dromara/yft-design</a>
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/b6918883-2675-409e-b908-fe50151e91fa" /></p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:21:21Z</pubDate>
+<pubDate>2024-11-13T02:50:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] 怎么下载安装微软商店里软件的安装包？</title>
+<link>https://www.v2ex.com/t/1089097</link>
+<guid>https://www.v2ex.com/t/1089097</guid>
+<content:encoded><![CDATA[
+
+<p>有台离线的电脑需要使用部分软件。</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:17:18Z</pubDate>
+<pubDate>2024-11-13T02:19:02Z</pubDate>
+</item>
+<item>
+<title>[前端优化] 寻找前端 SEO 大佬付费咨询</title>
+<link>https://www.v2ex.com/t/1089096</link>
+<guid>https://www.v2ex.com/t/1089096</guid>
+<content:encoded><![CDATA[
+
+<p>我们需要做一个数据网站，后端 python ，前端 vue + nuxt 。
+服务器部署在香港或者美国。</p>
+<p>主要客户面相美国+欧洲+印度市场。
+现在不知道怎么做 SEO 优化，这一行很垂直，客户很多关键词也很明确，希望找一个做过 SEO 得大佬沟通沟通。</p>
+<p>wechat：YWljaGl4aWd1YTIzNQ==</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:17:01Z</pubDate>
+<pubDate>2024-11-13T02:17:01Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2 处房子的宽带问题</title>
+<link>https://www.v2ex.com/t/1089095</link>
+<guid>https://www.v2ex.com/t/1089095</guid>
+<content:encoded><![CDATA[
+
+这样的我现在宽带牵在租房,自己的房子刚装修完,我想搞个网络连接空调这些电器设备,来实现远程开关设备,有没有靠谱的方案?<br />我目前已知的方案:<br />1.牵一个 200M 小宽带 费用大概 30 元/月.<br />2.买一个移动 WiFi,每个月 1500G,15 元的费用.<br /><br />不知道还有没有其他的 hack 方案.
+]]></content:encoded>
+<pubDate>2024-11-13T02:16:51Z</pubDate>
+<pubDate>2024-11-13T02:47:20Z</pubDate>
+</item>
+<item>
+<title>[iOS] 有没有好用的 ios 软件推荐呀</title>
+<link>https://www.v2ex.com/t/1089094</link>
+<guid>https://www.v2ex.com/t/1089094</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-11-13T02:16:25Z</pubDate>
+<pubDate>2024-11-13T02:30:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 兄弟们，怎么退掉新农合医保，交重复了</title>
+<link>https://www.v2ex.com/t/1089093</link>
+<guid>https://www.v2ex.com/t/1089093</guid>
+<content:encoded><![CDATA[
+
+<h2>1 、我妈年前交了的 400 块的新农合医保</h2>
+<h2>2 、现在知道工作的地方交了职工医保了</h2>
+<h2>3 、这重复交的 400 块的医保能找地方退掉吗？</h2>
+<h2>4 、坐标湖南永州</h2>
+]]></content:encoded>
+<pubDate>2024-11-13T02:14:51Z</pubDate>
+<pubDate>2024-11-13T02:12:51Z</pubDate>
+</item>
+<item>
+<title>[程序员] 双币种计费,数据库怎么设计</title>
+<link>https://www.v2ex.com/t/1089091</link>
+<guid>https://www.v2ex.com/t/1089091</guid>
+<content:encoded><![CDATA[
+
+<p>想同时支持 CNY 和 USD,用户支付后就面临同时存在两种货币,计费扣款时对从哪种货币扣款拿不准</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:13:08Z</pubDate>
+<pubDate>2024-11-13T02:51:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 送弟弟 平板，是送安卓的，小米 7pro，还是 iPad ？</title>
+<link>https://www.v2ex.com/t/1089090</link>
+<guid>https://www.v2ex.com/t/1089090</guid>
+<content:encoded><![CDATA[
+
+问了，感觉都可。
+]]></content:encoded>
+<pubDate>2024-11-13T02:09:13Z</pubDate>
+<pubDate>2024-11-13T02:30:15Z</pubDate>
+</item>
+<item>
+<title>[Apple] AliExpress 阿里国际和百度网盘 iOS app 使用 live activity 也就是通过灵动岛展示广告</title>
+<link>https://www.v2ex.com/t/1089089</link>
+<guid>https://www.v2ex.com/t/1089089</guid>
+<content:encoded><![CDATA[
+
+<a href="https://x.com/yourtechguy100/status/1856189033367421065" rel="nofollow noopener" target="_blank">https://x.com/yourtechguy100/status/1856189033367421065</a><br /><br /><a href="https://i.imgur.com/UdKEqxS.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/UdKEqxS.jpeg" /></a><br /><br /><a href="https://i.imgur.com/D35GiKx.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/D35GiKx.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2024-11-13T02:08:09Z</pubDate>
+<pubDate>2024-11-13T02:20:31Z</pubDate>
+</item>
+<item>
+<title>[iPhone] iPhone 怎么实现闹钟跟随法定节假日联动？</title>
+<link>https://www.v2ex.com/t/1089088</link>
+<guid>https://www.v2ex.com/t/1089088</guid>
+<content:encoded><![CDATA[
+
+<p>iPhone 怎么实现闹钟跟随法定节假日联动？安卓都实现多少年了，iOS 本地化依旧是稀烂</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:06:29Z</pubDate>
+<pubDate>2024-11-13T02:49:26Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 手持电池健康度 81%的 iPhone 13Pro，想换小米 15</title>
+<link>https://www.v2ex.com/t/1089087</link>
+<guid>https://www.v2ex.com/t/1089087</guid>
+<content:encoded><![CDATA[
+
+得知小米可以给 Mac 电脑传文件时，真的心动了，小米 15 尺寸也合适。
+]]></content:encoded>
+<pubDate>2024-11-13T02:03:29Z</pubDate>
+<pubDate>2024-11-13T02:45:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] V 上竟然没有讨论那件事的...</title>
+<link>https://www.v2ex.com/t/1089086</link>
+<guid>https://www.v2ex.com/t/1089086</guid>
+<content:encoded><![CDATA[
+
+<p>还是我没找到... 找了半天</p>
+]]></content:encoded>
+<pubDate>2024-11-13T02:03:19Z</pubDate>
+<pubDate>2024-11-13T02:58:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 买 macmini m4 pro 中配还是等 macstudio 低配</title>
+<link>https://www.v2ex.com/t/1089084</link>
+<guid>https://www.v2ex.com/t/1089084</guid>
+<content:encoded><![CDATA[
+
+mini 12c48g 中配没有国补，有点犹豫要不要等 studio
+]]></content:encoded>
+<pubDate>2024-11-13T02:02:57Z</pubDate>
+<pubDate>2024-11-13T02:02:57Z</pubDate>
+</item>
+<item>
+<title>[问与答] 错过了双 11，双 12 的话 4060 还能到 1800 么？</title>
+<link>https://www.v2ex.com/t/1089083</link>
+<guid>https://www.v2ex.com/t/1089083</guid>
+<content:encoded><![CDATA[
+
+肠子都悔青了…<br /><br />双 11 没出手
+]]></content:encoded>
+<pubDate>2024-11-13T01:56:34Z</pubDate>
+<pubDate>2024-11-13T02:33:27Z</pubDate>
+</item>
+<item>
+<title>[问与答] 晚上入睡困难，求大家推荐一点语音类的播客节目助眠啊</title>
+<link>https://www.v2ex.com/t/1089081</link>
+<guid>https://www.v2ex.com/t/1089081</guid>
+<content:encoded><![CDATA[
+
+晚上经常一个小时都无法入睡，必须听一点声音才能入睡，但是当听的有困意的时候，声音一停就没有困意了，当然外部噪音不行；<br />有锻炼，一周六练，每天一个半小时，练完十点左右，感觉越练越睡不着。<br /><br />试过自然类的助眠声音，效果不好或者说基本没有吧；<br />访谈类的、BGM 变动比较大的不合适，经常有人突然大笑或者 BGM 节奏突变，都会立马清醒；<br />最好是历史、人文类的节目最合适了，轻松娱乐点的。
+]]></content:encoded>
+<pubDate>2024-11-13T01:52:29Z</pubDate>
+<pubDate>2024-11-13T02:37:53Z</pubDate>
+</item>
+<item>
+<title>[深圳] 求推荐深圳拳击馆</title>
+<link>https://www.v2ex.com/t/1089080</link>
+<guid>https://www.v2ex.com/t/1089080</guid>
+<content:encoded><![CDATA[
+
+<p>周末有时间想学学拳击，有没有踩过坑的小伙伴推荐深圳靠谱的拳击馆，谢谢</p>
+]]></content:encoded>
+<pubDate>2024-11-13T01:49:09Z</pubDate>
+<pubDate>2024-11-13T02:49:03Z</pubDate>
+</item>
+<item>
+<title>[问与答] 买了自制的 Windows Hello，右下角老是有个 弹出 Integrated camera，如何去除？</title>
+<link>https://www.v2ex.com/t/1089079</link>
+<guid>https://www.v2ex.com/t/1089079</guid>
+<content:encoded><![CDATA[
+
+<p>系统是 win11 24h2 ，输密码实在是太不优雅了，所以就买了个 usb 的，用起来还是挺方便的，但是右下角一直有个弹出硬件看着烦人。</p>
+<p>尝试过好几种办法都无效：</p>
+<ol>
+<li>硬件管理器禁用摄像头</li>
+<li>修改注册表 <a href="https://shangjixin.com/archives/remove-devices-cant-be-reject.html" rel="nofollow">https://shangjixin.com/archives/remove-devices-cant-be-reject.html</a></li>
+</ol>
+<p>不知道有没有大佬知道怎么去掉这个，可以接受用不了摄像头，Windows hello 那个红外能用就行了。</p>
+]]></content:encoded>
+<pubDate>2024-11-13T01:47:33Z</pubDate>
+<pubDate>2024-11-13T01:47:33Z</pubDate>
+</item>
+<item>
+<title>[生活] 该去哪里找旅游搭子</title>
+<link>https://www.v2ex.com/t/1089078</link>
+<guid>https://www.v2ex.com/t/1089078</guid>
+<content:encoded><![CDATA[
+
+最近想去日本玩，但是朋友不能一起去， 准备请假 5 天  休 9 天 这样<br />一个人去感觉差点意思
+]]></content:encoded>
+<pubDate>2024-11-13T01:47:28Z</pubDate>
+<pubDate>2024-11-13T02:48:20Z</pubDate>
+</item>
+<item>
+<title>[送码] iPhone 拦截猫 App 支持了 1.04 亿骚扰电话拦截能力，欢迎尝试！</title>
+<link>https://www.v2ex.com/t/1087796</link>
+<guid>https://www.v2ex.com/t/1087796</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="IMG_6687.JPG" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/08/k7Iyr1bt3sfCBHF.jpg" /></p>
+<p><img alt="Frame 20.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/08/kvLtsgI56eSmBjH.png" /></p>
+<p>拦截猫是 iPhone 上拦截骚扰电话和清理垃圾短信的 APP</p>
+<p>目前已经压榨苹果手机最后的极限，支持了 1.04 亿骚扰电话拦截</p>
+<p>经过今天和用户的交流，大部分骚扰电话均可以拦截，虽然做不到 100%，感觉效果已经很不错了。</p>
+<p>App Store 搜索 “拦截猫” 即可下载使用·。</p>
+<p>20 个年兑换码：</p>
+<ul>
+<li>YNTF4XNWYKYJ4HM73F</li>
+<li>AYTREPRXTLMMWXKPXP</li>
+<li>WRH7FLL8TR6E8NMTLA</li>
+<li>47TKK6XE7TWMKM447Y</li>
+<li>RP6WNJ87733J66T6YW</li>
+<li>EJT3RX43JTK8JAFM3A</li>
+<li>37TXHK8NFK4M8NAEK3</li>
+<li>T6PLJMH8JJM6XTWE8P</li>
+<li>M4WM8T6NJHYEAN7L6J</li>
+<li>4WAF6NYFRNL6AXTFFP</li>
+<li>WM8T6LTKFRPA4RH3MA</li>
+<li>WWMFF3YH4ATAL3TKR7</li>
+<li>MN6KARJJ3877AK4663</li>
+<li>RP46NEEN3NTE7RPAT7</li>
+<li>RNTTYJF6RWM4RWWKX6</li>
+<li>APKNXXLWJTRT74KF3J</li>
+<li>HYYTPK88TE7NKMELRX</li>
+<li>L3F7LKFF8WPEAYPNWT</li>
+<li>3M3W4R4KHEHH3P3YWX</li>
+<li>AJXNLWMX8JXN3FKH3L</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-11-08T08:12:49Z</pubDate>
+<pubDate>2024-11-12T20:51:52Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 用时宝 - 数码设备成本追踪 &amp; 使用寿命管理 ( iPhone 买 9999，每天花 9.1 元)</title>
+<link>https://www.v2ex.com/t/1087808</link>
+<guid>https://www.v2ex.com/t/1087808</guid>
+<content:encoded><![CDATA[
+
+<p>[分享创造] 用时宝 - 数码设备成本追踪 &amp; 使用寿命管理 (iPhone 买 9999 ，每天花 9.1 元)</p>
+<p>大家好,我做了一个实用的小工具「用时宝」(<a href="https://ysb.chatgptnb.com/" rel="nofollow">ysb.chatgptnb.com</a>),用来记录和追踪数码设备的使用情况。</p>
+<p>主要功能：</p>
+<ul>
+<li>记录设备的购买价格、购买日期和预期使用年限</li>
+<li>自动计算设备的日均使用成本</li>
+<li>显示设备的使用进度和状态</li>
+<li>支持备注和购买原因记录</li>
+<li>支持多种货币（ CNY/USD/EUR ）</li>
+<li>支持多种使用状态（未开封/在用/闲置/已出售/已报废）</li>
+<li>自动识别当前设备并添加(可选)</li>
+</ul>
+<p>使用场景：</p>
+<ol>
+<li>想知道自己的 iPhone 、MacBook 等设备实际每天花费多少钱</li>
+<li>想追踪设备的使用寿命，合理规划更换时间</li>
+<li>记录设备购买原因，避免冲动消费</li>
+<li>管理闲置设备，及时发现可以出售的设备</li>
+</ol>
+<p>开发这个工具的初衷是想帮助大家更理性地看待数码产品的购买和使用。比如一台 15000 的电脑用 3 年，看似很贵，但算下来每天只要 14 块钱，可能比天天喝星巴克还便宜。</p>
+<p>特点：</p>
+<ul>
+<li>完全免费使用</li>
+<li>界面简洁直观</li>
+<li>无需下载安装</li>
+<li>支持移动端访问</li>
+</ul>
+<p>后续计划：</p>
+<ul>
+<li>添加数据导出功能</li>
+<li>支持设备图片上传</li>
+<li>添加使用时间提醒</li>
+<li>支持设备分组管理</li>
+<li>添加数据统计和可视化</li>
+</ul>
+<p>欢迎各位 V 友使用反馈！
+访问地址：<a href="https://ysb.chatgptnb.com/" rel="nofollow">https://ysb.chatgptnb.com/</a></p>
+]]></content:encoded>
+<pubDate>2024-11-08T08:27:00Z</pubDate>
+<pubDate>2024-11-09T17:14:10Z</pubDate>
+</item>
+
+<item>
 <title>[Java] 给 xxl-job 写了个猴子脚本,用来计算执行日志里的执行时间,主要便于一眼看出哪个任务执行时间久需要优化</title>
 <link>https://www.v2ex.com/t/1089076</link>
 <guid>https://www.v2ex.com/t/1089076</guid>
 <content:encoded><![CDATA[
-
 <p>效果(x:居然不能帖图),我没图床..直接上代码</p>
 <pre><code class="language-js">// ==UserScript==
 // @name        xxl-job 执行时间计算
@@ -57,18 +869,15 @@ setInterval(execute,800)
 </code></pre>
 ]]></content:encoded>
 <pubDate>2024-11-13T01:42:43Z</pubDate>
-<pubDate>2024-11-13T01:42:43Z</pubDate>
 </item>
 <item>
 <title>[随想] 收藏帖子是不是应该给题主发铜币呀？</title>
 <link>https://www.v2ex.com/t/1089075</link>
 <guid>https://www.v2ex.com/t/1089075</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/VGxyn1c.png" /> </p>
 <p>光收藏不分享是吧？😂</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:42:08Z</pubDate>
 <pubDate>2024-11-13T01:42:08Z</pubDate>
 </item>
 <item>
@@ -76,10 +885,8 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089074</link>
 <guid>https://www.v2ex.com/t/1089074</guid>
 <content:encoded><![CDATA[
-
 下下周五下班去广州，周天回，深圳出发。<br />有没有好玩、好吃的（最好老店）推荐，第一次去广州，住宿住哪里比较方便。
 ]]></content:encoded>
-<pubDate>2024-11-13T01:41:48Z</pubDate>
 <pubDate>2024-11-13T01:39:48Z</pubDate>
 </item>
 <item>
@@ -87,10 +894,8 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089073</link>
 <guid>https://www.v2ex.com/t/1089073</guid>
 <content:encoded><![CDATA[
-
 自己家的 山西运城产，<br />39 块一箱 带箱十斤 个数十六个左右 规格差不多 80 吧应该<br />淘宝链接 <a href="https://item.taobao.com/item.htm?id=607137139636" rel="nofollow noopener" target="_blank">https://item.taobao.com/item.htm?id=607137139636</a><br />不想用淘宝的可以加下面我的微信 朋友圈搞了个快团团链接<br /><br /><br />海南新疆这种快递太贵 建议大家线下超市<br /><br />收货后放到阴凉处存储，或者放冰箱，放个几个月没问题，吃的快的十天半个月就吃完了也<br />发货可能会慢点 现摘现发<br />售后问题旺旺喊我，比如有磕碰 漏发，漏单，旺旺没理人就微信喊我。<br />vx killzyt<br /><br />前年在站内卖了一年，去年比较忙就没过来发帖<br />下面是之前的帖子，<br /><a href="https://www.v2ex.com/t/891275?p=2#reply118" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/891275?p=2#reply118</a><br /><a href="https://www.v2ex.com/t/889813?p=2#reply176" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/889813?p=2#reply176</a><br /><br /><a href="https://i.imgur.com/LhssXY1.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/LhssXY1.png" /></a><br /><a href="https://i.imgur.com/lSmlkmM.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/lSmlkmM.png" /></a><br /><a href="https://i.imgur.com/QfItHWr.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/QfItHWr.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:39:37Z</pubDate>
 <pubDate>2024-11-13T01:39:37Z</pubDate>
 </item>
 <item>
@@ -98,10 +903,8 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089072</link>
 <guid>https://www.v2ex.com/t/1089072</guid>
 <content:encoded><![CDATA[
-
 <p>现在这套模具已经快 4 年了吧？</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:38:21Z</pubDate>
 <pubDate>2024-11-13T01:43:56Z</pubDate>
 </item>
 <item>
@@ -109,10 +912,8 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089071</link>
 <guid>https://www.v2ex.com/t/1089071</guid>
 <content:encoded><![CDATA[
-
 手持 13 代，电池剩 60%，最近降薪了，IPHONE16 好贵
 ]]></content:encoded>
-<pubDate>2024-11-13T01:37:19Z</pubDate>
 <pubDate>2024-11-13T01:44:43Z</pubDate>
 </item>
 <item>
@@ -120,7 +921,6 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089070</link>
 <guid>https://www.v2ex.com/t/1089070</guid>
 <content:encoded><![CDATA[
-
 <p>是这样的，这是一个工具型移动网站（放在餐饮店里），比如里面有一个功能是连接 WIFI ，点击后直接调用 WIFI 连接，不用让用户再手动输入密码。还有其它功能，比如调起公司的 APP 奖励一盘小菜之类的功能。</p>
 <p>但现在很多用户习惯性是，见到二维码，习惯用微信扫一扫，然后使用就在微信中打开了。但这个页面中部分功能是不支持使用的，需要在浏览器中才有权限。</p>
 <p>如果用户使用微信扫码进来的时候，就提醒右上角使用浏览器打开，不打开就让用，次数太多会让这个域名被封了。
@@ -130,17 +930,14 @@ setInterval(execute,800)
 <p>请问另外一个小问题，我看到有一个使用 NFC 打开网站的方式，但这种方式部分苹果手机是不是没有，印象中苹果手机好像到 11 ？还是 12 ？才能 NFC 呢？并且一般人没有打开 NFC ，这样给用户更加不方便。</p>
 ]]></content:encoded>
 <pubDate>2024-11-13T01:34:31Z</pubDate>
-<pubDate>2024-11-13T01:34:31Z</pubDate>
 </item>
 <item>
 <title>[问与答] mac mini m4 天猫还有没发货的吗</title>
 <link>https://www.v2ex.com/t/1089069</link>
 <guid>https://www.v2ex.com/t/1089069</guid>
 <content:encoded><![CDATA[
-
 2 号的订单  还没发货
 ]]></content:encoded>
-<pubDate>2024-11-13T01:34:27Z</pubDate>
 <pubDate>2024-11-13T01:37:37Z</pubDate>
 </item>
 <item>
@@ -148,14 +945,12 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089067</link>
 <guid>https://www.v2ex.com/t/1089067</guid>
 <content:encoded><![CDATA[
-
 <p>之前是使用一键搭建机场脚本，但是每年都有一两次被封的几率。
 自己平时就是看看推和油管以及设计相关的网站，下载色色之类的。
 小弟我不是技术人员，因此不知道怎样才能够安全的利用该瓦工 vps 。每年被封一次重新购买 IP 挺贵的。
 希望老哥们给教教或推荐推荐更安全的姿势或教程~
 感恩老哥。</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:31:44Z</pubDate>
 <pubDate>2024-11-13T01:40:13Z</pubDate>
 </item>
 <item>
@@ -163,13 +958,11 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089066</link>
 <guid>https://www.v2ex.com/t/1089066</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>有需要的留下 v</li>
 <li>限 3 人 (人均 38)</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:31:33Z</pubDate>
 <pubDate>2024-11-13T01:41:06Z</pubDate>
 </item>
 <item>
@@ -177,7 +970,6 @@ setInterval(execute,800)
 <link>https://www.v2ex.com/t/1089065</link>
 <guid>https://www.v2ex.com/t/1089065</guid>
 <content:encoded><![CDATA[
-
 <p>没有采用加密的备份，或者使用 crypt15 加密的备份都可以轻松的导出聊天记录。
 但是我发现启动 WhatsApp icloud 备份后，手机整体备份后没有 ChatStorage.sqlite 或者 ChatStorage.sqlite.crypt15 ，我从 icloud 文档中找到了一些文件，是一些 enc 结尾的
 (
@@ -187,17 +979,14 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 有谁知道这种文件怎么解密吗。</p>
 ]]></content:encoded>
 <pubDate>2024-11-13T01:22:14Z</pubDate>
-<pubDate>2024-11-13T01:22:14Z</pubDate>
 </item>
 <item>
 <title>[优惠信息] 微信支付有优惠，交行 3 元立减金</title>
 <link>https://www.v2ex.com/t/1089064</link>
 <guid>https://www.v2ex.com/t/1089064</guid>
 <content:encoded><![CDATA[
-
 <p>交行，#小程序://支付有优惠/lVt0KiurPKzuPRp</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:21:52Z</pubDate>
 <pubDate>2024-11-13T01:39:43Z</pubDate>
 </item>
 <item>
@@ -205,10 +994,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089063</link>
 <guid>https://www.v2ex.com/t/1089063</guid>
 <content:encoded><![CDATA[
-
 刚接到一个 010539125XX 的电话，自称某火的合作伙伴。<br />邀请试用开通 COXX 商业使用。1 元享受 N 次调用，N 个 token 。<br />某火你就这样把用户的手机号交给你的合作伙伴了？<br />还允许他们打电话骚扰用户，你们可真行啊！
 ]]></content:encoded>
-<pubDate>2024-11-13T01:21:45Z</pubDate>
 <pubDate>2024-11-13T01:21:45Z</pubDate>
 </item>
 <item>
@@ -216,12 +1003,10 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089062</link>
 <guid>https://www.v2ex.com/t/1089062</guid>
 <content:encoded><![CDATA[
-
 <p>下班后都是合盖的，可是有时候一晚上待机掉电动辄 20-30 的电，一直找不到原因，类似图中的耗电大户 chrome 我也是临走 Command+q 退出的。</p>
 <p>请教各位大佬，我应该怎么排查原因呢，或者各位大佬有什么好的解决办法吗？</p>
 <p><a href="https://imgur.com/a/mEuiVVd" rel="nofollow">https://imgur.com/a/mEuiVVd</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:21:29Z</pubDate>
 <pubDate>2024-11-13T01:32:58Z</pubDate>
 </item>
 <item>
@@ -229,10 +1014,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089061</link>
 <guid>https://www.v2ex.com/t/1089061</guid>
 <content:encoded><![CDATA[
-
 买了贝锐的两个域名，例如：a 、b ，将 a 域名配置在路由器的 ddns 上，一般是用来远程开机。开机后会有一个执行计划每五分钟会把 ip 绑定到 b 域名上。这时 b 绑定成功后我发现我无法再使用 a 域名访问到服务器了，用 b 域名就可以，不知道是什么原因？我应该如何排查？和贝锐有关系吗？
 ]]></content:encoded>
-<pubDate>2024-11-13T01:08:23Z</pubDate>
 <pubDate>2024-11-13T01:40:33Z</pubDate>
 </item>
 <item>
@@ -240,12 +1023,10 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089060</link>
 <guid>https://www.v2ex.com/t/1089060</guid>
 <content:encoded><![CDATA[
-
 <p>1.一个股票涨跌，跟 新闻、政策、基本面、情绪、牛熊市、主力、机构、游资 操作，等等非数值因素，也有很大关系，这些指标又没法 数值量化  （也没有啥数据源 网站之类的，能做到 统计 定量 定性  这些指标的吧 ）</p>
 <p>2.所以对一般的 k 线数据（开盘价，收盘价，最低价，最高价，成交量 ，财务指标  等等），进行数据分析，有意义吗？   可能你分析出来的策略，是上面的 事件驱动 情况引起的！</p>
 <p>3.假使一个策略，回测挺好的，很多年来看 正收益，那执行这个策略，不管涨跌，应该等很多年，长久的来看！ 那中途的时候，什么情况下，才能判定策略不行了，需要换策略？</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T01:08:06Z</pubDate>
 <pubDate>2024-11-13T01:08:06Z</pubDate>
 </item>
 <item>
@@ -253,10 +1034,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089059</link>
 <guid>https://www.v2ex.com/t/1089059</guid>
 <content:encoded><![CDATA[
-
 <p>请问新电脑到手需要先关闭 sip 吗 z 需要用到 adobe 一些软件 还有听说不关闭 sip 冷启动软件都非常慢要等很久吗</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T00:59:20Z</pubDate>
 <pubDate>2024-11-13T01:45:22Z</pubDate>
 </item>
 <item>
@@ -264,14 +1043,12 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089058</link>
 <guid>https://www.v2ex.com/t/1089058</guid>
 <content:encoded><![CDATA[
-
 <p>用 Cluade 写了我的第一个 Chrome 插件。背景是我在看川普胜选的 hacker news 帖子，但是将近上万个评论，都是英语帖子，看起来哪怕翻译都很费劲，所以做了这个 chrome 插件可以一键把盖楼的讨论总结成太长不看版。
 效果感觉还不错，如图👇</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GcMgyE3asAEZwwL?format=jpg&amp;name=4096x4096" /></p>
 <p>目前只支持 HN 社区，接下来会支持 Reddit ，其他社区也可以考虑。</p>
 <p>Repo 地址： <a href="https://github.com/i365dev/community-tldr" rel="nofollow">https://github.com/i365dev/community-tldr</a> 没有上 Chrome 商店，直接下载插件安装后配置 API key 就行。</p>
 ]]></content:encoded>
-<pubDate>2024-11-13T00:58:58Z</pubDate>
 <pubDate>2024-11-13T00:57:58Z</pubDate>
 </item>
 <item>
@@ -279,7 +1056,6 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089056</link>
 <guid>https://www.v2ex.com/t/1089056</guid>
 <content:encoded><![CDATA[
-
 <h3>一、上周科技圈大事记</h3>
 <ul>
 <li>
@@ -365,17 +1141,14 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <p>您也可以通过 RSS （ <a href="https://toolight.cn/open/p/weekly/atom.xml" rel="nofollow">https://toolight.cn/open/p/weekly/atom.xml</a> ） 免费订阅</p>
 ]]></content:encoded>
 <pubDate>2024-11-13T00:47:32Z</pubDate>
-<pubDate>2024-11-13T00:47:32Z</pubDate>
 </item>
 <item>
 <title>[问与答] MacOS 要玩 Win 游戏除了安装虚拟机还有什么办法不。</title>
 <link>https://www.v2ex.com/t/1089055</link>
 <guid>https://www.v2ex.com/t/1089055</guid>
 <content:encoded><![CDATA[
-
 不是 3A ，就单机游戏，龙之崛起、罗马、星际 之类的。<br />Mac 是不是也可以安装 Wine 之类的来玩游戏呐。
 ]]></content:encoded>
-<pubDate>2024-11-13T00:43:48Z</pubDate>
 <pubDate>2024-11-13T01:37:47Z</pubDate>
 </item>
 <item>
@@ -383,10 +1156,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089054</link>
 <guid>https://www.v2ex.com/t/1089054</guid>
 <content:encoded><![CDATA[
-
 新到的丐版 mac mini m4 在睡眠唤醒后总出现通知：usb 配件已停用，拔掉耗电太大的设备以重新启用 USB 设备。目前只是雷电口连接了两台显示器，没有其他 usb-C 的设备，请问大家是什么原因呢？难道显示器在通过 mac 耗电？显示器之前连接 intel mac mini 从来没有上述通知。
 ]]></content:encoded>
-<pubDate>2024-11-13T00:41:21Z</pubDate>
 <pubDate>2024-11-13T01:27:56Z</pubDate>
 </item>
 <item>
@@ -394,10 +1165,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089052</link>
 <guid>https://www.v2ex.com/t/1089052</guid>
 <content:encoded><![CDATA[
-
 一直没注意在 Bing 上搜索不到我的产品，后来有用户反馈说你在 Bing 上找不到，然去搜了下确实没有。<br />继续使用 url:<a href="http://remusic.ai" rel="nofollow noopener" target="_blank">remusic.ai</a> 或 site:<a href="http://remusic.ai" rel="nofollow noopener" target="_blank">remusic.ai</a> 发现没有页面。<br /><br />真是醉了，，，<br /><br />后来提交了 Bing 站长后台 webmasters ，也请求收录，现在 2 周过期了仍旧没任何反应。<br /><br />站里的大佬，是否有经验呢？<br /><br />跪求帮助！！！
 ]]></content:encoded>
-<pubDate>2024-11-13T00:27:51Z</pubDate>
 <pubDate>2024-11-13T01:28:11Z</pubDate>
 </item>
 <item>
@@ -405,11 +1174,9 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089051</link>
 <guid>https://www.v2ex.com/t/1089051</guid>
 <content:encoded><![CDATA[
-
 <p>请问各位大佬，如图中的效果，有什么工具可以将多个截图放入一张图片，能够美观的展示出来。</p>
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/5z03UlV.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-11-13T00:10:47Z</pubDate>
 <pubDate>2024-11-13T00:22:51Z</pubDate>
 </item>
 <item>
@@ -417,10 +1184,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089050</link>
 <guid>https://www.v2ex.com/t/1089050</guid>
 <content:encoded><![CDATA[
-
 最近用数码相机翻拍了一些老的相纸照片，垫在一张白色 a4 纸上，然后有些照片拍出来后，四周会有多余的空白，想把这些留白通过程序自动去掉，不知道有没有现成工具或者实现思路，谢谢诸位！
 ]]></content:encoded>
-<pubDate>2024-11-13T00:04:15Z</pubDate>
 <pubDate>2024-11-13T00:41:45Z</pubDate>
 </item>
 <item>
@@ -428,10 +1193,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089049</link>
 <guid>https://www.v2ex.com/t/1089049</guid>
 <content:encoded><![CDATA[
-
 我是电信宽带，有公网 ip ，家里有一台软路由，上面部署了一些服务，我想在外面可以访问家里网络的服务。最开始是直接通过 OpenWrt 暴露到公网上面的，后面被警告了，不敢再直接暴露了，后面就是通过 PPTP 、IPSecVPN ，但是这样有个问题，一个是设备上网速度受到限制，另外一个是在公司使用，没办法访问公司一些限制 ip 的服务。现在我是通过内部网络建立一个 Socks5 服务，在外面外面的设备通过这个协议访问，但是这样还是有一个问题，没办法访问 mysql ，redis 这样的服务。我尝试了很多方法，总不怎么完美，请教一下各位大神是怎么搞的？
 ]]></content:encoded>
-<pubDate>2024-11-12T23:52:26Z</pubDate>
 <pubDate>2024-11-13T01:44:14Z</pubDate>
 </item>
 <item>
@@ -439,10 +1202,8 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089048</link>
 <guid>https://www.v2ex.com/t/1089048</guid>
 <content:encoded><![CDATA[
-
 <p>尼区油管会员要当地支付方式了，这可咋办😂</p>
 ]]></content:encoded>
-<pubDate>2024-11-12T23:39:57Z</pubDate>
 <pubDate>2024-11-13T01:10:40Z</pubDate>
 </item>
 <item>
@@ -450,7 +1211,6 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089047</link>
 <guid>https://www.v2ex.com/t/1089047</guid>
 <content:encoded><![CDATA[
-
 <p>方案配置：</p>
 <p>硬盘：15 GB SSD</p>
 <p>内存：500MB</p>
@@ -486,7 +1246,6 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <p>优惠后是$27 年，续费循环享受</p>
 <p><a href="https://990599.xyz/DC9" rel="nofollow">购买搬瓦工 DC99-MINIBOX-PLAN 含 aff 直达链接，$27</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-12T23:39:49Z</pubDate>
 <pubDate>2024-11-13T01:25:12Z</pubDate>
 </item>
 <item>
@@ -494,14 +1253,11 @@ Library/Mobile Documents/57T9237FN3~net~whatsapp~WhatsApp/Accounts/xxxx/backup/C
 <link>https://www.v2ex.com/t/1089046</link>
 <guid>https://www.v2ex.com/t/1089046</guid>
 <content:encoded><![CDATA[
-
 <p>个人用过的有：BtterTouchTool ，Smooze ，MacGesture</p>
 <p>都不算十分满意，有没有其他的手势软件可以推荐一下</p>
 ]]></content:encoded>
-<pubDate>2024-11-12T22:35:54Z</pubDate>
 <pubDate>2024-11-13T01:12:19Z</pubDate>
 </item>
-
 <item>
 <title>外贸独立站是否可以 wordpress 本地转静态然后托管在 github page 等免费静态托管商上？</title>
 <link>https://www.v2ex.com/t/1087754</link>
@@ -15827,419 +16583,6 @@ zgo 测评和线路质量可以参考: <a href="https://990599.xyz/zgocloud" rel
 <p>當中增加地方政府債務限額 6 萬億元，用於置換存量隱性債務，爲地方政府騰出空間更好發展經濟、保障民生。</p>
 ]]></content:encoded>
 <pubDate>2024-11-08T09:59:32Z</pubDate>
-</item>
-<item>
-<title>[路由器] 智能家居设备 WIFI 掉线求助</title>
-<link>https://www.v2ex.com/t/1087815</link>
-<guid>https://www.v2ex.com/t/1087815</guid>
-<content:encoded><![CDATA[
-目前在用华硕 ax88upro WIFI 路由器<br />家里 2.4g 频段的 WIFI 智能家居设备 15 个以内，问了客服说 2.4g 带机量为 20<br />偶发所有 2.4g 设备掉线，故障频率大概为每月 1-2 次，5g 频段设备不受影响<br />有两个问题：<br />1. 这种情况正常吗？即 ax88upro 的 2.4g 性能是不是就是这样<br />2. 如果是因为路由器 2.4g 性能不足，可以考虑在入一个 WIFI 路由器，但是选择哪款路由器带智能家居设备合适呢？
-]]></content:encoded>
-<pubDate>2024-11-08T09:40:41Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [WEB/全职] 上海， Finance IT，非远程，响应快</title>
-<link>https://www.v2ex.com/t/1087814</link>
-<guid>https://www.v2ex.com/t/1087814</guid>
-<content:encoded><![CDATA[
-Hey ，我之前发过我们 APP 的招聘帖，再发个 WEB 岗位的招聘帖<br />欢迎阅读，寻有缘同行的小伙伴～～～<br /><br /><br />我们是区块链行业，具体做什么的呢：<br />我们分两块业务，一块是金融交易，业务纯面向海外；另外一块是 WEB3 产品，独立社交类产品上承接交易，也面向纯海外<br /><br /><br />待招岗位是什么呢：<br />Web 端，业务需求交付<br />业务需求比较多，独立开发能力要好。定位不是在架构师，所以过于资深的同学不一定适合哈<br />业务需求交付的同时能顺便处理性能问题最好啦，如果没办法处理性能上的问题，业务需求准时高质量交付也是棒棒哒<br /><br /><br />地点和工作方式：<br />全职，上海 base<br />我们集中办公，上海办公室在五角场附近<br />每周最多一天在家办公<br /><br /><br />岗位要求：<br />5 年端上工作经验最好要有<br />具体项目安排要看大家的个人经验和意愿情况来安排，可能的大致方向在 WEB3 钱包、金融交易、市场运营活动模块<br />大型互联网公司加分<br />面试要写代码的，我们会看大家的代码习惯<br />我们的 web 端框架是用 svelte ，不需要大家有这方面经验，需要进来学习。大家有 React/Vue 背景就行<br /><br /><br />公司&amp;团队简单情况大家可以参考如下的：<br />研发团队百人规模，上海 base<br />招聘岗位所在团队是 WEB 团队，我们有独立的 WEB 团队<br />公司运营在健康轨道<br />已过从 0-1 的阶段<br /><br /><br />我们的特点补充说明呢：<br />金融行业，自研系统<br />团队氛围务实、相互尊重、互相支持，有理念共识的小团队<br />有竞争力薪酬（ open 谈）<br />五险一金/个税缴纳 follow 上海政策，福利棒<br /><br /><br />简历发送地址： <a href="http://lynn.lv" rel="nofollow noopener" target="_blank">lynn.lv</a>@luoxianggroup.com<br />如果 2 个工作日未收到回复，烦请就不要等我们了，还是非常感谢对我们的兴趣<br /><br /><br />JD 可参考：<br /><br />岗位职责：<br /> 1. 负责 公司 相关服务的前端页面开发，例如 dApp, Web3 Wallet ；<br /> 2. 负责调研 前端交互协议及使用的工具；<br /> 3. 负责开发 前端相关服务 js SDK 。<br /><br /> 任职要求：<br /> 1 、本科以上学历，计算机软件相关专业；<br /> 2 、5 年以上前端开发，熟悉前端优化技术；有 Web3 或者区块链相关公司前端经验者优先；<br /> 3 、Javascript 基础扎实，熟练使用 typescript ，熟悉 ES6 、 模块化开发、前端组件化；深入了解 HTML/CSS, 能够高效还原视觉交互细节；<br /> 4 、具有使用 React 、Vue 或 Svelte 开发大中型网站并成功上线的经验；<br /> 5 、对前后端分离、Web 语义化等有较为深刻的理解；有良好的代码风格和习惯，具备优化代码和代码层次结构划分能力，有清晰的代码架构思想。
-]]></content:encoded>
-<pubDate>2024-11-08T08:32:49Z</pubDate>
-</item>
-<item>
-<title>[程序员] 让 Lobechat 普通用户使用 Webdav 同步聊天记录（油猴脚本）</title>
-<link>https://www.v2ex.com/t/1087813</link>
-<guid>https://www.v2ex.com/t/1087813</guid>
-<content:encoded><![CDATA[
-<p><a href="https://greasyfork.org/scripts/516358" rel="nofollow">https://greasyfork.org/scripts/516358</a></p>
-<p><a href="https://i.imgur.com/dP4pnVt.png" rel="nofollow">https://i.imgur.com/dP4pnVt.png</a></p>
-<p>写这个插件的初衷是为了同步聊天记录，社区版本以及自建的均可使用。</p>
-<p>只需要修改 match 域名即可，或者你评论下，我把域名加进去。</p>
-<p>官方正式版的同步数据需要一个月 4.9 刀，实在消费不起，所以就写了个支持 webdav 同步的插件，<strong>只同步聊天记录，不同步 api 数据</strong>。</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:44:05Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 支付宝火车票-60,不知道有没有套路.领了再说</title>
-<link>https://www.v2ex.com/t/1087812</link>
-<guid>https://www.v2ex.com/t/1087812</guid>
-<content:encoded><![CDATA[
-<p>领取路径：支付宝 搜 消费券-搜火车票
-2025 年 1 月 1 日——2025 年 2 月 16 日可用
-火车票满 60-60</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:49:41Z</pubDate>
-</item>
-<item>
-<title>[Next.js] Nextjs Image 图片组件如何设置透明代理</title>
-<link>https://www.v2ex.com/t/1087810</link>
-<guid>https://www.v2ex.com/t/1087810</guid>
-<content:encoded><![CDATA[
-<pre><code>&lt;Image
-                        alt="营业执照"
-                        className="min-w-32 rounded-md object-cover" // aspect-square
-                        height="4"
-                        src={customer.businessLicense}
-                        width="32"
-                      /&gt;
-</code></pre>
-<p>因为部署环境需要通过一台代理服务器请求公网 cdn ，请问如何配置 nextjs 使得能够通过代理服务器获取图片资源，请有经验的 xd 帮忙解答下，感谢！</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:28:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] monorepo 项目中的 package.json 中删除了一些不要的依赖，如何更新 pnpm-workspace.yaml 文件？</title>
-<link>https://www.v2ex.com/t/1087809</link>
-<guid>https://www.v2ex.com/t/1087809</guid>
-<content:encoded><![CDATA[
-直接在 package.json 文件中删除了一些依赖，后面发现 pnpm-workspace.yaml 里面还有这些依赖，如何保持同步？<br /><br />使用了 monorepo 后，正确使用包管理的方式是怎样的，做到两个文件同步？
-]]></content:encoded>
-<pubDate>2024-11-08T08:28:24Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [分享创造] 用时宝 - 数码设备成本追踪 &amp; 使用寿命管理 ( iPhone 买 9999，每天花 9.1 元)</title>
-<link>https://www.v2ex.com/t/1087808</link>
-<guid>https://www.v2ex.com/t/1087808</guid>
-<content:encoded><![CDATA[
-<p>[分享创造] 用时宝 - 数码设备成本追踪 &amp; 使用寿命管理 (iPhone 买 9999 ，每天花 9.1 元)</p>
-<p>大家好,我做了一个实用的小工具「用时宝」(<a href="https://ysb.chatgptnb.com/" rel="nofollow">ysb.chatgptnb.com</a>),用来记录和追踪数码设备的使用情况。</p>
-<p>主要功能：</p>
-<ul>
-<li>记录设备的购买价格、购买日期和预期使用年限</li>
-<li>自动计算设备的日均使用成本</li>
-<li>显示设备的使用进度和状态</li>
-<li>支持备注和购买原因记录</li>
-<li>支持多种货币（ CNY/USD/EUR ）</li>
-<li>支持多种使用状态（未开封/在用/闲置/已出售/已报废）</li>
-<li>自动识别当前设备并添加(可选)</li>
-</ul>
-<p>使用场景：</p>
-<ol>
-<li>想知道自己的 iPhone 、MacBook 等设备实际每天花费多少钱</li>
-<li>想追踪设备的使用寿命，合理规划更换时间</li>
-<li>记录设备购买原因，避免冲动消费</li>
-<li>管理闲置设备，及时发现可以出售的设备</li>
-</ol>
-<p>开发这个工具的初衷是想帮助大家更理性地看待数码产品的购买和使用。比如一台 15000 的电脑用 3 年，看似很贵，但算下来每天只要 14 块钱，可能比天天喝星巴克还便宜。</p>
-<p>特点：</p>
-<ul>
-<li>完全免费使用</li>
-<li>界面简洁直观</li>
-<li>无需下载安装</li>
-<li>支持移动端访问</li>
-</ul>
-<p>后续计划：</p>
-<ul>
-<li>添加数据导出功能</li>
-<li>支持设备图片上传</li>
-<li>添加使用时间提醒</li>
-<li>支持设备分组管理</li>
-<li>添加数据统计和可视化</li>
-</ul>
-<p>欢迎各位 V 友使用反馈！
-访问地址：<a href="https://ysb.chatgptnb.com/" rel="nofollow">https://ysb.chatgptnb.com/</a></p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:25:00Z</pubDate>
-</item>
-<item>
-<title>[程序员] 兄弟们，这个 mac mini M4 的价格是最低的吗</title>
-<link>https://www.v2ex.com/t/1087807</link>
-<guid>https://www.v2ex.com/t/1087807</guid>
-<content:encoded><![CDATA[
-<p>配置：M4 pro 12 核，48G, 1T</p>
-<p>某宝找到一个：13268    如果是教育优惠加政府补贴的，还有木有更低的（坐标湖北武汉）</p>
-]]></content:encoded>
-<pubDate>2024-11-08T04:23:50Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 6 万亿对于老百姓来讲，有什么影响吗</title>
-<link>https://www.v2ex.com/t/1087806</link>
-<guid>https://www.v2ex.com/t/1087806</guid>
-<content:encoded><![CDATA[
-<p>11 月 8 日批准增加 6 万亿元地方政府债务限额置换存量隐性债务。新增债务限额全部安排为专项债务限额，一次报批，分三年实施。
-按此安排，2024 年末地方政府专项债务限额将由 29.52 万亿元增加到 35.52 万亿元。</p>
-]]></content:encoded>
-<pubDate>2024-11-08T04:23:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何看待骑电动车（自行车）逆行，并顶住正常靠右骑电动车（自行车）的人？</title>
-<link>https://www.v2ex.com/t/1087805</link>
-<guid>https://www.v2ex.com/t/1087805</guid>
-<content:encoded><![CDATA[
-<p>我骑电动车（自行车）正常靠右骑行，经常能碰到逆行过来的骑电动车（自行车）的人，并且没有一点要让路的意思，直到把你逼停，逼停后人家一般会瞪你一眼骑走或者问候你后骑走。</p>
-<p>有一次对方把我逼停之后，说她都给我让（让我去机动车侧）了，我怎么把她逼停了？并且说自己家就在旁边（逆行理由？）？？？</p>
-<p>依我经验，这样的人男女都有，但女性占大多数，只有少数人会（知道理亏）主动去机动车侧避让。</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:26:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 社区各种送码，这个激活码你们都是怎么做的？</title>
-<link>https://www.v2ex.com/t/1087804</link>
-<guid>https://www.v2ex.com/t/1087804</guid>
-<content:encoded><![CDATA[
-有没有完整的开源方案或者教程啊？<br /><br />比如这个完整流程：<br /><br />用户付费 -&gt; 生成激活码 -&gt; 自动发码 -&gt; 客户端输入激活码 -&gt; 绑定机器码 -&gt; 服务端确认 -&gt; 完成激活<br /><br />每个独立开发者都要造一套自己的轮子么？
-]]></content:encoded>
-<pubDate>2024-11-08T08:21:00Z</pubDate>
-</item>
-<item>
-<title>[TypeScript] TypeSciprt 类型推断，如何进一步收窄类型？</title>
-<link>https://www.v2ex.com/t/1087803</link>
-<guid>https://www.v2ex.com/t/1087803</guid>
-<content:encoded><![CDATA[
-<p>以下代码中 value 只能推断出是 1 ｜ 2 ｜ 3 。</p>
-<p>想问下大佬们，TypeSciprt 目前只不支持在 <code>if(k === 'a')</code> 时推断出 value 为 1 。</p>
-<p>或者有没有什么搜索的关键词。查了半天没找到怎么更一步收窄这个类型。</p>
-<pre><code class="language-ts">const map = {
-  a: 1,
-  b: 2,
-  c: 3,
-} as const;
-
-type Map = typeof map;
-
-function fn&lt;K extends keyof Map&gt;(k: K, value: Map[K]) {
-  if (k === 'a') {
-    console.log(value); //value: 1 | 2 | 3
-  }
-
-  if (k === 'b') {
-    console.log(value);
-  }
-
-  if (k === 'c') {
-    console.log(value);
-  }
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-11-08T08:16:14Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 关于仔细了解 [15 岁山东初中生做 CTO，百万被收购] 有感，人与人之间的差距有多大？
-新时代卷王麻烦了解一下</title>
-<link>https://www.v2ex.com/t/1087802</link>
-<guid>https://www.v2ex.com/t/1087802</guid>
-<content:encoded><![CDATA[
-<p>首先这些信息都是公开透明可查的。
-<img alt="珠海学生都这样？" class="embedded_image" rel="noreferrer" src="https://imgur.com/BkXfjhR.jpg" /></p>
-<h2>根据信息首先了解到这个博主年龄大概 15-16 左右</h2>
-<p>github 非常活跃地址:<a href="https://github.com/zmh-program" rel="nofollow">https://github.com/zmh-program</a> ，技术栈可以用夸张来形容，且这个项目的代码质量高 不像初级 go 开发前端开发;</p>
-<p>加入的公司为 [珠海市晞云云科技有限公司] ，法人为 zmh 的女友大约 16 岁左右，也是技术栈非常全的一位卷王，</p>
-<h3>这个项目震惊的点在于普通中学生代码水平这么高，技术栈会的这么多了，还创立了公司，代码提交还这么频繁</h3>
-<h3>各项说明说是学生，但是可疑点这个公司还有对外投资的项目，或许这有家长在操作</h3>
-<p><img alt="珠海学生都这样？" class="embedded_image" rel="noreferrer" src="https://imgur.com/Qd8w2Mu.jpg" /></p>
-<h3>有人说珠海学生都这样不知真假，有没有珠海市第三中学的来证实一下~</h3>
-<p><img alt="珠海学生都这样？" class="embedded_image" rel="noreferrer" src="https://imgur.com/50IQ0Nk.jpg" /></p>
-<p><img alt="珠海学生都这样？" class="embedded_image" rel="noreferrer" src="https://imgur.com/UVa5FI4.jpg" /></p>
-<h3>还有个疑点 zmh 的女友为什么是在珠海，不在同一个地方</h3>
-<p><img alt="珠海学生都这样？" class="embedded_image" rel="noreferrer" src="https://imgur.com/AIl0F7v.jpg" /></p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:18:59Z</pubDate>
-</item>
-<item>
-<title>[云计算] 腾讯云拼团这个怎么找搭子？</title>
-<link>https://www.v2ex.com/t/1087801</link>
-<guid>https://www.v2ex.com/t/1087801</guid>
-<content:encoded><![CDATA[
-<p>感觉是不是用的不是很多</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:16:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 又到冬天了，大家有没有推荐的羽绒服</title>
-<link>https://www.v2ex.com/t/1087800</link>
-<guid>https://www.v2ex.com/t/1087800</guid>
-<content:encoded><![CDATA[
-我勒个擦，现在的羽绒服是真的贵啊，有没有推荐的羽绒服啊
-]]></content:encoded>
-<pubDate>2024-11-06T08:15:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] ubuntu 上有什么办法连接到 l2tp 服务器吗? 不用 IP 用域名</title>
-<link>https://www.v2ex.com/t/1087799</link>
-<guid>https://www.v2ex.com/t/1087799</guid>
-<content:encoded><![CDATA[
-<p>l2tp 服务器没有固定 IP, 用 DDNS 绑定了一个域名.
-我根据 <a href="https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/docs/clients-zh.md#linux" rel="nofollow">https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/docs/clients-zh.md#linux</a> 这里的说明, 通过纯 IP 连上了, 一切 OK.</p>
-<p>但是将其中的 VPN_SERVER_IP 改成域名就一直报错连不上了.</p>
-<p>不知道还有没有别的办法, 可以通过域名连接的?</p>
-<p>windows 上通过域名是可以的, ubuntu 上就不行, 谷歌了半天, 居然这方面的信息还特别少.</p>
-]]></content:encoded>
-<pubDate>2024-11-08T06:15:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求指点 pmset 中 sleep、disksleep、displaysleep 的制约关系</title>
-<link>https://www.v2ex.com/t/1087798</link>
-<guid>https://www.v2ex.com/t/1087798</guid>
-<content:encoded><![CDATA[
-<h1>起因</h1>
-<ul>
-<li>搜索到有的说：sleep ≥ disksleep ≥ displaysleep ；</li>
-<li>V 站有人写的是：sleep ≥ displaysleep ≥ disksleep ；</li>
-<li>
-V 站少数派某文章作者的设置：<ul>
-<li>电源：sleep=120 、displaysleep=30 、disksleep=60 ；</li>
-<li>电池：sleep=20 、displaysleep=15 、disksleep=30 ；</li>
-</ul>
-</li>
-</ul>
-<h1>困惑</h1>
-<p>实在不确定这三者的正确关系是什么了。</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:12:56Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 想面成都字节的飞书后端日常实习，佬佬们有对口的开源项目推荐吗</title>
-<link>https://www.v2ex.com/t/1087797</link>
-<guid>https://www.v2ex.com/t/1087797</guid>
-<content:encoded><![CDATA[
-<h2>基本情况</h2>
-<p>本人 985 计算机硕，本科是沿海双非物联网，22 届保研，本来应该 25 毕业，但是因为导师原因休学了半年（研 0 就在实验室），所以会延迟一年毕业。其实一开始是想读博的，但是各种原因吧，觉得自己不适合走这条路，刚刚对实验室科研放弃幻想，想要找实习。</p>
-<p>我们老师常年在国外，一年回来两次，而且因为某些原因我不用直接向导师汇报，是跟国外的博士后开会，所以实习的外部条件还算比较可观，日常实习 4-6 个月都是没有问题的。</p>
-<p>平时做的都是 python 算法类的科研工作，工程方向的项目经历为 0 （实验室纯科研不接项目）。本科做过 C 语言 stm32 小项目（忘差不多了），java 只是课程考试 90 分的水平（也就是只会语法），linux 玩得还算溜，折腾过很多东西，算是没什么用的小优势。</p>
-<h2>目标</h2>
-<p>我目前的目标是成都字节的飞书/抖音后端日常实习，他们的目标语言应该是 golang ，之前自学过，最近复习了一下，现在想要找点项目来练手，希望是团队比较对口的项目，希望 v 站的大佬们指路！谢谢！</p>
-<p>从现在开始准备，希望能尽快找到日常实习，目标三月之前找到。</p>
-<h2>求赐教</h2>
-<p>如果佬们有什么 golang 八股、面经、项目什么的，都请不要吝啬留言给我！非常感谢🙏</p>
-]]></content:encoded>
-<pubDate>2024-11-08T04:12:50Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [送码] iPhone 拦截猫 App 支持了 1.04 亿骚扰电话拦截能力，欢迎尝试！</title>
-<link>https://www.v2ex.com/t/1087796</link>
-<guid>https://www.v2ex.com/t/1087796</guid>
-<content:encoded><![CDATA[
-<p><img alt="IMG_6687.JPG" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/08/k7Iyr1bt3sfCBHF.jpg" /></p>
-<p><img alt="Frame 20.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/08/kvLtsgI56eSmBjH.png" /></p>
-<p>拦截猫是 iPhone 上拦截骚扰电话和清理垃圾短信的 APP</p>
-<p>目前已经压榨苹果手机最后的极限，支持了 1.04 亿骚扰电话拦截</p>
-<p>经过今天和用户的交流，大部分骚扰电话均可以拦截，虽然做不到 100%，感觉效果已经很不错了。</p>
-<p>App Store 搜索 “拦截猫” 即可下载使用·。</p>
-<p>20 个年兑换码：</p>
-<ul>
-<li>YNTF4XNWYKYJ4HM73F</li>
-<li>AYTREPRXTLMMWXKPXP</li>
-<li>WRH7FLL8TR6E8NMTLA</li>
-<li>47TKK6XE7TWMKM447Y</li>
-<li>RP6WNJ87733J66T6YW</li>
-<li>EJT3RX43JTK8JAFM3A</li>
-<li>37TXHK8NFK4M8NAEK3</li>
-<li>T6PLJMH8JJM6XTWE8P</li>
-<li>M4WM8T6NJHYEAN7L6J</li>
-<li>4WAF6NYFRNL6AXTFFP</li>
-<li>WM8T6LTKFRPA4RH3MA</li>
-<li>WWMFF3YH4ATAL3TKR7</li>
-<li>MN6KARJJ3877AK4663</li>
-<li>RP46NEEN3NTE7RPAT7</li>
-<li>RNTTYJF6RWM4RWWKX6</li>
-<li>APKNXXLWJTRT74KF3J</li>
-<li>HYYTPK88TE7NKMELRX</li>
-<li>L3F7LKFF8WPEAYPNWT</li>
-<li>3M3W4R4KHEHH3P3YWX</li>
-<li>AJXNLWMX8JXN3FKH3L</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-11-08T08:26:13Z</pubDate>
-</item>
-<item>
-<title>[iCloud] 请问国内 iCloud 网页版 每次登录 没有收到邮箱提醒</title>
-<link>https://www.v2ex.com/t/1087795</link>
-<guid>https://www.v2ex.com/t/1087795</guid>
-<content:encoded><![CDATA[
-外区 ID <a href="http://iCloud.com" rel="nofollow noopener" target="_blank">iCloud.com</a> 网页版 正常收到 (如图）。<a href="http://icloud.com.cn" rel="nofollow noopener" target="_blank">icloud.com.cn</a> 登录没有邮箱提醒记录 这情况最近才发现 你们有没有发觉。<br />觉得这样很不安全，如果被入侵都不知道<br /><br /><a href="https://i.imgur.com/mxwc9b2.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/mxwc9b2.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2024-11-08T08:11:43Z</pubDate>
-</item>
-<item>
-<title>[程序员] Mac mini M4 你们都是用来干什么，我抢到了，但是不知道用在哪里</title>
-<link>https://www.v2ex.com/t/1087794</link>
-<guid>https://www.v2ex.com/t/1087794</guid>
-<content:encoded><![CDATA[
-<p>因为前几天好多人买，我就在京东使用国补，一下就抢到了，到手 3599 。想了两天，也没想出这个 mini 主机要用来干啥，请教大佬们都是拿来做什么呢？（我和媳妇都是程序员，在用 Mac book pro ）。
-也想了解下如果当作 Apple TV 使用和买个 Apple Tv 有什么区别吗？</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:24:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 拔智齿需要做什么准备？</title>
-<link>https://www.v2ex.com/t/1087793</link>
-<guid>https://www.v2ex.com/t/1087793</guid>
-<content:encoded><![CDATA[
-<p>有一颗智齿大概横 45°张，最近几年每年都有 1-2 次发炎。
-每次发炎都想拔了，但是对拔牙有种恐惧感一直拖着。上周又发炎了，然后这周二去检查，医生说这个炎症已经比较轻了可以拔了，遂预约周六上午拔牙。
-现在有点忧虑</p>
-<ol>
-<li>是去的不是三甲医院，是普通的一级口腔医院（坐标上海），我看了下美团上有关这家医院的评价，大概 1000 条有一两个差评（大概就是拔牙的时候影响到周围的牙了), 本来想鸽了预约去三甲医院的，但是同事说三甲医院人多，而且拔智齿是很简单的小手术，没问题的，但还是担心自己中奖了。</li>
-<li>有点怕痛，怕拔完以后有干槽症或者出血感染之类的，毕竟我这颗也是横着长的，据说不好拔。</li>
-</ol>
-<p>以前踢球把韧带弄断了，做了膝关节重建手术，那感觉终身难忘。从此对任何不管大小手术都有点阴影。</p>
-]]></content:encoded>
-<pubDate>2024-11-07T16:08:40Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 我发现一个选股票和 coin 的 AI 工具，炒股必看，已经连用 20 多天了</title>
-<link>https://www.v2ex.com/t/1087792</link>
-<guid>https://www.v2ex.com/t/1087792</guid>
-<content:encoded><![CDATA[
-<h1>分享一个最近在使用的 AI 选股选币工具</h1>
-<p>🔗 <a href="https://intellectia.ai/" rel="nofollow">https://intellectia.ai/</a></p>
-<p><img alt="工具截图" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/11/08/pAy7Nzd.jpg" /></p>
-<p>列几个我常用且有用的功能，大家感受一下：</p>
-<ol>
-<li>交易之前问问 AI ，这只股票今天能不能买，会输出这支股票的技术分析/最近热点事件分析等</li>
-<li>每日推荐标的  </li>
-<li>短期看涨标的</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-11-08T08:05:11Z</pubDate>
-</item>
-<item>
-<title>[Apple] 都说 AirPods Max 夹头，买了一个之后发现...</title>
-<link>https://www.v2ex.com/t/1087790</link>
-<guid>https://www.v2ex.com/t/1087790</guid>
-<content:encoded><![CDATA[
-<p>买之前各种刷帖子都在说夹头，双 11 看到百亿补贴好价格就下单了，然后到了之后发现不仅没有夹头，反而有点晃，是前后的方向，不知道什么原因，有点像夹不紧的感觉，怎么会有这么大的差别啊</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:24:23Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享同时与多个 AI 聊天的浏览器插件（支持 ChatGPT、Claude、Gemini、通义千问、Kimi 等网站）</title>
-<link>https://www.v2ex.com/t/1087789</link>
-<guid>https://www.v2ex.com/t/1087789</guid>
-<content:encoded><![CDATA[
-<p>在使用大模型 AI 网站聊天的时候不同模型在回答同一问题时差异可能很大，有时需要把问题复制给不同的模型来找到最优答案，这个过程比较繁琐，所以就写了一个浏览器插件来解决这个问题，开启插件的同步之后，在任一个 AI 网站询问问题会自动帮你发送给其他的 AI 网站。为了方便使用也增加了快速一键在浏览器里打开多个 AI 网站等功能。</p>
-<p>具体支持的 AI 网站和细节的功能可以查看 github：<a href="https://github.com/legendjw/ai-chat-sync" rel="nofollow">https://github.com/legendjw/ai-chat-sync</a>，代码都是开源的，有类似需求的朋友也可以进行二次开发。另外注意插件实际使用还是有些小问题的，希望有能力的朋友可以 pull requests 尝试修复。</p>
-<p>目前插件发布到了 Chrome 应用商店，可以直接前往<a href="https://chromewebstore.google.com/detail/ai-chat-sync/afjalhepkaledpiempnidkhijjaolffi?hl=zh-CN&amp;authuser=0" rel="nofollow">https://chromewebstore.google.com/detail/ai-chat-sync/afjalhepkaledpiempnidkhijjaolffi?hl=zh-CN&amp;authuser=0</a> 去下载使用。</p>
-]]></content:encoded>
-<pubDate>2024-11-08T08:02:40Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做一个课程评分网，是否有市场。</title>
-<link>https://www.v2ex.com/t/1087787</link>
-<guid>https://www.v2ex.com/t/1087787</guid>
-<content:encoded><![CDATA[
-目前市面上的付费免费课程很多，很多付费课程比如知识星球没有评分和评价的地方，导致很多人被坑，课程很多都是走营销路线。<br />实现了后如何进行推广是个问题，我觉得挺有意义，如何让人参与进来进行评分评价有点难度，有什么好的想法吗
-]]></content:encoded>
-<pubDate>2024-11-06T08:02:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 为啥晒投资的都不贴交割单？</title>
-<link>https://www.v2ex.com/t/1087786</link>
-<guid>https://www.v2ex.com/t/1087786</guid>
-<content:encoded><![CDATA[
-最近站内经常有发自己买了啥啥啥的，交割单都不贴，就一个截图。东财的不是很清楚，起码同花顺还有同花顺原图验证的，v 友都这么好钓的吗？
-]]></content:encoded>
-<pubDate>2024-11-08T08:07:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 诈骗份子网站，有人能 doss 攻击吗</title>
-<link>https://www.v2ex.com/t/1087784</link>
-<guid>https://www.v2ex.com/t/1087784</guid>
-<content:encoded><![CDATA[
-网站地址： <a href="https://202413026.com" rel="nofollow noopener" target="_blank">https://202413026.com</a><br />下午在上班，突然电脑弹出 facetime 电话，接到电话后又是支付宝花呗借呗大学生信息那套，然后引导我到这个网站要个人信息，然后我就终止了电话。<br />有大佬能 doss 攻击吗？或者有没有其他方式进行破坏。
-]]></content:encoded>
-<pubDate>2024-11-08T08:23:57Z</pubDate>
 </item>
 </channel>
 </rss>
