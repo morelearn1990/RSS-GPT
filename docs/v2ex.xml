@@ -5,11 +5,388 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[互联网] [help] 请大神帮忙下看 clash meta 的配置哪里有问题，谢谢</title>
+<link>https://www.v2ex.com/t/1091011</link>
+<guid>https://www.v2ex.com/t/1091011</guid>
+<content:encoded><![CDATA[
+
+<p>具体配置如下，自己找了好久问题，一直通不过，</p>
+<p>clash 的配置验证可以过，但是无法上网，</p>
+<p>梯子是自己搭建的，</p>
+<p>谢谢大神的时间，</p>
+<pre><code>#此配置搭配 openclash meta 内核使用
+mixed-port: 7890 # 局域网访问 Port
+bind-address: '*' #绑定 IP 地址
+allow-lan: true # 允许局域网访问
+mode: rule # 模式
+log-level: warning # 日志等级
+external-controller: 0.0.0.0:9090 # 网页端口
+find-process-mode: strict   # 匹配所有进程
+tcp-concurrent: true # tcp 并发模式
+ipv6: false #软路由上不建议开启
+
+# ui 部分
+# secret: ""
+# external-ui: .\ui\public
+
+#自动更新 geoip 和 geosite 文件
+geodata-mode: false
+geo-auto-update: false
+geo-update-interval: 24
+
+geox-url:                           # 自定义 geodata url, 需要有代理的前提才能下载 geoip 和 geosite
+    geoip: "https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
+    geosite: "https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat"
+    mmdb: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+
+keep-alive-interval: 15
+# fakeip 本地存储，省略 DNS 查询
+profile:
+    store-selected: false      # 存储 select 选择记录
+    store-fake-ip: true        # 持久化 fake-ip
+
+# Tun 配置 Windows 使用
+tun:
+    enable: false  #PC 端开启 路由器不开启
+    stack: mixed # gvisor / lwip
+    dns-hijack:
+        - 0.0.0.0:53 # 需要劫持的 DNS
+    auto-route: true # 自动设置全局路由，可以自动将全局流量路由进入 tun 网卡。
+    auto-detect-interface: true # 自动识别出口网卡
+    endpoint-independent-nat: true
+    inet4-route-address: # 启用 auto-route 时使用自定义路由而不是默认路由
+        - 0.0.0.0/1
+        - 128.0.0.0/1
+#  inet6-route-address: # 启用 auto-route 时使用自定义路由而不是默认路由
+#    - "::/1"
+#    - "8000::/1"
+
+dns:
+    enable: true # 关闭将使用系统 DNS
+    prefer-h3: true # 开启 DoH 支持 HTTP/3 ，将并发尝试
+    listen: ':53' # 开启 DNS 服务器监听
+    default-nameserver:
+        - 114.114.114.114
+        - 8.8.8.8
+        - tls://223.5.5.5:853
+        - system # 如果是 windows 或安卓客户端可使用 system ，如果是软路由填写你的拨号光猫/路由器的 IP 地址
+
+    enhanced-mode: fake-ip
+    fake-ip-range: 198.18.0.1/16
+    fake-ip-filter:   #这里可以填写不使用 fakeip 的域名
+        - '*.lan'
+        - '*.battlenet.com.cn'
+        - '*.battlenet.com'
+        - '*.blzstatic.cn'
+        - '*.battle.net'
+        # === Linksys Wireless Router ===
+        - '*.linksys.com'
+        - '*.linksyssmartwifi.com'
+        # === Apple Software Update Service ===
+        - swscan.apple.com
+        - mesu.apple.com
+        # === Windows 10 Connnect Detection ===
+        - '*.msftconnecttest.com'
+        - '*.msftncsi.com'
+        # === NTP Service ===
+        - 'time.*.com'
+        - 'time.*.gov'
+        - 'time.*.edu.cn'
+        - 'time.*.apple.com'
+        - 'time1.*.com'
+        - 'time2.*.com'
+        - 'time3.*.com'
+        - 'time4.*.com'
+        - 'time5.*.com'
+        - 'time6.*.com'
+        - 'time7.*.com'
+        - 'ntp.*.com'
+        - 'ntp.*.com'
+        - 'ntp1.*.com'
+        - 'ntp2.*.com'
+        - 'ntp3.*.com'
+        - 'ntp4.*.com'
+        - 'ntp5.*.com'
+        - 'ntp6.*.com'
+        - 'ntp7.*.com'
+        - '*.time.edu.cn'
+        - '*.ntp.org.cn'
+        - '+.pool.ntp.org'
+        - time1.cloud.tencent.com
+        # === Music Service ===
+        ## NetEase
+        - '+.music.163.com'
+        - '*.126.net'
+        ## Baidu
+        - musicapi.taihe.com
+        - music.taihe.com
+        ## Kugou
+        - songsearch.kugou.com
+        - trackercdn.kugou.com
+        ## Kuwo
+        - '*.kuwo.cn'
+        ## JOOX
+        - api-jooxtt.sanook.com
+        - api.joox.com
+        - joox.com
+        ## QQ
+        - '*.qq.com'
+        - report.url.cn
+        ## Xiami
+        - '*.xiami.com'
+        ## Migu
+        - '+.music.migu.cn'
+        # === Game Service ===
+        ## Nintendo Switch
+        - '+.srv.nintendo.net'
+        ## Sony PlayStation
+        - '+.playstation.net'
+        - '+.playstation.com'
+        - '+.stun.playstation.net'
+        ## Microsoft Xbox
+        - 'xbox.*.microsoft.com'
+        - '+.xboxlive.com'
+        # === Other ===
+        ## QQ Quick Login
+        - localhost.ptlogin2.qq.com
+        ## Golang
+        - proxy.golang.org
+        ## STUN Server
+        - 'stun.*.*'
+        - 'stun.*.*.*'
+        ## Bilibili CDN
+        - '*.mcdn.bilivideo.cn'
+        # === Other ===
+        - '*.bilibili.com'
+        - '*.1huizhan.com'
+        - '*.3.cn'
+        - '*.300hu.com'
+        - '*.360buy.cn'
+        - '*.360buy.com'
+        - '*.360buy.com.cn'
+        - '*.360buyimg.com'
+        - '*.360buyinternational.com'
+        - '*.360top.com'
+        - '*.jd.com'
+        # WiFi-Calling 如果你发现你的 WiFi Calling 不能发图片 大概率是节点 UDP 问题
+        - t-mobile.com
+        - crl.t-mobile.com
+        - eas3.msg.t-mobile.com
+        - mascns.t-mobile.com
+        - ns.sipgeo.t-mobile.com
+        - epdg.epc.mnc240.mcc310.pub.3gppnetwork.org
+        - epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+        - ss.epdg.epc.mnc260.mcc310.pub.3gppnetwork.org
+        - ss.epdg.epc.geo.mnc260.mcc310.pub.3gppnetwork.org 
+        # Hygege 提供
+        - services.googleapis.cn
+        - xn--ngstr-lra8j.com
+        
+    
+    nameserver:
+        - 114.114.114.114 # default value
+        - 8.8.8.8
+        - tls://223.5.5.5:853 # DNS over TLS
+        - https://doh.pub/dns-query
+        - https://dns.alidns.com/dns-query#h3=true 
+        - system
+
+#节点存放地址
+proxies:
+    - name: yoson                                # 可以自定义节点名称
+      type: ss
+      server: ss.123.org                             # 解析的 IP / 域名
+      port: 36232                                        # 自定义端口
+      cipher: chacha20-ietf-poly1305                              # 自定义加密方式，详细请查阅 Clash Meta 文档
+      password: 0O1123sd2d4df==tSf                               # 自定义认证密码
+
+#代理组
+proxy-groups:    
+#自动选择
+    - name: "Auto"
+      type: url-test # 下面开启了自动测速
+      proxies:
+         - yoson
+      use:
+#          - subscribe_groups 
+      url: "http://www.gstatic.com/generate_204"
+      interval: 300   #自动测速周期，单位：秒  
+#其他规则
+    - name: "PROXY"
+      type: select # 下面开启了自动测速
+      proxies:
+          - yoson
+          - "Auto"
+      use:
+#          - subscribe_groups 
+# 声破天      
+    - name: "Spotify"
+      type: select # 下面开启了自动测速
+      proxies:
+          - yoson
+          - "Auto"
+      use:
+#          - subscribe_groups 
+# 电报      
+    - name: "Telegram"
+      type: select # 下面开启了自动测速
+      proxies:
+          - yoson
+          - "Auto"
+      use:
+#          - subscribe_groups  
+# chatgpt      
+    - name: "OpenAI"
+      type: select # 下面开启了自动测速
+      proxies:
+          - yoson
+          - "Auto"
+      use:
+#          - subscribe_groups  
+# Onedrive
+    - name: "Onedrive"
+      type: select # 下面开启了自动测速
+      proxies:
+          - yoson
+          - "Auto"
+      use:
+#          - subscribe_groups      
+          
+#代理集  如果是自建节点屏蔽这里  
+# proxy-providers:
+    #自定义机场名称 subscribe_groups
+#     subscribe_groups:
+#         type: http # http 的 path 可空置,默认储存路径为 homedir 的 proxies 文件夹,文件名为 url 的 md5
+#         url: "" #订阅链接存放在双引号内
+#         interval: 86400 #机场订阅自动更新时间 单位：秒
+#         path: ./hj_sub.yaml # 默认只允许存储在 clash 的 Home Dir ，如果想存储到任意位置，添加环境变量 SKIP_SAFE_PATH_CHECK=1
+#         health-check:
+#             enable: true
+#             interval: 165
+#             # lazy: true
+#             url: http://cp.cloudflare.com/generate_204
+      
+#规则集
+rule-providers:     
+    lancidr:
+        type: http
+        behavior: ipcidr
+        interval: 86400
+        path: ./ruleset/lancidr.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"  
+    private:
+        type: http
+        behavior: domain
+        interval: 86400
+        path: ./ruleset/private.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    direct:
+        type: http
+        behavior: domain
+        interval: 86400
+        path: ./ruleset/direct.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"      
+    applications:
+        type: http
+        behavior: classical
+        interval: 86400
+        path: ./ruleset/applications.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    icloud:
+        type: http
+        behavior: domain
+        interval: 86400
+        path: ./ruleset/icloud.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt"        
+    apple:
+        type: http
+        behavior: domain
+        interval: 86400
+        path: ./ruleset/apple.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt"
+    cncidr:
+        type: http
+        behavior: ipcidr
+        interval: 86400
+        path: ./ruleset/cncidr.yaml
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"  
+    gfw:
+        type: http
+        behavior: domain
+        interval: 86400   
+        path: ./ruleset/gfw.yaml        
+        url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"        
+    
+rules:
+#域名规则
+    - RULE-SET,applications,DIRECT
+    - RULE-SET,private,DIRECT
+    - RULE-SET,icloud,DIRECT
+    - RULE-SET,apple,DIRECT
+    - GEOSITE,microsoft@cn,DIRECT 
+    - GEOSITE,steam@cn,DIRECT
+    - GEOSITE,category-games@cn,DIRECT 
+#在这里添加自定义直连规则
+    - DOMAIN,xn--ngstr-lra8j.com,PROXY
+    - DOMAIN,services.googleapis.cn,PROXY
+    - DOMAIN,mtalk.google.com,PROXY
+    - DOMAIN-SUFFIX,voidsec.com,PROXY   #voidsec 礼貌性添加所谓的 dns 泄露检测站
+    - DOMAIN-SUFFIX,browserleaks.com,PROXY #browserleaks 礼貌性添加所谓的 dns 泄露检测站
+    - DOMAIN-SUFFIX,ipleak.net,PROXY #ipleak 礼貌性添加所谓的 dns 泄露检测站
+
+
+    - DOMAIN,events.data.microsoft.com,REJECT #拦截微软部分遥测
+    - GEOSITE,adobe,REJECT #屏蔽 adobe
+    # chatgpt
+    - GEOSITE,onedrive,Onedrive
+    - GEOSITE,telegram,Telegram
+    - GEOSITE,spotify,Spotify
+    - GEOSITE,facebook,PROXY
+    - GEOSITE,google,PROXY
+    - GEOSITE,category-scholar-!cn,PROXY
+    - GEOSITE,geolocation-!cn,PROXY
+    - RULE-SET,gfw,PROXY
+    - RULE-SET,direct,DIRECT
+    - RULE-SET,lancidr,DIRECT
+    - GEOSITE,cn,DIRECT  
+#IP 规则    
+    - GEOIP,private,DIRECT,no-resolve 
+    - RULE-SET,cncidr,DIRECT
+    - GEOIP,CN,DIRECT     
+    - GEOIP,telegram,PROXY,no-resolve
+    - GEOIP,google,PROXY,no-resolve
+    - GEOIP,twitter,PROXY,no-resolve
+    - GEOIP,JP,PROXY,no-resolve    
+
+#最终匹配 白名单模式
+    - MATCH,PROXY
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-11-19T22:02:31Z</pubDate>
+<pubDate>2024-11-19T22:02:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求助： WIN10 96G 内存被吃满， poolmon 和 RamMap 都找不出凶手</title>
+<link>https://www.v2ex.com/t/1091010</link>
+<guid>https://www.v2ex.com/t/1091010</guid>
+<content:encoded><![CDATA[
+
+<p>618 给电脑升级了一下，换了海盗船 48Gx2 的内存和一个新 SSD ，重装了系统
+最近几个月发现不开什么大型软件，只要电脑开机一两天，内存占用就满了卡到不行，任务管理器虽然能显示内存占用 98%，但逐条看进程挥发性占用最大的也就 Chrome Docker 之流，所有进程总占用量加起来只有 20G 不到，资源监视器里也找不出。</p>
+<p>按搜到的排查攻略装了 poolmon 和 RAMMap ，但用了之后依然揪不出高占用的源头。所有 Paged 和 NonPaged 一起按 Alloc/Bytes 等列都看过，排前几的都只有几 G ，全量进程占用求和也只有 18G 。</p>
+<p>看网上各种攻略，包括微软，所有排查似乎都是建立在 poolmon 看到的数据就是最底层权威的基础之上，没看到哪里说过如果 poolmon 也找不出还能有什么进一步排查的手段了。跑了一遍 Win10 自带的内存检测也没啥问题。</p>
+<p>还能怎么查？
+以及，这种问题能花钱找人来处理吗？已经在上面浪费了几天的业余时间，折腾不动了，但又不知道这种需要放置观察的内存泄漏问题得上哪找人来看</p>
+]]></content:encoded>
+<pubDate>2024-11-19T21:37:42Z</pubDate>
+<pubDate>2024-11-19T21:45:42Z</pubDate>
+</item>
+
+<item>
 <title>[iOS] Tampermonkey 终于空降 iOS</title>
 <link>https://www.v2ex.com/t/1091009</link>
 <guid>https://www.v2ex.com/t/1091009</guid>
 <content:encoded><![CDATA[
-
 <p>官方 Github：</p>
 <p><a href="https://github.com/Tampermonkey/tampermonkey/issues/1258#issuecomment-2485870092" rel="nofollow">https://github.com/Tampermonkey/tampermonkey/issues/1258#issuecomment-2485870092</a></p>
 <hr />
@@ -44,20 +421,16 @@ Back at work on the WebExt version, notifications stopped working with</p>
 So you could do me a favor and try the macOS version, once it's available, and tell me if notifications are working for you. I'll keep you post ed here once this happens.</p>
 ]]></content:encoded>
 <pubDate>2024-11-19T19:55:51Z</pubDate>
-<pubDate>2024-11-19T19:55:51Z</pubDate>
 </item>
 <item>
 <title>[.NET] Avalonia 11 后要从 ItemsControl 调用母 UserControl 的命令这种常见操作就必须每次都写这么长一坨东西吗？</title>
 <link>https://www.v2ex.com/t/1091008</link>
 <guid>https://www.v2ex.com/t/1091008</guid>
 <content:encoded><![CDATA[
-
 一直用老版本 Avalonia ，最近才开始给新项目上 11 。Avalonia 这个框架向下兼容一直做的挺差的，每次更新大版本号都改一些语法。特别是开始支持移动端后 breaking changes 超级多，也算可以理解。<br /><br />然后发现"{Binding $parent[ItemsControl].DataContext.ParentCommand}" 这种写法不能用了，会报错 Unable to resolve property or method of name 'ParentCommand' on type 'System.Object'。GPT-4 和 Claude 都完全不懂这个变化，一直指导我排查别的东西，折腾了好久也没解决。<br /><br />只好去 Discord 上问群友，群友说是 11 新加的 CompileBindings 导致的，默认开启，必须把 CompileBindings 关掉，或者每次调用 Parent Command 都写 Command="{Binding $parent[ItemsControl].((vm:ParentViewModel)DataContext).ParentCommand}" 这么长一大坨。（不写 .NET 的 v 友可以理解为每次从 for 循环里 call 一个循环外面的函数要写 89 个字符）从 list 调用母 vm 的 Command 可是一个非常常见的操作，本来写 $parent[ItemsControl].DataContext.ParentCommand 就已经很长很难看，现在还要再加一段。为什么就不解决一下呢？
 ]]></content:encoded>
-<pubDate>2024-11-19T18:56:13Z</pubDate>
 <pubDate>2024-11-19T18:54:13Z</pubDate>
 </item>
-
 <item>
 <title>[宜家] 求大家分享一下用过的淘宝宜家代购店铺？</title>
 <link>https://www.v2ex.com/t/1091007</link>
@@ -14769,25 +15142,6 @@ kimi 这种网页版能上网查资料再回答，但给的接口就只能大模
 <p>原来手机也能上云 🐶</p>
 ]]></content:encoded>
 <pubDate>2024-11-15T03:14:24Z</pubDate>
-</item>
-<item>
-<title>[问与答] 李子柒是如何访问国际互联网的？个人/团队如何申请国际互联网访问？</title>
-<link>https://www.v2ex.com/t/1089765</link>
-<guid>https://www.v2ex.com/t/1089765</guid>
-<content:encoded><![CDATA[
-有明确的执行标准和文件吗？如果没有，是否属于非法访问国际互联网 从 youtube 非法获利？
-]]></content:encoded>
-<pubDate>2024-11-09T23:55:32Z</pubDate>
-</item>
-<item>
-<title>[Apple] airpods 4 刚到手 听着感觉声音很闷</title>
-<link>https://www.v2ex.com/t/1089764</link>
-<guid>https://www.v2ex.com/t/1089764</guid>
-<content:encoded><![CDATA[
-<p>感觉还没我 30 块钱的有线耳机声音通透 </p>
-<p>和手机外放差的更远了</p>
-]]></content:encoded>
-<pubDate>2024-11-15T03:12:34Z</pubDate>
 </item>
 </channel>
 </rss>
