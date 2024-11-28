@@ -5,15 +5,553 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] Windsurf 实践：三分钟完成一个 AI 聊天助手网页</title>
+<link>https://www.v2ex.com/t/1093363</link>
+<guid>https://www.v2ex.com/t/1093363</guid>
+<content:encoded><![CDATA[
+
+<h3>简介：</h3>
+<p>Windsurf 是一款轻量级、现代化的代码编辑工具，专为开发者设计，支持多种编程语言，具备高效的代码自动补全、语法高亮和可定制功能，提升开发效率。</p>
+<h3>开始使用：</h3>
+<ol>
+<li>从官方网站下载 Windsurf 编辑器并安装</li>
+<li>启动 Windsurf ，打开项目，Comand + L 启动对话交互</li>
+<li>
+我通过以下五次对话交互就完成了一个 AI 聊天页面：<ol>
+<li>帮我写一个类似 chatgpt 的聊天界面，使用 tailwindcss</li>
+<li>主题色 参考 @globals.css</li>
+<li>header 和 footer 参考 @page.tsx</li>
+<li>增加多个对话记录</li>
+<li>增加手机端响应式样式</li>
+</ol>
+</li>
+</ol>
+<p>成品演示：<a href="https://xltzx.com/chat" rel="nofollow">https://xltzx.com/chat</a></p>
+]]></content:encoded>
+<pubDate>2024-11-28T04:20:17Z</pubDate>
+<pubDate>2024-11-28T04:19:17Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 南京/无锡 产品运营内推</title>
+<link>https://www.v2ex.com/t/1093362</link>
+<guid>https://www.v2ex.com/t/1093362</guid>
+<content:encoded><![CDATA[
+
+内推码：Gr40a7d<br /><a href="https://i.imgur.com/upqGC2A.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/upqGC2A.png" /></a>
+]]></content:encoded>
+<pubDate>2024-11-28T04:17:39Z</pubDate>
+<pubDate>2024-11-28T04:16:39Z</pubDate>
+</item>
+<item>
+<title>[程序员] okgg 跑路了么 官网访问不了</title>
+<link>https://www.v2ex.com/t/1093361</link>
+<guid>https://www.v2ex.com/t/1093361</guid>
+<content:encoded><![CDATA[
+
+官网访问，显示：<br /><br /><br />控制面板！<br />更新订阅 -&gt; 查看置顶消息<br />管理员 okgg#ssmail.win<br />Hi
+]]></content:encoded>
+<pubDate>2024-11-28T04:17:26Z</pubDate>
+<pubDate>2024-11-28T04:17:26Z</pubDate>
+</item>
+<item>
+<title>[Python] 新手 Python 求教</title>
+<link>https://www.v2ex.com/t/1093360</link>
+<guid>https://www.v2ex.com/t/1093360</guid>
+<content:encoded><![CDATA[
+
+<p><strong>  代码如下：</strong></p>
+<pre><code>import tkinter as tk
+import win32api
+import win32con
+import pywintypes
+from screeninfo import get_monitors
+from PIL import Image, ImageDraw, ImageFont,ImageTk
+
+font_family = "msyh.ttf"  # Replace with your actual font filename
+font_size = 36
+def generate_watermark(text, width, height, color='#d5d5d5', opacity=10, lines=1, angle=0):
+
+    spacing = 10
+    # 创建一个 Image 对象，用于绘制水印
+    img = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype(font_family, font_size)
+
+    # 将文本拆分成多行
+    text_lines = text.split('\n')
+
+    # 计算每个水印的宽度和高度
+    bbox = draw.textbbox((0, 0), text_lines[0], font=font)
+    text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1] + 30
+
+    # 计算每行可以容纳的水印数量
+    watermarks_per_row = width // (text_width + spacing)
+    total_rows = (height - 50) // (text_height + spacing)
+    # 设置初始位置
+    x = 50
+    y = 50
+
+    for row in range(total_rows):
+        x = 50  # 每行重新从左侧开始
+        y = 50 + row * (text_height + spacing)
+
+        for col in range(watermarks_per_row):
+            # 旋转文本
+
+            rotated_text = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+            rotated_draw = ImageDraw.Draw(rotated_text)
+
+            if row &lt; len(text_lines):
+                rotated_draw.text((0, 0), text_lines[row], font=font, fill=color)
+            else:
+                # 如果 row 超出范围，跳过绘制
+                break
+            rotated_text = rotated_text.rotate(angle, expand=True)
+
+            # 将旋转后的文本粘贴到主图像上
+            img.paste(rotated_text, (x, y), rotated_text)
+            x += text_width + spacing
+
+    tk_img = ImageTk.PhotoImage(img)
+
+    # 创建一个 Label 并显示图片
+    label = tk.Label(image=tk_img,bg="white")
+    label.image = tk_img  # 保持引用，防止垃圾回收
+    label.pack()
+
+def get_total_screen_size():
+    monitors = get_monitors()
+    width = sum(monitor.width for monitor in monitors)
+    height = max(monitor.height for monitor in monitors)
+    return width, height
+
+def create_watermark_window(text, **kwargs):
+
+    root = tk.Tk()
+    # 获取屏幕分辨率
+    screen_width, screen_height = get_total_screen_size()
+    def generate_watermark_with_size():
+        generate_watermark(text, screen_width, screen_height, **kwargs)
+
+    # 使用 after 方法延迟执行生成水印函数
+    root.after(100, generate_watermark_with_size)
+    root.overrideredirect(True)
+    root.lift()
+    root.attributes('-alpha', 0.2)  # 设置透明度
+    root.wm_attributes('-topmost', True)
+    root.wm_attributes('-disabled', True)
+    root.wm_attributes('-transparentcolor',"white")
+    hWindow = pywintypes.HANDLE(int(root.frame(), 16))
+    exStyle = win32con.WS_EX_COMPOSITED | win32con.WS_EX_LAYERED | win32con.WS_EX_NOACTIVATE | win32con.WS_EX_TOPMOST | win32con.WS_EX_TRANSPARENT
+    win32api.SetWindowLong(hWindow, win32con.GWL_EXSTYLE, exStyle)
+    root.mainloop()
+
+if __name__ == '__main__':
+    mytext = "一二\n 二行"
+    angle = 45  # 旋转角度
+    create_watermark_window(mytext, angle=angle, lines=10)
+</code></pre>
+<p><strong>  我想实现全屏水印，但是只实现了一行。</strong>
+<strong>  对于计算，实在脑袋不够用，恳请各位赐教一下</strong></p>
+]]></content:encoded>
+<pubDate>2024-11-28T04:16:55Z</pubDate>
+<pubDate>2024-11-28T04:15:55Z</pubDate>
+</item>
+<item>
+<title>[广州] 广州的有人出副宽带吗，我想收一条副宽带</title>
+<link>https://www.v2ex.com/t/1093359</link>
+<guid>https://www.v2ex.com/t/1093359</guid>
+<content:encoded><![CDATA[
+
+<p>前提：目前是十几年的电信宽带用户，老家和在广州城中村租房都是拉电信的宽带，
+年中的是入住新房，这边电信要求，只能办理 199 每月的千兆宽带，太贵了，</p>
+<p>然后想着移动的手机消费满 68 （和三个移动手机号合起来）就能享受一条 200M 宽带，就想在新房尝试移动宽带吧，
+然后，移动送的光猫，是真的垃圾，上门安装的师傅，死活不给光猫密码来改桥接。</p>
+<p>之后使用移动光猫拨号半个月，才 15 台左右设备，就变不稳定，实在受不了，最后只能找移动朋友，帮我查光猫密码改桥接，用自己的路由器来拨号，这样网络才能稳定（ 20+台设备，网络都无影响）</p>
+<p>但是现在这半个月只要到了整点，网络就延时几分钟。
+然后询问移动朋友， 他告诉我，现在移动要搞宽度业绩，特意把宽度限速｜不稳，然后向用户推 FTTR 和设备，</p>
+<p>真狗，受不了，现在想办理回电信的宽带。发现广州有个套餐，办理 199 可以加 40 块一个月再办理一条同城 300M 副宽带。</p>
+<p>广州的有人出副宽带吗，我想 70 一个收一条副宽带。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T04:09:44Z</pubDate>
+<pubDate>2024-11-27T12:09:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] 实测 QQ 运行在 Vivo 隔离箱后 启动崩溃。QQ 还能用吗？</title>
+<link>https://www.v2ex.com/t/1093358</link>
+<guid>https://www.v2ex.com/t/1093358</guid>
+<content:encoded><![CDATA[
+
+<p>手机是 vivo 海外版。用的是 i 管家的隔离箱功能。QQ 是谷歌商店下载的。启动 QQ 后切换到 QQ 空间后 QQ 应用崩溃。 </p>
+<p>关闭隔离箱功能后。应用正常使用。</p>
+<p>QQ 到底干了啥被隔离箱拦截住了？还有一点隐私吗？谷歌商店为什么能上架这个软件！</p>
+]]></content:encoded>
+<pubDate>2024-11-28T04:05:23Z</pubDate>
+<pubDate>2024-11-28T00:05:23Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 专业知识少，口才强，更能成功？</title>
+<link>https://www.v2ex.com/t/1093357</link>
+<guid>https://www.v2ex.com/t/1093357</guid>
+<content:encoded><![CDATA[
+
+<p>先讲个故事：</p>
+<p>从前有一群人在沙漠里淘金，小 A 淘金了好多年，挖掘技巧强，对矿石的知识也非常丰富，挖掘了很多各种各样的矿石，但是因为黄金的占比比较少，总共赚到的钱也不多。
+而小 B 刚刚来淘金，挖掘技巧一般，对矿石的知识也不多，挖掘到的矿石很少。
+但是小 B 看到有些矿石很漂亮，以为是珍贵的宝石，就拿去高价卖给路人们。小 B 把矿石包装的很好，又很会销售，路人们真的花了高价买了这些矿石。
+小 A 看到了，也想赚钱，但是明知道这些漂亮的矿石其实不珍贵，做不到昧着良心高价卖，也没有很好的销售技巧，一直赚不到钱。
+最后小 B 成了大老板，赚了很多钱；小 A 变成了小 B 的工人，继续辛苦谋生。</p>
+<hr />
+<p>现实中：</p>
+<p>不知道大家有没有同感，我们在生活中，经常充当小 A 的角色，而身边出现了一个又一个小 B 。</p>
+<ul>
+<li>用小学公式试图解决大学竞赛题目的人，却能自成理论，说服了其他人，成了队长</li>
+<li>对前沿知识没有学习过的人，看到媒体宣传了几年前的技术，拿来包装美化，变成了创新项目的负责人</li>
+<li>从没有过实际产品经验的人，因为高谈阔论，被认为产品能力强，晋升了</li>
+</ul>
+<p>就算小 B 是个水货，最终整个事情失败，小 B 也不会受到更多惩罚。不管是不是劣币驱逐良币，小 B 确实获得了更大的利益。</p>
+<p>包装技巧强，沟通能力强，确实是让人服气的才能。但是在专业问题上，因为销售能力被比下去，真的是难受。
+而因为对方“不知道自己无知”，反而更自信的秀给别人看，进而获得了优势，这更是憋屈。</p>
+<p>怪不得老一辈会有“读书无用论”。 知识不重要，社交能力更重要！</p>
+]]></content:encoded>
+<pubDate>2024-11-28T04:01:05Z</pubDate>
+<pubDate>2024-11-28T04:28:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] cursor 今天抽风了吗？ 我的账号无法登录，无法删除，登录报错 500，删除账户 405，额度变成了 50 。</title>
+<link>https://www.v2ex.com/t/1093355</link>
+<guid>https://www.v2ex.com/t/1093355</guid>
+<content:encoded><![CDATA[
+
+不止我一个这样，白嫖要被整顿了吗 ？
+]]></content:encoded>
+<pubDate>2024-11-28T03:53:18Z</pubDate>
+<pubDate>2024-11-28T03:56:21Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 爬虫工程师内推</title>
+<link>https://www.v2ex.com/t/1093354</link>
+<guid>https://www.v2ex.com/t/1093354</guid>
+<content:encoded><![CDATA[
+
+<p>某招聘领域互联网公司招聘爬虫工程师，坐标北京</p>
+<p>要求如下：</p>
+<h3>岗位职责：</h3>
+<p>1.负责爬虫项目的开发、维护，实现数据采集、清洗、结构化、入库等功能<br />
+2.处理反爬机制，保障爬虫项目的稳定运行<br />
+3.优化爬虫策略，提升数据抓取的效率和质量<br />
+4.各部门爬虫业务需求的支持</p>
+<h3>任职要求：</h3>
+<p>1.本科以上学历，熟练掌握 Python 开发语言，熟悉各类数据结构和算法，熟悉 JavaScript 、SQL 等<br />
+2.熟练掌握网页抓取原理，熟悉 HTML 、CSS 、Xpath 、正则等 web 相关知识及数据抽取技术<br />
+3.熟悉常见反爬机制及逆向破解手段，能解决封号、封 ip 、JS 加密等<br />
+4.熟悉自动化工具的使用，如 Selenium 、Puppeteer 、drissionpage 、appnium 等<br />
+5.熟悉常用爬虫框架原理及使用<br />
+6.熟悉 Linux 服务器，MySQL 、Redis 、MongoDB 等数据库的使用  </p>
+<p>我是开发，有想法的可以加我微信，我给 hr 推荐 V:am9lbXk3 （ base64 ）</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:53:15Z</pubDate>
+<pubDate>2024-11-18T03:53:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 楼上搬来了一个烟鬼怎么破</title>
+<link>https://www.v2ex.com/t/1093353</link>
+<guid>https://www.v2ex.com/t/1093353</guid>
+<content:encoded><![CDATA[
+
+烟鬼作息异于常人，凌晨五六点睡，中午十二点到两点才起床！<br /><br />烟鬼烟瘾极大，几乎醒着是不间断地抽烟；<br /><br />我住 7 楼，烟鬼 8 楼顶楼；时不时便会有二手烟随着风吹进我家里。<br /><br />平时有烟进来，我都是用风扇及时吹走。但晚上睡觉总不能 24 小时开着风扇吧。而且就算了开了风扇，也多少还是会有点烟会被吸到。贼 tm 恶心<br /><br />而且烟鬼估计是吸烟吸多了，咽喉有问题，平均每隔 5 分钟就是呛叫一声！夜深人静的时候尤为明显！<br /><br />根据我的观察，要想和此烟鬼交谈基本不切实际，这种作息的都是些垃圾人。
+]]></content:encoded>
+<pubDate>2024-11-28T03:51:53Z</pubDate>
+<pubDate>2024-11-28T04:20:24Z</pubDate>
+</item>
+<item>
+<title>[问与答] ChatGPT 无缘无故变笨了</title>
+<link>https://www.v2ex.com/t/1093352</link>
+<guid>https://www.v2ex.com/t/1093352</guid>
+<content:encoded><![CDATA[
+
+<p>具体表现：图片没法上传、无法画图，多模态功能丧失
+我的 IP 比较干净，不知道为啥就这样了，花 20 刀就给我整这出？
+<img alt="QQ_1732765478072.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/28/4Qf2a3BpEJhCRZX.png" />
+<img alt="QQ_1732765527828.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/28/k5MzI8thi6ZndVB.png" />
+<img alt="QQ_1732765539133.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/28/L94U1IARuKmlypr.png" />
+<img alt="QQ_1732765636943.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/28/jsUdFcvgWhKmlYV.png" />
+V 友们知道怎么解决么</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:48:47Z</pubDate>
+<pubDate>2024-11-28T04:21:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] 如何提升英文水平</title>
+<link>https://www.v2ex.com/t/1093351</link>
+<guid>https://www.v2ex.com/t/1093351</guid>
+<content:encoded><![CDATA[
+
+<p>平时工作生活中 如何持续提升自己的英文水平?</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:45:51Z</pubDate>
+<pubDate>2024-11-28T04:27:53Z</pubDate>
+</item>
+<item>
+<title>[问与答] ChatGPT Web 端无法识图和搜索</title>
+<link>https://www.v2ex.com/t/1093350</link>
+<guid>https://www.v2ex.com/t/1093350</guid>
+<content:encoded><![CDATA[
+
+<p>各位的 PlusWeb 端能识图、文件和搜索吗，手机端倒是可以识别。
+Web 端传图一问就是
+GPT：目前我无法查看或分析图片。请提供图片中的文本或内容的描述，我将尽力帮助你解答相关问题。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:45:16Z</pubDate>
+<pubDate>2024-11-28T04:23:46Z</pubDate>
+</item>
+<item>
+<title>[程序员] 可以认为工作后学校 title 的作用就几乎没有了吗？</title>
+<link>https://www.v2ex.com/t/1093349</link>
+<guid>https://www.v2ex.com/t/1093349</guid>
+<content:encoded><![CDATA[
+
+仅指私企。可能也就跳槽升职的时候，如果其他条件相同，能发挥一点作用？
+]]></content:encoded>
+<pubDate>2024-11-28T03:44:09Z</pubDate>
+<pubDate>2024-11-28T03:54:32Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 主路由无法设置静态路由，如何让一级路由访问二级路由网段</title>
+<link>https://www.v2ex.com/t/1093348</link>
+<guid>https://www.v2ex.com/t/1093348</guid>
+<content:encoded><![CDATA[
+
+<p>背景：</p>
+<p>主路由为红米 AX5400 ，ip：192.168.31.1 ，设备网段：192.168.31.0/24</p>
+<p>双十一组了一套主机，目前安装了 pve （ pve 真的很赞），pve 管理 ip：192.168.31.10 ，创建了一个虚拟机 OpenWrt 用来做 DHCP ，OpenWrt 的 wan 口接入 vmbr0 ，ip 地址：192.168.31.5 ，lan 口网段：10.0.8.0/24 。</p>
+<p>[img]<a href="https://i.imgur.com/BqOZoKF.png" rel="nofollow">https://i.imgur.com/BqOZoKF.png</a>[/img]</p>
+<p>设置 nat 后，目前 10.0.8.0/24 可以正常上网，可以到 192.168.31.0/24 。但是 192.168.31.0/24 无法访问 10.0.8.0/24 。</p>
+<p>主路由目前是红米 AX5400 ，没有静态路由的设置，也无法获取 ssh （已经找过相关资料和找过客服），请问各位大佬还有什么办法吗？</p>
+<p>补充：目前是路由器拨号，改成光猫拨号的话，红米 ax5400 可以获取并下发 ipv6 ，但是上网时会转成路由器的 Ipv6 。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:39:24Z</pubDate>
+<pubDate>2024-11-28T03:39:24Z</pubDate>
+</item>
+<item>
+<title>[问与答] 给媳妇配置一台准们玩腾讯系列游戏的主机</title>
+<link>https://www.v2ex.com/t/1093347</link>
+<guid>https://www.v2ex.com/t/1093347</guid>
+<content:encoded><![CDATA[
+
+<p>求完整的配置列表，预算在 3 千——4 千内的，求大佬们推荐性价比最高的配置</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:39:24Z</pubDate>
+<pubDate>2024-11-28T03:39:24Z</pubDate>
+</item>
+<item>
+<title>[路由器] 红米 ax6000 使用 lan 口聚合问题，希望提高局域网 wifi 传输速度，求助</title>
+<link>https://www.v2ex.com/t/1093346</link>
+<guid>https://www.v2ex.com/t/1093346</guid>
+<content:encoded><![CDATA[
+
+目前主路由是 4 口 2.5g 软路由，除了 pve 管理口和 wan 口，还有两个 lan 口，一个接入 2.5g 的 nas ，一个接入红米 ax6000 ，现在手机连 wifi 复制 nas 里的文件，速度最高 110M/s 左右。<br /><br />如果使用红米 ax6000 的双 lan 口聚合，直接接入一个 2.5g 的交换机，再接入软路由的 lan 口，可以实现速度翻倍的效果吗？
+]]></content:encoded>
+<pubDate>2024-11-28T03:37:25Z</pubDate>
+<pubDate>2024-11-28T03:37:25Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 做了一个验证器， https://downloadauthenticator.com/</title>
+<link>https://www.v2ex.com/t/1093345</link>
+<guid>https://www.v2ex.com/t/1093345</guid>
+<content:encoded><![CDATA[
+
+最近开发了一个验证器（ Authenticator ）工具下载的网站，下载链接直达 <a href="https://downloadauthenticator.com/" rel="nofollow noopener" target="_blank">https://downloadauthenticator.com/</a> 。<br />支持多个平台，清晰分类，专为需要快速、安全访问这些工具的用户设计。<br /><br />网站功能亮点：<br /><br />提供官方版本链接，杜绝第三方风险<br />支持 iOS 、Mac 、Windows 、等平台<br />简洁设计，直观易用<br /><br />Youtube 视频<br /><div class="embedded_video_wrapper"></div><br /><br />初衷：<br />作为一名开发者，经常被微软谷歌等各种验证器工具的复杂的使用困扰，因此希望做一个一站式解决方案，帮助大家节省时间，增加安全性，保护和一键恢复账户<br /><br />欢迎体验并提出建议！如果有任何需要改进的地方，也请随时告诉我。
+]]></content:encoded>
+<pubDate>2024-11-28T03:36:01Z</pubDate>
+<pubDate>2024-11-28T04:03:27Z</pubDate>
+</item>
+<item>
+<title>[VPS] 出个 Ucloud 企业账号带一台服务器</title>
+<link>https://www.v2ex.com/t/1093344</link>
+<guid>https://www.v2ex.com/t/1093344</guid>
+<content:encoded><![CDATA[
+
+<p>出个 Ucloud 企业账号带一台服务器
+GlobalSSH 权限已开通
+带一台轻量应用云主机 配置如下
+CPU：2 核
+内存：4G
+系统盘：80GB
+峰值带宽:30Mbps
+流量包：3072GB
+过期时间：2025-06-08</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:26:39Z</pubDate>
+<pubDate>2024-11-28T03:25:39Z</pubDate>
+</item>
+<item>
+<title>[生活] 江苏国补有 EOS R6 或者 EOS R62 吗</title>
+<link>https://www.v2ex.com/t/1093341</link>
+<guid>https://www.v2ex.com/t/1093341</guid>
+<content:encoded><![CDATA[
+
+<p>准备去苏州买一手，问了好多人好像没有这款？</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:21:42Z</pubDate>
+<pubDate>2024-11-28T03:19:42Z</pubDate>
+</item>
+<item>
+<title>[Android] Android Studio Koala 2024.1.1 Patch 2 创建默认的项目是无法编译通过的</title>
+<link>https://www.v2ex.com/t/1093340</link>
+<guid>https://www.v2ex.com/t/1093340</guid>
+<content:encoded><![CDATA[
+
+<p>原因是 androidx.core:core-ktx 给的版本 1.15.0 太高。</p>
+<p>我想问的是，这是怎么样的行为。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:20:50Z</pubDate>
+<pubDate>2024-11-28T04:10:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请问 ssh log 中有很多 preauth 是干嘛的，是有人想破解吗？能封禁吗
+exp： Connection reset by 139.59.127.12 port 47034 [preauth]</title>
+<link>https://www.v2ex.com/t/1093339</link>
+<guid>https://www.v2ex.com/t/1093339</guid>
+<content:encoded><![CDATA[
+
+请问 ssh log 中有很多 preauth 是干嘛的，是有人想破解吗？能封禁吗<br />exp：Connection reset by 139.59.127.12 port 47034 [preauth]
+]]></content:encoded>
+<pubDate>2024-11-28T03:19:51Z</pubDate>
+<pubDate>2024-11-26T03:19:51Z</pubDate>
+</item>
+<item>
+<title>[程序员] 感谢社区支持， NezhaDash 是一个基于 Next.js 和 哪吒监控 的仪表盘</title>
+<link>https://www.v2ex.com/t/1093338</link>
+<guid>https://www.v2ex.com/t/1093338</guid>
+<content:encoded><![CDATA[
+
+<p>NezhaDash 是一个基于 Next.js 和 哪吒监控 的仪表盘，配合哪吒监控 API 使用。</p>
+<p>可部署在 Vercel , Cloudflare, Docker 环境下。
+<a href="https://github.com/hamster1963/nezha-dash" rel="nofollow">https://github.com/hamster1963/nezha-dash</a></p>
+<p><img alt="1.webp" class="embedded_image" rel="noreferrer" src="https://img.nosion.ac.cn/1.webp" /></p>
+<p><img alt="3.webp" class="embedded_image" rel="noreferrer" src="https://img.nosion.ac.cn/3.webp" /></p>
+<p>之前是做给哪吒社区内的小伙伴，开源后收到了很多支持与喜爱，十分感谢大家。</p>
+<p>快 1000 star 了，鼓起勇气分享给 V2EX ，希望大家也会喜欢这个小项目😄，如果您喜欢给个 star 那就更好啦！</p>
+<p>项目地址： <a href="https://github.com/hamster1963/nezha-dash" rel="nofollow">https://github.com/hamster1963/nezha-dash</a></p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:19:09Z</pubDate>
+<pubDate>2024-11-28T04:08:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] iOS - Shortcuts（捷径、快捷方式）有没有更优雅的编辑方式</title>
+<link>https://www.v2ex.com/t/1093337</link>
+<guid>https://www.v2ex.com/t/1093337</guid>
+<content:encoded><![CDATA[
+
+<p>先说一下我的理解，全部 shortcut 都是根据一个触发然后根据某些条件（状态）运行一堆指令。</p>
+<p>所以简单的捷径，基本上几行设置就设置好了，如：链接 wifi 后操作 xx 。</p>
+<p>现在我的问题是，感觉 shortcut 本身这个 app 的设计，使用限制还是挺大。</p>
+<p>例如举例一个需求是涉及多条件，充电时（磁吸到车载充电器），然后检查是否连的是自己车的蓝牙，确定后设为驾驶模式并打开导航 app ，亮度设为 100%</p>
+<p>我相信是可以顺利设置的，但发现设置这个自动化的过程中很麻烦，操作的 ui 非常不顺手，添加“状态”，“条件”等很不优雅。所以想知有没有一个更好的编辑方式，甚至是直接写脚本。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:16:54Z</pubDate>
+<pubDate>2024-11-28T03:15:54Z</pubDate>
+</item>
+<item>
+<title>[成都] 求建议，这个时间点置换房子合适吗？</title>
+<link>https://www.v2ex.com/t/1093336</link>
+<guid>https://www.v2ex.com/t/1093336</guid>
+<content:encoded><![CDATA[
+
+背景，现在有且仅有一套老破大，房龄 13 年，刚买没几年，最近有人问价，卖价比买入价会亏 15%左右。<br /><br /><br /><br />对现在房子，房子本身有一些小毛病，基本能接受，但是小区有一些不满意的地方，未来环境可以预见的会更差，所以想卖了置换新的。<br /><br /><br /><br />房价这 1 ，2 年的走势这个价格亏损认了，想征求下大家建议，是否合适😂<br /><br /><br /><br />卖了需要全家租房过渡，然后买新房或二手房，面积可能会从现在 170 变成 140 ，然后户口转公共户，折腾。。也不知道户口会不会有其他影响
+]]></content:encoded>
+<pubDate>2024-11-28T03:16:34Z</pubDate>
+<pubDate>2024-11-28T03:36:46Z</pubDate>
+</item>
+<item>
+<title>[Linux] 有没有 Nixos24.05 装 N 卡驱动的教程啊</title>
+<link>https://www.v2ex.com/t/1093335</link>
+<guid>https://www.v2ex.com/t/1093335</guid>
+<content:encoded><![CDATA[
+
+我在 wsl2 虚拟机里面怎么都装不上
+]]></content:encoded>
+<pubDate>2024-11-28T03:13:02Z</pubDate>
+<pubDate>2024-11-28T03:52:12Z</pubDate>
+</item>
+<item>
+<title>[问与答] 华尔街日报的付费墙有办法移除吗？</title>
+<link>https://www.v2ex.com/t/1093334</link>
+<guid>https://www.v2ex.com/t/1093334</guid>
+<content:encoded><![CDATA[
+
+如题。<br />之前有个大神搞了一个油猴插件一直用的好好的，最近没办法用了。
+]]></content:encoded>
+<pubDate>2024-11-28T03:11:38Z</pubDate>
+<pubDate>2024-11-28T04:23:18Z</pubDate>
+</item>
+<item>
+<title>[游戏] 分享一个我开发的在连接路线游戏 Cube Connect</title>
+<link>https://www.v2ex.com/t/1093333</link>
+<guid>https://www.v2ex.com/t/1093333</guid>
+<content:encoded><![CDATA[
+
+<p>项目地址： <a href="https://cubeconnect.im" rel="nofollow">https://cubeconnect.im</a></p>
+<p>欢迎各位体验使用，多的就不说了，玩起来也没那么容易，我玩了两次才通过第一关（捂脸）</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:10:17Z</pubDate>
+<pubDate>2024-11-28T03:07:17Z</pubDate>
+</item>
+<item>
+<title>[Apple] 深圳壹方城将开设第三家 apple 直营店，真的很期待</title>
+<link>https://www.v2ex.com/t/1093331</link>
+<guid>https://www.v2ex.com/t/1093331</guid>
+<content:encoded><![CDATA[
+
+宝安总算也有直营店了，不用有事都得跑南山了，不过还要 8 月才营业，急急急
+]]></content:encoded>
+<pubDate>2024-11-28T03:06:56Z</pubDate>
+<pubDate>2024-11-28T03:56:01Z</pubDate>
+</item>
+<item>
+<title>[上海] 求租|10 号线交通大学到五角场、12 号线龙华中路、4 号线上海体育馆附近</title>
+<link>https://www.v2ex.com/t/1093329</link>
+<guid>https://www.v2ex.com/t/1093329</guid>
+<content:encoded><![CDATA[
+
+<p>一、个人情况：<br />
+我在徐家汇附近上班，对象在五角场上班。<br />
+希望能找个中间位置的房子。<br />
+二、租房需求<br />
+房型：一居室<br />
+预算：3000-5000<br />
+位置：	</p>
+<ul>
+<li>10 号线 交通大学 - 五角场，地铁站附近都可</li>
+<li>12 号线 龙华中路 -天潼路，</li>
+<li>上海体育馆附近</li>
+</ul>
+<p>大家如果有满足需求的房源，帮忙推荐下，非常感谢！</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:06:03Z</pubDate>
+<pubDate>2024-11-28T03:05:03Z</pubDate>
+</item>
+<item>
+<title>[Apple] 有什么软件可能看 M 芯片的 Mac mini 的输出功率信息</title>
+<link>https://www.v2ex.com/t/1093328</link>
+<guid>https://www.v2ex.com/t/1093328</guid>
+<content:encoded><![CDATA[
+
+<p>最近常用一台 Mac mini 和一台 MacBook pro 通过 typec 有线连接保持通用控制(Universal Control)的稳定性，发现 MacBook Pro 可以一直靠 Mac mini m4 稳定供电，哪怕 MacBook 高功率运行也没问题，很好奇 Mac mini 的电源管理策略，有没有软件可以看看输出功率</p>
+]]></content:encoded>
+<pubDate>2024-11-28T03:05:59Z</pubDate>
+<pubDate>2024-11-18T03:05:59Z</pubDate>
+</item>
+
+<item>
 <title>[职场话题] 杭州余杭某小公司：劳动合同到期前，公司 hr 提出补偿 n+1 不续签，但不能追缴社保公积金</title>
 <link>https://www.v2ex.com/t/1093326</link>
 <guid>https://www.v2ex.com/t/1093326</guid>
 <content:encoded><![CDATA[
-
 <p>hr 说追缴的话，暗示我圈子很小，可能会影响下一份工作。请问各位老哥，我是不是该拿 n+1 走人。有没有有经验的老哥</p>
 <p>我的劳动合同和 offer 都是写的全缴</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T03:03:16Z</pubDate>
 <pubDate>2024-11-28T03:03:16Z</pubDate>
 </item>
 <item>
@@ -21,7 +559,6 @@
 <link>https://www.v2ex.com/t/1093324</link>
 <guid>https://www.v2ex.com/t/1093324</guid>
 <content:encoded><![CDATA[
-
 <p>搞了个小程序，跟着微信一路注册走下来，最后卡在发布审核</p>
 <pre><code>你好，你的小程序服务内容涉及信息资讯，信息资讯属于个人主体未开放服务类目，建议申请企业主体小程序。
 </code></pre>
@@ -29,7 +566,6 @@
 <p>有微信小程序的人给说说？</p>
 <p>是真的就不浪费时间了，转抖音去了</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T03:00:29Z</pubDate>
 <pubDate>2024-11-27T19:00:29Z</pubDate>
 </item>
 <item>
@@ -37,11 +573,9 @@
 <link>https://www.v2ex.com/t/1093323</link>
 <guid>https://www.v2ex.com/t/1093323</guid>
 <content:encoded><![CDATA[
-
 <p>坐标成都，个人感觉 12345 现在已经几乎形同虚设。前几年还会做一些实事，反映问题了过后，会去各方调查了，然后反馈过来并且跟进解决。现在，基本上就自己写一些套话就结了，电话也不会打，直接写打了打不通。</p>
 <p>最近两年反映到 12345 的事，没有半天效果。纯纯浪费时间，他们好像也不装了。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T03:00:24Z</pubDate>
 <pubDate>2024-11-28T03:00:24Z</pubDate>
 </item>
 <item>
@@ -49,7 +583,6 @@
 <link>https://www.v2ex.com/t/1093322</link>
 <guid>https://www.v2ex.com/t/1093322</guid>
 <content:encoded><![CDATA[
-
 <h1>租房退房咨询</h1>
 <h2>基本情况</h2>
 <ul>
@@ -76,14 +609,12 @@
 </ol>
 ]]></content:encoded>
 <pubDate>2024-11-28T02:59:13Z</pubDate>
-<pubDate>2024-11-28T02:59:13Z</pubDate>
 </item>
 <item>
 <title>[分享创造] 侧边栏垂直标签页扩展 VertiTab 更新：云同步、树状标签页与自动快照！</title>
 <link>https://www.v2ex.com/t/1093321</link>
 <guid>https://www.v2ex.com/t/1093321</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，我是 VertiTab 的开发者。一个多月前首次发帖 <a href="https://v2ex.com/t/1078516" rel="nofollow">原帖链接</a> 后，我们推出了一些更新，今天想向大家分享一下最近的几个重要更新，期待大家的反馈与建议。</p>
 <h4>更新亮点</h4>
 <ol>
@@ -126,21 +657,18 @@
 <p>感谢大家的支持！希望这次更新能提升您的使用体验。如果您有任何问题或建议，随时留言，我会尽快回复。</p>
 ]]></content:encoded>
 <pubDate>2024-11-28T02:58:01Z</pubDate>
-<pubDate>2024-11-28T02:58:01Z</pubDate>
 </item>
 <item>
 <title>[随想] 世界有点疯癫</title>
 <link>https://www.v2ex.com/t/1093320</link>
 <guid>https://www.v2ex.com/t/1093320</guid>
 <content:encoded><![CDATA[
-
 <p>就在刚刚，一个学校领导带着一个摄影师进来，要应学校要求借我们班上一节课。然后就站在讲台上打开也许是电子相关专业的 ppt 讲起来（我们是学软件的，完全不相关），并且提了一个问题，然后点了和他们一起的托来回答。。。。。答完拍照立即走人。</p>
 <p>底下坐着的我的同学们刚刚还在嗤笑这种行为，在领导说下课的时候立即鼓起掌来，坐我旁边的同学也不明所以的开始跟着鼓掌。。。此时摄像机甚至没在拍他们。。。。</p>
 <p>最好笑的是，我此时正在看《 1984 》的这段：</p>
 <pre><code>　　这时，全部在场的人缓慢地、有节奏地、深沉地再三高叫“B － B ！……B—B ！……B—B ！”［注：英语“老大哥”的第一个字母。——译注］他们叫得很慢，在第一个 B 和第二个 B 之间停顿很久。这种深沉的声音令人奇怪地有一种野蛮的味道，你仿佛听到了赤脚的踩踏和铜鼓的敲打。他们这样大约喊了三十秒钟。这种有节奏的叫喊在感情冲动压倒一切的时候是常常会听到的。这一部分是对老大哥的英明伟大的赞美，但更多的是一种自我催眠，有意识地用有节奏的闹声来麻痹自已的意识。温斯顿心里感到一阵凉。在两分钟的仇恨中，他无法不同大家一起梦呓乱语，但是这种野兽般的“B—B ！……B—B ！”的叫喊总使他充满了恐惧。当然，他也和大家一起高喊：不那么做是办不到的。掩饰你真实的感情，控制你脸部的表情，大家做什么你就做什么，这是一种本能的反应。但是有那么一两秒钟的时间里，他的眼睛里的神色很可能暴露了他自己。正好是在这一刹那，那件有意义的事情发生了——如果说那件事情真的发生了的话。
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:57:46Z</pubDate>
 <pubDate>2024-11-28T02:56:46Z</pubDate>
 </item>
 <item>
@@ -148,12 +676,10 @@
 <link>https://www.v2ex.com/t/1093319</link>
 <guid>https://www.v2ex.com/t/1093319</guid>
 <content:encoded><![CDATA[
-
 <p>昨天看到 @sml2h3 大佬发布的<a href="https://github.com/sml2h3/ddddocr" rel="nofollow">ddddocr</a>项目，这是一款自动识别验证码的 OCR 工具，简直惊为天人！不过，查阅了一些资料后发现，大多数使用者都是具备编程能力的开发者，教程多数集中在部署方法上，却没有介绍如何在日常应用中使用的内容。</p>
 <p>作为一名非开发者的普通用户，我在浏览器（如 Safari 和 Chrome ）登录一些网站时，经常需要输入验证码。我希望能有一种类似浏览器插件的工具，能够直接自动识别并填写验证码，或者手动点击验证码进行复制，从而省去手动输入验证码的操作。</p>
 <p>目前，我有一台具备公网 IP 的闲置服务器，并且具备一定的技术基础，能简单地使用 Docker 进行部署，遇到难题也可以请教 GPT 。请问，有没有现成的类似插件或解决方案，或者是否能推荐实现这一功能的思路？</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:53:43Z</pubDate>
 <pubDate>2024-11-28T02:53:43Z</pubDate>
 </item>
 <item>
@@ -161,7 +687,6 @@
 <link>https://www.v2ex.com/t/1093318</link>
 <guid>https://www.v2ex.com/t/1093318</guid>
 <content:encoded><![CDATA[
-
 <p>做个 Discourse 注册推广激活插件需求:</p>
 <p>A 用户 Discourse 注册后,弹出这个海报,
 A 用户把这个图片分享给好友后,
@@ -170,7 +695,6 @@ A 用户把这个图片分享给好友后,
 激活链接网址格式 <a href="http://www.abc.com/A" rel="nofollow">www.abc.com/A</a> 用户名</p>
 <p>如图：</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:51:24Z</pubDate>
 <pubDate>2024-11-28T02:50:24Z</pubDate>
 </item>
 <item>
@@ -178,10 +702,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093317</link>
 <guid>https://www.v2ex.com/t/1093317</guid>
 <content:encoded><![CDATA[
-
 <p>最近准备入手一个 Apple TV ，最直接的目标是用来家里 Fitness+投屏健身，对 Apple TV 的各种玩法知之甚少，有没有现成的此类材料？视频或者网页都可以，提前谢谢各位 v 友！</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:49:26Z</pubDate>
 <pubDate>2024-11-28T03:00:00Z</pubDate>
 </item>
 <item>
@@ -189,7 +711,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093315</link>
 <guid>https://www.v2ex.com/t/1093315</guid>
 <content:encoded><![CDATA[
-
 <p>真诚的提醒所有人：不要购买 adguard 付费版本。</p>
 <p>这个软件每年都有一两次大折扣，比如临近黑五圣诞又有优惠活动了。除了他们自己会打广告以外，授权代理商也会进行宣传。</p>
 <p><strong>不要购买！不要购买！不要购买！</strong></p>
@@ -202,7 +723,6 @@ A 用户把这个图片分享给好友后,
 <p>因为搜索之后发现英文的相关讨论很多，但中文很少，故发此贴，以防止更多人花冤枉钱。</p>
 <p>来自一个购买了 9 人永久家庭版并在网速降低问题上浪费了 157 小时的怨种。（微笑</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:48:05Z</pubDate>
 <pubDate>2024-11-28T02:50:36Z</pubDate>
 </item>
 <item>
@@ -210,10 +730,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093314</link>
 <guid>https://www.v2ex.com/t/1093314</guid>
 <content:encoded><![CDATA[
-
 又到冬天了，整天被静电电。而且感觉身上的静电巨多，感觉远远超过身边的人。同张床同张被子，对象睡的另一边就啥静电也没有，我这半边被窝里稍微动一下就噼里啪啦响，身上汗毛都会静电吸起来。被子，床垫，枕头，衣服上都有，晚上跟放烟花似的。连办公室办公的椅子靠背上都全是静电。用网上的那种静电释放器戳被窝，就光灯一直亮，而且一直戳一直亮，但是静电却不见少。<br /><br />   之前怀疑过是因为使用 macbook 漏静电，但是现在已经不用了，静电还是有。<br /><br />   网上说的摸墙，摸钥匙，用静电释放器。都不太管用。诚心请教一下大家有什么比较好的方法。<br />   非常感谢🙏🙏🙏
 ]]></content:encoded>
-<pubDate>2024-11-28T02:47:20Z</pubDate>
 <pubDate>2024-11-28T03:03:29Z</pubDate>
 </item>
 <item>
@@ -221,10 +739,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093313</link>
 <guid>https://www.v2ex.com/t/1093313</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="https://i.imgur.com/iRFjRNq.png" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/iRFjRNq.png" /></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:45:53Z</pubDate>
 <pubDate>2024-11-28T02:44:53Z</pubDate>
 </item>
 <item>
@@ -232,10 +748,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093312</link>
 <guid>https://www.v2ex.com/t/1093312</guid>
 <content:encoded><![CDATA[
-
 <p>马上 12 月份估计要被裁了，到时估计也没事干了 想着买个电视玩玩游戏看看电视 ，我就在想 能不能把刚买的 steamdeck 当成机顶盒去装个 clash 看奈飞等操作 ，这个操作感觉理论可行，不知道可有大佬能指点一二</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:44:36Z</pubDate>
 <pubDate>2024-11-28T03:01:48Z</pubDate>
 </item>
 <item>
@@ -243,13 +757,11 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093311</link>
 <guid>https://www.v2ex.com/t/1093311</guid>
 <content:encoded><![CDATA[
-
 <h1>RT</h1>
 <h3>最近更换了工作，从软件技术路线转变成了半导体、集成电路、电子元器件相关的硬件路线。隔行如隔山，硬件相关的论坛和社群哪里有？我去感受感受、学习学习，顺便找找潜在客户。</h3>
 <hr />
 <h3>我司现在主要做国产化替代相关领域，主营精密功率器件销售，带国产化认证。</h3>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:44:24Z</pubDate>
 <pubDate>2024-11-28T02:58:00Z</pubDate>
 </item>
 <item>
@@ -257,10 +769,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093310</link>
 <guid>https://www.v2ex.com/t/1093310</guid>
 <content:encoded><![CDATA[
-
 <p>一个是银行的，一个是高校智慧热水。各位有遇到过这样的情况吗，有没有什么解决或者是防范的措施方法</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:43:47Z</pubDate>
 <pubDate>2024-11-28T02:57:22Z</pubDate>
 </item>
 <item>
@@ -268,10 +778,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093309</link>
 <guid>https://www.v2ex.com/t/1093309</guid>
 <content:encoded><![CDATA[
-
 自己接各种 llm api 的那种
 ]]></content:encoded>
-<pubDate>2024-11-28T02:41:47Z</pubDate>
 <pubDate>2024-11-28T02:45:05Z</pubDate>
 </item>
 <item>
@@ -279,10 +787,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093307</link>
 <guid>https://www.v2ex.com/t/1093307</guid>
 <content:encoded><![CDATA[
-
 4060 有必要上 2K 显示器吗<br /><br />![]( <a href="https://www.v2ex.com/i/8j0iAzhF.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 8j0iAzhF.png"><img class="embedded_image" src="https://i.v2ex.co/8j0iAzhF.png" /></a>)
 ]]></content:encoded>
-<pubDate>2024-11-28T02:39:17Z</pubDate>
 <pubDate>2024-11-28T02:39:17Z</pubDate>
 </item>
 <item>
@@ -290,12 +796,10 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093306</link>
 <guid>https://www.v2ex.com/t/1093306</guid>
 <content:encoded><![CDATA[
-
 <p>M4 mini 开机登录账号进入桌面出现短暂黑屏，显示器是未来视野 RV200pro 5K 分辨率，换不同的 HDMI 线或 C2C 线(USB 3.2 Gen 2)情况还是一样。</p>
 <p>状况和抖音这个用户一样。</p>
 <p>2.00 08/21 <a href="mailto:U@Y.mQ">U@Y.mQ</a> kpD:/ 新款 Mac mini M4 开机出现短暂黑屏在亮屏然后进入系统 是什么原因 <a href="https://v.douyin.com/iDUwfe1d/" rel="nofollow">https://v.douyin.com/iDUwfe1d/</a> 复制此链接，打开 Dou 音搜索，直接观看视频！</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:35:55Z</pubDate>
 <pubDate>2024-11-28T03:02:45Z</pubDate>
 </item>
 <item>
@@ -303,12 +807,10 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093303</link>
 <guid>https://www.v2ex.com/t/1093303</guid>
 <content:encoded><![CDATA[
-
 <p>以前，威联通还可以通过修改 <a href="http://run-docker.sh" rel="nofollow">run-docker.sh</a> 文件进行代理上网</p>
 <p>现在，不行了</p>
 <p>不知道，大家都是怎么访问 <a href="http://hub.docker.com" rel="nofollow">hub.docker.com</a> 拉取镜像的</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:28:46Z</pubDate>
 <pubDate>2024-11-28T02:45:33Z</pubDate>
 </item>
 <item>
@@ -316,10 +818,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093302</link>
 <guid>https://www.v2ex.com/t/1093302</guid>
 <content:encoded><![CDATA[
-
 <p>找个理由还是直接说明？</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:27:56Z</pubDate>
 <pubDate>2024-11-28T03:01:32Z</pubDate>
 </item>
 <item>
@@ -327,11 +827,9 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093301</link>
 <guid>https://www.v2ex.com/t/1093301</guid>
 <content:encoded><![CDATA[
-
 <h2>如题，如何通过 ts 接口定义跳转到源码</h2>
 <p>java 里按 ctrl+左键，ts 没找到窍门，请教</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:27:52Z</pubDate>
 <pubDate>2024-11-28T02:52:20Z</pubDate>
 </item>
 <item>
@@ -339,10 +837,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093300</link>
 <guid>https://www.v2ex.com/t/1093300</guid>
 <content:encoded><![CDATA[
-
 <p>最近打算换 16pro 1t 版本，考虑到日版有满血版 ai ，所以想买个日版的，但是没渠道，想问下大家有没有靠谱的日本代购？</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:26:52Z</pubDate>
 <pubDate>2024-11-28T02:56:12Z</pubDate>
 </item>
 <item>
@@ -350,10 +846,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093299</link>
 <guid>https://www.v2ex.com/t/1093299</guid>
 <content:encoded><![CDATA[
-
 现在有这样一个需求，在 spring gateway 中一个过滤器，有一个原始的请求走到下游 a 服务，现在我要在这里去请求另外一个 b 服务，然后量二者的结果进行比较，最终返回给客观端得值是 b 服务的结果，现在我通过重写 response 装饰器麻拿到结果后，在 mono.zip 并发访问这两个服务，然后重写返回值，但是最终的客户端响应得还是原始 chain.filter 的值。请问哪里有问题吗
 ]]></content:encoded>
-<pubDate>2024-11-28T02:23:22Z</pubDate>
 <pubDate>2024-11-28T03:01:44Z</pubDate>
 </item>
 <item>
@@ -361,10 +855,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093298</link>
 <guid>https://www.v2ex.com/t/1093298</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://imgur.com/a/hH8rJZm" rel="nofollow">https://imgur.com/a/hH8rJZm</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:22:31Z</pubDate>
 <pubDate>2024-11-28T02:45:01Z</pubDate>
 </item>
 <item>
@@ -372,7 +864,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093297</link>
 <guid>https://www.v2ex.com/t/1093297</guid>
 <content:encoded><![CDATA[
-
 <p>之前京东搞活动，69 一个游戏，自购了几个，当时把自己的非国行卡带都出了回血。目前选了游戏程序设计、星之卡比、宝可梦皮卡丘，还剩一个名额大概率选耀西了</p>
 <ol>
 <li>《新 超级马力欧兄弟 U 豪华版》，自购已有</li>
@@ -391,18 +882,15 @@ A 用户把这个图片分享给好友后,
 </ol>
 ]]></content:encoded>
 <pubDate>2024-11-28T02:13:31Z</pubDate>
-<pubDate>2024-11-28T02:13:31Z</pubDate>
 </item>
 <item>
 <title>[git] 开源了个新的版本控制系统 HugeSCM，请 V 友们指导</title>
 <link>https://www.v2ex.com/t/1093296</link>
 <guid>https://www.v2ex.com/t/1093296</guid>
 <content:encoded><![CDATA[
-
 <p>最近将在公司搞的新的版本控制系统开源了，地址是：<a href="https://github.com/antgroup/hugescm" rel="nofollow">https://github.com/antgroup/hugescm</a>，吸收了很多 git 的技术特点，然后在这个基础上重新设计，绕考了 git 的缺点，可以用于 AI/游戏研发等大文件特别多的场景，目前蚂蚁内部的 AI 大模型基本都是由这个管理。</p>
 <p>这个系统还不是很完美，希望有更多的人参与进来。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:13:01Z</pubDate>
 <pubDate>2024-11-28T03:00:29Z</pubDate>
 </item>
 <item>
@@ -410,13 +898,11 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093295</link>
 <guid>https://www.v2ex.com/t/1093295</guid>
 <content:encoded><![CDATA[
-
 <p>互联网的特点
 1.一个人当三个人用，高压力，快节奏，强制淘汰
 2.给钱给 2 个人的</p>
 <p>鉴于已经处于下降期，接近 30 岁，准备找点退路了，想了解其他行业的一些信息，有 v 友来聊聊吗</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:08:58Z</pubDate>
 <pubDate>2024-11-28T02:08:58Z</pubDate>
 </item>
 <item>
@@ -424,12 +910,10 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093294</link>
 <guid>https://www.v2ex.com/t/1093294</guid>
 <content:encoded><![CDATA[
-
 <p>打算白天工作不启动（打算买 HC550 16T ，据说声音很大）</p>
 <p>晚上下班之后在 WSL 立面启动 QB 做种</p>
 <p>顺带启动硬盘</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:06:42Z</pubDate>
 <pubDate>2024-11-28T02:44:47Z</pubDate>
 </item>
 <item>
@@ -437,10 +921,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093293</link>
 <guid>https://www.v2ex.com/t/1093293</guid>
 <content:encoded><![CDATA[
-
 <p>刚刚被裁</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:03:13Z</pubDate>
 <pubDate>2024-11-27T23:03:13Z</pubDate>
 </item>
 <item>
@@ -448,10 +930,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093292</link>
 <guid>https://www.v2ex.com/t/1093292</guid>
 <content:encoded><![CDATA[
-
 不知为啥我自从买了 Mac 之后就不像 Windows 那样经常关机了，每次都是直接关上盖子，请问这样长期不关机会有什么影响吗？
 ]]></content:encoded>
-<pubDate>2024-11-28T02:01:08Z</pubDate>
 <pubDate>2024-11-28T03:01:30Z</pubDate>
 </item>
 <item>
@@ -459,7 +939,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093291</link>
 <guid>https://www.v2ex.com/t/1093291</guid>
 <content:encoded><![CDATA[
-
 <p>最近玩知识管理，学习 zk 笔记，用 cursor 15 分钟写了一个插件帮自己制作知识卡片。
 感觉还挺好用，分享给大家。</p>
 <p>插件名：MarkClipper for Obsidian
@@ -473,7 +952,6 @@ A 用户把这个图片分享给好友后,
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-11-28T02:01:02Z</pubDate>
 <pubDate>2024-11-28T01:58:02Z</pubDate>
 </item>
 <item>
@@ -481,7 +959,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093290</link>
 <guid>https://www.v2ex.com/t/1093290</guid>
 <content:encoded><![CDATA[
-
 <h1>设备：</h1>
 <ul>
 <li><strong>绿联 cm695 kvm 切换器 dp 接口</strong></li>
@@ -514,7 +991,6 @@ A 用户把这个图片分享给好友后,
 <br />
 <p><a href="https://i.postimg.cc/zBw63G7s/Wechat-IMG449.jpg" rel="nofollow">Wechat-IMG449.jpg</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T01:59:17Z</pubDate>
 <pubDate>2024-11-28T02:57:23Z</pubDate>
 </item>
 <item>
@@ -522,12 +998,10 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093289</link>
 <guid>https://www.v2ex.com/t/1093289</guid>
 <content:encoded><![CDATA[
-
 <p>有一个 APP ，想接入手机充值。</p>
 <p>麻烦有接入过的大佬们，介绍介绍。</p>
 <p>谢谢了。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T01:56:56Z</pubDate>
 <pubDate>2024-11-28T01:56:56Z</pubDate>
 </item>
 <item>
@@ -535,10 +1009,8 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093288</link>
 <guid>https://www.v2ex.com/t/1093288</guid>
 <content:encoded><![CDATA[
-
 现在很多应用都开始用 electron 实现，但是很多内嵌的网页内容好像都不提供查找页面文字的功能，这个问题大家都是怎么解决的？<br />比如 chatgpt, poe ，等等很多应用。<br />有时候内容问多了，想找个关键字，要滚半天。。
 ]]></content:encoded>
-<pubDate>2024-11-28T01:56:38Z</pubDate>
 <pubDate>2024-11-28T02:10:09Z</pubDate>
 </item>
 <item>
@@ -546,7 +1018,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1093287</link>
 <guid>https://www.v2ex.com/t/1093287</guid>
 <content:encoded><![CDATA[
-
 <p>希克定律实验
 简介
 希克定律，也称为希克–海曼定律，以心理学家威廉·埃德蒙·希克和雷·海曼的名字命名。它描述了做出决定所需的时间如何随着选择的数量和复杂性以对数方式增加。</p>
@@ -556,7 +1027,6 @@ A 用户把这个图片分享给好友后,
 <p>欢迎来在线免费测一测你在面临多个选择的时候的反应速度</p>
 <p><a href="https://kuakua.app/zh/experiment/hicks-law-experiment" rel="nofollow">https://kuakua.app/zh/experiment/hicks-law-experiment</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T01:54:19Z</pubDate>
 <pubDate>2024-11-28T02:37:40Z</pubDate>
 </item>
 <item>
@@ -564,7 +1034,6 @@ A 用户把这个图片分享给好友后,
 <link>https://www.v2ex.com/t/1090801</link>
 <guid>https://www.v2ex.com/t/1090801</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="爱快 root" class="embedded_image" rel="noreferrer" src="https://pic2.zhimg.com/v2-a800ca763d2729fc74b24f5bffaf9eef_1440w.jpg" /></p>
 <p>1.先下载爱快安装包安装系统</p>
 <p>2.进入系统下载下面链接更新系统为企业版
@@ -572,10 +1041,8 @@ A 用户把这个图片分享给好友后,
 <p>3.远程管理打开 ssh 登录</p>
 <p>4.ssh sshd@爱快 ip ，进入后台后输入 whoami ，在输入 Admin@123#fuck 即可进入终端。</p>
 ]]></content:encoded>
-<pubDate>2024-11-19T06:03:15Z</pubDate>
 <pubDate>2024-11-26T17:29:14Z</pubDate>
 </item>
-
 <item>
 <title>[Apple] 你们的 iPhone 15 电池健康还有多少了</title>
 <link>https://www.v2ex.com/t/1093286</link>
@@ -15773,913 +16240,6 @@ RT 。。<br /><br />大家换过床单吗？特别是 2m*2.3m 的被子的床�
 和前同事约饭，他神秘地掏出手机告诉我现在有个赚钱方式，吧啦吧啦，不到五句话我已经发现是非常赤裸的庞氏骗局了。<br />叫什么 xx 拍的软件，每天上架几款垃圾商品，一两万拍下来，第二天可以涨价 10%卖掉，几个月时间资产从 20w 滚到了 50w 。<br />整个吃饭 80%都在劝他，中间找了好几个张小吹的视频给他看，结果他告诉我和视频里面的骗局很像，但是这个公司他研究了几个月了，背景很 NB ，盈利模式非常可靠。<br />很惊讶一个受过高等教育的人，做软件开发十几年了，简单的骗局也能陷进去。<br />他的描述是他邻居介绍他这个公司，然后他的言语中说我跟你们说，但是你们都不信，似乎我不是第一个被传播的对象。<br />现在矛盾的点在于，我不清楚他是否已经从一个受骗者，被洗脑或者主动变成了传播者。如果帮他报警，一是怕他认为我在耽误他赚钱，二是怕他万一变成了传播者，有了刑事责任，会不会反倒被他家人知道是我报警的，反倒怪我或者报复我。问了编内朋友，他告诉我报警的话民警也未必能劝阻成功，让我不要多管闲事。 但是看着一个熟悉的人被骗而不闻不问，真的挺过意不去的呀！
 ]]></content:encoded>
 <pubDate>2024-11-24T03:01:15Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 利用 WiFi CSI WiFi CSI（Channel State Information，信道状态信息）在特定时间和频率下的详细信息，包括每个子载波的幅度和相位，来实现高精度的室内定位、手势识别以及环境感知等应用</title>
-<link>https://www.v2ex.com/t/1092132</link>
-<guid>https://www.v2ex.com/t/1092132</guid>
-<content:encoded><![CDATA[
-技术原理<br /><br />    多径传播：<br />        在无线信号传播过程中，信号会遇到障碍物而产生反射、折射和散射，导致信号通过多条路径到达接收端，这被称为多径效应。<br />        每条路径会对信号的幅度和相位产生不同的影响，CSI 就是对这些影响的精确描述。<br /><br />    正交频分复用（ OFDM ）：<br />        现代 WiFi 标准（如 IEEE 802.11n/ac/ax ）采用 OFDM 技术，将宽带信号分成多个窄带子载波。<br />        每个子载波可以视为一个独立的窄带信道，CSI 就是在每个子载波上测量得到的信道信息。<br /><br />    CSI 的获取：<br />        导频符号： 在数据传输过程中，发送端会插入已知的导频符号。<br />        信道估计： 接收端利用接收到的导频符号，与已知的导频进行比较，估计信道的响应。<br />        CSI 数据： 信道估计的结果就是 CSI ，包含了对每个子载波的幅度和相位信息。<br /><br />    数学表达：<br />        CSI 可以表示为一个复数矩阵 HH ，其中每个元素对应一个子载波的信道响应：
-]]></content:encoded>
-<pubDate>2024-11-23T22:14:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] [急/求推荐]实时翻译软件, 英文面试,最好带 AI 翻译,愿意付费</title>
-<link>https://www.v2ex.com/t/1092131</link>
-<guid>https://www.v2ex.com/t/1092131</guid>
-<content:encoded><![CDATA[
-<h2>需求</h2>
-<ul>
-<li>面试官是老外</li>
-<li>客户端的字幕软件, 开启字幕不能让对方知道(否则显得太菜了)</li>
-<li>最好是 mac 版</li>
-<li>目前不知道用什么平台面试, 求个适合一切的软件. 并且在线会议开启字幕居然会告诉对方</li>
-</ul>
-<h2>已经找了 4 小时啦, 还得准备面试口语呢</h2>
-<ul>
-<li>
-<p>zoom, 翻译字幕需要花钱, 花也行, 但不知道是否用该平台</p>
-</li>
-<li>
-<p>teams, 开启字幕会全员通知, 并且也没触发出来翻译功能(官方说有)</p>
-</li>
-<li>
-<p>chrome 插件: 沉浸式翻译, 需要手动在会议中开启字幕才行</p>
-</li>
-<li>
-<p>33 字幕, 搞视频字幕的, 不是实时抓取会议音频翻译的.</p>
-</li>
-<li>
-<p>xxx, 今天没找到, 咱论坛朋友开发的, mac 版, 只用苹果内置 api 实现的, 我之前试用过, 好像是没翻译功能吧. 字幕准确率也有待提升. (有翻译功能的话, 麻烦在楼下再说下软件名字)</p>
-</li>
-</ul>
-<hr />
-<ul>
-<li>akkadu-ai, 客户端软件, 挺符合需求, 但是微软机翻, 准确率堪忧.
-并且那个计费很贵 45 元/h, 贵也能接受. 但是那个时长计算很迷, 实际测试没几分钟, 扣了我 20 分钟的额度.  不知道真买一小时的会怎么样, 面试一次花费 100 元+?</li>
-<li>讯飞语记, 手机 APP, 有一点点延迟, 准确率差点, 也还行, 能懂对方啥意思就行.</li>
-</ul>
-<p>求推荐, 挺急, 最终找不到只能用讯飞语记了. 但毕竟是手机, 面试时一直盯着手机看, 也露馅呀!</p>
-]]></content:encoded>
-<pubDate>2024-11-24T02:56:01Z</pubDate>
-</item>
-<item>
-<title>[Apple] Only Apple can do 苹果的傻 X 逻辑，自己的设备无法自己做主</title>
-<link>https://www.v2ex.com/t/1092129</link>
-<guid>https://www.v2ex.com/t/1092129</guid>
-<content:encoded><![CDATA[
-<p>上古 ipad, 系统好像 5.0.1 ，已越狱，被孩子设置锁屏密码又忘记，多次输错，已停用。</p>
-<p>记得 apple id 及密码，设备未联网。</p>
-<p>搜了一圈，只有刷机，那样的话里面资料全没了。</p>
-<p>据说 ifunbox 能删掉文件管理的密码，下载了但无法连接设备。</p>
-<p>真是服了苹果，我明明知道本机的 id 和密码，但还是束手无策，什么狗屁 X 逻辑。</p>
-<p>无所不能的 V 友，难道真是一点办法都没有了吗？</p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:56:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] win11 ubuntu 双系统后， win11 无法更新</title>
-<link>https://www.v2ex.com/t/1092128</link>
-<guid>https://www.v2ex.com/t/1092128</guid>
-<content:encoded><![CDATA[
-<p>之前以为是 win11 系统问题，后来重装一次还是这样，各位有这个现象么</p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:34:42Z</pubDate>
-</item>
-<item>
-<title>[Apple] [2024 年度音乐回顾] Apple Music 可以开始回顾 2024 年收听记录了</title>
-<link>https://www.v2ex.com/t/1092126</link>
-<guid>https://www.v2ex.com/t/1092126</guid>
-<content:encoded><![CDATA[
-<p>虽然 2024 年还没有过完，但是 Apple Music 已经可以查看本年度收听时长了。至于 11 月份的内容，肯定得等到 12 月份才能看到了。</p>
-<p><img alt="截屏 2024-11-24 09.16.55.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/11/24/3RW51GAiOIVUeLY.png" /></p>
-<p>链接： <a href="https://replay.music.apple.com/" rel="nofollow">https://replay.music.apple.com/</a></p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:31:09Z</pubDate>
-</item>
-<item>
-<title>[程序员] 阿里弄的那个知识图谱藏经阁现在怎么样了</title>
-<link>https://www.v2ex.com/t/1092125</link>
-<guid>https://www.v2ex.com/t/1092125</guid>
-<content:encoded><![CDATA[
-<p>搜索的时候留意到阿里好像搞过一个“藏经阁”，域名是 <a href="http://kg.alibaba.com" rel="nofollow">kg.alibaba.com</a> 。</p>
-<p>我没办法访问这个网站，internet archive 倒是能查到记录。</p>
-<p>这个项目现在到底怎么样了？</p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:52:19Z</pubDate>
-</item>
-<item>
-<title>[VPS] Zgo 黑五在售机型：日本大阪 IIJ 线路机（推荐东部电信使用）、美西-国内线路优化机、美西国际线路、高性能 VDS</title>
-<link>https://www.v2ex.com/t/1092124</link>
-<guid>https://www.v2ex.com/t/1092124</guid>
-<content:encoded><![CDATA[
-<p>目前黑五在售的机子有以下几个大类，日本大阪 IIJ 线路机（推荐东部电信使用）、美西（国内线路优化机）、美西国际线路机及高性能 VDS</p>
-<p>zgo 商家是国人品牌，优点是机子性能比较硬（相对于搬瓦工），IP 比较干净，适合落地解锁各类流媒体；缺点是 23 年才成立，比较新</p>
-<p>1 、日本大阪 IIJ 线路机（推荐东部电信使用，东部电信的可以测测速度）</p>
-<table>
-<thead>
-<tr>
-<th>套餐名称</th>
-<th>CPU</th>
-<th>内存</th>
-<th>存储</th>
-<th>流量</th>
-<th>带宽</th>
-<th>网络类型</th>
-<th>价格(USD)</th>
-<th>购买链接(aff)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Osaka   AMD 7950X Starter</td>
-<td>1</td>
-<td>1 GB</td>
-<td>20G SSD</td>
-<td>1000 GB</td>
-<td>0.8Gbps</td>
-<td>IIJ Japan</td>
-<td>15/季</td>
-<td><a href="https://990599.xyz/ziij18" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>大阪 EPYC   9354P Starter</td>
-<td>1</td>
-<td>1 GB</td>
-<td>20G SSD</td>
-<td>1000 GB</td>
-<td>0.4Gbps</td>
-<td>IIJ Japan</td>
-<td>12/季</td>
-<td><a href="https://990599.xyz/ziij11" rel="nofollow">购买链接</a></td>
-</tr>
-</tbody></table><p>大阪线路机速度测试： <a href="https://speedziij.990599.xyz/" rel="nofollow">https://speedziij.990599.xyz/</a></p>
-<p>IIJ 机子的解锁测试，全绿（据说新 IIJ 线路 IP 的解锁，奈菲有点问题，其他都全绿）
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/04/zgo-JP-media.jpg" />
-三网回程测试，国际线路，对国内无优化，网络无抖动，东部电信使用 iij 的质量堪比 CN2GIA</p>
-<p>最近半年，比香港 cn2gia 及新加坡 cn2gia 都要快，都要稳</p>
-<p>在大版 IIJ 线路的自建 adguardhome DNS 解析也比香港及新加坡快，强烈推荐东部电信使用（江浙沪）
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://59800021.xyz/wp-content/uploads/2024/10/ZGO-iij-network-1536x593.jpg" /></p>
-<p>2 、美西（国内线路优化机）</p>
-<p>美西有三网各自优化的线路机，电信走的 CN2GIA ，移动走的 CMIN2 ，联通走的 9929 。自从 DMIT 和联通闹掰了，美西联通走 9929 的优化线路机可选的商家就不多了； 有三网优化 2 网的，电信联通走 9929 ，移动走 CMIN2 ；还有三网都强制走 CMIN2 的。无论哪一种，移动用户都可以无差别选择。</p>
-<table>
-<thead>
-<tr>
-<th>套餐名称</th>
-<th>CPU</th>
-<th>内存</th>
-<th>存储</th>
-<th>流量</th>
-<th>带宽</th>
-<th>网络类型</th>
-<th>价格(USD)</th>
-<th>购买链接(aff)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>LA AMD Performance Lite</td>
-<td>1</td>
-<td>1 GB</td>
-<td>20G SSD</td>
-<td>600 GB</td>
-<td>0.5Gbps</td>
-<td>四网 CMIN2</td>
-<td>35/年</td>
-<td><a href="https://990599.xyz/z114" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA AMD Performance Starter</td>
-<td>1</td>
-<td>2GB</td>
-<td>30G SSD</td>
-<td>1000 GB</td>
-<td>1Gbps</td>
-<td>四网 CMIN2</td>
-<td>52/年</td>
-<td><a href="https://990599.xyz/z115" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA Intel Performance - Lite</td>
-<td>1</td>
-<td>768 MB</td>
-<td>15G SSD</td>
-<td>600 GB</td>
-<td>0.2Gbps</td>
-<td>电信联通 9929&amp;移动 CMIN2</td>
-<td>30/年</td>
-<td><a href="https://990599.xyz/z39" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA Intel Performance -   Starter</td>
-<td>1</td>
-<td>1 GB</td>
-<td>20G SSD</td>
-<td>1000 GB</td>
-<td>0.3Gbps</td>
-<td>电信联通 9929&amp;移动 CMIN2</td>
-<td>42/年</td>
-<td><a href="https://990599.xyz/z32" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA Ryzen9 Performance  Starter</td>
-<td>1</td>
-<td>1 GB</td>
-<td>25G SSD</td>
-<td>1000 GB</td>
-<td>0.5Gbps</td>
-<td>CN2GIA &amp; 9929 &amp;   CMIN2 三网各自优化</td>
-<td>66/年</td>
-<td><a href="https://990599.xyz/zgo58" rel="nofollow">购买链接</a></td>
-</tr>
-</tbody></table><p>美西优化机速度测试： <a href="https://speedzcn.990599.xyz/" rel="nofollow">https://speedzcn.990599.xyz/</a></p>
-<p>zgo 洛杉矶 CN2GIA ，延迟和质量都中规中矩
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/04/zgo-LOS-CN2GIA-network.jpg" />
-落地解锁真是没得说，解锁漂亮
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/04/zgo-LOS-cn2gia-media.jpg" /></p>
-<p>3 、美西国际线路机&amp;落地机优选（国内无优化）</p>
-<table>
-<thead>
-<tr>
-<th>套餐名称</th>
-<th>CPU</th>
-<th>内存</th>
-<th>存储</th>
-<th>流量</th>
-<th>带宽</th>
-<th>网络类型</th>
-<th>价格(USD)</th>
-<th>购买链接(aff)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>LA Global Starter</td>
-<td>1</td>
-<td>1 GB</td>
-<td>20G SSD</td>
-<td>2000 GB</td>
-<td>1Gbps</td>
-<td>国际线路</td>
-<td>15/年</td>
-<td><a href="https://990599.xyz/z15" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA Global Standard</td>
-<td>2</td>
-<td>2GB</td>
-<td>40G SSD</td>
-<td>4000GB</td>
-<td>1Gbps</td>
-<td>国际线路</td>
-<td>25/年</td>
-<td><a href="https://990599.xyz/z25" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>LA Global Pro</td>
-<td>3</td>
-<td>4GB</td>
-<td>60G SSD</td>
-<td>6000 GB</td>
-<td>1Gbps</td>
-<td>国际线路</td>
-<td>45/年</td>
-<td><a href="https://990599.xyz/z45" rel="nofollow">购买链接</a></td>
-</tr>
-</tbody></table><p>美西国际线路机速度测试： <a href="https://speedzglobal.990599.xyz/" rel="nofollow">https://speedzglobal.990599.xyz/</a></p>
-<p>zgo 北美落地机的解锁质量真没话说，zgo 洛杉矶解锁基本全绿（除了 instagram 版权音乐）
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/10/zgo9.9-media-unlock.jpg" />
-IP 质量
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/10/zgo9.9-ip.jpg" /></p>
-<p>4 、高性能 VDS</p>
-<table>
-<thead>
-<tr>
-<th>套餐名称</th>
-<th>CPU</th>
-<th>内存</th>
-<th>存储</th>
-<th>流量</th>
-<th>带宽</th>
-<th>网络类型</th>
-<th>价格(USD)</th>
-<th>购买链接(aff)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>AMD 7003 VDS   Standard</td>
-<td>4</td>
-<td>8GB</td>
-<td>150G SSD</td>
-<td>20TB</td>
-<td>1Gbps</td>
-<td>国际线路</td>
-<td>27/季</td>
-<td><a href="https://990599.xyz/z88Q" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>88/年</td>
-<td><a href="https://990599.xyz/z88" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>AMD 7003 VDS Pro</td>
-<td>8</td>
-<td>16GB</td>
-<td>250G SSD</td>
-<td>20TB</td>
-<td>2Gbps</td>
-<td>国际线路</td>
-<td>52/季</td>
-<td><a href="https://990599.xyz/z166Q" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>166/年</td>
-<td><a href="https://990599.xyz/z166" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td>AMD 7003 VDS Premium</td>
-<td>12</td>
-<td>24GB</td>
-<td>500G SSD</td>
-<td>20TB</td>
-<td>2Gbps</td>
-<td>国际线路</td>
-<td>76/季</td>
-<td><a href="https://990599.xyz/z258Q" rel="nofollow">购买链接</a></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>258/年</td>
-<td><a href="https://990599.xyz/z258" rel="nofollow">购买链接</a></td>
-</tr>
-</tbody></table><p>VDS 国际线路机的速度测试： <a href="https://speedzvds.990599.xyz/" rel="nofollow">https://speedzvds.990599.xyz/</a></p>
-<p>VDS 的 test IP：154.23.243.7</p>
-<p>VDS 的解锁测试，全绿
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-Media-unlock-allGreen.jpg" />
-IP 质量测试
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-ipquality.jpg" />
-三网回程测试，国际线路，对国内无优化，网络无抖动
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-network.jpg" />
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/zgo-VDS-network-1.jpg" /></p>
-<p>融合怪脚本测试
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-CONSOL1.jpg" />
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-CONSOL2.jpg" />
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-CONSOL3.jpg" />
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-CONSOL4.jpg" /></p>
-<p>yabs 脚本测试
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://990599.xyz/wp-content/uploads/2024/07/Zgo-VDS-yabs.jpg" /></p>
-<p>可以查看我的探针，查看最近的网络波动情况： <a href="https://n.990599.xyz" rel="nofollow">https://n.990599.xyz</a>
-<img alt="image" class="embedded_image" rel="noreferrer" src="https://boat.990599.xyz/nezha_fullview.png" /> </p>
-<p>zgo 测评和线路质量可以参考: <a href="https://990599.xyz/zgocloud" rel="nofollow">https://990599.xyz/zgocloud</a> </p>
-<p>注意 zgocloud 开启防欺诈，请下单的环境：</p>
-<p>⚡1 、下单前请清空缓存和 cookie ；</p>
-<p>⚡2 、清空代理，不开启魔法，使用真实上网环境；</p>
-<p>⚡3 、如果遇到无法支付，系统砍单的情况，可以提交工单给客服，让客服重新打开 invoice 后再付款</p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:47:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有一个关于旅游的 APP，复制小某书的旅游攻略文章后，就可以把地点提取出来。其技术原理是什么 如何区别哪些文字是地点？</title>
-<link>https://www.v2ex.com/t/1092123</link>
-<guid>https://www.v2ex.com/t/1092123</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-11-24T00:57:01Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 寒冬已至，本周四接到老板电话，说我所在部门没有存在必要了。。。</title>
-<link>https://www.v2ex.com/t/1092121</link>
-<guid>https://www.v2ex.com/t/1092121</guid>
-<content:encoded><![CDATA[
-<p>虽然已经见过听过不少大小公司裁员新闻。但听完电话，扪心自问还是受到一点冲击。让我看看有没有其他公司合适岗位，他会帮忙推荐。好意我心领了，但短期内哪儿那么容易。</p>
-<p>这边干了查不多 10 年。我现在就是想知道这种微型企业能不能顺利拿到赔偿。它会不会直接关门？有懂这方面的专业（或非专业） V 友码？想听听你么的建议，我需要怎么操作维护、和最大化争取自己的合法权益。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T16:32:33Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位有没有重启系统强迫症</title>
-<link>https://www.v2ex.com/t/1092120</link>
-<guid>https://www.v2ex.com/t/1092120</guid>
-<content:encoded><![CDATA[
-<p>比如安装/更新了新软件，修改了一些设置等等，哪怕不需要重启，总想重启一下心里才舒服，不然堵得慌，感觉现在系统不是一个 fresh/clean 的状态。</p>
-]]></content:encoded>
-<pubDate>2024-11-24T01:42:41Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 请教一下 Mac 的 AC+是按年购买合适还是三年购买合适？</title>
-<link>https://www.v2ex.com/t/1092119</link>
-<guid>https://www.v2ex.com/t/1092119</guid>
-<content:encoded><![CDATA[
-<p>目前已购新款 mac ，一切顺利的话，短期之内应该不会出二手。</p>
-<p>按年购买：849 元/年</p>
-<p>三年购买：2299 元/年</p>
-<p>请问大家是怎么购买的呢？</p>
-]]></content:encoded>
-<pubDate>2024-11-23T21:14:55Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] AdGuard 九设备终身订阅 15.97 刀（非俄区应该算史低了吧）</title>
-<link>https://www.v2ex.com/t/1092118</link>
-<guid>https://www.v2ex.com/t/1092118</guid>
-<content:encoded><![CDATA[
-<p>还是 Stacksocial 网站的促销，九设备终身订阅 15.97 刀。<br />
-<br />
-AdGuard 家庭计划：终身订阅：<br />
-<a href="https://www.stacksocial.com/sales/adguard-family-plan-lifetime-subscription" rel="nofollow">https://www.stacksocial.com/sales/adguard-family-plan-lifetime-subscription</a><br /></p>
-<br />
-我的个人邀请链接： <a href="https://www.stacksocial.com?rid=12364750" rel="nofollow">https://www.stacksocial.com?rid=12364750</a><br />
-通过这个邀请链接注册购买“Once your friend signs up and makes a purchase* you both get $10 of credit.”（一旦你的朋友注册并完成购买*，你们双方都会获得 10 美元的积分。）<br />
-<br />
-提醒：<br />
-1.这应该算是非俄区的最大优惠了。<br />
-2.此价格持续多久不清楚，商品页面显示“80% Off Expires Soon!”但没写持续时间。<br />
-3.页面弹出的新用户“Get 15% Off Your First Purchase”优惠无法叠加到 15.97 刀的 AdGuard ，提示“Coupons cannot be used with this sale”（ 2024.11.24 测试）<br />
-4.在 Stacksocial 购买激活码后要到 AdGuard 官网注册一个账号，将激活码绑定到自己的 AdGuard 账户，这样就可以在 AdGuard 个人账户中管理已激活的设备，不需要的设备可以删除。<br />
-]]></content:encoded>
-<pubDate>2024-11-23T23:09:38Z</pubDate>
-</item>
-<item>
-<title>[Apple] 通过 Apple ID 切换国家的方法安全获取美区 ID</title>
-<link>https://www.v2ex.com/t/1092117</link>
-<guid>https://www.v2ex.com/t/1092117</guid>
-<content:encoded><![CDATA[
-<p>内容完全参考苹果官方文档： <a href="https://support.apple.com/zh-cn/118283" rel="nofollow">https://support.apple.com/zh-cn/118283</a> </p>
-<p><strong>本教程同样适用于包括美区在内所有国家和地区。配合注册大陆 Apple 账户就可以得到任意国家的 Apple ID ，原则上按照教程操作就实现了苹果应用全球购。</strong></p>
-<h3>我们可能有下面的误区</h3>
-<p>1️⃣ 苹果账户会锁区无法切换区</p>
-<p>2️⃣ 切换国家需要挂代理，最好是肉身前往</p>
-<p>3️⃣ 切换国家有很多隐性条件，切换成功不成功要看运气</p>
-<p>4️⃣ 一旦切换，想切换回来就难</p>
-<p>5️⃣ 需要填写实际的住址和联系人信息，不然 Apple ID 很快就会被风控</p>
-<h3>但实际情况却是</h3>
-<p>1️⃣ 苹果账户没有锁区这回事</p>
-<p>2️⃣ 切换国家不需要挂代理，更不需要肉身前往</p>
-<p>3️⃣ 满足条件就能成功切换，没有隐性条件</p>
-<p>4️⃣ 切换回来也很简单，本身没有时间和频次限制</p>
-<p>5️⃣ 在其它区域购买也很简单，有很多便捷的自助渠道</p>
-<p><em>由于 Apple 的安全考量，Apple 官方认为 Apple 移动设备的安全系数（尤其是在大陆插卡以后的 Apple 移动设备），所以强烈建议在 iPhone 上操作</em></p>
-<h3>准备工作</h3>
-<p>0️⃣首先需要有一个中国大陆的 Apple ID</p>
-<p>1️⃣用完你的 Apple 账户上的所有余额，点击查看 Apple 余额</p>
-<p>2️⃣取消所有阻止你更改所在国家或地区的订阅，然后等到订阅期结束后再更改你的国家或地区</p>
-<p>3️⃣等待所有会员资格、预订、影片租借或季票结束，并等待任何待处理的商店余额退款处理完毕</p>
-<p>4️⃣确保你有适用于新国家或地区的付款方式。这里以美国为例，美区支持信用卡、借记卡、Paypal 和 Apple 账户余额（可以通过支付宝在美区购买礼品卡获得），点击查看各国支持的付款方式</p>
-<p>5️⃣ 确保当前的 Apple 账户不是“家人共享”群组的成员，当然成功退出以后还是可以切换的</p>
-<h3>操作步骤</h3>
-<p>1️⃣ 打开“设置（ Settings ）”App</p>
-<p>2️⃣ 轻点你的姓名，然后轻点“媒体与购买项目（ Payment &amp; Shipping ）”</p>
-<p>3️⃣ 轻点“显示账户（ View Account ）”。大部分情况下这里需要验证一下账户信息</p>
-<p>4️⃣ 轻点“国家/ 地区（ County/Region ）”</p>
-<p>5️⃣ iPhone 上的“账户设置”中显示了“国家/ 地区”
-，选择新国家或地区，这里我们选择美国（ United State ）</p>
-<p>6️⃣ 轻点“更改国家或地区”。</p>
-<p>7️⃣轻点新国家或地区，然后查看“条款与条件（ Terms and Conditions”。</p>
-<p>8️⃣ 轻点右上角的“同意（ Agree ）”，然后再次轻点“同意”以确认。</p>
-<p>9️⃣ 选择付款方式，输入新付款信息，我这里选择无（ None ），输入有效的账单邮寄地址，然后轻点“下一步”。
-如果有购买或充值需要，建议选择下面这 5 个免税州之一；如果实在没有当地的住址和电话信息，可以填写当地酒店住址(善用搜索引擎)。
-红色部分需要完整填写，填写后点击下一步（ NEXT ）。</p>
-<p>Alaska (AK)
-Delaware (DE)
-Montana (MT)
-New Hampshire (NH)
-Oregon (OR)</p>
-<p>成功提交后，一个美区账户就新鲜出炉了！</p>
-]]></content:encoded>
-<pubDate>2024-11-23T20:28:32Z</pubDate>
-</item>
-<item>
-<title>[推广] 5ber、9eSIM、eSTk、Switch（PlanB）各产品对比</title>
-<link>https://www.v2ex.com/t/1092116</link>
-<guid>https://www.v2ex.com/t/1092116</guid>
-<content:encoded><![CDATA[
-<p>这里已经包括了国内市场上最常见的 eSIM 实体卡厂商。
-有任何相关问题都可以在这里讨论，也可以联系我 <a href="https://t.me/thebitbay" rel="nofollow">@thebitbay</a> ，或者加入 <a href="https://t.me/esim_card_fans" rel="nofollow">@esim_card_fans</a> 讨论组讨论。</p>
-<h3>产品比较</h3>
-<p>这里主要比较各厂家的高配版本，因为低配版本是阉割了一些功能，比如不支持重复写入，不支持苹果下的管理 eSIM 等，性价比不高。如果你对其它版本有兴趣，也欢迎参与讨论。</p>
-<table>
-<thead>
-<tr>
-<th>产品</th>
-<th>5ber Ultra 版</th>
-<th>9eSIM v2</th>
-<th>eSTK-ECO</th>
-<th>Switch Max</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>官网</td>
-<td><a href="https://esim.5ber.com/?utm_source=iYrrf1" rel="nofollow" title="https://esim.5ber.com">直达</a></td>
-<td><a href="https://www.9esim.com/?coupon=save100" rel="nofollow" title="https://www.9esim.com">直达</a></td>
-<td><a href="https://www.estk.me/?aid=save100" rel="nofollow" title="https://www.estk.me">直达</a></td>
-<td><a href="https://www.switchesim.com/main" rel="nofollow" title="https://www.switchesim.com/main">直达</a></td>
-</tr>
-<tr>
-<td>多运营商支持</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>多设备兼容</td>
-<td><a href="https://esim.5ber.com/supportdevice?utm_source=iYrrf1" rel="nofollow">支持的设备</a></td>
-<td>同 5ber</td>
-<td>同 5ber</td>
-<td>同 5ber</td>
-</tr>
-<tr>
-<td>远程配置</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>开源管理软件</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
-<td>否</td>
-</tr>
-<tr>
-<td>iOS 直接管理</td>
-<td>通过 SIM 卡程序启用、禁用、切换配置</td>
-<td>否</td>
-<td>通过 SIM 卡程序下载、启用、禁用、删除和切换配置</td>
-<td>否</td>
-</tr>
-<tr>
-<td>在线客服支持</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-</tbody></table><h3>厂商优惠</h3>
-<table>
-<thead>
-<tr>
-<th>厂商名称</th>
-<th>5ber.eSIM</th>
-<th>9eSIM</th>
-<th>eSTK</th>
-<th>Switch.eSIM</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>粉丝专属优惠入口</td>
-<td><a href="https://360card.site/go/5ber/" rel="nofollow" title="https://360card.site/go/5ber/">专属入口</a></td>
-<td><a href="https://360card.site/go/9esim/" rel="nofollow" title="https://360card.site/go/9esim/">专属入口</a></td>
-<td><a href="https://360card.site/go/estk/" rel="nofollow" title="https://360card.site/go/estk/">专属入口</a></td>
-<td><a href="https://360card.site/go/planb/" rel="nofollow" title="https://360card.site/go/planb/">专属入口</a></td>
-</tr>
-<tr>
-<td>访问官网</td>
-<td><a href="https://esim.5ber.com/?utm_source=iYrrf1" rel="nofollow" title="https://esim.5ber.com">直达官网</a></td>
-<td><a href="https://www.9esim.com/?coupon=save100" rel="nofollow" title="https://www.9esim.com">直达官网</a></td>
-<td><a href="https://www.estk.me/?aid=save100" rel="nofollow" title="https://www.estk.me">直达官网</a></td>
-<td><a href="https://www.switchesim.com/main" rel="nofollow" title="https://www.switchesim.com/main">直达官网</a></td>
-</tr>
-<tr>
-<td>优惠形式</td>
-<td>10% 折扣</td>
-<td>立减 $2</td>
-<td>10% 折扣</td>
-<td>10% 折扣</td>
-</tr>
-<tr>
-<td>粉丝专属优惠码</td>
-<td></td>
-<td>SAVE100</td>
-<td>SAVE100</td>
-<td>SAVE100</td>
-</tr>
-</tbody></table>
-]]></content:encoded>
-<pubDate>2024-11-23T19:46:46Z</pubDate>
-</item>
-<item>
-<title>[NAS] 威联通如何无损迁移系统和数据？</title>
-<link>https://www.v2ex.com/t/1092114</link>
-<guid>https://www.v2ex.com/t/1092114</guid>
-<content:encoded><![CDATA[
-TS453d-mini 一共 4 个盘位，之前插了 3 块 4T 的硬盘，双十一新买了一块 16T 的硬盘，想把所有数据迁移到这块新硬盘上。<br /><br />网上的教程基本都是关于“raid 组”的“逐一更换磁盘”方法，而我这 3 块 4T 的硬盘根本没组 raid ，类型是精简卷，所以也没法使用这个功能，不知道还有没有其他办法能实现数据迁移？
-]]></content:encoded>
-<pubDate>2024-11-23T19:16:04Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] 数据库管理软件 Beekeeper Studio 打折</title>
-<link>https://www.v2ex.com/t/1092111</link>
-<guid>https://www.v2ex.com/t/1092111</guid>
-<content:encoded><![CDATA[
-<p>官网: <a href="https://www.beekeeperstudio.io/pricing/" rel="nofollow">https://www.beekeeperstudio.io/pricing/</a>
-折扣码: pdlsbtzv40</p>
-<p>打开页面就能看见优惠信息</p>
-<pre><code>Hey! looks like you are in China. We support fair regional pricing, so use code “pdlsbtzv40” to get 40% off at checkout.
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-11-23T17:57:30Z</pubDate>
-</item>
-<item>
-<title>[香港] 为什么这两年这么多去香港开银行卡的</title>
-<link>https://www.v2ex.com/t/1092108</link>
-<guid>https://www.v2ex.com/t/1092108</guid>
-<content:encoded><![CDATA[
-<p>话说我就觉得挺奇怪。我也不是专门点到“香港”节点的，我平常就是开着“全部”刷帖子的，怎么这两年这么多香港开银行卡的帖子，而前些年几乎没怎么见到过？</p>
-<p>去开卡的能说说为啥现在去开吗，疫情时候出不去也就罢了，疫情前为啥不开啊？</p>
-]]></content:encoded>
-<pubDate>2024-11-23T17:31:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] 腾讯云 OCR 在线试用可以识别，自己调试 api 不可以</title>
-<link>https://www.v2ex.com/t/1092107</link>
-<guid>https://www.v2ex.com/t/1092107</guid>
-<content:encoded><![CDATA[
-<p>如题，识别验证码，试用 OCR demo 界面选择智能结构化  正常识别，自己在 api explorer 界面选择  智能结构化  调试，识别不出来</p>
-]]></content:encoded>
-<pubDate>2024-11-23T11:27:01Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请教下大家，前端光速入门有什么好的材料吗？</title>
-<link>https://www.v2ex.com/t/1092105</link>
-<guid>https://www.v2ex.com/t/1092105</guid>
-<content:encoded><![CDATA[
-请教下大家，前端光速入门有什么好的材料吗？<br />能快速干活，不需要面试那种。<br /><br />有什么前端框架比较能快速的实现多端的 app 。<br />主要考虑: android ios 小程序 能不用单独开发。<br />不用考虑: 实现的优不优雅，重不重。上手快就行。<br /><br />个人背景: 之前做过几年后端开发，最近几年在干运维。
-]]></content:encoded>
-<pubDate>2024-11-23T16:00:42Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] 谁遇到过 Apple Watch 没有“心率”应用的问题？</title>
-<link>https://www.v2ex.com/t/1092104</link>
-<guid>https://www.v2ex.com/t/1092104</guid>
-<content:encoded><![CDATA[
-<p>S9 ，以前有“心率”这个应用，点了可以看实时心率的。不知道啥时候就没了，应用列表里面没有。但是心率记录功能还是好的，“健康”里面可以看到，体能训练也正常。有 ECG 应用，没心率应用。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T15:30:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 资源求助贴， WPS 最好用的版本</title>
-<link>https://www.v2ex.com/t/1092103</link>
-<guid>https://www.v2ex.com/t/1092103</guid>
-<content:encoded><![CDATA[
-如题，想找个 WPS2019 的，感觉这个应该是最好用的版本了，应该有啥政企版的，希望能用 vba 的，现在下载了个教育考试专用版，用不了 vba…
-]]></content:encoded>
-<pubDate>2024-11-23T15:55:28Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 有没有让任何访客都能为网站空间和流量充值的服务器供应商？烦透了各种网盘云盘</title>
-<link>https://www.v2ex.com/t/1092102</link>
-<guid>https://www.v2ex.com/t/1092102</guid>
-<content:encoded><![CDATA[
-<p>开发者只负责维护网站代码就行，用户想上传文件分享就买存储，访客想下载就充值买流量。有没有提供这种由访客定向充值为网站提供空间和流量的服务商？</p>
-<p>原因是，好多论坛提供的下载渠道都是各种网盘，还要安装注册充会员，真的很累。</p>
-<p>首先否掉 ipfs,并不是所有人都有加密货币。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T16:06:31Z</pubDate>
-</item>
-<item>
-<title>[NAS] 请教一个家庭组网问题？</title>
-<link>https://www.v2ex.com/t/1092101</link>
-<guid>https://www.v2ex.com/t/1092101</guid>
-<content:encoded><![CDATA[
-<p><img alt="网络布局图" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/fH8omSp.png" title="网络布局图" /></p>
-<p>这样能实现 <strong>WIFI 终端</strong>、<strong>办公电脑</strong>、<strong>NAS</strong>、<strong>服务器</strong> 直接能组 2.5G 内网吗？</p>
-<p>房间 4 的服务器部署有<strong>sing-box</strong>，内网设备需要链接到服务器的 sing-box 实现科学上网。</p>
-<h1>前提：</h1>
-<h2>双 WAN 通过端口绑定模式实现不同的宽带绑定不同的 LAN 口。</h2>
-<p><img alt="双 WAN 配置" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xqbZb6u.png" title="双 WAN 配置" /></p>
-<p>另外晴天 AP 可能只需要一台就能完全覆盖全家。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T15:36:25Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [远程]招后端开发，远程全职</title>
-<link>https://www.v2ex.com/t/1092100</link>
-<guid>https://www.v2ex.com/t/1092100</guid>
-<content:encoded><![CDATA[
-要求：后端开发至少会 go ，有五年以上的项目实战经验。<br />涉猎的项目类型越多越好，不看学历、年龄，有经验有能力才是王道。<br />工资 15K ，远程全职。<br />简历投递邮箱：dmN4dnNld2VAcHJvdG9ubWFpbC5jb20=<br />投递简历时带 TG 联系方式谢谢。
-]]></content:encoded>
-<pubDate>2024-11-23T15:09:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 微软拼音输入法的有些问题好像就一直不修复的样子? 这是为啥啊? 起码 2 年以上了, 代码冻结了?</title>
-<link>https://www.v2ex.com/t/1092098</link>
-<guid>https://www.v2ex.com/t/1092098</guid>
-<content:encoded><![CDATA[
-比如这个问题: <br /> <br />在开关"中文模式使用英文标点 "打开的时候, 无法使用 "中/英文标点切换" 快捷键. <br />现在仍然只能打开兼容模式开关来解决这个问题. <br /> <br /> <br /><a href="https://answers.microsoft.com/zh-hans/windows/forum/windows_11-wintop_language/windows11/8aa4a758-e8ec-4c2c-a050-8d6f06b36867" rel="nofollow noopener" target="_blank">https://answers.microsoft.com/zh-hans/windows/forum/windows_11-wintop_language/windows11/8aa4a758-e8ec-4c2c-a050-8d6f06b36867</a><br /> <br /><a href="https://answers.microsoft.com/zh-hans/windows/forum/all/windows11%E4%B8%8B%E5%BE%AE%E8%BD%AF%E6%8B%BC/da5b25d9-2e31-4936-b2ec-2887d8241e76" rel="nofollow noopener" target="_blank">https://answers.microsoft.com/zh-hans/windows/forum/all/windows11%E4%B8%8B%E5%BE%AE%E8%BD%AF%E6%8B%BC/da5b25d9-2e31-4936-b2ec-2887d8241e76</a><br /> <br /><a href="https://answers.microsoft.com/zh-hans/windows/forum/all/%e6%97%a0%e6%b3%95%e5%88%87%e6%8d%a2%e4%b8%ba/bde0d0b9-4843-4be5-9a6b-bf000fb425c0" rel="nofollow noopener" target="_blank">https://answers.microsoft.com/zh-hans/windows/forum/all/%e6%97%a0%e6%b3%95%e5%88%87%e6%8d%a2%e4%b8%ba/bde0d0b9-4843-4be5-9a6b-bf000fb425c0</a><br /> <br /><a href="https://answers.microsoft.com/zh-hans/insider/forum/all/win11-%E4%B8%8B/8e5d518e-ede5-43c7-9a23-7bf7560f869a" rel="nofollow noopener" target="_blank">https://answers.microsoft.com/zh-hans/insider/forum/all/win11-%E4%B8%8B/8e5d518e-ede5-43c7-9a23-7bf7560f869a</a>
-]]></content:encoded>
-<pubDate>2024-11-21T14:48:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 开发自用桌面小工具，想要内存占用低编译结果小除了 Delphi 还有什么推荐？</title>
-<link>https://www.v2ex.com/t/1092097</link>
-<guid>https://www.v2ex.com/t/1092097</guid>
-<content:encoded><![CDATA[
-<p>Delphi CE 下载怎么选实际下载到的都是 RAD Studio ，然后换了好几个邮箱都不到授权邮件，放弃了。</p>
-<p>其他的 Electron ，JavaFx 、Compose Multiplatform 、WPF 这些看下来编译结果个启动后空载内存都不低，个人不喜欢。</p>
-<p>前阵子用 WinForm 做了个小工具，启动后 17M ，勉强能接受，但是今天找了个类似的，人家启动才 2M 功能还比我多，就想试试别的期望能内存占用更低。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T16:19:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 一天背 30 个单词感觉受不了，正常吗</title>
-<link>https://www.v2ex.com/t/1092096</link>
-<guid>https://www.v2ex.com/t/1092096</guid>
-<content:encoded><![CDATA[
-<p>背 GRE 单词，红宝书有 6000 个单词，背 200 天也得每天背 30 个。但是一天背这么多感觉很难，一个单词 5 分钟就得 150 分钟，还要复习之前背过的单词。</p>
-<p>一般没人能全天背单词，都是上完课上完班晚上背，但背完单词这一天不就过去了么</p>
-]]></content:encoded>
-<pubDate>2024-11-23T14:51:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何简单安全地海淘？</title>
-<link>https://www.v2ex.com/t/1092094</link>
-<guid>https://www.v2ex.com/t/1092094</guid>
-<content:encoded><![CDATA[
-请问下大家，有没有推荐的较为正规、方便、可靠的路子，购买海外商品。比如日版、美版电子产品，或者欧洲零食等。
-]]></content:encoded>
-<pubDate>2024-11-23T14:33:46Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 分享：手绘版原型图制作软件</title>
-<link>https://www.v2ex.com/t/1092093</link>
-<guid>https://www.v2ex.com/t/1092093</guid>
-<content:encoded><![CDATA[
-<p>网址： <a href="https://frame0.app/" rel="nofollow">https://frame0.app/</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/r2qMQWm.png" /> </p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/w8ak4QG.png" /> </p>
-<p>使用了很久了 感觉颜值还行</p>
-]]></content:encoded>
-<pubDate>2024-11-23T14:25:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] XXL-RPC v1.7.1 | 分布式服务框架</title>
-<link>https://www.v2ex.com/t/1092092</link>
-<guid>https://www.v2ex.com/t/1092092</guid>
-<content:encoded><![CDATA[
-<h3>Release Notes</h3>
-<ul>
-<li>1 、 [升级] 多个项目依赖升级至较新稳定版本，涉及 netty 、gson 、springboot 、mybatis 等；</li>
-<li>2 、 [优化]  Hessian 启用 NonSerializable 拦截，安全性提升。</li>
-<li>3 、 [优化] 服务注册环境标识字段长度调整，上限调整为 50 ；</li>
-<li>4 、 [优化] 代码重构；</li>
-<li>5 、 [合并] 合并 <a href="https://github.com/xuxueli/xxl-rpc/pull/55" rel="nofollow">PR-55</a>，解决 OpenTelemetry 集成问题；</li>
-<li>6 、 [合并] 合并 <a href="https://github.com/xuxueli/xxl-rpc/pull/53" rel="nofollow">PR-53</a>，调整 NettyConnectClient 类锁问题；</li>
-<li>7 、 [合并] 合并 <a href="https://github.com/xuxueli/xxl-rpc/pull/51" rel="nofollow">PR-51</a>，解决解决 RST 异常问题；</li>
-</ul>
-<h3>简介</h3>
-<p>XXL-RPC 是一个分布式服务框架，提供稳定高性能的 RPC 远程服务调用功能。拥有"高性能、分布式、注册中心、负载均衡、服务治理"等特性。现已开放源代码，开箱即用。</p>
-<ul>
-<li>项目文档：<a href="http://www.xuxueli.com/xxl-rpc/" rel="nofollow">项目文档</a></li>
-<li>社区交流：<a href="http://www.xuxueli.com/page/community.html" rel="nofollow">社区交流</a></li>
-</ul>
-<p><img alt="img_DNq6.png" class="embedded_image" rel="noreferrer" src="https://www.xuxueli.com/doc/static/xxl-rpc/images/img_DNq6.png" /></p>
-<h3>特性</h3>
-<ul>
-<li>1 、易学易用：无缝集成 SpringBoot ，三分钟即可上手；</li>
-<li>2 、服务透明：系统完整的封装了底层通信细节，开发时调用远程服务就像调用本地服务，在提供远程调用能力时不损失本地调用的语义简洁性；</li>
-<li>3 、多调用类型：支持多种调用类型，包括：SYNC 、ONEWAY 、FUTURE 、CALLBACK 等；</li>
-<li>4 、多通讯协议：支持多种通讯协议，支持 TCP 、HTTP ；</li>
-<li>5 、多序列化方案：支持多种序列化协议，包括：HESSIAN/2 、HESSIAN1 、Gson 、PROTOSTUFF 、KRYO 等序列化方案；</li>
-<li>6 、注册中心：内置服务注册中心支持服务动态发现，提供轻量级、一站式解决方案。也支持扩展集成其他注册中心，或者不使用注册中心、直接指定服务提供方机器地址调用；</li>
-<li>7 、负载均衡：支持多种负载均衡策略，包括：轮询、随机、LRU 、LFU 、一致性 HASH 等；</li>
-<li>8 、服务治理：提供服务治理能力，支持在线管理注册的服务信息，如服务锁定、IP 禁用……等；</li>
-<li>9 、服务监控：支持在线监控服务调用统计信息以及服务健康状况等（计划中）；</li>
-<li>10 、故障容错：支持自动巡检线上服务并摘除故障节点，消费方实时感知并移除失效节点将流量分发到其余节点，提高系统容错能力。</li>
-<li>11 、解决 1+1 问题：传统分布式通讯一般通过 nginx 或 f5 做集群服务的流量负载均衡，每次请求在到达目标服务机器之前都需要经过负载均衡机器，即 1+1 ，这将会把流量放大一倍。而 XXL-RPC 将会从消费方直达服务提供方，每次请求直达目标机器，从而可以避免上述问题；</li>
-<li>12 、高兼容性：得益于优良的兼容性与模块化设计，不限制技术栈；除 spring/springboot 技术栈之外，理论上支持运行在任何 Java 代码中，甚至 main 方法直接启动运行；</li>
-<li>13 、泛化调用：支持服务调用方直接发起服务调用，不依赖服务方提供的 API ；</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-11-23T14:21:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教关于 AI 记忆的问题</title>
-<link>https://www.v2ex.com/t/1092090</link>
-<guid>https://www.v2ex.com/t/1092090</guid>
-<content:encoded><![CDATA[
-看了下 Mem0 项目的代码，大致了解了它是如何处理用户记忆的。<br />但对于增长性记忆该如何处理呢？<br />例如：存储的记忆 -&gt; 今年 20 岁<br />那么在明年获取记忆时就该是 21 岁，在后年获取记忆时就该是 22 岁......<br />对于这一类的记忆有很多，该如何处理呢？<br />目前我能想到的思路还是交给模型去发挥，提示词中给出示例，让模型发挥并决定这属于增长性记忆还是非增长性记忆，如果是增长性记忆则打个标记；当获取记忆时，校验如果是增长性记忆，再次发送给模型，让模型发挥给出增长后的最终结果。<br />请教一下，我这种思路是否合理，或是有更好的思路？谢谢
-]]></content:encoded>
-<pubDate>2024-11-23T14:18:31Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Bitpush | Web3 产品经理（兼职）与实习生 | 远程 | 薪资面议</title>
-<link>https://www.v2ex.com/t/1092089</link>
-<guid>https://www.v2ex.com/t/1092089</guid>
-<content:encoded><![CDATA[
-我们正在寻找对 Web3 行业充满热情、愿意深入了解区块链及去中心化技术的产品经理兼职或实习生。你将协助产品团队设计和推动创新型 Web3 产品的开发与迭代，探索前沿技术应用场景，帮助用户更好地拥抱 Web3 时代。同时，具备一定的设计能力，能够制作简单的宣传海报或产品相关素材，将为你的工作加分！<br /><br />主要职责<br /><br />行业与用户研究：<br /><br />*深入挖掘 Web3 用户的痛点与习惯，设计可落地的解决方案。<br /><br />产品设计与优化：<br /><br />*协助产品经理撰写需求文档（ PRD ），绘制用户流程与产品原型；<br /><br />*协助设计 Web3 产品交互逻辑，与技术团队沟通实现方案。<br /><br />项目管理与协作：<br /><br />*跟进项目进度，与设计、开发及运营团队保持紧密沟通，确保产品按计划上线；<br /><br />*对已上线产品进行版本迭代规划与执行。<br /><br />用户体验与数据分析：<br /><br />*收集用户反馈与行为数据，优化产品功能与交互体验；<br /><br />*定期输出产品数据分析报告，提出改进建议。<br /><br />社区协作与宣传：<br /><br />*参与并管理 Web3 社区活动（如 Discord 、Telegram 等），与用户及开发者保持互动；<br /><br />*设计与制作宣传海报、产品素材等，提高产品在社区内的传播效果。<br /><br />技能要求：<br /><br />*了解区块链基础知识及其生态（如公链、智能合约、DeFi 、NFT 、DAO 等）；<br /><br />*熟悉产品设计工具（如 Figma 、Axure 等）优先；<br /><br />*具备基础设计能力，会使用 Photoshop 或其他设计工具制作海报或简单宣传素材；<br /><br />*熟练使用数据分析工具（如 Excel 、SQL 等）。<br /><br />*较强的逻辑思维与问题解决能力；<br /><br />*良好的沟通与团队协作能力；<br /><br />*对 Web3 产品和技术抱有浓厚兴趣，有独立探索与快速学习的能力。<br /><br />加分项<br /><br />*有区块链产品或项目经验（包括个人项目、开源社区或创业）；<br /><br />*熟悉以太坊、Solana 等主流区块链生态；<br /><br />*参与过 Web3 社区运营或建设工作；<br /><br />*具备多语言能力，能与全球开发者和用户无障碍沟通。<br /><br />我们能为你提供<br /><br />*深入学习：参与 Web3 产品从零到一的设计与迭代，获得第一手行业实践经验；<br /><br />*行业资源：接触 Web3 顶尖技术团队与开发者社区，开拓职业发展路径；<br /><br />*灵活工作：远程友好的工作模式，鼓励创新与多样化表达；<br /><br />*未来机会：优秀者有机会转正或参与更多 Web3 核心项目。<br /><br />联系方式：<br /><br />Email： career@bitpush.news
-]]></content:encoded>
-<pubDate>2024-11-23T13:59:37Z</pubDate>
-</item>
-<item>
-<title>[投资] 建立自己的投资框架，先学习点基础的图表分析</title>
-<link>https://www.v2ex.com/t/1092088</link>
-<guid>https://www.v2ex.com/t/1092088</guid>
-<content:encoded><![CDATA[
-<p>三大主流图表类型</p>
-<h2>1.线形图：简约直观的市场晴雨表</h2>
-<p>线形图是最简单且直观的图表类型，仅通过连接各个时间点的收盘价来展示价格走势。它的优势在于：</p>
-<ul>
-<li>能快速传递价格趋势信息</li>
-<li>去除干扰，突出主要走势</li>
-<li>适合新手投资者入门使用</li>
-</ul>
-<h2>2. 棒形图：价格变动的精确刻画</h2>
-<p>棒形图（ OHLC 图）通过独特的结构展示四个关键价格点：</p>
-<ul>
-<li>垂直线段：显示最高价到最低价的波动范围</li>
-<li>左侧水平线：标示开盘价</li>
-<li>右侧水平线：标示收盘价</li>
-</ul>
-<h2>3. 蜡烛图：东方智慧的结晶</h2>
-<p>蜡烛图继承了日本江户时期商人观察米市的智慧，是目前最受欢迎的图表类型之一。它通过实体和影线的组合，直观地展示价格变动：</p>
-<ul>
-<li>实体部分：开盘价与收盘价之间的区域</li>
-<li>上下影线：最高价和最低价的延伸</li>
-<li>颜色区分：通常用红绿两色区分涨跌</li>
-</ul>
-<p>图文版 👉 <a href="https://www.smallgolden.com/Articles/trading-knowledge/stock-chart-types-for-beginners" rel="nofollow"> [技术分析] 一篇文章看懂三大股票图表:新手也能轻松上手的技术分析入门</a></p>
-]]></content:encoded>
-<pubDate>2024-11-23T13:52:24Z</pubDate>
-</item>
-<item>
-<title>[开源软件] 建立了 Signal 加密群聊</title>
-<link>https://www.v2ex.com/t/1092087</link>
-<guid>https://www.v2ex.com/t/1092087</guid>
-<content:encoded><![CDATA[
-<p>据说 V2 很多人用 Signal 加密群聊，大家有玩 Signal 的吗？可以加群：
-<a href="https://signal.group/#CjQKILtNj1I7z1rfKh6zoY2NrjOVanlFOuAD58BKvAgle8yqEhDTPKZqrgkGxHlrBG2KHDHB" rel="nofollow">https://signal.group/#CjQKILtNj1I7z1rfKh6zoY2NrjOVanlFOuAD58BKvAgle8yqEhDTPKZqrgkGxHlrBG2KHDHB</a></p>
-<p>科普一下现在的版本，完全开源软件，可以隐藏手机号，设置无法通过号码添加查找你，因此不读取通讯录，你不会出现在别人的通讯录中，军事加密级别，目前许多国家包括乌军也在使用。马斯克、被提名副总统的万斯也在用。
-Signal 的隐私保护机制确保了即使某人在群中监视并记录你的名字和头像，这些信息也无法被用来关联到你的注册手机号。Signal 公司不具备技术手段通过头像或昵称反查用户的手机号，任何这种尝试都与 Signal 的隐私保护原则相违背。
-在 Signal 上，注册手机号与名字、头像完全分离，这种设计是为了最大限度地保护用户隐私，避免信息的滥用或泄露。即便知道一个手机号，也无法推断出这个账户设置的名字或头像。</p>
-]]></content:encoded>
-<pubDate>2024-11-23T13:43:29Z</pubDate>
-</item>
-<item>
-<title>[分享发现] Chrome 浏览器自动化</title>
-<link>https://www.v2ex.com/t/1092086</link>
-<guid>https://www.v2ex.com/t/1092086</guid>
-<content:encoded><![CDATA[
-<h2>ChromeAutoBot</h2>
-<h3>软件截图：</h3>
-<p>主界面</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://github.com/clashbk/ChromeAutoBot/raw/main/assets/main.png" /></p>
-<p>项目设置</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://github.com/clashbk/ChromeAutoBot/raw/main/assets/item.png" /></p>
-<p>动作设置</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://github.com/clashbk/ChromeAutoBot/raw/main/assets/action.png" /></p>
-<h3>功能介绍：</h3>
-<p>自动化操作 chrome 内核浏览器，完成日常需要重复的动作。可自定义规则，再也不愁积分不够了，薅羊毛利器。</p>
-<h3>使用教程：</h3>
-<p>1 、点击项目旁边的“+”按钮，新建项目。</p>
-<p>2 、编写项目规则，保存。</p>
-<p>3 、点击“刷新”按钮，载入新建的项目。</p>
-<p>4 、点击项目的“登录”按钮，登录你的账号。</p>
-<p>5 、点击项目的“测试”按钮，进行测试。</p>
-<p>6 、如果项目需要自动运行，勾选“启用”。</p>
-<h3>查毒地址：</h3>
-<p><a href="https://www.virscan.org/report/c35d6392098d977514808d779d8f090453cd21d117881815b0da55aef4d4fd4e" rel="nofollow">https://www.virscan.org/report/c35d6392098d977514808d779d8f090453cd21d117881815b0da55aef4d4fd4e</a></p>
-<h3>特别说明：</h3>
-<p>易语言编写，部分杀软报毒。介意请勿下载！</p>
-<h3>下载地址：</h3>
-<p><a href="https://github.com/clashbk/ChromeAutoBot" rel="nofollow">https://github.com/clashbk/ChromeAutoBot</a></p>
-]]></content:encoded>
-<pubDate>2024-11-23T13:56:20Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请问一下, 本地观看 MP4 视频, 有没有什么可以实时生成字幕的软件/插件?</title>
-<link>https://www.v2ex.com/t/1092085</link>
-<guid>https://www.v2ex.com/t/1092085</guid>
-<content:encoded><![CDATA[
-<p>场景: 本地观看 MP4 视频</p>
-<p>请问各位, 有没有什么可以实时生成字幕的软件/插件?</p>
-<p>感谢.</p>
-]]></content:encoded>
-<pubDate>2024-11-23T14:14:41Z</pubDate>
 </item>
 </channel>
 </rss>
