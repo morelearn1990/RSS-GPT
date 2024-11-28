@@ -5,14 +5,572 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 网易云偷偷删我本地下载的歌曲？</title>
+<link>https://www.v2ex.com/t/1093494</link>
+<guid>https://www.v2ex.com/t/1093494</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，五音助手下载的歌曲，被删掉了，第一次发觉歌曲被删我还疑惑，平行世界？做梦？前几天又下回来点，今天一看又没了只剩下下载的封面图片。而我手机里安装的音乐 app 只有网易云音乐（已经很久很久没有打开过），发现仍在后台运行。总不该是其他国产 app 删的吧</p>
+<p>搜索得到五音的解释：下载音乐丢失。以前很多人反映下载后的音乐过一段时间就被删除了，这个不是五音助手干的，是被一些音乐 APP 删除的，尤其是付费音乐更容易被删除，还有就是被垃圾清理软件当做垃圾清理掉了。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:44:54Z</pubDate>
+<pubDate>2024-11-28T12:43:54Z</pubDate>
+</item>
+<item>
+<title>[Java] 突然发现代码中 SQL 也不是那么丑陋</title>
+<link>https://www.v2ex.com/t/1093493</link>
+<guid>https://www.v2ex.com/t/1093493</guid>
+<content:encoded><![CDATA[
+
+<h2>相信我，这是本站不支持横向滚动造成的。</h2>
+<pre><code class="language-java">SqlBuilder sql = SqlBuilder.builder()
+        .init("""
+                SELECT
+                   ims_card_info.id,
+                   ims_card_info.iccid,
+                   ims_card_info.msisdn,
+                   ims_card_info.imei,
+                   ims_card_info.imsi,
+                   ims_card_info.`status`,
+                   ims_card_info.operator_account_id,
+                   ims_card_info.first_active_time,
+                   ims_card_info.account_open_time,
+                   ims_card_info.silent_end_time,
+                   ims_card_apn.apn_status
+                FROM
+                   ims_card_info
+                LEFT JOIN ims_card_apn ON ims_card_apn.iccid = ims_card_info.iccid
+                WHERE 1=1
+                """)
+        .append("and ims_card_info.id &gt; {id}", cardSearchDTO.getId() != null)
+        .append("and ims_card_info.operator_account_id = {operatorAccountId}", cardSearchDTO.getOperatorAccountId() != null)
+        .append("and ims_card_info.status = {status}", cardSearchDTO.getStatus() != null &amp;&amp; cardSearchDTO.getStatus().compareTo(-1) &gt; 0)
+        .append("and (ims_card_info.silent_end_time &lt;= {silentEndTime} or ims_card_info.silent_end_time is null)", cardSearchDTO.getSilentEndTime() != null)
+        .append("and ims_card_apn.apn_status = {apnStatus}", cardSearchDTO.getApnStatus() != null)
+        .append("order by ims_card_info.id asc", true)
+        .append("limit 2000", true);
+
+MagicDBUtils.get(jdbcTemplate).selectList(sql.toString(), cardSearchDTO, CardInfoDTO.class);
+</code></pre>
+<p><a href="https://magician-io.com" rel="nofollow">https://magician-io.com</a></p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:36:09Z</pubDate>
+<pubDate>2024-11-28T12:36:09Z</pubDate>
+</item>
+<item>
+<title>[程序员] 运行 100 万个异步并发任务需要多少内存</title>
+<link>https://www.v2ex.com/t/1093492</link>
+<guid>https://www.v2ex.com/t/1093492</guid>
+<content:encoded><![CDATA[
+
+<p>去年有一个 “How Much Memory Do You Need to Run 1 Million Concurrent Tasks?” 的文章测试了各种语言在运行 1 个、1 万、10 万、100 万个异步并发任务下需要多少内存，不过当时测试的版本都很旧，代码里也多多少少有各种槽点，不能反映最新的情况。</p>
+<p>这次把所有的语言版本都更新到最新，并且还加入了针对 GraalVM 、GraalVM native-image 和 .NET NativeAOT 的测试，然后修掉了之前被人指出代码中不对的地方，测了一个 2024 年版本的 “How Much Memory Do You Need in 2024 to Run 1 Million Concurrent Tasks?”。</p>
+<p>可以在这里看详细测试： <a href="https://hez2010.github.io/async-runtimes-benchmarks-2024" rel="nofollow">https://hez2010.github.io/async-runtimes-benchmarks-2024</a> 。测试环境和代码也在里面有说明。</p>
+<p>这里简单贴一下最终的测试结果：</p>
+<p>1 个任务，测各语言 runtime 本身的 footprint：</p>
+<p><img alt="1" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/A81hSXd.png" /></p>
+<p>1 万个并发任务：</p>
+<p><img alt="10K" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9K2oJWe.png" /></p>
+<p>10 万个并发任务：</p>
+<p><img alt="100K" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/o04jmhC.png" /></p>
+<p>100 万个并发任务：</p>
+<p><img alt="1M" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/EGgwDBJ.png" /></p>
+<p>Go 在最开始的时候内存占用很小，但是 Goroutine 的开销非常的大，随着并发任务的数量上升内存大量上涨，个人怀疑是 Go 的 GC 跟不上分配了，估计再接着增大并发数的话 Go 很可能会 OOM 。</p>
+<p>Rust 则是发挥稳定，从始至终都表现着非常好的占用水平。</p>
+<p>C# 的 NativeAOT 的表现则是直接把 Rust 比下去了，甚至随着并发数量的增大，到后期不做 NativeAOT 的 C# 内存占用都要比 Rust 更小了，可能是因为 tokio 和 async_std 在内存分配和调度这一块儿还有改进空间？</p>
+<p>Java 的 GraalVM 表现要比 OpenJDK 差很多，而 GraalVM 的 native-image 表现就要好不少。另外就是忽略 GraalVM 的成绩的话，从结果来看 Java 的 Virtual Thread 要远比 Goroutine 更轻量。</p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:35:56Z</pubDate>
+<pubDate>2024-11-28T12:35:56Z</pubDate>
+</item>
+<item>
+<title>[V2EX] 记一次盗号邀请码卖钱事件</title>
+<link>https://www.v2ex.com/t/1093491</link>
+<guid>https://www.v2ex.com/t/1093491</guid>
+<content:encoded><![CDATA[
+
+<p>最终还是怀着不安的心情写下了这一篇主题。</p>
+<p>我是一个新加入 v 站社区的学生，作为对技术特别感兴趣的 coder ，我在很早之前就听说过 V2EX ，v 站的很多帖子下的解决方法也帮助我功课了很多技术上的难题。在上个月，我又一次因为捣腾 Nas 的事情，被互联网导航到了这个宝藏之地，在看完大家的回答后，我有了创作的冲动。</p>
+<p>在我用我的 Google 账号注册之后，我惊奇的发现这个网站竟然需要邀请码才能注册，于是我开始找身边的同学朋友（大部分是搞技术的）询问是否有 v 站的邀请码，可是得到的回复是都没有。我问我一个玩 PT 的同学是怎么拿到邀请码的，他回复说一般是去其他论坛求药，有时候也会去咸鱼看看有没有大佬分享邀请码。在搜寻其他论坛无果后，注册 v 站这件事便被搁置了下来。</p>
+<p>今天下午，在又一次被“AdGuard”问题导航到 v 站后，我再也无法抵御注册账号的决心，于是我打开了咸鱼，搜索了“v2ex 邀请码”的字样。但是弹出来的价格让我心里一紧：最便宜的邀请码都要 30 块钱，我看到更贵的甚至有 45 到 50 元。但在这过程中，我从未怀疑过邀请码的来历。我觉得这大概率是大佬们在论坛特别活跃，所以得到了很多邀请用户的机会，在这里有偿分享出来罢了。</p>
+<p>于是我货比三家，找了一家购买人数最多的店铺，下了单。老板很快就把激活码发来了，在验证邀请码正确之后我真的特别开心，我还向老板发了很多感谢的话，诸如感谢奉献云云（但是老板就没有回复过我了，我还觉得它很冷漠）。</p>
+<p>注册进来之后真的特别开心，感觉进入了一个新天地，很快就在各大板块中转悠。在我打开“全部”的 Tab 时，我看到了一个 V2EX 账号被盗的主题，抱着好奇的想法我就点了进去，看到大家的讨论发现现在需要打开 2fa 90 天才能创建激活码，我就顺手评论了一句<a href="https://www.v2ex.com/t/1093002#r_15600158" rel="nofollow">“今天刚注册进来的，我还好奇以前怎么没人提过邀请码需要 90 天，没想到是 16 个小时前的事情😂”</a>，可没想到没过一会儿，Livid 大佬就回复我了，他询问我的邀请码是怎么获得的。</p>
+<p>在我我如实告诉他是从咸鱼上购买的之后，他也确认了这个邀请码是在 11 月 21 号附近的一个被盗号的账号创建的激活码，也就是说，我注册进来的这个邀请码其实是不法分子的“赃物”。</p>
+<p><img alt="聊天信息截图" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/11/28/e24493b0e5c0902e09d03199c7fef836.png" /></p>
+<p>再经过和 Livid 大佬的交流后，我也明白了我这个邀请码的来历，于是我做出了如下回复。</p>
+<hr />
+<blockquote>
+<p>@<a href="https://www.v2ex.com/member/Livid">Livid</a> 请问这件事是否有补救的方法？我是之前在网上求助技术问题时看到的 V 站，读完回复之后发现这是一个特别好的社区，但是因为当时注册就要邀请码了就一直觉得很可惜，这两个月我都在问身边人有没有邀请码，直到昨天晚上我朋友跟我说可以去看看其他论坛或者咸鱼有没有大佬分享，我就去买了一个激活码。其实这么好的社区需要邀请码注册还是挺可惜的，而且也确实给了不法分子钻空子牟利的机会，最后账户被封禁也是让想要加入 V 站的用户承受了损失。虽然我能理解购买邀请码的行为对于社区肯定是有非常大的不利影响的，而且这也与邀请码的设立初衷相违背，但是在已经有大量不法分子通过盗号等方式去偷窃邀请码，并为自己谋利的行为本身就是对邀请码这一机制的利用，也会让不真正了解邀请码机制背后设立原因的新人遭到“诈骗”（或者我可以叫他“洗钱”，就是把赃款变成可以花的钱）。</p>
+</blockquote>
+<blockquote>
+<p>我接受 V 站后续对本账号的处罚，但也希望可以加入这个技术社区，也希望 V 站越来越好。</p>
+</blockquote>
+<h2><img alt="我的回复" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/11/28/571da7d139a2760e2a7bc4d25735f268.png" /></h2>
+<p>后来我也提出了一些关于 2fa 加入到生成邀请码过程中的想法：</p>
+<p><img alt="聊天记录 2" class="embedded_image" rel="noreferrer" src="https://ice.frostsky.com/2024/11/28/466dfa948aaeb8f29e80b7c53a67db18.png" /></p>
+<p>我觉得这件事情也是有我没有充分了解邀请码的机制，也是有些急功近利，才让不法分子有了可乘之机。截止我购买的时候，那家店铺已经为 12 个人提供了邀请码的服务。</p>
+<p>一个新的规则的改变可能会诞生新的漏洞，肯定就会有不法分子和唯利是图的小人钻规则的空子，社区也是在一步一步调整的过程中变得越来越好的。</p>
+<p>最后希望如果有没有注册的用户，想要购买邀请码的用户能看到这篇帖子，也希望 v 站变得越来越好。</p>
+<p>（完）</p>
+<p>PS: 引用帖子 &gt; <a href="https://www.v2ex.com/t/1093002#r_15600158" rel="nofollow">点我</a></p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:30:00Z</pubDate>
+<pubDate>2024-11-28T12:27:00Z</pubDate>
+</item>
+<item>
+<title>[程序员] Go 面试 —— Go Map 的并发安全问题</title>
+<link>https://www.v2ex.com/t/1093490</link>
+<guid>https://www.v2ex.com/t/1093490</guid>
+<content:encoded><![CDATA[
+
+<p><strong>面试官</strong>：你好，我们来聊下 Go 语言的 map 。首先，请聊下 Go 语言的 map 是不是并发安全的？</p>
+<p><strong>应试者</strong>：不是的。Go 语言的 map 不是并发安全的。如果在多个 goroutine 同时读写同一个 map 时，会出现竞态条件（ race condition ），可能导致程序运行出错，甚至崩溃。</p>
+<p>为了证明这一点，我可以展示一个并发不安全的示例：</p>
+<pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+func main() {
+    m := make(map[int]int)
+    var wg sync.WaitGroup
+
+    for i := 0; i &lt; 100; i++ {
+        wg.Add(1)
+        go func(n int) {
+            defer wg.Done()
+            m[n] = n
+        }(i)
+    }
+
+    wg.Wait()
+    fmt.Println("Map 的大小:", len(m))
+}
+</code></pre>
+<p>这段代码可能会出现以下问题：</p>
+<ol>
+<li>并发写入可能导致 map 数据损坏</li>
+<li>可能会触发运行时 panic</li>
+<li>最终的 map 大小可能不是预期的 100</li>
+</ol>
+<p><strong>面试官</strong>：OK 。那当我们需要在并发场景下使用 map 时，你有什么好的解决方案吗？</p>
+<p><strong>应试者</strong>：在 Go 语言中，主要有三种解决方案：</p>
+<ol>
+<li>使用 <code>sync.Mutex</code> 互斥锁来保护 map</li>
+</ol>
+<pre><code class="language-go">type SafeMap struct {
+    sync.Mutex
+    m map[int]int
+}
+
+func (sm *SafeMap) Set(key, value int) {
+    sm.Lock()
+    defer sm.Unlock()
+    sm.m[key] = value
+}
+
+func (sm *SafeMap) Get(key int) (int, bool) {
+    sm.Lock()
+    defer sm.Unlock()
+    val, exists := sm.m[key]
+    return val, exists
+}
+</code></pre>
+<ol>
+<li>使用 <code>sync.RWMutex</code>，允许并发读，但写入互斥</li>
+</ol>
+<pre><code class="language-go">type SafeMap struct {
+    sync.RWMutex
+    m map[int]int
+}
+
+func (sm *SafeMap) Get(key int) (int, bool) {
+    sm.RLock()
+    defer sm.RUnlock()
+    val, exists := sm.m[key]
+    return val, exists
+}
+</code></pre>
+<ol>
+<li>使用 <code>sync.Map</code>，这是 Go 标准库提供的并发安全的 map 实现</li>
+</ol>
+<pre><code class="language-go">var m sync.Map
+
+// 存储
+m.Store("key", "value")
+
+// 读取
+value, ok := m.Load("key")
+
+// 删除
+m.Delete("key")
+</code></pre>
+<p><strong>面试官</strong>：能详细解释一下为什么普通的 map 不是并发安全的吗？这背后的机制是什么？</p>
+<p><strong>应试者</strong>：这涉及到 Go 语言 map 的底层实现。在 Go 的源码中（ runtime/map.go ），map 的结构大致是这样的：</p>
+<pre><code class="language-go">type hmap struct {
+    count     int    // 元素个数
+    flags     uint8  // 状态标志
+    B         uint8  // 桶的对数
+    noverflow uint16 // 溢出桶的近似数
+    hash0     uint32 // 哈希种子
+
+    buckets    unsafe.Pointer // 桶数组
+    oldbuckets unsafe.Pointer // 旧桶数组，在扩容时使用
+    // ... 其他字段
+}
+</code></pre>
+<p>并发不安全的根本原因在于：</p>
+<ol>
+<li>map 的内部操作（如插入、删除）不是原子的</li>
+<li>扩容过程中会修改桶的结构</li>
+<li>多个 goroutine 同时操作会导致数据竞争</li>
+</ol>
+<p>具体来说，一个简单的写入操作可能包含多个步骤：</p>
+<ul>
+<li>计算 key 的哈希值</li>
+<li>定位到具体的桶</li>
+<li>在桶中找到空位</li>
+<li>写入数据</li>
+</ul>
+<p>这些步骤如果被并发执行，就会导致不可预期的结果。</p>
+<p><strong>面试官</strong>：<code>sync.Map</code> 是如何解决这些并发问题的？能详细介绍一下它的实现原理吗？</p>
+<p><strong>应试者</strong>：<code>sync.Map</code> 的核心设计是读写分离和优化的并发控制。我们可以看一下它的大致结构：</p>
+<pre><code class="language-go">type Map struct {
+    mu Mutex
+    read atomic.Value // readOnly
+    dirty map[interface{}]*entry
+    misses int
+}
+
+type readOnly struct {
+    m       map[interface{}]*entry
+    amended bool // 是否有新的数据在 dirty 中
+}
+</code></pre>
+<p>它的主要优化策略包括：</p>
+<ol>
+<li>
+<p>双层存储：</p>
+<ul>
+<li><code>read</code> map：无锁读取</li>
+<li><code>dirty</code> map：需要加锁的可写 map</li>
+</ul>
+</li>
+<li>
+<p>读优化：</p>
+<ul>
+<li>优先从 <code>read</code> map 读取</li>
+<li>使用原子操作 <code>atomic.Value</code> 保证读取的线程安全</li>
+</ul>
+</li>
+<li>
+<p>写入机制：</p>
+<ul>
+<li>先尝试在 <code>read</code> map 中更新</li>
+<li>如果不成功，则加锁操作 <code>dirty</code> map</li>
+</ul>
+</li>
+<li>
+<p>动态提升：</p>
+<ul>
+<li>当 <code>dirty</code> map 被频繁访问时，会将其提升为 <code>read</code> map</li>
+</ul>
+</li>
+</ol>
+<p>实际的读写流程大致如下：</p>
+<pre><code class="language-go">func (m *Map) Load(key interface{}) (value interface{}, ok bool) {
+    // 首先无锁读取 read map
+    read, _ := m.read.Load().(readOnly)
+    e, ok := read.m[key]
+    if !ok &amp;&amp; read.amended {
+        // 如果 read map 没有，且有新数据，则加锁查询 dirty map
+        m.mu.Lock()
+        // 双检查，避免重复加锁
+        read, _ = m.read.Load().(readOnly)
+        e, ok = read.m[key]
+        if !ok &amp;&amp; read.amended {
+            e, ok = m.dirty[key]
+            // 记录未命中次数，可能会晋升 dirty map
+            m.missLocked()
+        }
+        m.mu.Unlock()
+    }
+    // ... 返回结果
+}
+</code></pre>
+<p><strong>面试官</strong>：那么，<code>sync.Map</code> 是不是在所有并发场景下都是最佳选择？</p>
+<p><strong>应试者</strong>：不是的。<code>sync.Map</code> 有其特定的适用场景和局限性：</p>
+<p>适用场景：</p>
+<ol>
+<li>读操作明显多于写操作</li>
+<li>key 是动态增长的</li>
+<li>元素命中率较高</li>
+</ol>
+<p>不适用场景：</p>
+<ol>
+<li>写操作频繁</li>
+<li>key 是有限且提前确定的</li>
+<li>需要有序遍历 map</li>
+<li>需要对 key 进行排序或自定义比较的场景</li>
+</ol>
+<p>性能建议：</p>
+<ul>
+<li>对于写多读少的场景，传统的 <code>sync.Mutex + map</code> 可能更高效</li>
+<li>对于读写均衡的场景，可以考虑分片锁等自定义方案</li>
+</ul>
+<p><strong>面试官</strong>：最后，你能分享一个实际工作中处理并发 map 的最佳实践吗？</p>
+<p><strong>应试者</strong>：在高并发缓存场景，我曾使用分片锁方案来优化 map 的并发性能：</p>
+<pre><code class="language-go">type ShardedMap struct {
+    shards     []map[string]interface{}
+    locks      []sync.RWMutex
+    shardCount int
+}
+
+func NewShardedMap(shardCount int) *ShardedMap {
+    sm := &amp;ShardedMap{
+        shards:     make([]map[string]interface{}, shardCount),
+        locks:      make([]sync.RWMutex, shardCount),
+        shardCount: shardCount,
+    }
+    for i := 0; i &lt; shardCount; i++ {
+        sm.shards[i] = make(map[string]interface{})
+    }
+    return sm
+}
+
+func (sm *ShardedMap) getShard(key string) (map[string]interface{}, *sync.RWMutex) {
+    hash := fnv32(key)
+    shardIndex := hash % uint32(sm.shardCount)
+    return sm.shards[shardIndex], &amp;sm.locks[shardIndex]
+}
+
+func (sm *ShardedMap) Set(key string, value interface{}) {
+    shard, lock := sm.getShard(key)
+    lock.Lock()
+    defer lock.Unlock()
+    shard[key] = value
+}
+
+func fnv32(key string) uint32 {
+    hash := uint32(2166136261)
+    for i := 0; i &lt; len(key); i++ {
+        hash *= 16777619
+        hash ^= uint32(key[i])
+    }
+    return hash
+}
+</code></pre>
+<p>这种方案的优点：</p>
+<ol>
+<li>降低锁的粒度</li>
+<li>提高并发性能</li>
+<li>可以根据业务动态调整分片数</li>
+</ol>
+<p><strong>面试官</strong>：很好，你对 map 的并发问题理解的相当充分。</p>
+<p><strong>应试者</strong>：非常感谢！</p>
+<hr />
+<p>更多 Go 高质量内容👇： <a href="https://portal.yunosphere.com" rel="nofollow">https://portal.yunosphere.com</a></p>
+<p>欢迎关注我，经常分享有用的 Go 知识 / 面试 / 创业经历 / 其他编程知识 👇</p>
+<ul>
+<li>公众号：GopherYes</li>
+<li>B 站：YunFuns</li>
+<li>知乎、掘金、头条号：YunFun</li>
+<li>小红书号：986261983</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-11-28T12:28:17Z</pubDate>
+<pubDate>2024-11-28T12:45:10Z</pubDate>
+</item>
+<item>
+<title>[Windows] 写了个小工具，用来获取当前 Windows Spotlight 壁纸文件路径</title>
+<link>https://www.v2ex.com/t/1093489</link>
+<guid>https://www.v2ex.com/t/1093489</guid>
+<content:encoded><![CDATA[
+
+<a href="https://github.com/JasonWei512/show-wallpaper-file" rel="nofollow noopener" target="_blank">https://github.com/JasonWei512/show-wallpaper-file</a><br /><br />Windows 11 现在自带了 "Windows 聚焦" 壁纸功能，会自动定时更换微软精心挑选的壁纸。<br />但是，Windows 聚焦没有保存壁纸的功能。刷到喜欢的壁纸却没法保存，还是挺不爽的。<br />所以我做了个 200 KB 的小工具，双击即可在文件资源管理器里打开当前壁纸的路径。<br /><br /><a href="https://i.imgur.com/hpUqGxa.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/hpUqGxa.png" /></a>
+]]></content:encoded>
+<pubDate>2024-11-28T12:19:44Z</pubDate>
+<pubDate>2024-11-28T12:19:44Z</pubDate>
+</item>
+<item>
+<title>[Surge] Surge Ponte 和 Tailscale 稳定性相差很多</title>
+<link>https://www.v2ex.com/t/1093488</link>
+<guid>https://www.v2ex.com/t/1093488</guid>
+<content:encoded><![CDATA[
+
+<p>场景都是从公司办公网访问家里的 mac mini 。家里有 ipv4 公网地址，配置了端口转发。发现用 surge ponte 丢包很严重，没发开屏幕共享的高性能模式。但 tailscale 相对来说要稳很多，也能开高性能模式。<br />
+想请教下各位，这个是因为什么呢？我个人猜想可能因为 ponte 中间没有经过代理，udp 数据包有丢失呢；或者是办公网没法直接和家里的网络做端口到端口的通信.</p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:15:36Z</pubDate>
+<pubDate>2024-11-28T12:45:14Z</pubDate>
+</item>
+<item>
+<title>[问与答] 299 美元拿下 Pixel9</title>
+<link>https://www.v2ex.com/t/1093487</link>
+<guid>https://www.v2ex.com/t/1093487</guid>
+<content:encoded><![CDATA[
+
+<p>黑五 Mint 出了个 299 美元的 Pixel 9 的<a href="https://www.mintmobile.com/devices/google-pixel-9/6810275/?clickid=Qs91vNWblxyKRjgU9nTEFz1JUkCQ5JQm5VbI2g0&amp;irgwc=1&amp;utm_source=impactradius&amp;utm_medium=affiliate&amp;utm_campaign=ir_mint&amp;utm_content=221109_444520&amp;tid=impactradius&amp;subid=221109_444520&amp;irpid=221109&amp;iradid=444520&amp;utm_term=hawk" rel="nofollow">活动</a>，看起来有点儿类似于国内的合约机，需要购买 Mint Mobile 的套餐，有没有在国内的老哥冲了？请问这个国内想入可行吗？</p>
+]]></content:encoded>
+<pubDate>2024-11-28T12:14:51Z</pubDate>
+<pubDate>2024-11-28T12:13:51Z</pubDate>
+</item>
+<item>
+<title>[生活] 新房子朝北，楼层低，适合封阳台吗？</title>
+<link>https://www.v2ex.com/t/1093485</link>
+<guid>https://www.v2ex.com/t/1093485</guid>
+<content:encoded><![CDATA[
+
+<p>如题，南方，买了洗衣机烘干机，封了阳台会不会晾衣服很头疼？</p>
+]]></content:encoded>
+<pubDate>2024-11-28T11:57:55Z</pubDate>
+<pubDate>2024-11-28T12:14:41Z</pubDate>
+</item>
+<item>
+<title>[YouTube] 土区代购，代充，代开一次性卡，有人要吗？</title>
+<link>https://www.v2ex.com/t/1093483</link>
+<guid>https://www.v2ex.com/t/1093483</guid>
+<content:encoded><![CDATA[
+
+我有土区卡，可以代付，还可以代开一次性卡（价格贵一些），还能冲 odubil ，papara ，等，X, YT ， 迪士尼，等等都能开。要开的可以 TB 搜店铺： 瑞卓发 15<br />土区代付代购代充都行
+]]></content:encoded>
+<pubDate>2024-11-28T11:45:23Z</pubDate>
+<pubDate>2024-11-28T11:45:23Z</pubDate>
+</item>
+<item>
+<title>[Apple] Facetime 如何自定义昵称?</title>
+<link>https://www.v2ex.com/t/1093481</link>
+<guid>https://www.v2ex.com/t/1093481</guid>
+<content:encoded><![CDATA[
+
+在最近的 Facetime 反诈宣传中,经常可以看见有类似的描述: "在今年 5 月，杭州的林先生在十几通备注为“微信客服（工号 XXXX ）”的 FaceTime 电话“轰炸”之下..."<br /><br />在一些视频或者截图里也可以看见陌生人打来的 ft 视频里显示的昵称而不是邮箱或者手机号码.<br /><a href="https://imgur.com/a/Qeqdz2r" rel="nofollow noopener" target="_blank">https://imgur.com/a/Qeqdz2r</a><br /><br />这种可以随意指定昵称的特性在诈骗中很有误导性.<br /><br />但是问题在于这种打给陌生人的情况下可以显示昵称的行为是怎么做到的? 我拿两台手机试了一下,打给陌生人的时候只显示邮箱或者电话号码,是不是有什么新功能可以直接显示自己设置的昵称?
+]]></content:encoded>
+<pubDate>2024-11-28T11:32:33Z</pubDate>
+<pubDate>2024-11-28T12:23:39Z</pubDate>
+</item>
+<item>
+<title>[装修] 求助，有没有大佬了解地暖的分水集水正常应该是怎么连的？</title>
+<link>https://www.v2ex.com/t/1093480</link>
+<guid>https://www.v2ex.com/t/1093480</guid>
+<content:encoded><![CDATA[
+
+入冬了开地暖，发现房间不热但是分水集水管那边热得发烫，于是在网上各种查想着是不是管道里有气体自己 DIY 做一下排气，然后就发现我家这个地暖装得对不上网上任何一种装法，如下图：<br /><a href="https://i.imgur.com/tcIcfRZ.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/tcIcfRZ.jpeg" /></a><br />我家分水和集水竟然有一根短管短接在一起，那岂不是相当于热水从锅炉出来直接又从集水器回去了，进本不咋往房间里的供暖管流动。<br />我家这个是什么新奇的装法/装置，还是师傅给我 xjb 乱装的？或者有没有大佬拍一下自家的地暖装法给我参考一下正常应该是怎么样的？
+]]></content:encoded>
+<pubDate>2024-11-28T11:32:11Z</pubDate>
+<pubDate>2024-11-28T11:48:35Z</pubDate>
+</item>
+<item>
+<title>[深圳] 为啥像广深这些大城市，夜晚马路普遍很暗，但是在北边新疆的一些小城市，街边路灯反而很亮呢？</title>
+<link>https://www.v2ex.com/t/1093479</link>
+<guid>https://www.v2ex.com/t/1093479</guid>
+<content:encoded><![CDATA[
+
+<p>想不通，是因为南方限电吗，还是单纯政府不出钱</p>
+]]></content:encoded>
+<pubDate>2024-11-28T11:29:45Z</pubDate>
+<pubDate>2024-11-28T12:21:19Z</pubDate>
+</item>
+<item>
+<title>[互联网] 观 [家庭买车出资争议] 有感</title>
+<link>https://www.v2ex.com/t/1093478</link>
+<guid>https://www.v2ex.com/t/1093478</guid>
+<content:encoded><![CDATA[
+
+<p>发现很多人理解能力确实很差，或者说没有耐心仔细看完就着急发评论？</p>
+]]></content:encoded>
+<pubDate>2024-11-28T11:25:10Z</pubDate>
+<pubDate>2024-11-28T11:32:08Z</pubDate>
+</item>
+<item>
+<title>[美酒与美食] 哪个平台能买到好吃的谷饲牛肉？</title>
+<link>https://www.v2ex.com/t/1093477</link>
+<guid>https://www.v2ex.com/t/1093477</guid>
+<content:encoded><![CDATA[
+
+<p>坐标内蒙古呼伦贝尔，俺们这都是草饲牛，只能煮着吃，煎着吃太恶心了，想问问那里可以买到比较不错的</p>
+]]></content:encoded>
+<pubDate>2024-11-28T11:19:17Z</pubDate>
+<pubDate>2024-11-28T11:16:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 这么多人做 V2EX 客户端 没人做个 NGA 吗</title>
+<link>https://www.v2ex.com/t/1093476</link>
+<guid>https://www.v2ex.com/t/1093476</guid>
+<content:encoded><![CDATA[
+
+很适合摸鱼，官方客户端太烂了。
+]]></content:encoded>
+<pubDate>2024-11-28T11:01:39Z</pubDate>
+<pubDate>2024-11-28T11:38:17Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 终于裁到我了！休息一下，觉得生活宽广了起来！记录一下</title>
+<link>https://www.v2ex.com/t/1093475</link>
+<guid>https://www.v2ex.com/t/1093475</guid>
+<content:encoded><![CDATA[
+
+从半年前项目一直在裁人，早就盼着拿大礼包，周一接到通知项目解散，今天最后一天上班。<br />协商赔偿金额太少，已经准备仲裁，虽然过程可能比较难搞，但自己的权利不能轻易让渡
+]]></content:encoded>
+<pubDate>2024-11-28T11:00:57Z</pubDate>
+<pubDate>2024-11-28T11:32:00Z</pubDate>
+</item>
+<item>
+<title>[问与答] 同是翻译软件 为啥有道词典 比 欧路词典差那么多?</title>
+<link>https://www.v2ex.com/t/1093474</link>
+<guid>https://www.v2ex.com/t/1093474</guid>
+<content:encoded><![CDATA[
+
+欧路取词  翻译+语音+展示和格式 , 划词翻译+语音 , 扩展词库.<br /><br /><br />有道翻译 取词/划词功能做的远不如 欧路,  用有道还不如用浏览器插件.<br /><br /><br />大家有什么好用的翻译软件? 具体这个软件的什么功能 使用场景是咋样的?
+]]></content:encoded>
+<pubDate>2024-11-28T10:58:42Z</pubDate>
+<pubDate>2024-11-28T12:09:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] TPLink 监控怎么定时把视频保存到本地设备？</title>
+<link>https://www.v2ex.com/t/1093473</link>
+<guid>https://www.v2ex.com/t/1093473</guid>
+<content:encoded><![CDATA[
+
+<p>挑选了好几款监控，就 TPLink App 最干净，摄像头也还可以。</p>
+<p>但是内存卡是 64G ，现在我想每天通过一个定时脚本怎么连上摄像头把监控里面按<strong>人形</strong> 筛选的视频每天定时拉取下来保存在本地机械硬盘。</p>
+<p>请问 TPLink 有什么这类的官方接口吗？或者是 Hook 一下，直接去摄像头里面读取</p>
+<p><strong>注</strong>: 我了解到 TPLink 监控可以<em><strong>rstp</strong></em>  推流到局域网设备，但是没有 NAS ，所以不考虑这个方案。而且我只想要摄像机里面<strong>人形</strong> 的视频段</p>
+]]></content:encoded>
+<pubDate>2024-11-28T10:50:45Z</pubDate>
+<pubDate>2024-11-28T11:59:49Z</pubDate>
+</item>
+<item>
+<title>[问与答] grok2 对比 gpt4 如何？</title>
+<link>https://www.v2ex.com/t/1093472</link>
+<guid>https://www.v2ex.com/t/1093472</guid>
+<content:encoded><![CDATA[
+
+黑五有活动，准备冲一个。
+]]></content:encoded>
+<pubDate>2024-11-28T10:46:56Z</pubDate>
+<pubDate>2024-11-28T10:46:56Z</pubDate>
+</item>
+<item>
+<title>技术和业务需求哪个牛逼？</title>
+<link>https://www.v2ex.com/t/1092255</link>
+<guid>https://www.v2ex.com/t/1092255</guid>
+<content:encoded><![CDATA[
+
+<p>最近在想一个问题，一直想不通，就是技术和业务哪个牛逼？或者说哪一个是领导地位，谁带动谁？究竟是技术带动需求，还是需求带动技术？</p>
+]]></content:encoded>
+<pubDate>2024-11-24T16:08:06Z</pubDate>
+<pubDate>2024-11-27T00:23:20Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 有用过 Kong 和 apisix 这 2 种 api 网关的 xd 吗，能讲讲优劣势么</title>
 <link>https://www.v2ex.com/t/1093469</link>
 <guid>https://www.v2ex.com/t/1093469</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-11-28T10:20:15Z</pubDate>
 <pubDate>2024-11-28T10:20:15Z</pubDate>
 </item>
 <item>
@@ -20,10 +578,8 @@
 <link>https://www.v2ex.com/t/1093467</link>
 <guid>https://www.v2ex.com/t/1093467</guid>
 <content:encoded><![CDATA[
-
 之前借了一个朋友些钱 好几年了。前段时间要了几次<br />后面得知 朋友已经负债不少了 花呗啥的 <br />这会突然来电话 说想要搞个贷款 先本后息 然后还了所有的钱 安心还银行 <br />但是现在有网贷 check 不过 需要先还大概七八万 现在突然找到我 说拿个这次还贷的钱 这边还了 那边申请下来 就一起还给我了  <br /> 哎😑 感觉不太靠谱。<br />朋友是安稳的人 好几年没接触了 我也不知道干啥了 搞到现在这样子
 ]]></content:encoded>
-<pubDate>2024-11-28T10:03:24Z</pubDate>
 <pubDate>2024-11-28T10:22:40Z</pubDate>
 </item>
 <item>
@@ -31,14 +587,12 @@
 <link>https://www.v2ex.com/t/1093465</link>
 <guid>https://www.v2ex.com/t/1093465</guid>
 <content:encoded><![CDATA[
-
 <p>上个月广东电信回收了 ipv4 ，换成 nat1+ipv6 的网络，之前的 DDNS 稍微改下倒也没啥差</p>
 <p>但是公司的网络是不给开 ipv6 的，手机热点又不是很稳定，而且流量有限，稍微研究了下异地组网，发现 tailscale 非常方便好用，能跑满家宽上传，而且延迟也低，稍微配置下 host ，体验上和之前也没啥区别</p>
 <p>但有个问题，通过 RDP 远程访问家里的电脑，会很卡，几乎不能用，有种用了中继服务器的感觉，平时为了安全，家里设备都是走的 NAS 上的 NginxProxyManager ，PC 的 3389 也是走的 NPM 的 streaming ，一开始觉得是这个的问题，但是用手机流量的 RDP 连接却非常流畅</p>
 <p>今天又测试了 ZeroTier ，流畅很多，但是延迟明显不如手机热点</p>
 <p>网上找了半天也没找到类似问题的</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:54:05Z</pubDate>
 <pubDate>2024-11-28T10:23:45Z</pubDate>
 </item>
 <item>
@@ -46,12 +600,10 @@
 <link>https://www.v2ex.com/t/1093464</link>
 <guid>https://www.v2ex.com/t/1093464</guid>
 <content:encoded><![CDATA[
-
 <p>如题</p>
 <p>iMX93 核心板，例如：
 <a href="https://www.alientek.com/Product_Details/44.html" rel="nofollow">https://www.alientek.com/Product_Details/44.html</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:51:20Z</pubDate>
 <pubDate>2024-11-28T09:50:20Z</pubDate>
 </item>
 <item>
@@ -59,11 +611,9 @@
 <link>https://www.v2ex.com/t/1093463</link>
 <guid>https://www.v2ex.com/t/1093463</guid>
 <content:encoded><![CDATA[
-
 <p>如题, 被抖音起诉的实习生因为什么原因,到底干了什么事情, 造成了什么样的影响以至于被起诉赔偿 800w? </p>
 <p>网络新闻都是一些捕风捉影的报道没有完整的说明情况? 有没有字节的大佬现身说法一下?</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:47:39Z</pubDate>
 <pubDate>2024-11-28T10:22:43Z</pubDate>
 </item>
 <item>
@@ -71,7 +621,6 @@
 <link>https://www.v2ex.com/t/1093462</link>
 <guid>https://www.v2ex.com/t/1093462</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>
 <p><a href="https://chromewebstore.google.com/detail/title-mirror/mkffplgaiikhbnihpedpmgkkpemmlohf?utm_source=v2ex1" rel="nofollow">Title Mirror</a> 可以把网页中任意元素内容投射在网页 title 区域，让您边工作边摸鱼，摸鱼工作两不误。</p>
@@ -91,7 +640,6 @@
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:47:22Z</pubDate>
 <pubDate>2024-11-28T09:55:34Z</pubDate>
 </item>
 <item>
@@ -100,9 +648,7 @@
 <guid>https://www.v2ex.com/t/1093461</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-11-28T09:46:11Z</pubDate>
 <pubDate>2024-11-28T10:07:39Z</pubDate>
 </item>
 <item>
@@ -110,7 +656,6 @@
 <link>https://www.v2ex.com/t/1093460</link>
 <guid>https://www.v2ex.com/t/1093460</guid>
 <content:encoded><![CDATA[
-
 <h2>✨Kong Inc.祝您感恩节快乐！✨</h2>
 <p>Kong 中国团队招聘进行中，目前开放 5 大岗位，诚邀对开源文化充满热情的你加入我们，共同冲刺 IPO ！</p>
 <p>具体岗位如下：</p>
@@ -143,7 +688,6 @@ Base：上海
 <img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/e4d6d673-3011-4c39-9b56-eaa9280533bd.jpg" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/ad6a815c-e2b9-4856-be9b-387dfabec73a.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:45:14Z</pubDate>
 <pubDate>2024-11-28T09:44:14Z</pubDate>
 </item>
 <item>
@@ -151,10 +695,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093459</link>
 <guid>https://www.v2ex.com/t/1093459</guid>
 <content:encoded><![CDATA[
-
 迫于没有找到好用的 windows 邮件客户端, 准备在 nas 上跑一个 webmail, 需要一个账户管理多个邮箱的<br /><br />试了 snappymail 貌似还得一个邮箱一个邮箱的登录
 ]]></content:encoded>
-<pubDate>2024-11-28T09:38:08Z</pubDate>
 <pubDate>2024-11-28T09:38:08Z</pubDate>
 </item>
 <item>
@@ -162,10 +704,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093458</link>
 <guid>https://www.v2ex.com/t/1093458</guid>
 <content:encoded><![CDATA[
-
 <p>我这里备案需要从大门录视频到注册地，注册地址而且要挂公司牌，浙江备案需要这些东西吗</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:37:11Z</pubDate>
 <pubDate>2024-11-28T09:37:11Z</pubDate>
 </item>
 <item>
@@ -173,7 +713,6 @@ Base：上海
 <link>https://www.v2ex.com/t/1093456</link>
 <guid>https://www.v2ex.com/t/1093456</guid>
 <content:encoded><![CDATA[
-
 <p>如题 用云缴费小程序充电费实付满 50 可享受立减<br />
 <br />
 如果是新人首次使用该小程序打开会赠送一张 5 元优惠券，在充值电费的时候选择充值 55 元，使用微信支付！，可享受立减！。 <br />
@@ -186,7 +725,6 @@ Base：上海
 <br />
 最后支付的时候请看清楚，一定要有立减的标志再支付，如果没看到那可能就是当日名额用完了，可以改天再尝试！！！</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:32:49Z</pubDate>
 <pubDate>2024-11-28T09:37:17Z</pubDate>
 </item>
 <item>
@@ -194,10 +732,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093455</link>
 <guid>https://www.v2ex.com/t/1093455</guid>
 <content:encoded><![CDATA[
-
 在公司的电脑是 windows 系统，租房最近换了 MacMini ，以前在家加班的时候，我都是用原本的 windows 笔记本用 todesk 软件远程桌面过去，但是换了 macos 系统后，发现远程过去后有些 windows 快捷键就不能用了，比如 ctrl 健，还有鼠标的侧键也不能用了，有没有软件可以实现远程过去的时候可以使用 windows 的快捷键，或者有其他方式。主要用的是 Idea 软件
 ]]></content:encoded>
-<pubDate>2024-11-28T09:29:31Z</pubDate>
 <pubDate>2024-11-28T09:34:04Z</pubDate>
 </item>
 <item>
@@ -205,12 +741,10 @@ Base：上海
 <link>https://www.v2ex.com/t/1093454</link>
 <guid>https://www.v2ex.com/t/1093454</guid>
 <content:encoded><![CDATA[
-
 <p>好多年前（差不多接近 20 年了）套壳浏览器是非常多的，傲游浏览器、greenbrowser （其实我更喜欢后者），给 ie 套个皮，在 ie6 时代就能给浏览器多标签，崩了也可以非常方便恢复到之前浏览状态。再后来带个 chromium 实现双核心。</p>
 <p>按说 webview 发布后，会有很多套壳浏览器的，但是搜索了一圈，安装包动不动 100M+，说明自己带了核心，应该是 chromium 。
 反观 android 上出现不少，via 、x ，是 webview 不像 trident 方便，还是桌面开发确实式微了</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:24:57Z</pubDate>
 <pubDate>2024-11-28T09:24:57Z</pubDate>
 </item>
 <item>
@@ -218,10 +752,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093453</link>
 <guid>https://www.v2ex.com/t/1093453</guid>
 <content:encoded><![CDATA[
-
 首当其冲是外企   <br />要改掉中文夹杂英语的习惯，这点很多地方都有人吐槽这点。   <br />凡事都要留至少一个心眼。外企工作压力不大，同事之间关系融洽。基层岗位没有那么多勾心斗角，碰到问题都乐于分享或者互助。    <br />但是外面的就不是这样了，特别是互联网大厂。管好自己，特别是心理预期，碰到问题甩锅，问人家问题得不到回复，不知道或者一句自己去看代码都是常态。   <br /><br />技术上不要有什么想法，特别是入职传统小企业，外包，除非招你进去是管理层甚至 CTO     <br />人家怎么做就怎么做，开发思维也要转变。 举例子：<br />有些大厂后台写个接口是职责单一，由前端做一定组合完成功能。 但是中小公司外包可不这样。 很多时候，他们期望一个接口搞定所有。  <br />什么 restful 不存在的，讲了也不懂，甚至你去解释，宣传，反而让他们对你有意见。   <br />还有，有些东西放在前端做很合适，比如排个序，但是在这里一律后端全部搞定。   <br />单元测试，基础设施都别关心了，千万别提议加,吃力不讨好。 能力强自己写点脚本工具减轻自己的负担即可。  <br /><br />暂时就这些，想到再通过回复补充
 ]]></content:encoded>
-<pubDate>2024-11-28T09:23:03Z</pubDate>
 <pubDate>2024-11-28T10:00:44Z</pubDate>
 </item>
 <item>
@@ -229,10 +761,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093452</link>
 <guid>https://www.v2ex.com/t/1093452</guid>
 <content:encoded><![CDATA[
-
 <p>之前的写入速度都是正常的，不知道为啥最近的写入速度只有 2M/s 了，用的不是原装的 USB3 的数据线，因为丢了，但是就算是普通的 USB 的线也不可能是这个速度啊。请问应该检查哪儿呢？数据格式是 exFAT 的，用的是 DELL 的 win11 的系统。感觉是系统更新了几次之后，不知道修改了哪个地方的设置，现在就变成这样了。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:19:30Z</pubDate>
 <pubDate>2024-11-28T10:14:15Z</pubDate>
 </item>
 <item>
@@ -240,10 +770,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093451</link>
 <guid>https://www.v2ex.com/t/1093451</guid>
 <content:encoded><![CDATA[
-
 公司介绍：<br />文远知行是一家快速发展的自动驾驶公司，我们创造了最为便捷的可视化自动驾驶开发工具，使算法工程师能够从复杂的数据中直观理解驾驶场景，并且解决问题。作为一名全栈工程师，你将与用户团队密切合作，不断提高开发闭环工具链的易用性、性能和稳定性，加速团队不断迭代自动驾驶算法。<br />文远知行致力于实践敏捷开发的团队协作与结果导向的效能评价，推崇以创造性方式解决问题，拥抱变化，持续的学习与提高。<br /><br />自动驾驶-全栈工程师（环卫事业部）<br /><br />岗位职责:<br />1. 独立完成公司应用项目客户端，中台，后端等前端开发<br />2. 能独立开发后端，确定接口协议，独立完成接口文档的编写并组织评审<br />3. 深入解析代码, 提升代码执行效率, 加强代码兼容性<br />4. 对用户交互有深刻理解，能帮助产品优化交互体验<br /><br />岗位基本需求:<br />1. 本科及以上学位，计算机相关专业, 3 年以上前端研发经验， 有互联网公司工作经验<br />2. 熟悉使用主流框架（ Vue 、React ）至少一种。<br />3. 熟悉一种后端语言，nodejs 、python 、go 等，nestjs 最好<br />4. 熟悉 Mysql 、redis 等数据库，能进行常见的 SQL 优化<br />5. 熟悉前端工程化与模块化开发，并有工程实践经验； 熟悉 webpack 的原理和使用；<br />6. 熟悉浏览器的基本原理以及性能调优，熟悉常见的数据结构以及算法<br />7. 深刻理解 Web 标准，对前端性能、可访问性、可维护性等相关知识有实际的了解和实践经验。<br />8. 良好的沟通表达能力，和团队合作能力；<br />9. 有跨端经验如 flutter 、rn 为加分项<br /><br />地点：广州南沙区<br /><br />有意向请加微信备注 全栈招聘 微信号 richoffer
 ]]></content:encoded>
-<pubDate>2024-11-28T09:16:59Z</pubDate>
 <pubDate>2024-11-28T09:14:59Z</pubDate>
 </item>
 <item>
@@ -251,10 +779,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093450</link>
 <guid>https://www.v2ex.com/t/1093450</guid>
 <content:encoded><![CDATA[
-
 你们都说 follow 好，我花了几块钱在闲鱼买了码，试用了一下，发现很多订阅源，更新都没 feedly 快。<br />不知道大家有这个问题吗？
 ]]></content:encoded>
-<pubDate>2024-11-28T09:14:54Z</pubDate>
 <pubDate>2024-11-27T09:14:54Z</pubDate>
 </item>
 <item>
@@ -262,7 +788,6 @@ Base：上海
 <link>https://www.v2ex.com/t/1093449</link>
 <guid>https://www.v2ex.com/t/1093449</guid>
 <content:encoded><![CDATA[
-
 <p>
 <img class="embedded_image" rel="noreferrer" src="https://i-blog.csdnimg.cn/direct/5239ae895cf54b51b73b0f9b46d5e025.png#pic_center" />
 </p>
@@ -372,7 +897,6 @@ Base：上海
 <p>如果你喜欢这个项目或认为对你有用，欢迎使用体验和 <a href="https://github.com/diandian18/react-antd-console" rel="nofollow">Star</a></p>
 <p><a href="https://github.com/diandian18/react-antd-console" rel="nofollow">Github 地址</a> | <a href="https://template.react-antd-console.site" rel="nofollow">在线预览</a> | <a href="https://doc.react-antd-console.site" rel="nofollow">文档</a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:09:41Z</pubDate>
 <pubDate>2024-11-28T10:22:49Z</pubDate>
 </item>
 <item>
@@ -380,10 +904,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093448</link>
 <guid>https://www.v2ex.com/t/1093448</guid>
 <content:encoded><![CDATA[
-
 <p>某鱼找了一圈都只能硬盘</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:09:29Z</pubDate>
 <pubDate>2024-11-28T10:21:36Z</pubDate>
 </item>
 <item>
@@ -391,11 +913,9 @@ Base：上海
 <link>https://www.v2ex.com/t/1093444</link>
 <guid>https://www.v2ex.com/t/1093444</guid>
 <content:encoded><![CDATA[
-
 <p>修改 baidu 账户昵称提示如下，是“湿滑”太敏感？这 TM 是谁定的......</p>
 <p><a href="https://www.picgo.net/image/IMG-20241128-165617.WX0EJ7" rel="nofollow"><img alt="IMG 20241128 165617" class="embedded_image" rel="noreferrer" src="https://img.picgo.net/2024/11/28/IMG_20241128_1656177022713362775d91.md.jpg" /></a></p>
 ]]></content:encoded>
-<pubDate>2024-11-28T09:00:06Z</pubDate>
 <pubDate>2024-11-27T17:00:06Z</pubDate>
 </item>
 <item>
@@ -403,10 +923,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093443</link>
 <guid>https://www.v2ex.com/t/1093443</guid>
 <content:encoded><![CDATA[
-
 各位大佬们，我最近学习到使用 tailscale 可以实现远程控制，但是今天在公司笔记本怎么安装都无法登录，最终通过官方的一个 issue 发现可能是公司网管把对应的域名禁止访问了，于是我开启手机热点发现确实可以登录成功。<br />现在的问题是我平时肯定还是得使用公司的网络办公的，这种情况下我切换回公司网络就又是无法连接到 tailscale 服务，大佬们有没有什么方案能够解决。（除了让网管放行）
 ]]></content:encoded>
-<pubDate>2024-11-28T08:58:22Z</pubDate>
 <pubDate>2024-11-28T09:14:45Z</pubDate>
 </item>
 <item>
@@ -414,11 +932,9 @@ Base：上海
 <link>https://www.v2ex.com/t/1093442</link>
 <guid>https://www.v2ex.com/t/1093442</guid>
 <content:encoded><![CDATA[
-
 <p>比如 <a href="https://github.com/ArduPilot/ardupilot" rel="nofollow">https://github.com/ArduPilot/ardupilot</a> 这个项目，明确规定只允许 rebase 不许 merge 。</p>
 <p>这是一个好习惯吗？</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T08:56:51Z</pubDate>
 <pubDate>2024-11-28T09:53:25Z</pubDate>
 </item>
 <item>
@@ -426,10 +942,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093441</link>
 <guid>https://www.v2ex.com/t/1093441</guid>
 <content:encoded><![CDATA[
-
 <p>RT,东莞联通今年有 4 次了。想骂人</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T08:52:37Z</pubDate>
 <pubDate>2024-11-28T09:32:08Z</pubDate>
 </item>
 <item>
@@ -437,7 +951,6 @@ Base：上海
 <link>https://www.v2ex.com/t/1093440</link>
 <guid>https://www.v2ex.com/t/1093440</guid>
 <content:encoded><![CDATA[
-
 <p>腾讯云：2 核 4G 3M 带宽</p>
 <p>thinkphp6 + mysql5.7</p>
 <p>用的腾讯云压测，
@@ -448,17 +961,14 @@ Base：上海
 <p>感觉这数据似乎有点低啊。</p>
 ]]></content:encoded>
 <pubDate>2024-11-28T08:52:15Z</pubDate>
-<pubDate>2024-11-28T08:52:15Z</pubDate>
 </item>
 <item>
 <title>[汽车] 想问问凯美瑞车友们</title>
 <link>https://www.v2ex.com/t/1093437</link>
 <guid>https://www.v2ex.com/t/1093437</guid>
 <content:encoded><![CDATA[
-
 我在 9 月份提了一台九代的凯美瑞运动 plus 版本，开了 2 个月，想问问车友点问题。<br /><br />1.我现在停车，时不时停在树下，有时候去开车感觉树胶黏黏的，有没有可以快速清洗的手段或者要不要贴个车衣？当时提车的时候销售一直让我去贴个车衣来着。<br /><br />2.我用车机自带的导航抬头显示会有导航信息，用 carplay 抬头却没有导航信息，这是为什么呢？是真不支持还是版本问题？车友们平时用车机自带的导航还是用手机高德/百度？<br /><br />3.推荐一下玻璃水？我不怎么会挑这些。<br /><br />欢迎车友们讨论或者推荐一下好用车载用品/摆饰。
 ]]></content:encoded>
-<pubDate>2024-11-28T08:42:27Z</pubDate>
 <pubDate>2024-11-28T09:12:08Z</pubDate>
 </item>
 <item>
@@ -466,10 +976,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093436</link>
 <guid>https://www.v2ex.com/t/1093436</guid>
 <content:encoded><![CDATA[
-
 高级 Go 后端开发工程师<br /><br />链接： <a href="https://neitui.italent.cn/37wan/sharejobs/detail?shareId=6c53f68d-d2db-4a12-999d-4173c58abcc0&amp;language=zh_CN" rel="nofollow noopener" target="_blank">https://neitui.italent.cn/37wan/sharejobs/detail?shareId=6c53f68d-d2db-4a12-999d-4173c58abcc0&amp;language=zh_CN</a><br /><br />工作职责<br /><br />1 、负责低代码平台的生成式 AI 编码功能开发；<br />2 、设计和实施 DevOps 流程和架构，开发和维护 CI/CD 流水线；<br />3 、提高团队开发效能和代码质量，推动团队技术提升。<br />任职资格<br /><br />1 、计算机相关专业本科及以上学历，3 年以上开发经验；<br />2 、熟悉 go 语言，熟悉至少一种开源 go 框架；<br />3 、熟悉微服务架构，熟悉 k8s 、docker 等容器化技术；<br />4 、熟悉 devops 、gitops 、Infra-as-code ，熟悉常用的 CI/CD 工具；<br />5 、了解 aws 、腾讯云、阿里云等云服务商的基本服务；<br />6 、了解前端技术，如 HTML 、CSS 、JavaScript 及相关框架（如 Vue 、React 等）<br /><br />=============================================================<br />高级 Go 后端开发工程师<br /><br />链接： <a href="https://neitui.italent.cn/37wan/sharejobs/detail?shareId=5a59045a-a11f-41a5-a1a9-83f2638ba6ea&amp;language=zh_CN" rel="nofollow noopener" target="_blank">https://neitui.italent.cn/37wan/sharejobs/detail?shareId=5a59045a-a11f-41a5-a1a9-83f2638ba6ea&amp;language=zh_CN</a><br /><br />工作职责<br /><br />1 、负责游戏平台新功能的后端开发及日常维护工作，撰写开发文档<br />2 、根据需求独立完成系统设计、编码以及 codereview<br />3 、参与完善平台安全体系、内容审核系统等等，保证平台平稳运行及性能扩展<br />任职资格<br /><br />1 、计算机相关专业本科及以上学历，2~5 年的开发经验<br />2 、熟悉 go 语言，熟悉至少一种开源 go 框架；了解 php 语言<br />3 、熟悉 mysql 索引；熟练应用 redis 、kafka 等产品，并对底层原理有基本了解<br />4 、熟悉 gitlab 代码管理<br />5 、了解 linux 常用操作命令，了解 nginx 基本配置<br />6 、有对新技术不断探索和研究的精神，工作有激情<br />7 、有良好的团队合作能力、沟通能力、学习能力和自我管理能力<br /><br />===========================================================<br />高级运维开发工程师<br /><br />链接： <a href="https://neitui.italent.cn/37wan/sharejobs/detail?shareId=ecd8cd48-2017-4ba2-b566-7710df5a8f99&amp;language=zh_CN" rel="nofollow noopener" target="_blank">https://neitui.italent.cn/37wan/sharejobs/detail?shareId=ecd8cd48-2017-4ba2-b566-7710df5a8f99&amp;language=zh_CN</a><br /><br />工作职责<br /><br />1. 负责运维平台开发；不限于：CMDB 、监控系统、域名证书、多云管理系统、日志系统等<br />2. 为运维工程师提效，推动提高运维的工具化、自动化建设<br />3. 对现有运维系统产品优化，不断完善运维系统的功能性和易用性<br />任职资格<br /><br />1. 掌握 Python 、Golang 至少一种后端开发语言，针对具体的业务场景具备快速设计和实现能力，有开源项目实践经验更佳<br />2. 熟悉 Vue 、React 等主流前端框架中的一种，能够独立完成前后端分离项目的开发<br />3. 有良好的产品思维，具备从用户视角解决运维自动化问题的能力<br /><br />=========================================================<br />移动客户端开发工程师<br /><br />链接： <a href="https://neitui.italent.cn/37wan/sharejobs/detail?shareId=83f640c9-ec42-4cf0-95e4-ee9fee84a2f7&amp;language=zh_CN" rel="nofollow noopener" target="_blank">https://neitui.italent.cn/37wan/sharejobs/detail?shareId=83f640c9-ec42-4cf0-95e4-ee9fee84a2f7&amp;language=zh_CN</a><br /><br />工作职责<br /><br />1. 完成基于 Android/IOS 平台项目的需求，如：SDK 等；<br />2. 负责移动客户端架构设计及技术攻坚工作；<br />3. 优化调整改善团队内外工作流程，提高团队能效；<br />4. 沉淀端上技术，做好端上新技术储备，支持业务变化，如：Gradle/插件/性能等。<br />任职资格<br /><br />1. 本科及以上学历，计算机、通信相关专业；<br />2. 3-5 年以上移动开发经验，可以独立承担模块编码工作；<br />3. 较强的代码阅读能力，代码风格良好，有一定源码阅读经验；<br />4. 沟通协作能力强、善于总结，责任感强；<br />5. 有引擎(如：Unity 等)类，简单前端/后端技术栈经验优先；<br />6. 具备数据分析能力，有良好的数据敏感性和业务价值判断能力者优先。
 ]]></content:encoded>
-<pubDate>2024-11-28T08:40:51Z</pubDate>
 <pubDate>2024-11-28T08:39:51Z</pubDate>
 </item>
 <item>
@@ -477,10 +985,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093435</link>
 <guid>https://www.v2ex.com/t/1093435</guid>
 <content:encoded><![CDATA[
-
 我前两天卖掉了我电池健康度 83%的 iPhone13pro ，买家收到货之后测试手机，爱思助手显示电池健康度 78%，但手机设置页面显示 82%。<br />从 83%到 82%我能理解，可能是正好到了使用节点，但其他第三方验机软件显示 78%，让我很奇怪。<br />我怀疑是不是电池被换掉了？
 ]]></content:encoded>
-<pubDate>2024-11-28T08:38:13Z</pubDate>
 <pubDate>2024-11-28T09:37:43Z</pubDate>
 </item>
 <item>
@@ -488,10 +994,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093434</link>
 <guid>https://www.v2ex.com/t/1093434</guid>
 <content:encoded><![CDATA[
-
 免费版满了
 ]]></content:encoded>
-<pubDate>2024-11-28T08:38:08Z</pubDate>
 <pubDate>2024-11-28T06:38:08Z</pubDate>
 </item>
 <item>
@@ -499,10 +1003,8 @@ Base：上海
 <link>https://www.v2ex.com/t/1093433</link>
 <guid>https://www.v2ex.com/t/1093433</guid>
 <content:encoded><![CDATA[
-
 平时选的是原图上传，但是某些很长的视频会占据大量空间<br />官方的空间清理工具中只能删除占用空间大的视频，难道只能下下来手动压缩然后再上传吗？
 ]]></content:encoded>
-<pubDate>2024-11-28T08:34:50Z</pubDate>
 <pubDate>2024-11-28T08:34:50Z</pubDate>
 </item>
 <item>
@@ -510,13 +1012,11 @@ Base：上海
 <link>https://www.v2ex.com/t/1093432</link>
 <guid>https://www.v2ex.com/t/1093432</guid>
 <content:encoded><![CDATA[
-
 <p>我估计是洗了衣服没有在阳光下晒，潮了的味道，巨大味道。</p>
 <p>从周一就穿的那个衣服，一直没换过，就让他自然挥发。周一那天的味道都爆炸了，给我们一排人都逼到会议室了，隔了 5 米远的其他同事都一直在找是什么味道。</p>
 <p>同事长得跟北大韦神异曲同工，头也不怎么洗。</p>
 <p>我现在天天得戴口罩，不知道怎么搞了。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T08:33:34Z</pubDate>
 <pubDate>2024-11-28T09:57:35Z</pubDate>
 </item>
 <item>
@@ -524,7 +1024,6 @@ Base：上海
 <link>https://www.v2ex.com/t/1093431</link>
 <guid>https://www.v2ex.com/t/1093431</guid>
 <content:encoded><![CDATA[
-
 <p>“我要带着汽油桶去天安门”，这是最近跟家人说的一句话。</p>
 <p>老婆做事勤勤恳恳，任劳任怨，以前被以前老板表扬过几次，公司好员工，就是嘴有点笨~</p>
 <p>她组内有个研究生同事，先叫她 B 吧，先前和她一直不太对付。日常工作的时候对她有些言语上的人身攻击，每次老婆回来跟我说，“快被气死了，但因为是一个组内的算了吧”。</p>
@@ -541,7 +1040,6 @@ Base：上海
 <p>ps:
 趁着这次老婆碰到的事情，潦草的写下这点东西，算是这些年对职场、生活的一个思考总结。</p>
 ]]></content:encoded>
-<pubDate>2024-11-28T08:31:56Z</pubDate>
 <pubDate>2024-11-20T20:58:53Z</pubDate>
 </item>
 <item>
@@ -549,7 +1047,6 @@ Base：上海
 <link>https://www.v2ex.com/t/1092210</link>
 <guid>https://www.v2ex.com/t/1092210</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/LC-05/vscode_Speak_it" rel="nofollow">https://github.com/LC-05/vscode_Speak_it</a></p>
 <h3>Speak it 是什么</h3>
 <p>"Speak it" 是一个简单的 VSCode 插件,它只有一个功能:将选中的单词朗读出来。开发这个插件的目的是让用户在使用 VSCode 编辑代码时,无需移动鼠标或切换应用程序,就能快速学习单词的发音。</p>
@@ -578,7 +1075,6 @@ Base：上海
 <p>ctrl+, 打开设置面板，搜索 speakit ，修改 api 即可（目前仅支持 response 为音频文件的 api ）</p>
 <p><strong>Enjoy!</strong></p>
 ]]></content:encoded>
-<pubDate>2024-11-24T12:37:45Z</pubDate>
 <pubDate>2024-11-25T11:18:23Z</pubDate>
 </item>
 <item>
@@ -586,13 +1082,10 @@ Base：上海
 <link>https://www.v2ex.com/t/1093439</link>
 <guid>https://www.v2ex.com/t/1093439</guid>
 <content:encoded><![CDATA[
-
 涉及到套模板（提供静态页）以及功能上的二次开发<br /><br />时间比较紧张，所以最好是全职个人或者公司<br /><br />具体需求可私聊<br />wx: c3hicDE5OTM= (base64)
 ]]></content:encoded>
-<pubDate>2024-11-28T08:45:24Z</pubDate>
 <pubDate>2024-11-28T09:40:47Z</pubDate>
 </item>
-
 <item>
 <title>[分享创造] 🎁 去年这时候在 v 站战战兢兢发布了剪贴板 CleanClip 的想法，一周召集了 20 位愿意付费 12 元买终身会员的勇士； 1 年后的今天，价格翻了 10 倍，一周卖出近 100 份</title>
 <link>https://www.v2ex.com/t/1093430</link>
@@ -15538,639 +16031,6 @@ MaoMaoYu AI Tools is a leading AI tools directory and search engine. MaoMaoYu AI
 <p>快三十岁了,周围食品环境就这样,珍惜狗命准备开始做体检查下身体,开始为这块提前补下空白.</p>
 ]]></content:encoded>
 <pubDate>2024-11-25T01:34:12Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 去马来西亚做计算机靠谱吗？</title>
-<link>https://www.v2ex.com/t/1092281</link>
-<guid>https://www.v2ex.com/t/1092281</guid>
-<content:encoded><![CDATA[
-<p>有人让我去，有没有危险？有去过的吗？ 说是做 BC</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:53:19Z</pubDate>
-</item>
-<item>
-<title>[问与答] 购买蚂蚁保时，不需要体检，那赔付的时候会不会扯皮？</title>
-<link>https://www.v2ex.com/t/1092279</link>
-<guid>https://www.v2ex.com/t/1092279</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-11-25T01:48:28Z</pubDate>
-</item>
-<item>
-<title>[ WATCH] 请问 Apple Watch 能否设置设置多个手势，启动不同的倒计时？</title>
-<link>https://www.v2ex.com/t/1092278</link>
-<guid>https://www.v2ex.com/t/1092278</guid>
-<content:encoded><![CDATA[
-<p>请问能否设置这样，</p>
-<p>两指捏一次-启动录音/停止录音</p>
-<p>两指捏两次-开始 3 分钟倒计时</p>
-<p>手紧握一次-开始 10 分钟倒计时</p>
-<p>手紧握两次-开始 30 分钟倒计时</p>
-<p>谢谢指点。</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:27:26Z</pubDate>
-</item>
-<item>
-<title>[音乐] 求推荐一款 cd 机,一体的非一体的都可以,
-目前看上上水月雨的梦想碟机 2 了,或者有没有用过的说说体验</title>
-<link>https://www.v2ex.com/t/1092277</link>
-<guid>https://www.v2ex.com/t/1092277</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-11-25T01:48:41Z</pubDate>
-</item>
-<item>
-<title>[问与答] 想换个电脑买 macmini 还是神舟？</title>
-<link>https://www.v2ex.com/t/1092275</link>
-<guid>https://www.v2ex.com/t/1092275</guid>
-<content:encoded><![CDATA[
-准备换个电脑，买 macmini 还是神舟 T8 pro ？程序员日常主要做前端开发开工程比较多，，也会做 Python ，后台，客户端开发，少量游戏 3d 开发，<br /><br />有两种方案求推荐：<br /><br />一，神舟 T8pro(i9-14900HX RTX4060 1T 165Hz 2.5K) + 两根 32G 内存，一起 6765 + 1193 = 7,958<br /><br />二，Macmini m4 教育版，32G 内存 256 硬盘，自己再升级硬盘到 2T ，花 1000 ，一共 6,599 +1000 = 7599
-]]></content:encoded>
-<pubDate>2024-11-25T01:51:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如何屏蔽微信推送的广告？</title>
-<link>https://www.v2ex.com/t/1092274</link>
-<guid>https://www.v2ex.com/t/1092274</guid>
-<content:encoded><![CDATA[
-<p>刷公众号经常刷到短剧的广告，这短剧是真上头，对于我这样自控力差的人，一刷到就想看，一看就要浪费好久时间</p>
-<p>请问如何从根源上屏蔽这种广告，避免自己沉迷？（抖音已卸载，但是微信要经常用，没办法卸载）</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:39:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 除了国内的阿里云和腾讯云，请问国外的网站在哪里买域名呢</title>
-<link>https://www.v2ex.com/t/1092273</link>
-<guid>https://www.v2ex.com/t/1092273</guid>
-<content:encoded><![CDATA[
-<p>rt ，想买个域名，但是不想再国内备案，所以再国外的网站买域名。
-请问下各位都在哪里买的域名便宜点的。谢谢</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:43:27Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 在职考上高校信息技术岗事业编要去么</title>
-<link>https://www.v2ex.com/t/1092271</link>
-<guid>https://www.v2ex.com/t/1092271</guid>
-<content:encoded><![CDATA[
-<p>楼主现在在一家新一线城市国企做开发，前阵子事业单位招考运气好，考上一个距离市区 40 多公里的高校事业编，去了之后可能全包降 5 、6w ，但是胜在寒暑假和可能清闲，目前工作的地方在市中心，生活比较方便，但是时不时工作上精神压力大，内耗 pua 严重，也不太想继续写代码了，部门也有点面临裁员/降薪风险。去那边的话，那边完全就是一个镇子变成的区，在犹豫要为了编制过去么吗，也不是本地人。</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:53:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 新买的 n100 2.5g 网卡小主机， pve 8.3 网卡直通给 ikuai，内网只有 1000m</title>
-<link>https://www.v2ex.com/t/1092270</link>
-<guid>https://www.v2ex.com/t/1092270</guid>
-<content:encoded><![CDATA[
-eth0 做 pve 的管理网口，eth1-3 都直通给了 ikuai ，然后 eth1 给 ikuai 做 wan 口，eth2 做 lan 口，高级设置扩展网卡那里同时勾选 eth0 eth3.<br /><br />装的时候一切看起来都很顺利，但是用的时候发现 ikuai 显示网口只有 1000m ，开 iperf3 测试也的确只有千兆内网，在 pve 试图上传一个 ISO 看速度也只有千兆。<br /><br />ikuai 的硬件信息显示也没识别错，就是 i226 网卡<br /><br />CPU<br />Intel(R) N100 | 16384 KB | 806 MHz | ×4<br />硬盘<br />QEMU QEMU HARDDISK 2.5+ (8.00GB)<br />内存<br />4095MB<br />主板芯片：<br />Intel Corporation 82G33/G31/P35/P31 Express DRAM Controller<br />网卡：<br />Intel Corporation Ethernet Controller I226-V (rev 04)<br />网卡：<br />Intel Corporation Ethernet Controller I226-V (rev 04)<br />网卡：<br />Red Hat, Inc. Virtio network device (eth0 bc:24:11:99:73:17)<br />网卡：<br />Intel Corporation Ethernet Controller I226-V (rev 04) <br /><br />现在有点不知道怎么排查了，物理机装 ikuai 肯定是不行的。
-]]></content:encoded>
-<pubDate>2024-11-25T01:48:18Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 纯前端实现图像标记分割和去除背景</title>
-<link>https://www.v2ex.com/t/1092268</link>
-<guid>https://www.v2ex.com/t/1092268</guid>
-<content:encoded><![CDATA[
-<p>最近有了一点空闲时间, 分享一下我的开源画板最近新做的功能, 纯前端实现图片去除背景和图片标记分割, 具体可以在底部菜单上传图片那里体验效果.  </p>
-<p>访问链接: <a href="https://songlh.top/paint-board/" rel="nofollow">https://songlh.top/paint-board/</a><br />
-Github: <a href="https://github.com/LHRUN/paint-board" rel="nofollow">https://github.com/LHRUN/paint-board</a></p>
-<p>这两个功能是通过 transformers.js + WebGPU 实现的, transformers.js 是一个基于 hugging Face 的 transformers 设计的 JS 库, 可以直接在浏览器端运行,  无需借助服务端. 然后它最近也是更新到了大版本 V3, 更新了很多功能, 同时也支持了 WebGPU, 大幅提升了处理速度, 据官方介绍, 比 WASM 快了 100 倍, 像我做的这两个功能基本上处理能达到毫秒级. 不过唯一的缺点就是支持 WebGPU 的浏览器不太多,  建议使用最新版的谷歌浏览器.</p>
-<ul>
-<li><a href="https://huggingface.co/blog/transformersjs-v3" rel="nofollow">Transformers.js v3: WebGPU Support, New Models &amp; Tasks, and More…</a></li>
-</ul>
-<p>而且当前我看 transformers.js 已经在 Hugging Face 上支持了 1000 多个模型, 可以做很多东西. 如果你也是一个前端开发, 我强烈建议你去了解一下 transformers.js, 特别是现在已经支持了 webgpu, 说不定可以为你的项目添加不少亮点.</p>
-<p>如果你有什么好的想法和建议或者也玩过 transformers.js 欢迎交流 🤩</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/LHRUN/file-store/refs/heads/main/post/paint_board_transformersjs/image_1.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/LHRUN/file-store/refs/heads/main/post/paint_board_transformersjs/image_3.png" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/LHRUN/file-store/refs/heads/main/post/paint_board_transformersjs/image_4.png" /></p>
-]]></content:encoded>
-<pubDate>2024-11-25T00:41:37Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 广东电信游戏宽带提速了</title>
-<link>https://www.v2ex.com/t/1092267</link>
-<guid>https://www.v2ex.com/t/1092267</guid>
-<content:encoded><![CDATA[
-<p>原来是 500m/50 的，现在自动给我提升到 1000m/50 ，虽然没什么卵用，但测速好看啊，哈哈</p>
-]]></content:encoded>
-<pubDate>2024-11-25T00:52:40Z</pubDate>
-</item>
-<item>
-<title>[Mac mini] 有没有完美适配 Mac mini4 的显示器推荐？</title>
-<link>https://www.v2ex.com/t/1092266</link>
-<guid>https://www.v2ex.com/t/1092266</guid>
-<content:encoded><![CDATA[
-<p>预算 5000CNY 内.....thanks</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:31:01Z</pubDate>
-</item>
-<item>
-<title>[Mac mini] MINIM4PRO 满血的话，散热怎么样？</title>
-<link>https://www.v2ex.com/t/1092265</link>
-<guid>https://www.v2ex.com/t/1092265</guid>
-<content:encoded><![CDATA[
-<p>手里就一个 mba m3 笔记本，携带挺好，就是性能差点，弄个 minipro 满血，散热怎么样？ 还是残血就行啦？</p>
-]]></content:encoded>
-<pubDate>2024-11-25T01:39:59Z</pubDate>
-</item>
-<item>
-<title>[程序员] epusdt 没啥用的漏洞</title>
-<link>https://www.v2ex.com/t/1092263</link>
-<guid>https://www.v2ex.com/t/1092263</guid>
-<content:encoded><![CDATA[
-<p><strong>省流：不能零元购</strong></p>
-<p>先看一看这一段检查签名的 middleware：</p>
-<pre><code>// https://github.com/assimon/epusdt/blob/master/src/middleware/check_sign.go
-
-func CheckApiSign() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(ctx echo.Context) error {
-            
-			// 先读取所有 Body 内容
-			params, err := ioutil.ReadAll(ctx.Request().Body)
-			if err != nil {
-				return constant.SignatureErr
-			}
-            
-            
-			// 解码 JSON
-			// 注意这里：go 的 json 解码是不管 json 后面的垃圾数据的
-			m := make(map[string]interface{})
-			err = json.Cjson.Unmarshal(params, &amp;m) // err 被忽略了
-            
-			// 这里的 signature 可以是任意类型
-			signature, ok := m["signature"]
-			if !ok {
-				return constant.SignatureErr
-			}
-            
-			// 计算 signature
-			checkSignature, err := sign.Get(m, config.GetApiAuthToken())
-			if err != nil {
-				return constant.SignatureErr
-			}
-            
-			// 虽然 signature 可以是任意类型，但是这里应该是安全的
-			// 因为 go 没有 js 双等于号的自动类型转换
-			if checkSignature != signature {
-				return constant.SignatureErr
-			}
-            
-			// 重置 Body
-			// 注意 JSON 后面的垃圾数据会被保留
-			ctx.Request().Body = ioutil.NopCloser(bytes.NewBuffer(params))
-            
-			return next(ctx)
-		}
-	}
-}
-</code></pre>
-<p>middleware 后面的 controller：</p>
-<pre><code class="language-golang">// https://github.com/assimon/epusdt/blob/master/src/model/request/order_request.go
-
-type CreateTransactionRequest struct {
-	OrderId     string  `json:"order_id" validate:"required|maxLen:32"`
-	Amount      float64 `json:"amount" validate:"required|isFloat|gt:0.01"`
-	NotifyUrl   string  `json:"notify_url" validate:"required"`
-	Signature   string  `json:"signature"  validate:"required"`
-	RedirectUrl string  `json:"redirect_url"`
-}
-</code></pre>
-<pre><code class="language-golang">// https://github.com/assimon/epusdt/blob/master/src/controller/comm/order_controller.go
-
-func (c *BaseCommController) CreateTransaction(ctx echo.Context) (err error) {
-	req := new(request.CreateTransactionRequest)
-    
-	// 这里用到了 echo.Context.Bind
-	if err = ctx.Bind(req); err != nil {
-		return c.FailJson(ctx, constant.ParamsMarshalErr)
-	}
-    
-	if err = c.ValidateStruct(ctx, req); err != nil {
-		return c.FailJson(ctx, err)
-	}
-    
-	resp, err := service.CreateTransaction(req)
-	if err != nil {
-		return c.FailJson(ctx, err)
-	}
-    
-	return c.SucJson(ctx, resp)
-}
-</code></pre>
-<p>echo.Context.Bind 支持多种 mimetype ，所以说应用层可以是 XML 编码，签名是 JSON 编码</p>
-<pre><code class="language-golang">// https://github.com/labstack/echo/blob/9e73691837f52c7fdf4898cbe5bf1d157387bdb0/bind.go#L68
-
-func (b *DefaultBinder) BindBody(c Context, i interface{}) (err error) {
-	req := c.Request()
-	if req.ContentLength &lt;= 0 {
-		return
-	}
-
-	// mediatype is found like `mime.ParseMediaType()` does it
-	base, _, _ := strings.Cut(req.Header.Get(HeaderContentType), ";")
-	mediatype := strings.TrimSpace(base)
-
-	switch mediatype {
-	case MIMEApplicationJSON:
-		
-	case MIMEApplicationXML, MIMETextXML:
-		if err = xml.NewDecoder(req.Body).Decode(i); err != nil {
-			if ute, ok := err.(*xml.UnsupportedTypeError); ok {
-				return NewHTTPError( http.StatusBadRequest, fmt.Sprintf("Unsupported type error: type=%v, error=%v", ute.Type, ute.Error())).SetInternal(err)
-			} else if se, ok := err.(*xml.SyntaxError); ok {
-				return NewHTTPError( http.StatusBadRequest, fmt.Sprintf("Syntax error: line=%v, error=%v", se.Line, se.Error())).SetInternal(err)
-			}
-			return NewHTTPError( http.StatusBadRequest, err.Error()).SetInternal(err)
-		}
-	case MIMEApplicationForm:
-		...
-	case MIMEMultipartForm:
-		...
-	default:
-		return ErrUnsupportedMediaType
-	}
-	return nil
-}
-</code></pre>
-<p>假设我们已经拿到了一个合法的请求：</p>
-<pre><code>curl -d "{\"signature\": \"10744c8a11bcf22851274f7c7222fb4d\", \"amount\": 666.0, \"order_id\": \"2\", \"notify_url\": \"https://example.com\", \"redirect_url\": \"https://example.com\"}" -H "Content-Type: application/json" http://127.0.0.1:8000/api/v1/order/create-transaction
-</code></pre>
-<p>那么就可以把 <code>Content-Type</code> 改称 <code>application/xml</code>，在 JSON 的后面附加上 XML 的请求。检查签名时会忽略后面的 XML 。</p>
-<pre><code>curl -d "{\"signature\": \"10744c8a11bcf22851274f7c7222fb4d\", \"amount\": 666.0, \"order_id\": \"2\", \"notify_url\": \"https://example.com\", \"redirect_url\": \"https://example.com\"}&lt;P&gt;&lt;OrderId&gt;3&lt;/OrderId&gt;&lt;Amount&gt;99.9&lt;/Amount&gt;&lt;NotifyUrl&gt;https://example.com&lt;/NotifyUrl&gt;&lt;RedirectUrl&gt;https://example.com&lt;/RedirectUrl&gt;&lt;Signature&gt;1&lt;/Signature&gt;&lt;/P&gt;" -H "Content-Type: application/xml" http://127.0.0.1:8000/api/v1/order/create-transaction
-
-{"status_code":200,"message":"success","data":{"trade_id":"2024***","order_id":"3","amount":99.9,"actual_amount":13.78,"token":"***","expiration_time":***,"payment_url":"https://example.com/pay/checkout-counter/2024***"},"request_id":"***"}
-</code></pre>
-<p>在检查签名的时候会用到前面的 JSON ，所以这个请求可以通过签名验证。但是在 controller 会把 Body 当成 XML 来解码，所以实际创建的订单的参数是后面的 XML 。</p>
-<p>这个漏洞没啥用，因为一般情况下是拿不到合法的请求的</p>
-]]></content:encoded>
-<pubDate>2024-11-24T21:56:56Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 诚聘高级人才 || 硅谷科技公司 || Be Part of the Future || Top Silicon Valley Company</title>
-<link>https://www.v2ex.com/t/1092262</link>
-<guid>https://www.v2ex.com/t/1092262</guid>
-<content:encoded><![CDATA[
-诚聘高级人才 || 硅谷科技公司 || Be Part of the Future || Top Silicon Valley Company<br /><br />我们是一家位于美国硅谷的科技公司，由硅谷 Palo Alto(Apple, Google, Facebook, Logitech, Tesla, PayPal 等国际公司及 Stanford University 所在地)资深专家和其他国家顶级专家联合创办。<br /> <br />请转发给需要的朋友<br />( <a href="https://imgur.com/a/t0vpwAy" rel="nofollow noopener" target="_blank">https://imgur.com/a/t0vpwAy</a>)<br /><br />本项目与 AI 新模型有关，是虚拟世界中的重要里程碑。<br />本项目将使得多重宇宙成为现实，让我们一起书写历史。<br />项目在在 AGI 方面有授权专利(国际），团队有 30 多年的游戏研发经验(主要是海外游戏, English-Speaking)<br />1 产品合伙人,可以从零到一的产品经理(最好有 AI 项目经验或者游戏项目经验)<br />2 技术合伙人(AI, 全栈等等各个技术方向)，<br />3 艺术总监合伙人(创意舵手，灵感之花，让艺术与商业绽放出璀璨光芒)，<br />4 游戏合伙人(AGI 技术将应用于游戏。正在研发 AI 新模型(已有中美授权专利)，可以用于游戏和电影等领域)<br /><br /><br />总之海纳百川，各种高级人才都要/::D<br />简历请发送到 INFO@MARV.EE<br /><br />请转发给需要的朋友<br />( <a href="https://imgur.com/a/aGyps5s" rel="nofollow noopener" target="_blank">https://imgur.com/a/aGyps5s</a>)<br /><br />--==--==<br />Be Part of the Future || Top Silicon Valley Company<br />We are a tech company located in Silicon Valley, USA, co-founded by senior experts from Palo Alto (home to international companies like Apple, Google, Facebook, Logitech, Tesla, PayPal as well as Stanford University) and other top experts from various countries.<br /><br />This project, which is at the forefront of AI model development, represents a major leap forward in the virtual world.<br />This project will make the multiverse a reality, let us write history together.<br />The project has authorized patents (international) in AGI, and the team has over 30 years of game development experience (mainly overseas games, English-Speaking).<br />1 Product Partner, should be a product manager capable of building from zero to one (preferably with AI project experience or game project experience)<br />2 Technical Co-founders or Entrepreneur (specializing in AI, full-stack development, and various other technical directions)<br />3 Art Director Partners (Creative Helmsmen, Fountain of Inspiration, Where Art and Commerce Flourish)<br />4 Game Partners (Implementing AGI Technology in Games. Developing a New AI Model (Patented in China and the U.S.) Applicable to Games, Films, and More)<br />In general, we welcome all kinds of high-level talents /::D<br /><br />SEND YOUR RESUME TO INFO@MARV.EE<br /><br />Please forward to friends who need this.<br />( <a href="https://imgur.com/a/aGyps5s" rel="nofollow noopener" target="_blank">https://imgur.com/a/aGyps5s</a>)
-]]></content:encoded>
-<pubDate>2024-11-24T21:30:23Z</pubDate>
-</item>
-<item>
-<title>[macOS] 作为一个陆续使用 macOS 超过 12 年的人，这件事真的让我触不及防</title>
-<link>https://www.v2ex.com/t/1092261</link>
-<guid>https://www.v2ex.com/t/1092261</guid>
-<content:encoded><![CDATA[
-简单说一下事件内容，我在 A 目录下有一个文件夹名称为 X ，在 B 目录下也有个文件夹名为 X ，A 目录下文件夹 X 内的文件与 B 目录下的文件夹 X 内的文件完全不一样，完全不重合。<br /><br />然后我要进行的操作是把 B 目录下的 X 文件夹往 A 目录里面拖动，兴许是这么多年来我居然都没有在 macOS 中进行过这样的操作，而在 Windows 系统中，这就是一个非常简单的文件移动和合并操作，我理所当然的认为在 macOS 中也是这样的逻辑。<br /><br />然后当我把文件夹拖动进去的时候，弹了一个确认弹框，我没有细看就很随意的敲了个回车，紧接着弹出了一个持续时间不短也不算长的进度条引起了我的疑惑，当进度条结束的时候，我点开 X 文件夹一看人麻了，原本属于 A 目录下 X 文件夹内的所有文件全部被删除了，里面只剩下了原本属于 B 目录下 X 文件夹的那些文件，并且被删除的文件也没有移入废纸篓，按 Cmd+Z 也无法撤销操作，那些文件是真的被永久删除了。<br /><br />从 2012 年参加工作突然某天领导拿了个 Macmini 给我，让我自学 iOS 开发并接手一个离职同事留下的烂摊子开始，到现在陆陆续续使用了 macOS 有 12 年多了，居然还能中招，造成了一个不大不小的损失，真的是有点哭笑不得
-]]></content:encoded>
-<pubDate>2024-11-24T13:16:20Z</pubDate>
-</item>
-<item>
-<title>[Apple] 港版的 MacBook 和美版日版的在功能上有区别吗？</title>
-<link>https://www.v2ex.com/t/1092260</link>
-<guid>https://www.v2ex.com/t/1092260</guid>
-<content:encoded><![CDATA[
-想买个 MBP ，担心港版的在功能上和其他版本有差别，有没有大佬解答下疑惑？感谢！
-]]></content:encoded>
-<pubDate>2024-11-24T17:44:55Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有看美剧的吗？问一下有什么稳定的 app 可以看的吗</title>
-<link>https://www.v2ex.com/t/1092259</link>
-<guid>https://www.v2ex.com/t/1092259</guid>
-<content:encoded><![CDATA[
-<p>国外的 app 也行，付费的也行。</p>
-<p>不太喜欢用网盘，经常过一段时间就不知道看到第几集了，画质也不好。</p>
-<p>还是想用 app ，求稳定的推荐。</p>
-]]></content:encoded>
-<pubDate>2024-11-24T17:19:28Z</pubDate>
-</item>
-<item>
-<title>现代化 SSH 客户端求推荐</title>
-<link>https://www.v2ex.com/t/1090995</link>
-<guid>https://www.v2ex.com/t/1090995</guid>
-<content:encoded><![CDATA[
-<p>楼主平时用的是 mobaXterm ，想试试不同的口味，求推荐！</p>
-<p>对 SSH 客户端的期望有：</p>
-<ul>
-<li>UI 现代化：界面较为美观</li>
-<li>易用性：希望能开箱即用</li>
-<li>开源：希望是开源的，且不需要登录账号</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-11-23T16:09:18Z</pubDate>
-</item>
-<item>
-<title>[香港] HSBC HK 线上开户设置流动理财流程中断</title>
-<link>https://www.v2ex.com/t/1092258</link>
-<guid>https://www.v2ex.com/t/1092258</guid>
-<content:encoded><![CDATA[
-<p>HSBC 线上开户激活过账户（上传了出入境记录），设置流动理财的时候流程断了怎么办？回不去刚刚界面了，有收到开户成功的短信，也能拿着户口号码用柜员机存入现金。</p>
-<p>然后我尝试注册流动理财，但是需要户号和提款卡密码，无法完成注册。我打电话问了汇丰客服，客服说她也是第一次处理这种情况。</p>
-]]></content:encoded>
-<pubDate>2024-11-24T16:25:09Z</pubDate>
-</item>
-<item>
-<title>[程序员] 大家的 V2rayU 是如何定制的？貌似直接改 config.json 不起作用？</title>
-<link>https://www.v2ex.com/t/1092256</link>
-<guid>https://www.v2ex.com/t/1092256</guid>
-<content:encoded><![CDATA[
-<p>如题。最近因为各种原因被迫从 ClashX 切换到了 V2rayU 。当我想去更改规则实现更加灵活地控制的时候，我发现手动编辑~/.V2rayU/config.json 之后，重启 V2rayU 该文件就被重置为默认值了。这不能是 BUG 了吧？大家是怎么定制规则的呢？使用它那个迷一样的配置界面？</p>
-]]></content:encoded>
-<pubDate>2024-11-24T16:10:11Z</pubDate>
-</item>
-<item>
-<title>[程序员] 技术和业务需求哪个牛逼？</title>
-<link>https://www.v2ex.com/t/1092255</link>
-<guid>https://www.v2ex.com/t/1092255</guid>
-<content:encoded><![CDATA[
-<p>最近在想一个问题，一直想不通，就是技术和业务哪个牛逼？或者说哪一个是领导地位，谁带动谁？究竟是技术带动需求，还是需求带动技术？</p>
-]]></content:encoded>
-<pubDate>2024-11-24T16:25:12Z</pubDate>
-</item>
-<item>
-<title>[小米] 换颗粒是否=换机？</title>
-<link>https://www.v2ex.com/t/1092254</link>
-<guid>https://www.v2ex.com/t/1092254</guid>
-<content:encoded><![CDATA[
-我有一台小米 9se  很早的机器   想问一下 把颗粒换到同型号机器上 是否可以等同于换机<br /><br />目前是开不了机 主板坏了 不是很好修<br />或者有什么其他方式可以成功换机<br />请求援助🙏 谢谢
-]]></content:encoded>
-<pubDate>2024-11-24T15:59:11Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 移动宽带 光猫拨号正常，改桥接后路由器拨号提示错误代码 678</title>
-<link>https://www.v2ex.com/t/1092252</link>
-<guid>https://www.v2ex.com/t/1092252</guid>
-<content:encoded><![CDATA[
-坐标：020<br /><br />光猫型号：SG331 路由器：小米 AX3000<br /><br />光猫拨号、路由器当 ap 用的时候，可以正常上网<br /><br />光猫改桥接、路由器拨号就提示错误代码 678<br /><br />这到底是怎么回事？
-]]></content:encoded>
-<pubDate>2024-11-24T16:06:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 系统学习比特币开发就在...</title>
-<link>https://www.v2ex.com/t/1092251</link>
-<guid>https://www.v2ex.com/t/1092251</guid>
-<content:encoded><![CDATA[
-<p>截止发帖，比特币价格 96000 美金. 已经快 10 万美金了, 学习比特币是入门区块链最好的方式。</p>
-<p>系统学习比特币就在 📷  <a href="https://bitcoin.heapup.tech" rel="nofollow">https://bitcoin.heapup.tech</a></p>
-]]></content:encoded>
-<pubDate>2024-11-24T15:34:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 联通宽带，现在有什么好的 cn2 线路的主机推荐吗？</title>
-<link>https://www.v2ex.com/t/1092249</link>
-<guid>https://www.v2ex.com/t/1092249</guid>
-<content:encoded><![CDATA[
-<p>谷歌云最近经常抽风，准备放弃了，现在有啥高性价比的 cn2 线路主机推荐吗，要求线路稳定啊，是联通宽带，谢谢。</p>
-]]></content:encoded>
-<pubDate>2024-11-24T16:04:05Z</pubDate>
-</item>
-<item>
-<title>[Apple] iOS 有哪些支持 xtls-rprx-vision 流控、reality 和 clash 规则集的代理工具，小火箭不太行， stash 不支持 xtls-rprx-vision 流控</title>
-<link>https://www.v2ex.com/t/1092247</link>
-<guid>https://www.v2ex.com/t/1092247</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-11-24T15:38:14Z</pubDate>
-</item>
-<item>
-<title>[广州] 天河客运站 长湴 东荣翰林苑 小区两房转租 3500</title>
-<link>https://www.v2ex.com/t/1092246</link>
-<guid>https://www.v2ex.com/t/1092246</guid>
-<content:encoded><![CDATA[
-<p>天河客运站小区两房转租
-个人工作变动转租！先到先得民水电性价比高
-房型:独立厨卫，两房一厅一厨一卫，还带大阳台可上下左右四层晒衣服被子，通风采光特别好！冰箱，洗衣机，燃气灶，空调等家电一应俱全，阳台可看到氧吧火炉山森林公园和华南植物园，小区绿化率百分之六十，住得很舒服，楼下是天河区公立幼儿园和广东省科学院等七家研究所，对面有建丽民办幼儿园，最近公交站长兴路东
-合同:2025 年 4 月 13 到期，房东直租，房东人特别好，需租和房东直接重新签合同！当时我们也是从别的小伙伴转租过来的，水电超级便宜，六毛电费，两块五的水
-小区情况:小区绿化很好，环境优美，电梯两部四户速度超快，楼顶可看到小蛮腰，门口有保安，门禁刷卡，女孩子住很安全，适合合租或一家人住，小区楼下就有配套丰巢快递柜 6 列，平时拿取快递方便，小区是按照跑道分列的所以早晚可以跑步放松，楼下还有儿童游乐园聊天散步很温馨，有公共电动自行车充电桩，楼下有三家小商超市，早餐小吃店，便利店，平时不想做饭时吃饭购物很方便，小区旁边就是街道办和社区中心，公交 8 分钟左右到大型购物商场优托邦长兴购物中心和天河新天地，周末逛街吃饭看电影都很方便
-#房屋出租 #民用水电燃 #整租 #必租好房 #天河客运站租房
-租金:3️⃣5️⃣张，相对其他小区性价比超高，实地看了就知道哈，押二付一，民水民电，看中可随时立搬
-地址:广州市天河区东荣翰林苑 D 栋，靠近地铁站 3/6 号线天河客运站，门口有 7 、8 条公交线路，公交通勤出行方便，欢迎小伙伴们随时咨询看房哦</p>
-<p>海鲜链接
-[闲鱼]  <a href="https://m.tb.cn/h.TcisD5D?tk=knq13tgFwiT" rel="nofollow">https://m.tb.cn/h.TcisD5D?tk=knq13tgFwiT</a> HU9046 「我在闲鱼发布了 [天河客运站小区两房转租] 」
-点击链接直接打开</p>
-<p><a href="https://postimg.cc/34GgQ60p" rel="nofollow">9260f5eb1a3871b1335e03238b6a71e.jpg</a></p>
-<p><a href="https://postimg.cc/H84XVy2k" rel="nofollow">67d292a840f35f506eac3bcd0d3f2f6.jpg</a></p>
-<p><a href="https://postimg.cc/9zGGx6hH" rel="nofollow">0f74a850886489f5bb744eeb589491f.jpg</a></p>
-<p><a href="https://postimg.cc/PCFZphmY" rel="nofollow">2df6b7afa23e893b7818cf2fd7bc4e1.jpg</a></p>
-]]></content:encoded>
-<pubDate>2024-11-24T15:04:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 苹果的蓝牙鼠标和触控板发飘的解决办法?</title>
-<link>https://www.v2ex.com/t/1092245</link>
-<guid>https://www.v2ex.com/t/1092245</guid>
-<content:encoded><![CDATA[
-<p>无论是苹果的蓝牙鼠标和触控板发飘, 就算离开 MacBook 或者 Mac mini 才 30 里面远, 就开始发飘. 无奈, 市面上又没有发现带手势功能的鼠标或者无线触摸板, 大佬们, 有解决的办法么? 或者有其他牌子的替代也可以</p>
-]]></content:encoded>
-<pubDate>2024-11-24T10:58:20Z</pubDate>
-</item>
-<item>
-<title>[Java] 我们总是避免不了这一种需求</title>
-<link>https://www.v2ex.com/t/1092244</link>
-<guid>https://www.v2ex.com/t/1092244</guid>
-<content:encoded><![CDATA[
-<p>非常不好意思，连续发两篇文章肯定是打扰到大家了，但我是有苦衷的[大哭][大哭]，之前梯子出了点问题，所以一直访问不上，今天刚刚弄好，所以就把之前积累的两篇文章都发出来了。</p>
-<p>在此我真诚的给大家道个歉，实在是不好意思。</p>
-<hr />
-<p><strong>我们总是避免不了这样一种需求，写个定时任务去查数据库或者去别的地方捞数据，然后对查出来的数据进行各种业务逻辑的处理。</strong></p>
-<p>这其实就是就是一种生产者与消费者模式，查询数据库的过程可以称为“生产”，对数据进行处理的过程可以称为“消费”，只不过大部分情况下我们都懒得去把他们分开，而是查出来就直接处理了。但是这种做法有个很明显的缺陷，就是生产和消费这两个步骤有时会互相阻塞。</p>
-<p>也就是说当查询数据的步骤出现阻塞的时候就没有数据来处理了。</p>
-<p>反过来也一样，当处理数据的步骤阻塞了，会导致查询数据的步骤停下来。</p>
-<p><strong>所以为了让这两种能力可以各自发挥，我们需要把他们分开，各干各的，而这种分开的设计方式就叫生产者与消费者模型。</strong></p>
-<p>只要能查到数据就尽管查，就算没人处理也不会影响我继续查。</p>
-<p>只要有数据我就处理，我才不管你此刻是不是阻塞了，你之前查出来的数据，我可能都还没处理完。</p>
-<h2>所以我写了一个小工具，可以很好的解决这个问题</h2>
-<p>他是一个多对多的模型，可以把多个生产者和多个消费者放到一个组合里，这个组合里所有的生产者都可以发布数据，而发布出去的数据会被所有消费者接收到。</p>
-<p>每个生产者都会单独占用一个线程，每个消费者也一样。</p>
-<p><strong>比如像这样子我们就可以创建一个组合</strong></p>
-<pre><code class="language-java">// 创建一组生产者与消费者，而这样组可以创建无限个
-// 每一组的生产者都只会把数据推送给同一组的消费者
-MagicDataProcessing.getProducerAndConsumerManager()
-                .addProducer(new DemoProducer()) // 添加一个生产者（可以添加多个）
-                .addConsumer(new DemoConsumer()) // 添加一个消费者（可以添加多个）
-                .start();
-</code></pre>
-<p><strong>生产者长这样</strong></p>
-<p>这里省略了很多其他配置，感兴趣的可以去官网查看</p>
-<pre><code class="language-java">public class DemoProducer extends MagicProducer {
-
-    /**
-     * 当生产者启动后，会自动执行这个方法，我们可以在这个方法里生产数据，并通过 publish 方法发布给消费者
-     *
-     * 这边举一个例子
-     * 假如我们需要不断地扫描某张表，根据里面的数据状态去执行一些业务逻辑
-     * 那么我们可以在这个方法里写一个查询的逻辑，然后将查询到数据发送给消费者
-     */
-    @Override
-    public void producer() {
-        // 根据上面的例子，我们可以查询这张表里符合条件的数据
-        List&lt;Object&gt; dataList = selectList();
-
-        // 然后将他推送给消费者
-        // 可以推送任意类型的数据
-        this.publish(dataList);
-
-        // 也可以分页查询，一页一页的推，至于怎么分页那就是业务层的事情了
-
-    }
-}
-</code></pre>
-<p><strong>消费者长这样</strong></p>
-<p>同样省略了很多其他配置，感兴趣的可以去官网查看</p>
-<pre><code class="language-java">public class DemoConsumer extends MagicConsumer {
-
-    /**
-     * 心跳通知，消费者每消费一个任务，都会触发一下这个方法
-     * 我们可以根据他触发的频率来判断这个消费者的活跃度
-     *
-     * 注意！！！
-     * 这个方法里不可以有耗时的操作，不然会将消费者阻塞的
-     * 如果一定要加耗时的操作，那么务必在新线程里搞
-     * @param id
-     */
-    @Override
-    public void pulse(String id) {
-        new Thread(()-&gt;{
-            // 如果你需要在这个方法里搞一些耗时的操作，那么务必要像这样开启一个新线程
-            // 不然消费者会被阻塞的
-        }).start();
-    }
-
-
-    /**
-     * 这个方法会接收到生产者推送过来的数据
-     * 在里面执行相应的业务逻辑即可
-     * @param data
-     */
-    @Override
-    public void doRunner(Object data) {
-        // data 可以是任何类型
-        // 因为能给他推送数据的生产者是固定的，所以 data 有可能收到的类型也是固定的
-        // 所以我们可以在这里自己判断，然后转化即可
-        // 为什么不用泛型？这是为了兼容多个生产者，因为他们推送的数据类型可能会不同
-    }
-}
-</code></pre>
-<h2>这个模型里做了哪些事情？</h2>
-<ul>
-<li>多线程处理，也就是前面提到的，每个生产者，每个消费者都是由单独的线程去执行的</li>
-<li>会自动开始下一轮生产，当生产者里的 producer 方法执行结束就意味着一轮生产已经结束了，根据业务需求如果需要不断的生产一轮又一轮，那么 producer 方法会自动不断地去执行。</li>
-<li>限制生产者，当生产者投放完一轮数据以后，会去监视消费者是否把这批数据消费完了，如果没消费完就会进入等待，这样可以在一定程度上避免数据积压。</li>
-</ul>
-<h2>其他扩展功能</h2>
-<p>项目里还提供了其他的工具类，可以并发处理 List ，Set ，Map 等集合，如果在生产者或者消费者里用上这些工具，可以进一步提高效率。</p>
-<p>官网地址：<a href="https://magician-io.com" rel="nofollow">https://magician-io.com</a></p>
-]]></content:encoded>
-<pubDate>2024-11-24T14:58:15Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] 如果 macbook 同时插两个（或以上）type-c 口充电，会怎样？</title>
-<link>https://www.v2ex.com/t/1092242</link>
-<guid>https://www.v2ex.com/t/1092242</guid>
-<content:encoded><![CDATA[
-<p>充电效率会叠加吗？比如 c1 口充电器功率是 65w ，c2 口是 30w ，那 c1c2 同插，会不会以 95w 充电？</p>
-]]></content:encoded>
-<pubDate>2024-11-24T14:54:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 各位大佬，求救一个 Python 问题，关于 Enum 的使用</title>
-<link>https://www.v2ex.com/t/1092241</link>
-<guid>https://www.v2ex.com/t/1092241</guid>
-<content:encoded><![CDATA[
-<p>我写了一个程序，其中有一段是这样的：</p>
-<pre><code class="language-python">class Detector(Enum):
-    BBO = "BBO"
-    DECIGO = "DECIGO"
-
-    @property
-    def ell_max(self) -&gt; int:
-        ell_max = {
-            Detector.BBO: 30,
-            Detector.DECIGO: 30,
-        }
-        return ell_max[self]
-</code></pre>
-<p>我现在需要在一个循环中改变 ell_max 的值，也就是不设置为 30 了，而是设置成其他值。我尝试过定义一个 def set_ell_max(self, ell_max) 但最终失败了。我的失败品如下：</p>
-<pre><code class="language-python">class Detector(Enum):
-    BBO = "BBO"
-    DECIGO = "DECIGO"
-    _ell_max_values = {
-        DECIGO: 30,
-        BBO: 30,
-    }
-    @property
-    def ell_max(self) -&gt; int:
-        return self._ell_max_values[self]
-    
-    def set_ell_max(self, value: int):
-        self._ell_max_values[self] = value
-</code></pre>
-<p>这种情况下，当我使用 Detector.BBO.ell_max 的时候，会提示 ```TypeError: 'Detector' object is not subscriptable</p>
-<pre><code class="language-。">
-请问各位大哥，我该怎么处理呀？</code></pre>
-]]></content:encoded>
-<pubDate>2024-11-22T14:48:37Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 联通分时段限速？ IPv6 网间互通问题？</title>
-<link>https://www.v2ex.com/t/1092240</link>
-<guid>https://www.v2ex.com/t/1092240</guid>
-<content:encoded><![CDATA[
-<p>地点 A （坐标 022), 地点 B （坐标 010 ）
-A 使用联通家宽，B 使用移动家宽，都是有公网 IPv4 和 IPv6</p>
-<p>A 和 B 之间使用 WireGuard 连接 （两端都是 IPv6 地址），跑了 RIP ，A 和 B 网络下的任意设备可以使用 <a href="http://192.xxx" rel="nofollow">192.xxx</a> 地址互相访问 （已经验证 OK ）</p>
-<p>QNAP 在 A ，已经设置好了端口转发，任意网络（包括蜂窝数据）访问均正常</p>
-<p>A 和 B 之间正常访问了很久很久，B 拖拽 QNAP 的文件基本上可以满速下载 （ 100 Mbps ，单独办理了上传加速包）</p>
-<p>目前有个很诡异的问题，晚上的时候（时间不确定），B 下载 QNAP 的文件被限速到 2Mbps ，白天的时候依然可以跑满。
-联系过联通宽带故障人员，表示没有做任何限速。</p>
-<p><strong>请问各位大神，如何确认是联通限制了上传还是移动限制了下载？</strong></p>
-<p>已经做过的测试：</p>
-<p>1.关掉 WireGuard ，使用 IPSEC 连接，无改善（排除了特殊协议被照顾）</p>
-<p>2.在 B ，直接使用 QNAP 的 IPv6 地址和 IPv4 地址访问并下载，下载使用的 TCP 协议，无改善 （排除了 UDP 被丢包...？）使用的是 IDM ，多线程 （ 4 ）</p>
-<p>3.使用 022 另一个联通家宽，连接 wireguard 之后，下载文件，接近 100 Mbps</p>
-<p>4.使用 iperf3 从 B 下载 A ，限速时（晚上） 下载速度 2 Mbps ，其余时间接近 100 Mbps ，测试命令只指定服务器地址和下载方向 （&gt;iperf3.exe -c 192.168.123.15 -R ）</p>
-<p>5.使用 iperf3 从 B 下载 A ，限速时（晚上） 下载速度近 100 Mbps ，测试命令指定服务器地址和下载方向并要求多线程 （ iperf3.exe -c 192.168.123.15 -R -P 10 ）
-<strong>==&gt;&gt;懵逼 ing 黑人问号脸&lt;&lt;==</strong></p>
-<p>使用 iperf3 测试的时候，基于 WireGuard 已经连接好（所以使用的内网 IP 地址）</p>
-<p>6.使用联通或者移动电话卡热点，从 QNAP 下载文件，均接近 100 Mbps （手动使用 QNAP 的 IPv6 地址连接）</p>
-<p>另外在被限速和非限速的时候，从 B 查询 tracert 到 A ，并没有明显区别（或者我没看出来？）
-结果如下（删掉了 IPv6 地址的最后几位）</p>
-<p>限速：</p>
-<pre><code>Tracing route to 2408:XXXX: over a maximum of 30 hops
-
-  1    25 ms    37 ms    11 ms  2409:####
-  2     9 ms     3 ms     3 ms  2409:8000:0:2370::1
-  3     6 ms     6 ms     6 ms  2409:8000:0:2371::
-  4     7 ms     6 ms     6 ms  2409:8080:0:2:106:177::
-  5     8 ms     9 ms     9 ms  2409:8080:0:1:105:1e2:1:1
-  6     *        *       39 ms  2408:8000:3::64e
-  7     *        *        *     Request timed out.
-  8     *        *        *     Request timed out.
-  9    44 ms    42 ms    43 ms  2408:8000:2001::27
- 10    72 ms    78 ms    73 ms  2408:8000:2008::327
- 11    50 ms    43 ms    41 ms  2408:####
-</code></pre>
-<p>非限速：</p>
-<pre><code> Tracing route to 2408:#### over a maximum of 30 hops
-
-  1    26 ms     6 ms     4 ms  2409:####
-  2     7 ms     3 ms     3 ms  2409:8000:0:2370::1
-  3     5 ms     4 ms     4 ms  2409:8000:0:2370::
-  4     6 ms     5 ms     5 ms  2409:8080:0:2:106:178::
-  5     7 ms     6 ms     7 ms  2409:8080:0:1:105:1e2:1:1
-  6     *        *        *     Request timed out.
-  7    14 ms    14 ms    15 ms  2408:8000:2:6f4::
-  8     *        *        *     Request timed out.
-  9    57 ms    54 ms    54 ms  2408:8000:2001:8000::27
- 10    17 ms    17 ms    16 ms  2408:8000:2008::8c3
- 11    24 ms    27 ms    24 ms  2408:####
-
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-11-24T16:22:42Z</pubDate>
 </item>
 </channel>
 </rss>
