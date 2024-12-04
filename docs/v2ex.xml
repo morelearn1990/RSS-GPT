@@ -5,14 +5,473 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] 后端人用 Windsurf 写了个前端页面 感觉还是很丝滑</title>
+<link>https://www.v2ex.com/t/1095070</link>
+<guid>https://www.v2ex.com/t/1095070</guid>
+<content:encoded><![CDATA[
+
+自己体验下来 就 chat 模式 一步步写就行，效率还是很可以的。<br />比较好的点 比如：<br />1.你可以文字描述布局 它直接就很好的生成代码(初版)，配色什么的也是可以自己做的<br />2.样式什么的也可以自己调整<br /><br />不过也有一些问题：<br />1.基于初版再改的时候有时候就乱改了，有点发神经<br />2.跨文件夹的修改成功率还是低<br /><br />花费了一下午时间写了一个，各位大佬可以看看效果，Windsurf 的使用心得欢迎一起交流哦。<br /><a href="https://arcanecharacters.com/en" rel="nofollow noopener" target="_blank">https://arcanecharacters.com/en</a>
+]]></content:encoded>
+<pubDate>2024-12-04T14:22:21Z</pubDate>
+<pubDate>2024-12-04T14:20:21Z</pubDate>
+</item>
+<item>
+<title>[V2EX] V 站好像没有『业余无线电』版块，问下相关内容发在哪个版块较合适？</title>
+<link>https://www.v2ex.com/t/1095069</link>
+<guid>https://www.v2ex.com/t/1095069</guid>
+<content:encoded><![CDATA[
+
+<p>RT</p>
+<p>比如我想分享一个天线制作教程，是根据其类型，选择发在分享创造吗？</p>
+]]></content:encoded>
+<pubDate>2024-12-04T14:20:11Z</pubDate>
+<pubDate>2024-12-04T14:22:27Z</pubDate>
+</item>
+<item>
+<title>[程序员] 使用 ChatGPT 编写的 shell 脚本，想问下这个脚本有没有啥问题</title>
+<link>https://www.v2ex.com/t/1095067</link>
+<guid>https://www.v2ex.com/t/1095067</guid>
+<content:encoded><![CDATA[
+
+<pre><code class="language-shell">#!/bin/bash
+
+# 输出颜色
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# 提示用户操作风险
+confirm_action() {
+    echo -e "\033[1;33m 注意: 此脚本将安装多个工具和服务, 可能会修改系统配置, 带来潜在的安全风险!!!\033[0m"
+    read -p "是否继续执行？  (y/n): " CONFIRM
+    if [[ "$CONFIRM" != "y" ]]; then
+        echo "操作已取消。"
+        exit 0
+    fi
+}
+
+# 检查是否以 root 权限运行
+if [ "$(id -u)" -ne 0 ]; then
+  echo "请以 root 用户运行此脚本!!!"
+  exit 1
+fi
+
+# 检测操作系统和包管理器
+detect_package_manager() {
+    if command -v apt &amp;&gt; /dev/null; then
+        PACKAGE_MANAGER="apt"
+    elif command -v yum &amp;&gt; /dev/null; then
+        PACKAGE_MANAGER="yum"
+    else
+        echo "无法检测到支持的包管理器 (apt 或 yum), 请手动安装必要的依赖。"
+        exit 1
+    fi
+}
+ 
+# 安装必要工具
+install_packages() {
+    if [ "$PACKAGE_MANAGER" = "apt" ]; then
+        curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
+        apt update &amp;&amp; apt install -y curl wget unzip openssl cloudflare-warp
+    elif [ "$PACKAGE_MANAGER" = "yum" ]; then
+        curl -fsSl https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo | tee /etc/yum.repos.d/cloudflare-warp.repo
+        yum install -y epel-release
+        yum install -y curl wget unzip openssl cloudflare-warp
+    fi
+}
+
+# 变量定义
+DOMAIN=${1:-"example.com"} # 如果未提供域名参数，则默认使用 example.com
+DAYS_VALID=365             # 证书有效期（天数）
+CERT_DIR="/usr/local/etc/xray"           # 证书存储目录
+
+
+
+
+# 创建存储目录
+mkdir -p ${CERT_DIR}
+
+# 生成私钥
+openssl genrsa -out ${CERT_DIR}/${DOMAIN}.key 2048
+
+# 生成证书签名请求（ CSR ）
+openssl req -new -key ${CERT_DIR}/${DOMAIN}.key -out ${CERT_DIR}/${DOMAIN}.csr -subj "/CN=${DOMAIN}"
+
+# 生成自签名证书
+openssl x509 -req -days ${DAYS_VALID} -in ${CERT_DIR}/${DOMAIN}.csr -signkey ${CERT_DIR}/${DOMAIN}.key -out ${CERT_DIR}/${DOMAIN}.crt
+
+# 安装 Xray-core
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+UUID=$(xray uuid)
+cat &gt;&gt; /usr/local/etc/xray/config.json &lt;&lt; EOF
+{
+  "inbounds": [
+    {
+      "tag": "direct",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "${UUID}",
+            "flow": ""
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls",
+        "tlsSettings": {
+          "serverNames": [
+            ""
+          ],
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ],
+          "certificates": [
+            {
+              "certificateFile": "${CERT_DIR}/${DOMAIN}.crt",
+              "keyFile": "${CERT_DIR}/${DOMAIN}.key"
+            }
+          ]
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ],
+        "routeOnly": true
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "direct",
+      "protocol": "freedom"
+    },
+    {
+      "tag": "warp",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "127.0.0.1",
+            "port": 2333
+          }
+        ]
+      }
+    }
+  ],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "warp",
+        "domain": [
+          "domain:openai.com",
+          "domain:chatgpt.com",
+          "domain:ai.com",
+          "domain:chat.com",
+          "domain:cloudflare.com",
+          "domain:youtube.com",
+          "domain:netflix.com"
+        ]
+      }
+    ]
+  }
+}
+EOF
+systemctl enable xray
+
+# 配置 Cloudflare WARP 
+warp-cli mode proxy
+warp-cli proxy port 2333
+warp-cli registration new
+warp-cli connect
+systemctl enable warp-svc
+
+# 获取公网 IP 地址
+get_public_ip() {
+    # 使用主服务获取 IP
+    IP=$(curl -s ifconfig.me)
+    if [ -z "$IP" ]; then
+        echo "主服务 ifconfig.me 不可用，尝试其他服务..."
+        # 备选服务 1: ipinfo.io
+        IP=$(curl -s ipinfo.io/ip)
+        if [ -z "$IP" ]; then
+            echo "备选服务 ipinfo.io 不可用，尝试其他服务..."
+            # 备选服务 2: ip-api.com
+            IP=$(curl -s http://ip-api.com/line?fields=query)
+            if [ -z "$IP" ]; then
+                echo "无法获取公网 IP 地址，请检查网络连接。"
+                IP="未知"
+            fi
+        fi
+    fi
+    echo "$IP"
+}
+
+# 调用函数获取 IP 地址
+IP=$(get_public_ip)
+# 输出结果
+echo "可使用以下命令查看服务状态："
+echo "  systemctl status xray  # 检查 Xray 服务状态"
+echo "  warp-cli status        # 检查 WARP 状态"
+echo -e "uuid: ${UUID}"
+echo -e "本机公网 IP 地址: ${IP}"
+echo "xray-core 配置文件路径: /usr/local/etc/xray/config.json"
+</code></pre>
+]]></content:encoded>
+<pubDate>2024-12-04T14:16:40Z</pubDate>
+<pubDate>2024-12-04T14:20:06Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 程序员怎么社招进国企？</title>
+<link>https://www.v2ex.com/t/1095064</link>
+<guid>https://www.v2ex.com/t/1095064</guid>
+<content:encoded><![CDATA[
+
+<p>马上 29 了，在不想在某互联网大厂卷了，想在国企干一辈子了。</p>
+<p>想面国企，但是不知道怎么个流程：怎么找到一个公司列表，怎么投递，怎么面试（之前除了校招，都是猎头帮我找的）。</p>
+<p>大佬们可以帮忙指指方向吗？在搜索引擎上搜犹如大海捞针</p>
+]]></content:encoded>
+<pubDate>2024-12-04T14:08:30Z</pubDate>
+<pubDate>2024-12-04T14:12:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如何在同一个浏览器窗口内，分屏显示多个标签页分屏？</title>
+<link>https://www.v2ex.com/t/1095063</link>
+<guid>https://www.v2ex.com/t/1095063</guid>
+<content:encoded><![CDATA[
+
+在平时工作中，经常需要同时查看多个网页内容：对比文档、参考资料、翻译内容、编写代码...不断切换标签页不仅费时，还容易打断思路。<br />	<br />而很多分屏插件都是分成了多个浏览器窗口，但是我不想拆分多个浏览器窗口啊，很不方便管理。如果能在其他浏览器上用到跟 arc 自带的分屏功能差不多的体验就好了。<br />	<br />而 Split Screen Pro 插件就可以在在同一个浏览器窗口内，一键将多个标签页分屏显示，支持自由调整分屏比例。真的很贴合我的使用场景！！！<br /><br /><a href="https://split-screen.freeourdays.com" rel="nofollow noopener" target="_blank">https://split-screen.freeourdays.com</a>
+]]></content:encoded>
+<pubDate>2024-12-04T13:52:35Z</pubDate>
+<pubDate>2024-12-04T13:49:35Z</pubDate>
+</item>
+<item>
+<title>[Google] Google aistudio 不让中国访问了，怎么能绕过？</title>
+<link>https://www.v2ex.com/t/1095062</link>
+<guid>https://www.v2ex.com/t/1095062</guid>
+<content:encoded><![CDATA[
+
+<p>怎么能绕过地区检测啊</p>
+<p>prompt 写了一半，晚上回来一看被封了</p>
+]]></content:encoded>
+<pubDate>2024-12-04T13:44:25Z</pubDate>
+<pubDate>2024-12-04T13:47:35Z</pubDate>
+</item>
+<item>
+<title>[程序员] 帮我分析下 shell 脚本有啥问题</title>
+<link>https://www.v2ex.com/t/1095061</link>
+<guid>https://www.v2ex.com/t/1095061</guid>
+<content:encoded><![CDATA[
+
+<p>#!/bin/bash</p>
+<h1>输出颜色</h1>
+<p>GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color</p>
+<h1>检查是否以 root 权限运行</h1>
+<p>if [ "$(id -u)" -ne 0 ]; then
+echo "请以 root 用户运行此脚本！"
+exit 1
+fi</p>
+<h1>更新系统</h1>
+<p>apt update &amp;&amp; apt upgrade -y </p>
+<h1>安装必要工具</h1>
+<p>apt install -y curl wget unzip openssl</p>
+<h1>变量定义</h1>
+<p>DOMAIN=${1:-"<a href="http://example.com" rel="nofollow">example.com</a>"} # 如果未提供域名参数，则默认使用 <a href="http://example.com" rel="nofollow">example.com</a>
+DAYS_VALID=365             # 证书有效期（天数）
+CERT_DIR="/usr/local/etc/xray"           # 证书存储目录</p>
+<h1>创建存储目录</h1>
+<p>mkdir -p ${CERT_DIR}</p>
+<h1>生成私钥</h1>
+<p>openssl genrsa -out ${CERT_DIR}/${DOMAIN}.key 2048</p>
+<h1>生成证书签名请求（ CSR ）</h1>
+<p>openssl req -new -key ${CERT_DIR}/${DOMAIN}.key -out ${CERT_DIR}/${DOMAIN}.csr -subj "/CN=${DOMAIN}"</p>
+<h1>生成自签名证书</h1>
+<p>openssl x509 -req -days ${DAYS_VALID} -in ${CERT_DIR}/${DOMAIN}.csr -signkey ${CERT_DIR}/${DOMAIN}.key -out ${CERT_DIR}/${DOMAIN}.crt</p>
+<h1>安装 Xray-core</h1>
+<p>bash -c "$(curl -L <a href="https://github.com/XTLS/Xray-install/raw/main/install-release.sh)%22" rel="nofollow">https://github.com/XTLS/Xray-install/raw/main/install-release.sh)"</a> @ install
+UUID=$(xray uuid)
+cat &gt;&gt; /usr/local/etc/xray/config.json &lt;&lt; EOF
+{
+"inbounds": [
+{
+"tag": "direct",
+"port": 443,
+"protocol": "vless",
+"settings": {
+"clients": [
+{
+"id": "${UUID}",
+"flow": ""
+}
+],
+"decryption": "none",
+"fallbacks": []
+},
+"streamSettings": {
+"network": "tcp",
+"security": "tls",
+"tlsSettings": {
+"serverNames": [
+""
+],
+"alpn": [
+"h2",
+"http/1.1"
+],
+"certificates": [
+{
+"certificateFile": "${CERT_DIR}/${DOMAIN}.crt",
+"keyFile": "${CERT_DIR}/${DOMAIN}.key"
+}
+]
+}
+},
+"sniffing": {
+"enabled": true,
+"destOverride": [
+"http",
+"tls",
+"quic"
+],
+"routeOnly": true
+}
+}
+],
+"outbounds": [
+{
+"tag": "direct",
+"protocol": "freedom"
+},
+{
+"tag": "warp",
+"protocol": "socks",
+"settings": {
+"servers": [
+{
+"address": "127.0.0.1",
+"port": 2333
+}
+]
+}
+}
+],
+"routing": {
+"rules": [
+{
+"type": "field",
+"outboundTag": "warp",
+"domain": [
+"domain:<a href="http://openai.com" rel="nofollow">openai.com</a>",
+"domain:<a href="http://chatgpt.com" rel="nofollow">chatgpt.com</a>",
+"domain:<a href="http://ai.com" rel="nofollow">ai.com</a>",
+"domain:<a href="http://chat.com" rel="nofollow">chat.com</a>",
+"domain:<a href="http://cloudflare.com" rel="nofollow">cloudflare.com</a>",
+"domain:<a href="http://youtube.com" rel="nofollow">youtube.com</a>",
+"domain:<a href="http://netflix.com" rel="nofollow">netflix.com</a>"
+]
+}
+]
+}
+}
+EOF
+systemctl enable xray</p>
+<h1>安装 Cloudflare WARP</h1>
+<p>curl -fsSL <a href="https://pkg.cloudflareclient.com/pubkey.gpg" rel="nofollow">https://pkg.cloudflareclient.com/pubkey.gpg</a> | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] <a href="https://pkg.cloudflareclient.com/" rel="nofollow">https://pkg.cloudflareclient.com/</a> $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
+apt update &amp;&amp; apt install cloudflare-warp</p>
+<h1>配置 Cloudflare WARP</h1>
+<p>warp-cli mode proxy
+warp-cli proxy port 2333
+warp-cli registration new
+warp-cli connect
+systemctl enable warp-svc</p>
+<h1>获取公网 IP 地址</h1>
+<p>get_public_ip() {
+# 使用主服务获取 IP
+IP=$(curl -s <a href="http://ifconfig.me" rel="nofollow">ifconfig.me</a>)
+if [ -z "$IP" ]; then
+echo "主服务 <a href="http://ifconfig.me" rel="nofollow">ifconfig.me</a> 不可用，尝试其他服务..."
+# 备选服务 1: <a href="http://ipinfo.io" rel="nofollow">ipinfo.io</a>
+IP=$(curl -s <a href="http://ipinfo.io/ip" rel="nofollow">ipinfo.io/ip</a>)
+if [ -z "$IP" ]; then
+echo "备选服务 <a href="http://ipinfo.io" rel="nofollow">ipinfo.io</a> 不可用，尝试其他服务..."
+# 备选服务 2: <a href="http://ip-api.com" rel="nofollow">ip-api.com</a>
+IP=$(curl -s <a href="http://ip-api.com/line?fields=query" rel="nofollow">http://ip-api.com/line?fields=query</a>)
+if [ -z "$IP" ]; then
+echo "无法获取公网 IP 地址，请检查网络连接。"
+IP="未知"
+fi
+fi
+fi
+echo "$IP"
+}</p>
+<h1>调用函数获取 IP 地址</h1>
+<p>IP=$(get_public_ip)</p>
+<h1>输出结果</h1>
+<p>echo "可使用以下命令查看服务状态："
+echo "  systemctl status xray  # 检查 Xray 服务状态"
+echo "  warp-cli status        # 检查 WARP 状态"
+echo -e "uuid: ${UUID}"
+echo -e "本机公网 IP 地址: ${IP}"
+echo "xray-core 配置文件路径: /usr/local/etc/xray/config.json"</p>
+]]></content:encoded>
+<pubDate>2024-12-04T13:30:34Z</pubDate>
+<pubDate>2024-11-24T13:29:34Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 2024 年你买了哪些好物？</title>
+<link>https://www.v2ex.com/t/1095060</link>
+<guid>https://www.v2ex.com/t/1095060</guid>
+<content:encoded><![CDATA[
+
+<p>摸鱼刷到<a href="https://v2ex.com/t/1094893" rel="nofollow">2024 年你买了哪些数码好物</a>，打开发现都没自己感兴趣、有冲动的物件，于是想到不如开一贴，不止数码好物，好玩、好吃、好用的物件都可以分享分享，让大家都“扩宽”一下视野。</p>
+]]></content:encoded>
+<pubDate>2024-12-04T13:14:25Z</pubDate>
+<pubDate>2024-12-04T14:10:54Z</pubDate>
+</item>
+<item>
+<title>[教育] 小孩学编程，报什么班比较好？</title>
+<link>https://www.v2ex.com/t/1095059</link>
+<guid>https://www.v2ex.com/t/1095059</guid>
+<content:encoded><![CDATA[
+
+python,还是 c++，scratch?
+]]></content:encoded>
+<pubDate>2024-12-04T12:53:24Z</pubDate>
+<pubDate>2024-12-04T13:49:15Z</pubDate>
+</item>
+<item>
+<title>如果每天都拍一点记录生活的视频，有没有一个工具，可以将每天的素材剪辑出来。</title>
+<link>https://www.v2ex.com/t/1093828</link>
+<guid>https://www.v2ex.com/t/1093828</guid>
+<content:encoded><![CDATA[
+
+如果每天都拍一点记录生活的视频，有没有一个工具，可以将每天的素材剪辑出一条成片。
+]]></content:encoded>
+<pubDate>2024-11-29T13:13:21Z</pubDate>
+<pubDate>2024-11-30T18:39:08Z</pubDate>
+</item>
+
+<item>
 <title>[MySQL] 新项目准备启动， MYSQL 选择 8.4.2 这个版本，有没什么坑？</title>
 <link>https://www.v2ex.com/t/1095057</link>
 <guid>https://www.v2ex.com/t/1095057</guid>
 <content:encoded><![CDATA[
-
 生产环境还是不要追求太新，用回 MYSQL 8.0.40 ？<br />但是又想尝试一下新版本！
 ]]></content:encoded>
-<pubDate>2024-12-04T12:37:12Z</pubDate>
 <pubDate>2024-12-04T12:37:12Z</pubDate>
 </item>
 <item>
@@ -20,11 +479,9 @@
 <link>https://www.v2ex.com/t/1095056</link>
 <guid>https://www.v2ex.com/t/1095056</guid>
 <content:encoded><![CDATA[
-
 <p>莫名其妙加入退出几个家庭账户就出现这样的情况，都不知道咋弄了，现在换账号意味着我所有的 Apple Music 都没法听了</p>
 <p><img alt="image" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/iojMYkb.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2024-12-04T12:26:44Z</pubDate>
 <pubDate>2024-12-04T12:46:36Z</pubDate>
 </item>
 <item>
@@ -32,10 +489,8 @@
 <link>https://www.v2ex.com/t/1095055</link>
 <guid>https://www.v2ex.com/t/1095055</guid>
 <content:encoded><![CDATA[
-
 <p>有没有大佬知道，用 iPad Pro 通过 RDP 远程 Windows ，妙控键盘上是否能使用 Windows 中的 Alt+任意键的快捷键组合呢？</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T12:25:28Z</pubDate>
 <pubDate>2024-12-04T12:25:28Z</pubDate>
 </item>
 <item>
@@ -43,10 +498,8 @@
 <link>https://www.v2ex.com/t/1095054</link>
 <guid>https://www.v2ex.com/t/1095054</guid>
 <content:encoded><![CDATA[
-
 一面过了，二面人事要求去现场面试，距离 600 多公里，可以要求对方报销路费吗？<br />要求吧，又怕对方不要了……
 ]]></content:encoded>
-<pubDate>2024-12-04T12:13:01Z</pubDate>
 <pubDate>2024-12-03T20:11:01Z</pubDate>
 </item>
 <item>
@@ -54,12 +507,10 @@
 <link>https://www.v2ex.com/t/1095051</link>
 <guid>https://www.v2ex.com/t/1095051</guid>
 <content:encoded><![CDATA[
-
 <p>平时主力机型是 M1 Macbook,现在因为教学需要使用 Window+VMware Station 。就是套娃那种,虚拟机里面安装虚拟机~
 现在在 M1 Mac 上使用 PD 安装好 win11,但是就是一直装不上 VMware ，内心有点崩溃。
 目前一直报错“Failed to install the hcmon driver”，解决方案都不适用。网上看似乎大家都没有这种使用场景，唉~</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T11:58:32Z</pubDate>
 <pubDate>2024-12-04T12:20:50Z</pubDate>
 </item>
 <item>
@@ -67,10 +518,8 @@
 <link>https://www.v2ex.com/t/1095050</link>
 <guid>https://www.v2ex.com/t/1095050</guid>
 <content:encoded><![CDATA[
-
 请人帮忙注册了一个 talkatone ，但申请谷歌账号，电话验证，竟然都不允许，出现:<br /><br />This phone number cannot be used for <a href="http://verification.Google" rel="nofollow noopener" target="_blank">verification.Google</a> will verify this number via SMS (charges may apply).<br /><br /><br />另外，申请 Google voice ，为什么选不了号码?我试了加州，纽约，华盛顿好几个州，都说没有 Google voice ，为啥?大佬指点一下。
 ]]></content:encoded>
-<pubDate>2024-12-04T11:56:56Z</pubDate>
 <pubDate>2024-12-04T11:55:56Z</pubDate>
 </item>
 <item>
@@ -78,10 +527,8 @@
 <link>https://www.v2ex.com/t/1095048</link>
 <guid>https://www.v2ex.com/t/1095048</guid>
 <content:encoded><![CDATA[
-
 <p>RT,电汇招行，先扣了 5 刀手续费，然后填写的是总行，结果现在总行不处理外汇入账了，全部下发到开户行，然后开户行跟我说要有合同，谷歌上海开的那个他们不一定认（给她看了模板），说第一笔可以根据这些材料帮我入账，以后第二笔第三笔就别想了。。。咨询了中行中行是说一般都可以入账，但是要看发起方的报文和附言，如果提到劳务佣金之类的就要求在职证明和劳动合同（这东西鬼知道去哪里拿）。。。现在有些无解了。咋整。</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T11:50:46Z</pubDate>
 <pubDate>2024-12-04T12:38:05Z</pubDate>
 </item>
 <item>
@@ -89,7 +536,6 @@
 <link>https://www.v2ex.com/t/1095047</link>
 <guid>https://www.v2ex.com/t/1095047</guid>
 <content:encoded><![CDATA[
-
 <p>今天看到了知乎热榜有这么一条：</p>
 <p>[宝宝树创始人称员工周末不响应，感到失望退出所有员工群，暴露出该企业存在哪些问题？背后的商业真相是什么？] [<a href="https://www.zhihu.com/question/5924980012" rel="nofollow">https://www.zhihu.com/question/5924980012</a>]</p>
 <p>因此，我就在想，这瓜娃子创始人，我以后绝对不买他家的东西。</p>
@@ -97,7 +543,6 @@
 <p>大家去消费时，把这个分也作为自己选择的一个因素。</p>
 <p>这样，我们员工就可以以消费者这个第四方的身份，来影响公司对员工的剥削，这也是在改善自己的工作环境。</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T11:50:14Z</pubDate>
 <pubDate>2024-12-04T11:48:14Z</pubDate>
 </item>
 <item>
@@ -105,10 +550,8 @@
 <link>https://www.v2ex.com/t/1095044</link>
 <guid>https://www.v2ex.com/t/1095044</guid>
 <content:encoded><![CDATA[
-
 线路 1<br />成都电信 → 阿里云深圳 → 阿里云香港 → Misaka 香港 VPS<br /><br />线路 2<br />成都电信 → 阿里云深圳 → 阿里云香港 → Misaka 美国 VPS<br /><br />线路 3<br />成都电信 → 阿里云深圳 → 阿里云香港 → Gcore 美国 VPS<br /><br />在之前，<a href="http://speedtest.net" rel="nofollow noopener" target="_blank">speedtest.net</a> 都能跑到 200Mb/s 的下载速度，100Mb/s 的下载速度；<br />上面 3 条线路，都能跑到这个成绩。<br /><br />今天下午感觉网络有点慢，重新测试了一下，只有 20mb/s 的下载速度了，上传还是没变。<br /><br />论坛的各位大佬知道是什么情况吗？
 ]]></content:encoded>
-<pubDate>2024-12-04T11:43:29Z</pubDate>
 <pubDate>2024-12-04T11:40:29Z</pubDate>
 </item>
 <item>
@@ -116,7 +559,6 @@
 <link>https://www.v2ex.com/t/1095043</link>
 <guid>https://www.v2ex.com/t/1095043</guid>
 <content:encoded><![CDATA[
-
 <p>如题，使用的是咱自己写的 DNS 服务器，通过真实用户的播测结果进行 IP 优选</p>
 <p>Telegram 群: <a href="https://t.me/+gc9bZm17VSU3NzA9" rel="nofollow">NS-OwO https://cf.owonet.work/Group</a></p>
 <p>网址： <a href="https://cf.owonet.work/" rel="nofollow">https://cf.owonet.work/</a></p>
@@ -126,17 +568,14 @@
 <p>需要用的可以加群 w</p>
 ]]></content:encoded>
 <pubDate>2024-12-04T11:40:25Z</pubDate>
-<pubDate>2024-12-04T11:40:25Z</pubDate>
 </item>
 <item>
 <title>[求职] 休息 4 个月，北京 6 年+后端求捞</title>
 <link>https://www.v2ex.com/t/1095042</link>
 <guid>https://www.v2ex.com/t/1095042</guid>
 <content:encoded><![CDATA[
-
 java/go 均可，麻烦联系一下
 ]]></content:encoded>
-<pubDate>2024-12-04T11:32:59Z</pubDate>
 <pubDate>2024-12-04T11:32:59Z</pubDate>
 </item>
 <item>
@@ -144,10 +583,8 @@ java/go 均可，麻烦联系一下
 <link>https://www.v2ex.com/t/1095041</link>
 <guid>https://www.v2ex.com/t/1095041</guid>
 <content:encoded><![CDATA[
-
 <p>有群的拉下。。v: mutaxi</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T11:31:16Z</pubDate>
 <pubDate>2024-12-04T07:30:16Z</pubDate>
 </item>
 <item>
@@ -155,10 +592,8 @@ java/go 均可，麻烦联系一下
 <link>https://www.v2ex.com/t/1095040</link>
 <guid>https://www.v2ex.com/t/1095040</guid>
 <content:encoded><![CDATA[
-
 <p>看 M4 系列的各种测评，基本上只有性能测试，暗示如此高的性能表现和基础频率，必然伴随着更大的能量消耗。但是基本上没有人做续航或者温度测试，尤其是对于旗舰版的芯片：如果我购买了 M4 Max ，虽然偶尔会干重活，但很多时候还是在做普通的事情。那么 M4 Max 在这些场景的表现（能效比、发热、续航）是否连低阶芯片都不如呢？这方面好像没有看到有人评论。所以想问问站里已经换了设备的大佬们（其他层次的芯片也可以，M4 、M4 Pro 、M1-3 系列的各类芯片用户），听听大家的意见。</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T11:01:33Z</pubDate>
 <pubDate>2024-12-04T12:34:40Z</pubDate>
 </item>
 <item>
@@ -167,9 +602,7 @@ java/go 均可，麻烦联系一下
 <guid>https://www.v2ex.com/t/1095039</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-12-04T10:45:57Z</pubDate>
 <pubDate>2024-12-04T10:49:37Z</pubDate>
 </item>
 <item>
@@ -178,9 +611,7 @@ java/go 均可，麻烦联系一下
 <guid>https://www.v2ex.com/t/1095035</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-12-04T10:30:26Z</pubDate>
 <pubDate>2024-12-04T12:25:14Z</pubDate>
 </item>
 <item>
@@ -188,13 +619,10 @@ java/go 均可，麻烦联系一下
 <link>https://www.v2ex.com/t/1095034</link>
 <guid>https://www.v2ex.com/t/1095034</guid>
 <content:encoded><![CDATA[
-
 <p>「 Surge for iOS 」新车 3 设备差 2 个位置，买断 120 元，授权终身有效，如果出了新的版本，后续可与车友协商升级，跳车不退，如要换设备可自行反激活。 联系 V：KKKEEF</p>
 ]]></content:encoded>
-<pubDate>2024-12-04T10:30:21Z</pubDate>
 <pubDate>2024-12-04T10:29:21Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 女朋友学编程从什么语言什么教程/游戏开始比较好？</title>
 <link>https://www.v2ex.com/t/1095033</link>
@@ -17738,172 +18166,6 @@ html 、div+css 、Js Jq 、Vue<br />linux 脚本、docker k8s 、宝塔软件<b
 为何我的 offeice  安装破解补丁 总是提示要登录无法破解 你们用什么版本 共享下？
 ]]></content:encoded>
 <pubDate>2024-11-29T07:38:23Z</pubDate>
-</item>
-<item>
-<title>[PayPal] Talktone 目前不能注册美区 paypal 了吗？</title>
-<link>https://www.v2ex.com/t/1093846</link>
-<guid>https://www.v2ex.com/t/1093846</guid>
-<content:encoded><![CDATA[
-新注册了一个 talktone 号码，用网站确认了是 CellPhone 实体号码。注册 tg 也一切正常。然而注册 PayPal 时却提示“尝试其他号码”。<br /><a href="https://i.imgur.com/HIerDoY.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/HIerDoY.png" /></a><br /><br /><br />注册 paypal 时，挂的是通过了 talktone 检测的机场梯子。注册途径是 wiki 捐献 和 app store 绑定支付，两者都提示“尝试其他号码”。<br /><br />请问目前还有人用 talktone 成功注册吗？能否通过接码换绑 talktone 号码的方式注册美区 paypal 账户呢？目前注册美区 paypal 除实体卡外还有别的的途径吗？
-]]></content:encoded>
-<pubDate>2024-11-29T15:22:37Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] 为何 openwrt 里 ipv6 dhcp 指定后缀与实际分配后缀不符？</title>
-<link>https://www.v2ex.com/t/1093844</link>
-<guid>https://www.v2ex.com/t/1093844</guid>
-<content:encoded><![CDATA[
-<p>如题，我编译的是 LEDE 2024/11/11 版本，我指定为 dhcp server v6 没有 SLAAC, 静态地址后缀与 ipv4 一致，比如一个设备 192.168.2.2 那么 ipv6 后缀就给他指定为 2 ，以此类推，结果在 已分配的 DHCPv6 租约里面，有一部分设备能按照后缀来分配，另一部分却变成了其他的值，比如 ipv4 结尾为 42 的，就变成了 f08,这是怎么回事？我选的是有状态。安卓不支持 dhcpv6 不会显示。</p>
-]]></content:encoded>
-<pubDate>2024-11-29T15:10:58Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Hot jobs
-Position 一: Community and Engagement Lead (Overseas Market)
-Position 二: Senior ZKP Engineer (资深零知识证明工程师)</title>
-<link>https://www.v2ex.com/t/1093843</link>
-<guid>https://www.v2ex.com/t/1093843</guid>
-<content:encoded><![CDATA[
-Position 一: Community and Engagement Lead (Overseas Market)<br />Job Type: Full-Time, Remote<br />Industry: Web3/Laye2/DEX<br />PS:<br />1 、Bachelor degree or above, proficient in English.<br />2 、Spearhead the development and implementation of community engagement strategies, with a strong understanding of overseas community media, forums and other communication platforms.<br />3 、Knowledge of BlockChain/Web3 and related technologies.<br />4 、Familiar with viral marketing/labyrinthine coin marketing, and the ability to utilize trends to create a huge market impact.<br />5 、Ability to take over and organize a global/grand meme campaign when you come in, and hope to make this project fire up quickly.<br /><br /><br />Position 二: Senior ZKP Engineer (资深零知识证明工程师)<br />Job Type: Full-Time, Remote<br />Industry: Web3/Layer 2/DEX<br />PS:<br />1 、Responsible for the design, development and optimization of ZKP system for virtual machines.<br />2 、Familiar with plonky3, rust, golang. experience required.<br />3 、Have engineering design ability.<br />4 、Experience in large-scale parallel computing systems is preferred.<br />5 、web3 industry track background.<br /><br /><br />TG：@jtx_2023
-]]></content:encoded>
-<pubDate>2024-11-29T14:56:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在 Java 都有啥新技术？</title>
-<link>https://www.v2ex.com/t/1093840</link>
-<guid>https://www.v2ex.com/t/1093840</guid>
-<content:encoded><![CDATA[
-我突然想起来今年 2 月份面字节的时候，二面的 TL 问我，最近有关注什么 java 或者是其他的新技术么。java 我就回答了 JDK21 的虚拟线程和 langchain 等大模型框架。但是感觉面试官不太满意。  想请求一下 java 新技术都有啥，又都从哪里去了解呢。
-]]></content:encoded>
-<pubDate>2024-11-29T15:09:47Z</pubDate>
-</item>
-<item>
-<title>[程序员] 基于 Cloudflare 的向量数据库实现了一个跨境业务导航的搜索，看上去效果还不错</title>
-<link>https://www.v2ex.com/t/1093838</link>
-<guid>https://www.v2ex.com/t/1093838</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.crosshubs.com/zh" rel="nofollow">https://www.crosshubs.com/zh</a></p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:42:44Z</pubDate>
-</item>
-<item>
-<title>[Linux] 谷歌浏览器为啥现在还没有 Linux ARM 版本？</title>
-<link>https://www.v2ex.com/t/1093837</link>
-<guid>https://www.v2ex.com/t/1093837</guid>
-<content:encoded><![CDATA[
-<p>最近拿来了几台 XC 电脑，本来想装谷歌浏览器的，发现不支持 ARM 版本的，各位对于 ARM 架构的 Linux 系统浏览器有啥推荐的吗？</p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:42:10Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有些创业者是如何保持除了发展自身业务，还有精力在所有社交平台都保持每日更新的？</title>
-<link>https://www.v2ex.com/t/1093836</link>
-<guid>https://www.v2ex.com/t/1093836</guid>
-<content:encoded><![CDATA[
-<p>包括多个主流社交平台，</p>
-<p>几乎每天，不仅输出有价值的内容，还回复部分评论，</p>
-<p>真的都是精力超级旺盛，完全不休息？不倦怠？</p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:34:21Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] Hulu 黑五促销</title>
-<link>https://www.v2ex.com/t/1093835</link>
-<guid>https://www.v2ex.com/t/1093835</guid>
-<content:encoded><![CDATA[
-<p>Hulu 99¢ 每月，持续 12 个月</p>
-<p>Hulu + Disney Plus $2.99 每月，持续 12 个月</p>
-<p>12 月 2 日前 offer 有效。</p>
-<p><a href="https://www.hulu.com/welcome" rel="nofollow">https://www.hulu.com/welcome</a></p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:17:10Z</pubDate>
-</item>
-<item>
-<title>[程序员] 14 岁的我，注册了 V2EX。</title>
-<link>https://www.v2ex.com/t/1093834</link>
-<guid>https://www.v2ex.com/t/1093834</guid>
-<content:encoded><![CDATA[
-<p>今年是我注册 V 站的十周年。</p>
-<p>我初次来 V 站的时间还要更早一些，在 12 年或者 13 年。V 站不用注册就能看帖，所以就一直处于游客状态。即便后来注册了，我也一直在潜水。</p>
-<p>回想一下十多年前的我。</p>
-<hr />
-<p>当时，我沉迷于各种建站技术，从 LAMP 栈开始，跟着 W3School 中文版边学边做，用的是红帽 OpenShift 的免费主机（现已不再免费），可以配置 SSH 密钥登录。HTML 、CSS 、JavaScript 三剑客，JavaScript 是我的第一门编程语言。当时我目标是成为一名全栈工程师。</p>
-<p>刷 V 站，就是看看大家怎么捣鼓建站，比如搭一个 WordPress ，然后再部署一个 GoAgent 的 PHP 脚本（最初是 GAE ），科学的上网。那个时候 phuslu 大神还在 V 站活动答疑。然后因为 GoAgent ，我开始学习了 Python 2 。</p>
-<p>小中考期间，家里断了网。我抱着 iPad 3 ，看着缓存好的英文《 Python Tutorial 2.7 》学习，闭门造车写了一个解数独的程序。现在看来，没学过算法，野路子只凭感觉写的程序很丑很慢，还不准。</p>
-<p>到了高中，我写的 Python 脚本成功抢到了想要的选修课，这更是使我兴趣大增。再后来，一次偶然的失误使得我给本班在微信刷了一百多万票，但校领导信以为真，还专门在校园广播上正经的表扬了我们班。至今此事仍为笑柄。</p>
-<p>再后来，到了大学，我从野路子变为了科班生。408 的四门课，再加上编译原理和其他几门课，让我对编程有了新的认识。</p>
-<hr />
-<p>十年过去了，现在的我不是全栈工程师，而是在某 996 厂做 C++ 数据库内核开发。兴趣，仍是驱动我编程的首要因素。有意思的是，当年想要建的网站，至今还未建好：）</p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:10:24Z</pubDate>
-</item>
-<item>
-<title>[程序员] 求推荐一个跨平台的密码管理器</title>
-<link>https://www.v2ex.com/t/1093833</link>
-<guid>https://www.v2ex.com/t/1093833</guid>
-<content:encoded><![CDATA[
-<p>一直在用 Chrome 和 Edge 自带的密码保存，但是发现这些密码只能在这俩浏览器用，很多时候同步还失败。</p>
-<p>求荐一个密码管理器，支持 Windows 平台，可以跨设备同步最好（ iPad 和 Android ）。</p>
-<p>另外是不是开源的密码管理器安全性会更好一些？</p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:09:20Z</pubDate>
-</item>
-<item>
-<title>[Apple] M4 Mac mini 和 M2 Pro Mac mini 选哪个？</title>
-<link>https://www.v2ex.com/t/1093832</link>
-<guid>https://www.v2ex.com/t/1093832</guid>
-<content:encoded><![CDATA[
-<p>有点想再买一个，有点犹豫。。</p>
-]]></content:encoded>
-<pubDate>2024-11-29T14:04:01Z</pubDate>
-</item>
-<item>
-<title>[macOS] mac 上有什么开机即连的小巧蓝牙鼠标推荐么？</title>
-<link>https://www.v2ex.com/t/1093831</link>
-<guid>https://www.v2ex.com/t/1093831</guid>
-<content:encoded><![CDATA[
-<p>目前在用的蓝牙鼠标在开机，或者唤醒电脑的时候，链接比键盘要慢好多，</p>
-<p>有的时候，还会断连，虽然非常的小巧，但还是很不方便，</p>
-<p>请问大家有什么小巧的蓝牙鼠标推荐么，不需要那种人体工程学鼠标，一直用不惯，</p>
-<p>谢谢大家的推荐</p>
-]]></content:encoded>
-<pubDate>2024-11-29T13:25:45Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 有转让上海联通 200 上行宽带的吗</title>
-<link>https://www.v2ex.com/t/1093829</link>
-<guid>https://www.v2ex.com/t/1093829</guid>
-<content:encoded><![CDATA[
-<p>就是去年 39+10 那个</p>
-]]></content:encoded>
-<pubDate>2024-11-29T13:16:25Z</pubDate>
-</item>
-<item>
-<title>[奇思妙想] 如果每天都拍一点记录生活的视频，有没有一个工具，可以将每天的素材剪辑出来。</title>
-<link>https://www.v2ex.com/t/1093828</link>
-<guid>https://www.v2ex.com/t/1093828</guid>
-<content:encoded><![CDATA[
-如果每天都拍一点记录生活的视频，有没有一个工具，可以将每天的素材剪辑出一条成片。
-]]></content:encoded>
-<pubDate>2024-11-29T13:13:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求教有什么刷杯子比较好用的工具吗</title>
-<link>https://www.v2ex.com/t/1093827</link>
-<guid>https://www.v2ex.com/t/1093827</guid>
-<content:encoded><![CDATA[
-<p>最近开始泡茶叶喝了，感觉整个杯子里面都有薄薄一层茶渍，时间久了还会有点难闻，不知道各位大佬平时都是用什么工具刷杯子的，而且方便在公司储存的</p>
-]]></content:encoded>
-<pubDate>2024-11-29T10:11:29Z</pubDate>
-</item>
-<item>
-<title>[问与答] 进入冬季了，大家的电动自行车电池性能衰减有多厉害？</title>
-<link>https://www.v2ex.com/t/1093826</link>
-<guid>https://www.v2ex.com/t/1093826</guid>
-<content:encoded><![CDATA[
-坐标北京，24 年 5 月买了 1 台爱玛指挥官 5 （锂电 48v24a ），骑到现在有 550 公里了，进到冬季（ 10 月份其实就开始坏起来了）发现了 2 个问题，第一是续航相比于夏天衰减比较厉害（ 50-&gt;现在不到 35 ），二是充电充不到 100%了，智能充电桩，夏天自动断电是可以到 100%的，而现在只能到 98%，第三是掉电速度不均匀，98 到 70 这段掉电异常快，到了 50 到 69 好一些接近原来水平，下了 50 又很快，这种正常吗？大家的车续航咋样？
-]]></content:encoded>
-<pubDate>2024-11-29T14:04:59Z</pubDate>
 </item>
 </channel>
 </rss>
