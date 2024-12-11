@@ -5,14 +5,652 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 做了个 Docker image，生成的 image 为什么会这么庞大，附 Dockerfile...</title>
+<link>https://www.v2ex.com/t/1096825</link>
+<guid>https://www.v2ex.com/t/1096825</guid>
+<content:encoded><![CDATA[
+
+```<br />FROM alpine:latest<br /><br /># 替换为阿里云的 Alpine 源<br />RUN sed -i 's/<a href="http://dl-cdn.alpinelinux.org/mirrors.aliyun.com/g'" rel="nofollow noopener" target="_blank">dl-cdn.alpinelinux.org/mirrors.aliyun.com/g'</a> /etc/apk/repositories<br /><br /># 安装构建和运行所需依赖<br />RUN apk add --no-cache \<br />    build-base \<br />    ca-certificates \<br />    tar \<br />    libressl-dev \<br />    perl \<br />    linux-headers \<br />    musl-dev<br /><br /># 将 OpenSSL 源码文件从宿主机复制到容器<br />COPY openssl-3.4.0.tar.gz /opt/<br /><br /># 解压、编译并安装 OpenSSL<br />WORKDIR /opt<br />RUN tar -xzf openssl-3.4.0.tar.gz &amp;&amp; rm openssl-3.4.0.tar.gz<br />WORKDIR /opt/openssl-3.4.0<br />RUN ./config no-shared no-zlib no-dso no-tests &amp;&amp; \<br />    make &amp;&amp; \<br />    make install &amp;&amp; \<br />    make clean &amp;&amp; \<br />    rm -rf /opt/openssl-3.4.0<br /><br /># 删除构建工具和临时文件<br />RUN apk del --purge \<br />    build-base \<br />    ca-certificates \<br />    tar \<br />    perl \<br />    linux-headers \<br />    musl-dev \<br />    &amp;&amp; rm -rf /tmp/* /var/cache/apk/* /usr/share/man /usr/share/doc /usr/share/locale<br /><br /># 更新动态链接库路径<br />RUN echo "/usr/local/lib64" &gt; /etc/ld-musl-x86_64.path<br /><br /># 设置环境变量<br />ENV PATH="/usr/local/bin:${PATH}"<br />ENV LD_LIBRARY_PATH="/usr/local/lib64:/usr/lib:/lib"<br /><br /># 默认命令<br />CMD ["openssl", "version"]<br />```<br /><br />生成的镜像，有 440MB 之大，是不是有些残留没清干净？ 还是 OpenSSL 编译完成，就这么大？
+]]></content:encoded>
+<pubDate>2024-12-11T12:47:03Z</pubDate>
+<pubDate>2024-12-11T12:47:03Z</pubDate>
+</item>
+<item>
+<title>[程序员] plate.js 编辑器 表格的问题求助</title>
+<link>https://www.v2ex.com/t/1096824</link>
+<guid>https://www.v2ex.com/t/1096824</guid>
+<content:encoded><![CDATA[
+
+<p>我发现我的 plate 实现的表格，在设置 overflow-x:auto 后，出现滚动条之后，点击单元格不会更新光标位置了。但是 plate 的官网是正常的，用的 29.2.21 的版本，求有经验的大佬指点一下</p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:37:23Z</pubDate>
+<pubDate>2024-12-11T12:34:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 哪位 V 友有 fastadmin 的 CMS 内容管理系统资源？求一份</title>
+<link>https://www.v2ex.com/t/1096823</link>
+<guid>https://www.v2ex.com/t/1096823</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://www.fastadmin.net/store/cms.html" rel="nofollow">https://www.fastadmin.net/store/cms.html</a>  就是这个。</p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:37:15Z</pubDate>
+<pubDate>2024-12-11T12:37:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求大佬邀请我注册一个远景论坛</title>
+<link>https://www.v2ex.com/t/1096821</link>
+<guid>https://www.v2ex.com/t/1096821</guid>
+<content:encoded><![CDATA[
+
+<p>求大佬邀请我注册一个远景论坛，需要邀请码</p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:17:19Z</pubDate>
+<pubDate>2024-12-11T12:17:19Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 求推荐还有哪些和 V2EX 一样高质量的交流网站？</title>
+<link>https://www.v2ex.com/t/1096820</link>
+<guid>https://www.v2ex.com/t/1096820</guid>
+<content:encoded><![CDATA[
+
+<p>V2EX 如此开放和活跃的氛围实在让人上瘾，虽然很早就注册了过这个网站，但最近才发现它的能量。</p>
+<p>现在大部分网站都是单向接受信息为主的网站。虽然大部分网站都带有发帖功能，但如果不是大 V/官方/付费主发的内容，基本没有出头和讨论的机会。</p>
+<p>求推荐是否有哪些和 V2EX 一样高质量的交流网站？</p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:13:42Z</pubDate>
+<pubDate>2024-12-11T12:48:01Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 我在写一个安卓计数器 app</title>
+<link>https://www.v2ex.com/t/1096819</link>
+<guid>https://www.v2ex.com/t/1096819</guid>
+<content:encoded><![CDATA[
+
+<p>目前大概已经完成了 70%吧，在 GitHub 上发布了 debug apk 。请大家用用看，测测有啥 bug 。大家有啥计数器功能要求也可以提出来。谢谢大家。</p>
+<p>链接 </p>
+<p><a href="https://github.com/TenzinJamyangZHS/RimeCounter/releases/tag/pre-release" rel="nofollow">https://github.com/TenzinJamyangZHS/RimeCounter/releases/tag/pre-release</a></p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:08:22Z</pubDate>
+<pubDate>2024-12-11T12:14:13Z</pubDate>
+</item>
+<item>
+<title>[分享创造] UIUX 设计师摸黑写 Google 插件： App Mode Launcher</title>
+<link>https://www.v2ex.com/t/1096818</link>
+<guid>https://www.v2ex.com/t/1096818</guid>
+<content:encoded><![CDATA[
+
+<p>🎉 愉快的完成了第一个自己的谷歌插件，本来是自己看盘用的，单独用了一个显示器来刷 Twitter Deck （ Pro 模式）及时看 X 上面相关的社交信息，发现需求之后至少自己有使用的动力就索性再走一步开发写了这个简单的程序。本人是 UIUX 设计师，请大神轻喷～哈哈哈哈</p>
+<p><a href="https://chrome.google.com/webstore/detail/knaelcekjbeepnfmjihpdomnfbjkhnif" rel="nofollow">https://chrome.google.com/webstore/detail/knaelcekjbeepnfmjihpdomnfbjkhnif</a></p>
+<p><img alt="Intro Pic 1" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GehBHS7aEAEH7zi?format=png&amp;name=large" />
+<img alt="Intro Pic 2" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GehBHS7aEAI6tDb?format=jpg&amp;name=large" />
+<img alt="Intro Pic 3" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GehBHS6bYAAmhuf?format=jpg&amp;name=large" /></p>
+<p>本人网站，欢迎结识各路大佬
+<a href="https://www.devinwang.com/" rel="nofollow">https://www.devinwang.com/</a></p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:06:29Z</pubDate>
+<pubDate>2024-12-11T12:06:29Z</pubDate>
+</item>
+<item>
+<title>[推广] epub 书的电报群</title>
+<link>https://www.v2ex.com/t/1096817</link>
+<guid>https://www.v2ex.com/t/1096817</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://t.me/+JJL5RyNGqpM4YzBh" rel="nofollow">https://t.me/+JJL5RyNGqpM4YzBh</a>
+听说字越少，。。。</p>
+]]></content:encoded>
+<pubDate>2024-12-11T12:03:57Z</pubDate>
+<pubDate>2024-12-11T12:00:57Z</pubDate>
+</item>
+<item>
+<title>[Apple] iPad 有哪些好用的电子相框 app</title>
+<link>https://www.v2ex.com/t/1096815</link>
+<guid>https://www.v2ex.com/t/1096815</guid>
+<content:encoded><![CDATA[
+
+有一台闲置的 ipad mini 4 16G 实际可用容量不到 4G<br /><br />打算做成电子相框，可以通过文件应用播放 U 盘中的照片或视频。<br /><br />找了一圈没找到顺手的 app
+]]></content:encoded>
+<pubDate>2024-12-11T11:54:35Z</pubDate>
+<pubDate>2024-12-11T12:31:34Z</pubDate>
+</item>
+<item>
+<title>[酷工作] Xoul 招聘多个岗位</title>
+<link>https://www.v2ex.com/t/1096814</link>
+<guid>https://www.v2ex.com/t/1096814</guid>
+<content:encoded><![CDATA[
+
+<h2>我们的愿景</h2>
+<p>我们是 Xoul ，一个专注于游戏与娱乐平台的创新平台，通过人工智能，让每个人都能创造与体验角色、游戏与虚拟世界。</p>
+<p>当创作者与消费者汇聚于此，分享故事与创意，Xoul 就成为一个融合故事叙述与人类连接的社交中心。我们相信，这正是下一代社交媒体的形态。
+希望有识之士加入我们，和我们一起通过人工智能推动媒体、创意与人类连接的边界，共创未来！
+了解更多： <a href="https://xoul.ai/" rel="nofollow">https://xoul.ai/</a></p>
+<h2>为什么选择我们？</h2>
+<ul>
+<li>真实的市场验证：在 2 个月内测阶段，我们已吸引 5 万名用户，每日处理超过 200 万次请求（其中约 50 万次 AI 推理调用）。</li>
+<li>强大的用户社区：我们的产品已在社交平台积累了忠实、活跃且高度留存的用户群体，形成了独特的“粉丝文化”。</li>
+<li>面向全球真实用户：我们不是为其他创业者提供 B2B SaaS 工具，而是为全球普通用户打造每天使用数小时的消费级产品。</li>
+<li>关注注意力经济：我们坚信，21 世纪最有价值的资源是注意力，这也是我们专注于面向消费者产品的动力所在。</li>
+<li>经验丰富的创始团队：两位创始人（ Emil 和 Agah ）均为连续创业者，曾获得 Founders Fund 等顶级投资机构的支持，分别从哈佛和哥伦比亚大学辍学，专注于实现远大的创业目标。</li>
+<li>产品与社区驱动增长：我们相信卓越的产品体验和强大的社区共创，是驱动公司发展的核心力量。</li>
+</ul>
+<h2>核心工程师</h2>
+<h3>职位概要：</h3>
+<p>我们正在寻找一位充满热情的全栈工程师，愿意在高速发展的初创环境中独立思考、快速执行，并承担起从技术架构到核心功能开发的全链路责任。你将亲手打造触达全球数万用户的平台，推动产品体验不断优化。
+你的工作将包括：</p>
+<h4>系统架构设计：</h4>
+<ul>
+<li>设计高可用、可扩展的后端系统，支撑数百万级用户请求和复杂 AI 推理调用。</li>
+<li>优化数据库结构与查询性能，确保数据安全性与访问速度。</li>
+</ul>
+<h4>核心功能开发：</h4>
+<ul>
+<li>编写高质量、可维护的代码，开发新功能模块并持续优化现有代码。</li>
+<li>负责用户侧功能的前端实现与后端 API 接口设计，保证流畅的用户体验。</li>
+<li>实现高性能的 AI 推理服务调用与内容个性化推荐系统。</li>
+</ul>
+<h4>技术难题攻克：</h4>
+<ul>
+<li>分析与解决高并发、低延迟的工程问题，确保平台的高效稳定运行。</li>
+<li>研究与应用 AI 技术（如嵌入向量检索、内容生成等）到实际产品中。</li>
+</ul>
+<h4>用户反馈闭环：</h4>
+<ul>
+<li>与产品团队紧密合作，理解用户需求，及时排查与修复线上问题，提升产品稳定性。</li>
+<li>深入用户社区，获取反馈，不断优化产品功能与体验。</li>
+</ul>
+<h3>要求：</h3>
+<ul>
+<li>2 年以上软件开发经验，具备从零到一构建产品的能力。</li>
+<li>熟练掌握前后端技术栈：TypeScript + Next.js + React + Python</li>
+<li>数据库：PostgreSQL 、Scylla 、Redis 、Milvus</li>
+<li>有独立解决复杂技术问题的能力，能够在高强度、快节奏的初创环境中高效交付成果。</li>
+<li>对 AI 工程有实际经验，理解模型推理与 API 部署。</li>
+<li>具备良好的沟通与团队协作能力，愿意承担责任，主动发现并解决问题。</li>
+</ul>
+<h4>加分项：</h4>
+<ul>
+<li>有初创公司或 CTO/技术合伙人经验。</li>
+<li>在 AI 推理服务、个性化推荐系统等领域有过深入项目经验。</li>
+<li>熟悉 DevOps 流程，能够实现自动化部署与监控体系。</li>
+</ul>
+<h2>提示工程师 / AI 专家</h2>
+<h3>职位概要：</h3>
+<p>我们正在寻找热爱探索大型语言模型（ LLM ）边界的人才，你将与产品团队协作，通过设计与优化提示词，创造更加智能、流畅且富有创造力的 AI 交互体验，直接影响数万用户每天的互动方式。
+你的工作将包括：</p>
+<h4>提示词设计与优化：</h4>
+<ul>
+<li>与团队合作，设计复杂、精细的提示工程，确保模型生成高质量、符合需求的文本输出。</li>
+<li>探索模型的输出规律，利用提示词优化其逻辑连贯性与创意性。</li>
+</ul>
+<h4>AI 场景创新：</h4>
+<ul>
+<li>在游戏、互动电影、虚拟角色对话等场景中，挖掘 AI 生成内容的新可能性。</li>
+<li>与产品经理合作，推动 LLM 在实际产品中的落地，解决产品侧难题。</li>
+</ul>
+<h4>用户体验与反馈：</h4>
+<ul>
+<li>通过用户反馈迭代提示设计，提升生成质量与用户满意度。</li>
+<li>分析 AI 互动数据，探索更高效的提示工程方法论。</li>
+</ul>
+<h3>要求：</h3>
+<ul>
+<li>对 LLM 有浓厚的兴趣，熟悉提示工程的核心原理，喜欢“与 AI 聊天”并发现其潜力与边界。</li>
+<li>有过提示工程实际经验，或是参与过 SillyTavern 、Chub 、LocalLLaMA 等开源社区项目。</li>
+<li>具备文字创造力，能够设计出既具逻辑性又富有表现力的 AI 输出内容。</li>
+<li>有较强的用户同理心，能够基于用户需求不断优化 AI 的表现。</li>
+</ul>
+<h4>加分项：</h4>
+<ul>
+<li>有个人 AI 创意项目（如聊天机器人、角色对话、AI 互动故事等）。</li>
+<li>对 AI 模型（如 GPT 、Claude 、Gemini 等）的特性有深入了解，能提出独特的优化策略。</li>
+<li>具备技术实现能力，能够结合提示工程与代码进行产品落地。</li>
+</ul>
+<h2>AI 与数据工程师</h2>
+<h3>职位概要：</h3>
+<p>我们正在寻找数据驱动的 AI 工程师，致力于构建高效的数据管道与 AI 模型部署系统，帮助平台在数据量激增的情况下平稳扩展，支撑全球用户的实时 AI 体验。
+你的工作将包括：</p>
+<h4>数据管道设计与构建：</h4>
+<ul>
+<li>设计并实现高效的数据采集、清洗、存储与传输管道。</li>
+<li>提升数据管道的稳定性与扩展性，为 AI 训练和推理提供高质量的数据支持。</li>
+</ul>
+<h4>AI 模型训练与部署：</h4>
+<ul>
+<li>设计与优化 AI 模型的训练流程，确保其高效运行并满足产品需求。</li>
+<li>实现 AI 推理服务的高并发与低延迟部署，提升用户体验。</li>
+</ul>
+<h4>性能与基础设施优化：</h4>
+<ul>
+<li>解决分布式系统中的性能瓶颈，优化数据存储与查询效率。</li>
+<li>结合前沿技术，提升平台的 AI 服务可用性与稳定性。</li>
+</ul>
+<h4>技术探索与创新：</h4>
+<ul>
+<li>跟踪 AI 领域的最新技术与研究成果，将其应用于实际业务场景。</li>
+<li>推动平台在 AI 数据工程方面的持续创新与突破。</li>
+</ul>
+<h4>要求：</h4>
+<ul>
+<li>具备 2 年以上数据工程或 AI 工程经验，有完整的数据管道或 AI 模型部署项目经验。</li>
+<li>熟悉分布式数据处理框架，具备优化大数据存储与查询的能力。</li>
+<li>了解 AI 模型训练与推理部署流程，熟悉 TensorFlow 、PyTorch 等框架。</li>
+<li>具备良好的问题解决能力，面对复杂的 AI 数据问题能够主动提出解决方案。</li>
+</ul>
+<h4>加分项：</h4>
+<ul>
+<li>有过 AI 推荐系统、神经网络从零开发的项目经验。</li>
+<li>熟悉 GPU 优化、模型量化等技术，能提升 AI 推理效率。</li>
+<li>熟练掌握 Kubernetes 、Docker 等容器化技术。</li>
+</ul>
+<h2>游戏开发者（紧急）</h2>
+<h3>职位概要：</h3>
+<p>我们正在寻找一位热爱游戏开发且充满创造力的开发者，愿意探索 AI 与游戏融合的无限可能，打造出独特的沉浸式互动体验。
+你的工作将包括：</p>
+<h4>游戏系统设计与开发：</h4>
+<ul>
+<li>设计与实现 AI 驱动的游戏机制与玩法，确保用户获得独特的游戏体验。</li>
+<li>实现程序化内容生成、智能 NPC 、动态故事线等创新游戏功能。</li>
+</ul>
+<h4>AI 与游戏引擎融合：</h4>
+<ul>
+<li>将 AI 模型与传统游戏引擎（如 Unity 、Unreal ）结合，探索 AI 在游戏中的应用场景。</li>
+<li>开发与优化 AI 角色对话系统、任务生成系统等关键功能。</li>
+</ul>
+<h4>快速迭代与原型开发：</h4>
+<ul>
+<li>快速开发游戏原型，不断实验与验证新的创意和玩法。</li>
+<li>与团队协作，推动 AI 驱动的游戏功能从概念走向落地。</li>
+</ul>
+<h3>要求：</h3>
+<ul>
+<li>熟练掌握 Unity 、Unreal Engine 等主流游戏引擎。</li>
+<li>精通 C#、C++或 Python 等编程语言。</li>
+<li>热爱游戏与故事叙述，愿意通过 AI 技术创造出前所未有的互动体验。</li>
+<li>具备高度的好奇心与创造力，敢于挑战游戏开发的边界。</li>
+</ul>
+<h4>加分项：</h4>
+<ul>
+<li>有过 AI 驱动游戏开发或 AI 与传统引擎结合的项目经验。</li>
+<li>熟悉 AI 对话模型、内容生成模型（如 GPT ）与游戏场景的集成。</li>
+<li>拥有独立开发完整游戏或独立项目的经验。</li>
+</ul>
+<h2>我们可以提供</h2>
+<ul>
+<li>有竞争力的薪酬和福利</li>
+<li>和美国大厂，哈佛，哥大背景的人一起共事的经历</li>
+</ul>
+<p>有意者请将简历以：姓名 - 职位 - V2EX 的格式发送至： <a href="mailto:hr@rampingup.com">hr@rampingup.com</a></p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:47:31Z</pubDate>
+<pubDate>2024-12-11T11:47:31Z</pubDate>
+</item>
+<item>
+<title>[程序员] Agile Query 高级数据可视化</title>
+<link>https://www.v2ex.com/t/1096813</link>
+<guid>https://www.v2ex.com/t/1096813</guid>
+<content:encoded><![CDATA[
+
+<div class="embedded_video_wrapper"></div>
+]]></content:encoded>
+<pubDate>2024-12-11T11:46:03Z</pubDate>
+<pubDate>2024-12-11T12:08:40Z</pubDate>
+</item>
+<item>
+<title>[程序员] 监听 pve 主机上的内网服务</title>
+<link>https://www.v2ex.com/t/1096812</link>
+<guid>https://www.v2ex.com/t/1096812</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="画板 1" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/q2nxjm.png" /></p>
+<h2>前言</h2>
+<p>上一篇文章，我分享了如何给<a href="https://www.kaisir.cn/post/180" rel="nofollow">pve 搭建一套告警服务</a>，最近我碰到了内网主机上的某个服务崩溃导致无法访问的问题。于是乎，我就寻思着，如何利用这套告警服务来定时探测内网的某个服务是否可访问，无法访问时，就发送邮件进行通知。</p>
+<p>本文就跟大家分享下我的实现思路，欢迎各位感兴趣的开发者阅读本文。</p>
+<h2>方案调研</h2>
+<p>我一开始的想法是，编写一个 sh 脚本，利用 linux 的 curl 命令来探测，每分钟执行一次，这个脚本也简单，如下所示：</p>
+<ul>
+<li>
+<p><code>-s</code>: 静默模式，不显示进度信息。</p>
+</li>
+<li>
+<p><code>-o /dev/null</code>: 忽略返回的内容，只关心状态码。</p>
+</li>
+<li>
+<p><code>-w "%{http_code}"</code>: 打印 HTTP 状态码。</p>
+</li>
+</ul>
+<pre><code class="language-bash">不知道为啥，此处的代码 v 站不给贴，贴了就提示 Sorry, you have been blocked
+You are unable to access v2ex.com
+</code></pre>
+<p><img alt="image-20241211195335451" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/rN3gkm.png" /></p>
+<p>随后，执行<code>crontab -e</code>命令设置 cron 定时任务，每分钟执行一次这个脚本。</p>
+<pre><code class="language-bash">* * * * * /path/to/check_http_service.sh
+</code></pre>
+<p>探测任务完成了，但是，如何让<strong>Prometheus</strong> 监听到，并通过<strong>Alertmanager</strong> 来发送通知呢？找了一圈，没找到开箱即用的方案。需要自己整一个 http 服务器，把 sh 脚本返回的内容暴露出来，再通过 Prometheus 来抓取这个服务返回的内容。</p>
+<p>这样做就太麻烦了，必要性不是很大。</p>
+<h3>blackbox_exporter 监控</h3>
+<p>自定义 sh 脚本的路走不通后，我将思路转变到了 Prometheus 本身，发现它有一个<code>Blackbox Exporter</code>扩展，可以监控外部的 HTTP 服务。只需要安装相关的软件包、编写配置文件即可实现监控，给大家看下我最终实现的效果。</p>
+<p><img alt="image-20241211104742514" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/xEZH0w.png" /></p>
+<p><img alt="image-20241211104852617" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/3fdVMB.png" /></p>
+<h2>实现过程</h2>
+<p>方案有了，接下来，我们看下具体的实现过程。</p>
+<h3>安装扩展包</h3>
+<p>通过 ssh 登陆到 pve 服务器，依次执行下述命令，将软件包下载到用户目录下。</p>
+<pre><code class="language-bash"># 下载
+wget https://github.com/prometheus/alertmanager/releases/download/vX.Y.Z/alertmanager-X.Y.Z.linux-amd64.tar.gz
+# 解压
+tar -xvzf alertmanager-X.Y.Z.linux-amd64.tar.gz
+</code></pre>
+<p>使用你喜欢的编辑器（此处使用 nvim ）来创建服务配置文件，便于管理服务的启动状态。</p>
+<pre><code class="language-bash">nvim /etc/systemd/system/blackbox_exporter.service
+</code></pre>
+<p>添加下述内容：</p>
+<ul>
+<li><code>ExecStart</code> 为 blackbox_exporter 服务的启动文件</li>
+<li><code>WorkingDirectory</code> 为 blackbox_exporter 的存放路径</li>
+</ul>
+<pre><code class="language-bahs">[Unit]
+Description=Blackbox Exporter
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/blackbox_exporter-0.21.0.linux-amd64/blackbox_exporter
+Restart=always
+User=root
+Group=root
+WorkingDirectory=/root/blackbox_exporter-0.21.0.linux-amd64
+
+[Install]
+WantedBy=multi-user.target
+
+</code></pre>
+<p>保存后，执行<code>systemctl daemon-reload</code>来重载服务。</p>
+<p>依次执行下述命令来启动服务，并将其添加至开机自启名单中。</p>
+<pre><code class="language-bahs">systemctl start blackbox_exporter
+systemctl enable blackbox_exporter
+</code></pre>
+<h4>查看运行状态与日志</h4>
+<p>服务启动后，我们执行<code>systemctl status blackbox_exporter</code>命令，如果正常运行，你将看到如下所示的内容：</p>
+<p><img alt="image-20241211111158613" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/1rb3t2.png" /></p>
+<p>通过<code>journalctl -u blackbox_exporter -f</code>命令来查看运行日志。</p>
+<p><img alt="image-20241211111431889" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/N33js5.png" /></p>
+<h4>测试能否正常工作</h4>
+<p>执行下述命令，将 target 换成你要检测的内网服务地址。</p>
+<pre><code class="language-bash">curl 'http://localhost:9115/probe?module=http_2xx&amp;target=http://192.168.6.131:8080/chat-api'
+</code></pre>
+<p>如果你的服务正常运行，你将看到如下所示的输出。</p>
+<ul>
+<li><code>probe_success</code>的值为 1 ，表示服务正常运行。为 0 ，表示服务异常。</li>
+</ul>
+<p><img alt="image-20241211111942055" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/OW3HPd.png" /></p>
+<h3>配置 prometheus</h3>
+<p>用你喜欢的编辑器，打开 prometheus.yml 的配置文件。</p>
+<pre><code class="language-bash">nvim /etc/prometheus/prometheus.yml
+</code></pre>
+<p>添加下述内容</p>
+<ul>
+<li>targets 替换为你要监听的内网服务地址</li>
+<li>replacement 替换为你的 blackbox_exporter 服务的部署地址，默认端口是 9115</li>
+<li>scrape_interval 为采集间隔</li>
+</ul>
+<pre><code class="language-bash">  # blackbox_ping 监听内网服务是否正常
+  - job_name: 'blackbox_ping'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # 使用 HTTP 模块
+    static_configs:
+      - targets:
+        - http://192.168.6.131:8080/chat-api  # 使用完整的 URL
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115  # blackbox_exporter 的地址和端口
+    scrape_interval: 1m  # 每分钟采集一次  
+</code></pre>
+<h3>配置 Alertmanager</h3>
+<p>用你喜欢的编辑器，打开 Alertmanager 的配置文件。</p>
+<pre><code class="language-bash">nvim /etc/prometheus/alert.rules.yml
+</code></pre>
+<p>添加下述内容</p>
+<ul>
+<li>alert 为邮件标题</li>
+<li>expr 为 graph 的表达式，将<strong>instance</strong>和<strong>job</strong>的值替换为上一步中填写的<code>targets</code>和<code>job_name</code>的值</li>
+<li>summary 和 description 为你要通知的内容</li>
+</ul>
+<pre><code class="language-bash">      - alert: "主机解析失败_192.168.6.131_8080"
+        expr: probe_success{instance="http://192.168.6.131:8080/chat-api",job="blackbox_ping"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 探测到 192.168.6.131:8080 失败"
+          description: "对 192.168.6.131:8080 的 HTTP 探测在过去 1 分钟内连续失败，请检查网络或服务状态。"
+</code></pre>
+<h3>重启并验证所有服务</h3>
+<p>依次执行下述命令</p>
+<pre><code class="language-bash">sudo systemctl restart blackbox_exporter
+sudo systemctl restart prometheus
+sudo systemctl restart alertmanager
+
+sudo systemctl status blackbox_exporter
+sudo systemctl status prometheus
+sudo systemctl status alertmanager
+</code></pre>
+<p>如果一切正常的话，打开 prometheus 的 web 界面，你将看到如下内容：</p>
+<p><img alt="image-20241211113726814" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/2sLoko.png" /></p>
+<p>此时，将你的内网服务关闭，1 分钟后，你将成功收到告警邮件。</p>
+<p><img alt="image-20241211104852617" class="embedded_image" rel="noreferrer" src="https://resource.kaisir.cn/uploads/MarkDownImg/20241211/3fdVMB.png" /></p>
+<h2>写在最后</h2>
+<p>至此，文章就分享完毕了。</p>
+<p>我是<strong>神奇的程序员</strong>，一位前端开发工程师。</p>
+<p>如果你对我感兴趣，请移步我的<a href="https://www.kaisir.cn/" rel="nofollow">个人网站</a>，进一步了解。</p>
+<ul>
+<li>文中如有错误，欢迎在评论区指正，如果这篇文章帮到了你，欢迎点赞和关注😊</li>
+<li>本文首发于<a href="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8b7566ab57814aad861b378882c1ee58%7Etplv-k3u1fbpfcp-watermark.image" rel="nofollow">神奇的程序员</a>公众号，未经许可禁止转载💌</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-12-11T11:44:26Z</pubDate>
+<pubDate>2024-12-11T11:43:26Z</pubDate>
+</item>
+<item>
+<title>[分享创造] Cursor 写一个分享开源产品，想法的网站。</title>
+<link>https://www.v2ex.com/t/1096811</link>
+<guid>https://www.v2ex.com/t/1096811</guid>
+<content:encoded><![CDATA[
+
+<h1>GitHub Weekly 🤖</h1>
+<p>一个分享开源产品，想法的网站。</p>
+<h2>介绍</h2>
+<p>经常关注 ruanyf 分享的科技内容,推荐或自荐文章/软件/资源实时更新在 github 的 issue
+阅读起来不是很友好，于是尝试让 cursor 写一个自动更新的站点。</p>
+<h2>实现</h2>
+<ul>
+<li>定时抓取输出到 json 文件</li>
+<li>Vue 构建静态站点部署到 github</li>
+<li>GitHub Action 定时更新同步</li>
+</ul>
+<h2>预览</h2>
+<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/9f61432a-0e49-4673-8028-d8fff079aa40" /></p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:34:54Z</pubDate>
+<pubDate>2024-12-11T11:38:07Z</pubDate>
+</item>
+<item>
+<title>[问与答] 自己搭建的 ntfy 推送服务器给朋友用有什么风险吗</title>
+<link>https://www.v2ex.com/t/1096810</link>
+<guid>https://www.v2ex.com/t/1096810</guid>
+<content:encoded><![CDATA[
+
+<p>最近用香港的服务器搭了个 ntfy 推送服务，主要用来转发微信通知、短信到备用机。我有些朋友也有类似需求，想用我搭好的服务。我看了一下 ntfy 的文档，有 ACL ，可以限制他们推送的 topic 范围，就想象征性收点钱。但是我问了 chatgpt ，这种推送服务似乎需要各种资质？想咨询一下大家这个风险有多大。。。</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:33:28Z</pubDate>
+<pubDate>2024-12-11T11:33:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] 纯文字社交媒体，国内主流的是不是只有微博、即刻这 2 个？</title>
+<link>https://www.v2ex.com/t/1096809</link>
+<guid>https://www.v2ex.com/t/1096809</guid>
+<content:encoded><![CDATA[
+
+<p>还有其他我不知道的吗？</p>
+<p>就是可以发布的时候纯文字的。</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:32:10Z</pubDate>
+<pubDate>2024-12-11T11:33:49Z</pubDate>
+</item>
+<item>
+<title>[Docker] 请问各位大佬有没有快速入门 Docker 教程推荐啊？</title>
+<link>https://www.v2ex.com/t/1096808</link>
+<guid>https://www.v2ex.com/t/1096808</guid>
+<content:encoded><![CDATA[
+
+<p>想快速入门 Docker ，然后可以把前端项目进行 Docker 部署，vue3 的，后续想把 go 和 vue3 结合的项目部署！
+希望各位大佬给小弟指指路！</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:29:32Z</pubDate>
+<pubDate>2024-12-11T11:28:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐-高层住宅保险-防火灾/漏水</title>
+<link>https://www.v2ex.com/t/1096807</link>
+<guid>https://www.v2ex.com/t/1096807</guid>
+<content:encoded><![CDATA[
+
+高层住宅保险有推荐的吗？主要防止火灾，邻居水管渗水之类的。因为邻居素质各异，不是每个人都遵守消防要求。好多邻居把私人物品堆积到楼梯间，堵塞逃生通道，多次沟通，也是非常蛮横不讲理，讨厌这个自私的中老年人邻居。
+]]></content:encoded>
+<pubDate>2024-12-11T11:26:17Z</pubDate>
+<pubDate>2024-12-03T11:25:17Z</pubDate>
+</item>
+<item>
+<title>[macOS] macOS 程序启动速度感觉被云控了， intel 机型实测。</title>
+<link>https://www.v2ex.com/t/1096806</link>
+<guid>https://www.v2ex.com/t/1096806</guid>
+<content:encoded><![CDATA[
+
+机型 iMac 2019 21 寸 32G+256G ，整体用下来不算卡，就是长时间不打开某个程序再去打开的时候(我用企业微信，Excel ，Chrome 居多)，Sonoma 会跳八九下；<br /><br />有一天我降级到了出厂系统 Mojave ，程序秒开，不需要跳，但是 Mojave 放在现在很多软件不支持了，App Store 都打不开了，想着升级一下 Catalina 应该差别不大，毕竟从 Big Sur 才开始大改，升级 Catalina 之后和 Sonoma 差不多，开个微信都要跳五六下，虽说强一点但也强不了多少，，后来又升级了 Big Sur ，更离谱了，比 Sonoma 还慢，一不做而不休，升级最新 sequoia ，奇迹般的和 Mojave 体验差不多，几乎秒开，很大的程序就算是刚从 App Store 安装首次打开最多跳两下。<br /><br />这里不讨论最新系统的体验，之前也用过前面提到的系统，回想起来并不是像现在这么慢，也可能是随着软件的迭代升级无法详细比较，但感觉苹果可能有意降低旧系统的速度。我用的是 32G2667 原装条，硬盘也是 Apple 原装固态。
+]]></content:encoded>
+<pubDate>2024-12-11T11:24:41Z</pubDate>
+<pubDate>2024-12-11T08:24:41Z</pubDate>
+</item>
+<item>
+<title>[健身] 健身晚上起夜的问题请教</title>
+<link>https://www.v2ex.com/t/1096805</link>
+<guid>https://www.v2ex.com/t/1096805</guid>
+<content:encoded><![CDATA[
+
+<p>一般下班后去健身，健身后会多喝点水+蛋白粉，然后晚上就会起夜上厕所，怎么解决呀？也不能不喝吧？请教各位大佬</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:20:32Z</pubDate>
+<pubDate>2024-12-11T11:54:23Z</pubDate>
+</item>
+<item>
+<title>[Apple] 我一个 m1 的 mac hdmi 转 vga 一直失败</title>
+<link>https://www.v2ex.com/t/1096804</link>
+<guid>https://www.v2ex.com/t/1096804</guid>
+<content:encoded><![CDATA[
+
+<p>显示器是 dell vga 的，淘宝买了三种转换头，都没有用</p>
+<p>暂时不想换 hdmi 的显示器，v 友遇到这种情况吗</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:18:05Z</pubDate>
+<pubDate>2024-12-11T12:30:04Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 换工作了 捞点 web3 简历!远程不加班</title>
+<link>https://www.v2ex.com/t/1096803</link>
+<guid>https://www.v2ex.com/t/1096803</guid>
+<content:encoded><![CDATA[
+
+<p>如题 要前端 合约或者后端 SEO 产品 薪资待遇 20-35k 主要做钱包</p>
+<p>有意向发送简历至 ZGFzaHNvYXAxOTk3QGdtYWlsLmNvbQ== 备注 V 站 + 岗位 欢迎咨询</p>
+]]></content:encoded>
+<pubDate>2024-12-11T11:07:26Z</pubDate>
+<pubDate>2024-12-11T11:06:26Z</pubDate>
+</item>
+<item>
+<title>[GitHub] Github 首页不显示新内容</title>
+<link>https://www.v2ex.com/t/1096801</link>
+<guid>https://www.v2ex.com/t/1096801</guid>
+<content:encoded><![CDATA[
+
+<p>想问下大家知道 github 首页为什么不会显示新内容吗？明明已经有很多星标的仓库发布了 release ，但是 github 首页却不会提示，显示的内容还是上周的</p>
+<p>之前一直都有这个问题，但过两天自己就会好，现在一直都是这样，右上的过滤器保持的是默认状态没动过
+<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/vXu9sie.png" /></p>
+]]></content:encoded>
+<pubDate>2024-12-11T10:58:46Z</pubDate>
+<pubDate>2024-12-11T10:56:46Z</pubDate>
+</item>
+<item>
+<title>[Telegram] telegram 不支持国内发行的信用卡吗？</title>
+<link>https://www.v2ex.com/t/1096800</link>
+<guid>https://www.v2ex.com/t/1096800</guid>
+<content:encoded><![CDATA[
+
+<p>以前安卓还能跳转到 google 内购支付，现在不见了，只能绑卡支付，尝试绑定招行信用卡，输入卡信息后跳转到收短信验证码页面，输入后跳转报错。有哪些卡能成功支付的呢？网上搜到少量信息说是 IP 导致的，有人知道到底为何拒绝支付吗？</p>
+]]></content:encoded>
+<pubDate>2024-12-11T10:42:49Z</pubDate>
+<pubDate>2024-12-11T12:39:52Z</pubDate>
+</item>
+<item>
+<title>[程序员] 开了 windsurf 会员的请进</title>
+<link>https://www.v2ex.com/t/1096799</link>
+<guid>https://www.v2ex.com/t/1096799</guid>
+<content:encoded><![CDATA[
+
+<p>可能是一个蠢问题，为什么我这不显示订阅的按钮
+<img alt="订阅界面" class="embedded_image" rel="noreferrer" src="https://imgur.com/iNqCyS6" /></p>
+]]></content:encoded>
+<pubDate>2024-12-11T10:41:32Z</pubDate>
+<pubDate>2024-12-11T11:04:18Z</pubDate>
+</item>
+<item>
+<title>[程序员] Cursor 生成提交日志姿势分享</title>
+<link>https://www.v2ex.com/t/1096798</link>
+<guid>https://www.v2ex.com/t/1096798</guid>
+<content:encoded><![CDATA[
+
+<p>Cursor 在源代码管理那里有个<code>Generate Commit Message</code>按钮，虽然方便，但是每次生成的都是英文，有时还不规范，也不知道在哪里写 prompt ，在<code>.cursorrules</code>中似乎也没法控制。</p>
+<p>于是乎我发现，在 chat 那里，可以用<code>@Commit (Diff of Working State)</code>，然后再写一句：</p>
+<p><code>请根据修改的类型分类生成多条提交日志的命令行，比如 git add xxx   git commit -m "xxx"</code></p>
+<p>（也可以再补充一些提交日志的规范， 如比格式： &lt;type&gt;(&lt;scope&gt;): &lt;description&gt;）</p>
+<p>然后再点一下 run ，就搞定了，生成的是多次提交，要比直接<code>Generate Commit Message</code>堆在一起提交好多了！</p>
+]]></content:encoded>
+<pubDate>2024-12-11T10:38:11Z</pubDate>
+<pubDate>2024-12-11T11:55:14Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 来点大佬指点一下如何为这个产品拓展海外市场</title>
+<link>https://www.v2ex.com/t/1096797</link>
+<guid>https://www.v2ex.com/t/1096797</guid>
+<content:encoded><![CDATA[
+
+<h1>产品名称:</h1>
+<p>iCraft Editor</p>
+<h1>官网：</h1>
+<p><a href="https://icraft.gantcloud.com" rel="nofollow">https://icraft.gantcloud.com</a></p>
+<h1>github:</h1>
+<p><a href="https://github.com/gantFDT/icraft/tree/main" rel="nofollow">https://github.com/gantFDT/icraft/tree/main</a></p>
+<h1>x:</h1>
+<p><a href="https://x.com/icrafteditor" rel="nofollow">https://x.com/icrafteditor</a></p>
+<h1>discord:</h1>
+<p><a href="https://discord.gg/3M9xuaB2FR" rel="nofollow">https://discord.gg/3M9xuaB2FR</a></p>
+<p>感觉拓展海外市场好难，来大佬指点指点方向，感谢！</p>
+]]></content:encoded>
+<pubDate>2024-12-11T10:28:07Z</pubDate>
+<pubDate>2024-12-11T10:27:07Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 小区供配电设施移交是干啥？</title>
 <link>https://www.v2ex.com/t/1096796</link>
 <guid>https://www.v2ex.com/t/1096796</guid>
 <content:encoded><![CDATA[
-
 <p>物业让投票同不同意，看通知好像是街道授权小区物业移交小区供配电设置给电网公司。这有啥影响吗？搞不懂</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T10:15:57Z</pubDate>
 <pubDate>2024-12-11T10:26:22Z</pubDate>
 </item>
 <item>
@@ -20,10 +658,8 @@
 <link>https://www.v2ex.com/t/1096795</link>
 <guid>https://www.v2ex.com/t/1096795</guid>
 <content:encoded><![CDATA[
-
 主要需求是硬盘塞满了，四年前配的机器，250G 固态硬盘+1TB 的机械硬盘。机械硬盘差不多用了 800 ～ 900G 了。<br />想上一块新的固态，顺便升一下内存。之前的内存是 8Gx2 的金士顿 DDR4 3200MHz 。<br /><br /><br />问题：<br />1. 关于硬盘，看了主板的说明书好像能接两块 M.2 接口的硬盘。是不是可以直接买一块新的大容量 M.2 固态接上去就好了？<br />2. 关于内存，我看有说“宁双不单，宁二不四”的（因为四条会导致降频），也有说对普通用户来说容量比频率更重要。（翻了一些文章，看起来降频是 DDR5 才需要考虑的问题）现在内存也不是很贵，准备买两条同品牌的 16G 的 DDR4 内存条，装上去，我平时会玩法环、黑猴，2x8+2x16 合理吗？
 ]]></content:encoded>
-<pubDate>2024-12-11T10:10:24Z</pubDate>
 <pubDate>2024-12-11T10:10:24Z</pubDate>
 </item>
 <item>
@@ -31,7 +667,6 @@
 <link>https://www.v2ex.com/t/1096794</link>
 <guid>https://www.v2ex.com/t/1096794</guid>
 <content:encoded><![CDATA[
-
 <h2>1.  想法来源：</h2>
 <p>经常看到 v2 帖子中留联系方式使用了 base64 编码，所以，开发了一个 base64 编码解码小工具。 </p>
 <h2>2.  如何查找小程序</h2>
@@ -42,14 +677,12 @@
 <p>欢迎大家使用，提建议！</p>
 ]]></content:encoded>
 <pubDate>2024-12-11T10:05:01Z</pubDate>
-<pubDate>2024-12-11T10:05:01Z</pubDate>
 </item>
 <item>
 <title>[硬件] 请教小主机 BIOS 功率设置.</title>
 <link>https://www.v2ex.com/t/1096793</link>
 <guid>https://www.v2ex.com/t/1096793</guid>
 <content:encoded><![CDATA[
-
 <p>Platform PL1 Enable
 Platform PL1 Power: 15000</p>
 <p>View/Configure Turbo Options
@@ -59,7 +692,6 @@ Power Limit 1: 15000</p>
 Power Limit1 设置的值会改变默认 TDP.</p>
 <p>这两种功率设置有什么区别? 是否需要同时启用, 并设置相同的值.</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T10:01:35Z</pubDate>
 <pubDate>2024-12-11T10:14:20Z</pubDate>
 </item>
 <item>
@@ -67,10 +699,8 @@ Power Limit1 设置的值会改变默认 TDP.</p>
 <link>https://www.v2ex.com/t/1096792</link>
 <guid>https://www.v2ex.com/t/1096792</guid>
 <content:encoded><![CDATA[
-
 我跑了一个 llama2 ，速度好慢啊<br />curl -X POST http://localhost:11434/api/generate -d '{<br />  "model": "llama2",<br />  "prompt":"Why is the sky blue?"<br /> }'<br /> 用官方的指令，竟然花了 1 分多钟，才回答完……<br /> 大家的 mac mini 跑的都是什么本地模型？
 ]]></content:encoded>
-<pubDate>2024-12-11T10:00:32Z</pubDate>
 <pubDate>2024-12-11T06:00:32Z</pubDate>
 </item>
 <item>
@@ -78,7 +708,6 @@ Power Limit1 设置的值会改变默认 TDP.</p>
 <link>https://www.v2ex.com/t/1096791</link>
 <guid>https://www.v2ex.com/t/1096791</guid>
 <content:encoded><![CDATA[
-
 <p>有个人一直在发邮件骚扰我，拉黑之后还会换邮箱继续发，我被他搞得有点精神衰弱了，<br />
 这个邮箱经常在用，工作，社区用的都是这个邮箱，更改起来太麻烦，  </p>
 <p>背景如上，打算用 imap 协议监听接收的邮件，然后根据一些规则判断是否如上的恶意邮件，然后删掉  </p>
@@ -93,7 +722,6 @@ Power Limit1 设置的值会改变默认 TDP.</p>
 <p>对于我对他做了什么不讨论，我觉得我没有问题，我只是没有回应他的感情罢了，我只是想避免看到他的邮件，被他搞得有点抑郁了<br />
 写的有点乱 求解答</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:59:50Z</pubDate>
 <pubDate>2024-12-11T05:59:50Z</pubDate>
 </item>
 <item>
@@ -101,7 +729,6 @@ Power Limit1 设置的值会改变默认 TDP.</p>
 <link>https://www.v2ex.com/t/1096789</link>
 <guid>https://www.v2ex.com/t/1096789</guid>
 <content:encoded><![CDATA[
-
 <p>Black Friday KVM VPS 黑五套餐，无限流量，非常划算，价格低到离谱，拿来练手可以的，不建议用于生产环境</p>
 <table>
 <thead>
@@ -257,17 +884,14 @@ Power Limit1 设置的值会改变默认 TDP.</p>
 <p>更多测评可以参考： <a href="https://990599.xyz" rel="nofollow">https://990599.xyz</a></p>
 ]]></content:encoded>
 <pubDate>2024-12-11T09:57:04Z</pubDate>
-<pubDate>2024-12-11T09:57:04Z</pubDate>
 </item>
 <item>
 <title>[问与答] Cusror，自动删除有没有人遇到过</title>
 <link>https://www.v2ex.com/t/1096787</link>
 <guid>https://www.v2ex.com/t/1096787</guid>
 <content:encoded><![CDATA[
-
 win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次，只能重装 Cusror<br />这次又出现了
 ]]></content:encoded>
-<pubDate>2024-12-11T09:51:30Z</pubDate>
 <pubDate>2024-12-11T10:08:28Z</pubDate>
 </item>
 <item>
@@ -275,12 +899,10 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <link>https://www.v2ex.com/t/1096786</link>
 <guid>https://www.v2ex.com/t/1096786</guid>
 <content:encoded><![CDATA[
-
 <p>具体产出可以移步我的小红书帖子<br />
 <a href="https://www.xiaohongshu.com/explore/67595dfe000000000603cbc3?xsec_token=ABIYtyi6_D6V0PKugSLOZgXPyh8agSr3cfOA9tycizNX8=&amp;xsec_source=pc_user" rel="nofollow">video_link</a></p>
 <p>六个视频，其中一个修改了一下提示词，一共用了 350 积分 :)</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:51:24Z</pubDate>
 <pubDate>2024-12-11T09:56:05Z</pubDate>
 </item>
 <item>
@@ -288,13 +910,11 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <link>https://www.v2ex.com/t/1096785</link>
 <guid>https://www.v2ex.com/t/1096785</guid>
 <content:encoded><![CDATA[
-
 <p>如下图，我电脑有两个硬盘(C,D)未分区，使用 D 盘正常下载游戏下着下着速度就会变 0 ，然后硬盘速度掉到几十 KB 每秒，过很久又恢复正常，但不能持续，周而复始
 <a href="https://imgur.com/ZwkIAaw" rel="nofollow">https://imgur.com/ZwkIAaw</a>
 <a href="https://imgur.com/ZwkIAaw" rel="nofollow">Imgur</a></p>
 <p>我用 C 盘下载就不会出现类似情况，考虑过 D 盘有问题，但是我用 EPIC 下游戏，无论哪个盘都是全速下载，迷茫</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:49:33Z</pubDate>
 <pubDate>2024-12-11T09:48:33Z</pubDate>
 </item>
 <item>
@@ -303,9 +923,7 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <guid>https://www.v2ex.com/t/1096784</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2024-12-11T09:43:19Z</pubDate>
 <pubDate>2024-12-11T10:10:06Z</pubDate>
 </item>
 <item>
@@ -313,7 +931,6 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <link>https://www.v2ex.com/t/1096783</link>
 <guid>https://www.v2ex.com/t/1096783</guid>
 <content:encoded><![CDATA[
-
 <p>我一直是从事后端服务的，
 有时候有些小创意想要实施的时候，发现不会前端。</p>
 <p>最近发现一些 ai 工具，还是非常强大的。</p>
@@ -321,7 +938,6 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <p>还有一些 ai 插件，支持把 html 转化为美术设计。</p>
 <p>具体哪家 ai 插件我就不说了，不然会认为是推广。</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:35:35Z</pubDate>
 <pubDate>2024-12-11T09:47:37Z</pubDate>
 </item>
 <item>
@@ -329,7 +945,6 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <link>https://www.v2ex.com/t/1096782</link>
 <guid>https://www.v2ex.com/t/1096782</guid>
 <content:encoded><![CDATA[
-
 <p>个人网站链接
 <a href="https://coreychiu.com" rel="nofollow">https://coreychiu.com</a></p>
 <p>界面比较简洁，功能不多，但也够我自己用了</p>
@@ -346,18 +961,15 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <a href="https://github.com/iAmCorey/coreychiu-portfolio-template" rel="nofollow">https://github.com/iAmCorey/coreychiu-portfolio-template</a></p>
 ]]></content:encoded>
 <pubDate>2024-12-11T09:32:19Z</pubDate>
-<pubDate>2024-12-11T09:32:19Z</pubDate>
 </item>
 <item>
 <title>[程序员] Cursor 不回复 是不是被限制了</title>
 <link>https://www.v2ex.com/t/1096781</link>
 <guid>https://www.v2ex.com/t/1096781</guid>
 <content:encoded><![CDATA[
-
 <p>我今天打开发现 Cursor 一直不回复我。之前使用的方法就是到日期就注销一下账户，然后重新启用账号就行。</p>
 <p>今天换了一个邮箱注册，但是一直是在 mac 上面登录的，机器设备码应该都相同，我现在不确定是不是被限制了，反复对话，cursor 都没有反应。</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:30:42Z</pubDate>
 <pubDate>2024-12-11T09:55:43Z</pubDate>
 </item>
 <item>
@@ -365,7 +977,6 @@ win 更新后重启，Cusror 目录啥也没有了<br />之前也出现过一次
 <link>https://www.v2ex.com/t/1096780</link>
 <guid>https://www.v2ex.com/t/1096780</guid>
 <content:encoded><![CDATA[
-
 <p>比如一个脚本 <a href="http://generator.sh" rel="nofollow">generator.sh</a></p>
 <pre><code class="language-bash">#!/bin/bash
 
@@ -379,7 +990,6 @@ sleep 3600
 </code></pre>
 <p>这时候出现的情况就是，ping 都会成为僵尸进程，怎么修改脚本避免出现僵尸进程？</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:26:30Z</pubDate>
 <pubDate>2024-12-11T10:07:58Z</pubDate>
 </item>
 <item>
@@ -387,10 +997,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096779</link>
 <guid>https://www.v2ex.com/t/1096779</guid>
 <content:encoded><![CDATA[
-
 想入一台 MacBook air m3 ， 拼多多要比淘宝百亿补贴的还便宜 1000 ，说是教育优惠机，机子已经激活几个月了，这种机器可以冲吗？知道来说说，谢谢
 ]]></content:encoded>
-<pubDate>2024-12-11T09:24:35Z</pubDate>
 <pubDate>2024-12-11T10:24:06Z</pubDate>
 </item>
 <item>
@@ -398,13 +1006,11 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096778</link>
 <guid>https://www.v2ex.com/t/1096778</guid>
 <content:encoded><![CDATA[
-
 <p>引文：
 (CTO 、技术 VP 、技术总监、首席架构师的区别？技术管理者的核心能力是什么？ - 知乎)[<a href="https://zhuanlan.zhihu.com/p/50527184" rel="nofollow">https://zhuanlan.zhihu.com/p/50527184</a>]</p>
 <p>在面试过程中，或者绩效面谈时很多技术同学都喜欢说：“我就想搞技术，不想学管理”，仿佛做技术是幸福的，学习管理技能是苦难的，尤其是做基建的同学。
 我也喜欢做技术，尤其喜欢搞 DevOps 。但是我们一直做技术做下去，最终目标是什么呢？是成为科学家吗？</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:18:04Z</pubDate>
 <pubDate>2024-12-11T10:09:12Z</pubDate>
 </item>
 <item>
@@ -412,10 +1018,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096777</link>
 <guid>https://www.v2ex.com/t/1096777</guid>
 <content:encoded><![CDATA[
-
 <p>天气冷了，公司空调开的贼猛，鼻子干的疼，大家都常备些啥度过这牛马的生活的，加湿器、多喝水吗</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:16:38Z</pubDate>
 <pubDate>2024-12-11T10:21:07Z</pubDate>
 </item>
 <item>
@@ -423,10 +1027,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096776</link>
 <guid>https://www.v2ex.com/t/1096776</guid>
 <content:encoded><![CDATA[
-
 区别于 tab 的整行或者多行，我记得是 ctrl + 👉，怎么没效果
 ]]></content:encoded>
-<pubDate>2024-12-11T09:15:59Z</pubDate>
 <pubDate>2024-12-11T09:15:59Z</pubDate>
 </item>
 <item>
@@ -434,10 +1036,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096775</link>
 <guid>https://www.v2ex.com/t/1096775</guid>
 <content:encoded><![CDATA[
-
 <p>大家有推荐的吗？不需要苹果的，太贵。现在用的小米 34 寸曲面屏，感觉有点糊了。</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:15:39Z</pubDate>
 <pubDate>2024-12-11T10:01:20Z</pubDate>
 </item>
 <item>
@@ -445,10 +1045,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096773</link>
 <guid>https://www.v2ex.com/t/1096773</guid>
 <content:encoded><![CDATA[
-
 我使用调色盘调整了相机的参数，在拍照页面是正常的预期结果(滤镜后的照片)。但是拍摄后得到的照片是无滤镜的照片。<br /><br />关闭 helfMax 也不行呢 ，不知道什么原因 好困惑
 ]]></content:encoded>
-<pubDate>2024-12-11T09:07:25Z</pubDate>
 <pubDate>2024-12-11T01:07:25Z</pubDate>
 </item>
 <item>
@@ -456,10 +1054,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096772</link>
 <guid>https://www.v2ex.com/t/1096772</guid>
 <content:encoded><![CDATA[
-
 两三年前开的户了，今天登录才发现还送了 100HKD ，还没搞定港卡，所以既没法提出来也没法放钱进去，想问下，这 100HKD 当前能买什么股票
 ]]></content:encoded>
-<pubDate>2024-12-11T09:06:12Z</pubDate>
 <pubDate>2024-12-11T10:08:48Z</pubDate>
 </item>
 <item>
@@ -467,10 +1063,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096771</link>
 <guid>https://www.v2ex.com/t/1096771</guid>
 <content:encoded><![CDATA[
-
 投递链接: <a href="https://tigertech.jobs.feishu.cn/s/iURbok69" rel="nofollow noopener" target="_blank">https://tigertech.jobs.feishu.cn/s/iURbok69</a>
 ]]></content:encoded>
-<pubDate>2024-12-11T09:02:53Z</pubDate>
 <pubDate>2024-12-11T09:00:53Z</pubDate>
 </item>
 <item>
@@ -478,10 +1072,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096770</link>
 <guid>https://www.v2ex.com/t/1096770</guid>
 <content:encoded><![CDATA[
-
 <p>做烂了也要做啊，算是跟风吧，<a href="http://sprunkikissmod.com" rel="nofollow">sprunkikissmod.com</a> ，不过确实好玩</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:59:29Z</pubDate>
 <pubDate>2024-12-11T08:56:29Z</pubDate>
 </item>
 <item>
@@ -489,10 +1081,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096769</link>
 <guid>https://www.v2ex.com/t/1096769</guid>
 <content:encoded><![CDATA[
-
 有点好奇这种网站他们的题库是从哪里来的，他们有特殊渠道可以拿到题库吗<br /><br /><a href="https://www.examtopics.com/exams/amazon/aws-certified-cloud-practitioner-clf-c02/view/" rel="nofollow noopener" target="_blank">https://www.examtopics.com/exams/amazon/aws-certified-cloud-practitioner-clf-c02/view/</a><br /><br />我主要想知道 aws 的题目可以从哪弄到原题，答案什么的无所谓，有题目和选项即可<br /><br />有个想法：<br />难道 aws 的题目在网上是本来有的吗，这个网站只是收集整理起来加上有社区的答案支持（因为他们支持的考试实在是太多了，五花八门的，我有点不太相信他们所有的考试都有特殊渠道拿到题库🤔）<br />但我 Google 了半天确实没搜到哪里有 aws 的题目...<br /><br />有没有兄弟知道什么情况的，如果真的是网上没有，而是他们这些网站从特殊渠道拿到的，我就不多研究了😭<br /><br />emmm ，大概看了一眼，语言组织的有点乱，但大概应该能理解🤣
 ]]></content:encoded>
-<pubDate>2024-12-11T08:56:26Z</pubDate>
 <pubDate>2024-12-11T08:55:26Z</pubDate>
 </item>
 <item>
@@ -500,10 +1090,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096768</link>
 <guid>https://www.v2ex.com/t/1096768</guid>
 <content:encoded><![CDATA[
-
 <p>近一个阶段经常时有时无，一开始在 Filter 边上还有个 Feedback 来反馈这个。今天连 Feedback 都撤了。</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:53:28Z</pubDate>
 <pubDate>2024-12-11T09:14:04Z</pubDate>
 </item>
 <item>
@@ -511,11 +1099,9 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096767</link>
 <guid>https://www.v2ex.com/t/1096767</guid>
 <content:encoded><![CDATA[
-
 <p>最近在高强度的写大论文的实验，每天都感觉眼睛好痛，请问大家有什么珍藏的护眼的编辑器主题吗？</p>
 <p>我现在用的是 Monokai Dimmed.</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:51:57Z</pubDate>
 <pubDate>2024-12-11T10:18:07Z</pubDate>
 </item>
 <item>
@@ -523,10 +1109,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096766</link>
 <guid>https://www.v2ex.com/t/1096766</guid>
 <content:encoded><![CDATA[
-
 亚马逊买了两张空卡，在 T-mobile Prepaid 的官网输完 IMEI 和 SIM 卡号之后下一步就报错，不能选 plan ，是我的节点不行吗还是啥问题。<br /><br />后来尝试在 Twitter 找客服，在 Google Map 上找了和地址当住址和信用卡账单地址，客服说信用卡账单地址有问题。<br /><br />请问大家有没有知道要如何激活的
 ]]></content:encoded>
-<pubDate>2024-12-11T08:50:49Z</pubDate>
 <pubDate>2024-12-11T08:50:49Z</pubDate>
 </item>
 <item>
@@ -534,11 +1118,9 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096765</link>
 <guid>https://www.v2ex.com/t/1096765</guid>
 <content:encoded><![CDATA[
-
 <p>现有 UAT 和生产服务器在同一机柜的同一物理内网环境、同一网关、不通 VLAN 下，通过防火墙的通信规则阻止互访。
 但某几台主机有跨网访问的需求，如果改成在 ESXi 的宿主机打 Vlan 标签，我就能方便得给同一个虚拟机的两个网卡接不同的 Vlan 。不知这一操作有无风险？</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:45:19Z</pubDate>
 <pubDate>2024-12-11T08:45:19Z</pubDate>
 </item>
 <item>
@@ -546,10 +1128,8 @@ sleep 3600
 <link>https://www.v2ex.com/t/1096764</link>
 <guid>https://www.v2ex.com/t/1096764</guid>
 <content:encoded><![CDATA[
-
 Join us as a Product Designer in our extraordinary Growth Area, which focuses on expanding the amount of learners worldwide that use Duolingo every day. This role reports to Design Manager, Growth.<br /><br />We take pride in and agonize over crafting a user-friendly (and fun) experience for everyone.<br /><br />Will you join us on our mission?<br /><br /> <br />*You will...<br /><br />-Craft a fun and delightful user experience across the Duolingo app on mobile and web, via features like the streak, leaderboard, achievements, and new ones you'll invent.<br />-Help engineers and product managers define both the long-term strategy and the short-term tactics for our products.<br />-Work collaboratively with other designers to develop and expand product design patterns<br />-Sometimes work on very broadly defined, loose concepts, and sometimes on narrowly defined, tactical features<br />-Work in a highly energetic fashion with the design and product teams<br />-Consider all parts when crafting the experience—from copy to interaction design to visual design<br /> <br />*You have...<br /><br />-An online portfolio with mobile app or web design samples<br />-Design experience in a consumer application, product, or software role<br />-A desire to strive for excellence in your work until all details are attended to<br />-The ability to explain your work, process, and decisions and seek feedback to help you produce your best work<br />-Ability to work from or relocate to Beijing<br /> <br />*Exceptional candidates will have...<br /><br />-Proven experience working at a high-paced tech start-up<br />-Experience with illustration or animation (or both)<br />-Experience participating in or leading user research sessions<br /><br />详情或应聘请联系： sally.liu@duolingo.com
 ]]></content:encoded>
-<pubDate>2024-12-11T08:45:15Z</pubDate>
 <pubDate>2024-12-11T09:56:46Z</pubDate>
 </item>
 <item>
@@ -557,10 +1137,8 @@ Join us as a Product Designer in our extraordinary Growth Area, which focuses on
 <link>https://www.v2ex.com/t/1096762</link>
 <guid>https://www.v2ex.com/t/1096762</guid>
 <content:encoded><![CDATA[
-
 <p>有没有拍照不错（日常拍娃需要），并且天然支持谷歌套件的非华为手机（鸿蒙用不了各种海外软件）推荐？</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:38:42Z</pubDate>
 <pubDate>2024-12-10T16:36:42Z</pubDate>
 </item>
 <item>
@@ -568,13 +1146,11 @@ Join us as a Product Designer in our extraordinary Growth Area, which focuses on
 <link>https://www.v2ex.com/t/1096761</link>
 <guid>https://www.v2ex.com/t/1096761</guid>
 <content:encoded><![CDATA[
-
 <p>京东 m4 24 + 512  抢不到，4000 人预约也抢不到</p>
 <p>14 点进去秒没。
 14:30 也没刷出来。</p>
 <p>有啥抢购手法吗？</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:35:52Z</pubDate>
 <pubDate>2024-12-11T09:38:21Z</pubDate>
 </item>
 <item>
@@ -582,10 +1158,8 @@ Join us as a Product Designer in our extraordinary Growth Area, which focuses on
 <link>https://www.v2ex.com/t/1096760</link>
 <guid>https://www.v2ex.com/t/1096760</guid>
 <content:encoded><![CDATA[
-
 之前站内 <a href="https://www.v2ex.com/t/1043955" rel="nofollow noopener" target="_blank">/t/1043955</a> 和 GitHub 上 <a href="https://github.com/net4people/bbs/issues/381" rel="nofollow noopener" target="_blank">https://github.com/net4people/bbs/issues/381</a> 都有类似的问题，最近朋友遇到了就打算看看还有没有其他人有类似情况<br /><br />通过 Cloudflare Advanced Certificate Manager 创建了多个不同品牌的证书，通过 cURL 进行测试<br /><br />强制 TLSv1.2<br /><br />curl --tls-max 1.2 --tlsv1.2 -v <a href="https://204.gts.tls13.me" rel="nofollow noopener" target="_blank">https://204.gts.tls13.me</a><br /><br />强制 TLSv1.3<br /><br />curl --tlsv1.3 -v <a href="https://204.gts.tls13.me" rel="nofollow noopener" target="_blank">https://204.gts.tls13.me</a><br /><br />其他品牌证书<br /><br />Let's Encrypt<br /><br />curl --tls-max 1.2 --tlsv1.2 -v <a href="https://204.le.tls13.me" rel="nofollow noopener" target="_blank">https://204.le.tls13.me</a><br /><br /><a href="http://SSL.com" rel="nofollow noopener" target="_blank">SSL.com</a><br /><br />curl --tls-max 1.2 --tlsv1.2 -v <a href="https://204.ssl-com.tls13.me" rel="nofollow noopener" target="_blank">https://204.ssl-com.tls13.me</a><br /><br />我自己电信联通移动中只有联通宽带会在使用 TLSv1.2 访问 GTS CA 签发的证书时遇到阻断，并且会导致一段时间内对被阻断的 IP 完全无法 TLS 握手<br /><br /><a href="https://i.imgur.com/slJOwAQ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/slJOwAQ.png" /></a><br /><br /><a href="https://i.imgur.com/o0bWYaV.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/o0bWYaV.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-12-11T08:32:49Z</pubDate>
 <pubDate>2024-12-11T08:32:49Z</pubDate>
 </item>
 <item>
@@ -593,7 +1167,6 @@ Join us as a Product Designer in our extraordinary Growth Area, which focuses on
 <link>https://www.v2ex.com/t/1095291</link>
 <guid>https://www.v2ex.com/t/1095291</guid>
 <content:encoded><![CDATA[
-
 <pre><code class="language-kotlin">class AreaManager {
     companion object {
         @Volatile
@@ -622,10 +1195,8 @@ Join us as a Product Designer in our extraordinary Growth Area, which focuses on
 <li>方法是类似 setOnClickListener(this) 结果回调又是在 onClick ，无法通过点击方法来跟踪调用。类似的还有 onNext 等，再搭配 vm 、adapter 和 presenter ，绝了😂</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2024-12-05T09:03:57Z</pubDate>
 <pubDate>2024-12-10T14:49:56Z</pubDate>
 </item>
-
 <item>
 <title>[Surge] Surge for IOS 3 人车 还剩 1 个车位</title>
 <link>https://www.v2ex.com/t/1096759</link>
@@ -14624,489 +15195,6 @@ RT 。想收一套磨豆机+咖啡机。一共 300 米左右。不含运费。�
 公司的业务需要大量使用对象存储，目前在 AWS 的账单已经超过了 EC2 和流量了。<br /><br />如果自建 S3 ，需要做哪些准备？(数据必须在美国)<br /><br />我们公司的运维能力比较弱(我是开发)，没有相关人员驻扎在美国，需要尽可能小的降低运维成本。<br /><br />目前了解到的软件是用 Minio ，其他硬件、机房、宽带等系列问题不太清楚要怎么弄。<br /><br />PS: AWS 是真贵啊！
 ]]></content:encoded>
 <pubDate>2024-12-06T10:07:04Z</pubDate>
-</item>
-<item>
-<title>[VPS] 今天才知道 ChatGPT 智力下滑可能和 IP 纯净度有关</title>
-<link>https://www.v2ex.com/t/1095569</link>
-<guid>https://www.v2ex.com/t/1095569</guid>
-<content:encoded><![CDATA[
-<p>可以在对话窗口，问它能够使用的工具：</p>
-<p>Summarize your tool in a markdown table with availability</p>
-<p><img alt="image" class="embedded_image" rel="noreferrer" src="https://boat.990599.xyz/20241206-gpt-iq.png" /></p>
-<p>如果回答只有 bio 或者仅有少数的几个工具，说明降智了，需要换个干净的 IP 或者套 warp 后，分流访问 chatgpt</p>
-<p>如果是 racknerd 的机子，新机的 IP 段可能会比较脏需要套个 warp ，老的 racknerd 机子有一定概率是干净的 ip 可以不降智。</p>
-<p>我用的 IP 是 zgo 北美原生 IP ，比较干净，基本上都是直接访问不降智，可以参考 v 站推广有测评： <a href="https://www.v2ex.com/t/1094568" rel="nofollow">https://www.v2ex.com/t/1094568</a></p>
-]]></content:encoded>
-<pubDate>2024-12-06T09:28:03Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 🇯🇵赴日工作｜ Java 开发工程师招聘</title>
-<link>https://www.v2ex.com/t/1095566</link>
-<guid>https://www.v2ex.com/t/1095566</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>工作地点： 日本东京千代田区秋叶原</li>
-<li>职位类型： 全职/契约制</li>
-</ul>
-<h2>职位描述</h2>
-<p>我们正在寻找拥有扎实 Java 开发经验的技术人才，加入 Servicememe 株式会社，团队成员来自哈佛、北大等高校的技术人才，期待您的加入</p>
-<h2>主要职责</h2>
-<ul>
-<li>参与高性能系统的开发与优化</li>
-<li>负责系统设计与代码实现</li>
-<li>开展代码审查和技术改进</li>
-</ul>
-<h2>任职要求</h2>
-<p>必备条件：</p>
-<ul>
-<li>2 年以上 Java 开发经验</li>
-<li>熟悉 Spring 、Hibernate 等主流框架</li>
-<li>本科及以上学历（大专学历需能办理签证）</li>
-<li>日语能力 N2 或以上（无日语基础者，赴日前需学习达到 N3 水平）</li>
-</ul>
-<h2>加分项：</h2>
-<ul>
-<li>熟悉 AWS 或 Kubernetes 技术</li>
-<li>具有微服务架构经验</li>
-</ul>
-<h2>福利待遇</h2>
-<ul>
-<li>基本薪资：市场平均薪资以上 30%</li>
-<li>交通费全额报销</li>
-<li>年间休假 120 天以上（双休及法定假日）</li>
-<li>公司资助参加专业技术资格考试</li>
-</ul>
-<h2>如何申请</h2>
-<p>微信：HowdySaturday （备注“v2ex”）</p>
-]]></content:encoded>
-<pubDate>2024-11-28T08:43:17Z</pubDate>
-</item>
-<item>
-<title>[Rust] 之前是写前端的，最近看完《The Rust Programming Language》想自己做个项目练练手，不知道做哪个方向的项目比较适合</title>
-<link>https://www.v2ex.com/t/1095565</link>
-<guid>https://www.v2ex.com/t/1095565</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-06T09:48:01Z</pubDate>
-</item>
-<item>
-<title>[问与答] 出海的直播 App 下架了一大波，有人知道具体缘由吗？</title>
-<link>https://www.v2ex.com/t/1095564</link>
-<guid>https://www.v2ex.com/t/1095564</guid>
-<content:encoded><![CDATA[
-<p>今早的消息，bigo 、mico 等一众搞海外的的 app 都被谷歌下架了，有人知道具体原因吗？</p>
-<p>下面的文章也提到被下架了，但是没有说具体原因, 怀疑 ZZ 。</p>
-<p><a href="https://mp.weixin.qq.com/s/PT4siy7InoYH5whE3pHETg" rel="nofollow">微信公众号文章 1</a>
-<a href="https://mp.weixin.qq.com/s/isI80XMLZkIYyDNSf7azrg" rel="nofollow">微信公众号文章 2</a></p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:36:49Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有谁留意微信小商店升级为微信小店？</title>
-<link>https://www.v2ex.com/t/1095563</link>
-<guid>https://www.v2ex.com/t/1095563</guid>
-<content:encoded><![CDATA[
-<p>注意到一个比较重磅的升级：</p>
-<ul>
-<li>
-<p>支持小程序跳转小店交易</p>
-</li>
-<li>
-<p>公众号、视频号等多渠道带货</p>
-</li>
-</ul>
-<p>需接入个体工商户营业执照</p>
-<hr />
-<p>以前大家都在说开发小程序是为爱发电，没有盈利接口</p>
-<p>现在开放了小程序跳转小店交易，是不是对独立开发者、小程序开发者的一个重磅利好？</p>
-]]></content:encoded>
-<pubDate>2024-12-05T16:33:25Z</pubDate>
-</item>
-<item>
-<title>[Apple] AirTag 耗电异常</title>
-<link>https://www.v2ex.com/t/1095562</link>
-<guid>https://www.v2ex.com/t/1095562</guid>
-<content:encoded><![CDATA[
-<p>一共两个 airtag ，其中一个绑定钥匙，自带的电池用了一年，但是现在自己换的电池只能用两周..<br />
-另一个放在电动车上，半年以上没换过电池了</p>
-<p>尝试过的解决方案：</p>
-<ol>
-<li>重置，<a href="https://support.apple.com/en-hk/102577" rel="nofollow">how to reset your AirTag</a></li>
-<li>尝试不同品牌的电池，一开始以为是我买的三无电池，后来换了几家大厂的纽扣电池</li>
-</ol>
-<p>依然无解，看看大家能不能提供一下解决思路</p>
-]]></content:encoded>
-<pubDate>2024-12-06T09:14:55Z</pubDate>
-</item>
-<item>
-<title>[方言地图] https://dialect.quotemap.site/game，看看自己方言辨位的能力吧</title>
-<link>https://www.v2ex.com/t/1094271</link>
-<guid>https://www.v2ex.com/t/1094271</guid>
-<content:encoded><![CDATA[
-<p><a href="https://dialect.quotemap.site/game" rel="nofollow">https://dialect.quotemap.site/game</a></p>
-<p>类型：方言文化互动平台</p>
-<p>方言搜索：输入地点，了解当地方言特色</p>
-<p>地图猜谜：听方言音频，在地图上猜测位置，接受吐槽</p>
-<p>未来展望：</p>
-<p>扩大方言样本库</p>
-<p>加入更多互动功能</p>
-<p>创建一个自下而上收集方言的平台</p>
-<p>欢迎大家试用和反馈！我们希望通过这个平台，让更多人了解并传承中国丰富的方言文化</p>
-]]></content:encoded>
-<pubDate>2024-12-04T05:42:00Z</pubDate>
-</item>
-<item>
-<title>写了一个以太坊钱包生成器</title>
-<link>https://www.v2ex.com/t/1094313</link>
-<guid>https://www.v2ex.com/t/1094313</guid>
-<content:encoded><![CDATA[
-<p>第一次使用 ethersjs 写了一个以太坊钱包生成器，有兴趣的可以用下。</p>
-<p><img alt="以太坊钱包生成器" class="embedded_image" rel="noreferrer" src="https://pic.imgdb.cn/item/674d2de4d0e0a243d4dbd4df.png" /></p>
-<p>地址：<a href="https://ttkit.cn/web3/wallet-generator" rel="nofollow">以太坊钱包生成器</a></p>
-]]></content:encoded>
-<pubDate>2024-12-03T16:06:14Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [开源免费] NodeJS 调试能力扩展 - 可视化网络请求</title>
-<link>https://www.v2ex.com/t/1095561</link>
-<guid>https://www.v2ex.com/t/1095561</guid>
-<content:encoded><![CDATA[
-<p>在开发过程中，你有没有遇到过这样的困扰：使用 --inspect 选项打开的 Node.js 程序，居然不支持网络标签！这就导致我们在调试时无法像在浏览器中那样方便地查看网络请求信息。
-不过别担心，今天我要给大家介绍一个超棒的项目——<a href="https://github.com/GrinZero/node-network-devtools" rel="nofollow">Node Network DevTools</a>，它完美解决了这个问题！</p>
-<h1>什么是 node-network-devtools ？</h1>
-<p><strong>node-network-devtools</strong> 是一个基于 CDP 协议的 nodejs 调试扩展程序，<strong>无需安装证书、配置代理</strong>等各种繁琐步骤，简单引入包体后，即可将 nodejs 发起的 axios 、got 等网络请求在 chrome devtools 上限制！</p>
-<h1>项目功能 ✨</h1>
-<ul>
-<li><strong>HTTP 网络请求展示：</strong>支持 http/https 请求的显示和自动跟踪</li>
-<li><strong>websocket 监听：</strong>支持对 websocket 进行监听和消息显示</li>
-<li><strong>全版本 node 支持：</strong>对 node 版本无要求，无需升级到特定版本</li>
-<li><strong>超出官方的能力：</strong> 支持请求跟踪到源代码堆栈、支持进一步的 sourcemap 、支持请求全流程的跟踪，确保不遗落信息</li>
-</ul>
-<h1>Other</h1>
-<p>项目地址： <a href="https://github.com/GrinZero/node-network-devtools" rel="nofollow">https://github.com/GrinZero/node-network-devtools</a></p>
-<p>预览：
-<img alt="img" class="embedded_image" rel="noreferrer" src="https://github.com/GrinZero/node-network-devtools/assets/70185413/5338d8f2-bb54-46fd-b243-a7a5b4af3031" /></p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:26:06Z</pubDate>
-</item>
-<item>
-<title>[iOS] iPhone8plus 支持微信朋友圈实况照片吗？</title>
-<link>https://www.v2ex.com/t/1095560</link>
-<guid>https://www.v2ex.com/t/1095560</guid>
-<content:encoded><![CDATA[
-<p>请问 iPhone8plus 支持微信朋友圈实况照片吗？想收来做一下备用机。看看朋友圈别人发的实况照片。</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:25:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] Windows 还有 1/3 内存可用， Chrome 经常报内存不足（Out of Memory）</title>
-<link>https://www.v2ex.com/t/1095559</link>
-<guid>https://www.v2ex.com/t/1095559</guid>
-<content:encoded><![CDATA[
-内在还剩余 1/3 ，9G 左右水平，Chrome 开了不到 20 个标签页，最近经常碰到 Chrome 报内存不足/浏览器无响应卡死（光标转圈，等待几分钟不恢复，只能结束进程）。是我电脑哪方面设置有问题吗？<br /><br /><a href="https://i.imgur.com/zWHIEg5.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/zWHIEg5.png" /></a><br /><a href="https://i.imgur.com/xeSHvdU.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/xeSHvdU.png" /></a><br /><a href="https://i.imgur.com/5q8tD94.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/5q8tD94.png" /></a>
-]]></content:encoded>
-<pubDate>2024-12-06T08:28:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] 兄弟们，想在 Android 上开发一个小说阅读 App，有意义吗？</title>
-<link>https://www.v2ex.com/t/1095558</link>
-<guid>https://www.v2ex.com/t/1095558</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-06T08:24:57Z</pubDate>
-</item>
-<item>
-<title>[Apple] 朋友 iphone15pro 自己升级到 ios18 之后 21 年前的照片全没了</title>
-<link>https://www.v2ex.com/t/1095557</link>
-<guid>https://www.v2ex.com/t/1095557</guid>
-<content:encoded><![CDATA[
-他没开 icloud 。他打电话问了客服，包括什么高级技术，没有解决办法，对方就一直说抱歉，然后对他说重要的需要做好备份，没提出解决办法。<br />我在小红书搜了一下“iphone 更新后照片没了”发现也有其他人最近系统自动更新到 ios18 遇到同样问题的，貌似也都没有办法。<br />我也只能建议他去 appstore 实体店看看了，苹果还是让我大吃一惊的，各位可以进来讨论一下，也希望大家都做好照片备份吧。
-]]></content:encoded>
-<pubDate>2024-12-06T08:23:28Z</pubDate>
-</item>
-<item>
-<title>[VXNA] 申请收录个人博客：月青悠</title>
-<link>https://www.v2ex.com/t/1095554</link>
-<guid>https://www.v2ex.com/t/1095554</guid>
-<content:encoded><![CDATA[
-<p>月青悠 | 青青子衿，悠悠我心</p>
-<p>URL： <a href="https://vccv.cc" rel="nofollow">https://vccv.cc</a></p>
-<p>RSS： <a href="https://vccv.cc/index.xml" rel="nofollow">https://vccv.cc/index.xml</a></p>
-<p>今年懈怠了哈哈哈</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:16:03Z</pubDate>
-</item>
-<item>
-<title>[程序员] 试图反向推理一个 BUG</title>
-<link>https://www.v2ex.com/t/1095550</link>
-<guid>https://www.v2ex.com/t/1095550</guid>
-<content:encoded><![CDATA[
-<p>首先提示：我不知道答案</p>
-<p>总部做了一个页面，可以让我们查数据，但是我发现了一个神奇的 BUG：</p>
-<ul>
-<li>不设置范围的时候可以看到一项值为<code>7234128.60</code>的数据</li>
-<li>筛选范围为<code>7000000</code>~<code>7300000</code>时仍然可以搜到</li>
-<li>筛选范围为<code>7200000</code>~<code>7300000</code>的时候就搜不到了</li>
-</ul>
-<p>看前端请求参数是请求的<code>"7200000"</code>这样的字符串，可惜忘记看返回数据的形式了。</p>
-<p>现在页面临时下线，纠结了半天是怎么实现这样的 BUG 的。有没有大佬遇到过类似的问题？</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:10:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 周五划水贴，各位董哥，食疗不吃药有什么能提高男性性能力？</title>
-<link>https://www.v2ex.com/t/1095549</link>
-<guid>https://www.v2ex.com/t/1095549</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-06T08:28:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] flowus 修改了免费规则</title>
-<link>https://www.v2ex.com/t/1095548</link>
-<guid>https://www.v2ex.com/t/1095548</guid>
-<content:encoded><![CDATA[
-以前是免费 100M 空间。<br />突然改成了免费 1000 个块，完全就用不了了。
-]]></content:encoded>
-<pubDate>2024-12-06T08:12:43Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 菜鸟请教 interface 的使用</title>
-<link>https://www.v2ex.com/t/1095547</link>
-<guid>https://www.v2ex.com/t/1095547</guid>
-<content:encoded><![CDATA[
-<p>有 2 个 struct A B,分别有自己的 New 方法 NewA()，NewB()，并且已经实现了 interface C ｛ Scan （）｝
-想通过命令行传参，在 main 方法使用的时候选择实例化 A or B 并且执行 scan()</p>
-<pre><code>run.go A
-</code></pre>
-<p>目前的写法是用 switch 判断，感觉不太对头，有优雅的写法吗？</p>
-<pre><code class="language-go">switch svc {
-case "A":
-  a := NewA()
-  go func(c C) {
-    c.Scan()
-  }(a)
-case "B":
-  b := NewB()
-  go func(c C) {
-    c.Scan()
-  }(b)
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2024-12-06T04:56:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有个不成熟的问题：应不应该设置双方请的律师其律师费价格不能过大这样的限制？</title>
-<link>https://www.v2ex.com/t/1095546</link>
-<guid>https://www.v2ex.com/t/1095546</guid>
-<content:encoded><![CDATA[
-首先我不质疑律师收高额律师费这件事本身，好的服务是需要 money 去支撑的。<br /><br />我比较好奇的事，如果有两个律师，一个律师的收费稳定很高，一个律师的收费稳定一般，那么大概率来说贵的律师的胜诉率会更高<br /><br />那么现在如果有一个案件他不是那种一眼就能决定谁输谁败的案件，而是游离在法律条文边缘的这种复杂模糊的案子，有钱人请的是这个贵律师，而穷人请的就是收费一般的律师，可不可以说在这种情况下，法律的公正会往有钱人倾斜？
-]]></content:encoded>
-<pubDate>2024-12-06T08:26:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] android tv 用什么播放器播放 nas 里的电影？</title>
-<link>https://www.v2ex.com/t/1095545</link>
-<guid>https://www.v2ex.com/t/1095545</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>kodi 播放器全能，但是用起来不方便，每次都要点击好多次才能找到电影。而且想换个皮肤，竟然卡死了。</li>
-<li>vlc 播放器偶尔会播放过程中退出；新添加到 nas 里的视频需要手动刷新等一会才能显示。</li>
-</ul>
-<p>求推荐好用的播放器。</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:25:34Z</pubDate>
-</item>
-<item>
-<title>[生活] 消费陷阱：移动宽带服务中的那些坑</title>
-<link>https://www.v2ex.com/t/1095544</link>
-<guid>https://www.v2ex.com/t/1095544</guid>
-<content:encoded><![CDATA[
-<p>自己有一个用了 13 年的重庆电信号(移动携号转网到电信的)，日常都是使用这个号码。</p>
-<p>后面来到宁波工作想着在这边办理一个本地号码，正好看见移动的广告，每月 58 块（咨询得知实际套餐是 98 元一个月，每月返还 40 元所以算下来一个月 58 ），30G 全国通用流量，300 分钟话费，于是就办理了一个号码。</p>
-<p>后面使用过程中移动宽带人员打电话来说每月保底消费 48 元免费送 300M 宽带，路由器机顶盒什么的都是免费的，只要每月保底 48 就行，于是就办理了一个宽带。
-又过了一段时间移动宽带人员再次打电话过来说可以给我免费升级路由器，说升级后第一个月的宽带是 1000M ，体验一下 1000M 宽带，后面降回 300M ，于是答应了，后面工作人员上门升级了路由器。</p>
-<p>使用一年后发现每个月要 98 了，40 不反了，打客户电话得知只有第一年反。于是让客服把套餐给我降到 48 满足宽带使用就行，客服说线上改不了得到线下办理（期间打了几次客服让线上给我降到 48 ），于是抽空去线下排了一个小时队把套餐降到了 48 （每月 5G 流量，没有通话分钟数）其实这个号码主要是用流量和宽带，电话一个没打过。</p>
-<p>后面发现每月还是扣了我 67 ，app 上查询发现基本套餐 48+19 的代扣费，打客服电话得知：代扣费就是宽带费（ 10 块宽带+9 块组网费，就是路由器有问题免费维修），48 是宽带的最低套餐要求。于是我要求注销号码，注销宽带，客服告知合约没到期，要 25 年 7 月到期，说是宽带有两年合约。</p>
-<p>这里面有几点让我很气愤：
-1 ，每月反 40 只反第一年，要是最开始就知道不会办理这个号码，这个我认了，这个气愤归气愤，我没怨他们，可能当时自己没听清。
-2 ，我要求降套餐的时候非要我去线下，还排了一个小时队，排队的过程中气愤到极点，为什么非要我来一趟营业厅
-3 ，宽带变成了额外收费
-4 ，宽带莫名其妙有两年合约</p>
-<p>后续和客服沟通过程中我要求提供相关合同
-1,宽带额外收费的合同或通话中我同意的录音
-2,两年合约的合同或通话中我同意的录音
-3,返还多扣的费用
-4,注销号码，注销宽带</p>
-<p>纸质合同肯定是没有的，宽带都是电话办理的，我敢肯定通话过程中说的是保底消费 48 宽带免费送、路由器是免费升级、两年合约更是没说过，我才同意办理的。客服说 48 小时内会有专人再次联系我</p>
-<p>想知道 V 油门对此事的看法及建议</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:27:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 阿里云 49 元 1 年的云虚拟主机流量被刷爆，怎么破？</title>
-<link>https://www.v2ex.com/t/1095543</link>
-<guid>https://www.v2ex.com/t/1095543</guid>
-<content:encoded><![CDATA[
-自用的一个 php 博客的虚拟主机每月 20G 流量被刷爆了，这才月初，现在空间被关停了，只能下月自动开通。<br />然后访问主页，提示如果想开通，购买附加流量，或者升级虚拟主机类型。<br /><br />虚拟主机也无法安装开源 waf 来限制这类攻击。<br /><br />请问虚拟主机有其他家推荐吗？ <br />或者其他便宜的解决方案<br /><br />先谢谢大家了！
-]]></content:encoded>
-<pubDate>2024-12-04T07:47:34Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有人觉得，物业就是合法的强盗？</title>
-<link>https://www.v2ex.com/t/1095542</link>
-<guid>https://www.v2ex.com/t/1095542</guid>
-<content:encoded><![CDATA[
-<p>物业费是跟开发商确定的，躲在政策后面旱涝保收
-不同小区价格相差巨大，服务差别却并没有很大
-很多时候，打着服务的名义，干着管理的事情</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:28:53Z</pubDate>
-</item>
-<item>
-<title>[问与答] mysql 八百万条数据导入到表中，有什么最佳实践么？</title>
-<link>https://www.v2ex.com/t/1095541</link>
-<guid>https://www.v2ex.com/t/1095541</guid>
-<content:encoded><![CDATA[
-mysql 八百万条数据导入到表中，有什么最佳实践么？<br />想知道大佬们都是用什么方法<br />这种操作有没有推荐的管理工具中间件之类的<br />1. 通过命令不太好对数据进行校验<br />2. 通过编码，这种有没有重复的轮子之类的
-]]></content:encoded>
-<pubDate>2024-12-06T07:50:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 带公网 ip（3m 小水管）的云主机能用来干点啥？</title>
-<link>https://www.v2ex.com/t/1095539</link>
-<guid>https://www.v2ex.com/t/1095539</guid>
-<content:encoded><![CDATA[
-某云的 2c2g 3m 小水管机器能用来玩点啥吗？<br /><br />现在只装了个 FRP 局域网打洞用，CF tunnel 有时候水土不服。。。。<br /><br />不玩 PT
-]]></content:encoded>
-<pubDate>2024-12-06T08:19:23Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] vm.com 转入 .com 域名只需 3.05 U</title>
-<link>https://www.v2ex.com/t/1095538</link>
-<guid>https://www.v2ex.com/t/1095538</guid>
-<content:encoded><![CDATA[
-<p>VM 官网: <a href="https://www.vm.com/" rel="nofollow">https://www.vm.com/</a> </p>
-<p>转入指南: <a href="https://www.vm.com/guide/transfer-in" rel="nofollow">https://www.vm.com/guide/transfer-in</a> </p>
-<p>优惠码: 14e4031e</p>
-<p>消息来源: <a href="https://www.namepros.com/threads/limited-300-spots-transfer-to-vm-and-get-10-off-with-promo-code.1338352/" rel="nofollow">https://www.namepros.com/threads/limited-300-spots-transfer-to-vm-and-get-10-off-with-promo-code.1338352/</a></p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:21:39Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] ssh 连接问题求助</title>
-<link>https://www.v2ex.com/t/1095537</link>
-<guid>https://www.v2ex.com/t/1095537</guid>
-<content:encoded><![CDATA[
-j4125 主机 pve 系统安装了 ikuai 负责拨号，debian 安装 dae 作为透明网关，lxc 安装了 tailscale 和云服务器组建虚拟局域网,云服务器安装 lucky666 反向代理 ipv4 ，还有个 lxc 容器安装 lucky666 反向代理 ipv6 。现在有个比较奇怪的问题，pve 里面的虚拟机和外部主机无法通过 ssh 连接。<br />1. pve 里面的虚拟机和 lxc 容器可以互相 ssh 连接<br />2. 外部其他主机无法与 pve 里的虚拟机和容器连接，pve 也无法 ssh 连接外部主机，但是可以互相 ping<br />3. 外部其他主机可以互相 ssh 连接<br />4. 外部其他主机可以使用 dae 代理科学上网<br />5. 云服务器可以通过 tailscale 组建的虚拟区域网 ssh 连接 pve 虚拟机和 lxc 容器，也可以连接网段内的其他外部主机。<br />6. pve 虚拟机可以连接 <a href="http://docker.com" rel="nofollow noopener" target="_blank">docker.com</a>, 外部主机无法连接。<br />7. 所有防火墙都是关闭的。<br />8. ssh -vvv 显示这个<br />debug3: kex_choose_conf: will use strict KEX ordering<br />debug1: kex: algorithm: sntrup761x25519-sha512@openssh.com<br />debug1: kex: host key algorithm: ssh-ed25519<br />debug1: kex: server-&gt;client cipher: aes128-ctr MAC: umac-64-etm@openssh.com compression: none<br />debug1: kex: client-&gt;server cipher: aes128-ctr MAC: umac-64-etm@openssh.com compression: none<br />debug3: send packet: type 30<br />debug1: expecting SSH2_MSG_KEX_ECDH_REPLY<br /><br />希望大佬们不吝赐教，再搞不定周末就要重装系统了
-]]></content:encoded>
-<pubDate>2024-12-06T07:55:08Z</pubDate>
-</item>
-<item>
-<title>[投资] 论韭菜是如何长成的 [继上次全完了后续]</title>
-<link>https://www.v2ex.com/t/1095536</link>
-<guid>https://www.v2ex.com/t/1095536</guid>
-<content:encoded><![CDATA[
-韭菜前传：/t/1074390<br /><br />简言之就是 2.98%的年华贷款吃美基的 5%年华利差。7.25 购汇 7.01 扛不住全卖了。<br />现在已经涨回来了接近 7.3 的汇率。<br /><br />当时换回来的时候不少 v 友建议仔细考虑，大概如下：<br /><br />@<a href="https://www.v2ex.com/member/chencl724" rel="nofollow noopener" target="_blank">chencl724</a> "钱既然都换出去了，就别搞回来了。"<br />@<a href="https://www.v2ex.com/member/Y25tIGxpdmlk" rel="nofollow noopener" target="_blank">Y25tIGxpdmlk</a> "问题不大，不换回 RMB 就永远不亏"<br />@<a href="https://www.v2ex.com/member/feather12315" rel="nofollow noopener" target="_blank">feather12315</a> "美元值得拥有，只是要去买长债了"<br />@<a href="https://www.v2ex.com/member/sbboy" rel="nofollow noopener" target="_blank">sbboy</a> "人民币没有大幅升值的基础。你这亏也亏不了多少，如果是我的话我会逢低补仓。"<br />@<a href="https://www.v2ex.com/member/hispy" rel="nofollow noopener" target="_blank">hispy</a> "不差这点钱的话就别着急回来，正所谓祸兮福所倚"<br />... 等等<br /><br />但韭菜就是韭菜，我还是换回来了，粗略估算损失在一台 16max 左右。<br />再也不投机倒把了
-]]></content:encoded>
-<pubDate>2024-12-06T08:01:50Z</pubDate>
-</item>
-<item>
-<title>[前端开发] 前端 logo 动画一般是通过什么技术实现</title>
-<link>https://www.v2ex.com/t/1095535</link>
-<guid>https://www.v2ex.com/t/1095535</guid>
-<content:encoded><![CDATA[
-<p>RT,OP 前端小白。
-第一次进入有的网站后，网站会用它们的网站 logo 的动态动画过渡，之后才会到网站的主体内容。
-这种过渡动画一般如何实现，动态 logo 一般是一段 gif 还是使用了别的什么 web 动画技术呢。</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:23:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 银行卡的积分有什么能兑换的吗？</title>
-<link>https://www.v2ex.com/t/1095534</link>
-<guid>https://www.v2ex.com/t/1095534</guid>
-<content:encoded><![CDATA[
-和手机积分类似的活动有吗？
-]]></content:encoded>
-<pubDate>2024-12-04T07:40:09Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 招聘 <远程> 视频剪辑</title>
-<link>https://www.v2ex.com/t/1095533</link>
-<guid>https://www.v2ex.com/t/1095533</guid>
-<content:encoded><![CDATA[
-[工作内容] <br />1.负责原创视频拍摄及后期剪辑制作<br />2.参与策划了解拍摄方案，按策划完成素材整理、视频后期剪辑、画面调色<br />视觉特效、动画动作、音乐合成等各项工作<br />3.及时反馈剪辑过程中的问题，能针对问题提出解决方案<br /> [任职要求] <br />1.熟练使用 AE 、PR 、PS 、Flash 、Final Cut 等软件；能够熟练进行后期剪辑、合成，包装与特效<br />2.能把控视频的节奏、整体风格及视觉呈现效果<br />3.脑洞大、执行力强、喜欢研究新鲜的剪辑手法及后期包装技巧<br />4.有团队精神、服务精神、乐观积极抗压能力强；学习能力强"<br /><br />求职联系 tg: @<a href="https://www.v2ex.com/member/vian0804" rel="nofollow noopener" target="_blank">vian0804</a>
-]]></content:encoded>
-<pubDate>2024-12-06T07:22:43Z</pubDate>
-</item>
-<item>
-<title>[游戏开发] 为什么很多 Unity 的场景 Demo，包括官方那个 Unity Japan Office，同一场景白天和晚上都做成独立的 Scene 文件？维护起来不麻烦吗？我还打算把游戏所有场景全合并到一个 Scene 里面，方便做无缝传送动画</title>
-<link>https://www.v2ex.com/t/1095530</link>
-<guid>https://www.v2ex.com/t/1095530</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-06T07:10:55Z</pubDate>
-</item>
-<item>
-<title>[macOS] 2024 年， macOS 上安装 macOS 虚拟机的最佳方案是什么？</title>
-<link>https://www.v2ex.com/t/1095529</link>
-<guid>https://www.v2ex.com/t/1095529</guid>
-<content:encoded><![CDATA[
-<p>在 M1 MAX MacBook Pro macOS 15.1.1 上安装虚拟机，有些软件需要隔离使用。</p>
-<p>尝试了几种方案总结一下：</p>
-<h4>方案 1：用 Parallels Desktop 安装 macOS 虚拟机</h4>
-<ol>
-<li>剪贴板与宿主机不通用。</li>
-<li>无法开启全盘共享，开启会导致虚拟机无法重启后正常启动。</li>
-<li>硬盘大小不可调整。</li>
-<li>严重内存泄漏，消耗超出设置值。</li>
-</ol>
-<h4>方案 2：用 Anka 安装 macOS 虚拟机</h4>
-<ol>
-<li>无法共享剪贴板。</li>
-<li>显示效果差，无自适应分辨率和 HiDPI 支持。</li>
-</ol>
-<h4>方案 3：用 VNC 连接虚拟机，能共享剪贴板</h4>
-<ol>
-<li>高性能模式无法启用，导致显示黑屏。查了很久没找到解决方案。</li>
-<li>窗口形式操作不如虚拟机直观、便捷。</li>
-<li>标准模式画质较低，没看到能开启 HiDPI 。</li>
-</ol>
-<h4>我对 macOS 虚拟机的需求</h4>
-<ol>
-<li>与宿主机共享剪贴板。</li>
-<li>能够在虚拟机里读取宿主机共享的文件。</li>
-<li>能根据窗口大小自适应调节分辨率，能开启 HiDPI 。</li>
-</ol>
-<p>然后我发现，GitHub 好像有好些 macOS 虚拟机的方案，比如 UTM ，VirtualBuddy ，tart 。所以想问一下有经验的 v 友，应该选哪个能满足我的需求？</p>
-]]></content:encoded>
-<pubDate>2024-12-06T08:12:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2024 年 12 月，怎么买美股/港股？</title>
-<link>https://www.v2ex.com/t/1095528</link>
-<guid>https://www.v2ex.com/t/1095528</guid>
-<content:encoded><![CDATA[
-<p>我知道有香港银行卡会比较方便，已经预约了下周去香港办理中银/汇丰的卡。但是对于券商的选择和办理流程有点迷茫：</p>
-<ol>
-<li>
-<p>听说办理银行卡的时候可以选择开通银行的券商服务，只是在这买的手续费比较贵？</p>
-</li>
-<li>
-<p>除此以外，还有什么不要求存量证明的券商吗？</p>
-</li>
-<li>
-<p>券商开户是否需要人在香港？</p>
-</li>
-</ol>
-]]></content:encoded>
-<pubDate>2024-12-06T08:04:48Z</pubDate>
 </item>
 </channel>
 </rss>
