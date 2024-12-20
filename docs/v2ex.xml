@@ -5,14 +5,85 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[NAS] 尝鲜 Bcachefs 的注意事项</title>
+<link>https://www.v2ex.com/t/1099208</link>
+<guid>https://www.v2ex.com/t/1099208</guid>
+<content:encoded><![CDATA[
+
+<p>如果有人要用 bcachefs 的话，这一个月用了好久，总结了一些坑</p>
+<ol>
+<li>
+<p>bcachefs format 默认会使用硬盘逻辑 blocksize 作为文件系统的 blocksize ，这和文档中的记录不符，最好格式化时手动设置 blocksize 到 4096</p>
+</li>
+<li>
+<p>千万别开透明压缩，除非你完全不 care 性能，它是 zstd 实现是单线程的，且性能只有正常的单线程 zstd 的约 1/10 （原因未知）</p>
+</li>
+<li>
+<p>要保证一个组里没有性能差距过大的硬盘，不然因为数据的多个 replica 的写入不是异步的而且没法指定 replica 如何创建，会导致性能更好的硬盘降级到最差硬盘的水平</p>
+</li>
+<li>
+<p>写入会进 foreground_target 并在对应组的所有硬盘之间条带化，而不是同时在 foreground_target 和 background_target 之间条带化</p>
+<p>由于上一条建议，因此不推荐这么做（你可以通过不设置 foreground_target/background_target 来实现在全部硬盘间条带化）</p>
+</li>
+<li>
+<p>如果设置了两个 replicas ，但是却有偶数个硬盘，则多出来的硬盘完全不提供性能提升
+例如你在 foreground_target 的组中有三块硬盘，background 组中有两块硬盘，那么写入只会同时写到 foreground_target 中的其中两块硬盘</p>
+</li>
+<li>
+<p>如果你用 systemd-mount 挂载硬盘，默认会在一个比较短的时间内超时，如果 bcachefs 更新数据结构，mount 时 fsck 需要非常长的时间，可以通过设置 x-systemd.mount-timeout=3600s 来防止 fsck 到一半 systemd 跳出</p>
+</li>
+<li>
+<p>添加硬盘后可以用</p>
+<pre><code>bcachefs data job migrate /mnt
+</code></pre>
+<p>来重新 balance ，尤其是可以强制让 btree 节点移动到新的 metadata_target/foreground_target</p>
+</li>
+<li>
+<p>如果 metadata_target=none （默认）那么 metadata 就会写到 foreground_target</p>
+</li>
+<li>
+<p>background_compression=none 时会继承 compression 的值，默认情况下格式化时只指定 compression 那么 background_compression 就会是 none</p>
+</li>
+<li>
+<p>bcachefs 不会在检查到磁盘支持 discard 就自动开启，务必手动给 ssd 开启 discard</p>
+</li>
+<li>
+<p>通过设置 durability=0 可以得到 writethrough cache ，设置 promote_target 而不设置 foreground_target 可以得到 writearound cache</p>
+<p>假如你有一些性能较差/与其他硬盘不一致的 ssd ，并且你只想让它作为读缓存来提高覆盖率，那么可以加入到 foreground_target 的组中并设置 durability ，roadmap 中，未来还可能支持更复杂的 tiering 配置来覆盖同组中速率不一致时的种种情况</p>
+</li>
+<li>
+<p>metadata_replicas_required 和 data_replicas_required 决定的是 mount 时有多少副本才认为数据完全，而不是写入多少个 replica 就算写入完成/提供 fsync 保证</p>
+</li>
+<li>
+<p>暂时最好别用 online fsck ，有一些问题，可以去 bcachefs 的 github mirror 的 issue 区看</p>
+</li>
+<li>
+<p>如果你想尝试 master 分支，请一定先去 irc 里看看是不是已经 ready 了，也可以去看看 ci 的 state</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-12-20T20:22:20Z</pubDate>
+<pubDate>2024-12-20T20:19:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] OpenRouter 目前也无法访问 o1 了，那么是否有其他访问 o1 的方式呢，找了一圈都只有 o1-preview</title>
+<link>https://www.v2ex.com/t/1099207</link>
+<guid>https://www.v2ex.com/t/1099207</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-12-20T19:26:45Z</pubDate>
+<pubDate>2024-12-20T19:24:45Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 给前老板做兼职，谈好的条件，外新增功能应该免费做吗？</title>
 <link>https://www.v2ex.com/t/1099206</link>
 <guid>https://www.v2ex.com/t/1099206</guid>
 <content:encoded><![CDATA[
-
 离职后前老板让我给他做个兼职，之前我在职做的项目，要加新功能，谈好的按功能付费，做好一个月了他又一直不验收，拖着钱不给。<br /><br />这两天还想我原有条件上再加功能，我说要加钱，他说我白眼狼想钱想疯了。。这都要加钱。。。<br /><br />我的要求合理吗。。。？ 他这反应都给我整蒙了。<br /><br />还有的矛盾是，离职后财务搞错了多给我交了一个月社保，谈兼职的时候也没说，结果做完了要结算的时候说要在里面扣掉全额社保的钱（公司和个人部分），我说最多承担个人部分，他没同意。最后是他把社保退了，给现金。到这我已经有点不爽了。。。
 ]]></content:encoded>
-<pubDate>2024-12-20T18:23:10Z</pubDate>
 <pubDate>2024-12-20T18:27:50Z</pubDate>
 </item>
 <item>
@@ -20,7 +91,6 @@
 <link>https://www.v2ex.com/t/1099204</link>
 <guid>https://www.v2ex.com/t/1099204</guid>
 <content:encoded><![CDATA[
-
 <p>手机：</p>
 <p>华为手机，新安装的 Microsoft Authenicator ，使用的 QQ 邮箱（账号 A ）登录的。
 手机上有 Chrome ，使用账号 Gmail 邮箱（账号 B ）登录的，Chrome 中未开启同步功能，自带密码管理器中默认开启了保存密码功能。保存的密码列表里只有一个路由器密码。</p>
@@ -29,7 +99,6 @@
 <p>我无法理解的是，我使用的是不同的设备（手机，电脑），不同的操作系统（安卓，Windows 10 ），不同的厂商（ Microsoft ，Google ）开发的不同的 App （ Authenticator ，Chrome ），登录的是不同的账号（ A ，B ），这居然密码都能互通？我电脑 Chrome 上保存的所有密码都在 Authenticator 里看的一清二楚啊……</p>
 <p>谁能帮我分析一下？</p>
 ]]></content:encoded>
-<pubDate>2024-12-20T17:08:18Z</pubDate>
 <pubDate>2024-12-20T17:23:38Z</pubDate>
 </item>
 <item>
@@ -37,7 +106,6 @@
 <link>https://www.v2ex.com/t/1099203</link>
 <guid>https://www.v2ex.com/t/1099203</guid>
 <content:encoded><![CDATA[
-
 <p>插件：Proxy SwitchyOmega
 chrome:130.0.6723.92</p>
 <p>选择暂时保留插件还是不能使用。</p>
@@ -45,7 +113,6 @@ chrome:130.0.6723.92</p>
 <p>请问有什么解决办法，或者大家在用的方案是什么？谢谢。</p>
 <p>PS:目前采用全局方案上来问的。</p>
 ]]></content:encoded>
-<pubDate>2024-12-20T17:04:42Z</pubDate>
 <pubDate>2024-12-20T18:00:42Z</pubDate>
 </item>
 <item>
@@ -53,13 +120,10 @@ chrome:130.0.6723.92</p>
 <link>https://www.v2ex.com/t/1099202</link>
 <guid>https://www.v2ex.com/t/1099202</guid>
 <content:encoded><![CDATA[
-
 不知道是不是电流声或者什么其他声音，很明显，无意中听到的，然后寻找源头发现是它发出的声音。耳朵贴近后会很明显。
 ]]></content:encoded>
-<pubDate>2024-12-20T16:54:03Z</pubDate>
 <pubDate>2024-12-20T16:51:03Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 求教 freebsd 上如何重定向端口</title>
 <link>https://www.v2ex.com/t/1099201</link>
@@ -14566,59 +14630,6 @@ New/Hot Jobs<br /><br />Position 1：全职运维工程师<br />Job Type：Full-
 <a href="https://txt.dev/" rel="nofollow noopener" target="_blank">https://txt.dev/</a>
 ]]></content:encoded>
 <pubDate>2024-12-15T05:16:11Z</pubDate>
-</item>
-<item>
-<title>[Los Angeles] 请问有没有在拉斯维加斯的 V 友愿意或介绍朋友接个兼职？</title>
-<link>https://www.v2ex.com/t/1097980</link>
-<guid>https://www.v2ex.com/t/1097980</guid>
-<content:encoded><![CDATA[
-<p>背景说明：
-我老婆所在公司是做外贸的，计划于北京时间 2025 年 1 月 7 日-10 日参加位于拉斯维加斯国际展览中心的消费电子展（ CES ），目前除了公司老板外，其他员工都被拒签了，所以想在当地找个华人华侨兼职做翻译；</p>
-<p>兼职日期：
-北京时间 2025 年 1 月 7 日-10 日，共计 4 天；</p>
-<p>兼职内容：
-展会陪同协助介绍产品+翻译；</p>
-<p>薪酬说明：
-300USD/天，不提供食宿；（ 4 天共计现金支付 1200USD ）
-（讲真我都觉得有点扣扣嗖嗖，300 刀哪能够请个现场翻译，最少食宿得给人家准备吧）</p>
-<p>兼职要求：
-英语听说要好，略懂电子产品更好；</p>
-<p>联系方式（ base64 ）：MTMzMTY1MDA0NTU=</p>
-]]></content:encoded>
-<pubDate>2024-12-16T10:22:48Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 今年买到最喜欢的电子产品--富士相机</title>
-<link>https://www.v2ex.com/t/1097979</link>
-<guid>https://www.v2ex.com/t/1097979</guid>
-<content:encoded><![CDATA[
-<p>也是看了 A7C2 那个帖子，有感而发。</p>
-<p>之前读大学有过一台松下 Lx10,其他没买过相机。今年因为要订婚、结婚、度蜜月，所以买了一台富士相机。买富士的原因很简单，懒得 p 图，懒得调预设，也没有额外买镜头，用的就是自带的 35F2 ，小巧轻便。后续在订婚、度蜜月、周末的户外活动上都大大的派上了用场，随手的拍摄效果比手机强了非常多，给媳妇拍照被骂的次数大大减少。</p>
-<p>同时媳妇现在在用这台相机录穿搭视频发小红书，相比之前用手机录，画面也提升很大，换设备后涨粉速度比之前快了很多。</p>
-<p>另外在我现在居住的城市，官方店买的设备，他们有俱乐部，每周末都有免费的教学以及一些免费或者很便宜的采风活动，氛围很好。</p>
-<p>所以，如果你是一个摄影小白，对相片后期没有什么兴趣，只是想要一个能比手机效果好一些的拍摄效果，那么富士是一个非常不错的选择</p>
-]]></content:encoded>
-<pubDate>2024-12-16T10:19:14Z</pubDate>
-</item>
-<item>
-<title>[程序员] 问一下国内获得大模型 API 调用有哪些渠道？</title>
-<link>https://www.v2ex.com/t/1097978</link>
-<guid>https://www.v2ex.com/t/1097978</guid>
-<content:encoded><![CDATA[
-<p>如题，用途是文档自动化分析，需要使用 chatgpt4o 或者能力更强的模型（或者 claude 都行）</p>
-<p>调研了一下 <a href="http://chatgpt.com" rel="nofollow">chatgpt.com</a> ，调用 API 需要账号绑定国外手机号才行，感觉比较难搞，就算搞定了安全性和便利性都很成问题。</p>
-<p>有没有类似需求的老哥分享一下路径</p>
-]]></content:encoded>
-<pubDate>2024-12-16T10:14:49Z</pubDate>
-</item>
-<item>
-<title>[问与答] V2EX 右上角的 记事本 时间轴 怎么用？</title>
-<link>https://www.v2ex.com/t/1097977</link>
-<guid>https://www.v2ex.com/t/1097977</guid>
-<content:encoded><![CDATA[
-我刚刚发了个帖，结果发现号要被封了，于是开始学习这个网站该如何使用。<br /><br /><br />我猜测这两个功能：记事本就是一个私人笔记云盘，时间轴是做了一半的全站动态时间线。<br /><br /><br />最重要的，这两个功能有什么爽点和使用技巧？
-]]></content:encoded>
-<pubDate>2024-12-16T10:11:09Z</pubDate>
 </item>
 </channel>
 </rss>
