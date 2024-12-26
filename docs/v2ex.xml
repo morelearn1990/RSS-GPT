@@ -5,14 +5,604 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 想象一下最近几年之后可能会是什么样子</title>
+<link>https://www.v2ex.com/t/1100413</link>
+<guid>https://www.v2ex.com/t/1100413</guid>
+<content:encoded><![CDATA[
+
+<ol>
+<li>在智能体快速发展的情况下，APP 和网站的形态会趋于什么形态，ALL In One 到一个属于每个人专属的超级智能体还是会更加丰富多彩</li>
+<li>感觉信息的生成速度远不如机器的学习速度，是否未来内容只是给程序看的，而不再是直接面向用户的了</li>
+<li>还有哪些行业会快速发生变化？想听听大家的想法💡</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-12-26T04:26:25Z</pubDate>
+<pubDate>2024-12-26T04:25:25Z</pubDate>
+</item>
+<item>
+<title>[程序员] 写代码，到底应该是自己去适应代码，还是让代码反过来适应你？</title>
+<link>https://www.v2ex.com/t/1100411</link>
+<guid>https://www.v2ex.com/t/1100411</guid>
+<content:encoded><![CDATA[
+
+<p>很多开发平台都有固定的框架体系，一般情况下，只能自己去适应代码。</p>
+<p>但是随着项目代码膨胀，函数太多了后，由于架构体系都是别人的，按照别人思维继续修改，就变得有点繁琐。</p>
+<p>我在想，是不是一开始思路就错了。写稍微大一点的项目，应该一开始，就让代码来适配自己的开发思路，这样等代码库变大后，才会有足够能力去 hold 住，不至于变成屎山，没人想接手。</p>
+]]></content:encoded>
+<pubDate>2024-12-26T04:21:13Z</pubDate>
+<pubDate>2024-12-26T04:18:13Z</pubDate>
+</item>
+<item>
+<title>[程序员] 做了一个 个人介绍的 网站</title>
+<link>https://www.v2ex.com/t/1100410</link>
+<guid>https://www.v2ex.com/t/1100410</guid>
+<content:encoded><![CDATA[
+
+<p>做了一个 个人介绍的 网站 <a href="https://nogeek.cn" rel="nofollow">https://nogeek.cn</a></p>
+]]></content:encoded>
+<pubDate>2024-12-26T04:12:56Z</pubDate>
+<pubDate>2024-12-26T04:09:56Z</pubDate>
+</item>
+<item>
+<title>[生活方式] 分享今年获得的人生经验或道理，给 2024 画一个句号</title>
+<link>https://www.v2ex.com/t/1100409</link>
+<guid>https://www.v2ex.com/t/1100409</guid>
+<content:encoded><![CDATA[
+
+<p>观帖子“分享一段感动的话，给 2024 画一个句号”有感，想知道今年各位又收获了什么人生经验。</p>
+]]></content:encoded>
+<pubDate>2024-12-26T04:01:57Z</pubDate>
+<pubDate>2024-12-26T04:01:57Z</pubDate>
+</item>
+<item>
+<title>[Python] fluent Python 第 2 版第 24 章 __init_subclass 与 meta class 的__setattr__区别</title>
+<link>https://www.v2ex.com/t/1100407</link>
+<guid>https://www.v2ex.com/t/1100407</guid>
+<content:encoded><![CDATA[
+
+<p>有么有人看了并且看懂了 我发现一个不懂的地方 为什么通过__init__subclass 设置描述符 跟 通过元类 new 方法设置描述符生成的类 会在 set value 时 有区别</p>
+<p>第一种会触发实例的__setattr__</p>
+<p>第二种不会触发 </p>
+<p>最大的区别在 Field 类 setattr(instance, self.storage_name, value) 与 instance.<strong>dict</strong>[<a href="http://self.name" rel="nofollow">self.name</a>] = value</p>
+<p>这个是基于元类：</p>
+<pre><code class="language-python">from collections.abc import Callable
+from typing import Any, NoReturn, get_type_hints
+
+# tag::CHECKED_FIELD[]
+class Field:
+    def __init__(self, name: str, constructor: Callable) -&gt; None:
+        if not callable(constructor) or constructor is type(None):
+            raise TypeError(f'{name!r} type hint must be callable')
+        self.name = name
+        self.storage_name = '_' + name  # &lt;1&gt;
+        self.constructor = constructor
+
+    def __get__(self, instance, owner=None):
+        if instance is None:  # &lt;2&gt;
+            return self
+        return getattr(instance, self.storage_name)  # &lt;3&gt;
+
+    def __set__(self, instance: Any, value: Any) -&gt; None:
+        if value is ...:
+            value = self.constructor()
+        else:
+            try:
+                value = self.constructor(value)
+            except (TypeError, ValueError) as e:
+                type_name = self.constructor.__name__
+                msg = f'{value!r} is not compatible with {self.name}:{type_name}'
+                raise TypeError(msg) from e
+        setattr(instance, self.storage_name, value)  # &lt;4&gt;
+# end::CHECKED_FIELD[]
+
+# tag::CHECKED_META[]
+class CheckedMeta(type):
+
+    def __new__(meta_cls, cls_name, bases, cls_dict):  # &lt;1&gt;
+        print(cls_dict.get('__slots__'))
+        if '__slots__' not in cls_dict:  # &lt;2&gt;
+            print ("\n\n\nin __new__\n\n\n")
+            slots = []
+            type_hints = cls_dict.get('__annotations__', {})  # &lt;3&gt;
+            for name, constructor in type_hints.items():   # &lt;4&gt;
+                field = Field(name, constructor)  # &lt;5&gt;
+                cls_dict[name] = field  # &lt;6&gt;
+                slots.append(field.storage_name)  # &lt;7&gt;
+
+            cls_dict['__slots__'] = slots  # &lt;8&gt;
+
+        return super().__new__(
+                meta_cls, cls_name, bases, cls_dict)  # &lt;9&gt;
+# end::CHECKED_META[]
+
+# tag::CHECKED_CLASS[]
+class Checked(metaclass=CheckedMeta):
+    __slots__ = ()  # skip CheckedMeta.__new__ processing
+
+    @classmethod
+    def _fields(cls) -&gt; dict[str, type]:
+        return get_type_hints(cls)
+
+    def __init__(self, **kwargs: Any) -&gt; None:
+        print(super().__class__.__name__)
+        for name in self._fields():
+            value = kwargs.pop(name, ...)
+            setattr(self, name, value)
+        if kwargs:
+            self.__flag_unknown_attrs(*kwargs)
+
+    def __flag_unknown_attrs(self, *names: str) -&gt; NoReturn:
+        plural = 's' if len(names) &gt; 1 else ''
+        extra = ', '.join(f'{name!r}' for name in names)
+        cls_name = repr(self.__class__.__name__)
+        raise AttributeError(f'{cls_name} object has no attribute{plural} {extra}')
+
+    def _asdict(self) -&gt; dict[str, Any]:
+        return {
+            name: getattr(self, name)
+            for name, attr in self.__class__.__dict__.items()
+            if isinstance(attr, Field)
+        }
+
+    def __repr__(self) -&gt; str:
+        kwargs = ', '.join(
+            f'{key}={value!r}' for key, value in self._asdict().items()
+        )
+        return f'{self.__class__.__name__}({kwargs})'
+        
+class Movie(Checked):
+    title: str
+    year: int
+    box_office: float
+movie = Movie(title='The Godfather', year=1972, box_office=137)
+print(movie)
+print(movie.title)
+print(type(CheckedMeta),type(Checked),type(Movie))
+    # end::MOVIE_DEMO[]
+</code></pre>
+<p>下面是基于__init_subclass</p>
+<pre><code class="language-python">from collections.abc import Callable  # &lt;1&gt;
+from typing import Any, NoReturn, get_type_hints
+
+
+class Field:
+    def __init__(self, name: str, constructor: Callable) -&gt; None:  # &lt;2&gt;
+        if not callable(constructor) or constructor is type(None):  # &lt;3&gt;
+            raise TypeError(f'{name!r} type hint must be callable')
+        self.name = name
+        self.constructor = constructor
+
+    def __set__(self, instance: Any, value: Any) -&gt; None:
+        if value is ...:  # &lt;4&gt;
+            value = self.constructor()
+        else:
+            try:
+                value = self.constructor(value)  # &lt;5&gt;
+            except (TypeError, ValueError) as e:  # &lt;6&gt;
+                type_name = self.constructor.__name__
+                msg = f'{value!r} is not compatible with {self.name}:{type_name}'
+                raise TypeError(msg) from e
+        instance.__dict__[self.name] = value  # &lt;7&gt;
+# end::CHECKED_FIELD[]
+
+# tag::CHECKED_TOP[]
+class Checked:
+    @classmethod
+    def _fields(cls) -&gt; dict[str, type]:  # &lt;1&gt;
+        return get_type_hints(cls)
+
+    def __init_subclass__(subclass) -&gt; None:  # &lt;2&gt;
+        super().__init_subclass__()           # &lt;3&gt;
+        for name, constructor in subclass._fields().items():   # &lt;4&gt;
+            setattr(subclass, name, Field(name, constructor))  # &lt;5&gt;
+
+    def __init__(self, **kwargs: Any) -&gt; None:
+        for name in self._fields():             # &lt;6&gt;
+            value = kwargs.pop(name, ...)       # &lt;7&gt;
+            setattr(self, name, value)          # &lt;8&gt;
+        if kwargs:                              # &lt;9&gt;
+            self.__flag_unknown_attrs(*kwargs)  # &lt;10&gt;
+
+    # end::CHECKED_TOP[]
+
+    # tag::CHECKED_BOTTOM[]
+    def __setattr__(self, name: str, value: Any) -&gt; None:  # &lt;1&gt;
+        if name in self._fields():              # &lt;2&gt;
+            cls = self.__class__
+            descriptor = getattr(cls, name)
+            descriptor.__set__(self, value)     # &lt;3&gt;
+        else:                                   # &lt;4&gt;
+            self.__flag_unknown_attrs(name)
+
+    def __flag_unknown_attrs(self, *names: str) -&gt; NoReturn:  # &lt;5&gt;
+        plural = 's' if len(names) &gt; 1 else ''
+        extra = ', '.join(f'{name!r}' for name in names)
+        cls_name = repr(self.__class__.__name__)
+        raise AttributeError(f'{cls_name} object has no attribute{plural} {extra}')
+
+    def _asdict(self) -&gt; dict[str, Any]:  # &lt;6&gt;
+        return {
+            name: getattr(self, name)
+            for name, attr in self.__class__.__dict__.items()
+            if isinstance(attr, Field)
+        }
+
+    def __repr__(self) -&gt; str:  # &lt;7&gt;
+        kwargs = ', '.join(
+            f'{key}={value!r}' for key, value in self._asdict().items()
+        )
+        return f'{self.__class__.__name__}({kwargs})'
+class Movie(Checked):
+    title: str
+    year: int
+    box_office: float
+    
+movie = Movie(title='The Godfather', year=1972, box_office=137)
+print(movie.title)
+print(movie)
+try:
+      # remove the "type: ignore" comment to see Mypy error
+    movie.year = 'MCMLXXII'  # type: ignore
+except TypeError as e:
+    print(e)</code></pre>
+]]></content:encoded>
+<pubDate>2024-12-26T03:45:40Z</pubDate>
+<pubDate>2024-12-26T03:42:40Z</pubDate>
+</item>
+<item>
+<title>[微信] 最近发现 Pixel 手机的微信在使用涉及人脸识别认证的功能时，始终无法通过人脸检测</title>
+<link>https://www.v2ex.com/t/1100406</link>
+<guid>https://www.v2ex.com/t/1100406</guid>
+<content:encoded><![CDATA[
+
+<h4>最近是在用随申办小程序的时候，发现人脸检测无法通过，提示“请保持正脸清晰无遮挡、无闭眼，按照提示调整距离，避免处于光线过亮/过暗/背光的环境”，换了各种环境都不行，Google Play 安装的和官网下载的版本都一样，但是随申办 APP 没有问题，其他各类银行、支付宝的 APP 也没问题，之前用微信也没这个问题。</h4>
+<h4>前两天给开发的小程序做微信认证和备案，还是无法通过人脸检测，好不容易联系上了人工客服但一直没给答复。</h4>
+<h4>后来我在微信开放社区发现有人遇到了同样的情况，他的机型是 Pixel 6 Pro ，我自己用的是 Pixel 6 和 Pixel 8 Pro ，手上没有国产 Android 手机，暂时没办法换手机试，不知道是不是只有 Pixel 手机有这个问题，还是我自己的原因。</h4>
+]]></content:encoded>
+<pubDate>2024-12-26T03:41:32Z</pubDate>
+<pubDate>2024-12-26T03:40:32Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [杭州/远程] 杭州 AI 初创公司 900/天 招全栈实习生[2]</title>
+<link>https://www.v2ex.com/t/1100405</link>
+<guid>https://www.v2ex.com/t/1100405</guid>
+<content:encoded><![CDATA[
+
+<p>我们是一家 AI 初创企业 one2x ，核心创始人来自 Moonshot 、字节、蚂蚁等公司。我们相信 AI-Native 的方法可以重构绝大部分应用软件，并且已经获得国内顶级投资机构和大模型公司的多轮投资。 我们正在寻找富有创造力的实习生加入我们的团队，共同打造 AI 时代的在视频生成工具、无线画布等产品。</p>
+<p>主要职责:</p>
+<ul>
+<li>参与设计、开发和维护产品的后端架构，包括数据库、服务器和 API 。</li>
+<li>在培训之后从承担部分界面开发工作。</li>
+<li>参与探索屏蔽工程实现细节的业务逻辑表达方式与相应的工程实现。</li>
+</ul>
+<p>技能要求:</p>
+<ul>
+<li>精通至少一种编程语言，如 Python 、Javascript 、Java 等，能快速掌握新语言</li>
+<li>熟练掌握 Web 框架等</li>
+<li>具备数据库的设计和优化经验，熟悉缓存技术</li>
+<li>具有良好的算法和数据结构基础</li>
+</ul>
+<p>加分项:</p>
+<ul>
+<li>开源项目贡献经验</li>
+<li>有 rust/python/java/golang 等多种语言使用经验</li>
+<li>具有复杂应用的开发经验</li>
+<li>具备一定图形学知识</li>
+<li>其他可展示个人学习能力的证明</li>
+<li>本科以上学历</li>
+</ul>
+<p>我们非常重视实习生的个人研发、独立思考等能力培养，并且有明确的培养计划。我们不想招“工具人”，更希望你是真正富有激情、热爱挑战的工程师，并最终能正式加入我们。与我们一起探索新一代 AI-Native 应用所需的创新性软件架构，同时见证有趣又赚钱的工具产品如何被创造和生长。</p>
+<ul>
+<li>Base：杭州/根据具体情况可考虑远程</li>
+<li>实习时长：6 个月以上 </li>
+<li>薪资：900/天 </li>
+<li>简历投递： <a href="mailto:houzhenyu@one2x.ai">houzhenyu@one2x.ai</a> </li>
+<li>疑问联系：MTgyNjgwMjgwMjY= (微信 base64)</li>
+</ul>
+]]></content:encoded>
+<pubDate>2024-12-26T03:40:04Z</pubDate>
+<pubDate>2024-12-26T03:40:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] 做了一个新网站</title>
+<link>https://www.v2ex.com/t/1100404</link>
+<guid>https://www.v2ex.com/t/1100404</guid>
+<content:encoded><![CDATA[
+
+<p>一个关于如何画架构图的说明网站 plantuml 的相关文档</p>
+<p><a href="https://umlcn.com" rel="nofollow">https://umlcn.com</a></p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:40:02Z</pubDate>
+<pubDate>2024-12-26T03:37:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大佬帮忙看看这硬盘还能坚持多久？附 smartctl 信息</title>
+<link>https://www.v2ex.com/t/1100403</link>
+<guid>https://www.v2ex.com/t/1100403</guid>
+<content:encoded><![CDATA[
+
+<p>smartctl 信息如下：
+SMART/Health Information (NVMe Log 0x02)
+Critical Warning:                   0x00
+Temperature:                        42 Celsius
+Available Spare:                    100%
+Available Spare Threshold:          99%
+Percentage Used:                    6%
+Data Units Read:                    238,900,961 [122 TB]
+Data Units Written:                 179,567,317 [91.9 TB]
+Host Read Commands:                 2,811,069,669
+Host Write Commands:                1,234,677,564
+Controller Busy Time:               0
+Power Cycles:                       284
+Power On Hours:                     1,555
+Unsafe Shutdowns:                   12</p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:34:47Z</pubDate>
+<pubDate>2024-12-26T03:34:47Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 魅族这 root 申请直接就把异常抛到页面上</title>
+<link>https://www.v2ex.com/t/1100402</link>
+<guid>https://www.v2ex.com/t/1100402</guid>
+<content:encoded><![CDATA[
+
+链接： <a href="https://mroot.flyme.cn/" rel="nofollow noopener" target="_blank">https://mroot.flyme.cn/</a><br />点击申请授权，直接抛异常，看 uri 和报错，应该是没登录，不过底部那个 jetty ，要是被我们安全部门看到，又要被通报了🤣
+]]></content:encoded>
+<pubDate>2024-12-26T03:34:34Z</pubDate>
+<pubDate>2024-12-26T03:42:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有 windows 桌面端用的 AI 截图 OCR 和翻译的工具，支持多个主流语种的</title>
+<link>https://www.v2ex.com/t/1100401</link>
+<guid>https://www.v2ex.com/t/1100401</guid>
+<content:encoded><![CDATA[
+
+虽然 QQ 的截图就有这个功能，但是就英语的 OCR 结果好一点，其他外语的结果不忍直视。之所以想要 AI 驱动的 OCR ，是因为很多图片里的文本排版不一定是规规矩矩的格式（例如各种海报），不知道 AI 能否理解这样的图片，并带翻译功能？并且支持的主流语种多一些。<br /><br />另外还有一个想要的功能是分词，就是翻译了一整段后，选择译文的单词能显示出原文的单词。<br /><br />能兼得这两个功能最好了，不能的话，就优先满足 OCR 和翻译吧，<br /><br />谢谢各位大佬的分享！
+]]></content:encoded>
+<pubDate>2024-12-26T03:32:31Z</pubDate>
+<pubDate>2024-12-26T04:05:19Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求好用的飞机场, 贵一点也可以, 稳定速度好就行</title>
+<link>https://www.v2ex.com/t/1100400</link>
+<guid>https://www.v2ex.com/t/1100400</guid>
+<content:encoded><![CDATA[
+
+<p>自己现在用的飞机场经常 500ms 以上延迟</p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:25:31Z</pubDate>
+<pubDate>2024-12-26T04:25:50Z</pubDate>
+</item>
+<item>
+<title>[生活] 我连打游戏的自由都没有吗？</title>
+<link>https://www.v2ex.com/t/1100399</link>
+<guid>https://www.v2ex.com/t/1100399</guid>
+<content:encoded><![CDATA[
+
+<p>我应该应该做才好？</p>
+<h2>背景</h2>
+<p>自己努力卷，上班好好工作，下班保持学习，很多年。23 年初买了深圳的老破小，23 年底就被裁员了。后来找了几个月，找了个一般般的公司，苟着。24 年中，老婆怀孕了，目前孕中期。</p>
+<h2>事情经过</h2>
+<p>现在感觉卷也卷不动了，学了忘忘了学，就不是很想学习了。就开始刷视频玩游戏，不学习了。
+最近两周连续玩游戏的时间比较长，有时候下班把要做的家务事都做完了，就开始玩游戏玩到 11 点多洗澡睡觉。老婆也一直刷视频刷直播，但是她一直都不喜欢玩游戏的人。之前玩她都只是阴阳怪气，昨天她终于忍不住，要用发脾气来约束我，不让我工作日玩游戏，其实我不玩游戏也就刷刷视频，刷视频她倒是没意见，也觉得我不上进就是了。</p>
+<h2>吵架拉黑</h2>
+<p>早上就有了下面的沟通记录，最后的结果是她还是坚持不让我玩游戏，我还是坚持这是我的自由，我其实只是想要选择的权利而已，也并不是多喜欢玩游戏，就是觉得无聊了，不怎么喜欢刷视频，学习也学累了，实在是不想像以前卷了，关键是以前卷有收益能换工作加工资或者使工作更得心应手，现在卷也就这样了，没有收获感。
+<img alt="" class="embedded_image" rel="noreferrer" src="https://jack-pic.oss-cn-hangzhou.aliyuncs.com/%E8%81%8A%E5%A4%A9%E8%AE%B0%E5%BD%95.jpg" /></p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:20:38Z</pubDate>
+<pubDate>2024-12-26T04:59:39Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求助：请问 lazyvim 如何去掉 LSP 代码提示的这个函数详细信息</title>
+<link>https://www.v2ex.com/t/1100396</link>
+<guid>https://www.v2ex.com/t/1100396</guid>
+<content:encoded><![CDATA[
+
+<img class="embedded_image" rel="noreferrer" src="https://mxh-image.oss-cn-guangzhou.aliyuncs.com/markdown/20241226110831769f22417.png" />
+]]></content:encoded>
+<pubDate>2024-12-26T03:08:52Z</pubDate>
+<pubDate>2024-12-26T03:08:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有卖 chatgpt 密钥的吗</title>
+<link>https://www.v2ex.com/t/1100395</link>
+<guid>https://www.v2ex.com/t/1100395</guid>
+<content:encoded><![CDATA[
+
+<p>有卖 chatgpt 密钥的吗，我的需求很少，50 刀左右</p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:07:36Z</pubDate>
+<pubDate>2024-12-26T03:06:36Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求推荐小团队用的知识库开源工具</title>
+<link>https://www.v2ex.com/t/1100394</link>
+<guid>https://www.v2ex.com/t/1100394</guid>
+<content:encoded><![CDATA[
+
+<p>构建组内知识平台，满足一些能力，推荐一些开源工具 </p>
+<ol>
+<li>有知识检索能力，可以通过关键词搜索到指定内容</li>
+<li>可以自主上传、修改文件</li>
+<li>有类似树形体系可以看到各目录等</li>
+<li>本地化部署</li>
+</ol>
+]]></content:encoded>
+<pubDate>2024-12-26T03:05:45Z</pubDate>
+<pubDate>2024-12-26T04:13:58Z</pubDate>
+</item>
+<item>
+<title>[服务器] 打包出售 2 个网盘站+微软开发 2 个 E5 全局账号+1 台 Ucloud 服务器</title>
+<link>https://www.v2ex.com/t/1100393</link>
+<guid>https://www.v2ex.com/t/1100393</guid>
+<content:encoded><![CDATA[
+
+<p>**A 网盘名称：MJJ 云盘
+网盘链接：<a href="http://www.wangpan.de" rel="nofollow">www.wangpan.de</a>
+用户数量：442
+备注：用户来源基本为论坛的 MJJ 该网盘目前用的为 Cloudreve 免费版 对接微软开发者 E5 Onedrive 带有可有可无的 PC 安卓双端 邮件发送服务器采用飞书国际版 单日发件限制 450 封</p>
+<p>B 网盘名称：大米盘
+网盘链接：<a href="http://www.wangpan.cloud" rel="nofollow">www.wangpan.cloud</a>
+用户数量：2611
+备注：用户来源基本为各种福利游戏资源论坛 该盘目前用的为 Cloudreve 捐赠版开心版已对接好 QQ 互联  对接微软开发者 E5 Onedrive + Backblaze  带有可有可无的 PC 安卓双端 邮件服务器采用 serv00(panel 0 区域) 每日发送没什么限制  已经设置只有常用的邮箱才能注册  不过网站基本都是 QQ 登录的比较多 </p>
+<p>两个 E5 均为多年的老号 因为有上面的网盘自动调用 API 实现续订 不需要用第三方程序去续订容易 BAN
+1 个剩余时间 43 天 1 个剩余时间 82 天 基本都会自动续订
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://img.alicdn.com/imgextra/i2/2215656252612/O1CN01wQIaQm1VALY05VmM2_%21%212215656252612.png" />
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://img.alicdn.com/imgextra/i2/2215656252612/O1CN01rbFdkJ1VALXsTmqZs_%21%212215656252612.png" /></p>
+<p>另为了收到交易后可以直接用 带一台香港轻量应用云主机配置如下
+CPU：2 核
+内存：4G
+系统盘：80GB
+峰值带宽：30Mbps
+流量包：3072GB
+过期时间：2025-06-08
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://img.alicdn.com/imgextra/i4/2215656252612/O1CN01o6E5xk1VALXZczByb_%21%212215656252612.png" />
+<img alt="image" class="embedded_image" rel="noreferrer" src="https://img.alicdn.com/imgextra/i4/2215656252612/O1CN01QZJG871VALXW7owXY_%21%212215656252612.png" /></p>
+<p><strong>交易方式：闲鱼/微信/支付宝/支付宝口令/USDT(TRC20)
+明盘：1300</strong></p>
+<p>**</p>
+]]></content:encoded>
+<pubDate>2024-12-26T03:02:38Z</pubDate>
+<pubDate>2024-12-26T03:01:38Z</pubDate>
+</item>
+<item>
+<title>[日本] 第一次日本自由行的个人心得</title>
+<link>https://www.v2ex.com/t/1100392</link>
+<guid>https://www.v2ex.com/t/1100392</guid>
+<content:encoded><![CDATA[
+
+<p>在去日本之前，我咨询过 V 站的网友 <a href="https://www.v2ex.com/t/1089838" rel="nofollow">https://www.v2ex.com/t/1089838</a> ，大家的回复给我很大的信心，所以我决定自己一个人出发日本自由行。</p>
+<h2>我的准备</h2>
+<ul>
+<li>
+<p>时间准备：还有点年假，加上周六日，共 6 天 5 晚</p>
+</li>
+<li>
+<p>拍摄设备：dji pocket3 ，手机</p>
+</li>
+<li>
+<p>银行卡：招行 VISA ，北京银行储蓄卡</p>
+</li>
+<li>
+<p>语言：半调子英语，看动漫看片儿学的日语（英语、日语基本不会）+ 手势比划</p>
+</li>
+<li>
+<p>订酒店：argoda （我觉得比 booking ，携程便宜点）</p>
+</li>
+<li>
+<p>订机票：携程，南航，来回两千左右</p>
+</li>
+<li>
+<p>手机卡：亿点</p>
+</li>
+<li>
+<p>现金：大兴机场换的 18000 日元 + 日本罗森 ATM 换的 5000 日元</p>
+</li>
+<li>
+<p>去的地方：东京、大阪、京都、镰仓、富士山</p>
+</li>
+</ul>
+<hr />
+<h2>一些心得</h2>
+<ol>
+<li>
+<p>一定要带够现金：</p>
+<p>日本是一个极度依赖现金的国家，我去过的餐厅大部分都只收现金，而且新干线、特急券的售卖机器有很多只支持现金+实体 IC 卡（手机 IC 不行，没地方刷）。只有人工窗口才能刷 VISA 卡。所以现金一定要带够，别怕多，因为用现金的地方太多太多了。</p>
+</li>
+<li>
+<p>不要过渡依赖 GoogleMap：</p>
+<p>谷歌地图在梅田、品川、新宿这种大的枢纽站，不太灵，当你在地下穿梭时，不要过渡依赖它，还是得自己看当时的指示牌以及车辆信息指示牌，基本都是汉字，坐你要去的方向的车就行，在不懂的情况下，避免去坐<strong>特急</strong>开头的车。</p>
+</li>
+<li>
+<p>新干线选自由席会便宜点：</p>
+<p>新干线自由席便宜，一般自由席在 1 ～ 3 车厢，自由席嘛，进去挑个空位随便坐。新干线建议去购买车票，不要刷 IC 卡，或者可能就不支持 IC 卡，我不太清楚。</p>
+</li>
+<li>
+<p>入境填单子：</p>
+<p>刚到日本，机场有免费 wifi ，如果手机卡不能及时联网使用，可以连 wifi 救急，然后入境要填两个单子，两个单子分别在入境的两个流程中，得自己去领，去填写，有中文版的单子。别跟我一样，傻站着排队，到后面才知道还要填单子。工作人员能听懂一点中文和英文，也会讲一点中文，所以放心。</p>
+</li>
+<li>
+<p>酒店卫生间：</p>
+<p>这边酒店厕纸都很薄，而且没有厕纸桶，就直接扔马桶里。卫生间的洗漱用品有的不直接提供，需要自己去前台领取。洗发水、沐浴露这些很多酒店的都没有中文，所以像我这种英文不好的，你只要记住三个瓶子里，S 开头的就是洗发水，Body 开头的就是沐浴露，其他不用也罢，哈哈哈哈，英文太菜没办法。</p>
+</li>
+<li>
+<p>垃圾桶太少：</p>
+<p>我一个饮料瓶，从大阪带到东京又带到镰仓，我极少看到垃圾桶，就算有，大部分只能扔瓶子，纸类的垃圾桶会有一个易燃的标志。总之大家尽量随身携带一个袋子，说到袋子，一般去便利店或者商店买东西，最后商家会问要不要袋子，日语我听不懂，楞半天，我心想说啥呢，怎么还不让我付款呢。</p>
+</li>
+<li>
+<p>酒店 check in 之后，需要交税：</p>
+<p>办理入住的时候，有的酒店讲究，需要你填写个单子，签一个不抽烟条款（无烟房），在最后会让你交税，所以零钱准备好，一般在 100 日元左右（提供澡堂的化会有澡堂税，在 150 左右）</p>
+</li>
+<li>
+<p>去新富士的新干线，坐在 DE 座，可以看到富士山</p>
+</li>
+</ol>
+<p>以上就是我目前的一些心得，希望能帮助和我一样第一次去日本旅游的朋友。</p>
+]]></content:encoded>
+<pubDate>2024-12-26T02:57:08Z</pubDate>
+<pubDate>2024-12-26T04:08:35Z</pubDate>
+</item>
+<item>
+<title>[汽车] 买了个车,10000 公里了,被撞了三次.</title>
+<link>https://www.v2ex.com/t/1100391</link>
+<guid>https://www.v2ex.com/t/1100391</guid>
+<content:encoded><![CDATA[
+
+<p>六月份买了个 suv,看着车很大 以为自己会刮刮碰碰.
+没想到跑到现在,自己没有刮刮碰碰,反倒被别人撞了 3 次.</p>
+<ol>
+<li>第一次是才提车,被被出租车实现变道刮了. 出租车司机应该是走神了,那是一个隧道入口.在并线的地方,看行车记录仪他马上就要追尾了,然后直接往我这面贴了过了. 一血</li>
+<li>第二次是我上高架并线,后面车加速过来,看记录仪,能看到是在玩手机.没有注意前面 我并线的时候距离还有很大. 但是还是撞上了一点点</li>
+<li>第三次就是前几天了, 在单行道上. 两边都是行人和车. 大家都在缓慢行驶,我前面的小货车突然刹车,然后开了倒挡,我在后面狂按喇叭.只能眼巴巴 看着撞到我车上.</li>
+</ol>
+<p>周末又要去修车了,有点小心塞 吐槽下</p>
+]]></content:encoded>
+<pubDate>2024-12-26T02:56:04Z</pubDate>
+<pubDate>2024-12-26T04:18:08Z</pubDate>
+</item>
+<item>
+<title>[问与答] 咨询一个访问 nas 的网络问题</title>
+<link>https://www.v2ex.com/t/1100390</link>
+<guid>https://www.v2ex.com/t/1100390</guid>
+<content:encoded><![CDATA[
+
+比如家里 nas ，在家中访问 nas 上的数据，比如 jefflin ，或者 webdav ，用内网 ip 即可，直接使用内网。<br />如果在外面，比如 infuse 挂载 jefflin 或者 webdav ，那么需要配置 ddns 的网络。<br />那么我回家后配置的 ddns 网络的 jefflin ，webdav 是要绕一下再访问么？<br /><br />有这个疑问是因为在家里和外面都想看 nas 上的剧的话，如果要绕一下的话，那岂不是要配置 2 个连接来保障家中的访问速度总是最优？
+]]></content:encoded>
+<pubDate>2024-12-26T02:54:03Z</pubDate>
+<pubDate>2024-12-24T15:07:37Z</pubDate>
+</item>
+<item>
+<title>[生活] 天冷手脚冰凉有什么改善方法</title>
+<link>https://www.v2ex.com/t/1100389</link>
+<guid>https://www.v2ex.com/t/1100389</guid>
+<content:encoded><![CDATA[
+
+感觉今年尤其突出，坐着手，脚，尤其是靠近手指脚趾的地方，冷得不行，基本回不了温。<br /><br />有什么改善良方
+]]></content:encoded>
+<pubDate>2024-12-26T02:53:24Z</pubDate>
+<pubDate>2024-12-26T03:52:07Z</pubDate>
+</item>
+<item>
+<title>做了个「💊进口原研药目录」</title>
+<link>https://www.v2ex.com/t/1099128</link>
+<guid>https://www.v2ex.com/t/1099128</guid>
+<content:encoded><![CDATA[
+
+<p>网址： <a href="https://medicine.lvwzhen.com/" rel="nofollow">https://medicine.lvwzhen.com/</a> </p>
+<p>Github： <a href="https://github.com/lvwzhen/medicine" rel="nofollow">https://github.com/lvwzhen/medicine</a></p>
+<p><a href="https://medicine.lvwzhen.com/" rel="nofollow"><img alt="postspark-export-2024-12-20-16-46-27" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/wyLDXTC/postspark-export-2024-12-20-16-46-27.png" /></a></p>
+]]></content:encoded>
+<pubDate>2024-12-20T08:58:28Z</pubDate>
+<pubDate>2024-12-22T18:36:46Z</pubDate>
+</item>
+
+<item>
 <title>[北京] 摇号结果出来了。有摇中的朋友吗？</title>
 <link>https://www.v2ex.com/t/1100388</link>
 <guid>https://www.v2ex.com/t/1100388</guid>
 <content:encoded><![CDATA[
-
 <p>个人摇号，13 倍概率（没啥用），再次酱油 = =</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:51:19Z</pubDate>
 <pubDate>2024-12-26T02:51:19Z</pubDate>
 </item>
 <item>
@@ -20,12 +610,10 @@
 <link>https://www.v2ex.com/t/1100387</link>
 <guid>https://www.v2ex.com/t/1100387</guid>
 <content:encoded><![CDATA[
-
 <p>12 月 24 日，有消费者发文提到波司登某专卖店一条售价 700 多元的羽绒裤，充绒量只有 3 克。有消费者表示，该款羽绒裤“只有大腿根部一块有羽绒填充”。</p>
 <p>波司登某专卖店客服回应记者称同款羽绒裤已售完，“绒跟绒之间不一样，我们用的绒朵，没有杂质的，在克数上会轻。”波司登官方旗舰店客服人员仅表示已反馈登记。</p>
 <p>安徽省某羽绒制品企业负责人刘先生，他表示，3 克的鹅绒难以平均分布到整条羽绒裤上，如果裤子里面有一层摇粒绒，就可以靠摇粒绒保暖。“可能充了 3 克绒就能在标签上打出羽绒裤的字样，但实际上主要材质还是摇粒绒。</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:48:20Z</pubDate>
 <pubDate>2024-12-26T02:45:20Z</pubDate>
 </item>
 <item>
@@ -33,10 +621,8 @@
 <link>https://www.v2ex.com/t/1100386</link>
 <guid>https://www.v2ex.com/t/1100386</guid>
 <content:encoded><![CDATA[
-
 OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉过得还挺安逸。<br /><br />但是有时看到朋友圈晒的到处玩、晒恩爱、同龄的人结婚的结婚、生娃的生娃的动态，又感觉没那么安逸了，觉得自己的生活是不是太枯燥乏味了一些，心里总会有个声音对自己说教：奔三的人了还天天只晓得打游戏，有点小孩子气了（最近沉迷怪物猎人世界，两个月玩了两百多个小时）。<br /><br />果然，只有对比才能产生幸福感吗？
 ]]></content:encoded>
-<pubDate>2024-12-26T02:43:36Z</pubDate>
 <pubDate>2024-12-26T02:50:40Z</pubDate>
 </item>
 <item>
@@ -44,10 +630,8 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100385</link>
 <guid>https://www.v2ex.com/t/1100385</guid>
 <content:encoded><![CDATA[
-
 搜上海天气出深圳，关键 IP 也不是深圳啊<br /><a href="https://i.imgur.com/9YYFd27.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9YYFd27.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:43:24Z</pubDate>
 <pubDate>2024-12-26T02:43:24Z</pubDate>
 </item>
 <item>
@@ -55,10 +639,8 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100384</link>
 <guid>https://www.v2ex.com/t/1100384</guid>
 <content:encoded><![CDATA[
-
 1.PC 同时连接有线和 WiFi 。<br /> <a href="https://i.imgur.com/mjM3SDi.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/mjM3SDi.png" /></a><br /> <br />2.有线是互联网，就是普通家庭光猫拨号、路由器 DHCP 这种方式。<br /><br />3.WiFi 使用的小米路由器，192.168.31.1 ，路由器模式为静态 IP 方式，设置了一个内部网络，如图所示。<br /> <a href="https://i.imgur.com/luUMRfl.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/luUMRfl.png" /></a><br /> <br />4.有线和 WiFi 同时连的时候，只能访问互联网，无法访问内网（静态 ip 设置的那个网），能 ping 通 192.168.31.1 ）。<br /><br />现状：想访问内网的时候，就把有线网络适配器给禁用（笑哭）。<br /><br />目标：同时访问互联网和内网。
 ]]></content:encoded>
-<pubDate>2024-12-26T02:38:43Z</pubDate>
 <pubDate>2024-12-26T02:50:34Z</pubDate>
 </item>
 <item>
@@ -66,7 +648,6 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100383</link>
 <guid>https://www.v2ex.com/t/1100383</guid>
 <content:encoded><![CDATA[
-
 <p>Mental Battery 是一款工作健康与精力管理应用，减轻您长期使用电脑导致的精神与视觉疲劳。让您更有效地记录与监督工作和学习上的精神消耗，杜绝工作过劳与精力透支。</p>
 <p>如果你是独立工作者，从长远上来说，健康永远是第一位的；如果你是社畜，记录下你每天在工作上的精力消耗，既是一种自我管理，也可以晒给“某些人”看看。</p>
 <p>应用支持多种监控模式：</p>
@@ -96,7 +677,6 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <p>截图 4
 <img alt="" class="embedded_image" rel="noreferrer" src="https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/3b/fb/56/3bfb5648-4963-169e-7285-ab8b2caa8f8c/4-zhs.png/626x0w.webp" /></p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:34:27Z</pubDate>
 <pubDate>2024-12-26T02:31:27Z</pubDate>
 </item>
 <item>
@@ -104,10 +684,8 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100382</link>
 <guid>https://www.v2ex.com/t/1100382</guid>
 <content:encoded><![CDATA[
-
 同时打开 shadowrocket 和 tailscale ，有较大概率出现小火箭节点不可用，更新失败的情况。目前只能退出 tailscale 并且还要强制退出一次系统 PacketTunnel 进程，小火箭才能正常工作。<br />请问有什么能让它们同时可用解决方法吗？
 ]]></content:encoded>
-<pubDate>2024-12-26T02:32:13Z</pubDate>
 <pubDate>2024-12-26T02:31:13Z</pubDate>
 </item>
 <item>
@@ -115,10 +693,8 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100381</link>
 <guid>https://www.v2ex.com/t/1100381</guid>
 <content:encoded><![CDATA[
-
 <p>如题，晚上找了很多 bmg ，不是装上无法联网，就是安装报错，大佬们，有安装成功的吗？如果 yy 不行，还有什么类似的吗，刚折腾好了 cs ，没语音玩起来不爽啊，暂时用的手机</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:31:07Z</pubDate>
 <pubDate>2024-12-26T02:31:07Z</pubDate>
 </item>
 <item>
@@ -126,10 +702,8 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100380</link>
 <guid>https://www.v2ex.com/t/1100380</guid>
 <content:encoded><![CDATA[
-
 <p>年初的时候用自己的笔记本当服务器，买了个内网穿透服务，高峰期有点卡，现在想直接上云了。阿里云不是新人了现在有点贵，这种不长期使用的服务器是不是随便买个小厂配置够的就好。</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:30:18Z</pubDate>
 <pubDate>2024-12-26T02:28:18Z</pubDate>
 </item>
 <item>
@@ -137,7 +711,6 @@ OP 平时朝九晚九上班，下班、周末就打打游戏看看片，感觉�
 <link>https://www.v2ex.com/t/1100379</link>
 <guid>https://www.v2ex.com/t/1100379</guid>
 <content:encoded><![CDATA[
-
 <p>配置放到 homeassistant/configuration.yaml 文件中， 重启后在 ui 里找不到开关，设备和实体里都没有，也没有日志报错</p>
 <pre><code>docker 中安装的
 Home Assistant
@@ -166,7 +739,6 @@ Frontend 20241127.8
 
 </code></pre>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:29:00Z</pubDate>
 <pubDate>2024-12-25T22:29:00Z</pubDate>
 </item>
 <item>
@@ -174,12 +746,10 @@ Frontend 20241127.8
 <link>https://www.v2ex.com/t/1100378</link>
 <guid>https://www.v2ex.com/t/1100378</guid>
 <content:encoded><![CDATA[
-
 <p>Ubuntu 22.04</p>
 <p><img alt="https://imgur.com/a/7BvBFJ8" class="embedded_image" rel="noreferrer" src="https://imgur.com/a/7BvBFJ8" /></p>
 <p>暂时无法更换操作系统。</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:25:13Z</pubDate>
 <pubDate>2024-12-26T02:25:13Z</pubDate>
 </item>
 <item>
@@ -187,7 +757,6 @@ Frontend 20241127.8
 <link>https://www.v2ex.com/t/1100377</link>
 <guid>https://www.v2ex.com/t/1100377</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.v2ex.com/t/1097752" rel="nofollow">上一篇帖子</a>推荐了自家的散养山羊和土鸡蛋，不少 v 友加我预订，喜欢天冷吃羊肉的朋友可以去看一看品质绝对不会让大家失望！这篇帖子主要是在过节前再打一波广告~所有羊肉都是新鲜宰杀，京东生鲜运输大部分地区都可以次日达。顺便发一下几位 v 友都问到的，山羊肉是否可以用来烧烤的问题。</p>
 <p>另：土鸡蛋预订的差不多了，今年就不销售了感谢大家支持。</p>
 <h2>联系方式</h2>
@@ -208,17 +777,14 @@ Frontend 20241127.8
 <img alt="t2" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2d2zgv0.jpeg" /></p>
 ]]></content:encoded>
 <pubDate>2024-12-26T02:21:53Z</pubDate>
-<pubDate>2024-12-26T02:21:53Z</pubDate>
 </item>
 <item>
 <title>[生活] 有什么好玩惊艳的产品推荐吗？</title>
 <link>https://www.v2ex.com/t/1100376</link>
 <guid>https://www.v2ex.com/t/1100376</guid>
 <content:encoded><![CDATA[
-
 RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 DIY PC ，但是最近这两年可能电子阳痿，对 PC 是一点兴趣也提不起来。买过索尼 WF-1000XM4 耳机，switch(就玩通关了马里奥奥德赛)，PS5(就只玩通关了黑🐒，其它游戏打开 5s 就关闭)，曾经的游戏厅街机游戏机，以前对手机也挺感兴趣(从诺基亚 S60V2 时代折腾，Android 也摸得比较熟)，现在对手机也是提不上一点兴趣。<br /><br />为了让自己感觉活着，还买了公路自行车天天上下班通勤用。本来想买摩托，但是成都禁摩，就取消了这个打算。<br /><br />车就更不考虑了，纯消耗品，我这种工农阶级不想背这么多的贷款买车。<br /><br />运动相机和无人机也是毫无兴趣。<br /><br />感觉好无趣啊 xdm ，能推荐点儿好玩的产品吗？不限于数码产品。
 ]]></content:encoded>
-<pubDate>2024-12-26T02:16:38Z</pubDate>
 <pubDate>2024-12-26T02:50:17Z</pubDate>
 </item>
 <item>
@@ -226,7 +792,6 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1100375</link>
 <guid>https://www.v2ex.com/t/1100375</guid>
 <content:encoded><![CDATA[
-
 <p>比如丰巢扫码后会弹出一个达美乐，收银通/收钱吧这种扫码支付完会弹饿了么或者其他小程序。<br />
 想对接一下吃点米，但是找不到对接入口，看过了流量主和点金计划，里面妹有😭<br />
 也不知道这种广告关键字叫啥，网上都不好搜，求各位指个路<br />
@@ -234,17 +799,14 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <img alt="截图 1735179205297" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2024/12/26/pAvZza4.png" /></p>
 ]]></content:encoded>
 <pubDate>2024-12-26T02:13:35Z</pubDate>
-<pubDate>2024-12-26T02:13:35Z</pubDate>
 </item>
 <item>
 <title>[程序员] 在大厂工作是产出占大头还是内耗占大头</title>
 <link>https://www.v2ex.com/t/1100374</link>
 <guid>https://www.v2ex.com/t/1100374</guid>
 <content:encoded><![CDATA[
-
 现在在国企，纠结要不要跳槽去大厂。<br />想去大厂的原因：1. 工资更高 2. 能学到技术<br />国企的优势：1. 清闲有大量自己的时间，可以自学技术创业。2.不用担心 35 岁失业问题。<br />纠结的点在于不是很清楚大厂工作到底什么样，是内卷扯皮居多，还是真正做事搞出项目居多。<br />如果去大厂不想做前后端，想做爬虫逆向网络安全大数据这些岗位。
 ]]></content:encoded>
-<pubDate>2024-12-26T02:09:19Z</pubDate>
 <pubDate>2024-12-26T02:48:02Z</pubDate>
 </item>
 <item>
@@ -252,12 +814,10 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1100370</link>
 <guid>https://www.v2ex.com/t/1100370</guid>
 <content:encoded><![CDATA[
-
 <p>我知道的是在支付宝买基金，但是好多都有限额
 有不出国不去香港，就能直接开户买美股的途径吗？
 另外美股现在算是历史高位吗？预计什么时候会迎来回调呢？</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T02:06:07Z</pubDate>
 <pubDate>2024-12-26T02:38:30Z</pubDate>
 </item>
 <item>
@@ -265,10 +825,8 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1100369</link>
 <guid>https://www.v2ex.com/t/1100369</guid>
 <content:encoded><![CDATA[
-
 昨天晚上加着班，想访问一下自己的 alist ，访问不了，nslookup 一看解析全没了，瞬间心凉了一大截。<br />我前几天刚将部分域名切换到 <a href="http://us.kg" rel="nofollow noopener" target="_blank">us.kg</a> ，大早上来到公司再迁移回去。。。。<br />V 友们还没发现吗？我看还没有讨论
 ]]></content:encoded>
-<pubDate>2024-12-26T02:04:32Z</pubDate>
 <pubDate>2024-12-26T02:27:09Z</pubDate>
 </item>
 <item>
@@ -276,11 +834,9 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1100366</link>
 <guid>https://www.v2ex.com/t/1100366</guid>
 <content:encoded><![CDATA[
-
 <p>试了下 Google 的 ImageFX ，生成不了大尺度的😂
 大佬们推荐一些，最好有免费额度的</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T01:52:33Z</pubDate>
 <pubDate>2024-12-26T02:44:40Z</pubDate>
 </item>
 <item>
@@ -288,10 +844,8 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1100365</link>
 <guid>https://www.v2ex.com/t/1100365</guid>
 <content:encoded><![CDATA[
-
 <p>自己检麻烦吗？</p>
 ]]></content:encoded>
-<pubDate>2024-12-26T01:51:47Z</pubDate>
 <pubDate>2024-12-26T02:29:45Z</pubDate>
 </item>
 <item>
@@ -299,7 +853,6 @@ RT ，<br />近年来发现想买的数码产品越来越少，自己折腾过 D
 <link>https://www.v2ex.com/t/1096625</link>
 <guid>https://www.v2ex.com/t/1096625</guid>
 <content:encoded><![CDATA[
-
 <h4><strong>背景故事</strong></h4>
 <p>“<strong>碧海潮音</strong>”是我独立开发的第二款 App ，名字的灵感源自《笑傲江湖》中刘正风和曲洋琴箫合奏的经典名曲《碧海潮生曲》。我希望这款 App 能如同金庸笔下的琴箫合奏般，充满意境与美感。</p>
 <p>作为一个喜欢<strong>通过音乐单曲循环来进入专注状态</strong>的人，我常常觉得市面上的白噪音产品不是功能欠缺，就是审美和交互体验差强人意，或者广告满天飞。所以，我决定亲手打造一款更贴合我想象的白噪音产品——<strong>“碧海潮音”</strong>。</p>
@@ -348,7 +901,6 @@ A3LAXL7YNPFH
 PTFXYJYLMP96
 3369KPRN3REE</p>
 ]]></content:encoded>
-<pubDate>2024-12-11T02:17:21Z</pubDate>
 <pubDate>2024-12-25T06:44:59Z</pubDate>
 </item>
 <item>
@@ -356,13 +908,10 @@ PTFXYJYLMP96
 <link>https://www.v2ex.com/t/1098886</link>
 <guid>https://www.v2ex.com/t/1098886</guid>
 <content:encoded><![CDATA[
-
 地址：<a href="http://bot.closeai.moe" rel="nofollow noopener" target="_blank">bot.closeai.moe</a><br />仓库：<a href="http://github.com/senzi/reverse-captcha" rel="nofollow noopener" target="_blank">github.com/senzi/reverse-captcha</a><br />————————————————————————<br />&gt; 试图使用 AprilTag 来区分人类和机器。<br /><br />&gt; 意识到无意义的事再怎么打磨还是没有意义。<br />&gt; 但还是想分享创作(实现脑洞)的快乐。<br /><br />&gt; 欢迎体验与批评。
 ]]></content:encoded>
-<pubDate>2024-12-19T12:43:04Z</pubDate>
 <pubDate>2024-12-22T19:41:07Z</pubDate>
 </item>
-
 <item>
 <title>[生活] 谁认识一个叫 “吴雨眠” 的女孩？</title>
 <link>https://www.v2ex.com/t/1100361</link>
@@ -13672,298 +14221,6 @@ github 地址： <a href="https://github.com/mohuani/niu-ma" rel="nofollow">http
 
 ]]></content:encoded>
 <pubDate>2024-12-20T10:01:44Z</pubDate>
-</item>
-<item>
-<title>[Chrome] Edge 家的标签页内分屏视图太好用了， Chrome 快跟上啊</title>
-<link>https://www.v2ex.com/t/1099150</link>
-<guid>https://www.v2ex.com/t/1099150</guid>
-<content:encoded><![CDATA[
-<p><img alt="1734688725637.png" class="embedded_image" rel="noreferrer" src="https://s1.locimg.com/2024/12/20/88a60f6eceab7.png" /></p>
-]]></content:encoded>
-<pubDate>2024-12-20T05:59:32Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国内有的系统必须用 360 浏览器，这是什么原理？</title>
-<link>https://www.v2ex.com/t/1099149</link>
-<guid>https://www.v2ex.com/t/1099149</guid>
-<content:encoded><![CDATA[
-不能用 chrome 模拟吗？
-]]></content:encoded>
-<pubDate>2024-12-20T10:01:29Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 不要脸的风还是吹来了我们公司</title>
-<link>https://www.v2ex.com/t/1099148</link>
-<guid>https://www.v2ex.com/t/1099148</guid>
-<content:encoded><![CDATA[
-年底 13 薪是写在合同里的，公司打算用 RSU 代替货币发放 13 薪，所以要我们签声明函：修改劳动合同内容，即同意将 13 薪改为 RSU 发放。声明函只写了同意修改合同中 13 薪的发放，没有明确 RSU 数量、额度、行权条件与期限、最低权益。<br /><br />发放时间：<br />原 13 薪+年终在过年前，过年后各发一部分，一般 4 月发完。<br />RSU ，一次性发放，口头说需要 6 月份才能走完手续。<br /><br />本人情况：<br />本人已背 C ，无年终有 13 薪，期望拿大礼包。n+1=5.5 月。上班心里极为煎熬，但强度不高。<br /><br />跟兄弟们分享下，也想听听大伙的声音。
-]]></content:encoded>
-<pubDate>2024-12-20T09:56:09Z</pubDate>
-</item>
-<item>
-<title>[PostgreSQL] PostgreSql</title>
-<link>https://www.v2ex.com/t/1099147</link>
-<guid>https://www.v2ex.com/t/1099147</guid>
-<content:encoded><![CDATA[
-<p>PostgreSql 交流</p>
-]]></content:encoded>
-<pubDate>2024-12-20T09:53:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 看人下菜碟，是搜索引擎的基操而已，不要善意推测</title>
-<link>https://www.v2ex.com/t/1099146</link>
-<guid>https://www.v2ex.com/t/1099146</guid>
-<content:encoded><![CDATA[
-<pre><code>你看到的东西，只是你看到的东西
-
-可能是因为你想看到它，所以主动看到了它
-更可能是因为别人想让你看到它，你才看到了它
-
-——沃兹基硕德
-</code></pre>
-<p>前情提要</p>
-<p><a href="https://www.v2ex.com/t/1098974" rel="nofollow">https://www.v2ex.com/t/1098974</a></p>
-<p>不仔细看帖的懂哥太多，故而特意重开个贴来引战</p>
-<hr />
-<p>有人觉着“百度只是搜索引擎，并没有那么智能，只不过是你搜索的方式不对”</p>
-<p>那也未免太小瞧大厂程序员的水平了，早在二十年前就已经能做到关键词聚合，不存在以为“谷歌浏览器”和“google 浏览器”以及“chrome”是不同关键词的情况</p>
-<p>至于哪个排在前面，那都是竞价排名白花花的银子买来的</p>
-<p>对于谷歌浏览器这种顶流关键字，就不仅仅是竞价排名这么简单了，是经过精心的策略设计的</p>
-<p>原帖里也有不少人贴出了前一阵子甚至是最近搜索谷歌浏览器的结果</p>
-<p>先说结论：</p>
-<pre><code>搜索引擎会根据用户登录情况，浏览器类型，来推测是否是小白用户，从而选择性的提供正版和山寨版的链接
-
-bing 跟谷歌甚至 xxx 之间可能是达成了什么奇怪的 py 约定，会跳转到谷歌专门提供的无法直接找到下载链接的帮助页面
-
-
-</code></pre>
-<p><em><strong>所以不要再说“用什么浏览器都一样，反正都是 chronium 内核”，这对小白用户很多时候是致命的</strong></em></p>
-<p>至于之前被曝光的灰产还会根据用户的 IP 归属地做定制化推送，暂时懒得验证了</p>
-<p>太复杂的验证咱们不用去做，简单上截图：</p>
-<p>下面的所有搜索结果均为同一地点同一 IP 搜索得出</p>
-<hr />
-<ol>
-<li>
-<p>chrome 搜索 steam</p>
-<p><a href="https://i.imgur.com/1U7sZ0k.png" rel="nofollow">https://i.imgur.com/1U7sZ0k.png</a></p>
-</li>
-<li>
-<p>自用 edge 搜索 steam</p>
-<p><a href="https://i.imgur.com/Fp2R4L6.png" rel="nofollow">https://i.imgur.com/Fp2R4L6.png</a></p>
-</li>
-<li>
-<p>隐私浏览 edge 搜索 steam</p>
-<p><a href="https://i.imgur.com/upq1A1t.png" rel="nofollow">https://i.imgur.com/upq1A1t.png</a></p>
-</li>
-</ol>
-<hr />
-<ol>
-<li>
-<p>chrome 隐私窗口搜索 pycharm 下载</p>
-<p><a href="https://i.imgur.com/K3e7aJc.png" rel="nofollow">https://i.imgur.com/K3e7aJc.png</a></p>
-</li>
-<li>
-<p>edge 隐私窗口搜索 pycharm 下载</p>
-<p><a href="https://i.imgur.com/UXMA1ZZ.png" rel="nofollow">https://i.imgur.com/UXMA1ZZ.png</a></p>
-</li>
-</ol>
-<hr />
-<p>至于 bing ，在不用科学的情况下，如果用 edge 浏览器，国内和国际版已经没有区别了</p>
-<p><a href="https://i.imgur.com/vciKF4o.png" rel="nofollow">https://i.imgur.com/vciKF4o.png</a></p>
-<p>但是仍然保持了对 chrome 的“敬畏”？</p>
-<p><a href="https://i.imgur.com/sNI6d4F.png" rel="nofollow">https://i.imgur.com/sNI6d4F.png</a></p>
-<hr />
-<p>欢迎自行验证</p>
-]]></content:encoded>
-<pubDate>2024-12-20T10:21:39Z</pubDate>
-</item>
-<item>
-<title>[问与答] 安卓上的 switch 游戏?</title>
-<link>https://www.v2ex.com/t/1099145</link>
-<guid>https://www.v2ex.com/t/1099145</guid>
-<content:encoded><![CDATA[
-目前用的苹果,几乎没玩什么游戏,但是感觉如果安卓可以装 switch 模拟器,并且适配空洞骑士,塞尔达那些 switch 游戏的话,感觉会是一个很好的换机契机<br />有没有大佬用安卓折腾模拟器游戏的,请教请教
-]]></content:encoded>
-<pubDate>2024-12-20T09:51:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有在河北邢台的吗？邢台机械厂这么赚钱吗？</title>
-<link>https://www.v2ex.com/t/1099144</link>
-<guid>https://www.v2ex.com/t/1099144</guid>
-<content:encoded><![CDATA[
-<p>认识一个在邢台的人，说邢台很多开厂的，大概都是轴承，机械的厂。说几个月都可以赚几十万，甚至百万的。真有这么赚钱吗？但是看人均收入以及 GDP 那些在河北属于倒数的。有点不理解</p>
-]]></content:encoded>
-<pubDate>2024-12-20T09:52:10Z</pubDate>
-</item>
-<item>
-<title>[程序员] 网络包获取及分析项目推荐</title>
-<link>https://www.v2ex.com/t/1099141</link>
-<guid>https://www.v2ex.com/t/1099141</guid>
-<content:encoded><![CDATA[
-<h1>网络包分析项目推荐</h1>
-<p>最近老板接了个需求，希望能够手动，自动的截取少量 pcap 数据包，在线分析 pcap 包功能需求。
-类似如下项目
-<a href="http://lab.dynamite.ai" rel="nofollow">lab.dynamite.ai</a>
-A-Packets
-le4f/pcap-analyzer
-哪位大佬有推荐项目，开源的商业的都可以。</p>
-]]></content:encoded>
-<pubDate>2024-12-20T10:03:49Z</pubDate>
-</item>
-<item>
-<title>[macOS] MacBook Air 笔记本能否做到数小时后休眠之后自动关机保护电池？</title>
-<link>https://www.v2ex.com/t/1099140</link>
-<guid>https://www.v2ex.com/t/1099140</guid>
-<content:encoded><![CDATA[
-<p>我有一台不经常用的 M1 芯片 MacBook Air 笔记本，希望能够在以下情况自动关机：</p>
-<ul>
-<li>休眠了 1 天以上</li>
-<li>电池低于 50%</li>
-</ul>
-<blockquote>
-<p>避免亏电造成电池损伤</p>
-</blockquote>
-<p>大家有没有什么好的办法分享一下？</p>
-]]></content:encoded>
-<pubDate>2024-12-20T09:47:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 前端，公司要求现在全覆盖 storybook 单测，还要呆么</title>
-<link>https://www.v2ex.com/t/1099139</link>
-<guid>https://www.v2ex.com/t/1099139</guid>
-<content:encoded><![CDATA[
-写脚本时间比开发时间都多啊
-]]></content:encoded>
-<pubDate>2024-12-20T09:36:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有 WISE 账户的同学，想问一下你们都在哪个区？</title>
-<link>https://www.v2ex.com/t/1099137</link>
-<guid>https://www.v2ex.com/t/1099137</guid>
-<content:encoded><![CDATA[
-<p>目前在英区，会不会容易被风控？
-再考虑要不要改回国区</p>
-]]></content:encoded>
-<pubDate>2024-12-20T09:27:14Z</pubDate>
-</item>
-<item>
-<title>[程序员] 上班五年发现自己啥也没学会</title>
-<link>https://www.v2ex.com/t/1099136</link>
-<guid>https://www.v2ex.com/t/1099136</guid>
-<content:encoded><![CDATA[
-<h1>闲聊</h1>
-<p>从大学毕业到现在，我已经在深圳工作五年了。记得当时入职是四月，今年被裁员也是四月，好巧不巧。当时说是驻场的某证券公司预算原因会裁掉一些外包，我记得我收到信息的时候还跟测试在聊之后的安排，因为她以为自己也要被开。但后面开会发现小团队就我被开了，测试是经理帮忙转到别的团队。想起来我当时听到她不用开消息的脸应该是微微垮掉的，不过也是个小老逼了，应该还能有一些表情管理吧。</p>
-<h1>争取赔偿</h1>
-<p>总的来说，我想要做第一件事是争取赔偿。最后在外包公司坐了两个星期，争取了 N 的赔偿吧。对我来说已经足够煎熬了，我内心并不强大，也没有很坚决的勇气。跟我同批去外包公司静坐争取赔偿的人，有一两个几天熬不住了，就签约半天就走了，而且我们互相之间也很少交流。最后不清楚是不是又要来“新人“了，所以在第二周的时候，我被叫过去说，可以给我两个月的赔偿。</p>
-<p>忘了说，第一天去到公司的时候，跟那个所谓的老总谈，他说只给半个月。而我的工龄接近两年，我知道我正常合法被裁员的话是 2+1 。但当时心态每天都不知道明天怎样，除了有妥协的人，也有被叫回家说不能再来，要强制解约打官司的人。所以他说给我两个月的时候我也觉得 OK 吧，那当下还是很开心的。后面再看到别人坚持不懈还要打官司追回公积金之类的所有的赔偿，我觉得他们厉害的同时会跟自己说，这不是我能争取的东西，那不知道有没有结果的两周就已经让我有点崩溃了，给别人的勇气一点掌声就好了。</p>
-<p>在那过后，我就开始过了一段做自己想做的事情的时间。健身、打球、游泳、旅游、补 C++的基础。进度很慢，而且不知道为啥我老是一段时间只干一件事情就觉得自己了不起。我老是想到无聊斋里嘉宾说自己离职后也没荒废时间，就是在健身，教主说健身也不需要占据一天吧。无聊斋是档播客，教主是这档播客的主持人。这段对话在听到之后就偶尔在我脑海响起，我这些事情明明就可以一起前行啊。我又不是单核 CPU ，额，不会吧。就是我觉得以后不要再做单线程的事了，我明明都 28 了！我应该多线程的进行我的人生，第一步我今天开始记录我自己想法。</p>
-<h1>工作经历</h1>
-<p>说到这里还没开始说重点，主要想讲的是我自己的一个求职情况。先说背景，我是普通的二本大学计算机专业毕业，但如果有同样背景的同学。抛开你自己在大学里很努力的学习那种，我是真正的从来没努力学习过，相当于别的专业的人稍微学一下跟我毕业时有一样的基础。</p>
-<p>我毕业的时候选择了 C 语言找工作，是因为不太会 JAVA ，上课没听，自己也没学。去了一个汽车诊断仪的公司，当时一听工资 6K 我还忍不住偷笑，想着这么多。代码层面的工作内容是搭好的 MFC 框架，增加一些按钮，选项，菜单之类的。技术要求就到这了基本上。然后日常更多会去实车采集一些数据，也不需要自己动脑子，只需要接上车，然后根据车上各个功能按一下，记录数据就行。就这样在这里混了两年差不多，后面架构调整，还给了我一个小组长的名号，薪资也涨到了 9K ，并且开始带一些新人。最后离职是因为觉得这里真的太不技术了，感觉出去找不到别的工作了；同时公司里的管理我觉得一塌糊涂，给售后部的一些人拿了很大话语权，有几个人做事干活毫无礼貌。最后还是走了，听说再坚持两个月又能多拿一些奖金，现在想来也没什么可惜的。</p>
-<p>下一份工作找了不到一个月我记得，面了好几份，被打击得很严重。那时候我单纯得觉得有工作年限下一份工作应该很好找高薪一点的吧。实际上当时我连拷贝函数都不知道是什么，回想起来真觉得自己很好笑。但莫名其妙的有个外包面完就说可以，反正他们要求不高，会 C++能摆弄就行。一开始面试的时候还说很多要做图像识别的，我前一天晚上还专门做了一些功课我记得，最后都没用上。这一份工作是在某个银行外包驻场，11K ，这是我第一次做外包，还听到了那句让我震惊的话，银行本部的经理开会的时候说我们内部的都是 985211 硕士起的。对的，这让我很震惊啊，我那时候真正意识到原来学历会拉开这么大的差距。虽说之前也曾经不自量力的投过大厂的简历，但都没回音嘛，所以差距这两个字并没有真的在我脑海里。说远了，这一份工作的内容一开始是帮忙维护银行中的图像识别模块，识别的部分是公司内部的，没有给我们接触，我们负责转调用，就是做一个中间件，就用 C 语言转一下信息，转到对应的接口。这时候我连 linux 都不会，完美说明了他敢用你你就别不敢上。但现在回想起来，工作内容真的是少的可怜，因为要维护的内容不多，我也是大部分实际都在看小说，组长也离职走了。这个图像维护交给了一个好像更高级的 C++开发。就把我调到另外一个小组，每天帮忙标注数据。也是基本每天不写代码。后来原先招我进来的负责人也离职了，另一个上位了。看到我们工作量不多的情况，要求我们全部开始学 java ，就连测试，前端都要一起学。我受不了就离职了。在这家公司我啥也没学着，这时候我还没有意识到大部分人只要不主动努力是很难从日常的工作汲取到知识的。</p>
-<p>然后就是上一份在证券公司的外包，14.5K ，面试的过程是一个电话而已，可能因为听到我之前做的也是中间件，跟项目组在做的事情很像就觉得我可以了。这是我呆过整体最舒服的环境，工作量不大，证券公司工作环境也好，节假日也不补班。经理都虽有一些不愉快的经历，大多是我能力确实不行，但他们都做事很有条理，最记得有次有个功能经理把我叫过去说这做的不对并给我讲解了为什么，说到这里我明白为什么觉得第一家公司的人讨厌了，掌握话语权的人实际不懂业务。不是裁员走的话，我可能还会接着在这里呆着。在这里我自学了一下 python ，并且给团队里的运维做了一些小脚本用于管理环境。然后 C++的代码规范我在这里更规范一些。但总的来说，我被动地从工作中学习到的知识也不多。</p>
-<h1>生命的广阔对毫无方向感的人来说是十分恐怖的</h1>
-<p>离职的时候我可以说我的技术栈就会 C/C++(这时候的 C++我连 C++11 都没有了解清楚，在上一家公司的时候买了一本 C++11 的书都只看了开头)、一点点 MYSQL ，会 python ，linux 基本操作。我想到我这个水平是五年程序员就有点想笑。感觉跟别人网上宣扬的程序员的完全不是一个水平啊，应届生不过如此。</p>
-<p>到目前这段时间我在技术上的学习就是折腾了一下 python ，恶补了一下 C++11 ，做了几个基础的库，涉及了一些 C++14 的部分，基础到不行，还有点拙劣，还做成了教程放到了 B 站。我看到还是有人看的嘛，但感觉大多都是刚开始学 C++的。整体来看我可以说自己已经有一个现代 C++的基础了吧。然后我开始不想学 C++了，因为往后 C++这条路上深究的话可能看到太多不认识的功能库，本能的想偷懒吧。如果能有大哥跟我讲讲清楚 C++工作的几条路线图我也很感谢啊，我确实没方向啊。</p>
-<p>在这个过程中，我发现自己还是挺适合拆分复杂概念的，尽管我讲的东西不够复杂。我想起来我的生活中，很多人是没办法，没能力将一件事情陈述清楚的，而我觉得有这个能力。同时想起来自己在之前的工作中，看源代码的时候，可能是我太菜了，我都对项目的源代码嗤之以鼻，里面都是没注释的。但是我都花了很多时间加了注释，理清楚了代码的运行逻辑。</p>
-<h1>求职</h1>
-<p>在 11 月份打算开始找工作的时候，我一开始想进入 WEB3 行业。但投了很多岗位后发现，以我现在的技术栈根本不足以支持我进入 web3 行业当技术开发。当然，找工作的同时我找了一些课程开始看，我不是完全觉得我 0 经验就能工作，我看了 B 站北大老师的那个区块链视频还有上一些教学网站看了一些视频，明白了很多概念，但还是远远不够去做一个开发。在这之后我尝试各行各业的远程工作，就是沾边的我都投了，同时学了一下 JavaScript ，因为听说全栈工程师在远程工作上肯定更吃香一些，但同样也是基本没有回音。这时候我又再次意识到社会的残酷，没人告诉我啊，原来不努力能差别人这么远啊。我放下心思认清自己，开始投 BOSS 直聘。最近看了两周，我只能说我更认清自己了。太好笑了。</p>
-<p>沟通过 293 ，已投递 95 ，目前为止只有过两个面试，一个是上上周面的在罗湖的一家证券行业的公司，一开始是去面的 QT 岗位，但聊了一下他发现其实我更适合他们空缺的另外岗位，感觉就是运维的样子。开的工资是 14.8 ，加班还有加班费。我觉得太远了，我住南山。还有是他们周日还要上半天班，有点奇怪。但还是很感谢这家公司给了我一针稳定剂。我发现自己还是有点市场的嘛。</p>
-<p>另一个面试是一个很小的初创公司，面的是 python 量化交易，上去没人管，有一个人说让我扫码做题，我看上面写着做完发到他 BOSS 直聘等通知。我就扫码做了，是一套 IQ 题和一套 MBTI 人格测试题，做完发到了 HR 那里。然后看一开始给我开门的那个人也不在了，我就走了。回家的路上发现是不是要坐在哪里等通知来着，有点搞笑的，但是我觉得太莫名其妙了这公司。那个 HR 到今天也还没回我。</p>
-<p>然后就没有任何别的面试，说不焦虑肯定假，但想到这个时间段找工作是有点尴尬了。我总结了一下，C++工程师 15K-25k 我看到最多的岗位就是 QT 、嵌入式。QT 工作有一些高薪一些的需要 OPENGL 。然后嵌入式我感觉我这个时间段开始从零投入应该比较难吧，我这两天开始学了一下 QML 、QT 。我感觉图形界面不会太难，接下来几天也打算花点时间在这上面。但总的来说还是没有更确切的方向。喔，还有一个方向是游戏的方向，多是 UNITY 和 lua ，感觉也不错。我只是觉得 QT 的更多一些岗位，而且 QT 应该更简单，我想先尝试一下。不知道这是不是一个正确的决定。</p>
-<p>将目光放得更远的话，我还是想继续找能远程的、出海的工作，我知道现在我的技术栈可能还不够。但我想往那个方向靠拢，我感觉 GO 语言的前景好像更开阔一些。因为在一些远程网站上，C++是没有初级工程师的岗位的，而 GO 语言有，同时 GO 语言的岗位也很多，再远程工作招聘网站上。</p>
-<p>写到这里跟想起来标题，想起来我一开始想说的事。我就是找工作屡次刷新自己的认知，认知到自己的局限和渺小。我简历的项目甚至没有几个，因为上两家都是做中间件，根本就不知道怎么写得那么高大上，也没涉及太多的技术，经常被诟病说项目太少了。我看我同学做 JAVA 的他们的项目能写的很高大上，我就不知道怎么写。喔，我还尝试了 upwork 和 fiverr ，其实对于我这样的菜鸟来说，根本不是那么容易就能找到单可以接的。</p>
-<p>我确实意识到自己在这五年的工作中没有积攒到什么经验，自己也不是那种一直保持对技术好奇心的人。只能说是运气不错，这样没怎么努力的学习踩着实地的也能在快节奏的深圳，拿着一份还算过得去的薪资，当然跟大佬甚至大部分网上的人也没法比。要换个角度想，我付出的努力也确实没有别人多，我靠着运气和时代红利已经算是不错了。我不知道像我这样的普通人有多少，我不知道为啥大家动不动就是哪个大厂的员工，可能真正普通人没那么爱网上发言。腰乐队说的他们音乐是给乡民写的，但只有先锋听。</p>
-<p>要说后悔吗？也没什么好后悔的，所有的经历成就了现在的自己。我还是很喜欢现在的自己的，成长到 28 岁，我发现了自己很多缺点的同时也发现自己很多优点。只是现在对于片所谓的旷野，我有点不知所措，我得花时间寻求一下方向。</p>
-]]></content:encoded>
-<pubDate>2024-12-20T10:00:37Z</pubDate>
-</item>
-<item>
-<title>[站长] 又拍云的 ssl 证书年底促销，一年只需 36！</title>
-<link>https://www.v2ex.com/t/1099135</link>
-<guid>https://www.v2ex.com/t/1099135</guid>
-<content:encoded><![CDATA[
-sslTrus DV SSL 单域名证书<br />刚给自己网站换上，嘎嘎香。再也不用头疼 3 个月一换的免费证书了<br />而且过期时间还会在原先证书基础上顺延几天！
-]]></content:encoded>
-<pubDate>2024-12-20T05:20:16Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 提醒一下，今天开始记得每天领 EPIC 的免费游戏</title>
-<link>https://www.v2ex.com/t/1099134</link>
-<guid>https://www.v2ex.com/t/1099134</guid>
-<content:encoded><![CDATA[
-大家肯定都知道或者都看到了，给忘记领取的朋友提醒一下。连续十几天，可以定个闹钟喔。今天送的是：《吸血鬼幸存者》
-]]></content:encoded>
-<pubDate>2024-12-20T09:18:22Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] 有小红书的研发吗？为什么私信老是发不出去？</title>
-<link>https://www.v2ex.com/t/1099132</link>
-<guid>https://www.v2ex.com/t/1099132</guid>
-<content:encoded><![CDATA[
-<p>小红书很奇怪，经常私信好友一些内容，自己看见消息发送出去了，但是好友看不见，就像消息被吞了。官方从未正式给过解释，而且我们双方的号都是正常帐号，从未违规。</p>
-<p>所以即便我们互相关注，也不能当一个可靠的 IM 来用是吗？这到底是什么黑箱机制啊？有时候想分享一些好玩的，结果对方根本看不到，烦人。</p>
-]]></content:encoded>
-<pubDate>2024-12-20T09:52:51Z</pubDate>
-</item>
-<item>
-<title>[Apple] 想给 mbp 配个 4k 高刷显示器，有点疑问</title>
-<link>https://www.v2ex.com/t/1099130</link>
-<guid>https://www.v2ex.com/t/1099130</guid>
-<content:encoded><![CDATA[
-对显示器这方面不太懂，电脑是 m3 max ，想配的显示器是 4k160hz ，有 hdmi2.1 、dp1.4 、tpye-c 接口。<br />用 c to c 的话是不是达不到 4k120hz ？看官网参数 c 口只支持 6k 以下 60hz ，用 c 转 dp 的话可以达到 4k120hz 吗？<br />另外 c 转 dp 的线传输速率 32.4Gbps 够用吗，还是说必须上 40Gbps ？<br /><br />官网参数： <a href="https://support.apple.com/zh-cn/117736" rel="nofollow noopener" target="_blank">https://support.apple.com/zh-cn/117736</a>
-]]></content:encoded>
-<pubDate>2024-12-20T09:49:30Z</pubDate>
-</item>
-<item>
-<title>[生活] 抑郁症的确诊到底有啥标准</title>
-<link>https://www.v2ex.com/t/1099129</link>
-<guid>https://www.v2ex.com/t/1099129</guid>
-<content:encoded><![CDATA[
-抑郁症的确诊到底有啥标准<br /><br />   最近或者说最近几年一直不顺利，包括但不限于工作压力、经济压力、个人发展、结婚等等吧，上半年因为项目某些原因辞职回老家备考明年的编制考试，错误的估计了网络安全/运维相关工作的市场情况，待业了一个多月，找个一个简单的相关工作，边工作边备考，但是工资是之前的 1/4 ，之前积累的生活消费习惯带来很大压力，工作上平时事情很少，加上动用了一点不成熟的“关系”，碍于长辈的面子就边备考边上班，一个人住，最近几个月，由于各种压力导致吧，频繁的整个背部疼痛，头疼，失眠、很难提起精神、焦虑、对未来没有希望等等胡思乱想，甚至一度有轻微的“轻生”念头，失眠的时候需要一些虚无幼稚的念头比如幻想中了彩票怎么花才能入睡，很早就醒，白天很困，没精神等，但是我不抽烟不喝酒没有女朋友，排解压力的方式只有吃东西和运动，逃避也好，懒惰也罢，跑步实在坚持不下去，也就剩下吃了，但是父母总是任务我是贪吃斥责我花钱又不健康等，我也解释过我只是喝了可乐之后感觉很舒服才喝的，大概情况如上，<br />	不过我从来也没联系到抑郁症，最近整个背部莫名奇妙的疼，甚至无法转动腰部，网上搜索看到一个关键词“躯体化”，大概研究了下说是有可能因为焦虑或者说抑郁症导致的，然后对应一下自己的情况，找了几个测试题说是很严重抑郁，各位 v2er 不知道有医学方面的或者心理方面分析下有必要去检查吗，<br />	主观上认为心理压力处于阈值，还能抗，但是因为所谓的躯体化导致的生理问题是不是有必要治疗一下。<br />    对于“躯体化”的一个解释 <a href="https://www.qqhryxyfsdsyy.org.cn/2021/1228/c4680a156341/page.htm" rel="nofollow noopener" target="_blank">https://www.qqhryxyfsdsyy.org.cn/2021/1228/c4680a156341/page.htm</a>
-]]></content:encoded>
-<pubDate>2024-12-19T17:00:23Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做了个「💊进口原研药目录」</title>
-<link>https://www.v2ex.com/t/1099128</link>
-<guid>https://www.v2ex.com/t/1099128</guid>
-<content:encoded><![CDATA[
-<p>网址： <a href="https://medicine.lvwzhen.com/" rel="nofollow">https://medicine.lvwzhen.com/</a> </p>
-<p>Github： <a href="https://github.com/lvwzhen/medicine" rel="nofollow">https://github.com/lvwzhen/medicine</a></p>
-<p><a href="https://medicine.lvwzhen.com/" rel="nofollow"><img alt="postspark-export-2024-12-20-16-46-27" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/wyLDXTC/postspark-export-2024-12-20-16-46-27.png" /></a></p>
-]]></content:encoded>
-<pubDate>2024-12-20T06:58:28Z</pubDate>
-</item>
-<item>
-<title>[Apple] 有人帮忙测一下 M4 的 MBP 用 C 转 HDMI 可以原生支持 4K120Hz 吗</title>
-<link>https://www.v2ex.com/t/1099127</link>
-<guid>https://www.v2ex.com/t/1099127</guid>
-<content:encoded><![CDATA[
-<p>知道 HDMI 口可以了，但是想知道 USBC/TB4 行不行。
-主要动机是想猜测一下 M4 的 Air 能不能实现这个，因为最近在纠结等 15 寸 Air 和现在入 14 寸 Pro</p>
-]]></content:encoded>
-<pubDate>2024-12-20T10:17:12Z</pubDate>
-</item>
-<item>
-<title>[程序员] Vant 被投毒了
-
-https://github.com/youzan/vant/issues/13275</title>
-<link>https://www.v2ex.com/t/1099126</link>
-<guid>https://www.v2ex.com/t/1099126</guid>
-<content:encoded><![CDATA[
-<p><a href="https://github.com/youzan/vant/issues/13275" rel="nofollow">https://github.com/youzan/vant/issues/13275</a></p>
-]]></content:encoded>
-<pubDate>2024-12-20T08:53:01Z</pubDate>
-</item>
-<item>
-<title>[深圳] 深圳民意速办处理速度真是如快！如快！</title>
-<link>https://www.v2ex.com/t/1099125</link>
-<guid>https://www.v2ex.com/t/1099125</guid>
-<content:encoded><![CDATA[
-太长不看版：<br />租房后面一楼租户露天煎炸没有进行油烟处理，投诉受理很快但不解决问题。<br /><br />前倾摘要：<br />我住深圳农民房三楼，后面楼房一楼前阵子来了新租户，有个小院子，平时他们就晾晒一堆韭菜，有个三轮车，应该是做韭菜饼的。<br />事情经过：<br />上星期某一天晚上 1 点多，睡觉被一股浓烈的呛鼻油烟味呛醒，整个一房一厅全是这个味道，往楼下一看发现是他们在煎炸那个饼，而且有人过来骂他们，但没有效果，继续煎炸；后面我把房间窗户都关上了，但味道已经进来了，第一个夜晚就这样难受地过了。<br />第二天，还是一样的操作，房间窗虽然关了，但客厅窗没关，房间里还是能闻到，实在受不了了，于是 4 点钟打开“民意诉求”小程序投诉，此时是周六，周末没有人上班故没有人受理。<br />等到周一街道办工作人员很快打电话来说：“我们去看过了，是没有进行一个油烟处理，跟他们房东说了，把排气做好然后再在室内煎炸，过两三天我们会再来重新检查，如果还是继续煎炸，你就继续投诉”，此时感觉深圳不愧是深圳，速度可以的，然而是我太天真了。<br />到了周三，又开始煎炸，而且街道办的人也没再打电话来反馈，民意速办上面也找不到当时的投诉记录了，于是我又进行投诉，这次是社区工作站的人打电话来了，而不是街道办的。<br />周四晚上，听到工作站的人跟后面租户沟通，没仔细听：<br />......<br />租户：bla bla bla 大家都不容易是吧<br />工作站人员：是的是的就是<br />租户：那大路边烧烤的每天晚上有人喝酒唱歌怎么没人投诉，就来投诉我？<br />租户：bla bla bla 让我知道是谁我叼死他<br />......<br />周五（今天），没有任何电话，民意速办进度也还是在处理中<br /><br />我知道可能有些人会杠：大家都不容易，你就是太闲了还投诉人家，窗全部关了不就行了吗？<br />我想说的是：<br />1. 睡觉门窗全关真的很闷，还是尽量能开窗通风为好<br />2. 油烟是气溶胶致癌物，我跟我老婆备孕准备生孩子，不想影响身体健康<br />3. 我的投诉诉求从来都不是让人家不要户外作业，而是把油烟进行排放处理，我楼下的餐饮店就是一条长长的排气管道通到楼顶<br />4. 谁都不容易，能住农民房的有几个是容易的？这不是你可以对别人人身健康造成伤害的理由！<br />5. 社区工作人员连基本诉求都没表述清楚，还跟着附和，真是让人瞠目结舌，然后也想到第一次投诉时街道办的回复估计也是搪塞我的，因为根本没有所谓的“2 、3 天后再来检查”，也没有给任何回复，如果连这种事情都解决不了，是不是说明这个单位岗位就没必要存在？毕竟拿的是我们纳税人的钱，真是养了一群爹！<br /><br />我知道最后可能也只有每天门窗全关这一个办法了，无奈！毕竟也怕狗急跳墙被他知道我们是谁了进一步危害我们人身安全。
-]]></content:encoded>
-<pubDate>2024-12-10T09:26:46Z</pubDate>
 </item>
 </channel>
 </rss>
