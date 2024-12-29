@@ -5,14 +5,189 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 为什么几乎所有观察者模式的实现代码都是用副作用实现的？</title>
+<link>https://www.v2ex.com/t/1101064</link>
+<guid>https://www.v2ex.com/t/1101064</guid>
+<content:encoded><![CDATA[
+
+<p>感觉很难理解，因为几乎所有的教程/教材，样例代码或者实际代码里面，提到观察者模式的时候，都是清一色的用返回 void 的方法来 visit 和 accept ，然后依赖副作用和全局变量来返回结果。</p>
+<p>感觉这样的代码很难懂而且很绕，也可能因为我比起命令式或 OOP 代码更容易理解纯函数式代码吧。</p>
+<p>就，比如说我试图理解 visitor pattern 的话，我会把它当成一个「在命令式语言里通过动态分派实现模式匹配」的技巧。自然而然的就会想出这样的代码，比如说在 Java 里的话：</p>
+<pre><code class="language-java">public ISomeVisitor&lt;T&gt; {
+  public T visit(DerivedDataTypeA data);
+  public T visit(DerivedDataTypeB data);
+    ...
+}
+public IDataType {
+  public T accept(ISomeVisitor visitor);
+}
+</code></pre>
+<p>然后在 visitor 的具体实现里面，就只需要去重写然后使用 DerivedDataType 里面的访问方法去处理它，然后返回一个转换后的?T 类型。同时，由于每个 visit 分支都返回相同的类型，它们可以被组合起来，看起来就跟比如 Scala 或者 ML 语言里的模式匹配是同样的方式。</p>
+<p>嗯，这个是理想情况。</p>
+<p>但我记得在大学里学习 OOP 然后第一次按照这个路子写 visitor 后，就被其他人纠正说我实现的方法不对，因为我在 visit 函数里实现了具体逻辑。嗯，我一直没能搞懂为什么我实现错了，其实现在我也没搞懂。</p>
+<p>但是我其实对返回 void 的方法和没有参数化泛型的类感觉更难理解，大概有这么几个原因吧：</p>
+<ul>
+<li>首先是这样实现的模式完全依赖于副作用，而不是显式的返回一个值。给人想起了 C 语言里的通过参数返回函数结果的代码风格，至少对我来说，感觉这样的代码更难懂，因为没有类型安全，而且靠副作用来操纵数据变换的时候，基本上算是做啥都行也没有任何机制可以保证返回结果能够被妥善的使用并且只使用一次。感觉像是典型的约定大于类型。</li>
+<li>其次是这样的代码里基本上可以不管什么都往 visitor 的基类里面塞，感觉就很自然地倒向了 god class 的反模式。而且这也是经常在使用了 visitor 的工程代码里看到的，而且每次看到这样的几百行甚至上千行的 visitor 都特别头疼。</li>
+<li>同样的道理，我可以有一个<code>public Result returnedResult;</code>在第 19 行，然后我的几十个分支里面都去 mutate 这个<code>Result</code>来返回一次访问的结果，就像刚才说的，没有任何机制可以让我不去随意修改这个<code>returnedResult</code>来破坏 visitor pattern 的模式。但同时，一个字段可以在第 19 行，第 199 行和第 1099 行被修改，这也破坏了「就近原则」吧？而且这里也可以看到一个潜在的 NPE 热点。</li>
+</ul>
+<p>所以觉得这样的代码既难以理解又难以维护。</p>
+<p>当然也许有人会说顺序很重要，但是一般来说 visitor 在业务代码例如 web 应用里面都是用在树状数据结构上，这种使用场景应该没差？</p>
+<p>所以我感觉困惑的大概就是，我这个 visitor 的实现思路错在了哪里？为什么几乎清一色的所有 visitor 的代码实现都是返回 void 方法并且通过副作用修改全局变量来储存返回计算结果的？这样做是为了什么呢？</p>
+<p>然后这个草稿写完之后又读了一本叫 A little Java, A few Patterns 的书，就感觉更困惑了。因为这本书里的 visitor 不但也是不依赖副作用而是返回值的，它的 visit 函数甚至还可以接受多个参数，看起来更不符合 visitor 的一般定义。</p>
+<p>所以我该怎么理解这个 visitor pattern 呢？</p>
+]]></content:encoded>
+<pubDate>2024-12-29T10:00:26Z</pubDate>
+<pubDate>2024-12-29T10:06:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] 未来会有用的新技术?</title>
+<link>https://www.v2ex.com/t/1101063</link>
+<guid>https://www.v2ex.com/t/1101063</guid>
+<content:encoded><![CDATA[
+
+<p>如题, 现在都是大模型/运维</p>
+]]></content:encoded>
+<pubDate>2024-12-29T09:56:30Z</pubDate>
+<pubDate>2024-12-29T10:17:39Z</pubDate>
+</item>
+<item>
+<title>[问与答] 求过滤/屏蔽国内外视频网站广告(YouTube 爱优腾等)的软件</title>
+<link>https://www.v2ex.com/t/1101062</link>
+<guid>https://www.v2ex.com/t/1101062</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2024-12-29T09:54:19Z</pubDate>
+<pubDate>2024-12-29T10:16:10Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 我花了 2 个小时，让马斯克教会我怎么造火箭</title>
+<link>https://www.v2ex.com/t/1101061</link>
+<guid>https://www.v2ex.com/t/1101061</guid>
+<content:encoded><![CDATA[
+
+<p>有点标题党了，大家勿喷。</p>
+<p>花几个小时，做了一个网站，模拟 ceo 进行对话。</p>
+<p>做这个初衷，是经常会遇到一些问题，想看看大佬们是怎么思考相同问题的，可以作为参考。</p>
+<p>所幸，现在 AI 提供了这个能力，就尝试一下。</p>
+<p>现在人物不多，后面慢慢扩充吧。</p>
+<p>欢迎来玩玩。</p>
+<p>网站：<a href="https://talkto.ceo/" rel="nofollow">https://talkto.ceo/</a></p>
+<p>未来 token 消耗太多的话，可能会降智。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://cdn.img2ipfs.com/ipfs/Qme9q87LfefixZRDw6xfWzLtCeEm1uXKmHFYHdyzSBKzKu?filename=%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20241229160818.png" /></p>
+]]></content:encoded>
+<pubDate>2024-12-29T09:31:17Z</pubDate>
+<pubDate>2024-12-29T10:12:59Z</pubDate>
+</item>
+<item>
+<title>[咖啡] 你会为手磨咖啡消费 还是全自动咖啡消费？</title>
+<link>https://www.v2ex.com/t/1101060</link>
+<guid>https://www.v2ex.com/t/1101060</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.v2ex.com/t/1101052" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1101052</a>
+]]></content:encoded>
+<pubDate>2024-12-29T09:31:10Z</pubDate>
+<pubDate>2024-12-29T05:31:10Z</pubDate>
+</item>
+<item>
+<title>[阅读] 学习用，电子阅读器能搭配 GPT 吗？</title>
+<link>https://www.v2ex.com/t/1101059</link>
+<guid>https://www.v2ex.com/t/1101059</guid>
+<content:encoded><![CDATA[
+
+最近在台式机上看电子书，功耗高，显示屏也不是专门用来护眼看书的，而且感觉不够便携。但最大的好处是，学习技术，搜索 gpt 方便。<br /><br />联想到几年前买过的 kindle ，用了不到一周就丢闲鱼了。现在这么多次迭代，是否有能结合 gpt 能力？比如选中一段话，对其中的内容进行深入的解释拓展之类的
+]]></content:encoded>
+<pubDate>2024-12-29T09:24:20Z</pubDate>
+<pubDate>2024-12-29T10:17:22Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 以防大家还不知道， Pixelmator 即将被 Apple 收购</title>
+<link>https://www.v2ex.com/t/1101058</link>
+<guid>https://www.v2ex.com/t/1101058</guid>
+<content:encoded><![CDATA[
+
+官方 blog 十一月的消息<br /><a href="https://www.pixelmator.com/blog/2024/11/01/a-new-home-for-pixelmator" rel="nofollow noopener" target="_blank">https://www.pixelmator.com/blog/2024/11/01/a-new-home-for-pixelmator</a>
+]]></content:encoded>
+<pubDate>2024-12-29T09:01:45Z</pubDate>
+<pubDate>2024-12-29T10:18:32Z</pubDate>
+</item>
+<item>
+<title>[问与答] 优酷暂停时不断跳转各位如何应对的？</title>
+<link>https://www.v2ex.com/t/1101057</link>
+<guid>https://www.v2ex.com/t/1101057</guid>
+<content:encoded><![CDATA[
+
+爱优腾开了 svip 也免不了广告。<br /><br />尤其是优酷，暂停时通过陀螺仪倾斜角度就跳转淘宝！<br /><br /><br /><br />整个人都麻了，简直强盗行为，浪费我流量。
+]]></content:encoded>
+<pubDate>2024-12-29T09:00:58Z</pubDate>
+<pubDate>2024-12-29T10:10:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] V 友们，燃油宝到底有用吗？</title>
+<link>https://www.v2ex.com/t/1101056</link>
+<guid>https://www.v2ex.com/t/1101056</guid>
+<content:encoded><![CDATA[
+
+燃油宝到底有没有用，有论据来源吗<br />如果有用的话具体是哪一个成份起到了效果，含量多少才有效果<br />如果没啥用的话现在的燃油宝都是智商税吗<br /><br />有没有使用过的 V 友现身来个说法
+]]></content:encoded>
+<pubDate>2024-12-29T08:47:05Z</pubDate>
+<pubDate>2024-12-29T10:07:09Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 复杂组网软件 Softether VPN 传输性能测试</title>
+<link>https://www.v2ex.com/t/1101054</link>
+<guid>https://www.v2ex.com/t/1101054</guid>
+<content:encoded><![CDATA[
+
+<a href="https://www.v2ex.com/t/1100777?p=1" rel="nofollow noopener" target="_blank">https://www.v2ex.com/t/1100777?p=1</a><br />在发的这个帖子里面有人说道了 softether 性能不足，我对 softether 支持多大流量也有兴趣，就用我现有环境搭了一个测试环境，具体测试拓扑图和方法和结果如下，IPv6 实现底层互联全程加密，测试结果仅代表我的环境具体你的可以自行测试。这个组网可以实现非侵入式组网，openwrt 作为旁路就行只需要拿到 ipv6 地址，当然有公网 ipv4 也是一样的不过我是没有 ipv4 的公网。几个位置都用的 v6 做的组网。由于 L2 互通所以可以做复杂的组网，同时 softether 自带 acl 和各种策略，你可以同一个 l2 广播域然后在 acl 里面限制只让你要的 mac 地址通过，所以即使是同一个局域网也可以只让你自己设置的设备互访。同时还可以针对这个用户限速，比如跨城市 iptv 我就限制成 10mbps 防止 iptv 占用过多的上传。<br /><br />这个是我笔记本和台式电脑直连 iperf3 打流测试的结果，单线程可以跑满千兆，多线程就不测试了。测试设备只有 1G 的网卡<br /><a href="https://i.imgur.com/4d2rBOq.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/4d2rBOq.png" /></a><br />测试方法和拓扑图如图，测试 L3 和 L2 以及 L2 带 vlan 标签的流量支持情况，拓扑图里面 OpenWRT-2 写的有点问题忘记更改了，L3 是 br-200 地址是 192.168.200.1/24 VPN 地址是 10.0.0.2/30<br /><a href="https://i.imgur.com/5rIDxuN.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/5rIDxuN.png" /></a><br />下面是 Softether 配置截图，东西不是很多，配置一次就可以了。下面测试环境所有配置均在图形化界面配置，没有任何的命令行配置。十分的方便，只要 ipv6 可通和 5555 端口开放了，可以在任何地点进行图形化界面管理<br /><a href="https://i.imgur.com/L515Gjs.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/L515Gjs.png" /></a><br /><a href="https://i.imgur.com/9qPI8Yp.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/9qPI8Yp.png" /></a><br /><br /><br />1 、L3 测试结果和部分配置截图<br />1.1 、L3 测试环境的 OpenWRT-1 部分配置<br /><a href="https://i.imgur.com/NcydHHK.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/NcydHHK.png" /></a><br />1.2 、L3 打流测试结果如下<br /><a href="https://i.imgur.com/aXqLKYl.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/aXqLKYl.png" /></a><br /><br /><br />2 、L2 桥接测试结果和部分配置截图<br />2.1 、OpenWRT 部分配置截图<br /><a href="https://i.imgur.com/bU9jt3s.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/bU9jt3s.png" /></a><br />2.2 、L2 打流测试结果如下<br /><a href="https://i.imgur.com/SS7C3T6.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/SS7C3T6.png" /></a><br /><br /><br />3 、L2 带 vlan 标签桥接测试结果和部分配置截图<br />3.1 、OpenWRT 部分配置截图<br /><a href="https://i.imgur.com/kLUbPJW.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/kLUbPJW.png" /></a><br />3.2 、L2 带 vlan2 标签打流测试结果如下<br /><a href="https://i.imgur.com/y7nCXVD.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/y7nCXVD.png" /></a><br /><br /><br />最终结论如下<br />							单线程       多线程<br />L3 组网测试速度             &gt;500Mpbs	&gt;1000Mbps<br />L2 组网测试速度             &gt;500Mpbs	&gt;1000Mbps<br />L2 带 vlan 标签组网测试速度    &gt;500Mpbs	  &gt;1000Mbps<br /><br />只要你有复杂组网需求我是推荐使用 softether 进行组网，在普通人上传都是 100M 左右的情况下是完全可以满足复杂组网需求的，如果你的网络上下行大于 1G 同时要单线程速度也大于 1G 那我就只能推荐你用其它性能高的 vpn 或者硬件 vpn 设备来做组网，具体软件实现单线程大于 1Gbps 加解密的 VPN 有哪些我没有测试过不太清楚。其它人有做别的 VPN 协议速度测试的也建议发一下，一起看看各个 vpn 软件的性能非翻墙的这种。<br /><br />PS：在 github 上面有人做过测试多线程是可以达到 1.5Gbps 的不过这是个 issue 反馈速度低,链接如下 <a href="https://github.com/SoftEtherVPN/SoftEtherVPN/issues/1944" rel="nofollow noopener" target="_blank">https://github.com/SoftEtherVPN/SoftEtherVPN/issues/1944</a><br /><br />softether 支持的 vpn 协议如图<br /><a href="https://i.imgur.com/da3C90F.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/da3C90F.png" /></a>
+]]></content:encoded>
+<pubDate>2024-12-29T08:42:58Z</pubDate>
+<pubDate>2024-12-29T09:33:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么我的 Chrome 新标签页变成了 bing</title>
+<link>https://www.v2ex.com/t/1101053</link>
+<guid>https://www.v2ex.com/t/1101053</guid>
+<content:encoded><![CDATA[
+
+<p>打开浏览器 Chrome 首先默认会显示 Chrome 的新标签页。但是地址栏显示 <code>chrome://new-tab-page-third-party/</code> ，过几秒加载完成之后会显示如下页面</p>
+<p><img alt="微信截图_20241229163104.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2024/12/29/VJ9RX5ANzrQSZLh.jpg" /></p>
+<p>F12 之后发现页面地址是 https://www. bing. com /chrome /newtab (我手动添加的空格)</p>
+<p>浏览器的信息如下：</p>
+<ul>
+<li>Chrome 版本：版本 131.0.6778.205 （正式版本） （ 64 位）</li>
+<li>默认搜索引擎：Bing</li>
+<li>起始页面：打开新标签页</li>
+<li>主页按钮：打开新的标签页</li>
+<li>安装的插件列表：</li>
+</ul>
+<pre><code class="language-plaintext">crxMouse Chrome™ 手势
+Easy Scraper - One-click web scraper
+MetaMask
+Notion Web Clipper
+Proxy SwitchyOmega
+uBlock Origin
+沉浸式翻译 - 网页翻译插件 | PDF 翻译 | 免费
+篡改猴（未启用插件）
+</code></pre>
+<hr />
+<p>我的问题：</p>
+<p><strong>这是什么原因，我应该如何恢复 Chrome 的新标签页 &amp;&amp; 使用 Bing 作为默认搜索呢？</strong></p>
+]]></content:encoded>
+<pubDate>2024-12-29T08:36:26Z</pubDate>
+<pubDate>2024-12-29T09:20:23Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 不懂就问，为什么卖咖啡的，有点强调手磨咖啡? "更能够保留咖啡豆的风味。</title>
 <link>https://www.v2ex.com/t/1101052</link>
 <guid>https://www.v2ex.com/t/1101052</guid>
 <content:encoded><![CDATA[
-
 "更能够保留咖啡豆的风味。 由于磨豆的过程中并没有受到高温或高速等因素的影响，所以手磨出的咖啡粉更加保留了咖啡豆原本的风味，从而使得喝到的咖啡更加香醇。 手磨咖啡的过程中，我们可以手动调整磨豆机的磨度，从而根据个人口味来调整咖啡的味道和浓度" ? <br /><br />喝咖啡也有一段时间了， ”上瘾“后 就买了一台全自动咖啡机回来， 尝试不同 咖啡豆中。感觉全自动咖啡机好爽啊，现在每天 平均 3 杯咖啡（知道有点严重） 洗下咖啡机。不懂为什么手磨咖啡 还有那么多人喜欢？
 ]]></content:encoded>
-<pubDate>2024-12-29T08:20:16Z</pubDate>
 <pubDate>2024-12-27T08:20:16Z</pubDate>
 </item>
 <item>
@@ -20,10 +195,8 @@
 <link>https://www.v2ex.com/t/1101051</link>
 <guid>https://www.v2ex.com/t/1101051</guid>
 <content:encoded><![CDATA[
-
 今年因爲工作關係有了 hk 的居民身份證，在這邊偏長期居住，今天想起來還沒有 hsbc 的卡+之前在 v2 上看到可以 app 開卡，嘗試開卡。<br /><br />先是因爲永了一個  cn 結尾的郵箱，提示必須去分行； 然後換 gmail 郵箱，走完身份證掃描和人臉識別後，也提示去分行。<br /><br />看起來只能去一趟了。
 ]]></content:encoded>
-<pubDate>2024-12-29T08:17:18Z</pubDate>
 <pubDate>2024-12-27T08:16:18Z</pubDate>
 </item>
 <item>
@@ -31,10 +204,8 @@
 <link>https://www.v2ex.com/t/1101050</link>
 <guid>https://www.v2ex.com/t/1101050</guid>
 <content:encoded><![CDATA[
-
 毕业设计的课题训练的模型数据量不那么大，想在自己电脑上训练。<br />不是很喜欢物理机装 Ubuntu ，毕竟还需要写论文以及行业软件只支持 Windows 。<br />那么在 WSL 跑深度学习显卡直通损耗大概多少？可行吗？有过来人吗？
 ]]></content:encoded>
-<pubDate>2024-12-29T08:09:02Z</pubDate>
 <pubDate>2024-12-29T08:07:02Z</pubDate>
 </item>
 <item>
@@ -42,10 +213,8 @@
 <link>https://www.v2ex.com/t/1101049</link>
 <guid>https://www.v2ex.com/t/1101049</guid>
 <content:encoded><![CDATA[
-
 我的京东账号没实名，没用过京东钱包、京东金融。<br />账号里有 20 元余额，余额是可以使用的，见图 2 。<br />发现这 20 元被转走了，找客服并上诉，最终结果是不予处理，想要这 20 元必须使用京东钱包。<br />请问我该找谁投诉？黑猫和 12315 都是调解机构，我不认为能解决这个问题。<br /><br /><a href="https://i.imgur.com/qAchEIg.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/qAchEIg.png" /></a><br /><br /><br /><a href="https://i.imgur.com/LHdbRVe.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/LHdbRVe.png" /></a><br /><br /><br /><a href="https://i.imgur.com/NZKQ8o7.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/NZKQ8o7.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-12-29T07:55:45Z</pubDate>
 <pubDate>2024-12-29T07:55:45Z</pubDate>
 </item>
 <item>
@@ -53,7 +222,6 @@
 <link>https://www.v2ex.com/t/1101047</link>
 <guid>https://www.v2ex.com/t/1101047</guid>
 <content:encoded><![CDATA[
-
 <p>小弟半吊子运维，想用 ai 学一点 k3s 、k8s 。
 22 年我通过 google+官方文档，自己部署二进制编译部署过 k8s ，5 节点，2master3worker ，很麻烦但是成功了。</p>
 <p>现在我想重新捡起来，先装简单的 k3s 练练手。
@@ -61,7 +229,6 @@
 我以为 k3s 本身就没有 k8s 复杂，又是刚开始部署，ai 不该出问题。是没有看过官方文档。</p>
 <p>是我不会用，还是 ai 能力有限，即便刚开始也应该先自己看看官方文档？</p>
 ]]></content:encoded>
-<pubDate>2024-12-29T07:31:42Z</pubDate>
 <pubDate>2024-12-29T08:10:38Z</pubDate>
 </item>
 <item>
@@ -69,10 +236,8 @@
 <link>https://www.v2ex.com/t/1101046</link>
 <guid>https://www.v2ex.com/t/1101046</guid>
 <content:encoded><![CDATA[
-
 <p>想体验原生安卓，没啥特殊的用处，就是像刷机刷着玩，有推荐的吗</p>
 ]]></content:encoded>
-<pubDate>2024-12-29T07:30:06Z</pubDate>
 <pubDate>2024-12-29T08:01:09Z</pubDate>
 </item>
 <item>
@@ -80,12 +245,10 @@
 <link>https://www.v2ex.com/t/1101045</link>
 <guid>https://www.v2ex.com/t/1101045</guid>
 <content:encoded><![CDATA[
-
 <p>每天加班到 21 ，22.00 ，毫无生活。
 工作内卷，每年都会裁员，上升机会越来越小，内部晋升困难，跳槽外部也没啥好机会。
 这行业真是就吃点青春饭。</p>
 ]]></content:encoded>
-<pubDate>2024-12-29T07:20:36Z</pubDate>
 <pubDate>2024-12-29T08:00:22Z</pubDate>
 </item>
 <item>
@@ -93,10 +256,8 @@
 <link>https://www.v2ex.com/t/1101044</link>
 <guid>https://www.v2ex.com/t/1101044</guid>
 <content:encoded><![CDATA[
-
 最近想买个 type c EarPods ，发现淘宝上居然有卖 35 块左右的。问客服是否是苹果原装正品，回答说是香港的正品。<br />这种会有猫腻吗？如果水比较深的话，那还是准备老老实实去官网买了。
 ]]></content:encoded>
-<pubDate>2024-12-29T07:07:46Z</pubDate>
 <pubDate>2024-12-29T07:56:04Z</pubDate>
 </item>
 <item>
@@ -104,7 +265,6 @@
 <link>https://www.v2ex.com/t/1101042</link>
 <guid>https://www.v2ex.com/t/1101042</guid>
 <content:encoded><![CDATA[
-
 <h1>🎵  [音海拾贝] 音乐公益服开注！ 🎵</h1>
 <p>沉浸于音符的海洋，拾取灵魂的共鸣。<br />
 无论你是音乐发烧友，还是旋律爱好者，这里都是你的栖息地！  </p>
@@ -122,7 +282,6 @@
 <p>让 [音海拾贝] 为你记录生命的旋律，<br />
 每一首歌，都是你的故事！</p>
 ]]></content:encoded>
-<pubDate>2024-12-29T06:50:17Z</pubDate>
 <pubDate>2024-12-29T08:20:32Z</pubDate>
 </item>
 <item>
@@ -130,10 +289,8 @@
 <link>https://www.v2ex.com/t/1101041</link>
 <guid>https://www.v2ex.com/t/1101041</guid>
 <content:encoded><![CDATA[
-
 想入 Mini 4 pro, 平时就周末飞飞，这个随心换有必要么？
 ]]></content:encoded>
-<pubDate>2024-12-29T06:37:54Z</pubDate>
 <pubDate>2024-12-29T08:07:37Z</pubDate>
 </item>
 <item>
@@ -141,15 +298,12 @@
 <link>https://www.v2ex.com/t/1101040</link>
 <guid>https://www.v2ex.com/t/1101040</guid>
 <content:encoded><![CDATA[
-
 <p>很多商品，比如大米，矿泉水，牛奶，花生油，卫生纸等，平时遇到好价可以囤一些。除了 618 双 11 等大活动时候可以遇到好价，平时日常也有一些好价。</p>
 <p>你们都是怎么蹲好价的？现在我是快用完了再去张大妈上找，但好价可能就错过了。</p>
 <p>有没有什么工具可以订阅好价提醒？</p>
 ]]></content:encoded>
-<pubDate>2024-12-29T06:37:41Z</pubDate>
 <pubDate>2024-12-29T06:58:09Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] DDNS 解析同步问题</title>
 <link>https://www.v2ex.com/t/1101039</link>
@@ -15604,128 +15758,6 @@ SSPI 客户端进程 SDXHelper （ PID：284 ）。</p>
 <p>搜索框不能用，可以“快速筛选”和“搜索消息”去搜索。</p>
 ]]></content:encoded>
 <pubDate>2024-12-22T22:07:18Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 有没有开了广东移动到企宽带，两条宽带 ipv6 都完全调通的朋友？</title>
-<link>https://www.v2ex.com/t/1099847</link>
-<guid>https://www.v2ex.com/t/1099847</guid>
-<content:encoded><![CDATA[
-<p>99/月，包含两条宽带。一个是 500M/25M 内网动态 v4 公网动态 v6 的 PPPOE“商务宽带”，v4 和 v6 都正常调通没啥问题。另外一条 100M/10M 的数据专线，目前是固定 ipv4 内网地址、固定 ipv6 。按业务配置的 ipv6 /64 地址段随便配一个 ip ，::1 设置为网关，路由器可以正常访问 ipv6 。但是没办法给内部设备下发 ipv6 地址，翻了装机小哥的 PDA 也没有看到 ipv6 前缀的信息，问他也说不明白。有没有完全调通了的站友，这个固定 v6ip 的前缀是啥？想参考一下跟网关 ipv6 地址段的格式，推测一下我的前缀。</p>
-]]></content:encoded>
-<pubDate>2024-12-24T02:50:47Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] OpenAI 12 Days 总结</title>
-<link>https://www.v2ex.com/t/1099845</link>
-<guid>https://www.v2ex.com/t/1099845</guid>
-<content:encoded><![CDATA[
-<h2>发布会</h2>
-<p>OpenAI 最新办了一场 12 天 "发布会": <a href="https://openai.com/12-days/" rel="nofollow">https://openai.com/12-days/</a></p>
-<p>国内文章: <a href="https://www.infoq.cn/article/WXPMviOWQ1LNZhqZC5ZE" rel="nofollow">https://www.infoq.cn/article/WXPMviOWQ1LNZhqZC5ZE</a></p>
-<p>总结这几天的内容, 核心为:</p>
-<ol>
-<li>ChatGPT Pro 服务, 200 美元/月 (Day 1)</li>
-<li>正式发布 o1 模型 (Day 1, 9)</li>
-<li>正式发布 Sora 模型 (Day 3)</li>
-<li>技术预览 (微调与 o3 模型) (Day 2, 12)</li>
-<li>更多应用层面的更新 (创作者助手, 苹果集成, 会话整理, 多媒体信息, 搜索,
-电话版 ChatGPT 等) (Day 4, 5, 6, 7, 8, 10, 11)</li>
-</ol>
-<p>应用层面的创建无疑是收入的一个重要增长点. 但是对于 OpenAI 来说, 应用不是撒手锏,
-模型才是.</p>
-<p>所以这里面除了影响营收的 Pro 版本的收费, Sam 仅参加了模型相关发布 o1, Sora, o3.</p>
-<h2>模型</h2>
-<p>感觉有意义的点还不如 Ilya Sutskever 在 NeurIPS 2024 的演讲.</p>
-<p>不过都在一个发力: <strong>逻辑性</strong></p>
-<p>AI 的幻觉问题比较严重, 这个问题其实也是 AI 缺乏逻辑性的一个表现.</p>
-<p>可是人类的神经元就可以让自己有逻辑, 那 AI 为什么不能?</p>
-<p>这就是 AI 的下一步方向, 不是找更多数据, 而是利用当前数据如何让 "逻辑性" 显现.</p>
-<p>这种逻辑性, 而非知识性的问题我们也遇到了. 针对一些稍微复杂一点的逻辑问题,
-当前主流模型都回答得不好 (应该说不对).</p>
-<p><a href="https://zsqk.github.io/news/2024-12-22-openai-12-days.html" rel="nofollow">https://zsqk.github.io/news/2024-12-22-openai-12-days.html</a></p>
-]]></content:encoded>
-<pubDate>2024-12-24T02:40:15Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助一下广大的 v 友吧，有了解 北京市中医管理局 肾脏疑难病会诊中心 这个地方么， 靠谱么，谢谢各位靓仔，靓妹了。</title>
-<link>https://www.v2ex.com/t/1099844</link>
-<guid>https://www.v2ex.com/t/1099844</guid>
-<content:encoded><![CDATA[
-亲戚来看病，知道我在北京工作，向我打听，我是第一次听到这个地方，在网上检索了一下，都是一些官方的介绍，千篇一律，基本上找不到用户的相关评价。
-]]></content:encoded>
-<pubDate>2024-12-24T02:35:52Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 创业公司 or 继续求职</title>
-<link>https://www.v2ex.com/t/1099843</link>
-<guid>https://www.v2ex.com/t/1099843</guid>
-<content:encoded><![CDATA[
-在家躺平半年多之后，有家创业公司上门，估计看上了在上家公司的产品经验，而且这家公司创办一年多，有个粗糙的产品，靠着人脉有部分用户在试用。没有去过创业公司，网上搜罗了一些信息，基本都在说创业公司坑，不值得去，牛马生活，压榨员工，人员少流程不清晰，都是全干工程师。技术上可能不会有什么成长（现在对于在工作上进行技术成长已经不抱什么期待了，赚钱才是硬道理）<br /><br />现在也已经半年没有准备面试了，不知道面试难度以及就业环境怎么样。这家创业公司合作方式也比较宽松，可以以 freelance 接项目的方式，或者全职的方式（可能少部分股权）好像国内外的创业公司给人感觉挺不一样的，也可能是个人接触的比较少造成的错觉，好像国外 startup 给钱多，氛围也挺好；国内的普遍观感都透露着压榨、吃人，不过也有一些小而美的创业公司<br /><br />想问下各位彦祖，是选择这个创业公司打工了还是求职？进创业公司，什么合作方式比较好，之前都是直接拿钱，股权也不知道靠不靠谱，股权的话，多少比较合适，没什么经验，寻求各位帮助，先谢过大家了
-]]></content:encoded>
-<pubDate>2024-12-24T02:43:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 还有其他的类似白马地图的地图类软件吗？</title>
-<link>https://www.v2ex.com/t/1099840</link>
-<guid>https://www.v2ex.com/t/1099840</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-24T02:34:15Z</pubDate>
-</item>
-<item>
-<title>[PlayStation 5] 手柄摇杆漂移寄修之后有了个惊人的发现</title>
-<link>https://www.v2ex.com/t/1099839</link>
-<guid>https://www.v2ex.com/t/1099839</guid>
-<content:encoded><![CDATA[
-不好意思标题党了一下，其实就是发现我好像并不需要 ps5<br />家里有台 1070 显卡的主机，自从买了 ps5 之后我就基本上没再用过这台电脑打游戏，我一直以为它的性能已经运行不起来如今的大型游戏了，ps5 手柄寄修之后，我重新用它跑了几款游戏，发现只要把分辨率改成 2k ，大部分的游戏都可以流畅运行，而如今 ps 平台独占游戏我基本上都通关了，最近在玩的游戏都有 pc 版本，所以现在有个计划：先把手上这台 ps5 出掉，然后等 ps5 pro 降到 4000 左右的价位，再直接入手 ps5pro 好像也不错
-]]></content:encoded>
-<pubDate>2024-12-23T22:32:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 哪位大佬做过政府项目，要求必须有软件设计文档，这个东西到底有人看没？</title>
-<link>https://www.v2ex.com/t/1099838</link>
-<guid>https://www.v2ex.com/t/1099838</guid>
-<content:encoded><![CDATA[
-现在做政府项目天天写概要设计、详细设计、接口设计烦死了，已经好久没写过代码了。这东西是不是就是个形式，有人看吗？
-]]></content:encoded>
-<pubDate>2024-12-24T02:50:56Z</pubDate>
-</item>
-<item>
-<title>[新手求助] 没有找到在那签到唉？取消了吗</title>
-<link>https://www.v2ex.com/t/1099837</link>
-<guid>https://www.v2ex.com/t/1099837</guid>
-<content:encoded><![CDATA[
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.xybin.top/img/20241224102200397.png" /></p>
-]]></content:encoded>
-<pubDate>2024-12-24T02:47:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 问下大家，上班时间中午一般是几点去吃饭</title>
-<link>https://www.v2ex.com/t/1099834</link>
-<guid>https://www.v2ex.com/t/1099834</guid>
-<content:encoded><![CDATA[
-原因是我们公司突然上班时间变成了 12:30 ，感觉很奇怪
-]]></content:encoded>
-<pubDate>2024-12-24T02:44:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问南方有没有比较好的取暖方式</title>
-<link>https://www.v2ex.com/t/1099833</link>
-<guid>https://www.v2ex.com/t/1099833</guid>
-<content:encoded><![CDATA[
-1.福建地区，春节那会儿温度大概在 10 度以内，但感觉比北方的 0 度还冷~~<br />2.看了踢脚线，暖风扇之类的，并没有很好的效果，空调也不太行，因为房子建的不如北方这边的气密性好，热量会很快流失<br />3.有计划买个我露营用的柴炉。。不知道可不可行。<br />4.用途的话 主要是白天活动的客厅，夜间只能用电热毯了。<br />感谢
-]]></content:encoded>
-<pubDate>2024-12-24T02:51:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 女朋友最近打算考驾照，目前驾驶证考手动还是自动呀</title>
-<link>https://www.v2ex.com/t/1099832</link>
-<guid>https://www.v2ex.com/t/1099832</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-24T02:47:23Z</pubDate>
 </item>
 </channel>
 </rss>
