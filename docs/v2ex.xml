@@ -5,11 +5,137 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 工业品过剩的时代，人类将如何生存</title>
+<link>https://www.v2ex.com/t/1102593</link>
+<guid>https://www.v2ex.com/t/1102593</guid>
+<content:encoded><![CDATA[
+
+随着更强大的生产机器、人工智能，机器的生产力越来越强大，这世界将不需要太多的人类劳动力，财富也会流入少数的人类手里，那么其他人类将何去何从？想象一下，第一第二产业只留下指挥机器干活和维修机器的人类，那么其他人类只能涌向第三产业服务业，这将会直接导致第三产业的各行各业竞争加剧，从事第三产业的人类总体收入下降，也会反过来影响第一第二产业。那怎么办呢，我觉得，只有那些掌握少数财富的人类，加大第三产业的投资和研发，人类生态才能保持稳定。
+]]></content:encoded>
+<pubDate>2025-01-04T19:55:09Z</pubDate>
+<pubDate>2024-12-27T19:55:09Z</pubDate>
+</item>
+<item>
+<title>[程序员] XXL-RPC v1.8.1 | RPC 服务框架</title>
+<link>https://www.v2ex.com/t/1102592</link>
+<guid>https://www.v2ex.com/t/1102592</guid>
+<content:encoded><![CDATA[
+
+<h3>Release Notes</h3>
+<ul>
+<li>1 、 [安全] 序列化安全性增强，默认开启 package 安全空间机制；</li>
+<li>2 、 [扩展] 序列化扩展性增强，支持自定义序列化 package 白名单；</li>
+<li>3 、 [优化] 序列化类型主动检测，提升问题定位效率；</li>
+<li>4 、 [能力] 服务注册发现实效性提升，优化 long-polling 逻辑；</li>
+<li>5 、 [扩展] 模块 xxl-rpc-netty-shade 独立拆分，与 Core 模块解耦；</li>
+<li>6 、 [优化] 通讯组件选择 HttpServer 时，HttpObjectAggregator 限制调大至 20M ，支持大消息传输；</li>
+<li>7 、 [升级] 多个项目依赖升级至较新稳定版本，涉及 xxl-rpc-netty-shade 、netty 、slf4j 等；</li>
+</ul>
+<h3>XXL- RPC 快速接入示例</h3>
+<blockquote>
+<p>代码参考 github 仓库 /test 目录： <a href="https://github.com/xuxueli/xxl-rpc/tree/master/xxl-rpc-samples" rel="nofollow">https://github.com/xuxueli/xxl-rpc/tree/master/xxl-rpc-samples</a></p>
+</blockquote>
+<p><strong>1 、服务注册中心搭建</strong>：一行命令启动注册中心，一站式提供服务动态注册发现能力。</p>
+<pre><code>docker pull xuxueli/xxl-rpc-admin
+
+docker run -p 8080:8080 -v /tmp:/data/applogs --name xxl-rpc-admin  -d xuxueli/xxl-rpc-admin
+</code></pre>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://upload-images.jianshu.io/upload_images/3165072-ef8c3c21bfd1db37.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" /></p>
+<p><strong>2 、XXL-PRC 接入配置</strong>：与 Spring 无缝集成，也支持无框架接入。</p>
+<pre><code>XxlRpcSpringFactory factory = new XxlRpcSpringFactory();
+factory.setBaseConfig(new BaseConfig(env, appname));
+factory.setRegister(new XxlRpcRegister(address, accesstoken));
+factory.setInvokerConfig(new InvokerConfig(invokerOpen));
+factory.setProviderConfig(providerOpen ?
+        new ProviderConfig(
+                NettyServer.class,
+                JsonbSerializer.class,
+                port,
+                corePoolSize,
+                maxPoolSize,
+                null) : new ProviderConfig(providerOpen));
+</code></pre>
+<p>经过上述 2 步，已完成全部配置工作，可以直接展开业务编码工作。</p>
+<p><strong>3 、业务代码开发：</strong> </p>
+<ul>
+<li>3.1 、接口定义代码：</li>
+</ul>
+<pre><code>public interface DemoService {
+
+  public UserDTO load(String name);
+  
+}
+</code></pre>
+<ul>
+<li>3.2 、服务端代码：
+注解式，一行代码将现有接口转换成 XXL-RPC 服务。</li>
+</ul>
+<pre><code>@XxlRpcService
+@Service
+public class DemoServiceImpl implements DemoService {
+
+  @Override
+  public UserDTO load(String name) {
+    return new UserDTO("jack", "hello world");
+  }
+
+}
+</code></pre>
+<ul>
+<li>3.3 、调用端代码：
+注解式，一行代码引入 XXL- RPC 服务。</li>
+</ul>
+<pre><code>
+@XxlRpcReference(appname = "app01")
+private DemoService demoService;
+
+... 
+UserDTO userDTO = demoService.sayHi(name);
+</code></pre>
+<h3>简介</h3>
+<p>XXL-RPC 是一个 RPC 服务框架，提供一站式服务通信及运营能力。拥有“轻量级、高性能、负载均衡、故障容错、安全性、注册发现、服务治理”等分布式特性。现已开放源代码，开箱即用。</p>
+<ul>
+<li><a href="https://www.xuxueli.com/xxl-rpc/" rel="nofollow">中文文档</a> </li>
+<li><a href="https://github.com/xuxueli/xxl-rpc" rel="nofollow">Github 地址</a></li>
+</ul>
+<p><img alt="img_DNq6.png" class="embedded_image" rel="noreferrer" src="https://upload-images.jianshu.io/upload_images/3165072-154347e84fdf496d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" /></p>
+<h3>特性</h3>
+<ul>
+<li>1 、易学易用：无缝集成 SpringBoot ，三分钟即可上手；</li>
+<li>2 、服务透明：系统完整的封装了底层通信细节，开发时调用远程服务就像调用本地服务，在提供远程调用能力时不损失本地调用的语义简洁性；</li>
+<li>3 、多调用类型：支持多种调用类型，包括：SYNC 、ONEWAY 、FUTURE 、CALLBACK 等；</li>
+<li>4 、多通讯协议：支持多种通讯协议，支持 TCP 、HTTP ；</li>
+<li>5 、多序列化方案：支持多种序列化协议，包括：HESSIAN/2 、HESSIAN1 、Gson 、PROTOSTUFF 、KRYO 等序列化方案；</li>
+<li>6 、注册中心：内置服务注册中心支持服务动态发现，提供轻量级、一站式解决方案。也支持扩展集成其他注册中心，或者不使用注册中心、直接指定服务提供方机器地址调用；</li>
+<li>7 、负载均衡：支持多种负载均衡策略，包括：轮询、随机、LRU 、LFU 、一致性 HASH 等；</li>
+<li>8 、服务治理：提供服务治理能力，支持在线管理注册的服务信息，如服务锁定、IP 禁用……等；</li>
+<li>9 、服务监控：支持在线监控服务调用统计信息以及服务健康状况等（计划中）；</li>
+<li>10 、故障容错：支持自动巡检线上服务并摘除故障节点，消费方实时感知并移除失效节点将流量分发到其余节点，提高系统容错能力。</li>
+<li>11 、高兼容性：得益于优良的兼容性与模块化设计，不限制技术栈；除 spring/springboot 技术栈之外，理论上支持运行在任何 Java 代码中，甚至 main 方法直接启动运行；</li>
+<li>12 、泛化调用：支持服务调用方直接发起服务调用，不依赖服务方提供的 API ；</li>
+<li>13 、服务安全：支持序列化安全空间机制，以及通讯 token 加密机制；</li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-01-04T19:03:28Z</pubDate>
+<pubDate>2025-01-04T19:03:28Z</pubDate>
+</item>
+<item>
+<title>找 Flutter 工程师</title>
+<link>https://www.v2ex.com/t/1102591</link>
+<guid>https://www.v2ex.com/t/1102591</guid>
+<content:encoded><![CDATA[
+
+<p>寻 Flutter 工程师，有偿兼职。</p>
+]]></content:encoded>
+<pubDate>2025-01-04T18:28:11Z</pubDate>
+<pubDate>2025-01-04T18:28:11Z</pubDate>
+</item>
+
+<item>
 <title>[VPS] 荷兰月付 1.44 欧， 2c/1G/50G， 10G 口无限流量机器</title>
 <link>https://www.v2ex.com/t/1102590</link>
 <guid>https://www.v2ex.com/t/1102590</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://skrime.eu/a/333" rel="nofollow">购买地址</a>
 <img alt="Alt Text" class="embedded_image" rel="noreferrer" src="https://tgstate-cc100wx.11451412.xyz/d/BQACAgUAAyEGAASCGdOCAANUZ3aCRz6akzR9HUcjVipXAsImpyAAAo8WAAL4kLBXRH4oliZuuBs2BA" /></p>
 <pre><code>这家最近做活动，最低配 2c/1G/50G 只要月付 1.44 欧
@@ -298,17 +424,14 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <p><img alt="Alt Text" class="embedded_image" rel="noreferrer" src="https://tgstate-cc100wx.11451412.xyz/d/BQACAgUAAyEGAASCGdOCAANVZ3aC3rHuIFzFnHjUbaZUX-S97x0AApAWAAL4kLBXuR564pZyrD82BA" /></p>
 ]]></content:encoded>
 <pubDate>2025-01-04T18:07:57Z</pubDate>
-<pubDate>2025-01-04T18:07:57Z</pubDate>
 </item>
 <item>
 <title>[问与答] iOS Surge 求助</title>
 <link>https://www.v2ex.com/t/1102589</link>
 <guid>https://www.v2ex.com/t/1102589</guid>
 <content:encoded><![CDATA[
-
 如何用 iOS Surge 来阻止客户端访问一个域名？
 ]]></content:encoded>
-<pubDate>2025-01-04T18:01:56Z</pubDate>
 <pubDate>2025-01-04T17:58:56Z</pubDate>
 </item>
 <item>
@@ -316,10 +439,8 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102588</link>
 <guid>https://www.v2ex.com/t/1102588</guid>
 <content:encoded><![CDATA[
-
 <a href="https://i.imgur.com/PX6txKi.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/PX6txKi.png" /></a><br /><br /><br />自 2024 年 12 月 25 日，我们开发的 ChatGPT API 转发系统 <a href="http://Poixe.com" rel="nofollow noopener" target="_blank">Poixe.com</a> 正式开放内测以来，一些数据：<br /><br />1 ） 45 位用户参与测试<br /><br />2 ） 22 位供应商成功入驻<br /><br />3 ）系统成功处理了第 100 万条接口请求<br /><br />其中还有位来自 V2EX 的友友，反馈了两个 BUG ，已经修复，这里再次表示感谢！<br /><br />内测阶段参与测试的用户，我们会给划转 1 美金额度，如果不够用可以联系我们（建议写过反馈的）<br /><br /><a href="https://i.imgur.com/2E6Lcqb.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2E6Lcqb.png" /></a><br /><br /><br />最后：V 站果然是最适合冷启动项目的平台！
 ]]></content:encoded>
-<pubDate>2025-01-04T17:54:51Z</pubDate>
 <pubDate>2025-01-04T17:53:51Z</pubDate>
 </item>
 <item>
@@ -327,11 +448,9 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102587</link>
 <guid>https://www.v2ex.com/t/1102587</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="Alt Text" class="embedded_image" rel="noreferrer" src="https://tgstate-rn80g.11451412.xyz/d/BQACAgUAAyEGAASEyyl9AAMgZ3lvmPtqTKtkKB3EI9XgNWerpg0AAv8VAAKqZMlXjUAaKMjZKZA2BA" /></p>
 <p><strong><a href="https://t.me/hhhhhbhhq" rel="nofollow">TG 联系</a></strong></p>
 ]]></content:encoded>
-<pubDate>2025-01-04T17:29:26Z</pubDate>
 <pubDate>2025-01-04T17:29:26Z</pubDate>
 </item>
 <item>
@@ -339,10 +458,8 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102586</link>
 <guid>https://www.v2ex.com/t/1102586</guid>
 <content:encoded><![CDATA[
-
 <p>手上有异地的多条宽带和一些小鸡，想找一个面板，能直接在上面执行 ping 和 traceroute 任务，统一返回结果，方便我观察不同运营商的情况，类似于 <a href="https://www.itdog.cn/" rel="nofollow">https://www.itdog.cn/</a> ，不用我一个个去 ssh 上执行，不知道有没有啥开源方案？</p>
 ]]></content:encoded>
-<pubDate>2025-01-04T17:18:13Z</pubDate>
 <pubDate>2025-01-04T17:18:13Z</pubDate>
 </item>
 <item>
@@ -350,10 +467,8 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102585</link>
 <guid>https://www.v2ex.com/t/1102585</guid>
 <content:encoded><![CDATA[
-
 之所以用域名邮箱是被逼的，国内很多平台注册账号要手机号又要邮箱，时间一长忘记密码，或修改一些重要资料还必须验证邮箱。而邮箱长时间不登录又可能会回收，像新浪申诉非常麻烦，简直无语。为避免回收买过 88 邮箱，但 1 个手机号只能注册 1 个，也是够了。<br /><br />目前在用飞书以及阿里企业邮箱，相比飞书、腾讯等阿里可以说是比较纯粹的邮箱了。管理员可以分配邮箱账号，密码可设置不需要二次修改，手机端、电脑端、网页端都有，可以多账号同时登录收件。功能都满足，但免费 5 年，到期不确定是否收费，客服说公告为准，怕后面邮件多了不好迁移。<br /><br />需求：<br />1 、账号 20 个左右。<br />2 、最好有 iOS 版 app 支持多账号登录。或者支持别名、公共邮箱，能实现多账号同时收件即可。<br />3 、不想用第三方客户端收件，延迟不固定，体验不好。<br />4 、免费或可买断，容量无要求。<br /><br />已经使用过很多了，比如<br />1 、Outlook 拼车方案不行了。<br />2 、icloud+：只能 5 个号，无法满足。<br />3 、Gmail 、Yandex 等已经收费或免费版限制账户数等也不行。<br />3 、腾讯：多年前是 1 个邮箱必须绑定 1 个 QQ ，现在又要绑定什么企业微信的麻烦，不考虑。<br />4 、网易：几乎 3 天一次网易推广，还无法拉黑拒收，也不考虑<br />5 、飞书：虽然很多用不到的功能，但免费版支持多域名、别名、公共邮箱等是功能最全的，但未读邮件，app 上没有角标提醒。<br /><br />其实体验下来说，飞书功能最强大，阿里比较简洁。
 ]]></content:encoded>
-<pubDate>2025-01-04T17:08:59Z</pubDate>
 <pubDate>2025-01-04T17:43:28Z</pubDate>
 </item>
 <item>
@@ -361,13 +476,11 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102583</link>
 <guid>https://www.v2ex.com/t/1102583</guid>
 <content:encoded><![CDATA[
-
 <p>如题
 个人感觉小红书很多时候已经比百度更好用了 在搜旅游攻略/生活经验 上更是如此
 但是小红书的信息流 感觉会刷到很多不喜欢的内容(但是还是会手贱点进去)
 所以在想有没有只有搜索功能和收藏夹功能的小红书版本</p>
 ]]></content:encoded>
-<pubDate>2025-01-04T16:56:54Z</pubDate>
 <pubDate>2025-01-04T16:56:54Z</pubDate>
 </item>
 <item>
@@ -375,7 +488,6 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 <link>https://www.v2ex.com/t/1102582</link>
 <guid>https://www.v2ex.com/t/1102582</guid>
 <content:encoded><![CDATA[
-
 <p>诚聘一名 web3 运营指导老师。</p>
 <p>岗位要求：
 只有 1 个要求：参与过 1 个或多个 web3 项目的运营，对 web3 各运营岗位有一定的了解；</p>
@@ -384,9 +496,7 @@ Speedtest.net    7590.87 Mbps    5183.39 Mbps    6.88     0.0%
 面试流程：会有 1-2 轮面试。</p>
 ]]></content:encoded>
 <pubDate>2025-01-04T16:56:10Z</pubDate>
-<pubDate>2025-01-04T16:56:10Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] Java 工资</title>
 <link>https://www.v2ex.com/t/1102581</link>
@@ -16214,128 +16324,6 @@ bGl1cWlqdW4xMEBqZC5jb20=</p>
 这咋解决啊</p>
 ]]></content:encoded>
 <pubDate>2024-12-30T09:33:43Z</pubDate>
-</item>
-<item>
-<title>[Google Play] V2rayNG Google play 无法下载更新的解决方法</title>
-<link>https://www.v2ex.com/t/1101327</link>
-<guid>https://www.v2ex.com/t/1101327</guid>
-<content:encoded><![CDATA[
-<p>最近发现 gp 无法更新，点击更新会一直 pengding ，查了一下是代理 ip 送中，下载会走谷歌 cn 结尾的域名，表现为点击下载后马上关代理就可以下载。这里介绍一下路由代理的办法，不是分应用代理。</p>
-<p>设置如下：</p>
-<ol>
-<li>打开 v2rayng ，点击左上角，点击路由设置，下滑找到 Google CN 规则，点击修改，添加 domain:<a href="http://gstatic.com" rel="nofollow">gstatic.com</a>,domain:<a href="http://google.cn" rel="nofollow">google.cn</a>,domain:<a href="http://r16---sn-ni57rn7e.xn--ngstr-lra8j.com" rel="nofollow">r16---sn-ni57rn7e.xn--ngstr-lra8j.com</a>
-到路由规则设置里，点击右上角保存。</li>
-<li>长按 Google CN 规则，移动到绕过中国 IP 规则上方，然后重启代理。</li>
-</ol>
-<p>之前只在网上查到步骤 1 ，操作后无效，今天突然想到规则会按照上到下顺序执行，默认设置绕过中国 IP 规则在 Google CN 的上方，<a href="http://那么优先匹配到.cn" rel="nofollow">那么优先匹配到.cn</a> 就走 direct 了，所以移动到上方就能正常分流了。</p>
-]]></content:encoded>
-<pubDate>2024-12-30T09:55:23Z</pubDate>
-</item>
-<item>
-<title>[问与答] 联通、移动、电信，这三家哪家的信号最好？</title>
-<link>https://www.v2ex.com/t/1101326</link>
-<guid>https://www.v2ex.com/t/1101326</guid>
-<content:encoded><![CDATA[
-贴主用的是联通，总是在地下室和电梯里没信号。遂有此问。
-]]></content:encoded>
-<pubDate>2024-12-30T10:18:15Z</pubDate>
-</item>
-<item>
-<title>[NAS] n1 盒子只用来远程手机观影的话，刷哪个系统更好？</title>
-<link>https://www.v2ex.com/t/1101325</link>
-<guid>https://www.v2ex.com/t/1101325</guid>
-<content:encoded><![CDATA[
-大佬们，现在想把 n1 接个硬盘专门给手机远程观影用，用什么系统更好一点，小钢炮？ armbian ？<br />我现在刷的是小钢炮用 jelly ，设置的是不转码<br />画质高的话，手机就很慢，几秒一卡顿，所以现在都下的 1080p 的 mp4 资源，有啥办法能解决吗？<br />n1 能硬解么？<br />或者我这种需求有啥更好的方案吗？
-]]></content:encoded>
-<pubDate>2024-12-30T09:27:38Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 做的漫画阅读器发布啦！在这里送一些激活码，欢迎前来体验！</title>
-<link>https://www.v2ex.com/t/1101324</link>
-<guid>https://www.v2ex.com/t/1101324</guid>
-<content:encoded><![CDATA[
-<p>软件是采用买断制，一次购买可以在一台设备上永久使用
-（后续如果上线在线处理的 ai 功能之类的，由于服务器属于持续性的成本支出，可能会对此类功能单独使用订阅制）</p>
-<p>软件后端和服务器端使用 Rust 编写，前端采用 solidjs 。</p>
-<p>特色功能有：</p>
-<p>1 、漫画白边切割（可以智能切除图片四周的白边而不会影响比例）</p>
-<p>2 、跨平台兼容（支持 Windows 、macOS 和 Linux （开发中），方便使用）</p>
-<p>3 、多窗口阅读（支持多窗口同时阅读，提供更便捷的体验）</p>
-<p>4 、隐藏漫画和启动时需要输入密码（保护隐私，防止社死）</p>
-<p>更多其他功能正在开发中，软件现在处于快速迭代的阶段，有什么有意思的想法或者问题都可以反馈给我！</p>
-<p>截图：
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/12/30/3d66b269e926061c.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/12/30/285b30b92560bbd9.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/12/30/c91dc2f582c77402.jpg" />
-<img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2024/12/30/0481258776b97d0b.png" /></p>
-<p>官网地址：
-<a href="https://www.succango.space/zh_CN/index.html" rel="nofollow">https://www.succango.space/zh_CN/index.html</a></p>
-<p>激活码：</p>
-<p>T6Y62X4T5ZIYUQ5QDRAPIKOEP6B03KNP</p>
-<p>QRKPVRJXRXPI6DQW697YGTLBOTVU2EZ0</p>
-<p>WHAI81RA9M9SQ1ASVLTHMU5BTMD398LU</p>
-<p>C1Q5OXOQVU5BURNU55B91OGJH4D5HRMI</p>
-<p>FIZDJNG5UMLSX4DI5Z1WN9VW85E5097K</p>
-<p>H72I9KOWX2Z13GSLUSJTJZE31ZI5WGT2</p>
-<p>O4ALKBDR4JP574SD7GT9MDF6BM0LNBWT</p>
-<p>NOQ7E58MXUZ487KLMJR2PQB18AYCQ52U</p>
-<p>HU1GDLP56K6UGP0WUFNT7K9946D8PXST</p>
-<p>JBVBUHAAWX4WAJYIEHDIBFGKVRL3X3P0</p>
-<p>BXIARRS3QYTCCWI2EMU4D4CBU1CWMQC1</p>
-<p>VHY0IEBJSDTVCPMB60AWN13WKRNDH4K0</p>
-<p>0VAV1E0526A4VF74PPEUMPVTVF5GES8J</p>
-<p>D9J2XO9IMZJJZXSI0DV5ZUZXI4WTOJ3E</p>
-<p>CMMX781WA8O0YEZDYT57PW9MH39PZA9O</p>
-]]></content:encoded>
-<pubDate>2024-12-30T10:05:32Z</pubDate>
-</item>
-<item>
-<title>[推广] 关于我将自己开发的 chrome 插件上到 product hunt 后</title>
-<link>https://www.v2ex.com/t/1101323</link>
-<guid>https://www.v2ex.com/t/1101323</guid>
-<content:encoded><![CDATA[
-<p>惨淡,惨不忍睹,一个下载的也没有,只有四个点赞的,然后一堆推广的人发来邮件,我都怀疑这些赞都是推广的人点来的, 哈哈</p>
-<p>可能这上面需要花钱推广下吧,还是说现在时代不同了?,还是说这个产品没需求?</p>
-<p>下一步准备花钱试下 google ads</p>
-<p>链接:
-<a href="http://ncurator.com" rel="nofollow">ncurator.com</a></p>
-]]></content:encoded>
-<pubDate>2024-12-30T09:06:37Z</pubDate>
-</item>
-<item>
-<title>[摄影] 富士相机 x100 VI 去哪里买最便宜？</title>
-<link>https://www.v2ex.com/t/1101319</link>
-<guid>https://www.v2ex.com/t/1101319</guid>
-<content:encoded><![CDATA[
-<h3>2024 年认识一个老哥</h3>
-<ul>
-<li>这几天发了朋友圈，好像是美女，拍的好好看</li>
-<li>问了他他说是 富士相机 x100 vi  </li>
-<li>请问大佬们这个相机哪里买 最便宜 性价比高？</li>
-<li>生活太单调了，目前手持小米手机拍照，想买个相机玩玩</li>
-<li>最好能直出，不用换镜头，轻一点的那种,不知道这个是否符合预期<code> 富士相机 x100 vi</code> </li>
-<li>谢谢</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-12-30T08:53:17Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2025 年了，市面上有接入大模型的智能音箱吗？</title>
-<link>https://www.v2ex.com/t/1101317</link>
-<guid>https://www.v2ex.com/t/1101317</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2024-12-30T08:48:40Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有汇总这一年内问世的有意思的电子产品的网站？</title>
-<link>https://www.v2ex.com/t/1101316</link>
-<guid>https://www.v2ex.com/t/1101316</guid>
-<content:encoded><![CDATA[
-<p>个人总结的也好，还是数码方面的媒体也好</p>
-]]></content:encoded>
-<pubDate>2024-12-30T08:46:51Z</pubDate>
 </item>
 </channel>
 </rss>
