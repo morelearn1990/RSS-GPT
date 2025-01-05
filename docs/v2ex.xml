@@ -5,14 +5,195 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Kubernetes] 花折 - KubeDoor 正式开源：基于 AI 推荐+专家经验的 K8S 负载感知调度与容量管控系统</title>
+<link>https://www.v2ex.com/t/1102763</link>
+<guid>https://www.v2ex.com/t/1102763</guid>
+<content:encoded><![CDATA[
+
+<h2>🌈概述</h2>
+<p>🌼<strong>花折 - KubeDoor</strong> 是一个使用 Python + Vue 开发，基于 K8S 准入控制机制的微服务资源管控平台。专注微服务每日高峰时段的资源视角，实现了微服务的资源分析统计与强管控，确保微服务资源的资源申请率和真实使用率一致。📀项目仓库： <a href="https://github.com/CassInfra/KubeDoor" rel="nofollow">https://github.com/CassInfra/KubeDoor</a></p>
+<h2>💠架构图</h2>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kubedoor.png" /></p>
+<h2>💎功能描述</h2>
+<h4>📊采集 K8S 微服务每日业务高峰时段 P95 的 CPU 内存消耗，以及需求、限制值与 Pod 数。基于采集的数据实现了一个 Grafana 看板并集成到了 WEB UI 。</h4>
+<ul>
+<li>🎨<strong>基于日维度采集每日高峰时段 P95 的资源数据</strong>,可以很好的观察各微服务长期的资源变化情况，即使查看 1 年的数据也很流畅。</li>
+<li>🏅高峰时段全局资源统计与各<strong>资源 TOP10</strong></li>
+<li>🔎命名空间级别高峰时段 P95 资源使用量与<strong>资源消耗占整体资源的比例</strong></li>
+<li>🧿<strong>微服务级别</strong>高峰期整体资源与使用率分析</li>
+<li>📈微服务与<strong>Pod 级别</strong>的资源曲线图(需求值,限制值,使用值)</li>
+</ul>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kd1.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kd2.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kd3.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kd4.jpg" /></p>
+<h4>🎡每日从采集的数据中，获取最近 10 天各微服务的资源信息，获取资源消耗最大日的 P95 资源，作为微服务的需求值写入数据库。</h4>
+<ul>
+<li>✨<strong>基于准入控制机制</strong>实现 K8S 微服务资源的<strong>真实使用率和资源申请需求值保持一致</strong>，具有非常重要的意义。</li>
+<li>🌊<strong>K8S 调度器</strong>通过真实的资源需求值就能够更精确地将 Pod 调度到合适的节点上，<strong>避免资源碎片，实现节点的资源均衡</strong>。</li>
+<li>♻<strong>K8S 自动扩缩容</strong>也依赖资源需求值来判断，<strong>真实的需求值可以更精准的触发扩缩容操作</strong>。</li>
+<li>🛡<strong>K8S 的保障服务质量</strong>（ QoS 机制）与需求值结合，真实需求值的 Pod 会被优先保留，<strong>保证关键服务的正常运行</strong>。</li>
+</ul>
+<h4>🌐实现了一个 K8S 管控与展示的 WEB UI 。</h4>
+<ul>
+<li>⚙️对微服务的最新、每日高峰期的<strong>P95 资源展示</strong>，以及对<strong>Pod 数、资源限制值</strong>的维护管理。</li>
+<li>⏱️支持<strong>即时、定时、周期性</strong>任务执行微服务的<strong>扩缩容和重启</strong>操作。 </li>
+<li>🔒基于 NGINX basic<strong>认证</strong>，支持 LDAP ，支持所有<strong>操作审计</strong>日志与通知。 </li>
+<li>📊在前端页面集成 Grafana 看板,更优雅的展示与分析采集的微服务数据。
+<img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kdweb.png" /></li>
+</ul>
+<h4>🚧当微服务更新部署时，基于 K8S 准入控制机制对资源进行管控 [默认不开启] ：</h4>
+<ul>
+<li>🧮<strong>控制每个微服务的 Pod 数、需求值、限制值</strong>必须与数据库一致，以确保微服务的真实使用率和资源申请需求值相等，从而实现微服务的统一管控与 Pod 的负载感知调度均衡能力。</li>
+<li>🚫<strong>对未管控的微服务，会部署失败并通知</strong>，必须在 WEB UI 新增微服务后才能部署。（作为新增微服务的唯一管控入口，杜绝未经允许的新服务部署。）</li>
+<li>🌟通过本项目基于<strong>K8S 准入机制的扩展</strong>思路，大家可以自行简单定制需求，即可对 K8S 实现各种高灵活性与扩展性附加能力，诸如统一或者个性化的<strong>拦截、管理、策略、标记微服务</strong>等功能。</li>
+</ul>
+&lt;center&gt;K8S 准入控制逻辑&lt;/center&gt;
+<p><img alt="" class="embedded_image" rel="noreferrer" src="http://kubedoor.casstime.cn/kubedoor/img/kd-k8s.png" /></p>
+<p><strong>如果觉得项目不错，麻烦动动小手点个⭐️Star⭐️ 如果你还有其他想法或者需求，欢迎在 issue 中交流</strong></p>
+<h4><strong><a href="https://github.com/CassInfra/KubeDoor" rel="nofollow">📀项目仓库：</a> <a href="https://github.com/CassInfra/KubeDoor" rel="nofollow">https://github.com/CassInfra/KubeDoor</a></strong></h4>
+<hr />
+<h2>🎯2025 KubeDoor RoadMap</h2>
+<ul>
+<li><strong><a href="https://github.com/orgs/CassInfra/projects/1/views/1" rel="nofollow">📅KubeDoor 项目进度</a></strong> <a href="https://github.com/orgs/CassInfra/projects/1" rel="nofollow">https://github.com/orgs/CassInfra/projects/1</a></li>
+<li>🥇多 K8S 支持：在统一的 WebUI 对多 K8S 做管控和资源分析展示。</li>
+<li>🥈英文版发布</li>
+<li>🥉集成 K8S 实时监控能力，实现一键部署，整合 K8S 实时资源看板，接入 K8S 异常 AI 分析能力。</li>
+<li>🏅微服务 AI 评分：根据资源使用情况，发现资源浪费的问题，结合 AI 缩容，降本增效，做 AI 综合评分。</li>
+<li>🏅微服务 AI 缩容：基于微服务高峰期的资源信息，对接 AI 分析与专家经验，计算微服务 Pod 数是否合理，生成缩容指令与统计。</li>
+<li>🏅根据 K8S 节点资源使用率做节点管控与调度分析</li>
+<li>🚩采集更多的微服务资源信息: QPS/JVM/GC</li>
+<li>🚩针对微服务 Pod 做精细化操作：隔离、删除、dump 、jstack 、jfr 、jvm</li>
+</ul>
+<h2>🚀部署说明</h2>
+<h4>0. 需要已有 Prometheus 监控 K8S</h4>
+<p>需要有<code>cadvisor</code>和<code>kube-state-metrics</code>这 2 个 JOB ，才能采集到 K8S 的以下指标</p>
+<ul>
+<li><code>container_cpu_usage_seconds_total</code></li>
+<li><code>container_memory_working_set_bytes</code></li>
+<li><code>container_spec_cpu_quota</code></li>
+<li><code>kube_pod_container_info</code></li>
+<li><code>kube_pod_container_resource_limits</code></li>
+<li><code>kube_pod_container_resource_requests</code></li>
+</ul>
+<h4>1. 部署 Cert-manager</h4>
+<p>用于 K8S Mutating Webhook 的强制 https 认证</p>
+<pre><code>kubectl apply -f https://StarsL.cn/kubedoor/00.cert-manager_v1.16.2_cn.yaml
+</code></pre>
+<h4>2. 部署 ClickHouse 并初始化</h4>
+<p>用于存储采集的指标数据与微服务的资源信息</p>
+<pre><code class="language-bash"># 默认使用 docker compose 运行，部署在/opt/clickhouse 目录下。
+curl -s https://StarsL.cn/kubedoor/install-clickhouse.sh|sudo bash
+# 启动 ClickHouse （启动后会自动初始化表结构）
+cd /opt/clickhouse &amp;&amp; docker compose up -d
+</code></pre>
+<p>如果已有 ClickHouse ，请逐条执行以下 SQL ，完成初始化表结构</p>
+<pre><code class="language-bash">https://StarsL.cn/kubedoor/kubedoor-init.sql
+</code></pre>
+<h4>3. 部署 KubeDoor</h4>
+<pre><code class="language-bash">wget https://StarsL.cn/kubedoor/kubedoor.tgz
+tar -zxvf kubedoor.tgz
+# 编辑 values.yaml 文件，请仔细阅读注释，根据描述修改配置内容。
+vim kubedoor/values.yaml
+# 使用 helm 安装（注意在 kubedoor 目录外执行。）
+helm install kubedoor ./kubedoor
+# 安装完成后，所有资源都会部署在 kubedoor 命名空间。
+</code></pre>
+<h4>4. 访问 WebUI 并初始化数据</h4>
+<ol>
+<li>
+<p>使用 K8S 节点 IP + kubedoor-web 的 NodePort 访问，默认账号密码都是 <strong><code>kubedoor</code></strong></p>
+</li>
+<li>
+<p>点击<code>配置中心</code>，输入需要采集的历史数据时长，点击<code>采集并更新</code>，即可采集历史数据并更新高峰时段数据到管控表。</p>
+<blockquote>
+<p><strong>默认会从 Prometheus 采集 10 天数据(建议采集 1 个月)，并将 10 天内最大资源消耗日的数据写入到管控表，如果耗时较长，请等待采集完成或缩短采集时长。重复执行<code>采集并更新</code>不会导致重复写入数据，请放心使用，每次采集后都会自动将 10 天内最大资源消耗日的数据写入到管控表。</strong></p>
+</blockquote>
+</li>
+<li>
+<p>点击<code>管控状态</code>的开关，显示<code>管控已启用</code>，表示已开启。</p>
+</li>
+</ol>
+<h2>⛔注意事项</h2>
+<ul>
+<li>
+<p>部署完成后，<strong>默认不会开启管控机制</strong>，你可以按上述操作通过 WebUI 来开关管控能力。特殊情况下，你也可以使用<code>kubectl</code>来开关管控功能：</p>
+<pre><code class="language-bash"># 开启管控
+kubectl apply -f https://StarsL.cn/kubedoor/99.kubedoor-Mutating.yaml
+
+# 关闭管控
+kubectl delete mutatingwebhookconfigurations kubedoor-webhook-configuration
+</code></pre>
+</li>
+<li>
+<p><strong>开启管控机制后</strong>，目前只会拦截<strong>deployment 的创建，更新，扩缩容</strong>操作；管控<strong>pod 数，需求值，限制值</strong>。不会控制其它操作和属性。</p>
+</li>
+<li>
+<p><strong>开启管控机制后</strong>，通过任何方式对 Deployment 执行扩缩容或者更新操作都会受到管控。</p>
+</li>
+<li>
+<p><strong>开启管控机制后</strong>，扩缩容或者重启 Deployment 时，Pod 数优先取<code>指定 Pod</code>字段，若该字段为-1 ，则取<code>当日 Pod</code>字段。</p>
+</li>
+</ul>
+<h2>🌰管控例子</h2>
+<ul>
+<li>
+<p>你通过 Kubectl 对一个 Deployment 执行了扩容 10 个 Pod 后，<strong>会触发拦截机制</strong>，到数据库中去查询该微服务的 Pod ，然后使用该值来进行实际的扩缩容。（正确的做法应该是在 KubeDoor-Web 来执行扩缩容操作。）</p>
+</li>
+<li>
+<p>你通过某发布系统修改了 Deployment 的镜像版本，执行发布操作，<strong>会触发拦截机制</strong>，到数据库中去查询该微服务的 Pod 数，需求值，限制值，然后使用这些值值以及新的镜像来进行实际的更新操作。</p>
+</li>
+</ul>
+<h2>🚩管控原则</h2>
+<ul>
+<li>
+<p><strong>你对 deployment 的操作不会触发 deployment 重启的，也没有修改 Pod 数的：</strong> 触发管控拦截后，只会按照你的操作来更新 deployment （不会重启 Deployment ）</p>
+</li>
+<li>
+<p><strong>你对 deployment 的操作不会触发 deployment 重启的，并且修改 Pod 数的：</strong> 触发管控拦截后，Pod 数会根据数据库的值以及你修改的其它信息来更新 Deployment 。（不会重启 Deployment ）</p>
+</li>
+<li>
+<p><strong>你对 deployment 的操作会触发 deployment 重启的：</strong> 触发管控拦截后，会到数据库中去查询该微服务的 Pod 数，需求值，限制值，然后使用这些值以及你修改的其它信息来更新 Deployment 。（会重启 Deployment ）</p>
+</li>
+</ul>
+<h2>🥰鸣谢</h2>
+<p>感谢如下优秀的项目，没有这些项目，不可能会有<strong>KubeDoor</strong>：</p>
+<ul>
+<li>
+<p>后端技术栈</p>
+<ul>
+<li><a href="https://flask.palletsprojects.com" rel="nofollow">Flask</a></li>
+<li><a href="https://grafana.com/" rel="nofollow">Grafana</a></li>
+<li><a href="https://nginx.org/" rel="nofollow">Nginx</a></li>
+</ul>
+</li>
+<li>
+<p>前端技术栈</p>
+<ul>
+<li><a href="https://vuejs.org/" rel="nofollow">Vue</a></li>
+<li><a href="https://element-plus.org" rel="nofollow">Element Plus</a></li>
+<li><a href="https://pure-admin.cn/" rel="nofollow">pure-admin</a></li>
+</ul>
+</li>
+<li>
+<p><strong>特别鸣谢</strong></p>
+<ul>
+<li><a href="https://www.casstime.com" rel="nofollow">CassTime</a>：<strong>KubeDoor</strong>的诞生离不开🦄<strong>开思</strong>的支持。</li>
+</ul>
+</li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-01-05T18:44:50Z</pubDate>
+<pubDate>2025-01-05T18:44:50Z</pubDate>
+</item>
+
+<item>
 <title>[游戏] 发现一个有趣的开源工具 Arnis：让现实世界完美复刻进《我的世界》</title>
 <link>https://www.v2ex.com/t/1102762</link>
 <guid>https://www.v2ex.com/t/1102762</guid>
 <content:encoded><![CDATA[
-
 项目地址： <a href="https://github.com/louis-e/arnis" rel="nofollow noopener" target="_blank">https://github.com/louis-e/arnis</a><br /><br />新玩法：一键转换地图，游戏重建真实世界 将现实世界的城市、地标和自然特征带入 Minecraft 宇宙。<br /><br />通过利用来自 OpenStreetMap 的地理空间数据和利用 Rust 的强大功能，Arnis 提供了一种高效且强大的解决方案，用于创建反映真实世界地理和架构的复杂而准确的 Minecraft 世界。<br /><br />Arnis 旨在处理大规模数据并生成丰富的沉浸式环境，将现实世界的城市、地标和自然特征带入 Minecraft 宇宙。无论您是想复制家乡、探索城市环境，还是只是想构建独特而逼真的事物，Arnis 都能提供全面的工具集来实现您的愿景。<br /><br />Arnis 利用 Overpass API 获取地理空间数据，并将其处理成兼容《我的世界》的世界文件，玩家可以通过图形界面或命令行输入经纬度坐标来选择想要转换的区域，只是处理大区域需要大量的计算资源，因此开发者建议初期选择较小的区域进行转换。<br /><br />更多内容可以查看网站： <a href="https://arnis.pro/" rel="nofollow noopener" target="_blank">https://arnis.pro/</a>
 ]]></content:encoded>
-<pubDate>2025-01-05T18:25:55Z</pubDate>
 <pubDate>2025-01-05T18:25:55Z</pubDate>
 </item>
 <item>
@@ -20,7 +201,6 @@
 <link>https://www.v2ex.com/t/1102760</link>
 <guid>https://www.v2ex.com/t/1102760</guid>
 <content:encoded><![CDATA[
-
 <p><strong>红枫云盘</strong>是什么：<strong>一个开源的无服务端多协议云盘文件上传和管理 APP</strong></p>
 <p>对比上一次分享已经过去了一个多月，这期间很感谢阮一峰大佬的推荐，上了 2024 最后一期科技爱好者周刊，在短短一周时间内涨了 150 多个 star ，今天发布了最新的 v1.0.1 版本，对比上一次有重大更新：</p>
 <ol>
@@ -37,17 +217,14 @@
 <p>设置里有一个同步备份，但由于时间有限，这个功能还没测试好，大家忽略即可，欢迎大家使用并提出更多建议</p>
 ]]></content:encoded>
 <pubDate>2025-01-05T18:06:32Z</pubDate>
-<pubDate>2025-01-05T18:06:32Z</pubDate>
 </item>
 <item>
 <title>[问与答] 如何使用简单网管交换机使网口打上主网络 vlan 后连通网络</title>
 <link>https://www.v2ex.com/t/1102758</link>
 <guid>https://www.v2ex.com/t/1102758</guid>
 <content:encoded><![CDATA[
-
 实验室是新成立的，网管让我们这里的无线网有一个独立的新网段，vlan30 ，ip192.168.30.x<br />但是接来的有线网默认 vlan1 ，ip192.168.20.x<br />如果手动设置网卡 vlan 为 30 ，则可以自动获取 30 网段 ip<br />现在想用一个简单网管交换机实现给有线网打 vlan30 的功能（毕竟不是所有的有线设备都可以都可以方便设置网卡 vlan ）<br /><br />请问需要如何设置
 ]]></content:encoded>
-<pubDate>2025-01-05T17:48:45Z</pubDate>
 <pubDate>2025-01-05T17:48:45Z</pubDate>
 </item>
 <item>
@@ -55,13 +232,10 @@
 <link>https://www.v2ex.com/t/1102757</link>
 <guid>https://www.v2ex.com/t/1102757</guid>
 <content:encoded><![CDATA[
-
 假如你已经要去日本玩下了， 有推荐方案吗？
 ]]></content:encoded>
-<pubDate>2025-01-05T16:42:07Z</pubDate>
 <pubDate>2025-01-05T12:42:07Z</pubDate>
 </item>
-
 <item>
 <title>[加密货币] 截至 2024 年，日本的加密货币用户数已超过 800 万，在中心化交易所，日本用户的日均活跃人数约为 35 万。为什么加密货币会在极其厌恶风险的日本普及开？</title>
 <link>https://www.v2ex.com/t/1102756</link>
@@ -16933,54 +17107,6 @@ plus 账号还会继续增加
 接了熟人一个小项目，做完了要收款。<br /><br />要怎么开票？需要报税吗？
 ]]></content:encoded>
 <pubDate>2024-12-30T11:42:42Z</pubDate>
-</item>
-<item>
-<title>[健康] 2024 年终调研：口罩后你身体健康发生了哪些变化？</title>
-<link>https://www.v2ex.com/t/1101514</link>
-<guid>https://www.v2ex.com/t/1101514</guid>
-<content:encoded><![CDATA[
-<p>从身边家人和朋友观察看，发现结节问题增多、白发增多。</p>
-<p>大家情况怎么样？</p>
-]]></content:encoded>
-<pubDate>2024-12-31T03:38:16Z</pubDate>
-</item>
-<item>
-<title>[程序员] GoogleSEO 不认自己颁发的 SSL 证书，有遇到过吗?</title>
-<link>https://www.v2ex.com/t/1101512</link>
-<guid>https://www.v2ex.com/t/1101512</guid>
-<content:encoded><![CDATA[
-<p>最近网站使用了 GoogleTrustServices 颁发的免费泛域名证书...
-Chrome 访问来看证书是安全的，也没有风险提示</p>
-<p>但是 GoogleSearchConsole 不认该证书，报“服务器 SSL 证书无效”...造成大部分页面被剔除收录了...检测了下首页，也有该问题...反馈给 google 还没反应...</p>
-<p>想问问有遇到类似情况的朋友吗？有没有解决方案呀？</p>
-<p><img alt="6anr1w.png" class="embedded_image" rel="noreferrer" src="https://files.catbox.moe/6anr1w.png" />
-<img alt="idei3c.png" class="embedded_image" rel="noreferrer" src="https://files.catbox.moe/idei3c.png" /></p>
-]]></content:encoded>
-<pubDate>2024-12-31T04:12:47Z</pubDate>
-</item>
-<item>
-<title>[Apple] storekit2 应用上架的疑惑</title>
-<link>https://www.v2ex.com/t/1101511</link>
-<guid>https://www.v2ex.com/t/1101511</guid>
-<content:encoded><![CDATA[
-<p>这个问题有点小白,主要是没搞过付费功能</p>
-<p>我的问题是这样的,我开发了一个应用,准备加一个会员功能</p>
-<p>我用 storekit2 本地文件调试是可以的,也创建了一个沙盒账号来测试</p>
-<p>现在我疑惑在第一次上架这块,没有上架就没法从苹果的服务器获取会员功能的商品列表</p>
-<p>“apple 文档说,App 的首个 App 内购买项目必须随新的 App 版本提交。”</p>
-<p>我应该怎么做呢? 功能很简单的话,是不是可以先本地写死,还是需要一个服务器来转一下</p>
-<p>谢谢🙏</p>
-]]></content:encoded>
-<pubDate>2024-12-31T04:03:05Z</pubDate>
-</item>
-<item>
-<title>[推广] 微信搜索绝味鸭脖小程序，进入后有个以大换大，免费领大腿了， 10w 份，先到先得，速度了</title>
-<link>https://www.v2ex.com/t/1101510</link>
-<guid>https://www.v2ex.com/t/1101510</guid>
-<content:encoded><![CDATA[
-<p>速度，我实测已抢到</p>
-]]></content:encoded>
-<pubDate>2024-12-25T13:07:20Z</pubDate>
 </item>
 </channel>
 </rss>
