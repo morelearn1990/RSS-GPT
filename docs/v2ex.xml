@@ -5,15 +5,342 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[MySQL] 数据库中 select for update 和 version 乐观锁各自的适用场景是啥?</title>
+<link>https://www.v2ex.com/t/1102681</link>
+<guid>https://www.v2ex.com/t/1102681</guid>
+<content:encoded><![CDATA[
+
+<p>(0) 如题</p>
+<p>(1) 比如转账/扣款相关的业务，推荐用悲观锁还是乐观锁?</p>
+<p>(2) 脑补了如下的乐观锁实现，可以满足并发转账和取钱需求吗? </p>
+<p>(3) 如果能，那么和悲观锁 select for update 作对比哪个更好?</p>
+<pre><code class="language-mysql"># 数据库初始状态
+TRUNCATE account;
+INSERT INTO account (id, name, balance, version)
+VALUES (1, 'ichigo', 10, 1),
+       (2, 'rukia', 10, 1);
+
+# 并发事务 1 转出全部余额
+START TRANSACTION;
+SELECT balance, version FROM account WHERE id = 1;
+SELECT version FROM account WHERE id = 2;
+UPDATE account SET balance = balance - 10, version = 2 WHERE id = 1 AND version = 1;
+UPDATE account SET balance = balance + 10, version = 2 WHERE id = 2 AND version = 1;
+COMMIT;
+
+# 并发事务 2 取出全部余额
+START TRANSACTION;
+SELECT balance, version FROM account WHERE id = 1;
+UPDATE account SET balance = balance - 10, version = 2 WHERE id = 1 AND version = 1;
+COMMIT;
+</code></pre>
+]]></content:encoded>
+<pubDate>2025-01-05T08:17:09Z</pubDate>
+<pubDate>2025-01-05T08:17:09Z</pubDate>
+</item>
+<item>
+<title>[Google Play] Google Pay 上架遭移除账号</title>
+<link>https://www.v2ex.com/t/1102680</link>
+<guid>https://www.v2ex.com/t/1102680</guid>
+<content:encoded><![CDATA[
+
+前几天开发完一个 app 满怀欣喜的上架，填写完毕 app 应用信息后提交审核，不到 2 天就收到了账号封禁的邮件，直接啥也不给操作了，现在还是懵逼状态，我的这个 app 是一个蓝牙控制 app 用到了蓝牙、定位权限，无广告，无网络请求，但是还是被封禁了，而且看情况封的是账号，怎么办有没有大佬帮助一下看看是什么情况。<br /><br /><a href="https://i.imgur.com/3vO9fwF.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/3vO9fwF.png" /></a><br /><br /><a href="https://i.imgur.com/AewQARI.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/AewQARI.png" /></a>
+]]></content:encoded>
+<pubDate>2025-01-05T08:13:05Z</pubDate>
+<pubDate>2025-01-05T08:20:54Z</pubDate>
+</item>
+<item>
+<title>[Apple] [二手 Watch] 请问小黄鱼二手官换 watch s9 有坑吗</title>
+<link>https://www.v2ex.com/t/1102679</link>
+<guid>https://www.v2ex.com/t/1102679</guid>
+<content:encoded><![CDATA[
+
+<h3>背景</h3>
+<p>心血来潮，想买个 s9(不锈钢)，奈何囊中羞涩，打开了小黄鱼，发现有很多美版蜂窝官换机(s9 不锈钢 未激活 3000)，同时也遇到有买了这种官换机又在小黄鱼出的（对方明确说了也是小黄鱼 10 月份买的官换机， 追问他为啥出，说是换手机了？ os: 10 月买的，不到三个月就换手机？）</p>
+<p>疑问：</p>
+<p>想问下这种有啥坑吗， 甚至还说有 AC ，能保 1 年(对方说如果需要使用 AC ，需要找他补开凭证，也就是不转 AC)，有点心动但是被坑，求指点 Orz</p>
+<p>或者有其他平台可以买吗</p>
+]]></content:encoded>
+<pubDate>2025-01-05T08:07:27Z</pubDate>
+<pubDate>2025-01-05T08:06:27Z</pubDate>
+</item>
+<item>
+<title>[Telegram] 为什么国内没有类似 Telegram 的产品？</title>
+<link>https://www.v2ex.com/t/1102678</link>
+<guid>https://www.v2ex.com/t/1102678</guid>
+<content:encoded><![CDATA[
+
+<p>可以有频道，群组的功能，每个人可以创建自己的频道，每天的所思所想可以在频道里发。其他人可以关注频道，收取频道的消息。可以围观，点赞。</p>
+]]></content:encoded>
+<pubDate>2025-01-05T08:03:41Z</pubDate>
+<pubDate>2025-01-04T16:03:41Z</pubDate>
+</item>
+<item>
+<title>[数据库] 关于数据进行历史删除和备份方案选择</title>
+<link>https://www.v2ex.com/t/1102677</link>
+<guid>https://www.v2ex.com/t/1102677</guid>
+<content:encoded><![CDATA[
+
+<p>我有一个 Postgres 数据库，其中有一个表格<code>records</code>用于记录温湿度记录。</p>
+<p>每天产生的数据很多，因为生产环境资源有限，我必须周期性将比较久的历史记录（比如 3 个月前）删除掉。</p>
+<p>但是，这些删除的记录实际上是有意义的，只能在生产环境删除，在后台环境实际要保留。我想到两个方案来实现：</p>
+<p>方案 A：</p>
+<p>在后台环境对生产环境进行 logical replication ，但是指定订阅的动作是<code>INSERT</code>和<code>UPDATE</code>，这样即使每天将历史记录删除，也不会同步删除后台环境的记录，从而保持下来了。</p>
+<p>但是这样有个问题，就是如果万一有一天需要重新同步（比如发生故障后主备切换，重新建立发布-订阅关系），那么这些历史数据就无法简单的保留了。</p>
+<p>方案 B:</p>
+<p>在后台环境对生产环境进行 logical replication ，对<code>records</code>表格进行常规的所有操作同步。但是在后台环境的数据库中建立一个新的同结构备份表格，比如<code>archive_records</code>。当从生产环境删除的时候，同时将记录移动到<code>archive_records</code>表中。</p>
+<p>这种方式有个不好的地方，就是跨库操作相对比较麻烦一点，需要用到 dblink 等操作。另外如果表格修改后，这一堆操作可能都得重新审计。</p>
+<p>不知道各位大佬觉得哪个好，或者有没有更好的方案。</p>
+]]></content:encoded>
+<pubDate>2025-01-05T07:57:14Z</pubDate>
+<pubDate>2025-01-05T07:57:14Z</pubDate>
+</item>
+<item>
+<title>[杭州] 杭州有联通卡没办宽带的，现在有活动</title>
+<link>https://www.v2ex.com/t/1102676</link>
+<guid>https://www.v2ex.com/t/1102676</guid>
+<content:encoded><![CDATA[
+
+杭州地区满 3 个月的联通卡（无宽带），免费领取一条 300M 宽带使用一年，一年后永久 10 元每月，安装费 100 ，可全返。<br />免费领取一条 1000M 宽带使用一年，一年后永久 20 元每月，安装费 158 ，可返 100 。<br /><br />移动和电信用户携转到联通可以办理 50 月租 195G 流量和 150 分钟通话+1 张副卡+300M 宽带，永久资费。<br /><br />联系 base64:(bGlhbnRvbmcwNTcx)
+]]></content:encoded>
+<pubDate>2025-01-05T07:52:56Z</pubDate>
+<pubDate>2025-01-05T07:53:53Z</pubDate>
+</item>
+<item>
+<title>[VPS] 🧱搬瓦工🧱： POWERBOX 来袭🚀🚀🚀，三网 CN2GIA 线路+1.5T 大流量，终于不用邀请码了</title>
+<link>https://www.v2ex.com/t/1102675</link>
+<guid>https://www.v2ex.com/t/1102675</guid>
+<content:encoded><![CDATA[
+
+<h1>搬瓦工：POWERBOX 来袭，三网 CN2GIA 线路+1.5T 大流量，终于不用邀请码了</h1>
+<h3>搬瓦工新款：POWERBOX 来袭！🚀🚀🚀</h3>
+<p>😎 </p>
+<h4>配置参数：</h4>
+<ul>
+<li>CPU：1 核 Intel</li>
+<li>内存：1536MB</li>
+<li>硬盘：30 GB SSD</li>
+<li><strong>流量：</strong>1500 GB/月</li>
+<li><strong>带宽：</strong>2.5Gbps</li>
+<li><strong>线路：</strong>三网回程 CN2GIA</li>
+<li><strong>价格</strong>: $41.9/年（循环折后，续费同）</li>
+</ul>
+<p>🈶🈶🈶<strong>折扣码</strong>：<code>BWHCGLUKKB</code> (-6.77%，循环) </p>
+<h3>🔗 🔗 🔗 <strong>购买链接</strong>：<a href="https://mypath.my.id/powerbox" rel="nofollow">点击跳转</a></h3>
+<h4><strong>亮点</strong>：</h4>
+<p>✨ <strong>三网回程 CN2GIA ，去程 CN2GIA+CU4837+CMIN2</strong></p>
+<p>✨ <strong>IP 被墙 30 天内可退款，售后无忧</strong> </p>
+<p>✨ <strong>DC99 新数据中心</strong>，目前应该是脱离测试阶段了，不内测了</p>
+<p>✨ <strong>DC99 将率先上线搬瓦工的 IPv6</strong></p>
+<h4><strong>相较 MiniBox 升级点</strong>：</h4>
+<ul>
+<li>磁盘：<strong>10G → 30G</strong></li>
+<li>内存：<strong>512Mb → 1536Mb</strong></li>
+<li>流量：<strong>500 GB/月 → 1500 GB/月</strong></li>
+<li>带宽：<strong>1Gbps → 2.5Gbps</strong></li>
+<li><strong>价格小幅提升，性能翻倍，性价比更高！</strong></li>
+</ul>
+<h3>解锁详情</h3>
+<p>可能使用瓦工的 DNS 来提升解锁：</p>
+<blockquote>
+<p><strong>172.31.255.2</strong> 就是瓦工用来解锁的<strong>内网</strong> DNS IP ，也就是瓦工自己的代理。</p>
+</blockquote>
+<blockquote>
+<p><strong>Dazn</strong>: Failed ❌ (Error: )</p>
+<p><strong>Disney+</strong>: No 🚫 (IP Banned By Disney+ 1)</p>
+<p><strong>Netflix</strong>: Originals Only 🎬</p>
+<p><strong>YouTube Premium</strong>: Yes ✅ (Region: US 🇺🇸)</p>
+<p><strong>Amazon Prime Video</strong>: Yes ✅ (Region: US 🇺🇸)</p>
+<p><strong>TVBAnywhere+</strong>: Yes ✅</p>
+<p><strong>Spotify Registration</strong>: Yes ✅ (Region: US 🇺🇸)</p>
+<p><strong>OneTrust Region</strong>: US [California] 🌎</p>
+<p><strong>iQyi Oversea Region</strong>: US 🇺🇸</p>
+<p><strong>Bing Region</strong>: US 🇺🇸</p>
+<p><strong>YouTube CDN</strong>: Los Angeles, CA 🌴</p>
+<p><strong>Netflix Preferred CDN</strong>: Los Angeles, CA 🌴</p>
+<p><strong>ChatGPT</strong>: Yes ✅</p>
+<p><strong>Google Gemini</strong>: Yes ✅ (Region: USA 🇺🇸)</p>
+<p><strong>Wikipedia Editability</strong>: No 🚫</p>
+<p><strong>Google Play Store</strong>: United States 🇺🇸</p>
+<p><strong>Google Search CAPTCHA Free</strong>: Yes ✅</p>
+<p><strong>Steam Currency</strong>: USD 💵</p>
+<p><strong>Reddit</strong>: No 🚫</p>
+</blockquote>
+]]></content:encoded>
+<pubDate>2025-01-05T07:47:04Z</pubDate>
+<pubDate>2025-01-05T08:19:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 是不是要进入全民乱舞，各显神通的阶段了</title>
+<link>https://www.v2ex.com/t/1102673</link>
+<guid>https://www.v2ex.com/t/1102673</guid>
+<content:encoded><![CDATA[
+
+<p>以后稳定的外部环境，稳定的工作，可能只有少部分人拥有。</p>
+<p>更多的人会被迫降维，最终落入市井中，最近了解到了好些人家是怎么挣钱的，最厉害的三个人做的生意能够干过一个中型设计院的产值，包括我运营优土地平台积累了两年资源和人脉，折腾法拍房业务等，都希望能够生根发芽……</p>
+<p>未来已来，大家都准备好了么😄</p>
+]]></content:encoded>
+<pubDate>2025-01-05T07:43:15Z</pubDate>
+<pubDate>2025-01-05T08:15:06Z</pubDate>
+</item>
+<item>
+<title>[求职] [郑州/北京/上海][PMO/project manager/Scrum Master]20 年 QA/PM/SM/PMO 求职，外企+私企+国企中厂背景，年龄尴尬，求内推，或者帮忙分析出路</title>
+<link>https://www.v2ex.com/t/1102672</link>
+<guid>https://www.v2ex.com/t/1102672</guid>
+<content:encoded><![CDATA[
+
+<p>职业背景：
+6 年 QA ，15 年产研及项目交付经验，熟悉 Scrum/SAFe/瀑布式敏捷，灵活运 WBS,CPM,EVM 进行进度、成本管控。
+有跨国团队协作经验，英语熟练。
+善于迭代，总结分享自己的方法论和最佳实践。</p>
+<p>其他:
+据说 40+就没有机会，实际也是这样，面试机会屈指可数，大家如果有合适的机会帮忙内推一下，也可以交流下后半生方向，感谢！！！</p>
+]]></content:encoded>
+<pubDate>2025-01-05T07:35:40Z</pubDate>
+<pubDate>2025-01-05T07:33:40Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 花半天时间开发了一个 TikTok 的 Emoji 网站</title>
+<link>https://www.v2ex.com/t/1102671</link>
+<guid>https://www.v2ex.com/t/1102671</guid>
+<content:encoded><![CDATA[
+
+<p>网址： <a href="https://www.tiktokemoji.co/" rel="nofollow">https://www.tiktokemoji.co/</a></p>
+<p>我做了这个简单的在线工具，让大家都能轻松找到想要的 TikTok 的 Emoji 表情！</p>
+<p>工具特点：</p>
+<p>🌟 一键复制：看到喜欢的表情，点击就能用，超级方便！
+🎨 分类清晰：想要什么类型的表情一目了然
+✨ 随时更新：及时收录最新最火的 TikTok 表情</p>
+<p>界面超简单，打开网站就能直接用，不需要注册登录。特别适合经常在 TikTok 评论的小伙伴！</p>
+<p>目前还是第一版，后续会加入更多好玩的功能。如果你有什么想法或建议，随时告诉我哦！</p>
+<p>来试试看吧，让你的评论与众不同！✌️</p>
+]]></content:encoded>
+<pubDate>2025-01-05T07:34:46Z</pubDate>
+<pubDate>2025-01-05T07:31:46Z</pubDate>
+</item>
+<item>
+<title>[问与答] 我发现三星固态硬盘比别的品牌要贵上 20%，算不算智商税呢？</title>
+<link>https://www.v2ex.com/t/1102670</link>
+<guid>https://www.v2ex.com/t/1102670</guid>
+<content:encoded><![CDATA[
+
+需要买固态硬盘存游戏，去京东看了一眼，三星硬盘和别的牌子，价格区间有明显断层。<br /><br />一边是品牌，另一边是钱包，不知道怎么选，陷入了深深的迷茫。
+]]></content:encoded>
+<pubDate>2025-01-05T07:33:50Z</pubDate>
+<pubDate>2025-01-04T23:30:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 小火箭使用求助</title>
+<link>https://www.v2ex.com/t/1102668</link>
+<guid>https://www.v2ex.com/t/1102668</guid>
+<content:encoded><![CDATA[
+
+路由器 openwrt ，开 ddns-go ，手机不开小火箭时候，可以外网通过域名访问路由器主页，开了小火箭，全局路由那里不管选择直连还是配置，都显示“网址为 XXX 的页面可能存在问题，或者已永久移动到新的网址。”代理日志里对于该域名走的规则是 GEOIP,CN,DIRECT ，也换了其他配置文件，也都是走的国内直连，但就是路由器主页打不开，想问下大家有没有解决思路，谢谢。
+]]></content:encoded>
+<pubDate>2025-01-05T07:21:19Z</pubDate>
+<pubDate>2025-01-04T23:21:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] 使用 zfs 存储池也能对数据库存储的数据进行字节存储?</title>
+<link>https://www.v2ex.com/t/1102667</link>
+<guid>https://www.v2ex.com/t/1102667</guid>
+<content:encoded><![CDATA[
+
+<p>看了这个帖子的楼主回复
+<a href="https://www.v2ex.com/t/1102533#reply10" rel="nofollow">https://www.v2ex.com/t/1102533#reply10</a></p>
+<p>@<a href="https://www.v2ex.com/member/ryd994">ryd994</a> 就因为 zfs 有 dedup 才用的，省硬盘。如果不用的话，为啥不直接 mdadm,组软 raid ，后期直接上 raid 卡也成。</p>
+<p>我百度查了下去重的可选项</p>
+<p>文件级的去重对文件作为整体来计算 hash 签名，如果处理的是自然的文件，则此方法需要的消耗最小，但是缺点是对文件的任何修改都需要重新计算文件的 hash 签名，即对文件的任何修改，将使得此文件之前节约的空间消失，因为两个文件将不再相同。此中方法比较适合类似于文件 JPEG ，MPEG ，但是对于像虚拟机镜像（大文件）文件将无效，因为即使他们只是很小的一部分不同，但是文件级别他们将是不同的文件。</p>
+<p>块级别的去重（相同大小的块），相比文件级的去重，需要更多的计算消耗，但是他能够很好地对像虚拟机镜像类似的大文件去重。大部分的虚拟机镜像文件是重复数据，例如镜像文件中的操作系统部分。使用块级的去重将使得只有镜像特别的数据才占用额外的空间，相同的数据将共享。</p>
+<p>字节级别的去重，将需要更多的计算消耗来决定重复数据的开始和结束区域，不管怎么说，此方法对 mail 服务器来说是理想的选择，例如一个邮件的附件可能出现很多次，但是使用块级别去重时他们并不能被优化。此类型的去重一般用来一些应用程序的去重中，例如 exchangeserver ，因为应用程序知道他管理的数据，可以在内部容易地去重。</p>
+<p>那我开启字节级别去重 ,不久相当于把数据库中的字段重复数据进行去重了?</p>
+]]></content:encoded>
+<pubDate>2025-01-05T07:14:13Z</pubDate>
+<pubDate>2025-01-05T07:13:13Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请问哪里有便宜的云 MySQL 服务？</title>
+<link>https://www.v2ex.com/t/1102664</link>
+<guid>https://www.v2ex.com/t/1102664</guid>
+<content:encoded><![CDATA[
+
+<p>我有在不同地方购买优惠的云服务器的癖好，一年优惠过期之后也不续费，阿里云、华为云以及海外的小鸡都有购买。
+但是我不部署 mysql 在机器上，因为到期了迁移比较麻烦。</p>
+<p>所以之前在阿里云购买了 4 年的 MySQL 服务，当时价格便宜，平均每年只需 54 元。配置是最低的，20GB 存储，1 核，1GB 内存，甚至还有免费的备份
+主要用于个人项目的开发，方便在不同机器上操作。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://twelveeee-note.oss-cn-beijing.aliyuncs.com/Image/20250105145004.png" /></p>
+<p>现在，如果续费这台机器，一年需要 540 元，死🐎贵。</p>
+<p>请问哪里有便宜的云 MySQL 服务？</p>
+]]></content:encoded>
+<pubDate>2025-01-05T06:59:58Z</pubDate>
+<pubDate>2025-01-05T07:23:47Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [招聘][远程][兼职/全职] 前端开发实习生</title>
+<link>https://www.v2ex.com/t/1102663</link>
+<guid>https://www.v2ex.com/t/1102663</guid>
+<content:encoded><![CDATA[
+
+<p>职位描述</p>
+<p>我们正在寻找 1~2 位技术过硬、热爱挑战的前端开发工程师，加入我们的核心团队，从零开始打造一款前所未有的创新产品，为成千上万的北美家庭提供优质服务。</p>
+<p>工作职责</p>
+<ul>
+<li>使用 React.js 和 React.js Hooks 进行核心功能开发和优化，确保代码质量和卓越的用户体验。</li>
+<li>精准还原 Figma 设计稿，实现高保真度的响应式页面布局，注重细节和设计一致性。</li>
+<li>熟练掌握 CSS ，优化界面样式，处理复杂的动画效果和响应式设计。</li>
+<li>参与前端架构设计和组件库开发，提升代码的复用性和可扩展性。</li>
+<li>基于 Next.js 开发服务端渲染（ SSR ）或静态站点生成（ SSG ），满足产品高性能需求。</li>
+<li>深入参与性能优化工作，解决复杂技术问题，提升页面加载速度和稳定性。</li>
+<li>与位于北美/欧洲的团队密切协作，参与跨时区的项目开发，与后端工程师、设计师和产品经理紧密配合。</li>
+</ul>
+<p>任职要求</p>
+<ul>
+<li>精通 React.js 和 React.js Hooks ，具有扎实的前端开发经验。</li>
+<li>熟悉 CSS3 ，并擅长实现高质量的响应式设计和布局，确保在不同设备上的一致体验。</li>
+<li>具备精准还原 Figma 设计稿的能力，注重细节和设计一致性。</li>
+<li>熟悉 JavaScript （ ES6+） 和前端工程化工具（如 Webpack 、Vite ）。</li>
+<li>熟练使用 Next.js ，并有 SSR 或 SSG 实践经验者优先。</li>
+<li>具备优秀的沟通能力，能够适应远程协作环境，与海外团队高效合作。</li>
+</ul>
+<p>加分项</p>
+<ul>
+<li>熟悉 TypeScript ，并对后端技术（如 Node.js 、Express 等）有一定了解或实践经验者优先。</li>
+<li>我们鼓励有志于成为 Full-Stack Engineer 的候选人加入。</li>
+</ul>
+<p>岗位亮点</p>
+<ul>
+<li>跨国协作： 与北美团队紧密合作，体验国际化的工作氛围，拓展全球视野。</li>
+<li>导师制成长： 由来自跨国科技资深工程师提供指导，助力个人快速成长和职业发展。</li>
+<li>创新挑战： 参与从零到一的创新产品开发，直接影响产品方向和用户体验，拥有更大的职业发展空间。</li>
+</ul>
+<p>如果你热衷于前端技术，擅长打造响应式用户界面并热爱细节，我们诚邀你加入，与优秀的团队成员一起成长，共同书写新的篇章！</p>
+<p>如果您感兴趣，请发送中文/英文简历至 [lb@littlelongbao.ai]</p>
+]]></content:encoded>
+<pubDate>2025-01-05T06:41:04Z</pubDate>
+<pubDate>2025-01-05T06:40:04Z</pubDate>
+</item>
+<item>
+<title>[Python] 最近想搞个爬虫爬点东西, 目前 Python 那个框架最好用呢</title>
+<link>https://www.v2ex.com/t/1102662</link>
+<guid>https://www.v2ex.com/t/1102662</guid>
+<content:encoded><![CDATA[
+
+<p>都说 python 最擅长爬虫</p>
+<p>但实际上我以前没啥需求, 没怎么实践过</p>
+<p>请推荐下实际生产项目中好用的爬虫框架或方案</p>
+]]></content:encoded>
+<pubDate>2025-01-05T06:36:15Z</pubDate>
+<pubDate>2025-01-05T08:21:50Z</pubDate>
+</item>
+
+<item>
 <title>[WordPress] WordPress 有类似这样的主题吗？</title>
 <link>https://www.v2ex.com/t/1102661</link>
 <guid>https://www.v2ex.com/t/1102661</guid>
 <content:encoded><![CDATA[
-
 <p>写了一个开源项目，需要做一个网页，并在网页中罗列出项目的各种特点，并带有下载页面</p>
 <p>可能大家觉得这些功能实现起来很简单，奈何我对前端这些东西一窍不通，问问大家，WordPress 有没有类似的主题</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T06:21:41Z</pubDate>
 <pubDate>2025-01-05T06:21:41Z</pubDate>
 </item>
 <item>
@@ -21,10 +348,8 @@
 <link>https://www.v2ex.com/t/1102658</link>
 <guid>https://www.v2ex.com/t/1102658</guid>
 <content:encoded><![CDATA[
-
 <p>如题，大学生没信用卡的情况下</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T06:15:36Z</pubDate>
 <pubDate>2025-01-05T06:29:31Z</pubDate>
 </item>
 <item>
@@ -32,7 +357,6 @@
 <link>https://www.v2ex.com/t/1102657</link>
 <guid>https://www.v2ex.com/t/1102657</guid>
 <content:encoded><![CDATA[
-
 <p>目前用的是 jbl 冲击波 6 ，用了一年多，现在总是出现现象，有的时候刚暂停一下立马继续播放就会断连。时间长一点离开后播放还需要关闭音响再打开才能连上，实在太烦了，想换一款。</p>
 <p>目前看中的是马歇尔 acton3,emberton3,b&amp;o 的 A1
 没有便携的需求，但是房间很小，不考虑体积太大的，也用不上（最大接受马歇尔 acton3 的体积大小）
@@ -41,7 +365,6 @@ acton3 是因为看小红书上有人控诉总连着电源主板烧了（这个�
 b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <p>请问各位还有好的推荐嘛？或者这三款更推荐哪一款？</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T06:15:19Z</pubDate>
 <pubDate>2025-01-05T06:14:19Z</pubDate>
 </item>
 <item>
@@ -49,7 +372,6 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102656</link>
 <guid>https://www.v2ex.com/t/1102656</guid>
 <content:encoded><![CDATA[
-
 <p>我是 [伟途亦可思] 开发者，最近有不少人通过 App 反馈问我为什么加广告了，以及 V 站上也有几个相关的帖子，所以我说明一下。</p>
 <h1>1.为什么开发 [伟途亦可思]</h1>
 <p>App 是 19 年上线的，因为我之前属于 V 站重度用户（截止今天 V 站连续 1500 天），我个人又比较喜欢用 App 来浏览内容，所以我就开发了 [伟途亦可思] 这款 App ，然后上架到 AppStore 并且在 V 站做了一些推广。我的初心是打算一直免费并维护，做到最好的 V 站第三方 App 。从 19 年到最近，也确实是一直没收费，并且去年开发了 Android 版本，同样也是免费无广告的。</p>
@@ -63,7 +385,6 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <p>经过这个事，以后我也不打算再做完全免费的产品了，产品做的再好，只要开始有广告或者收费，用户就会弃之而去，还不如开始就奔着赚钱去</p>
 <p>有还在用 [伟途亦可思] 的 V 友可以继续反馈问题跟建议，只要我自己还在逛 V 站，App 我就会继续优化下去，毕竟我自己一直在用。</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T06:04:16Z</pubDate>
 <pubDate>2025-01-05T06:14:39Z</pubDate>
 </item>
 <item>
@@ -71,11 +392,9 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102652</link>
 <guid>https://www.v2ex.com/t/1102652</guid>
 <content:encoded><![CDATA[
-
 <p>目前已婚，即将三十，婚姻关系正常；不知是对婚姻或者说两人生活的消退，愈发想摆脱或者对异性祛魅</p>
 <h3>请理性发言，纯粹讨论，不牵连附带狭隘、攻击性言论</h3>
 ]]></content:encoded>
-<pubDate>2025-01-05T05:31:11Z</pubDate>
 <pubDate>2025-01-05T06:25:25Z</pubDate>
 </item>
 <item>
@@ -83,11 +402,9 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102651</link>
 <guid>https://www.v2ex.com/t/1102651</guid>
 <content:encoded><![CDATA[
-
 <p>显示 attention required,  Sorry, you have been blocked You are unable to access vocal.media</p>
 <p>是我的梯子的不够好吗？</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T05:25:27Z</pubDate>
 <pubDate>2025-01-05T05:25:27Z</pubDate>
 </item>
 <item>
@@ -95,7 +412,6 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102650</link>
 <guid>https://www.v2ex.com/t/1102650</guid>
 <content:encoded><![CDATA[
-
 <p>本来想用这台 GEM12 作为主力 PVE 服务器的，服务器是 PVE8.3.0 ，配置 96G 内存，4T 固态。 详细链接: <a href="https://item.jd.com/10097212209268.html" rel="nofollow">https://item.jd.com/10097212209268.html</a></p>
 <p>但是现在 4T 固态经常运行一段时间后报错，固态是三星 990 PRO ，报错如下：
 <img alt="报错" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/e3PDp0u.png" /></p>
@@ -104,7 +420,6 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <p>猜测可能是主板分配给固态的供电有问题，问了下客服说是只测过 2T 的固态，可能性更大了，准备换 2T 固态试试。</p>
 <p>求问，有没有 v 友遇到过类似的问题？之前都是在自己组的 ITX 小主机装 PVE ，没遇到过系统问题。</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T05:20:17Z</pubDate>
 <pubDate>2025-01-05T05:19:17Z</pubDate>
 </item>
 <item>
@@ -112,13 +427,11 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102649</link>
 <guid>https://www.v2ex.com/t/1102649</guid>
 <content:encoded><![CDATA[
-
 <p>用的是华硕路由器 AC86U
 智能设备一般是米家灯、智能插座什么
 隔一段时间就全部掉线了，然后重启路由器就好了
 怎么解决，中枢网关智能链接蓝牙的，wifi 协议的不好使，还得靠滤油器</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T05:19:39Z</pubDate>
 <pubDate>2025-01-05T05:19:39Z</pubDate>
 </item>
 <item>
@@ -126,10 +439,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102647</link>
 <guid>https://www.v2ex.com/t/1102647</guid>
 <content:encoded><![CDATA[
-
 如题，求个付费的源，更新及时，清晰，服务器在国内不用挂梯子能高速访问观看的
 ]]></content:encoded>
-<pubDate>2025-01-05T05:16:24Z</pubDate>
 <pubDate>2025-01-05T02:15:24Z</pubDate>
 </item>
 <item>
@@ -137,10 +448,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102646</link>
 <guid>https://www.v2ex.com/t/1102646</guid>
 <content:encoded><![CDATA[
-
 本人非科班跨考，估分可能在目标院校复试线左右，政治英语松点可能略高，对复试面试无十足的把握，来 V 站问问过来人的意见。<br />目前在准备复试，是深度学习方向的内容，不知道复试如果失败再去准备春招会不会太晚了，毕竟复试方向和工作不一样？目前基础仅限于 c/c++和 408 四门课，做过国外几个网课的 lab
 ]]></content:encoded>
-<pubDate>2025-01-05T05:10:29Z</pubDate>
 <pubDate>2025-01-05T05:08:29Z</pubDate>
 </item>
 <item>
@@ -148,10 +457,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102643</link>
 <guid>https://www.v2ex.com/t/1102643</guid>
 <content:encoded><![CDATA[
-
 <p>如题, 网上看到一些比较好的博文文章, 想一键下载为 markdown,包括对应的图片资源. 不知道有没有比较好的插件?</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T04:47:20Z</pubDate>
 <pubDate>2025-01-05T05:29:38Z</pubDate>
 </item>
 <item>
@@ -159,10 +466,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102641</link>
 <guid>https://www.v2ex.com/t/1102641</guid>
 <content:encoded><![CDATA[
-
 我们是谁？<br /><br />我们是 Openmart ，一家专注于用 AI 赋能销售和 AI 地图数据挖掘的硅谷创业公司，由全球顶级创业孵化器 Y Combinator 毕业。团队由曾登榜 Forbes 最具影响力华人精英、美国 Fintech 100 女性榜单的联合创始人领衔，多次被知名中美媒体报道。我们致力于提供全球领先的销售数据解决方案，帮助客户用 AI 从海量数据中挖掘商业洞察。目前，公司正处于快速扩张阶段，期待技术领袖的加入，与我们携手打造行业未来！<br /><br />岗位要求：<br />	•	2 年以上 TypeScript/React 开发经验，熟悉其生态系统和最佳实践。<br />	•	1 年以上 Next.js 实际项目经验，能够独立完成复杂的前端开发任务。<br />	•	丰富的 Web 前端开发经验，具备出色的编码能力和代码质量意识。<br />	•	最好拥有一定 Supabase 数据库经验<br />	•	英语流畅，能够进行无障碍的沟通和协作。<br />	•	有初创公司经验者优先，曾在初创环境中领导过重要项目。<br />	•	拥有初创公司精神，喜欢自主研发项目，愿意承担从头到尾的责任。<br /><br />待遇：<br />$2500-$4000(每月), 15 薪<br /><br />地址：<br />上海，新天地附近。<br /><br />面试流程：<br />1 轮 background 45min 没有 coding<br />1 轮 system design+light coding 45min<br />1 轮 work trial/mini-project<br /><br />申请流程：<br />请将简历+论坛地址发送到 hiring@openmart.com
 ]]></content:encoded>
-<pubDate>2025-01-05T04:45:40Z</pubDate>
 <pubDate>2025-01-05T04:45:40Z</pubDate>
 </item>
 <item>
@@ -170,12 +475,10 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102638</link>
 <guid>https://www.v2ex.com/t/1102638</guid>
 <content:encoded><![CDATA[
-
 <p>一直用的 obsidian 记笔记</p>
 <p>上次旅游用 notion 想做个旅游攻略，才刚写个「 xx 几日游」，结果 notion ai 非常智能的帮我把攻略做出来了，很是好用</p>
 <p>所以想问问 v 友们，obsidian 有没有类似的写作辅助插件～</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T04:30:05Z</pubDate>
 <pubDate>2025-01-05T04:50:21Z</pubDate>
 </item>
 <item>
@@ -183,10 +486,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102637</link>
 <guid>https://www.v2ex.com/t/1102637</guid>
 <content:encoded><![CDATA[
-
 伟图亦可思有广告了<br />         想换一个没有广告的客户端
 ]]></content:encoded>
-<pubDate>2025-01-05T04:28:39Z</pubDate>
 <pubDate>2025-01-05T06:28:34Z</pubDate>
 </item>
 <item>
@@ -194,10 +495,8 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102653</link>
 <guid>https://www.v2ex.com/t/1102653</guid>
 <content:encoded><![CDATA[
-
 <p>弧形的菜单切换, 支持滑动</p>
 ]]></content:encoded>
-<pubDate>2025-01-05T05:37:57Z</pubDate>
 <pubDate>2025-01-05T05:51:18Z</pubDate>
 </item>
 <item>
@@ -205,13 +504,10 @@ b&amp;o 的 A1 是蓝牙 5.1 的 毕竟感觉有点老了=。=</p>
 <link>https://www.v2ex.com/t/1102645</link>
 <guid>https://www.v2ex.com/t/1102645</guid>
 <content:encoded><![CDATA[
-
 <p>弧形的菜单切换, 支持滑动</p>
 ]]></content:encoded>
 <pubDate>2025-01-05T05:07:40Z</pubDate>
-<pubDate>2025-01-05T05:07:40Z</pubDate>
 </item>
-
 <item>
 <title>[Apple] 我靠，买个 11 寸美版蜂窝版 iPad 翻车了，现在无法激活 3HK 的 ESIM 了，怎么办</title>
 <link>https://www.v2ex.com/t/1102635</link>
@@ -16277,196 +16573,6 @@ Doodle Empires is a historical sandbox game where players can draw their own nat
 <p>它不是最好看，最乖，最亲人的小猫，可是它是我独一无二的七仔。</p>
 ]]></content:encoded>
 <pubDate>2024-12-30T14:19:00Z</pubDate>
-</item>
-<item>
-<title>[程序员] 《深入 PHP 内核源码》或者说是《深入工业级 C 项目： PHP 解释器》原创视频</title>
-<link>https://www.v2ex.com/t/1101399</link>
-<guid>https://www.v2ex.com/t/1101399</guid>
-<content:encoded><![CDATA[
-<h2>各位 V 友好，帖子比较长，打扰大家啦，顺便给大家拜个早年。</h2>
-<p>除了 B 站和个人微信群的零星分享之外，这是第一次完整的宣传自己的小作品。</p>
-<p>是的，旧贴新说 [起初只有零星视频骨架] ，距旧帖之后就开始疯忙标题所述之事，没再泡 V 站，尔后看到评论，有批评有鼓励，对于批评的虚心接受，对于鼓励的表示感谢。</p>
-<p>是的，这既一个技术分享贴，也是一个广告贴，因为不在职场，和大家一样都需要养家糊口，所以有广告成分希望理解。</p>
-<p>技术分享说的是个人开源爬虫项目爬山虎，有兴趣的可以关注，项目本身没有什么高深的技术含量，只有些许使用门槛。<a href="https://github.com/blogdaren/PHPCreeper" rel="nofollow">https://github.com/blogdaren/PHPCreeper</a></p>
-<p>技术广告说的是个人付费作品：<strong>原创视频《深入 PHP 内核源码》</strong>，断断续续历时两年，几近完工，总共 100 章节，希望它能给有需要的小伙伴带来真正的技术提升价值。</p>
-<h2>关于《深入 PHP 内核源码》原创视频的制作背景:</h2>
-<ul>
-<li>视频是本人精心制作的原创作品，研究的是 PHP 内核源码，而非 PHP 上层或周边，换句话：研究的是工业级的 C 项目：PHP 解释器，全部立足于：<strong>源码解读 + GDB 调试 + 实战例证</strong>，视频中没有任何花里胡哨的东西，只有求真务实的源码探索，以及探索许许多个为什么。</li>
-<li>视频配套文档是本人一个字一个字随堂认真敲入而来，文字总数高达近 30000 字，且附有大量自绘原创插图。
-所以如果你是通过 B 站或 V 站联系到本人，<strong>计划在视频录制结束之后的合适时间以纸质书籍的形式免费赠与有缘小伙伴</strong>。</li>
-<li>本人没有任何的团队，从爬山虎开源项目本身、爬山虎开发文档编写、各种公益性的爬山虎问题解答，然后到本套视频的 PHP 内核源码研究、视频讲解、视频录制、视频的剪辑、插图的绘制、视频配套文档的编写以及若干杂项事宜等等，全程就自己一个人，一切都是用心认真对待的，耗费了本人巨大的时间和精力，创作不易，希望有需要的小伙伴能够支持本人的这套原创课程，赚钱虽然是本人的目的之一，但更重要是希望这套课程发挥真正的价值，创造技术价值为先，商业在后。</li>
-<li>关于视频完整的开篇介绍详见视频：
-<a href="https://www.bilibili.com/video/BV1pP4y1G7ae/" rel="nofollow">https://www.bilibili.com/video/BV1pP4y1G7ae/</a></li>
-<li>关于视频配套文档和完整目录章节详见视频：
-<a href="https://www.bilibili.com/video/BV1RH6VYqEYA/" rel="nofollow">https://www.bilibili.com/video/BV1RH6VYqEYA/</a></li>
-<li>本人 VX：phpcreeper</li>
-</ul>
-]]></content:encoded>
-<pubDate>2024-12-30T14:19:13Z</pubDate>
-</item>
-<item>
-<title>[Apple] windows 的电脑如何把应用上架 app store</title>
-<link>https://www.v2ex.com/t/1101398</link>
-<guid>https://www.v2ex.com/t/1101398</guid>
-<content:encoded><![CDATA[
-<p>没有 mac 电脑，只有一台 windows ，可以上架应用到苹果商店吗？</p>
-]]></content:encoded>
-<pubDate>2024-12-30T14:15:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 淘宝直播和视频号直播，选个什么手机合适？</title>
-<link>https://www.v2ex.com/t/1101397</link>
-<guid>https://www.v2ex.com/t/1101397</guid>
-<content:encoded><![CDATA[
-尽可能性价比高，有无线网络环境
-]]></content:encoded>
-<pubDate>2024-12-30T13:59:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请教下 blog.waytoagi.com 背后使用的工具或者 cms 之类的技术是？ 是 notion 吗？</title>
-<link>https://www.v2ex.com/t/1101394</link>
-<guid>https://www.v2ex.com/t/1101394</guid>
-<content:encoded><![CDATA[
-<p><a href="https://blog.waytoagi.com/" rel="nofollow">https://blog.waytoagi.com/</a></p>
-<p>看到代码里有很多 notion 相关的字眼。  所以，请教下</p>
-]]></content:encoded>
-<pubDate>2024-12-30T13:45:11Z</pubDate>
-</item>
-<item>
-<title>[Apple] 有没有 master 3s 摩擦鼠标垫声音大的病友</title>
-<link>https://www.v2ex.com/t/1101393</link>
-<guid>https://www.v2ex.com/t/1101393</guid>
-<content:encoded><![CDATA[
-<p>做了点预习，给 mac mini 配了罗技的 master 3s 鼠标，但是用起来总感觉不舒服，主要是在鼠标垫上滑动时，发出的摩擦声很大，可视为噪音的那种，像是在刮鼠标垫的表皮。</p>
-<p>对比了下老的雷蛇有线鼠标，很丝滑。担心是我的鼠标垫太普通了，还去研究了一番买了个电竞专业鼠标垫，结果感受一样，继续磨。</p>
-<p>想问问有没有其它 v 友有此类问题的，是怎么解决的？或是直接在桌板滑动？</p>
-<p>已经约了换货，但预感不会有啥变化，计划换一个鼠标了，大家有没有推荐的</p>
-]]></content:encoded>
-<pubDate>2024-12-30T14:02:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大佬给点学习建议</title>
-<link>https://www.v2ex.com/t/1101390</link>
-<guid>https://www.v2ex.com/t/1101390</guid>
-<content:encoded><![CDATA[
-考完研感觉应该是上不了了，现在准备 B 站跟着黑马学 Java 年后找个工作。<br />之前稍微有点 Java 基础，面向对象啥的就不用说了，一些高阶的像什么集合、IO 流只能感觉学过但是具体什么也不清楚。然后就是 JavaWeb 这一块，之前也学过一点但是基本没怎么应用，SQL 语句倒是写的不少，mybatis 也用过，但是现在过去很长时间了很模糊。<br />就是我想问现在能不能直接去跟着黑马的案例去一个个实现它的功能，把之前遗忘的或者是遗漏的补回来呢？还是说从头开始呢，但我感觉也不现实，因为好多半会不会的，没有一开始那个劲，或者能给个建议从那一块开始拾起来比较好。
-]]></content:encoded>
-<pubDate>2024-12-30T13:54:59Z</pubDate>
-</item>
-<item>
-<title>[生活] 晒晒你的年度关键词</title>
-<link>https://www.v2ex.com/t/1101389</link>
-<guid>https://www.v2ex.com/t/1101389</guid>
-<content:encoded><![CDATA[
-<h2>2024 医院</h2>
-<p>回顾了一下，这一年跑了太多医院，大概有三分之一的里程都是和医院相关的。</p>
-<p>3 4 5 8 9 10 11 12 几个月都和医院相关，分别陪几位家人去检查、治疗、住院、手术、出院和复查。未来几个月还有复查要跑，以及暂时无法安排的住院手术项目。</p>
-<p>上有老下有小的感觉不算轻松，希望各位都能保持健康。多买点医疗相关的保险，但希望永远用不到。</p>
-<h2>其他关键词</h2>
-<ul>
-<li>反思</li>
-<li>成长</li>
-<li>穷</li>
-</ul>
-<h2>往年关键词</h2>
-<ul>
-<li>2018 家</li>
-<li>2019 赚钱</li>
-<li>2020 生活</li>
-<li>2021 孕</li>
-<li>2022 女儿</li>
-<li>2023 陪伴</li>
-</ul>
-<p>（ 1 - 3 ）</p>
-]]></content:encoded>
-<pubDate>2024-12-30T14:17:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 自如的智能网关 wifi 账号密码是共用的吗？</title>
-<link>https://www.v2ex.com/t/1101388</link>
-<guid>https://www.v2ex.com/t/1101388</guid>
-<content:encoded><![CDATA[
-刚租的房，看 wifi 密码是默认的，想改掉。但是这个 wifi 账号密码是公用的还是每个人一套？如果是公用的我就不改了。
-]]></content:encoded>
-<pubDate>2024-12-28T13:30:58Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 联通拨号后 IPv4 无法使用， IPv6 正常，被联通小哥问是不是翻墙了</title>
-<link>https://www.v2ex.com/t/1101387</link>
-<guid>https://www.v2ex.com/t/1101387</guid>
-<content:encoded><![CDATA[
-突然出现的情况，openwrt 后台 pppoe 不显示 IPv4 ，只有 IPv6 ，使用 ping 也是一样，IPv4 不通，IPv6 可以通，<a href="http://test6.ustc.edu.cn" rel="nofollow noopener" target="_blank">test6.ustc.edu.cn</a> 也可以访问，但是 v4 网页都不行<br /><br />问了一下联通小哥，他问我是不是翻墙了/看 x/看 fangong 内容这类，是不是下东西了。我回只看油管，不看 x 和 fangong ，不怎下东西，他说基本上是限制了，或者流量用完了。估计下个月就好<br /><br />试了一下用光猫拨号，既有 IPv4 也有 IPv6 ，但是 v4 依然不通，也 ping 不通，v6 正常
-]]></content:encoded>
-<pubDate>2024-12-30T14:02:34Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [北京] AIGC 创业团队真诚开放 onsite / remote 工程师岗位，感兴趣的大佬们可以停下脚步看看我们！</title>
-<link>https://www.v2ex.com/t/1101386</link>
-<guid>https://www.v2ex.com/t/1101386</guid>
-<content:encoded><![CDATA[
-RT 公司 base 北京海淀五道口，技术氛围超 nice ，目前开放的岗位包括但不限于：<br />1 、后端（ node.js ）<br />2 、移动端（ RN ）<br />3 、AI （ llm finetune ）<br />4 、QA （ Web &amp; APP ）<br />5 、 不在上述行列但真的很感兴趣。<br />薪资 open ，scope 很大。<br /><br />感兴趣的大佬可以直接+v：MTM5NDQ4NzU4MTE=，期待各位大佬拯救一个收不到简历的心碎 HR ！！
-]]></content:encoded>
-<pubDate>2024-12-30T13:37:57Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大佬们新出的 deepseek 能在 iPhone 上用第三方 app 使用吗</title>
-<link>https://www.v2ex.com/t/1101385</link>
-<guid>https://www.v2ex.com/t/1101385</guid>
-<content:encoded><![CDATA[
-小弟非程序员不太懂，请教下<br /><br />手机有 botgem 用 chatgpt 的 api ，不知道这个 deepseek 是需要先充钱才能在手机上用吗？
-]]></content:encoded>
-<pubDate>2024-12-30T13:16:21Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [西安] 初创的 AIGC 公司，现招聘 UI / 平面设计 / 前端 / 后端 / 安卓 / 产品经理 / 项目经理 / 架构师等</title>
-<link>https://www.v2ex.com/t/1101384</link>
-<guid>https://www.v2ex.com/t/1101384</guid>
-<content:encoded><![CDATA[
-我们是一家初创的 AIGC 公司，背后有曲江国资委投资，致力于打造一个 AIGC 的宇宙<br /><br /><br />产品经理<br />---------------------------<br />主要职责：<br />• 负责产品的全生命周期管理，包括产品规划、需求分析、功能设计和迭代优化<br />• 持续跟踪和分析国内外优秀 AI 产品，提供产品创新建议<br />• 深度研究竞争对手，把握产品和运营现状，判断机会和潜力点，切实有效地采取行动； <br />• 与技术团队紧密协作，确保产品开发符合预期目标<br />• 主导产品用户体验设计，确保产品易用性<br />• 撰写产品需求文档(PRD)，制定产品路线图<br />• 跟踪产品关键指标，持续优化产品体验<br />• 从整个产品研发的各个环节中，负责与开发人员、UI 、市场等相关人员沟通协调 。<br /><br />任职要求：<br />• 本科及以上学历，计算机科学、人工智能或相关专业优先<br />• 3 年以上产品经理经验<br />• 具备 AI 游戏或 AI agent 平台相关项目经验优先<br />• 对全球主流 AI 产品有深入了解和研究<br />• 优秀的项目管理能力和跨团队协作能力<br />• 出色的数据分析能力和问题解决能力<br />• 对 AI 技术发展保持持续关注，具有前瞻性思维<br /><br /><br /><br />Web 后端<br />---------------------------<br />1 ，本科以上学历，5 年以上工作经验，精通 Java ，具备扎实的 Java 功底<br />2 ，熟悉常用 Java 开源框架，如 Spring Boot ，有大型项目开发经验<br />3 ，对分布式系统开发有较深入的了解，对高并发有实际项目经验<br />4 ，熟悉常见的数据库，如 MySQL ，PostgreSQL ，熟悉 Redis 等常用缓存使用和原理<br />5 ，能熟练使用消息中间件一种过多种，如 ActiveMQ, Kafka, RabbitMQ 等<br />6 ，熟练使用常用问题分析定位工具<br />7 ，有部署和运维经验，如 K8S ，Docker ，Jenkins 等<br />8 ，对大数据、AI 等有一定的经验或理解。<br /><br /><br /><br />Web 前端<br />---------------------------<br />1 、本科学历及以上，5 年以上前端开发经验，近一年必须有 1~2 个单独负责的项目<br />2 、精通 JavaScript 、HTML5 、CSS 等 web 开发技术<br />3 、熟练掌握 Vue 前端技术，能够独立开发前端功能需求<br />4 、有良好的代码规范和注释习惯，能够编写结构清晰，易于维护的代码<br />5 、熟练 Vue 生态中的 UI 组件库、如 Element-UI 、EChart 等<br /><br /><br /><br />Android 开发<br />---------------------------<br />1 、本科学历及以上，5 年以上安卓开发经验<br />2 、扎实的 Java / Kotlin 编程基础<br />3 、精通 Android 下的 API 、UI 控件、网络通讯、数据库、多线程开发、屏幕适配等，熟悉 Andorid 的内存使用和性能优化、本地存储等<br />4 、熟悉 NDK ，JNI ，Service ，Binder 通信等<br />5 、有对接国内外各种 SDK （支付/直播/推送/chatGPT 等）经验优先<br />6 、有大型项目开发经验，熟悉各厂商上架流程的优先<br /><br /><br /><br />UI<br />---------------------------<br />1 、至少 3 年 UI/UX 设计经验，尤其是在 Web 或 App 设计方面<br />2 、精通包括 PS / AI / AE / sketch / figma 等视觉设计工具<br />3 、具备强大的视觉设计能力，对色彩、排版和布局有深入理解<br />4 、了解并能够执行设计规范（如 Material Design 、iOS Human Interface Guidelines 等），确保设计符合行业标准<br />5 、具备良好的沟通和表达能力，能够清晰地传达设计理念和方案<br />6 、具备团队合作精神，能够与开发人员、产品经理等多方协作，推动项目顺利进行<br /><br />加分项：<br />有成功发布的 Web 或 App 应用设计案例。<br />有 3D 模型制作技能加分，熟悉影视制作流程加分<br />具备 HTML/CSS 知识，能够更好地理解前端开发的需求和限制。<br />具备动效设计经验，能够创建富有表现力和互动性的用户界面。<br />关注行业动态，有 DA 或 A 站作品的加分。<br /><br /><br /><br />项目经理<br />---------------------------<br />1 、负责项目的整体规划与实施，包括项目立项、资源配置、进度控制、成本控制等；<br />2 、统筹项目各阶段的执行，确保项目按时、按质完成；<br />3 、协调项目相关部门、合作方及客户的沟通，建立良好的工作关系；<br />4 、对项目中的风险进行识别及管理，通过及时有效的应对处理项目风险;<br />5 、监控项目进展，定期汇报项目状态；<br />6 、熟悉敏捷，PMP 项目管理方法；<br />7 、组织项目总结及经验分享，推动团队能力提升；<br />8 、跟进行业动态，了解新技术、新趋势。<br /><br /><br /><br />联系方式，加微信 ZeroMiku ，加时请注明 V2EX
-]]></content:encoded>
-<pubDate>2024-12-30T13:57:06Z</pubDate>
-</item>
-<item>
-<title>[Apple] 有人知道 b 站 mac 端是什么语言写的吗 每次用键盘都发烫严重</title>
-<link>https://www.v2ex.com/t/1101383</link>
-<guid>https://www.v2ex.com/t/1101383</guid>
-<content:encoded><![CDATA[
-m4pro 的 mbp 每次用浏览器看视频都一点不发热。只要一用 b 站的客户端键盘发烫非常严重<br /><br />还有更离谱的 我 safari 里把网飞打包成了 dock 栏 app 看了一会电影后 风扇直接啸叫起来了 这可是 m 芯片啊 我真没见过几次风扇转。但是只要用了网页打包的 app 视频类的。 键盘和底部发热是常态。风扇还会转起来。<br /><br />你们都有遇到过吗
-]]></content:encoded>
-<pubDate>2024-12-30T13:47:35Z</pubDate>
-</item>
-<item>
-<title>[问与答] 没户口本能不能到民政局办离婚？</title>
-<link>https://www.v2ex.com/t/1101382</link>
-<guid>https://www.v2ex.com/t/1101382</guid>
-<content:encoded><![CDATA[
-<p>《婚姻登记条例（修订草案征求意见稿）》 202408 修改版里说不需要了。
----“与现行《婚姻登记条例》相比减少了需要出具户口簿的要求。”
----“办理离婚登记的内地居民须出具本人的居民身份证和本人的结婚证两项。”</p>
-<p>但是现在已经 2024-12-29 了，没有查到是否已经正式修改到《婚姻登记条例》中的消息。按说结婚率新低的情况下，这种“好”政策应该尽早上线。</p>
-<p>实际操作中，有没有人最近经历过，或有从业经验者给指点下。</p>
-<p>现在可不可以不拿户口本去民政局办离婚？</p>
-]]></content:encoded>
-<pubDate>2024-12-30T13:56:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有类似 remastersys 的傻瓜封装 Linux 的软件吗？</title>
-<link>https://www.v2ex.com/t/1101381</link>
-<guid>https://www.v2ex.com/t/1101381</guid>
-<content:encoded><![CDATA[
-KickStart 看着有点难度啊，remastersys 就比较简单！
-]]></content:encoded>
-<pubDate>2024-12-30T13:09:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] idea 里， class 反编译出来没有高亮显示。。。</title>
-<link>https://www.v2ex.com/t/1101380</link>
-<guid>https://www.v2ex.com/t/1101380</guid>
-<content:encoded><![CDATA[
-<p>用自带的 java bytecode decompiler 插件反编译出来的，没有高亮看得很难受。有办法让它高亮显示吗？</p>
-<p>还是说大家都是这样没有高亮看源码的？</p>
-]]></content:encoded>
-<pubDate>2024-12-30T12:56:47Z</pubDate>
 </item>
 </channel>
 </rss>
