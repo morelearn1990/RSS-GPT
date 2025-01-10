@@ -5,11 +5,304 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 求问各位 V 友，有那些 API 资源管理服务？</title>
+<link>https://www.v2ex.com/t/1104277</link>
+<guid>https://www.v2ex.com/t/1104277</guid>
+<content:encoded><![CDATA[
+
+<p>背景：我在不同的平台采购了一些 API 接口服务。有云 API 的，有 API 平台的，各种各样的都有。</p>
+<p>问题：这些 API 的请求方式都不同，具体指请求的域名，密钥，参数这些。</p>
+<p>需求：我希望能有个服务或平台（开源的也行），能够帮助我管理这些 API ，使其我在程序使用时，能够统一域名和密钥。</p>
+]]></content:encoded>
+<pubDate>2025-01-10T14:17:14Z</pubDate>
+<pubDate>2025-01-10T12:17:14Z</pubDate>
+</item>
+<item>
+<title>[Python] Flask+SQLite+Tornado 在 Windows 2019 下 100 并发都撑不住是怎么回事？</title>
+<link>https://www.v2ex.com/t/1104276</link>
+<guid>https://www.v2ex.com/t/1104276</guid>
+<content:encoded><![CDATA[
+
+<p>非常简易的一个测试程序</p>
+<pre><code># -*- coding: UTF-8 -*-
+
+from flask import Flask, request
+import json
+import time
+import re
+
+import sys
+import asyncio
+
+from tornado.ioloop import IOLoop
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+
+import sqlalchemy
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import sessionmaker
+
+engine = create_engine('sqlite:///database.db?check_same_thread=False')
+
+Base = declarative_base()
+
+
+class ClientLog(Base):
+    __tablename__ = 'clientlog'
+    log_id = Column(Integer, primary_key=True, autoincrement=True)
+    message = Column(String(512))
+
+    def __repr__(self):
+        return "A"
+
+
+from sqlalchemy.ext.declarative import DeclarativeMeta
+
+
+class AlchemyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj.__class__, DeclarativeMeta):
+            # an SQLAlchemy class
+            fields = {}
+            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+                data = obj.__getattribute__(field)
+                try:
+                    json.dumps(data)  # this will fail on non-encodable values, like other classes
+                    fields[field] = data
+                except TypeError:
+                    fields[field] = None
+            # a json-encodable dict
+            return fields
+
+        return json.JSONEncoder.default(self, obj)
+
+
+Base.metadata.create_all(engine, checkfirst=True)
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+
+app = Flask("app")
+
+@app.route('/api', methods=['GET', 'POST'])
+@app.route('/api/', methods=['GET', 'POST'])
+def api1():
+    session.add(ClientLog(message="test"))
+    session.commit()
+    return "test"
+
+def launch_server():
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    http_server = HTTPServer(WSGIContainer(app))
+    http_server.listen(8080)
+    IOLoop.current().start()
+
+launch_server()
+</code></pre>
+<p>在阿里云的 Windows 2019 模板下 100 并发就会崩溃退出，报错</p>
+<pre><code>Exception in thread Tornado selector:
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\threading.py", line 1045, in _bootstrap_inner
+    self.run()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\threading.py", line 982, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\site-packages\tornado\platform\asyncio.py", line 574, in _run_select
+    rs, ws, xs = select.select(to_read, to_write, to_write)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: too many file descriptors in select() 
+</code></pre>
+<p>但是我在 Windows 10 的电脑上测试并发没问题
+之前测试换了另外一个对 Windows 更友好的 web framework （想不起来名字，找了半天没找到）可以是可以，但是估计它用了不止一个进程写 SQLite ，导致冲突无法提交更改
+业务需求调用一个 Windows Only 的 pip 包 ，无法更换 Linux 服务器</p>
+]]></content:encoded>
+<pubDate>2025-01-10T14:11:19Z</pubDate>
+<pubDate>2025-01-10T14:09:19Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 大部分公司春节都是提前一周放假的吗</title>
+<link>https://www.v2ex.com/t/1104274</link>
+<guid>https://www.v2ex.com/t/1104274</guid>
+<content:encoded><![CDATA[
+
+<p>几个大学同学 21 号去旅游一周，问我要不要一起，可是我得上班到 28 号。他们很不解，我也很困惑。之前没有来公司自愿加班，请事假是不批的了，去不了。</p>
+<p>难道一线大部分公司春节都是提前放假的？</p>
+]]></content:encoded>
+<pubDate>2025-01-10T14:04:16Z</pubDate>
+<pubDate>2025-01-10T14:04:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] Gemini API 的 token 到底是怎么计的？</title>
+<link>https://www.v2ex.com/t/1104273</link>
+<guid>https://www.v2ex.com/t/1104273</guid>
+<content:encoded><![CDATA[
+
+<p>最近在用 Gemini 的时候，发现它生成一段 7 行的小红书文案用了 4000 多个 token ，而我用它生成一段 20 行的数学题解析时，却只用了 1000 多个 token 。有没有人知道 Gemini 的 token 到底是怎么算的？</p>
+]]></content:encoded>
+<pubDate>2025-01-10T13:59:33Z</pubDate>
+<pubDate>2025-01-10T13:57:33Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 一个比较科学的穿衣计算器</title>
+<link>https://www.v2ex.com/t/1104272</link>
+<guid>https://www.v2ex.com/t/1104272</guid>
+<content:encoded><![CDATA[
+
+<h1><a href="https://clothing-calculator.moranxia.com/" rel="nofollow">穿衣计算器</a></h1>
+<p>最近要去东北旅游，这辈子没去过这么冷的地方，难以根据经验计算自己要穿多少衣服，AI 和网上的一些攻略也是各有各的说法，服装品牌的温标更是随心所欲，所以用 AI 糊了这个工具。</p>
+<p>我研究并参考了 <a href="https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=F6C078D53F49F178707304E759AAF568&amp;refer=outter" rel="nofollow">国家标准|GB/T 18398-2001</a> 和 <a href="https://www.ashrae.org/technical-resources/bookstore/standard-55-thermal-environmental-conditions-for-human-occupancy" rel="nofollow">Standard 55 – Thermal Environmental Conditions for Human Occupancy</a>。</p>
+<h2>简单使用方法：</h2>
+<ol>
+<li>先算出自己的发热率</li>
+</ol>
+<p>比如你在 15 摄氏度觉得穿一件 T 刚刚好舒适不会出汗（国标的 0.78 应该是穿了一件 T 打底左右的样子，赤膊大概是 0.6 左右），你的皮肤温度、基础保暖能力都比较大众，可以算出单位体表面积非蒸发放热率 (H) = 151.36 W/m²。</p>
+<ol>
+<li>代入计算</li>
+</ol>
+<p>那么如果活动类型、空气湿度等等因素都不变的情况下，在 - 40 ℃ 大概需要服装热阻 (I) = 2.34 clo 的衣服。</p>
+<ol>
+<li>找衣服</li>
+</ol>
+<p>查<a href="https://www.v2ex.com/t/524054" rel="nofollow">资料</a>得知，550 蓬羽绒热阻 0.7 clo/oz-m^2 ，可以计算出（这部分还没做好，得手动）大概需要 3.34 盎司每平米的羽绒服，就是比较普通的款。</p>
+]]></content:encoded>
+<pubDate>2025-01-10T13:54:47Z</pubDate>
+<pubDate>2025-01-10T13:54:47Z</pubDate>
+</item>
+<item>
+<title>[问与答] 开发的软件如何优雅的同时适配 win 和 macos</title>
+<link>https://www.v2ex.com/t/1104271</link>
+<guid>https://www.v2ex.com/t/1104271</guid>
+<content:encoded><![CDATA[
+
+我用 win 写了个 Obsidian 插件，发布之后，有 mac 的用户说有 bug ，问一下大家怎么方便调代码去适配 mac 。<br /><br />我没有也没用过 mac ，下虚拟机要好几百 G ，感觉太大太麻烦了，大家伙还有什么方法吗
+]]></content:encoded>
+<pubDate>2025-01-10T13:52:59Z</pubDate>
+<pubDate>2025-01-10T13:55:56Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 你们日常是怎么提升自己的心力的</title>
+<link>https://www.v2ex.com/t/1104269</link>
+<guid>https://www.v2ex.com/t/1104269</guid>
+<content:encoded><![CDATA[
+
+<a href="https://heymanifestation.com/" rel="nofollow noopener" target="_blank">https://heymanifestation.com/</a><br /><br />除了这个，还在做心力气球 心力电池
+]]></content:encoded>
+<pubDate>2025-01-10T13:38:37Z</pubDate>
+<pubDate>2025-01-08T13:38:37Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [招聘] [远程办公] Ai Agent 产品经理</title>
+<link>https://www.v2ex.com/t/1104267</link>
+<guid>https://www.v2ex.com/t/1104267</guid>
+<content:encoded><![CDATA[
+
+<h2>需求</h2>
+<p>负责推动 AI Agent 相关产品的设计、开发和优化。作为 AI 产品经理，您将与技术、设计和业务团队密切合作，深入理解用户需求，制定产品策略，并持续推动产品在 AI 和 Crypto 领域的创新与落地。</p>
+<h3>岗位职责：</h3>
+<ol>
+<li>AI Agent 产品管理：负责 AI Agent 产品的需求分析、功能设计和产品规划，确保产品满足市场需求并具有竞争力。
+深入研究 AI Agent 的技术和应用场景，探索创新型解决方案。</li>
+<li>产品生命周期管理管理产品从概念到上线的完整生命周期，包括需求定义、开发进度跟踪、测试和上线后的优化迭代。
+持续收集用户反馈，分析数据，优化产品功能和用户体验。</li>
+<li>行业洞察与创新：跟踪 AI 技术和 Crypto 行业的最新趋势，挖掘潜在市场机会，将前沿技术融入产品设计中。
+与行业伙伴和社区建立联系，推动产品在 Crypto 生态中的应用和影响力。</li>
+<li>跨团队协作：与技术团队紧密合作，确保产品开发符合设计和功能预期。与市场、运营团队协作，制定产品推广策略，实现业务目标。</li>
+</ol>
+<h3>任职要求：</h3>
+<ol>
+<li>经验要求至少 1 年以上 AI Agent 相关产品经验，了解 AI Agent 的核心技术和应用场景。对 Crypto 行业有深入的理解，包括但不限于区块链技术、DeFi 、NFT 等领域。</li>
+<li>技能要求：熟悉 AI 产品的开发流程和技术实现，能够与技术团队高效沟通。具备数据分析能力，能够通过数据驱动产品决策。优秀的产品设计能力，能够将用户需求转化为具体的产品功能。</li>
+<li>其他要求：本科及以上学历，计算机、人工智能、区块链等相关专业优先。具备优秀的沟通能力、团队协作能力和项目管理能力。对 AI 和 Crypto 领域充满热情，乐于接受挑战并推动创新。</li>
+</ol>
+<h3>其他</h3>
+<ul>
+<li>具有竞争力的薪酬和激励机制（给 token ）</li>
+<li>与行业顶尖团队合作的机会，参与前沿技术的产品落地。</li>
+</ul>
+<p>联系邮箱： <a href="mailto:alexshungry@gmail.com">alexshungry@gmail.com</a></p>
+]]></content:encoded>
+<pubDate>2025-01-10T13:27:37Z</pubDate>
+<pubDate>2025-01-10T13:26:37Z</pubDate>
+</item>
+<item>
+<title>[Local LLM] 我做了一个 Ollama 模型仓库镜像站，帮你更快的从 ModelScope 魔搭拉取模型</title>
+<link>https://www.v2ex.com/t/1104266</link>
+<guid>https://www.v2ex.com/t/1104266</guid>
+<content:encoded><![CDATA[
+
+<p>你好啊，</p>
+<p>不知道你知道你那里官方 Ollama Registry 的 Cloudflare R2 速度怎么样，但是在我这里特别是晚高峰，那是<em>相当的糟糕</em>。特别是每当新的开源模型发布的一个又一个深夜，每次模型拉取的的等待都让我咬牙切齿（比如前两天的 Phi4 ）。</p>
+<p>于是我把目光转向了 Ollama 和抱抱脸合作的 <a href="https://huggingface.co/docs/hub/ollama" rel="nofollow">hf.co Registry</a>，奈何在 HF 的可访问性也非常看运气，我刚好也属于运气不那么好的那部分。虽然还有 HF-Mirror 但是速度也不容乐观。
+但是 <a href="http://hf.co" rel="nofollow">hf.co</a> Registry 也给了我一些启发，<em>抱抱脸都可以，魔搭难道不行吗？</em>。</p>
+<p>于是就有了我们今天的主角 ModelScope2OllamaRegistry （比起镜像站它更类似 <a href="http://hf.co" rel="nofollow">hf.co</a> Registry ，所以可能也许有一丝标题党）。再加上一些可能的冷知识 Ollama Registry 是 OCI Registry （好吧，也可能大家早就知道了），我通过魔搭的 API 获取了一些元数据补上了 manifests 还有一些乱七八糟的 config ，再以及最让人讨厌的对话模板，现在它已经能够 <del><em>almost</em></del> 完美的工作了。</p>
+<hr />
+<p>使用方法就像是这样：</p>
+<h3>拉取模型</h3>
+<p>请选择带有 GGUF 模型的仓库：</p>
+<pre><code>ollama run modelscope2ollama-registry.azurewebsites.net/qwen/Qwen2.5-7B-Instruct-gguf
+</code></pre>
+<p>这将能够拉取 <code><a href="https://www.modelscope.cn/models/qwen/Qwen2.5-0.5B-Instruct-gguf" rel="nofollow">https://www.modelscope.cn/models/qwen/Qwen2.5-0.5B-Instruct-gguf</a></code> 中的模型，对于不带有标签或 latest 将依次按顺序尝试选择<code>Q4_K_M</code>、<code>Q4_0</code>、<code>Q8_0</code>量化。</p>
+<h3>指定量化</h3>
+<p>可以通过 tag 指定选择的量化：</p>
+<pre><code>ollama run modelscope2ollama-registry.azurewebsites.net/qwen/Qwen2.5-7B-Instruct-gguf:Q8_0
+</code></pre>
+<p>这将能够拉取 <code><a href="https://www.modelscope.cn/models/qwen/Qwen2.5-7B-Instruct-gguf/resolve/master/qwen2.5-0.5b-instruct-q8_0.gguf" rel="nofollow">https://www.modelscope.cn/models/qwen/Qwen2.5-7B-Instruct-gguf/resolve/master/qwen2.5-0.5b-instruct-q8_0.gguf</a></code> ，量化类型标签不区分大小写，你可以在 <a href="https://github.com/ollama/ollama/blob/main/docs/import.md#supported-quantizations" rel="nofollow">这里</a> 查看 Ollama 支持的量化。</p>
+<p>仓库中需要包含带有正确格式文件名的 GGUF 文件（模型名称以“-”分隔，最后一位需要为有效的量化类型，形如：model-quant.gguf ），暂不支持包含类似 <code>0000x-of-0000x</code> 的切分后的模型。</p>
+<h3>指定模板</h3>
+<p>若对话模板未能正确识别或识别有误导致对话输出异常，你可以尝试这样指定模型的对话模板：</p>
+<pre><code>ollama run modelscope2ollama-registry.azurewebsites.net/qwen/Qwen2.5-7B-Instruct-gguf:Q8_0--qwen2
+</code></pre>
+<p>你可以查看 <a href="https://github.com/ollama/ollama/tree/main/template" rel="nofollow">Ollama 官方支持的模板</a>，和 <a href="https://github.com/onllama/templates" rel="nofollow">本项目支持的模板</a>，以手动指定更加合适的模板。</p>
+<hr />
+<p>当然，它也开源： <a href="https://github.com/onllama/Onllama.ModelScope2Registry" rel="nofollow">https://github.com/onllama/Onllama.ModelScope2Registry</a></p>
+<p>如果你也喜欢的话也可以为我点个 Star ，你的 Star 将是我继续维护的动力。</p>
+]]></content:encoded>
+<pubDate>2025-01-10T13:26:28Z</pubDate>
+<pubDate>2025-01-10T13:26:28Z</pubDate>
+</item>
+<item>
+<title>[问与答] 不想做女友的情绪垃圾桶是我的错吗？</title>
+<link>https://www.v2ex.com/t/1104265</link>
+<guid>https://www.v2ex.com/t/1104265</guid>
+<content:encoded><![CDATA[
+
+<p>我跟女友都是银行柜员，理所当然每天多多少少能遇到点奇葩，但是我不喜欢把工作的事情拿回家去讨论，我觉得很烦，该怼的，该隐忍的我都是在上班的时间自己消化，而女友是上班的时候唯唯诺诺，回家了那我当垃圾桶各种吐槽，我跟她说我不喜欢做垃圾桶，是不是我的错误</p>
+]]></content:encoded>
+<pubDate>2025-01-10T13:20:32Z</pubDate>
+<pubDate>2025-01-10T13:58:54Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 北京联通如何跑 PT 不被限制上传</title>
+<link>https://www.v2ex.com/t/1104264</link>
+<guid>https://www.v2ex.com/t/1104264</guid>
+<content:encoded><![CDATA[
+
+求教
+]]></content:encoded>
+<pubDate>2025-01-10T13:16:41Z</pubDate>
+<pubDate>2025-01-10T13:16:41Z</pubDate>
+</item>
+<item>
+<title>[问与答] 把 openai 或 deepseek 的 api key 写到 GUI 客户端里会被网络抓包软件嗅探到吗？</title>
+<link>https://www.v2ex.com/t/1104262</link>
+<guid>https://www.v2ex.com/t/1104262</guid>
+<content:encoded><![CDATA[
+
+<p>如果我把 openai 或 deepseek 的 api key 写到 GUI 客户端里，然后把这个 GUI 客户端软件打包成 exe 软件分发给好多用户，我的 key 不会被用户使用网络抓包软件探测到而泄露呢？
+我是为了提高响应速度所以才会这么做的，否则我也知道可以把这部分功能放到我的服务器上面，然后再转接给客户端。
+除此之外不知道还有没有别的方法？</p>
+]]></content:encoded>
+<pubDate>2025-01-10T12:48:43Z</pubDate>
+<pubDate>2025-01-09T08:48:43Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 连接奥睿科的硬盘盒到他家的 usb hub 会导致硬盘访问异常, 包括无法识别硬盘、访问中断、识别很慢、读写很慢.</title>
 <link>https://www.v2ex.com/t/1104258</link>
 <guid>https://www.v2ex.com/t/1104258</guid>
 <content:encoded><![CDATA[
-
 <p>两个设备都是奥睿科(orico)的.
 hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度是 20gbps, typec 口, 硬盘是 2TB 的 m.2 接口的 ssd(笔记本上拆下来的).</p>
 <p>大概是四个场景：</p>
@@ -30,17 +323,14 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <p>有没有懂这方面的老哥?</p>
 ]]></content:encoded>
 <pubDate>2025-01-10T12:32:29Z</pubDate>
-<pubDate>2025-01-10T12:32:29Z</pubDate>
 </item>
 <item>
 <title>[问与答] 为什么闲鱼外版 iPhone 没有发票？</title>
 <link>https://www.v2ex.com/t/1104257</link>
 <guid>https://www.v2ex.com/t/1104257</guid>
 <content:encoded><![CDATA[
-
 <p>楼主在 2022 年初买的加版 iPhone 13 Pro ，用了 2 年多，去年 1 月换了一次第三方电池，但也还是不耐用。想在闲鱼上买个加版的 iPhone 16 Pro Max ，看到很多家都卖加版，好奇为什么这些店家为什么都不能提供发票，而且只能他们代送修？如果我自己去送修呢？这中间是不是有什么猫腻？</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T12:21:18Z</pubDate>
 <pubDate>2025-01-10T12:21:18Z</pubDate>
 </item>
 <item>
@@ -48,12 +338,10 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104256</link>
 <guid>https://www.v2ex.com/t/1104256</guid>
 <content:encoded><![CDATA[
-
 <p>预算 1000 内 玩三角洲
 要求长时间佩戴舒适 不夹耳 能听脚步
 影音什么的无所谓，用电视看的</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T12:18:03Z</pubDate>
 <pubDate>2025-01-10T12:18:03Z</pubDate>
 </item>
 <item>
@@ -61,10 +349,8 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104255</link>
 <guid>https://www.v2ex.com/t/1104255</guid>
 <content:encoded><![CDATA[
-
 老家的老摩托坏了，现在要买辆新的，有这么些需求和疑问麻烦了解的哥们给点意见，感谢<br />1.我爸骑，年龄 69 <br />2.是买电动车还是加油的，我爸的理念一直认为电动车跑不了多远，说跑个十几公里就要充电 <br />3.用途就是在农村短途跑一跑，单次通勤距离就算 30 公里顶天了，当然电动车的话续航能远点最好 <br />4.需要能带个一大一小两个人，可能偶尔有这个需求 <br />5.铅酸电池是不是好一点，比较稳定不容易发生起火(相较于锂电池) <br />6.质量要过硬一点，不要大小毛病不断，印象中现在退役的老摩托就很耐造 <br />7.老家是柏油马路，爬坡的地方也不少 <br />8.预算 5000 左右<br />9.符合这些需求的具体款式最好😄
 ]]></content:encoded>
-<pubDate>2025-01-10T12:17:25Z</pubDate>
 <pubDate>2025-01-10T12:36:03Z</pubDate>
 </item>
 <item>
@@ -72,7 +358,6 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104252</link>
 <guid>https://www.v2ex.com/t/1104252</guid>
 <content:encoded><![CDATA[
-
 <h1>阿里云学生认证 300 元券使用问题</h1>
 <p>今天我领了今年的阿里云学生认证的 300 元券，打算用来续去年白嫖的轻量云。结果发现，这个券竟然无法使用。</p>
 <p>仔细看了一下，阿里云学生活动页面将轻量云删除了，现在貌似只允许购买<strong>国内的服务器</strong>。</p>
@@ -80,7 +365,6 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <p>不太确定，想和友友们验证一下，看看是不是这么回事。</p>
 <p>阿里云学生认证领券网页 <a href="https://university.aliyun.com/" rel="nofollow">https://university.aliyun.com/</a></p>
 ]]></content:encoded>
-<pubDate>2025-01-10T11:44:20Z</pubDate>
 <pubDate>2025-01-10T11:42:20Z</pubDate>
 </item>
 <item>
@@ -88,10 +372,8 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104251</link>
 <guid>https://www.v2ex.com/t/1104251</guid>
 <content:encoded><![CDATA[
-
 最近又给 poe 续费了，然后提取了 token ，弄了个 nextchat ，打算找工具接入办公软件和代码，本身打杂工作，这两天一直准备和服务公司述职个年会到半夜，有什么合适的工具能用自定义接口的请不吝赐教。另外这个东西提取的 token 贵不贵，划算不。
 ]]></content:encoded>
-<pubDate>2025-01-10T11:42:09Z</pubDate>
 <pubDate>2025-01-10T05:42:09Z</pubDate>
 </item>
 <item>
@@ -99,14 +381,12 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104249</link>
 <guid>https://www.v2ex.com/t/1104249</guid>
 <content:encoded><![CDATA[
-
 <p>华为 Mate 30E Pro ，之前通过添加 Exchange 账户（ Outlook 邮箱）与 iPhone 双向同步联系人，一直用得很好，然而<a href="https://support.microsoft.com/zh-cn/office/%E6%96%B0%E5%BC%8F%E8%BA%AB%E4%BB%BD%E9%AA%8C%E8%AF%81%E6%96%B9%E6%B3%95%E7%8E%B0%E5%9C%A8%E9%9C%80%E8%A6%81%E7%BB%A7%E7%BB%AD%E5%9C%A8%E9%9D%9Emicrosoft%E7%94%B5%E5%AD%90%E9%82%AE%E4%BB%B6%E5%BA%94%E7%94%A8%E4%B8%AD%E5%90%8C%E6%AD%A5-outlook-%E7%94%B5%E5%AD%90%E9%82%AE%E4%BB%B6-c5d65390-9676-4763-b41f-d7986499a90d" rel="nofollow">2024 年 9 月 16 日起，微软不再支持“基本身份验证”（即传统的帐户密码）方式登录 Outlook 帐户</a>，而<a href="https://consumer.huawei.com/cn/support/content/zh-cn16020393/" rel="nofollow">华为手机系统至今仍未支持以“新式身份验证”登录 Outlook 帐户</a>。</p>
 <p>要想继续同步 Outlook 帐户的联系人，只能下载中国区 Outlook 安卓应用，在 app 里将 Outlook 帐户联系人同步（导入）到安卓手机。但这样做也存在问题：
 ①Outlook 帐户里以姓、名分开录入的联系人，通过 Outlook.app 导入安卓手机后，“张一二（姓：张，名：一二）”变成了“一二 张”(在手机联系人列表里还是显示为“张一二”，但点进该联系人编辑界面就能看到显示为“一二 张”），导致无法用 T9 快速搜索联系人（搜索“张一二”还是能找到该联系人），应该是我这台华为手机没有单独的姓、名栏目导致的。
 ②无法像之前 Exchange 协议那样双向同步。导入到安卓手机的联系人虽然显示是在 Outlook 帐户下，但通过安卓手机对联系人进行的新增或修改都无法同步到 Outlook 帐户云端，也就无法与其他设备进行同步；以及，当 Outlook 帐户联系人出现变动时，也不会自动同步到安卓手机上，只能手动操作 Outlook 应用进行同步。</p>
 <p>请问，在无法通过安卓手机自身系统登录 Outlook Exchange 帐户的情况下，还有什么办法能与 iPhone 双向同步联系人？（在 A 手机编辑的联系人信息能及时、自动同步到 B 手机）</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T11:21:06Z</pubDate>
 <pubDate>2025-01-10T11:47:27Z</pubDate>
 </item>
 <item>
@@ -114,11 +394,9 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104247</link>
 <guid>https://www.v2ex.com/t/1104247</guid>
 <content:encoded><![CDATA[
-
 <p>范围: 国内市场的安卓手机。</p>
 <p>iOS APP 如果不在 app Store, 则非常难安装，要搞越狱。以前的安卓手机只要能用手机浏览器下载一个 apk 文件就可以安装。七八年前用过安卓手机，所以不太知道其中的变化，如今🈶了很多困难和门槛了么？还是说跟以前没啥区别？</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T11:10:59Z</pubDate>
 <pubDate>2025-01-10T07:10:59Z</pubDate>
 </item>
 <item>
@@ -126,11 +404,9 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104245</link>
 <guid>https://www.v2ex.com/t/1104245</guid>
 <content:encoded><![CDATA[
-
 <p>平时开发都是用 <code>ssh</code> 连到编译服务器进行开发的，开发的代码和编译工具链都包含在了一个很大的<code>repo</code> 中，这个 <code>repo</code> 中有近百个 <code>git</code> 仓库，虽然每次开发只会在一个 <code>git</code> 仓库下修改，但是也需要打开其的仓库去查看代码，所以我每次都会打开这个 <code>repo</code> 的根目录，再去找需要开发的仓库，我的 <code>autoRepositoryDetection</code> 设置为 <code>openEditors</code></p>
 <p>按理说只会扫描到我当前正在编辑的文件所属的仓库，这里还没问题，只要我在终端中执行了一个错误的指令(随便一个输入一个不存在的都行)，这个左侧的源代码管理器就会疯狂加载其他我没有打开过的仓库，直到把所有的仓库都扫出来，导致左侧源代码管理器中有上百个仓库，然后想找到我正在修改的仓库还挺费事，有没有人遇到过这个情况</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:56:46Z</pubDate>
 <pubDate>2025-01-10T10:55:46Z</pubDate>
 </item>
 <item>
@@ -138,13 +414,11 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104244</link>
 <guid>https://www.v2ex.com/t/1104244</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/41ae7918-b14e-46e4-876c-2a4c8b1a9ab4.jpg" /></p>
 <h2>Kong 中国研发中心搭建快 3 年啦，我们在中国布局的是核心产品开发团队，现有 21 个岗位正在招聘中，详情请直接👇<a href="https://jobs.lever.co/kong?location=Shanghai" rel="nofollow">官方招聘官网</a></h2>
 <h1>欢迎直接投递英文简历！我们会尽量于 72 小时以内给您回复。</h1>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://files.mdnice.com/user/52867/ef867005-c99f-482b-9bd8-0f5ce722b030.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:51:12Z</pubDate>
 <pubDate>2025-01-10T10:54:40Z</pubDate>
 </item>
 <item>
@@ -152,7 +426,6 @@ hub 的速度是 10 gbps(两个 typec 口, 两个 usb3 口). 硬盘盒的速度�
 <link>https://www.v2ex.com/t/1104243</link>
 <guid>https://www.v2ex.com/t/1104243</guid>
 <content:encoded><![CDATA[
-
 <p>一道编程题，deepseek v3 ，qwen 25 plus 都失败了。claude sonnet 3.5 果然厉害，一次搞定。gemini 2.0 think 模式也作对了。</p>
 <p>从这个题来看，claude sonnet 确实是 coding 超级牛的。其他非逻辑模型，基本都搞不定。</p>
 <p>Please create a Tetris game with the following requirements:</p>
@@ -209,7 +482,6 @@ Proper error handling
 Performance optimization
 Please provide the complete implementation with appropriate comments and documentation.</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:46:49Z</pubDate>
 <pubDate>2025-01-09T10:46:49Z</pubDate>
 </item>
 <item>
@@ -217,7 +489,6 @@ Please provide the complete implementation with appropriate comments and documen
 <link>https://www.v2ex.com/t/1104242</link>
 <guid>https://www.v2ex.com/t/1104242</guid>
 <content:encoded><![CDATA[
-
 <h3>北京回龙观 上北鑫座小区 业主直租</h3>
 <hr />
 <ul>
@@ -231,7 +502,6 @@ Please provide the complete implementation with appropriate comments and documen
 <li>家具家电:  冰箱 电视 洗衣机 热水器 净水器 电脑桌 衣柜吧台 高脚椅等</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:46:06Z</pubDate>
 <pubDate>2025-01-10T11:13:16Z</pubDate>
 </item>
 <item>
@@ -239,11 +509,9 @@ Please provide the complete implementation with appropriate comments and documen
 <link>https://www.v2ex.com/t/1104241</link>
 <guid>https://www.v2ex.com/t/1104241</guid>
 <content:encoded><![CDATA[
-
 <p>发帖会提示：<code>You are unable to access <a href="http://v2ex.com" rel="nofollow">v2ex.com</a></code>？</p>
 <p>我也没发过违反社区规则的内容啊？</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:45:37Z</pubDate>
 <pubDate>2025-01-10T11:35:14Z</pubDate>
 </item>
 <item>
@@ -251,7 +519,6 @@ Please provide the complete implementation with appropriate comments and documen
 <link>https://www.v2ex.com/t/1104240</link>
 <guid>https://www.v2ex.com/t/1104240</guid>
 <content:encoded><![CDATA[
-
 <p>公司的一个 App 在之前签名就过期了, 但是上架不允许过期的密钥. </p>
 <p>可以使用轮替密钥, 生成 lineage, 然后再签名.</p>
 <p>但是当我这样做后, 无论是 libchecker 还是 jadx , 生成的签名都是以前的老签名 jks.</p>
@@ -262,17 +529,14 @@ Please provide the complete implementation with appropriate comments and documen
 </ol>
 ]]></content:encoded>
 <pubDate>2025-01-10T10:44:08Z</pubDate>
-<pubDate>2025-01-10T10:44:08Z</pubDate>
 </item>
 <item>
 <title>[NAS] 馒头保种，怎么批量导入很多</title>
 <link>https://www.v2ex.com/t/1104239</link>
 <guid>https://www.v2ex.com/t/1104239</guid>
 <content:encoded><![CDATA[
-
 馒头保种，怎么批量导入很多， <br /><br />一个个的添加太慢了， 想要一下子搞成百上千的种子， 有办法吗？
 ]]></content:encoded>
-<pubDate>2025-01-10T10:38:22Z</pubDate>
 <pubDate>2025-01-10T10:36:22Z</pubDate>
 </item>
 <item>
@@ -280,13 +544,10 @@ Please provide the complete implementation with appropriate comments and documen
 <link>https://www.v2ex.com/t/1104238</link>
 <guid>https://www.v2ex.com/t/1104238</guid>
 <content:encoded><![CDATA[
-
 <p>RT,最近使用百度网盘上传数据的时候发现带宽只有原来的 1/10,自行测速发现不是百度的问题，就是带宽不行，于是重启光猫，重启路由，故障依旧，打 10010 客服，客服回复说后台检测到我宽带异常，帮我清理缓存让我重启光猫再试，还是不行，再次致电还是说后台显示宽带状态异常，让社区经理上门查看，上门的时候就直接回复我说上行带宽被限制到最高 5Mbps 了。。。原本是 40-50Mbps...问我上传都用来做什么。我说百度网盘备份数据，也没有做 CDN 业务。。。甚至 NAS 我都没开机。。。刚搬家没几个月。。。社区经理就说，那没办法，省公司判定的，每个市上传流量前 20 直接限带宽。他们只能帮我们提工单到省公司处理，给不给解封是省公司负责，他们没有办法。</p>
 ]]></content:encoded>
-<pubDate>2025-01-10T10:38:12Z</pubDate>
 <pubDate>2025-01-10T10:53:42Z</pubDate>
 </item>
-
 <item>
 <title>[Apple] Apple ID 迁移 10 个月依旧卡在云上贵州</title>
 <link>https://www.v2ex.com/t/1104237</link>
@@ -15912,162 +16173,6 @@ done
 老家叔叔、大伯多年前弄了一批酒，具体途径不太清楚，我猜可能是别人欠款抵扣什么的。<br />前些年，他们都是放自己家里。也尝试让他们的一个朋友帮卖，但是也没怎么卖出去。有些酒放在了卫生间里，箱体还受潮变坏了，但内部的酒没有问题。<br /><br />几年前，我家里盖新房子了，有空间了。去年，大伯把酒全拉我家里了，酒都推起来了，占了好多空。<br />我妈妈对此很生气。不过，她一般都出门打工，不在家里。我爸一般委曲求全，不愿破坏兄弟和气，也不太说这个事。我对此也很不满，占了很多空不说，酒的保管也是个问题。我还担心安全问题，可能会爆炸或者火灾。<br />叔叔、大伯他们在城市都有稳定工作、稳定住所，也不可能把这些酒运回去了。家里人也基本不喝酒，送朋友估计顶多几瓶或几箱。我问了我爸，他们也愿意卖掉，苦于没有途径。或者是挺懒的，也没那么缺钱。<br /><br />我具体问了一下，是十二年的陈酒了，52 度的白酒，700ml 瓶装的。一箱有 6 瓶。有 280 箱箱体完好的，60 箱箱体不好的。我在某宝看了下价格，大概 200 多一箱。<br />我在想要不要开个网店，把这些都处理掉，便宜些都行。
 ]]></content:encoded>
 <pubDate>2025-01-06T08:14:04Z</pubDate>
-</item>
-<item>
-<title>[生活] 上海青浦、松江买房推荐</title>
-<link>https://www.v2ex.com/t/1102918</link>
-<guid>https://www.v2ex.com/t/1102918</guid>
-<content:encoded><![CDATA[
-<p>今年生了娃，要考虑买房了，预算 300~350 个，有推荐的嘛</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:55:53Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 喜欢的买不起，买的起的已经无感</title>
-<link>https://www.v2ex.com/t/1102917</link>
-<guid>https://www.v2ex.com/t/1102917</guid>
-<content:encoded><![CDATA[
-<p>曾几何时，换一个新款手机，买一件新衣服可以开心半天
-随着时间推移，生活水平不断提升，快乐的感觉越来越难得
-只有获得自己无法得到的东西，才可能带来一点快乐
-这是什么病</p>
-]]></content:encoded>
-<pubDate>2025-01-06T07:19:56Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 用 AI 给 V2EX 生成了个官网，大家看看怎么样啊~</title>
-<link>https://www.v2ex.com/t/1102916</link>
-<guid>https://www.v2ex.com/t/1102916</guid>
-<content:encoded><![CDATA[
-<div class="embedded_video_wrapper"></div>?share=copy#t=0
-]]></content:encoded>
-<pubDate>2025-01-06T07:29:12Z</pubDate>
-</item>
-<item>
-<title>[推广] 一个官 key 中转 api，支持高并发，接 mj 大老板</title>
-<link>https://www.v2ex.com/t/1102914</link>
-<guid>https://www.v2ex.com/t/1102914</guid>
-<content:encoded><![CDATA[
-超级稳，长期运营，明码标价、无猫腻。用过的老板都说好。<br /><br /><br />我们支持全网主流 ai 模型，主流的基本都有吧，chatgpt 、claude 、gemini 、mj 、sd 、flux 、suno 、luma 、智普、百度等<br />网站支持 5 种模式（每一种都是单独用户分组）：逆向、按次计费（混合）、Azure 、企业无审核 Azure 混 openai 官 key 、纯 Openai 官方。<br />各位老板可根据自己的业务需求选择不同的渠道。<br /><br />注册即送免费额度，测试满意您在使用。<br />云智 Ai-API<br />直达连接： <a href="https://api.openxs.top" rel="nofollow noopener" target="_blank">https://api.openxs.top</a>
-]]></content:encoded>
-<pubDate>2025-01-06T06:50:12Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 大龄被裁大头兵职业感想（二）</title>
-<link>https://www.v2ex.com/t/1102913</link>
-<guid>https://www.v2ex.com/t/1102913</guid>
-<content:encoded><![CDATA[
-继上文： <a href="https://v2ex.com/t/1101570" rel="nofollow noopener" target="_blank">https://v2ex.com/t/1101570</a> ，加了对具体公司的感想<br /><br />人物画像：<br />小镇做题家（其实小学的时候，镇都称不上，村里），数理化有一定兴趣<br />高考失落，郁郁寡欢，流浪生活多个城市（潮汕-北京-杭州-常熟-无锡-上海-广州），小人物的奋斗一生<br /><br />技术栈：<br />最开始自己兴趣学习 Perl 语言，参加过好几届 Perl 中国大会，工作了学习 Java<br />又学了 Python ，再到 Golang ，又因为工作回归 Java<br />对中间件等比较感兴趣，但兴趣过于宽泛，也不是一个好事情<br /><br />空中网：<br />作为 sp 的王者，曾经还刷新了最快纳斯达克上市公司记录<br />作为职业菜鸟，那段时间几乎处于憨憨的状态，让我干啥干啥，每天去公司先看看技术文档，各种架构设计（这里很感谢 冯大辉 DBA notes ）<br />用的是 Java/JSP ，接手了一个之前外包的 NBA 竞猜游戏，几乎都是用 PL/SQL 实现业务逻辑（银行、通信等还在用），硬啃下来<br />我的 leader 还是 “清华夜话”（知道这个起码 80 后） <a href="https://www.zhihu.com/question/20900397" rel="nofollow noopener" target="_blank">https://www.zhihu.com/question/20900397</a> 其中男学生之一<br />那个时间，对于工作没太多记忆，最深刻的就是改造了内部一个比较核心的 db/cache ，用了类似 suffix array 算法<br />但生活可丰富了：<br />户外，犹记得北京门头沟苹果园站，周末乌泱乌泱的户外人群，难度 1.0/1.5 ，密云、延庆...<br />轮滑，夏天旱滑，冬天滑冰；跑步，沿着学院路，可以跑完 林大-地大-农大-北语-清华北大-北邮-北航 一条线；骑行，等等等<br />7-8 年之后，才发现这家工资卡，里面存了 3w 多，是每个月定存 2k5 一点点积累起来，我自己都忘了的一笔“巨款”<br />怀念的，是那个加班之后风风火火骑车回家的少年<br />在离开之前，带父母北京旅游一趟，是我一生最为难得的一段记忆<br />北京，十余年没去了，我很想念<br /><br />阿里巴巴：<br />在 blog 的时代，我就是看到阿里巴巴 leader 的博客有招聘，向着邮箱投递一份简历，人生的改变就这么简单开始了<br />包来回机票，一天五面，从早面到晚，还记得一个发散问题：如何推断出，一个城市一天能卖出多少把吉他？<br />阿里巴巴那个时代，真的是求贤若渴，即使当时很多同事，现在看起来都算是常人稍上而已<br />进去之后，真是见识了市面，其实即使到今天的 <a href="https://alibaba.github.io/p3c/（阿里巴巴" rel="nofollow noopener" target="_blank">https://alibaba.github.io/p3c/（阿里巴巴</a> Java 开发手册）也和之前没太大改变<br />对我来说，真实体会到了 模块、解耦、接口、正交性，对我的编程初期，影响很大<br />那时候，dubbo 贡献者之一鼎爷，fastjson/druid 作者温少，小认识，阿里桌球、象棋常客，还有亦师亦友的章显洲 <a href="https://book.douban.com/subject/11614538/" rel="nofollow noopener" target="_blank">https://book.douban.com/subject/11614538/</a><br />因为不拘一格，所以各种人才都有，辍学、肄业的，半路出家的，带有一些江湖气息<br />后来人才规则越来越高了，球场上喊 defend 、defend...不知所云，原来是一帮海外留学的人在喊“防守“<br />阿里期间几件事情让我记忆深刻：<br />1. 实习生和园区阿姨吵架，推了一把，开除。内网忿忿不平，因为确实这个阿姨态度很差，惋惜实习生<br />2. 引入 bug ，但是有意隐瞒，高压线，开除。犯错可以，说谎不行，以致到后期看到其他很多职场从上往下的掩盖事故，让我目瞪口呆<br />3. 大项目阶段成功，刚好下着大雪，在园区蒙古巨人雕像下，躺下仰面看天，手脚滑雪，幼儿一般，内心无比快乐<br />评价：我对阿里巴巴，评价是很正面的，即便是现在被妖魔化了，这里不想讨论太多政治的事情<br /><br />创业：<br />后续几个阿里人，投身当时很热的 b2c ，技术员创业，又没有很好的产品/市场 sense 的话，失败几乎必然的<br />花了大半年，各有分工，我搞了发布系统，就是能在几个物理/虚拟机器上，点发布 xxx 应用，以及自动部署，还有日志汇集+搜索功能（技术人员，就是这么的喜欢发明轮子）<br />后面的 docker/k8s ，elk 一看，颇有殊途同归的感悟<br />中间还做了一些副业，git 代码托管的创业，小打小闹，自我安慰<br />但是收到经纬创投风投的邮件咨询，让我小骄傲了一段时间<br />总之，不推荐大部分人去创业，创业是很需要天赋，并且自然而然的一件事情<br />评价：从世俗收益来说，肯定是亏的了，但是认识了一帮一生的好友，即便是千里之外，沟通有丝毫没有障碍，回想起友人都很温暖<br /><br />乐鑫：<br />因为一个技术讲座认识了乐鑫老板，刚好就是创业失败了，就进去做 IOT 的云端，乐鑫的云，早期就是我开发的<br />乐鑫是国内少见的，正向自主开发的芯片，我对芯片不熟悉，就不好评价<br />但是乐鑫老板，绝对是很有意思的一个人，作为老板少见的技术流，有一股精英范，对人要求很高，也很严格，我非常的佩服<br />乐鑫现在已经股价新高，否则我一定推荐大家考虑考虑 :-)<br />评价：技术流公司，很可能未来芯片大厂<br /><br />Pingxx：<br />我最终意识到，乐鑫是一家芯片公司，对于云的投入很有限的，不是主营<br />刚好学习了 Golang ，就是附近的 Pingxx ，一家支付交易公司<br />很自由，可以尝试各种技术方案，以及解决一些中间件问题<br />我记得最深刻，为了减少问题，交易系统每周有个发布日，深夜通宵发布，大家熬的很辛苦<br />为什么，不能做一个细腻/可控的灰度发布，甚至能观察一天？<br />我就搞了一个基于大版本号+应用小版本的概念，控制访问流，说起来，甚至可以粒度控制到方法本身（对，基于方法发布，而不是应用）<br />最终大家不需要熬夜了<br />评价：非常感谢这家公司，自由的环境让我验证了好几个技术想法<br /><br />当前：<br />也许个性使然，我对世界差评比较少，以上的公司，我都心存感激，大部分的时间，都有一种，愧对我的收入的感觉（哈哈哈）<br />但是当前这家公司，是我评价比较差的，留着以后再说:-)<br /><br />现状：<br />休息+带娃，骶髂关节有些疼痛，躺平修养<br />boss 开放了，可以想象，响应者寥寥可数，保持积极，且看看生活给我们带来了什么
-]]></content:encoded>
-<pubDate>2025-01-06T08:25:59Z</pubDate>
-</item>
-<item>
-<title>[Apple] 美版 iPad pro m2 开启 apple intellgence 失败</title>
-<link>https://www.v2ex.com/t/1102912</link>
-<guid>https://www.v2ex.com/t/1102912</guid>
-<content:encoded><![CDATA[
-<p>机器是美版的，账号 id 也是美国的，机器语言地区都属于美国，但是显示不支持，开了 loon 全局代理，这是为啥呢</p>
-]]></content:encoded>
-<pubDate>2025-01-06T08:26:38Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 滴滴用户平台部招初级前端 (D5)</title>
-<link>https://www.v2ex.com/t/1102911</link>
-<guid>https://www.v2ex.com/t/1102911</guid>
-<content:encoded><![CDATA[
-ps：本岗位为初级岗，强要求毕业年限＜ 2 年，可参考滴滴校招要求。<br /><br /># 职位描述<br />1 、构建业界领先的 B 端系统（如客服工作台、CRM 、可视化流程平台等），保障客服坐席工作效率、降低业务迭代成本、提高运营能力。<br /><br />2 、能够根据产品或者 leader 的要求，独立完成模块级复杂度的需求，且能保证完成质量。<br /><br />3 、参与可视化等前端技术开源，建设和迭代团队开源项目，对外输出团队技术影响力。<br /><br /># 任职要求<br />1 、本科及以上学历，计算机类相关专业，掌握常用基本算法、设计模式。<br /><br />2 、热爱前端技术，有钻研精神； HTML 、CSS 、JS 基础扎实。<br /><br />3 、熟练掌握 react/vue 及其相关生态，并理解其原理。<br /><br />4 、良好的沟通协作能力和团队合作精神。<br /><br />5 、加分项：对前端某项深入领域有一定研究和经验，如：前端工程化/界面搭建/跨端开发/性能优化等<br /><br /><br />简历发送到邮件 sunyongjian@didiglobal.com
-]]></content:encoded>
-<pubDate>2025-01-06T06:51:58Z</pubDate>
-</item>
-<item>
-<title>[Java] 2025 年了，你们的 spring boot 版本到哪儿了</title>
-<link>https://www.v2ex.com/t/1102910</link>
-<guid>https://www.v2ex.com/t/1102910</guid>
-<content:encoded><![CDATA[
-如题，限企业应用，生产环境
-]]></content:encoded>
-<pubDate>2025-01-06T08:27:09Z</pubDate>
-</item>
-<item>
-<title>[分享创造] Cursor 确实是自动挡，开发体验很爽</title>
-<link>https://www.v2ex.com/t/1102908</link>
-<guid>https://www.v2ex.com/t/1102908</guid>
-<content:encoded><![CDATA[
-<p>尤其是 CSS 不用手写太爽了，搞了个油管订阅按钮动画生成导出的小玩意，耗时半天。</p>
-<h3>网站地址</h3>
-<p><a href="https://ytb-sub-animation.lyff.fun/" rel="nofollow">ytb-sub-animation</a></p>
-<h3>github</h3>
-<p><a href="https://github.com/FanFan-web-developer/ytb-sub-animation" rel="nofollow">ytb-sub-animation</a></p>
-]]></content:encoded>
-<pubDate>2025-01-06T08:06:14Z</pubDate>
-</item>
-<item>
-<title>[程序员] 2025 了，如何利用 AI 快速阅读大型开源项目的代码？</title>
-<link>https://www.v2ex.com/t/1102906</link>
-<guid>https://www.v2ex.com/t/1102906</guid>
-<content:encoded><![CDATA[
-<p>如题，比如说 Flowise 这种项目，希望能摸清每个模块的大概功能，以及如何交互的，然后有能力基于理解之后做一些二次开发的工作。个人没有用过 cursor 这种工具，它对阅读源码有帮助吗？或者说有没有其它一些更高效的方式？求教各位大佬</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:36:45Z</pubDate>
-</item>
-<item>
-<title>大龄被裁大头兵职业感想</title>
-<link>https://www.v2ex.com/t/1101570</link>
-<guid>https://www.v2ex.com/t/1101570</guid>
-<content:encoded><![CDATA[
-前些日子激情在线，<a href="https://v2ex.com/t/1094855?p=2#r_15664090" rel="nofollow noopener" target="_blank">https://v2ex.com/t/1094855?p=2#r_15664090</a> 还热情维护 IT 这个行业，过了几天惨遭裁员，颇有讽刺意味<br /><br />现在闲置下来，内心空荡荡，也刚好年底，为这个职业做一个总结吧<br /><br />浪潮之巅：<br />过去的 10 多年，回顾起来觉得平常，却是 IT 的黄金时代<br />我个人历经 空中网 - 阿里巴巴 - 创业（失败）- 乐鑫 - * - 某中厂（被裁）<br />在那个急需技术人员的时代，我几乎没主动找过工作（各种机缘巧合认识，然后聊一下就过来），薪资也是一步步涨（没曾想，万物皆有代价）<br />但是因为个人的原因，完美的错过各种发财机会（我签过好几份未曾兑现的期权合同:-)）<br />简单说，大部分人都是跟着公司发展的（离开了大厂属性，也就俨然众人），除非真的能力超群<br /><br />无差异的工蜂：<br />这就是目前所在公司业务开发的现状，一个项目下来，X 人日，Y 天联调，Z 天测试，上线，继续下一个项目<br />不需要考虑代码质量，不需要考虑长久维护，不管大的小的项目，从上往下一推，再砍几天人日，上线代表结束，下个烂摊子给谁就是谁<br />作为程序员，我们知道人有差异，但这种机制，就是去掉这种差异性<br />有意思的是，对于某些项目来说，还真是有效的，起码明面看起来高效（当然，这里的副作用，要持续更久的时间）<br /><br />技术的挽歌？<br />是的，old man 引以为豪的一些技术，慢慢被颠覆，如同我入行的 JSP 、Java RMI<br />我第一次惊讶的是，使用 gpt 能写出一个很不错的 shell 脚本，以前还需要蛮高级的技巧<br />我的父亲是司机，在他那个年代，司机是个“技术工种”，需要很强体力（以前的车没有很多助力功能），会认路（脑子自带地图），还是半个维修工（车质量差，容易坏）<br />但是现在，不会有人认为滴滴司机是一个很强的技术工种，甚至变成了一个兜底社会就业的池子<br />作为程序员，也要慢慢接受：技术最终变成一个基础学科，并且所有人都会掌握<br />与此同时，新的技术，又是旭日东升，如同现在的 AI<br /><br />行业的悲歌？<br />别夸大程序员的困境，早之前的地产、教培，不惨吗？<br />我买房加过不少中介，以及教英语的妹子，他们行业可谓风声鹤唳，好多人都不从事该行业了。<br />就程序员来说，前端、客户端，都比后端早感知到寒冷，正常心面对吧<br /><br />感想：<br />从知道被裁到现在，内心跌宕起伏<br />有时候庆幸逃出火坑，促使自己改变；有时候忿忿不平，why me ？<br />压力肯定是有的，毕竟依然负债和后代尚幼，深夜各种思索，下一步怎么走<br /><br />经验与教训：<br />1. 单纯技术体系而言：大厂/独角兽，能进就进，尽量待久一点，无非打鬼升级，找准位置，不要幻想外面就能成长更快，技术最终需要业务推动；如果不长期走技术路线，可以考虑小而美<br />2. 选长期业务，不做短平快业务，否则不管大厂小厂，和外包没什么区别<br />3. 技术积累一个道理，选择需要长久积累的领域，CRUD Boy 没有未来 <br />4. 想一下你的可替代性，和年轻人的对比<br />5. 找到兴趣点，不要计较短期的收益<br /><br />祝 v 友 新的一年，健康幸福，无论经历什么样的困境，都不要放弃
-]]></content:encoded>
-<pubDate>2025-01-05T14:22:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有什么优雅地方式存储 apikey？</title>
-<link>https://www.v2ex.com/t/1102905</link>
-<guid>https://www.v2ex.com/t/1102905</guid>
-<content:encoded><![CDATA[
-<p>RT ，现在但凡使用 api 提供服务的都会生成一个 apikey 然后前端只显示一次后告诉你后面不再显示，我也不想用一次就重新生成一次，有没有什么方式合适地记录。
-我现在就是很蠢地用 md 文档记录，总感觉像老人记电话本一样
-问 gpt 说用环境变量记录，但我使用场景也不单是用代码开发，而且环境变量和文档区别不是很大。
-不知道能不能放到 keychain 里或者某个密码本里</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:27:11Z</pubDate>
-</item>
-<item>
-<title>[问与答] 如果写的 app 其中一个页面和另外一款同类型的 app 很像会不会构成抄袭</title>
-<link>https://www.v2ex.com/t/1102904</link>
-<guid>https://www.v2ex.com/t/1102904</guid>
-<content:encoded><![CDATA[
-<p>我感觉他设计的很不错，但他是闭原的；有点纠结</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:24:00Z</pubDate>
-</item>
-<item>
-<title>[生活] 婚姻生活总是一地鸡毛吗</title>
-<link>https://www.v2ex.com/t/1102903</link>
-<guid>https://www.v2ex.com/t/1102903</guid>
-<content:encoded><![CDATA[
-周末和老婆吵的厉害，在我看来并没有什么大事，不过到最后我也没有控制住情绪。<br /><br />起因<br />周六晚关灯睡觉后，时间是 00:30 左右，老婆开始指责我。<br />她：你为什么不催我睡觉？（是她先放下的手机，她放下后我立马放下，并关灯）<br />我：我之前不是跟你说过吗。（大约 12 点的时候我说了一句，时间不早了，见她没睡觉的想法就也没强制她睡）<br />她：你不知道我来姨妈不能熬夜吗？<br />我：好吧，我错了，快睡吧。<br /><br />然后她开始长达一小时的输出，从我知道她姨妈来了不作为，到我不关心她，到我生活、节日没仪式感，到跟我结婚她得到了什么。期间我不断认错，她说的过分的时候会反驳几句。（实际上睡前我还给她灌了个热水袋）<br /><br />最后她把被子扯走，说去客厅睡。<br /><br />到这为止也没什么，我被她说的一肚子气。她可能说我说的也越来越气，大家互相冷静一下也好。她见我不出去找她，她拿个夏天的被子，冲进来对我狂扇。我没忍住，大声的骂了她。<br /><br />类似于这样的情况发生过很多次，我如果能忍住，在她输出我时，嬉皮笑脸对她，那就没事。如果我敢反驳，那她会越说越多越说越激动。直到最后双方情绪爆发。<br /><br />平时生活，基本上都是她享受，我干活。她偶尔会做做家务，一个月能有个几次吧，一只手数得过来。但是她真的很会数落我。我干活说我这干的不好那干的不好，不干活时玩会儿游戏，说打游戏必须要她允许才可以...<br /><br />我觉得我改变不了她，对婚姻看不到希望。除了离婚好像没什么好的办法了。
-]]></content:encoded>
-<pubDate>2025-01-06T06:32:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 15W 左右纯电 SUV 求推荐</title>
-<link>https://www.v2ex.com/t/1102901</link>
-<guid>https://www.v2ex.com/t/1102901</guid>
-<content:encoded><![CDATA[
-<p>老爸开了 11 年的 MPV 前几天报废了，准备换一辆纯电开开，基本就在老家县城开开，各位大佬有推荐的吗？</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:31:31Z</pubDate>
-</item>
-<item>
-<title>[Apple] 老婆给我买 Mac mini，吓死我了</title>
-<link>https://www.v2ex.com/t/1102900</link>
-<guid>https://www.v2ex.com/t/1102900</guid>
-<content:encoded><![CDATA[
-<p>老婆的旧 MacBook Pro 不行了，最近琢磨换笔记本，想蹲个价，上手 ThinkPad x1 carbon ，之前上学的时候就是这个，用顺手了。我顺嘴提了一句，我的台式机也不行了，AMD Ryzen R5 1600 + GTX 1060 6G ，该退役了。<br /></p>
-<p>结果昨晚做梦，老婆入手了 ThinkPad 之后，告诉我，给我买了礼物，拆开一看是 Mac mini ，顿时我就要退了，老婆说先用用吧，万一觉得好用。我拆了包装，随便划拉了两下，最终决定还是退了吧，然后梦就醒了。<br /></p>
-<p>过完年，还是自己组个新的台式机吧，都开始做梦了。看了一眼，9700x + b650m 大概 3000 块，和这台旧台式机在 17 年组的时候，差不多价格，那时候正好赶上三星爆炸和挖矿，显卡、内存、固态硬盘都比现在贵一大截。</p>
-]]></content:encoded>
-<pubDate>2025-01-06T06:16:21Z</pubDate>
 </item>
 </channel>
 </rss>
