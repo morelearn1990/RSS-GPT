@@ -5,14 +5,185 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 夹总估计气的拍桌子：他们怎么不来微博啊，然而...</title>
+<link>https://www.v2ex.com/t/1105379</link>
+<guid>https://www.v2ex.com/t/1105379</guid>
+<content:encoded><![CDATA[
+
+<p>夹总估计气的拍桌子：他们怎么不来微博啊，然而...</p>
+<p>夹总一拍桌子刚点开的微博自动跳转到淘宝 :rofl:</p>
+<p>所以，为什么就只有小红书能接住这破天的富贵？</p>
+]]></content:encoded>
+<pubDate>2025-01-15T14:10:16Z</pubDate>
+<pubDate>2025-01-15T14:10:16Z</pubDate>
+</item>
+<item>
+<title>[Notion] 建了一个 Notion edu 交流群</title>
+<link>https://www.v2ex.com/t/1105378</link>
+<guid>https://www.v2ex.com/t/1105378</guid>
+<content:encoded><![CDATA[
+
+<p>用了一段时间，感觉 notion 这款笔记应用挺好用的，建了一个交流群，另外免费为没有 notion 教育版会员的 v2 小伙伴提供 edu 邮箱，有需要的小伙伴可以加群交流和获取 edu 邮箱。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.erpweb.eu.org/imgs/2025/01/08a1f0ec0d6d150d.jpeg" /></p>
+<p>不知道本帖是否合规，如果不符合论坛规则，请管理员删除（别 ban 我号😂），谢谢</p>
+]]></content:encoded>
+<pubDate>2025-01-15T13:56:48Z</pubDate>
+<pubDate>2025-01-15T13:53:48Z</pubDate>
+</item>
+<item>
+<title>[iPhone] 开心！年前给妈妈换了新手机 iphone16。</title>
+<link>https://www.v2ex.com/t/1105377</link>
+<guid>https://www.v2ex.com/t/1105377</guid>
+<content:encoded><![CDATA[
+
+<p>老妈一直吐槽了，好几次现在用的安卓手机卡，一直拖着没给她换。今天用之前旧的 iPhoneXR + 京东依旧换新，换了个 16 新机子，老妈晚上用的很开心。</p>
+]]></content:encoded>
+<pubDate>2025-01-15T13:37:15Z</pubDate>
+<pubDate>2025-01-15T13:50:43Z</pubDate>
+</item>
+<item>
+<title>[程序员] 关于 Rust 所有权，如果对 mut 变量进行嵌套 mut 引用该怎么理解？</title>
+<link>https://www.v2ex.com/t/1105376</link>
+<guid>https://www.v2ex.com/t/1105376</guid>
+<content:encoded><![CDATA[
+
+<p>最近在自学 Rust ，因为之前粗略看过一些博客教程，所以这次直接看<a href="https://github.com/MeouSker77/ProgrammingRust" rel="nofollow">Programming Rust</a>这本书的翻译版，在第 5 章“引用”中遇到一个例子，感觉不能理解。</p>
+<p>首先看书中图 5-9 的所有权树，讲了对于可变和不可变引用时的访问关系，我以为自己理解了，可是后面看到这个例子，结果又看不明白，代码是这样的：</p>
+<pre><code class="language-rust">...
+也可以再次借用一个可变引用：
+let mut v = (136, 139);
+let m = &amp;mut v;
+let m0 = &amp;mut m.0;  // ok：从可变引用重新借用可变引用
+*m0 = 137;
+let r1 = &amp;m.1;      // ok：从可变引用重新借用共享引用,并且和 m0 没有重叠部分
+v.1;		        // error：通过其他路经访问仍然是禁止的
+println!("{}", r1); // r1 在这里使用
+
+</code></pre>
+<p>其实从第一个 ok 注释那里我就没搞明白，不是说变量只能同时存在一个可变引用吗，为什么有可变引用(“引用”为名词)m 的情况下还能从 m 那再可变引用（“引用”为动词）一个 m0 ？</p>
+<p>然后我问 gpt ，它是这么回答的：</p>
+<blockquote>
+<p>...</p>
+<p>嵌套 mut 引用的场景</p>
+<p>假设你有一个可变变量，并希望对其创建嵌套的可变引用。以下
+是一些常见的情况及其分析。</p>
+<p>情况 1：对整个变量的可变引用，然后尝试对部分值的可变引用</p>
+</blockquote>
+<pre><code class="language-rust">fn main() {
+    let mut x = (1, 2);
+
+    let r1 = &amp;mut x;       // 对整个变量 `x` 的可变引用
+    let r2 = &amp;mut r1.0;    // 尝试对 `x` 的一部分创建可变引用
+
+    *r2 = 42;              // 修改部分值
+    r1.1 = 99;             // 修改另一部分
+}
+</code></pre>
+<blockquote>
+<p>错误原因：
+Rust 编译器会报错，提示 不能同时借用 x 的多个可变引用。这是因为：</p>
+<p>r1 是对整个 x 的可变引用，它控制了 x 的独占访问权。
+当你尝试对 r1.0 （ x 的某个字段）创建可变引用时，r1 的作用域依然活跃，Rust 无法区分你是否会同时操作 x 的其他部分。</p>
+<p>错误示例的编译器消息（可能类似于）：</p>
+</blockquote>
+<pre><code>error[E0499]: cannot borrow `r1.0` as mutable more than once at a time
+</code></pre>
+<blockquote>
+<p>...</p>
+</blockquote>
+<p>但事实上，我尝试了类似代码，并不会报错:</p>
+<pre><code class="language-rust">fn main() {
+    let mut v = (136, 139);
+    let m = &amp;mut v;
+    let m0 = &amp;mut m.0;
+    *m0 = 137;
+    m.1 = 42;
+    println!("{:?}", v)
+}
+</code></pre>
+<p>其运行结果是:</p>
+<pre><code>(137, 42)
+</code></pre>
+<p>很多资料都没有讲解关于这种嵌套的引用会发生什么结果，也不知道什么情况是可以什么是不行，我没看过这例子时还以为压根不能创建 m0 呢，所以想着找 GPT 问问，结果告诉的内容是错的。</p>
+<p>请问该如何解释上面书中的代码，如何更好地理解 Rust 在这种嵌套情况下创建引用的做法是否成功？请各位赐教</p>
+]]></content:encoded>
+<pubDate>2025-01-15T13:35:05Z</pubDate>
+<pubDate>2025-01-15T13:34:05Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 🚀 [Free Tool] I made an AI-powered content generator for RedNoteApp/Xiaohongshu</title>
+<link>https://www.v2ex.com/t/1105375</link>
+<guid>https://www.v2ex.com/t/1105375</guid>
+<content:encoded><![CDATA[
+
+<p>Hey everyone! I wanted to share a free tool I built that helps create engaging content for Xiaohongshu/RED (Chinese Instagram/Pinterest).
+🔗 Try it here: https://rednote.pics/
+✨ Key Features:</p>
+<ul>
+<li>One-click content generation</li>
+<li>Supports 12 languages (including English, Chinese, Japanese, Korean, etc.)</li>
+<li>Built-in templates for different content types</li>
+<li>Auto emoji placement</li>
+<li>Proper formatting for RED platform</li>
+<li>100% Free to use
+Perfect for:</li>
+<li>International brands entering Chinese market</li>
+<li>Content creators</li>
+<li>Social media managers</li>
+<li>Anyone interested in RED platform
+Just choose a template (or input your own content), select your language, and click generate. The AI will transform it into RED's signature style with emojis and proper formatting.
+Would love to hear your feedback! Let me know if you have any questions.
+Edit: If the main domain (rednote.pics) doesn't work, please use the Vercel link above.</li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-01-15T13:31:51Z</pubDate>
+<pubDate>2025-01-15T13:29:51Z</pubDate>
+</item>
+<item>
+<title>[生活] 我发现身边总有这么一种人， ta 看到报错后的第一反应永远不是阅读错误信息</title>
+<link>https://www.v2ex.com/t/1105373</link>
+<guid>https://www.v2ex.com/t/1105373</guid>
+<content:encoded><![CDATA[
+
+<p>而是要么反复做同样的事（比如在火车站被闸机拦住，上面明明大字提示请去人工窗口，却站在机器里面反复拿走放回 ta 的身份证），要么无脑扔给别人解决（只会问我的 xx 软件报错怎么办，明明错误信息上已经说了问题是什么如何解决），要么直接放弃使用（然后到处说 xxx 不好用，或者 xxx 我不会用）</p>
+]]></content:encoded>
+<pubDate>2025-01-15T13:14:07Z</pubDate>
+<pubDate>2025-01-15T14:11:53Z</pubDate>
+</item>
+<item>
+<title>[Linux] Arch 默认不能 usb 唤醒？</title>
+<link>https://www.v2ex.com/t/1105372</link>
+<guid>https://www.v2ex.com/t/1105372</guid>
+<content:encoded><![CDATA[
+
+不晓得是我火星了还是怎么，今天才发现 arch 挂起后，只能用电源唤醒，usb 鼠标键盘都不行。工作用的测试机装了 ubuntu24 也是一样的情况。<br />   查看后发现 usb 设备是关闭了的，xdm 有没啥好方法，可以做到 usb 唤醒，我直接 vi 后开机会恢复<br />   <br /> 桌面环境 kde<br />   <br /> /sys/bus/usb/devices/1-5/power/wakeup:enabled<br />/sys/bus/usb/devices/1-6/power/wakeup:disabled<br />/sys/bus/usb/devices/1-8/power/wakeup:disabled<br />/sys/bus/usb/devices/usb1/power/wakeup:disabled<br />/sys/bus/usb/devices/usb2/power/wakeup:disabled<br />/sys/bus/usb/devices/usb3/power/wakeup:disabled<br />/sys/bus/usb/devices/usb4/power/wakeup:disabled
+]]></content:encoded>
+<pubDate>2025-01-15T13:12:46Z</pubDate>
+<pubDate>2025-01-15T13:12:46Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] o1-preview API 现在连个"hello"都不能问了吗？</title>
+<link>https://www.v2ex.com/t/1105371</link>
+<guid>https://www.v2ex.com/t/1105371</guid>
+<content:encoded><![CDATA[
+
+<p>通过 API 向"o1-preview"模型提问<strong>hello</strong>或者只打一个<strong>1</strong>（或者任何其它 prompt ），出现报错: <code>Invalid prompt: your prompt was flagged as potentially violating our usage policy. Please try again with a different prompt.</code> （ Playground 症状相同）</p>
+<p>实在想不通一个 hello 是怎么违反的用户守则，之前本来用的好好的，现在已经和 openai 的客服扯皮一个月了，问就是正在火速修复，然后预存的 API 费用也不给退。想知道 V 友们有遇到类似情况吗</p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://image233.us.kg/file/1736944894612_image.png" /></p>
+<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://image233.us.kg/file/1736945074980_image.png" /></p>
+<p>平常都只有自己一个人用，问的也全是正常问题，不知道是不是 openai 发现我是大陆用户然后 ban 了</p>
+]]></content:encoded>
+<pubDate>2025-01-15T13:02:11Z</pubDate>
+<pubDate>2025-01-15T12:59:11Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] TikTok 即将被禁，「小红书」涌入大量美国人。美国人： Make 「小红书」 Great Again！</title>
 <link>https://www.v2ex.com/t/1105369</link>
 <guid>https://www.v2ex.com/t/1105369</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-01-15T12:33:51Z</pubDate>
 <pubDate>2025-01-15T12:32:51Z</pubDate>
 </item>
 <item>
@@ -20,11 +191,9 @@
 <link>https://www.v2ex.com/t/1105368</link>
 <guid>https://www.v2ex.com/t/1105368</guid>
 <content:encoded><![CDATA[
-
 <p>很多电影不在香港,台湾新加坡区.
 在很多其他国家可以播放但是没中文字幕.这个怎么破.</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T12:33:47Z</pubDate>
 <pubDate>2025-01-15T12:31:47Z</pubDate>
 </item>
 <item>
@@ -32,10 +201,8 @@
 <link>https://www.v2ex.com/t/1105367</link>
 <guid>https://www.v2ex.com/t/1105367</guid>
 <content:encoded><![CDATA[
-
 本市没岗位可以报，省会难考，隔壁市还不错，会不会离家太远不值得？
 ]]></content:encoded>
-<pubDate>2025-01-15T12:26:47Z</pubDate>
 <pubDate>2025-01-15T12:39:22Z</pubDate>
 </item>
 <item>
@@ -43,11 +210,9 @@
 <link>https://www.v2ex.com/t/1105365</link>
 <guid>https://www.v2ex.com/t/1105365</guid>
 <content:encoded><![CDATA[
-
 <p>有没有类似这样的开源项目。项目就是一堆配置文件。分成很多目录，每个目录就是一个开源软件，比如 <code>zabbix</code>、<code>mysql</code>、<code>mongo_cluster</code>，不同的目录下面是 docker-compose.yaml 以及相关配置文件。想使用啥组件的时候直接进去 <code>docker compose up -d</code> 即可。</p>
 <p>省得我去到处找 docker compose 文件的时间了，如果文档比较完善就更好了。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T12:05:22Z</pubDate>
 <pubDate>2025-01-15T12:18:41Z</pubDate>
 </item>
 <item>
@@ -55,10 +220,8 @@
 <link>https://www.v2ex.com/t/1105364</link>
 <guid>https://www.v2ex.com/t/1105364</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://raw.githubusercontent.com/TesterRoad/picture-storage/master/2025/01/15/1736942393999-53dfcaf3-4046-40fa-8b19-c617f0cb30b9.png" /></p>
 ]]></content:encoded>
-<pubDate>2025-01-15T12:00:52Z</pubDate>
 <pubDate>2025-01-15T12:39:46Z</pubDate>
 </item>
 <item>
@@ -66,7 +229,6 @@
 <link>https://www.v2ex.com/t/1105363</link>
 <guid>https://www.v2ex.com/t/1105363</guid>
 <content:encoded><![CDATA[
-
 <h1>[部门介绍]</h1>
 <ol>
 <li>所属部门：阿里云智能 CTO 线-产品架构&amp;稳定性部-小天基&amp;神农-小天基-基座平台</li>
@@ -108,7 +270,6 @@
 <p>HC 充足，请将简历发送到 <a href="mailto:mingduo.zj@alibaba-inc.com">mingduo.zj@alibaba-inc.com</a>  ,我收到后以最快速度走流程，^_^</p>
 ]]></content:encoded>
 <pubDate>2025-01-15T12:00:42Z</pubDate>
-<pubDate>2025-01-15T12:00:42Z</pubDate>
 </item>
 <item>
 <title>[问与答] 为啥抖音也沦陷了，一打开全是老外，抖音国外都下载不了，即使下载了安卓版也注册不了。</title>
@@ -116,9 +277,7 @@
 <guid>https://www.v2ex.com/t/1105362</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-01-15T11:52:32Z</pubDate>
 <pubDate>2025-01-07T11:50:32Z</pubDate>
 </item>
 <item>
@@ -126,12 +285,10 @@
 <link>https://www.v2ex.com/t/1105361</link>
 <guid>https://www.v2ex.com/t/1105361</guid>
 <content:encoded><![CDATA[
-
 <p>现在使用的是 glnet mt3000 ，配合中兴的 f50 ，使用一个网卡转换头。</p>
 <p>不定时出现网络断，一直连接中的问题，需要插拔下转接头或者重启 f50 ，感觉可能是 mt3000 的负载比较多。</p>
 <p>想寻找一个不需要转接头，直接 usb 可以使用 f50 的路由器，当然能直接插 sim 卡的也可以的。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T11:46:53Z</pubDate>
 <pubDate>2025-01-15T11:46:53Z</pubDate>
 </item>
 <item>
@@ -139,11 +296,9 @@
 <link>https://www.v2ex.com/t/1105360</link>
 <guid>https://www.v2ex.com/t/1105360</guid>
 <content:encoded><![CDATA[
-
 <p>能撑半年吗？</p>
 <p>以我每天看 tt 和 x 来看，让国外博主进入小红书，国内一半的博主都没得玩了，更别说那些知识付费的。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T11:46:14Z</pubDate>
 <pubDate>2025-01-15T12:40:06Z</pubDate>
 </item>
 <item>
@@ -151,12 +306,10 @@
 <link>https://www.v2ex.com/t/1105359</link>
 <guid>https://www.v2ex.com/t/1105359</guid>
 <content:encoded><![CDATA[
-
 <p>监控系统网卡状态（支持多网卡）、内存、cpu 、上行下行网速变化、cpu 温度变化、本地（指定文件夹）文件变化、本地磁盘空间
 定时将以上信息上传到服务器</p>
 <p>服务器汇总多态客户机信息，对客户机状态进行预警通知。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T11:37:38Z</pubDate>
 <pubDate>2025-01-15T11:59:04Z</pubDate>
 </item>
 <item>
@@ -164,7 +317,6 @@
 <link>https://www.v2ex.com/t/1105356</link>
 <guid>https://www.v2ex.com/t/1105356</guid>
 <content:encoded><![CDATA[
-
 <p>后台有一个批量操作的功能。</p>
 <p>用户审核通过，然后给他的邀请人加优惠价。</p>
 <pre><code>伪代码
@@ -178,7 +330,6 @@ foreach(users as user){
 <p>给用户加优惠卷有 2 个插入操作，一个更新操作。</p>
 <p>刚才进行批量操作，执行了 20 个用户，其中几个 update 操作失败。所以对这个问题没想明白，mysql rr 级别。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T11:24:45Z</pubDate>
 <pubDate>2025-01-15T11:37:58Z</pubDate>
 </item>
 <item>
@@ -186,10 +337,8 @@ foreach(users as user){
 <link>https://www.v2ex.com/t/1105355</link>
 <guid>https://www.v2ex.com/t/1105355</guid>
 <content:encoded><![CDATA[
-
 比如说能够定时调用天气查询的接口，如果天气要下雨就通过 webhook 发送通知，最好是能够自部署的。
 ]]></content:encoded>
-<pubDate>2025-01-15T11:19:19Z</pubDate>
 <pubDate>2025-01-15T12:02:54Z</pubDate>
 </item>
 <item>
@@ -197,14 +346,12 @@ foreach(users as user){
 <link>https://www.v2ex.com/t/1105354</link>
 <guid>https://www.v2ex.com/t/1105354</guid>
 <content:encoded><![CDATA[
-
 <p>我没驾照，也不会开车，我们住的有点远大概 20km ，他 5.30 下班，我 6.30 下班</p>
 <p>以前是周五下班了来接我，周日送回来，现在说来回接送很累，希望我自己坐地铁，可是我坐地铁要 40 分钟啊，下了地铁还要走 20 分钟。</p>
 <p>开车就算堵车也才 40 分钟，而且怎么说也是坐在车上等吧，我挤地铁大部分时间都得站着，还得背个 3-4kg 的包，我觉得地铁挺辛苦的。</p>
 <p>感觉不对劲，这是要黄了吧</p>
 <p>大城市想找个对象真的好难啊</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T11:00:34Z</pubDate>
 <pubDate>2025-01-15T12:38:01Z</pubDate>
 </item>
 <item>
@@ -212,7 +359,6 @@ foreach(users as user){
 <link>https://www.v2ex.com/t/1105353</link>
 <guid>https://www.v2ex.com/t/1105353</guid>
 <content:encoded><![CDATA[
-
 <p><em><strong>只是个人的判断和策略 不作为投资建议</strong></em></p>
 <h4>重仓股票</h4>
 <p>无论什么股票，都不会重仓</p>
@@ -239,7 +385,6 @@ foreach(users as user){
 现代信用货币的年龄不过不到 100 年  </p>
 <p>高点定投，需要比人类几千年来信仰黄金还要坚定的信仰</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T10:55:34Z</pubDate>
 <pubDate>2025-01-14T18:55:34Z</pubDate>
 </item>
 <item>
@@ -248,9 +393,7 @@ foreach(users as user){
 <guid>https://www.v2ex.com/t/1105352</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-01-15T10:52:47Z</pubDate>
 <pubDate>2025-01-15T11:11:59Z</pubDate>
 </item>
 <item>
@@ -258,7 +401,6 @@ foreach(users as user){
 <link>https://www.v2ex.com/t/1105351</link>
 <guid>https://www.v2ex.com/t/1105351</guid>
 <content:encoded><![CDATA[
-
 <p>刚开始学 actix-web
 目前用到的包是
 redis-rs
@@ -266,7 +408,6 @@ tokio
 actix-web
 serde</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T10:46:56Z</pubDate>
 <pubDate>2025-01-15T12:16:56Z</pubDate>
 </item>
 <item>
@@ -274,12 +415,10 @@ serde</p>
 <link>https://www.v2ex.com/t/1105350</link>
 <guid>https://www.v2ex.com/t/1105350</guid>
 <content:encoded><![CDATA[
-
 <p>铺天盖地的推送洋人，很容易进入茧房，根本没法好好摸鱼。</p>
 <p>目前来看 10 个人里面 11 个假洋鬼子，明明中国时间大中午的，美国同一时间居然是白天，而且评论区都没人发现这么简单的 bug 。还有用#歪果仁 tag 的，我真的想不出来一个中国字都不认识的洋人是怎么能靠翻译软件翻出来谐音梗= =。</p>
 <p>就感觉反诈还是有必要的，如果真的有天开放了互联网，我都不敢想到时候这些人得被骗成什么样= =。</p>
 ]]></content:encoded>
-<pubDate>2025-01-15T10:39:59Z</pubDate>
 <pubDate>2025-01-15T10:56:10Z</pubDate>
 </item>
 <item>
@@ -287,10 +426,8 @@ serde</p>
 <link>https://www.v2ex.com/t/1105349</link>
 <guid>https://www.v2ex.com/t/1105349</guid>
 <content:encoded><![CDATA[
-
 虽然我也想过要学点英语，无奈年龄大了。但还是想出去看看，纯旅游的那种。<br />所以就想问问，如果仅靠翻译软件，在外面交流是否会有障碍？<br />如果没有的话，一般是用的哪一款翻译。<br /><br />我看好多博主现在用的都是离线翻译器，据说一个要 3 千左右。
 ]]></content:encoded>
-<pubDate>2025-01-15T10:35:17Z</pubDate>
 <pubDate>2025-01-15T11:26:09Z</pubDate>
 </item>
 <item>
@@ -298,7 +435,6 @@ serde</p>
 <link>https://www.v2ex.com/t/1105348</link>
 <guid>https://www.v2ex.com/t/1105348</guid>
 <content:encoded><![CDATA[
-
 <p>写了个工具解决自己的痛点，顺便开源出来。本质就是不想再对着终端 kubectl + grep + 来回切集群 context 查问题了 😅</p>
 <p>几个好玩的功能：</p>
 <ul>
@@ -311,17 +447,14 @@ serde</p>
 <p>今天刚上 Product Hunt ，有兴趣的老哥可以帮忙点个赞： <a href="https://www.producthunt.com/posts/karpor" rel="nofollow">https://www.producthunt.com/posts/karpor</a></p>
 ]]></content:encoded>
 <pubDate>2025-01-15T10:33:32Z</pubDate>
-<pubDate>2025-01-15T10:33:32Z</pubDate>
 </item>
 <item>
 <title>[问与答] 小红书不分海内外服务器吗？</title>
 <link>https://www.v2ex.com/t/1105347</link>
 <guid>https://www.v2ex.com/t/1105347</guid>
 <content:encoded><![CDATA[
-
 这几天看到国内版本的小红书多了很多英文内容和外国人，感觉像是官方的营销，难道小红书海外用户和国内用户数据是互通的？这不合规吧？
 ]]></content:encoded>
-<pubDate>2025-01-15T10:24:14Z</pubDate>
 <pubDate>2025-01-15T12:14:51Z</pubDate>
 </item>
 <item>
@@ -329,13 +462,10 @@ serde</p>
 <link>https://www.v2ex.com/t/1100290</link>
 <guid>https://www.v2ex.com/t/1100290</guid>
 <content:encoded><![CDATA[
-
 米哈游 2024 年 12 月 25 日最新招聘信息来啦！更新于 2024 年 12 月 25 日，持续更新中~~~<br />校招、社招持续进行中～通过内推链接可查看各个岗位具体要求，各位优秀的小伙伴们，简历赶紧投起来吧。<br /><br />校招内推码：9MK7D<br />米哈游 2024 春季校园招聘官网：<br /><a href="https://jobs.mihoyo.com/#/campus/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/#/campus/position</a><br /><br />社招内推码：NTAEVIP<br />社招内推链接：<br /><a href="https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position" rel="nofollow noopener" target="_blank">https://jobs.mihoyo.com/?isRecommendation=true&amp;recommendationCode=NTAEVIP#/position</a><br /><br />薪资福利参考我司 boss 直聘主页：<br /><a href="https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1" rel="nofollow noopener" target="_blank">https://www.zhipin.com/gongsir/9f8c95b92321a8e11nJz2Nu7.html?ka=position-1</a><br /><br />2 、加入米哈游你将享受以下福利：<br />- - 每年 10 天年假，3 天带薪病假<br />16+薪 六险二金 （全额五险一金+补充住房公积金+商业医疗保险）<br />每年两次薪资回顾机会（根据绩效评估是否调薪），分别在 4 月、10 月<br />免费定期体检（本人+一位家属），免费午餐晚餐，内部专属咖啡吧<br />早十晚七，内部各种福利群，猫群，鱼群，ps 群。。。。<br />不限量零食饮料，丰富多彩的节日礼品，年会百分百中奖，丰厚年终奖。<br />福利多多停不下来，我在 miHoYo ，等你一起拯救世界，米哈游期待你的到来。<br /><br />3 、关于米哈游<br />米哈游成立于 2011 年，致力于为用户提供美好的、超出预期的产品与内容。米哈游陆续推出了多款高品质人气产品，包括《崩坏学园 2 》、《崩坏 3 》、《未定事件簿》、《原神》、《崩坏:星穹铁道》，《绝区零》，动态桌面软件《人工桌面》以及社区产品《米游社》，并围绕原创 IP 打造了动画、音乐及周边等多元产品。<br />秉承着“技术宅拯救世界”的使命，米哈游始终致力于技术研发、探索前沿科技，在卡通渲染、人工智能、云游戏技术等领域积累了先进的技术能力。<br />米哈游总部位于中国上海，并在新加坡、美国、加拿大、日本、韩国等国家和地区进行全球化布局。目前，公司员工 5,000 人，来自世界知名游戏/互联网/科技公司。<br /><br /><a href="https://www.v2ex.com/i/TD3Q4bg5.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 TD3Q4bg5.png"><img class="embedded_image" src="https://i.v2ex.co/TD3Q4bg5.png" /></a>
 ]]></content:encoded>
-<pubDate>2024-12-25T12:09:13Z</pubDate>
 <pubDate>2025-01-15T12:48:54Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 家里需要 DC 电源的设备比较多，用绿联 120W 的充电器接上 usb 转 dc 的线，能不能供电</title>
 <link>https://www.v2ex.com/t/1105345</link>
@@ -15508,272 +15638,6 @@ github 上的 v2ray-core 目前有没有办法能在 ios 上运行<br /><br />sh
 deepseek 官网的 api 接口请求速率实在是太慢了，几乎只能 1iter/s ，完全不能和 openai 相比，请问有什么办法提高速率？</p>
 ]]></content:encoded>
 <pubDate>2025-01-08T03:31:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 12306 内部也强制换了信创吗，一年不如一年</title>
-<link>https://www.v2ex.com/t/1104102</link>
-<guid>https://www.v2ex.com/t/1104102</guid>
-<content:encoded><![CDATA[
-<p>以前没这么频繁崩溃吧</p>
-]]></content:encoded>
-<pubDate>2025-01-10T03:26:06Z</pubDate>
-</item>
-<item>
-<title>[产品经理茶话会] 决定从开发转产品，我的选择正确吗</title>
-<link>https://www.v2ex.com/t/1104101</link>
-<guid>https://www.v2ex.com/t/1104101</guid>
-<content:encoded><![CDATA[
-<h3>背景</h3>
-<p>因为计算机出身，自身觉得学计算机就应该要做开发，所以毕业毅然决然选择投递开发这条道路。当时觉得学了那么多年计算机知识，做产品经理、项目经理太可惜了，一直对这类型的岗位不太感冒； 但是现实总是残酷的，现在明显感觉到的有以下几点 ：</p>
-<ul>
-<li>
-<p>作为开发，现在大环境已经大不如前，就目前工作环境来说，开发的地位越来越低，公司不太核心的开发任务，开始陆陆续续改为外包员工进行开发，然后缩减正式员工的编制。 </p>
-</li>
-<li>
-<p>进入公司后，疲于做各种项目，而且都是很紧急很琐碎的东西，加班又比较严重，基本没有自己的时间。</p>
-</li>
-<li>
-<p>干了多年还只是大头兵，领导换了一批又一批，但是下面的就是升不上去，感觉没啥晋升的希望。</p>
-</li>
-<li>
-<p>开发水平并不是顶尖水平，日常下班后也被一些零零散散的事情包围，基本没有很多学习深造的时间，技术更新迭代太快，有时候根本学不过来。 </p>
-</li>
-</ul>
-<p>于是感觉开发这条路子不太适合自己了，决定转型，然后找产品相关的岗位。</p>
-<p>因为没有产品经验，所以找工作到处碰壁，人家根本不愿意花时间成本让你成长学习，最后找到个产品相关的，但是偶尔要写代码的，勉强过度一下。</p>
-<h3>小感悟</h3>
-<p>干了一段时间，有一些小的感悟</p>
-<ul>
-<li>做产品并没有我以前想的那么简单，有时候好的产品，需要不断的迭代、打磨、然后沟通，不断优化。</li>
-<li>以前做开发，每次只关注到某个小的任务应该怎么实现，对整个产品并没有一个清晰的概念，了解到的东西很片面，经常拿到的任务都是产品经理、项目经理高度拆解下来的任务，做产品经理后感觉有种上帝视角的感觉，了解到了整个产品是怎么做的。</li>
-<li>沟通的事情翻倍，以前做开发，可能一周顶多一天一个会，然后一个任务做几天这样，现在一天 N 个会议，不止要和业务沟通，还要和开发对接，各种交流沟通。</li>
-<li>和其他产品不同的地方，可能就是因为本身做过开发，跟他们沟通的时候，我们可以直接讨论技术实现方式，而不会鸡同鸭讲，我也基本知道某些问题有那些潜在的解决方案，只需要跟开发定好具体的方案，让他们开发就好</li>
-<li>工作不需要一直呆在工位了，一般开发完成了任务，我主要上去验证一下，如果有问题，就继续沟通就好了，感觉时间自由了一些。</li>
-<li>需要处理人际关系，作为一个很内向的人，需要开始处理和业务侧人际关系（这个是我极度不适应的地方，调整了好久），从一开始的不敢找业务问问题，到后面直接打电话高效沟通，感觉还是有一定的成长。</li>
-</ul>
-<h3>个人困惑</h3>
-<p>但是有些疑问还是一直在脑海里面反复出现，所以还是请 v 友们提点一下</p>
-<ol>
-<li>做产品经理（或者项目经理）这个领域，应该怎么提升自己的软硬实力？除了考证（ PMP 、软件高级证书）、是否还有其他可以提升的方法？</li>
-<li>还是不想放弃自己的技术背景，如何做产品的时候，能够运用到自己的技术知识，这个我还没找到很好的契合点。只有在和开发沟通的时候，发现自己的技术背景有用，但也只是能够更好地和开发沟通而已，好像没有怎么运用。</li>
-<li>另外产品经理的职业发展路线是怎么样的？</li>
-</ol>
-]]></content:encoded>
-<pubDate>2025-01-10T04:07:43Z</pubDate>
-</item>
-<item>
-<title>[路由器] 求助小米 AX3600 路由器信号消失断流问题</title>
-<link>https://www.v2ex.com/t/1104100</link>
-<guid>https://www.v2ex.com/t/1104100</guid>
-<content:encoded><![CDATA[
-<p>早几天，在闲鱼上 160 元竞拍购得一台小米 AX3600 路由器，卖家声称该路由器无拆修无暗病。然而，在我收到并使用后，却出现了两个较为严重的问题。其一，路由器从通电开始就持续发出滋滋滋的异常响声，且声音极大，即便将其放置在客厅的电视柜上，坐在沙发处也能清晰可闻；其二，该路由器的 WiFi 信号极不稳定，频繁会莫名其妙地消失，过个几十秒分把钟又自行恢复了，有时虽显示有 WiFi 信号，但却无法成功连接网络。此前用的 100 多元的 TP-Link 路由器从未出现过此类情况。卖家也不承认，加上信号消失和断流问题是偶发性的，很难抓到故障现象，退货退款无望，后面我在 B 站和抖音搜索小米 AX3600 这个型号后发现，有许多用户反馈存在电流异响以及信号消失、断流等同类问题。应该是这个型号的通病，但都没有提供有效的解决方案，想问问 v2 上的兄弟，有木有用过同款路由器又遇到通病并且解决的大佬。</p>
-]]></content:encoded>
-<pubDate>2025-01-10T04:17:55Z</pubDate>
-</item>
-<item>
-<title>[随想] 人到中年，曾经坚定的唯物主义者也动摇了，你们也是吗？</title>
-<link>https://www.v2ex.com/t/1104099</link>
-<guid>https://www.v2ex.com/t/1104099</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.v2ex.com/t/1103967" rel="nofollow">前文回顾链接</a></p>
-<p>昨天在临近下班前写了这篇帖子，碍于本人阅读量少且写完贴之后没有通读，导致帖子缺乏逻辑和明确的观点议题。<br />
-遂今天再开一贴，聊一下近两年的心路历程。</p>
-<hr />
-<h2>Part 1：唯物主义与气场的思考</h2>
-<p>从小接受唯物主义教育的我们，不管是主动还是被动，都很少接触到宗教相关的思想。<br />
-所以我相信大部分国内长大的朋友们都是坚定的唯物主义者。</p>
-<p>然而，我脑海里一直有个困扰。如我昨天帖子里所说的：<em><strong>风水</strong>是个玄学概念，起初我也觉得它不可信。后来了解到，<br />
-“风水是可以从居住的舒适度，影响了人在做选择时的状态，导致事情发展的不同结果”，<br />
-我觉得玄学上的风水可以从物理世界的逻辑上理清楚。<br />
-那么，<strong>人的气场、能量、磁场</strong>在社交场合中的影响，是否也可以从物理世界的逻辑上捋一下呢？</em></p>
-<p>可能用词不当、没描述清楚这个议题，在帖子里造成了相当大的歧义，其实大部分人都在讨论对「气场、能量、磁场」这些词语的定义，而非问题本身（是我造成的，没有描述准确）</p>
-<p>尽管如此，仍然有一些朋友能和我产生共鸣，他们从我晦涩的文字中理解了我的意思，并提出了一些有价值的见解，让我受益匪浅。</p>
-<p>困扰我的根本原因就是：<strong>对自己妄自菲薄、不够自信所导致的！</strong></p>
-<hr />
-<h2>Part 2：科学与“身心灵”之辩</h2>
-<p>昨天我认真阅读了帖子里的每一条回复，其中不乏一些带有宗教相关的言论。<br />
-随着年龄的增长，尤其是接近三十，我经历的事情越来越多，心态也发生了一些微妙的变化。<br />
-我开始逐渐意识到，宗教在这个世界上存在了几千年，并且长盛不衰，必定有它存在的理由。</p>
-<p>因此，我也在思考：我们该相信科学，还是相信“身心灵”这个概念有其存在的意义？<br />
-在我看来，这个问题的答案并非简单的对立，而是两者可能在不同层面上都有其价值。<br />
-或许科学可以解释世界的物质层面，而“身心灵”则提供了对精神层面的理解？（也就是物理科学无法解释层面都甩给身心灵）</p>
-]]></content:encoded>
-<pubDate>2025-01-10T04:21:08Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海] [鹰角] [终末地] 终末地专场内推</title>
-<link>https://www.v2ex.com/t/1104098</link>
-<guid>https://www.v2ex.com/t/1104098</guid>
-<content:encoded><![CDATA[
-<p><a href="https://app.mokahr.com/recommendation-apply/hypergryph/28713?recommendCode=NTAVXvy#/jobs?keyword=%E7%BB%88%E6%9C%AB%E5%9C%B0" rel="nofollow">https://app.mokahr.com/recommendation-apply/hypergryph/28713?recommendCode=NTAVXvy#/jobs?keyword=%E7%BB%88%E6%9C%AB%E5%9C%B0</a></p>
-<p>欢迎投递</p>
-]]></content:encoded>
-<pubDate>2025-01-09T23:15:14Z</pubDate>
-</item>
-<item>
-<title>[Mac mini] Mac mini 鼠标滚轮问题</title>
-<link>https://www.v2ex.com/t/1104097</link>
-<guid>https://www.v2ex.com/t/1104097</guid>
-<content:encoded><![CDATA[
-设备: Mac mini(M4), 鼠标: 雷蛇-巴塞利斯蛇 X<br />使用了 MOS 修改顺滑度<br />但是现在在 Chrome 中或者 VS Code 中鼠标停着看一会网页，然后要滚动滚轮向下翻网页：向下滚滚轮网页应该放下走（他先网上弹一下再开始往下走），向上滚滚轮他应该网上走还是会先反方向滑动一下再开始往上走。<br />有时还会有往下滚动时，网页上下来回弹动再往下走。<br />这个鼠标用着太糟心，有解决的办法吗？<br />在店里使用过 magic mouse ，使用体验和 win 上的鼠标一样丝滑指哪打哪，但是用着太不舒服了（形状）
-]]></content:encoded>
-<pubDate>2025-01-10T03:53:49Z</pubDate>
-</item>
-<item>
-<title>[MacBook Pro] Mac 在同时插有线网和连着无线网的情况下的访问网络逻辑是啥？</title>
-<link>https://www.v2ex.com/t/1104095</link>
-<guid>https://www.v2ex.com/t/1104095</guid>
-<content:encoded><![CDATA[
-比如开机就连着无线网，然后某个时刻把有线网接入，那么优先用有线网么？有优先级之类的么？
-]]></content:encoded>
-<pubDate>2025-01-10T03:16:14Z</pubDate>
-</item>
-<item>
-<title>[CSS] 有什么可以把设计图纸一键生成 CSS 和 HTML 的工具：</title>
-<link>https://www.v2ex.com/t/1104094</link>
-<guid>https://www.v2ex.com/t/1104094</guid>
-<content:encoded><![CDATA[
-<p>试了好几款，导出后代码好乱，不理想</p>
-]]></content:encoded>
-<pubDate>2025-01-10T04:18:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] 使用 USB3.0 的读卡器插入电脑，不显示磁盘，试图进行磁盘分区，软件卡死</title>
-<link>https://www.v2ex.com/t/1104093</link>
-<guid>https://www.v2ex.com/t/1104093</guid>
-<content:encoded><![CDATA[
-<p>事情是这样的：本人有一张 16G 的 SD 卡，是用来摄像头录制用的。这两天想取下来格式化一下，买了个普通的 USB3.0 的读卡器，插上后发现资源管理器不显示。</p>
-<p>上网查了下，说是 usb3.0 的不会显示（系统是 win11 ），然后用磁盘管理或者傲梅的分区助手是能正常显示一个未分配的磁盘，但是每次当我点击给他分配盘符后提交，软件就会卡死长时间等待，无法继续操作。只能强制杀掉进程。再次上网查询，但是没看到有相关的内容，请教下各位大佬有遇到过的吗？</p>
-]]></content:encoded>
-<pubDate>2025-01-10T03:14:15Z</pubDate>
-</item>
-<item>
-<title>[硬件] 大佬们， 5070ti 比 4070tis 提升大嘛，还有 cpu 应该怎么选呢?</title>
-<link>https://www.v2ex.com/t/1104091</link>
-<guid>https://www.v2ex.com/t/1104091</guid>
-<content:encoded><![CDATA[
-原来去年年底想蹲个 4070tis ，年初的时候在 dy 商城加上券，4070tis adoc 才 6000 ，最后想了半天还是咬牙继续蹲 50 系。<br />现在 50 系也出来啦，就是想问下不算 dlss4 的话，5070ti 硬性条件能打的过 4070tis 嘛？<br />还有 u 的话，之前想买个 146 或者 14700kf ，现在有点怕缩，然后又看了 9700x 和 7950x 。<br />我不打网游，玩策略游戏多一点，怕文明和天际线 2 之类的玩到后期会卡卡的，然后会用到 adobe 全家桶，配个什么 u 会比较合适哇？
-]]></content:encoded>
-<pubDate>2025-01-10T04:19:12Z</pubDate>
-</item>
-<item>
-<title>[macOS] mac os 有什么优化技巧吗</title>
-<link>https://www.v2ex.com/t/1104090</link>
-<guid>https://www.v2ex.com/t/1104090</guid>
-<content:encoded><![CDATA[
-我是 m2 pro 最低配,前两天升级到了 15.2,外接了俩显示器,一 4k 一 2k<br />早上感觉好卡<br />看活动监视器也没发现问题<br />后来发现启用了动态墙纸<br />关了好多了<br /><br />不知道是不是心理作用<br />如果不是,还有什么优化技巧吗<br /><br />感觉本子性能越来越不够了<br />主要做前端和 php 开发<br />另外客厅里还有个 win10/macos 双系统的小主机,接了两块硬盘放电影用的,能利用起来吗?
-]]></content:encoded>
-<pubDate>2025-01-10T04:06:42Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 大家坐在电脑面前每天必访问的网站是哪些？</title>
-<link>https://www.v2ex.com/t/1104089</link>
-<guid>https://www.v2ex.com/t/1104089</guid>
-<content:encoded><![CDATA[
-<p>最好是摸鱼划水的网站，让人身心放松。
-网站最好是详情地址，因为只是放首页无法展现到网站的全部实力。</p>
-<p>我先来：</p>
-<p>1 、<a href="https://github.com/trending" rel="nofollow">https://github.com/trending</a> github 一些热门项目
-2 、<a href="https://juejin.cn/" rel="nofollow">https://juejin.cn/</a> 掘金
-3 、<a href="https://www.ahhhhfs.com/" rel="nofollow">https://www.ahhhhfs.com/</a> A 姐分享</p>
-]]></content:encoded>
-<pubDate>2025-01-10T04:26:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] 用了两月 Linux 版微信， 现在不让登录了，扫码提示 “当前账号无法使用该服务”</title>
-<link>https://www.v2ex.com/t/1104088</link>
-<guid>https://www.v2ex.com/t/1104088</guid>
-<content:encoded><![CDATA[
-<p>这未涉黄涉政，突然就不让登录了？
-有没有一个申诉渠道还是会自动解除？</p>
-]]></content:encoded>
-<pubDate>2025-01-10T02:57:15Z</pubDate>
-</item>
-<item>
-<title>订阅合并，去重，重命名，可用性检测</title>
-<link>https://www.v2ex.com/t/1102739</link>
-<guid>https://www.v2ex.com/t/1102739</guid>
-<content:encoded><![CDATA[
-<p>没有找到一款类似的工具，所以自己写了一个</p>
-<p>Github 直达<a href="https://github.com/bestruirui/mihomo-check" rel="nofollow">bestruirui/mihomo-check</a></p>
-<p>求⭐</p>
-<ul>
-<li>多线程 1000 个节点测试仅需 5 分钟</li>
-<li>低占用，200 个线程仅占用 15%CPU</li>
-<li>合并，去重，可用性，解锁情况一条龙</li>
-</ul>
-<p><img alt="测试截图" class="embedded_image" rel="noreferrer" src="https://img.picui.cn/free/2025/01/05/677a99433dfe7.png" /></p>
-]]></content:encoded>
-<pubDate>2025-01-07T03:19:19Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 如何看待张祥前？</title>
-<link>https://www.v2ex.com/t/1104086</link>
-<guid>https://www.v2ex.com/t/1104086</guid>
-<content:encoded><![CDATA[
-<p>对于张祥前，虽然我觉得 99%是假的，但是有几个疑问：</p>
-<p>1.经历很假，理论很科幻，但是能说出很多细节，很难找到大漏洞，也很难证实理论是假的，但是如果是真的为什么技术一直没落地
-2.说话的时候，真的非常真诚，就算是骗人成性脸不红心不跳，但能脱口而出很复杂的理论
-3.如果是精神有问题，为什么看起来这么正常</p>
-<p>对我的收获，可能是得到不同理论，统一场轮真的有点意思，对于我的世界观革新非常大（虽然可能是假的），但是至少相当于读了一本超脱的现有科幻小说，在科学理论上，我感觉比三体还猛。</p>
-<p>所以想在 v2 上聊聊大家对他的一些看法。</p>
-]]></content:encoded>
-<pubDate>2025-01-10T02:48:50Z</pubDate>
-</item>
-<item>
-<title>[微信] web 微信最近都在封号</title>
-<link>https://www.v2ex.com/t/1104085</link>
-<guid>https://www.v2ex.com/t/1104085</guid>
-<content:encoded><![CDATA[
-<h2>一直使用的是 web 微信，很稳，最近几个号都掉线了，手机也掉线，重新登陆后就告诉我使用第三方外挂、插件、第三方软件之类的，属实是扣了一个无须有的帽子给我，我是用的你们官方版的 web 微信，而且是 <a href="http://wx.qq.com" rel="nofollow">wx.qq.com</a> 扫码登录的，不是用协议，不是用第三方库，也不是任何的封装的。</h2>
-<h2>估计现在开始清理 web 端了，无语了腾讯。</h2>
-]]></content:encoded>
-<pubDate>2025-01-09T22:47:42Z</pubDate>
-</item>
-<item>
-<title>[Apple] 2025 年 airdrop 传输会不会被压缩？</title>
-<link>https://www.v2ex.com/t/1104084</link>
-<guid>https://www.v2ex.com/t/1104084</guid>
-<content:encoded><![CDATA[
-以前传输的文件都小，没注意到这个问题。现在传输文件大，遇到了很多问题；<br /><br />1 、iPhone 传到 Mac 会不会丢失照片 or 视频的 EXIF 信息？<br /><br />2 、传输的时候似乎会“压缩”就是 pre 很久，尤其是传输视频很大的时候，但到了 Mac 上似乎会解包恢复；<br /><br />3 、airdrop 现在的传输逻辑到底是什么？蓝牙握手，wifi 直传？那为什么会有“压缩”这一步？<br /><br />在发送传输选项这里，有个 All Photos Data 到底要不要勾选？（默认不勾选）<br />亲测如果勾选 Mac 上的文件都会被放到一个个文件夹里。<br /><br />4 、有什么办法提高传输速度？大概要传输 40G 左右视频到 Mac<br /><br />谢谢各位专家
-]]></content:encoded>
-<pubDate>2025-01-10T02:51:45Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 上线服务器出了问题过了一个月才被发现 公司要给我降薪</title>
-<link>https://www.v2ex.com/t/1104083</link>
-<guid>https://www.v2ex.com/t/1104083</guid>
-<content:encoded><![CDATA[
-没想到也轮到我了<br />起因：<br />12 月 9 日上传一个 App 版本，其中涉及到图片上传内容，传错了路径，导致管理端页面看不到我上传的图片内容，bug 过了一个月才被发现，公司要求给我降薪<br />经过：<br />公司发现后开了技术部门会议，批评了我所在条线（主要暗指我的问题）<br />然后技术总找我谈，说会给我降薪，降多少过两天让我找他了解。<br />过了两天我去问，说给我降 3K 月薪，我当即表示不同意。<br />我认为如果是重大线上事故当时就应该会发现，并且这个问题应该没有造成公司重大财产损失（图片和数据库地址可以恢复，我已有恢复方案），我不同意降薪。<br />技术总表示有两条路可以选，要么降薪要么自己离职，我说考虑一下。<br />结果：<br />现在给我谈的是他们可以去和公司争取少降点，我坚持认为这个事不应该降薪，我认为你可以因为我的工作失误扣除两三千的当月工资，但是每个月降薪我无法接受，并表示了想离职的打算。<br /><br />现在公司这边情况是，去年 9 月至 12 月的社保未缴纳，app 查看没有缴纳记录。<br />公司还有 11,12 月工资未发放（小道消息说过几天发两个月的）<br /><br />我现在踟蹰了，岁数也大了，今年本命年 36 岁，我说该提桶走人还是走一走仲裁？
-]]></content:encoded>
-<pubDate>2025-01-10T02:56:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 装修灵感请教</title>
-<link>https://www.v2ex.com/t/1104082</link>
-<guid>https://www.v2ex.com/t/1104082</guid>
-<content:encoded><![CDATA[
-有个小房间床尾有一截墙凸出：  <br /><a href="https://i.stardots.io/brad/20250110102624.jpg" rel="nofollow noopener" target="_blank">https://i.stardots.io/brad/20250110102624.jpg</a><br /><br />有邻居是做了个类似这样的床尾柜来和墙齐平的：  <br /><a href="https://i.stardots.io/brad/20250110102837.jpg" rel="nofollow noopener" target="_blank">https://i.stardots.io/brad/20250110102837.jpg</a><br /><br />有的邻居就啥也不做，直接定制一个异型床垫放上去。<br /><br />我感觉床尾做这个柜子空间很小还是有点鸡肋的，实际使用应该没啥好放的。有没有更好的方法？可以做观赏性的东西也行，凸出的这堵墙真的很烦- -！<br />不要问为什么不选择只睡外面，因为这个房间小，需要借助飘窗做床。
-]]></content:encoded>
-<pubDate>2025-01-10T02:36:59Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 分享学 [新概念英语] 的心得</title>
-<link>https://www.v2ex.com/t/1104081</link>
-<guid>https://www.v2ex.com/t/1104081</guid>
-<content:encoded><![CDATA[
-学新概念已经有 2 年多了，从第一册坚持学到了第三册第 32 课。<br />最难的是什么，学了忘记，学了忘记。<br />到现在为止学英语的一个心得就是：重复，重复，不停的重复，然后加深记忆。<br />我是怎么学的，有这么几个工具。<br /><br />1 、B 站上免费的英语视频胶囊计划，油管上新东方老师的录播视频，有田静老师、李延隆老师的课。<br />2 、买书本，常用短语在书本上标记出来，不停的回去读。<br />3 、手机 APP ，不背单词，然后选择新概念的单词，一边学课文一边记单词。<br />4 、练习默写，进入不背句子平台，<a href="https://www.bubeijuzi.com/" rel="nofollow noopener" target="_blank">https://www.bubeijuzi.com/</a> 然后进行默写，学、背、默写，通过不停的默写达到记忆的加深。
-]]></content:encoded>
-<pubDate>2025-01-10T02:51:27Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 上海移动取消达量降速后又加回去了，存量的宽带协议也要更新这一条，建议不要点同意</title>
-<link>https://www.v2ex.com/t/1104080</link>
-<guid>https://www.v2ex.com/t/1104080</guid>
-<content:encoded><![CDATA[
-<a href="https://i.imgur.com/iDvUrFs.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/iDvUrFs.png" /></a><br /> <a href="https://i.imgur.com/dLIo9xu.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/dLIo9xu.jpeg" /></a><br />建议大家杠起来，要点补偿
-]]></content:encoded>
-<pubDate>2025-01-10T02:47:29Z</pubDate>
 </item>
 </channel>
 </rss>
