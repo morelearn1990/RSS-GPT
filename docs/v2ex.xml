@@ -5,14 +5,219 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[酷工作] 工作不算卷但收入也不高，很迷茫，想听听大家的意见</title>
+<link>https://www.v2ex.com/t/1109753</link>
+<guid>https://www.v2ex.com/t/1109753</guid>
+<content:encoded><![CDATA[
+
+我本科的时候比较躺，基本没怎么搞过课外的内容。然后快毕业了找不到工作出国读了个一年水硕回来，投这些互联网大厂中厂都没过，最后进了一家城商行。行里用的技术都比较老而且很多都是自己封装的一套东西，基本上都是干的 curd ，感觉学不到什么东西。加班不算严重但也偶尔能弄到很晚。<br /><br />现在一年到手不到 15w 。我听说很多老员工干了快十年也才三十多，薪资提升基本靠时间慢慢熬，唯一的好处是不裁员。<br /><br />我是感觉现在的钱有点少了，但是不知道应该怎么提升自己，也不知道跳出去是不是好的选择，毕竟我们这边基本都不社招的。
+]]></content:encoded>
+<pubDate>2025-02-07T14:19:15Z</pubDate>
+<pubDate>2025-02-07T14:16:15Z</pubDate>
+</item>
+<item>
+<title>[香港] 昨天拿到了在港的第一张信用卡</title>
+<link>https://www.v2ex.com/t/1109752</link>
+<guid>https://www.v2ex.com/t/1109752</guid>
+<content:encoded><![CDATA[
+
+安信发的，从此可以开始积累环联的信用分了。<br />有个小插曲，年前通知我需要去网点取，取卡时间另行通知，结果一直也没有通知，我以为是春节导致的办事效率低。<br />直到本周都开始发月结单了，我打电话去问，说随时可以去网点取了。
+]]></content:encoded>
+<pubDate>2025-02-07T14:15:16Z</pubDate>
+<pubDate>2025-02-05T14:14:16Z</pubDate>
+</item>
+<item>
+<title>[问与答] 大家觉得最好的动画电影是哪一部？</title>
+<link>https://www.v2ex.com/t/1109751</link>
+<guid>https://www.v2ex.com/t/1109751</guid>
+<content:encoded><![CDATA[
+
+<p>我个人最喜欢的动画电影是 <strong>「机器人总动员 WALL·E (2008)」</strong> 真心觉得非常非常棒的一部电影。</p>
+<h2>其他一些觉得好的动画电影，但是依旧无法动摇「机器人总动员」在我心中的地位。</h2>
+<ul>
+<li>千与千寻</li>
+<li>寻梦环游记</li>
+<li>疯狂动物城</li>
+<li>龙猫</li>
+<li>天空之城</li>
+<li>哈尔的移动城堡</li>
+<li>悬崖上的金鱼姬</li>
+<li>飞屋环游记</li>
+<li>你的名字</li>
+</ul>
+<hr />
+]]></content:encoded>
+<pubDate>2025-02-07T14:13:16Z</pubDate>
+<pubDate>2025-02-07T14:18:21Z</pubDate>
+</item>
+<item>
+<title>[数据库] 请假各位大哥 pg 中一个相对比较简单的查询为什么效率这么低</title>
+<link>https://www.v2ex.com/t/1109750</link>
+<guid>https://www.v2ex.com/t/1109750</guid>
+<content:encoded><![CDATA[
+
+<p>其实就是一个主表，里面有两个指向明细表的索引。</p>
+<pre><code class="language-sql">create table pairs1(id serial primary key, ai int not null, bi int not null);
+
+create table pairs2(id serial primary key, ai int not null, bi int not null);
+
+create table items1(id serial primary key, name text not null);
+
+create table items2(id serial primary key, name text not null);
+
+create view pairs as select * from pairs1 union all select * from pairs2;
+
+create view items as select * from items1 union all select * from items2;
+
+create view viewpairs as select t0.id, t1.id as aid, t1.name as aname, t2.id as bid, t2.name as bname from pairs t0 left join items t1 on t0.ai=t1.id left join items t2 on t0.bi=t2.id;
+</code></pre>
+<pre><code class="language-sql">$ explain select * from viewpairs;
+                                              QUERY PLAN
+-------------------------------------------------------------------------------------------------------
+ Merge Right Join  (cost=5319.09..15347.88 rows=658063 width=76)
+   Merge Cond: (items1_1.id = pairs1.bi)
+   -&gt;  Merge Append  (cost=0.32..151.82 rows=2540 width=36)
+         Sort Key: items1_1.id
+         -&gt;  Index Scan using items1_pkey on items1 items1_1  (cost=0.15..63.20 rows=1270 width=36)
+         -&gt;  Index Scan using items2_pkey on items2 items2_1  (cost=0.15..63.20 rows=1270 width=36)
+   -&gt;  Sort  (cost=5318.77..5448.31 rows=51816 width=44)
+         Sort Key: pairs1.bi
+         -&gt;  Merge Right Join  (cost=326.20..1261.29 rows=51816 width=44)
+               Merge Cond: (items1.id = pairs1.ai)
+               -&gt;  Merge Append  (cost=0.32..151.82 rows=2540 width=36)
+                     Sort Key: items1.id
+                     -&gt;  Index Scan using items1_pkey on items1  (cost=0.15..63.20 rows=1270 width=36)
+                     -&gt;  Index Scan using items2_pkey on items2  (cost=0.15..63.20 rows=1270 width=36)
+               -&gt;  Sort  (cost=325.88..336.08 rows=4080 width=12)
+                     Sort Key: pairs1.ai
+                     -&gt;  Append  (cost=0.00..81.20 rows=4080 width=12)
+                           -&gt;  Seq Scan on pairs1  (cost=0.00..30.40 rows=2040 width=12)
+                           -&gt;  Seq Scan on pairs2  (cost=0.00..30.40 rows=2040 width=12)
+(19 rows)
+</code></pre>
+<p>问了 ai ，提示在 pairs1 和 pairs2 中为 ai 和 bi 创建索引，但我总觉得有点不靠谱。</p>
+]]></content:encoded>
+<pubDate>2025-02-07T13:55:12Z</pubDate>
+<pubDate>2025-02-07T14:12:52Z</pubDate>
+</item>
+<item>
+<title>[Apple] 淘宝上的 Apple fitness+ 9.9rmb/一个月，甚至 45 半年，是有什么坑吗？</title>
+<link>https://www.v2ex.com/t/1109749</link>
+<guid>https://www.v2ex.com/t/1109749</guid>
+<content:encoded><![CDATA[
+
+我开了一个 1 个月的，就是美区家庭把你拉进去。<br /><br />是有什么坑吗？看起来店铺有 3 年、粉丝也不少、两个蓝色皇冠，不太像会跑路的
+]]></content:encoded>
+<pubDate>2025-02-07T13:54:46Z</pubDate>
+<pubDate>2025-02-07T13:58:58Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [开源] Rust 写了个纯本地的实时语音转录翻译软件</title>
+<link>https://www.v2ex.com/t/1109747</link>
+<guid>https://www.v2ex.com/t/1109747</guid>
+<content:encoded><![CDATA[
+
+<p>最近在听英文播客，有时候也挺多废话的，所以弄了个挂在桌面像歌词的实时翻译软件，就可以边打代码边听了。有英文会议也很有用。</p>
+<p>开源 <a href="https://github.com/Leeeon233/peeches" rel="nofollow">GitHub repo</a>，欢迎 star 。当前只支持 macOS ，有需要 windows 的可以提 issue 让我知道。</p>
+]]></content:encoded>
+<pubDate>2025-02-07T13:41:18Z</pubDate>
+<pubDate>2025-02-07T14:09:02Z</pubDate>
+</item>
+<item>
+<title>[Windows] Windows 系统 HDR 下 Chrome 非全屏播放视频存在画面过曝问题</title>
+<link>https://www.v2ex.com/t/1109746</link>
+<guid>https://www.v2ex.com/t/1109746</guid>
+<content:encoded><![CDATA[
+
+<h3>困扰</h3>
+<p>这个问题困扰我有一段时间了，系统是 Win11 。<br />
+不是每次都会出现的问题，有时候可能电脑长时间没使用后会出现，重启电脑后会正常，不定时又出现。<br />
+具体现象就是在播放非全屏视频时会出现视频画面过曝（不是 HDR 也过曝）。<br />
+最近出现频率比较高，搜索了发现是这个 Default 默认后端的问题。<br />
+（有人说选择 OpenGL 也能解决问题，但是使用 OpenGL 无法播放 YouTube 的 HDR ，目前选择 D3D11 可以解决我的问题）  </p>
+<h3>自问自答</h3>
+<ol>
+<li>Chrome 地址栏输入 chrome://flags/#use-angle 回车。</li>
+<li>找到 Choose ANGLE graphics backend 选项。</li>
+<li>选择<strong>D3D11</strong>。</li>
+<li>重启 Chrome 即可。  </li>
+</ol>
+<p>用段时间看看会不会再出问题吧。</p>
+]]></content:encoded>
+<pubDate>2025-02-07T13:27:26Z</pubDate>
+<pubDate>2025-02-07T13:27:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有字节的大佬帮忙解惑？</title>
+<link>https://www.v2ex.com/t/1109745</link>
+<guid>https://www.v2ex.com/t/1109745</guid>
+<content:encoded><![CDATA[
+
+字节的 HR 都直接加微信的吗？<br />之前就接到过，微信不通过就直接打电话，都不好装看不到，那次没跳槽意向就给拒绝了。<br />最近看了看 boss ，又有自称字节 HR 的依然同流程操作，先 boss ，不回就加微信，不加就一个电话打过来。<br />不是骗子吧……
+]]></content:encoded>
+<pubDate>2025-02-07T13:24:18Z</pubDate>
+<pubDate>2025-02-07T14:02:59Z</pubDate>
+</item>
+<item>
+<title>[北京] 非京籍想买摩托车可以上牌吗</title>
+<link>https://www.v2ex.com/t/1109744</link>
+<guid>https://www.v2ex.com/t/1109744</guid>
+<content:encoded><![CDATA[
+
+由于天气太冷电瓶车续航拉垮，夏天能跑 2 个来回，冬天冷的时候 1 个来回都跑不下来。<br />重新买过一辆新国标电瓶车，第一年还可以，第二年冬天又跑不下来 1 个来回了。<br />摩托车驾照是考下来了，听说摩托车牌照不给非京籍注册了，但听说又放开了，奈何都没有找到官方政策说明。<br />如题，求助各位 V 友。
+]]></content:encoded>
+<pubDate>2025-02-07T13:20:36Z</pubDate>
+<pubDate>2025-02-07T13:55:28Z</pubDate>
+</item>
+<item>
+<title>[Chrome] Chrome 只要把 B 站暂停挂后台就会持续高 CPU 占用吗？</title>
+<link>https://www.v2ex.com/t/1109742</link>
+<guid>https://www.v2ex.com/t/1109742</guid>
+<content:encoded><![CDATA[
+
+<p>是 Mac 的 Chrome ，版本是 132.0.6834.160 。</p>
+<p>B 站打开的是一个普通的视频，不是直播，是暂停挂在后台的，没有在播放。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/CB5Jg1i.png" /> </p>
+<p>这一项就 300% 了，而且稳定地在 300% 左右波动。</p>
+<p>CPU 平均温度都被干到了 80+ °C 。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2bbPDri.png" /> </p>
+<p>而且开的标签页并不多，只要把 b 站这一个页面关掉 CPU 就会掉下去。这几天触发好几次了，不管什么视频都有可能触发。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/feHDgX3.png" /></p>
+]]></content:encoded>
+<pubDate>2025-02-07T13:06:47Z</pubDate>
+<pubDate>2025-02-07T14:14:05Z</pubDate>
+</item>
+<item>
+<title>[搜索引擎优化] 如何给网站增加高质量的外链？</title>
+<link>https://www.v2ex.com/t/1109741</link>
+<guid>https://www.v2ex.com/t/1109741</guid>
+<content:encoded><![CDATA[
+
+<p>感觉现在很多方法都失效了，有无最新的办法？</p>
+]]></content:encoded>
+<pubDate>2025-02-07T13:06:42Z</pubDate>
+<pubDate>2025-02-07T13:52:31Z</pubDate>
+</item>
+<item>
+<title>[生活] 前天在银行跟一个看起来 50 左右的老头打了一架，打输了</title>
+<link>https://www.v2ex.com/t/1109740</link>
+<guid>https://www.v2ex.com/t/1109740</guid>
+<content:encoded><![CDATA[
+
+<p>起因是我在存钱时最后有一张钱一直识别不出来，我就多试了两次。外面排队的老头听到里面机器提示音请取出无法识别的钞票，就大声催我快点，存不了就别存了。我扭头就骂他，跟他对骂了一会儿。我也没心情存了，就出去了。出去的时候经过他就瞪着他，他突然就抓起我的衣领子推我，我也反抓他的推他。卧槽！我才发现我的力气竟然没他大，被他推着走。打架不丢人，输给老头才丢人！相互扭了半分钟就被人拉开了。
+过年期间好多亲朋好友都说我胖了该减肥了，我内心毫无波澜，但输给老头真的让我觉得是该好好锻炼减肥了！</p>
+]]></content:encoded>
+<pubDate>2025-02-07T12:59:04Z</pubDate>
+<pubDate>2025-02-07T13:33:17Z</pubDate>
+</item>
+
+<item>
 <title>[硬件] 求推荐很软很细的 typec 线缆</title>
 <link>https://www.v2ex.com/t/1109737</link>
 <guid>https://www.v2ex.com/t/1109737</guid>
 <content:encoded><![CDATA[
-
 <p>有没有那种很细的线，并不需要那么高的速率，用来连接 DA 盒和电脑，速率别说 10g 了，1g 都够了。现在的线太粗了太硬了。</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:37:00Z</pubDate>
 <pubDate>2025-02-07T12:37:00Z</pubDate>
 </item>
 <item>
@@ -20,11 +225,9 @@
 <link>https://www.v2ex.com/t/1109736</link>
 <guid>https://www.v2ex.com/t/1109736</guid>
 <content:encoded><![CDATA[
-
 <p>deepseek 官方的 api 不允许充值了。网页版又基本处于不可用的状态。</p>
 <p>有没有什么别的类 nextChat 的工具推荐啊</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:24:05Z</pubDate>
 <pubDate>2025-02-06T12:22:05Z</pubDate>
 </item>
 <item>
@@ -32,7 +235,6 @@
 <link>https://www.v2ex.com/t/1109735</link>
 <guid>https://www.v2ex.com/t/1109735</guid>
 <content:encoded><![CDATA[
-
 <p>###耗时 </p>
 <p>perl 最慢 等不及处理完 就停止了 perl</p>
 <p>nodejs 1 分钟多</p>
@@ -49,7 +251,6 @@
 <p>nodejs 屌什么屌 非常像 ghostscirpt 作者评价 perl 的话：perl 像从狗的肛门里吐出来的东西</p>
 <p>写这么个小项目 感觉 nodejs 才像从狗的肛门里吐出来的东西</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:18:06Z</pubDate>
 <pubDate>2025-02-07T12:28:19Z</pubDate>
 </item>
 <item>
@@ -57,7 +258,6 @@
 <link>https://www.v2ex.com/t/1109734</link>
 <guid>https://www.v2ex.com/t/1109734</guid>
 <content:encoded><![CDATA[
-
 <p>邮件内容：</p>
 <pre><code>We are gaming monetization company. We rent old Google console account to publish our games and pay the account owners, due to the inability of buying new accounts that require 14 days delay of testers.
 
@@ -69,7 +269,6 @@ If this opportunity interest you, Send a recent video of your Google console acc
 </code></pre>
 <p>不止一次收到这种邮件，好奇</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:13:36Z</pubDate>
 <pubDate>2025-02-07T12:15:45Z</pubDate>
 </item>
 <item>
@@ -77,10 +276,8 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <link>https://www.v2ex.com/t/1109733</link>
 <guid>https://www.v2ex.com/t/1109733</guid>
 <content:encoded><![CDATA[
-
 <p>和直接充值差不多了</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:08:41Z</pubDate>
 <pubDate>2025-02-07T12:32:25Z</pubDate>
 </item>
 <item>
@@ -88,7 +285,6 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <link>https://www.v2ex.com/t/1109732</link>
 <guid>https://www.v2ex.com/t/1109732</guid>
 <content:encoded><![CDATA[
-
 <ol>
 <li>宜家的实木桌，长宽高：140<em>84</em>75cm ，可加长，原价 1300 以上</li>
 <li>实木餐桌，长宽高：120<em>70</em>75cm</li>
@@ -98,17 +294,14 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <p>联系方式：a3V5dTEzMg==</p>
 ]]></content:encoded>
 <pubDate>2025-02-07T12:06:35Z</pubDate>
-<pubDate>2025-02-07T12:06:35Z</pubDate>
 </item>
 <item>
 <title>[Opera] 从 vivaldi 换到了 opera</title>
 <link>https://www.v2ex.com/t/1109731</link>
 <guid>https://www.v2ex.com/t/1109731</guid>
 <content:encoded><![CDATA[
-
 <p>从 vivaldi 换到了 opera, chrome 和 edge 不能用 1password 老版插件，最近发现 opera 竟然可以用，试了下感觉体验比 vivaldi 好一些，于是换到了 opera</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T12:04:24Z</pubDate>
 <pubDate>2025-02-07T12:04:24Z</pubDate>
 </item>
 <item>
@@ -116,11 +309,9 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <link>https://www.v2ex.com/t/1109729</link>
 <guid>https://www.v2ex.com/t/1109729</guid>
 <content:encoded><![CDATA[
-
 <p>Mac mini M4 连接 LG 27GP95U 显示器时，待机后 LG 显示器有时几秒就进入节能模式，有时则需要几分钟。</p>
 <p>请问这种情况是否由于 Mac 后台有应用在运行而导致的？</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T11:58:43Z</pubDate>
 <pubDate>2025-02-07T11:58:43Z</pubDate>
 </item>
 <item>
@@ -128,13 +319,11 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <link>https://www.v2ex.com/t/1109728</link>
 <guid>https://www.v2ex.com/t/1109728</guid>
 <content:encoded><![CDATA[
-
 <p>家用环境，防止物业突然修变压器，</p>
 <p>之前的 H1000M 在一次突然停电后就无法开机了，国网赔了 150 ，</p>
 <p>自己添点 180 米上了个 UPS ，该有的都有感觉还可以。</p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/g9OL56i.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2025-02-07T11:56:05Z</pubDate>
 <pubDate>2025-02-07T12:14:25Z</pubDate>
 </item>
 <item>
@@ -142,10 +331,8 @@ If this opportunity interest you, Send a recent video of your Google console acc
 <link>https://www.v2ex.com/t/1109727</link>
 <guid>https://www.v2ex.com/t/1109727</guid>
 <content:encoded><![CDATA[
-
 macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows app （以前的 remote desktop ），有几个问题：<br /><br />1 ，键位问题，比如 macbook 上哪个键对应 windows 徽标键，哪个键对应大小写切换，哪个键对应 windows 输入法里翻页 pagedown 、pageup ？<br />2 ，鼠标滚轮上下翻动逻辑相反<br /><br />不想在 mac 里改逻辑，希望远程到 widnows 的时候就按照 windows 的逻辑，使用 mac os 的时候，就按照 mac 的逻辑
 ]]></content:encoded>
-<pubDate>2025-02-07T11:54:32Z</pubDate>
 <pubDate>2025-02-07T11:53:32Z</pubDate>
 </item>
 <item>
@@ -153,10 +340,8 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109726</link>
 <guid>https://www.v2ex.com/t/1109726</guid>
 <content:encoded><![CDATA[
-
 <p>RT ，我手机分身只能多开一个账号，想要登第三个就得踢掉一个切换账号。。。→_→那么。。。多账号的大佬们是怎么处理的？有靠谱的微信分身么？从商店下了一个微信分身不到 10 分钟直接被踢下线说使用了三方。。。</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T11:43:27Z</pubDate>
 <pubDate>2025-02-07T12:14:33Z</pubDate>
 </item>
 <item>
@@ -164,10 +349,8 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109725</link>
 <guid>https://www.v2ex.com/t/1109725</guid>
 <content:encoded><![CDATA[
-
 <p>现在由于农村老家没人住，所以大概要装 6 个摄像头，把老家里里外外都装上，然后在新家放个大屏幕随时可以看着，看了下海康有个 poe 录像机 7108n-f 是合适的，但是询问客服，海康互联移动端 app 长时预览只支持 20 分钟，20 分钟会自动暂停，这样非常不便，电脑端的长时预览收费，一年简直天价，经过了解还有个海康 4200 软件，可以局域网电脑预览，老家宽带没有公网，但是可以做 frp ，不知道 frp 转发能不能实现在新家装海康 4200 添加老家的录像机，实现低成本的远程看监控，顺便问问预览 4 路摄像头需要多大的上行，或者各位有更好的方案可以推荐下</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T11:36:12Z</pubDate>
 <pubDate>2025-02-07T12:08:15Z</pubDate>
 </item>
 <item>
@@ -175,7 +358,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109724</link>
 <guid>https://www.v2ex.com/t/1109724</guid>
 <content:encoded><![CDATA[
-
 <p><strong>💡 为什么做这个工具？</strong></p>
 <p>去年秋招之后一直一直想要做一个，一方面面试时经常紧张大脑空白答不上来。另一方面一些八股算法确实头大，所以想要设计一个 AI 辅助面试的工具。但苦于一直没有时间，终于趁着春节爆肝了一个。</p>
 <p><strong>🌟 核心特点</strong></p>
@@ -188,7 +370,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <p><strong>🎁 限时福利：</strong><br />现在上线即送<strong>1000 积分</strong>，可免费体验<strong>5 次面试</strong>！<br /><strong>礼包码：001UV5 （限量 20 个，先到先得！）</strong><br />如果礼包码用完，回复本帖，我会继续发放！</p>
 <p><strong>👉 立即体验：</strong><a href="https://app.mianshibang.cc/" rel="nofollow">https://app.mianshibang.cc/</a></p>
 ]]></content:encoded>
-<pubDate>2025-02-07T11:02:53Z</pubDate>
 <pubDate>2025-02-07T11:00:53Z</pubDate>
 </item>
 <item>
@@ -197,9 +378,7 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <guid>https://www.v2ex.com/t/1109723</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-02-07T11:02:46Z</pubDate>
 <pubDate>2025-02-07T11:48:05Z</pubDate>
 </item>
 <item>
@@ -207,7 +386,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109722</link>
 <guid>https://www.v2ex.com/t/1109722</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2025/02/07/94217950574b00b9.png" /></p>
 <p>如上图，进行错误扫描时，位置到了 400G ，就停止了。下面的 log 提示，也说明了扫描完成了。但我这个机械硬盘是 500G 的。</p>
 <ul>
@@ -221,14 +399,12 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <p>求各位大佬解答。</p>
 ]]></content:encoded>
 <pubDate>2025-02-07T11:00:18Z</pubDate>
-<pubDate>2025-02-07T11:00:18Z</pubDate>
 </item>
 <item>
 <title>[分享发现] 分享几个精选的 Chatbot 开源项目，可以快速二次开发赶上 DeepSeek 热点</title>
 <link>https://www.v2ex.com/t/1109720</link>
 <guid>https://www.v2ex.com/t/1109720</guid>
 <content:encoded><![CDATA[
-
 <p>最近因为 DeepSeek 大火，所有 Chatbot 都迎来了新的一波流量高峰，证明了 Chatbot 这种简单的形式才是 AI 产品的顶流，因此很多人开始跃跃欲试开发自己的 Chatbot 。</p>
 <p>从 0 搭建是不可能的，搭建完成热点都过去了。这里整理了一批优秀的 Chatbot 开源项目，可以用来快速启动你的 Chatbot👉 <a href="https://nextidea.dev/collection/chatbot-projects-for-commercial-use" rel="nofollow">Open Source Chatbot Projects</a></p>
 <p>这些开源项目的特性：<br />
@@ -236,7 +412,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 ✅ 前沿产品交互设计参考<br />
 ✅ 企业级功能模块实现</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:47:09Z</pubDate>
 <pubDate>2025-02-04T10:45:09Z</pubDate>
 </item>
 <item>
@@ -244,13 +419,11 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109718</link>
 <guid>https://www.v2ex.com/t/1109718</guid>
 <content:encoded><![CDATA[
-
 <p>昨天电话面试简单聊了下 今天早上面试意外地过了(连技术面都没有) 后来观察了下 是外包 7k 的薪水加班也不正常给 离家接近 20km 每天通勤保守得 4 个小时...</p>
 <p>刚和老妈回老家 发现小县城现在也变得发达了不少 虽说没有 CBD 但是至少有<strong>瑞幸</strong>了</p>
 <p>突然翻到之前手机便签的记录</p>
 <p><img alt="IMG_20250207_162357.jpg" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2025/02/07/nWKzC3GmkoaXdQP.jpg" /></p>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:39:14Z</pubDate>
 <pubDate>2025-02-07T10:38:14Z</pubDate>
 </item>
 <item>
@@ -258,7 +431,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109717</link>
 <guid>https://www.v2ex.com/t/1109717</guid>
 <content:encoded><![CDATA[
-
 <p>各位 V 友大家好，</p>
 <p>我们是一个创业团队，我们最近开发了一款名为 <strong>白瓜面试</strong> 的产品，想在今年的春招季推广给求职者。</p>
 <p>官网附上 <a href="https://m.baigua.com/" rel="nofollow">https://m.baigua.com/</a></p>
@@ -280,7 +452,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <p>希望听取大家的宝贵意见和建议，任何想法都欢迎分享！ 如果您有任何校园产品推广的经验，或者对求职产品推广有见解，都非常期待您的指点。</p>
 <p>感谢各位 V 友的耐心阅读和帮助！</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:34:41Z</pubDate>
 <pubDate>2025-02-07T10:58:15Z</pubDate>
 </item>
 <item>
@@ -288,7 +459,6 @@ macbook 远程 windows 电脑，使用微软官方的远程桌面，叫 windows 
 <link>https://www.v2ex.com/t/1109716</link>
 <guid>https://www.v2ex.com/t/1109716</guid>
 <content:encoded><![CDATA[
-
 <p>这里有搞鸿蒙开发的兄弟吗？今天遇到一个问题，搞了半天也没搞定。需求很简单就是让左边的竖线跟随整个 Row 的高度变化，整个 Row 的高度不定，后面的文本可能会换行。
 Row() {
 // Vertical line decoration
@@ -331,7 +501,6 @@ Row()
   .margin({ top: 10 })
 </code></pre>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:31:58Z</pubDate>
 <pubDate>2025-02-07T10:36:46Z</pubDate>
 </item>
 <item>
@@ -339,10 +508,8 @@ Row()
 <link>https://www.v2ex.com/t/1109715</link>
 <guid>https://www.v2ex.com/t/1109715</guid>
 <content:encoded><![CDATA[
-
 同学介绍一女生，认识有一个月，总共见了 3 次面，同龄人，她是研究生毕业，我是本科，家里距离挺近的，都在农村<br /><br />目前遇到了一个矛盾，在确定关系的时候，她既没同意也没拒绝，这里面也有我的原因，后来她提醒我说，重要的事情，是需要仪式感的<br /><br />她现在想买房，然后自己去看了房子，她家里不支持，给不了什么帮助，然后问我什么意见，我说听赞成的，但是按照目前我们的关系，我无法给你提供经济上的帮助<br /><br />因为我自己房车都买了，如果让我去帮她，是有顾虑的，经济上我也扛不住，即便是帮了，最后闹崩了，啥也落不着<br /><br />刚开始我们聊的挺开心的，有着相同的兴趣爱好，工作地点距离的很近，工资差距不大<br /><br />然后我们的聊天频率，从最初的整天聊，到现在过两天聊几句，都是很客气<br /><br />我忍受不了这种情况，也问了她的想法，说是谈不上喜欢，但是也不讨厌，<br /><br />我说了结束吧，结果她把话题岔开了，然后又主动给我发消息，过两天又是不想聊<br /><br />看不懂，想放弃，问了朋友，说是让我再坚持一下，她在犹豫，但是也有可能现在没遇到更好的
 ]]></content:encoded>
-<pubDate>2025-02-07T10:29:46Z</pubDate>
 <pubDate>2025-02-07T10:39:39Z</pubDate>
 </item>
 <item>
@@ -350,7 +517,6 @@ Row()
 <link>https://www.v2ex.com/t/1109714</link>
 <guid>https://www.v2ex.com/t/1109714</guid>
 <content:encoded><![CDATA[
-
 <h1>🎉 AI 驱动的小红书生态项目</h1>
 <p>大过年还在狂敲代码也就只有这个项目了！</p>
 <p>🚀 这是一个由 AI 生成 readme 文件，然后 Cursor 的 Agent 不断扩展出来的项目。做小红书生态周边的产品，刚好利用了一把 DeepSeek API 🤖</p>
@@ -376,7 +542,6 @@ Row()
 <li>🕷️ Firecrawl</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:28:03Z</pubDate>
 <pubDate>2025-02-05T10:28:03Z</pubDate>
 </item>
 <item>
@@ -384,7 +549,6 @@ Row()
 <link>https://www.v2ex.com/t/1109713</link>
 <guid>https://www.v2ex.com/t/1109713</guid>
 <content:encoded><![CDATA[
-
 <p>日本游戏开发</p>
 <p>熟悉 PG 的老虎机老虎机优先，日本公司只负责技术，其他公司负责运营，而且只有印尼市场出入金都是印尼盾，国内远程也无法律风险</p>
 <p>薪资 2 万人民币起</p>
@@ -395,10 +559,8 @@ Row()
 <p>有成功上线的 Cocos Creator 项目经验者优先； 熟悉游戏网络协议、WebSocket 、TCP/IP 通讯开发者优先； 有丰富的 Shader 开发经验，能够为项目实现定制化的特效优化。 我们提供：</p>
 <p>富有竞争力的薪资和奖金； 灵活的工作时间和开放的团队氛围； 持续成长和学习的机会，与业内顶尖团队合作。 如果你对游戏开发充满激情，并且拥有优秀的技术能力，欢迎加入我们，共同打造精彩的游戏体验！</p>
 ]]></content:encoded>
-<pubDate>2025-02-07T10:26:35Z</pubDate>
 <pubDate>2025-02-07T10:24:35Z</pubDate>
 </item>
-
 <item>
 <title>[程序员] 好消息 哪吒 2🔥火了 坏消息 不是哪吒 v2 探针版</title>
 <link>https://www.v2ex.com/t/1109712</link>
@@ -14405,241 +14567,6 @@ TrueNAS-SCALE-24.10.2</p>
 所有的池子都统一归 PoolManager 管，那我如何查询某个池子的流动性呢？
 ]]></content:encoded>
 <pubDate>2025-02-01T03:52:55Z</pubDate>
-</item>
-<item>
-<title>[Apple] 现在 macOS 上都用什么安卓的手机助手软件？</title>
-<link>https://www.v2ex.com/t/1108496</link>
-<guid>https://www.v2ex.com/t/1108496</guid>
-<content:encoded><![CDATA[
-想将安卓手机中的照片导入 macOS 中，现都有哪些实现此需求的在 macOS 平台上的助手软件？
-]]></content:encoded>
-<pubDate>2025-02-01T04:09:30Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在返程,大家路上堵了多久</title>
-<link>https://www.v2ex.com/t/1108495</link>
-<guid>https://www.v2ex.com/t/1108495</guid>
-<content:encoded><![CDATA[
-扬州到上海 4 小时
-]]></content:encoded>
-<pubDate>2025-02-01T03:35:31Z</pubDate>
-</item>
-<item>
-<title>[程序员] Deepseek 搭配 Claude sonnet 使用</title>
-<link>https://www.v2ex.com/t/1108494</link>
-<guid>https://www.v2ex.com/t/1108494</guid>
-<content:encoded><![CDATA[
-大家最近有了解过这种使用方式吗？将 Deepseek 的&lt;think&gt;内容喂给 claude 使用，然后通过 claude 得到最终的代码片段。有大佬使用过这种方式吗？是否已经有可以直接使用这种交互方式的网站或者工具呢？
-]]></content:encoded>
-<pubDate>2025-01-31T10:32:50Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 父母如果从来不吵架，是不是说明两人之间的沟通是有问题的</title>
-<link>https://www.v2ex.com/t/1108493</link>
-<guid>https://www.v2ex.com/t/1108493</guid>
-<content:encoded><![CDATA[
-<p>冲突和合作是 描述人与人关联关系程度这一属性的两个不同程度的度量。 <strong>一个害怕冲突的人同样也是害怕合作的</strong>。</p>
-<p>“人们经常相信左右是互相对立的，男女、冷热、光暗、强弱也是互相对立的。但是，从科学的立场看来，它们不是互相对立的事物，而是同一件东西的变异。<strong>它们是依照某种理想的假定排列而成的量表上的不同程度</strong>。同样的，好和坏、常态和变态也都不是对立的事物，而是同一事物的变异。”</p>
-]]></content:encoded>
-<pubDate>2025-01-30T15:26:00Z</pubDate>
-</item>
-<item>
-<title>[C++] mac clion 调试怎么才能看到 stl 容器的值</title>
-<link>https://www.v2ex.com/t/1108491</link>
-<guid>https://www.v2ex.com/t/1108491</guid>
-<content:encoded><![CDATA[
-<p><img alt="image.png" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2025/02/01/fEKl3H4RaAZNmg6.png" /></p>
-<ul>
-<li>mac 不维护 gdb ，不想手动配置特定版本；默认使用 libc++，我改成 libstdc++,</li>
-</ul>
-<pre><code>set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -I/opt/homebrew/Cellar/gcc/13.2.0/include/c++/13.2.0 -I/opt/homebrew/Cellar/gcc/13.2.0/include/c++/13.2.0/aarch64-apple-darwin23.4.0")
-</code></pre>
-<ul>
-<li>一大堆找不到 stl 报错，路径确认没问题，没搞来</li>
-<li>累了，。。。换 ide 就不用建议了，就想知道 mac clion 这个够吧 调试怎么才能看 stl 的值...</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-01T02:38:47Z</pubDate>
-</item>
-<item>
-<title>[问与答] 阿里云 200M 服务器用途</title>
-<link>https://www.v2ex.com/t/1108489</link>
-<guid>https://www.v2ex.com/t/1108489</guid>
-<content:encoded><![CDATA[
-<p>看到有新用户优惠，68 一年可以买 2C2G 的服务器，峰值带宽 200M 。本人就直接购买了，地区为乌兰察布，各位大佬有推荐做什么用途吗。</p>
-]]></content:encoded>
-<pubDate>2025-02-01T02:36:16Z</pubDate>
-</item>
-<item>
-<title>[Python] cf 保护下的 json 采集</title>
-<link>https://www.v2ex.com/t/1108488</link>
-<guid>https://www.v2ex.com/t/1108488</guid>
-<content:encoded><![CDATA[
-cf 保护下的 json ，有什么好用的 python 库。试过一下 github 库，不太好使。
-]]></content:encoded>
-<pubDate>2025-02-01T02:35:11Z</pubDate>
-</item>
-<item>
-<title>[全球工单系统] Bilibili 央视 2025 年春晚回放错误使用了 PQ 曲线</title>
-<link>https://www.v2ex.com/t/1108487</link>
-<guid>https://www.v2ex.com/t/1108487</guid>
-<content:encoded><![CDATA[
-<p>根据已有的公开信息，央视 4K 超高清频道的视频源使用 HLG 曲线，而上传到 Bilibili 的视频使用了 PQ 曲线且没有正确转换，导致画面亮度和色彩映射错误。</p>
-]]></content:encoded>
-<pubDate>2025-02-01T02:29:09Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 小工具分享：无需上传到服务器，在浏览器内完成视频提取音频</title>
-<link>https://www.v2ex.com/t/1108486</link>
-<guid>https://www.v2ex.com/t/1108486</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.uniscribe.co/tools/video-to-audio-extractor?utm_source=v2ex" rel="nofollow">欢迎体验</a>。
-同时还做了一个 <a href="https://www.uniscribe.co/tools/wav-to-mp3-converter" rel="nofollow">将 wav 转成 mp3</a> 小工具。
-这两款工具都是基于 <a href="https://ffmpegwasm.netlify.app/" rel="nofollow">https://ffmpegwasm.netlify.app/</a> ， 非常好用的 ffmpeg 库，推荐给大家～</p>
-]]></content:encoded>
-<pubDate>2025-02-01T02:28:05Z</pubDate>
-</item>
-<item>
-<title>[问与答] 春节回乡感慨</title>
-<link>https://www.v2ex.com/t/1108485</link>
-<guid>https://www.v2ex.com/t/1108485</guid>
-<content:encoded><![CDATA[
-<p>今年回家过年的最大感慨就是哪里给钱多，就去哪里生活。</p>
-<p>北京钱多就留北京，杭州给钱多就回杭州。</p>
-<p>人生短短几十年，生活质量很重要。</p>
-<p>卷天卷地卷不来大富大贵，只卷走了自己的身体。</p>
-<p>工作不是生活的全部，也不是富贵的来源。</p>
-<p>不过，疑惑的是，什么能保障我们能够富贵起来呢？</p>
-]]></content:encoded>
-<pubDate>2025-01-31T18:24:42Z</pubDate>
-</item>
-<item>
-<title>[程序员] 手机 APP 怎么做到动态切换域名？</title>
-<link>https://www.v2ex.com/t/1108484</link>
-<guid>https://www.v2ex.com/t/1108484</guid>
-<content:encoded><![CDATA[
-<p>在手机 APP 初始化配置了域名 A 和域名 B ，如果域名 A 访问慢，切换到域名 B 访问，我们是根据 ping 值，或者无法访问作为一个判断的依据。</p>
-<p>这样有没有问题，请教诸位大神，或者有更好的思路不吝赐教。</p>
-]]></content:encoded>
-<pubDate>2025-02-01T02:22:36Z</pubDate>
-</item>
-<item>
-<title>[微软] 土区 ios 的 Microsoft office 365 订阅涨价了</title>
-<link>https://www.v2ex.com/t/1108483</link>
-<guid>https://www.v2ex.com/t/1108483</guid>
-<content:encoded><![CDATA[
-<p>土区 ios 的 microsoft office 365 订阅价格从 229.99 里拉涨到 329.99,2 月 14 号生效</p>
-<p>今天收到微软邮件说涨价的事，我才发现续订价格不再是 15.99 了，2 月份续费就已经是 229.99 了，有点奇怪没收到邮件</p>
-]]></content:encoded>
-<pubDate>2025-02-01T02:05:12Z</pubDate>
-</item>
-<item>
-<title>[设计] deepseek 的 logo 有意思,包含了有 2 条鱼/2 个眼神</title>
-<link>https://www.v2ex.com/t/1108482</link>
-<guid>https://www.v2ex.com/t/1108482</guid>
-<content:encoded><![CDATA[
-<p><a href="https://cdn.deepseek.com/logo.png" rel="nofollow">https://cdn.deepseek.com/logo.png</a></p>
-<p>第一眼是一条鲸鱼,再细看一点会看到一条鲨鱼.</p>
-<p>鲸鱼和鲨鱼看你的眼神不一样.</p>
-]]></content:encoded>
-<pubDate>2025-01-31T02:07:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] openai 的模型命名乱七八糟，不知道应该用哪个了</title>
-<link>https://www.v2ex.com/t/1108481</link>
-<guid>https://www.v2ex.com/t/1108481</guid>
-<content:encoded><![CDATA[
-gpt-4o<br />gpt-4o-mini<br />o1<br />o1-mini<br />o3-mini
-]]></content:encoded>
-<pubDate>2025-02-01T01:58:47Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 这破天的流量， deepseek 群一会儿就满了，二群开了</title>
-<link>https://www.v2ex.com/t/1108480</link>
-<guid>https://www.v2ex.com/t/1108480</guid>
-<content:encoded><![CDATA[
-<a href="https://i.imgur.com/DWdgCrl.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/DWdgCrl.png" /></a>
-]]></content:encoded>
-<pubDate>2025-01-31T09:01:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 小米电动牙刷你们用哪个？</title>
-<link>https://www.v2ex.com/t/1108479</link>
-<guid>https://www.v2ex.com/t/1108479</guid>
-<content:encoded><![CDATA[
-之前用的飞利浦的，后来年会中奖了一个小米 T300 ，感觉刷毛对我来说有点偏硬，当然，官方也有偏敏感的刷头，耗材不算贵，但也不便宜。<br /><br />现在 T300 官网也下架了，都出到 T302 了。<br />小米也出了扫振牙刷，不知道好不好用。<br />你们现在主要用哪个？
-]]></content:encoded>
-<pubDate>2025-02-01T01:44:10Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] 所以 o3 mini 和 o1 的 message 是共用的还是不通</title>
-<link>https://www.v2ex.com/t/1108478</link>
-<guid>https://www.v2ex.com/t/1108478</guid>
-<content:encoded><![CDATA[
-<p>现在 o1  一周使用量是 50 条,o3  mini   high yn 也是 50 条,请问这两个是加起来 100 条还是只能一周用 50 条</p>
-]]></content:encoded>
-<pubDate>2025-02-01T01:29:50Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 硅基流动上 deepseek v3/r1 了，目前价格最便宜</title>
-<link>https://www.v2ex.com/t/1108477</link>
-<guid>https://www.v2ex.com/t/1108477</guid>
-<content:encoded><![CDATA[
-rt ，注册链接如下（有 aff ）<br /><a href="https://cloud.siliconflow.cn/i/tZfttKvQ" rel="nofollow noopener" target="_blank">https://cloud.siliconflow.cn/i/tZfttKvQ</a><br /><br />deepseek 官方 api 平台这几天一直 503 ，去年十月份充的一点钱快用光了。<br /><br />今天早上发现硅基流动创始人的朋友圈，发布了上线 deepseek v3 r1 的消息，赶紧登录上一看，果然上了，价格跟官方一致，是目前所有提供 deepseek v3/r1 服务中最便宜的了。<br /><br />硅基流动不同于 api 二道贩子，创始团队是正规军，也拿到了很多融资，技术团队的能力也很强，token 价格非常便宜。他们一直走的都是合规路线，所以之前有个遗憾就是缺少像 OpenAI 和 claude 这种顶级模型，这次上架了 deepseek v3/r1 一定程度上也算弥补了这个遗憾。<br /><br />给硅基流动三个关键词，就是稳定，便宜，无障碍访问（国内），完全可以替代官方 api 。<br /><br />最后再推一下 CherryStudio ，<a href="https://github.com/CherryHQ/cherry-studio" rel="nofollow noopener" target="_blank">https://github.com/CherryHQ/cherry-studio</a><br /><br />搭配 CherryStudio 的智能体，知识库等功能，可以更大程度上发挥 deepseek v3/r1 的能力！
-]]></content:encoded>
-<pubDate>2025-01-31T01:26:39Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 「抚子」语言的调试功能??</title>
-<link>https://www.v2ex.com/t/1108475</link>
-<guid>https://www.v2ex.com/t/1108475</guid>
-<content:encoded><![CDATA[
-<p><a href="https://zhuanlan.zhihu.com/p/20889903559" rel="nofollow">https://zhuanlan.zhihu.com/p/20889903559</a></p>
-<pre><code>想的=（ 6の乱数）＋１
-猜的＝「你猜？」と尋ねる。
-
-後判定で繰り返す
-　　もし、猜的&gt;想的ならば
-　　  猜的＝「大了，再猜？」と尋ねる。
-　　違えば、もし、猜的&lt;想的ならば
-　　  猜的＝「小了，再猜？」と尋ねる。
-　　違えば
-　　  「中了！」と表示
-　　ここまで
-
-  ?? 猜的
-  ?? 猜的==想的
-ここまで、(猜的≠想的)の間。
-</code></pre>
-]]></content:encoded>
-<pubDate>2025-01-31T21:15:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问大家有没有自动填写各种简历投递的表单插件好用？</title>
-<link>https://www.v2ex.com/t/1108474</link>
-<guid>https://www.v2ex.com/t/1108474</guid>
-<content:encoded><![CDATA[
-<p>简历投递需要填写非常多的表单，由于有些表单的内容相似，但标题不一样，传统的自动填表工具很难完全映射上，效果很差，有没有一些能结合 AI 的工具自动或者辅助填表？</p>
-]]></content:encoded>
-<pubDate>2025-02-01T01:11:41Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有没有类似 Office tab 能让 PPT 多标签页切换的插件推荐？</title>
-<link>https://www.v2ex.com/t/1108473</link>
-<guid>https://www.v2ex.com/t/1108473</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-02-01T01:14:37Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] deepseek 牛逼,我只能说,高的 openai 现在都高处 o3,还有免费的.就是降智的还能干嘛.废了啊</title>
-<link>https://www.v2ex.com/t/1108472</link>
-<guid>https://www.v2ex.com/t/1108472</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-01-31T00:59:50Z</pubDate>
 </item>
 </channel>
 </rss>
