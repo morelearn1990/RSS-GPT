@@ -5,17 +5,332 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] taro 好像烂尾了</title>
+<link>https://www.v2ex.com/t/1111696</link>
+<guid>https://www.v2ex.com/t/1111696</guid>
+<content:encoded><![CDATA[
+
+有知道具体情况的不
+]]></content:encoded>
+<pubDate>2025-02-15T14:15:26Z</pubDate>
+<pubDate>2025-02-15T14:15:26Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一个基于大语言模型驱动的多轮评审的高质量英文文章翻译方案</title>
+<link>https://www.v2ex.com/t/1111695</link>
+<guid>https://www.v2ex.com/t/1111695</guid>
+<content:encoded><![CDATA[
+
+<h2>引言</h2>
+<p>在深入学习和阅读智能体（ Agent ）相关的英文技术文章时，我发现传统的翻译软件和方法往往难以将这些文章准确、流畅地转换成地道的中文。逐字逐句的直译不仅导致"翻译腔"严重，还会使句子结构生硬，专业术语处理不当，这让读者理解起来非常吃力。</p>
+<p>为了解决这个问题，我开始探索各种 AI 工具，并借鉴了分段翻译再合并、反思改进、使用"改写"而非"翻译"等技巧，不断优化翻译流程。经过多次实验，我最终基于 Dify 平台构建了一个 AI 驱动的多轮评审润色 Workflow ，成功实现了将英文技术文章（涵盖 AI 、编程、产品、商业等领域，尤其是智能体相关内容）高质量地改写为中文的目标。</p>
+<p>这个 Workflow 不仅能准确传达原文信息，还能使改写后的文章语言流畅自然，完全符合中文表达习惯和技术领域的专业规范。更重要的是，它能同时兼顾技术人员和普通读者的阅读体验，让不同背景的读者都能轻松理解文章内容。</p>
+<p>本文将详细分享我的实践经验，包括 Workflow 的整体设计、Prompt Engineering 的技巧、模型选择以及后续的排版和发布流程。希望我的经验能帮助大家更好地利用 AI 提升内容创作的效率和质量，也希望能为那些和我一样在阅读英文技术资料时遇到困难的读者提供一些帮助。最终的目标是，通过这个流程，我可以高效地产出和分享高质量的中文技术博客，与更多人一起学习和交流。</p>
+<h2>为什么需要多轮评审润色？</h2>
+<p>单纯的"翻译"或"改写"往往难以满足高质量内容的要求。即使是初步改写后的文本，也可能存在以下问题：</p>
+<ul>
+<li><strong>语言层面：</strong> 表达不够地道、用词欠准确、句式结构不符合中文习惯。</li>
+<li><strong>内容层面：</strong> 信息存在缺失或偏差、逻辑不够清晰、专业术语处理不当。</li>
+<li><strong>风格层面：</strong> 语气前后不一致、不符合目标读者（技术人员和普通读者）的阅读习惯。</li>
+</ul>
+<p>为了解决这些问题，我设计了一个多轮评审润色流程，通过多个 LLM 从不同维度对改写后的文本进行评审和优化，最终生成高质量的中文内容。 这种多轮评审的思路, 来源于软件开发中的"代码审查"(Code Review), 通过不同角色的审查, 发现和解决潜在的问题, 提升代码质量。</p>
+<h2>Workflow 整体设计</h2>
+<p>我的 Workflow 包含以下几个关键阶段：</p>
+<ol>
+<li><strong>内容抓取：</strong> 使用 <a href="https://firecrawl.dev/" rel="nofollow">FireCrawl</a> 工具，根据提供的 URL 抓取文章内容，并自动清理导航栏、广告等无关内容。</li>
+<li><strong>初步改写：</strong> 将抓取到的英文原文输入 LLM 进行初步中文改写，目标是生成一个基本符合中文语法和表达习惯的初稿。</li>
+<li>
+<strong>多轮评审：</strong><ul>
+<li><strong>并行评审：</strong> 同时启用三个不同的 LLM ，从语言流畅性与地道性、内容准确性与逻辑性、风格一致性与读者适配性三个维度对初稿进行评审，并提出具体的修改建议。</li>
+<li><strong>反思改进：</strong> 通过多轮、多维度的评审，发现单一 LLM 可能忽视的问题，全面提升改写质量。</li>
+</ul>
+</li>
+<li><strong>综合改进：</strong> 将原文、初稿和三个评审 LLM 的意见一起输入另一个 LLM ，进行综合改进，生成改进版的改写文章。</li>
+<li><strong>最后润色：</strong> 对改进后的文章进行最后的润色和一致性检查，确保最终输出的文本质量。</li>
+</ol>
+<p>下图展示了整个 Workflow 的流程：</p>
+<p><img alt="Workflow 流程图" class="embedded_image" rel="noreferrer" src="https://media.ginonotes.com/images/20250215_ai_driven_multi_round_review_translation_workflow/workflow_diagram.png" /></p>
+<p><strong>Dify Workflow DSL 文件地址：</strong> <a href="https://www.v2ex.com/dify/wenrun.yml" rel="nofollow">文润 · 妙笔生花.yml</a></p>
+<h2>Prompt Engineering 详解</h2>
+<p>Prompt Engineering 是整个 Workflow 的核心。下面我将简要介绍每个阶段 Prompt 的设计思路和主要内容。</p>
+<h3>1. 初步改写</h3>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 将 LLM 定义为"资深的语言专家"，使其更专注于语言表达的优化。</li>
+<li>
+<strong>任务目标：</strong><ul>
+<li>深入理解原文，精准把握含义（语境优先、术语精译、文化转换、信息补全）。</li>
+<li>中文表达，地道自然（语序调整、长句拆分、词汇精选、语气匹配、灵活意译、标点规范）。</li>
+<li>信息完整，准确传达（全面覆盖、重点突出）。</li>
+<li>内容审查，去除无关信息 (主要由 FireCrawl 完成)。</li>
+<li>润色校对，精益求精。</li>
+</ul>
+</li>
+<li>
+<strong>输出要求：</strong><ul>
+<li>输出流畅、自然、地道、准确的中文改写文本。</li>
+<li>保留必要的 Markdown 格式（图片、链接、代码块、标题、列表等）。</li>
+</ul>
+</li>
+</ul>
+<h3>2. 多轮评审</h3>
+<h4>LLM 1：语言流畅性与地道性评审</h4>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 资深的中文语言专家和技术编辑。</li>
+<li>
+<strong>评审重点：</strong><ul>
+<li>流畅性（句子流畅度、句子衔接、语法正确性）。</li>
+<li>地道性（词汇选择、搭配习惯、句式结构）。</li>
+<li>自然度（整体风格、书面/口语、语气情感）。</li>
+</ul>
+</li>
+<li><strong>重要约束：</strong> 不随意修改文章结构，重点关注表达方式和句子结构。</li>
+<li><strong>具体建议：</strong> 要求 LLM 给出具体、明确、可操作的改进建议（问题位置、问题描述、修改建议）。</li>
+</ul>
+<h4>LLM 2：内容准确性与逻辑性评审</h4>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 资深的学术编辑、技术内容审核专家和事实核查员。</li>
+<li>
+<strong>评审重点：</strong><ul>
+<li>准确性（信息一致性、术语准确性、事实核查）。</li>
+<li>逻辑性（整体结构、段落关系、概念一致性）。</li>
+<li>完整性（背景信息、论证完整、信息覆盖）。</li>
+</ul>
+</li>
+<li><strong>重要约束：</strong> 不随意修改文章结构，重点关注表达方式和句子结构，以及现有内容的准确性、逻辑性和完整性。</li>
+<li><strong>具体建议：</strong> 要求 LLM 给出具体、明确、可操作的改进建议（问题位置、问题描述、修改建议）。</li>
+</ul>
+<h4>LLM 3：风格一致性与目标读者适配性评审</h4>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 资深的文案策划、技术传播专家和用户体验研究员。</li>
+<li>
+<strong>评审重点：</strong><ul>
+<li>风格一致性（整体风格、语气语调、用词造句、行文节奏）。</li>
+<li>目标读者适配性（读者画像、语言难度、内容深度、表达方式、情感共鸣）。</li>
+<li>表达效果（吸引力、清晰度、说服力、记忆点、行动号召）。</li>
+</ul>
+</li>
+<li><strong>重要约束：</strong> 不随意修改文章结构，重点关注表达方式和句子结构，以及现有内容对目标读者的适配性。</li>
+<li><strong>具体建议：</strong> 要求 LLM 给出具体、明确、可操作的改进建议（问题位置、问题描述、修改建议）。</li>
+</ul>
+<h3>3. 综合改进</h3>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 资深的技术编辑和语言专家。</li>
+<li><strong>任务目标：</strong> 基于英文原文、初步改写稿以及三个评审 LLM 的意见，生成一份最终改进版的中文改写文章。</li>
+<li>
+<strong>重要规则：</strong><ul>
+<li>全面评估评审意见，合理采纳建议。</li>
+<li>保持文章结构稳定，优先改进表达方式。</li>
+<li>平衡技术性和通俗性，保证专业术语准确，表达方式易懂。</li>
+</ul>
+</li>
+<li><strong>输出要求：</strong> 输出改进后的改写文章，以及修改说明（可选）。</li>
+</ul>
+<h3>4. 最后润色</h3>
+<p><strong>Prompt 主要内容：</strong></p>
+<ul>
+<li><strong>角色设定：</strong> 资深的语言专家、技术编辑和校对员。</li>
+<li><strong>任务目标：</strong> 对文章进行最后的润色和一致性检查，确保语言流畅、内容准确、风格一致、符合目标读者阅读习惯。</li>
+<li>
+<strong>检查重点：</strong><ul>
+<li>语言润色（词汇、句式、语气、节奏）。</li>
+<li>内容校对（事实性错误、逻辑漏洞、表达不清）。</li>
+<li>一致性检查（术语、风格、标点符号、格式、专有名词）。</li>
+</ul>
+</li>
+<li><strong>重要说明：</strong> 只做微调，不再做大的改动。如果发现严重问题，在"修改说明"中指出，不要直接修改。</li>
+<li><strong>输出要求：</strong> 输出润色后的文章，以及修改说明（可选）。</li>
+</ul>
+<h2>模型选择</h2>
+<p>在本次实践中，我主要使用了以下 LLM 模型：</p>
+<ul>
+<li><strong>初步改写、LLM3 评审、综合改进、最后润色：</strong> Google Gemini 2.0 Flash 。选择该模型的原因是它具有超长的上下文处理能力（适合处理长文章）、响应速度快、性价比高。</li>
+<li><strong>LLM 1 评审：</strong> Qwen-max-latest 。虽然最初计划使用 DeepSeek 模型，但由于缺乏稳定的调用渠道，最终选择了在中文语言理解和生成方面同样出色的 Qwen-max-latest ，它特别擅长处理长文本和复杂的语言结构。</li>
+<li><strong>LLM 2 评审：</strong> OpenAI o3-mini ， 在翻译任务和中文理解方面表现出色。</li>
+</ul>
+<h2>效果展示</h2>
+<p>经过测试，该 Workflow 能够有效地提升英文技术文章中文化的质量。改写后的文章语言流畅、地道、自然，内容准确、逻辑清晰，风格一致，符合目标读者的阅读习惯。</p>
+<p><img alt="使用结果" class="embedded_image" rel="noreferrer" src="https://media.ginonotes.com/images/20250215_ai_driven_multi_round_review_translation_workflow/test_result.png" /></p>
+<p>翻译的原始文章为 <a href="https://blog.langchain.dev/planning-for-agents/" rel="nofollow">Planning for Agents</a>，翻译后的文章为 <a href="https://www.ginonotes.com/posts/planning-for-agents" rel="nofollow">智能体的规划能力[译]</a>。</p>
+<h2>后续流程：排版、封面与发布</h2>
+<p>为了使最终发布的文章更具美观性和专业性，我还进行了以下后续处理：</p>
+<ol>
+<li><strong>排版微调：</strong> 使用 Cursor 编辑器，对 Markdown 格式的文章进行排版微调，例如调整标题层级、增加段落间距、优化代码块显示等。</li>
+</ol>
+<p><img alt="生成封面提示词" class="embedded_image" rel="noreferrer" src="https://media.ginonotes.com/images/20250215_ai_driven_multi_round_review_translation_workflow/generate_cover_prompt.png" /></p>
+<ol>
+<li>
+<strong>封面生成：</strong><ul>
+<li>利用 Cursor 结合文章内容和网站风格，生成封面图片的提示词。</li>
+<li>使用 Flux Pro （或其他 AI 绘图工具），根据提示词生成符合文章主题和风格的封面图片。</li>
+</ul>
+</li>
+</ol>
+<p><img alt="生成封面" class="embedded_image" rel="noreferrer" src="https://media.ginonotes.com/images/20250215_ai_driven_multi_round_review_translation_workflow/generate_cover.png" /></p>
+<ol>
+<li><strong>发布：</strong> 将最终润色后的文章和生成的封面图片发布到博客平台和微信公众号。</li>
+</ol>
+<h2>经验总结与展望</h2>
+<p>通过这次实践，我深切体会到了 AI 在内容创作领域的巨大潜力。基于 Dify 平台构建的 Workflow 不仅能有效提升英文技术文章的中文化质量，还能避免"翻译腔"，生成更贴近中文读者阅读习惯的优质内容。</p>
+<p><strong>主要收获：</strong></p>
+<ul>
+<li><strong>Prompt Engineering 的重要性：</strong> 精心设计的 Prompt 能有效引导 LLM 生成更符合预期的结果。</li>
+<li><strong>多轮评审的价值：</strong> 通过多个 LLM 从不同维度进行评审，能更全面地发现和解决潜在问题。</li>
+<li><strong>工作流编排的价值：</strong> 借助 Dify 这样的工具，将复杂任务分解为多个步骤并通过工作流方式编排，能显著提升效率和可控性。</li>
+<li><strong>Dify 平台的易用性：</strong> Dify 平台提供的可视化 Workflow 编辑器和丰富组件，让 AI 应用的构建和调试变得更加简单。</li>
+<li><strong>工具组合的强大：</strong> 将 Dify 、FireCrawl 、Cursor 、Flux Pro 等工具有机结合，能构建出高效、自动化的内容生产流程。</li>
+</ul>
+<p>希望本文的分享能给你带来启发。欢迎大家一起探索和交流 AI 内容创作的实践经验！</p>
+<p>文章放在微信公众号上： <a href="https://mp.weixin.qq.com/s/5ulE6cqhyHDNhhDT08hOXA" rel="nofollow">https://mp.weixin.qq.com/s/5ulE6cqhyHDNhhDT08hOXA</a></p>
+]]></content:encoded>
+<pubDate>2025-02-15T14:05:52Z</pubDate>
+<pubDate>2025-02-15T14:02:52Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 随机食物小程序</title>
+<link>https://www.v2ex.com/t/1111693</link>
+<guid>https://www.v2ex.com/t/1111693</guid>
+<content:encoded><![CDATA[
+
+<p>目前是自己的第一个小程序,欢迎各位大佬访问</p>
+<h2>小程序名称</h2>
+<p><em>随机选食物吃</em></p>
+<h2>小程序码</h2>
+<p><img alt="小程序码" class="embedded_image" rel="noreferrer" src="https://www.huskyui.cool/upload/images/225461854e9ff995eb79a046017f6e32.png" /></p>
+<h2>玩法</h2>
+<p>可以使用系统的默认食物组，来每次随机。也可以自己定义食物组，然后自己个性化随机食物</p>
+<h2>前端</h2>
+<ul>
+<li>用的 vant 组件，本来想用 taro-ui 的，但是不知道咋回事，环境搭建总是有问题;</li>
+<li>样式是最后用 deepseek 给我优化的，话说，优化样式确实不错，对于后端选手来说，写的比我强多了。给出样式后，自己再微调一点就行，很不错。</li>
+</ul>
+<h2>后端</h2>
+<p>用的煎鱼的一个 blog 的 golang 的脚手架（ gin+redis+mysql ）</p>
+<h2>目前困惑</h2>
+<p>小程序如何推广呀</p>
+]]></content:encoded>
+<pubDate>2025-02-15T13:32:50Z</pubDate>
+<pubDate>2025-02-15T13:32:50Z</pubDate>
+</item>
+<item>
+<title>[分享发现] bybitCard 最近挺火的，但请注意</title>
+<link>https://www.v2ex.com/t/1111691</link>
+<guid>https://www.v2ex.com/t/1111691</guid>
+<content:encoded><![CDATA[
+
+<p>背景：最近几个月 bybit 澳区卡放水，简单 kyc 即可开卡，每笔返利最高可达 15%，币圈人狂喜？</p>
+<p>注意事项：</p>
+<ol>
+<li>
+<p>听说 bybit 是没计划给国区用户用的，所以如果长期使用该卡在 cn 可能后期会锁卡，或要求提供对应的地址证明（当然也可能啥也没事）</p>
+</li>
+<li>
+<p>国区用户无法直接买或换法币，每次消费都会扣除 1.9%损耗，消费卡对应币种的商品为 0.9%（澳区卡为 USD ）</p>
+</li>
+<li>
+<p>欧区的卡质量比澳区的好，能开欧区的最好开欧区的，当然也可以全开</p>
+</li>
+<li>
+<p>由于开闸放水，开卡人太多，如果掺入点洗钱的，后面可能卡会被部分商家禁用（参考上一代 u 卡，onekey 同时期的卡）</p>
+</li>
+<li>
+<p>注意诈骗，最近非常多人发 bybit 的邀请链接，建议新手谨慎入场，交易请走平台，避免大额交易</p>
+</li>
+</ol>
+]]></content:encoded>
+<pubDate>2025-02-15T13:11:11Z</pubDate>
+<pubDate>2025-02-15T13:25:21Z</pubDate>
+</item>
+<item>
+<title>[投资] XIRR 计算年化收益率为负，但总收益金额为正，该如何理解？</title>
+<link>https://www.v2ex.com/t/1111690</link>
+<guid>https://www.v2ex.com/t/1111690</guid>
+<content:encoded><![CDATA[
+
+<p>今天在学习如何计算投资的年化收益率，了解到通常使用 XIRR 来计算，但是遇到一个问题，没想明白，V 站卧虎藏龙，来请教大佬了。</p>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>行为</th>
+<th>金额</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2020/1/1</td>
+<td>投入</td>
+<td>100</td>
+</tr>
+<tr>
+<td>2021/1/1</td>
+<td>赎回</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>2022/1/1</td>
+<td>投入</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>2023/1/1</td>
+<td>赎回</td>
+<td>120</td>
+</tr>
+</tbody></table><p>从最初投入 100 元，到最后到手 120 元，所以总共盈利了 20 元，但是使用 XIRR 来计算年化收益率，结果是 -2.94%，该如何理解这件事？</p>
+]]></content:encoded>
+<pubDate>2025-02-15T13:07:01Z</pubDate>
+<pubDate>2025-02-15T14:15:31Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 小米公司创立 15 年了</title>
+<link>https://www.v2ex.com/t/1111688</link>
+<guid>https://www.v2ex.com/t/1111688</guid>
+<content:encoded><![CDATA[
+
+<p>小米公司成立于 2010 年 4 月。</p>
+]]></content:encoded>
+<pubDate>2025-02-15T12:59:55Z</pubDate>
+<pubDate>2025-02-15T13:26:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教下各位看日剧有哪些渠道？</title>
+<link>https://www.v2ex.com/t/1111687</link>
+<guid>https://www.v2ex.com/t/1111687</guid>
+<content:encoded><![CDATA[
+
+之前看的医疗类和破案类就很有意思，能坚持看下去，求推荐能更新日剧比较新的渠道
+]]></content:encoded>
+<pubDate>2025-02-15T12:56:33Z</pubDate>
+<pubDate>2025-02-15T14:07:54Z</pubDate>
+</item>
+<item>
+<title>[程序员] Cursor 编辑器，如何删除 chat 和 composer 的记录？</title>
+<link>https://www.v2ex.com/t/1111686</link>
+<guid>https://www.v2ex.com/t/1111686</guid>
+<content:encoded><![CDATA[
+
+<p>我在学习使用 cursor 编辑器，chat 和 composer 确实很好用，但是我怎样才能删除问询的记录呢？
+还是 cursor 的产品设计就是这样的用意？</p>
+]]></content:encoded>
+<pubDate>2025-02-15T12:51:04Z</pubDate>
+<pubDate>2025-02-15T13:00:18Z</pubDate>
+</item>
+
+<item>
 <title>[分享发现] 有没有人试过用 AI 来生成角色动画？我发现了一个有趣的工具</title>
 <link>https://www.v2ex.com/t/1111685</link>
 <guid>https://www.v2ex.com/t/1111685</guid>
 <content:encoded><![CDATA[
-
 <p>最近在做一些数字内容创作时，我发现了一个挺有意思的工具，叫做 Animate Anyone ，它使用 AI 技术把静态人物图像转化成动态的角色动画。原本我以为这类工具效果不怎么样，但试用了一下，感觉还挺惊艳的，尤其是在做虚拟偶像和游戏角色时，能大大节省时间。
 这款工具的核心是基于图像到视频的转换，能够保持人物的外观一致性，同时通过姿势引导器对动画的动作进行精准控制。我特别喜欢它平滑过渡的功能，动作过渡非常自然。感觉它不仅适用于时尚视频、舞蹈动作合成，甚至在电影、游戏开发中都能派上用场。
 如果你也是做创作的，尤其是在做角色动画，强烈推荐试试看。个人觉得这个工具能在一定程度上改变我们制作角色动画的方式，可能会帮你节省不少时间和精力。
 顺便分享一下这个链接： <a href="https://animateanyoneai.ai" rel="nofollow">https://animateanyoneai.ai</a> ，有兴趣的可以去了解一下。</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T12:17:15Z</pubDate>
 <pubDate>2025-02-15T12:14:15Z</pubDate>
 </item>
 <item>
@@ -23,7 +338,6 @@
 <link>https://www.v2ex.com/t/1111684</link>
 <guid>https://www.v2ex.com/t/1111684</guid>
 <content:encoded><![CDATA[
-
 <p>我先来吧:  </p>
 <ul>
 <li>雅尼的 Nightingale 和 with an orchid  </li>
@@ -33,7 +347,6 @@
 <li>Windy hill</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-15T12:10:04Z</pubDate>
 <pubDate>2025-02-15T12:23:21Z</pubDate>
 </item>
 <item>
@@ -41,7 +354,6 @@
 <link>https://www.v2ex.com/t/1111683</link>
 <guid>https://www.v2ex.com/t/1111683</guid>
 <content:encoded><![CDATA[
-
 <p>＃ 背景</p>
 <p>楼主在广州，25 应届生，还没毕业，最近接了一个广州的 offer （ ai 应用相关的岗），公司不算小，全国有分公司，估计有几百人，互联网行业。
 薪资构成是：基础薪资 2.3k ＋项目奖金＝ 9k 。
@@ -57,7 +369,6 @@
 如果后面进去一边实习一边再找 offer ，骑驴找马这样可行吗。
 望 v 站各位经验老道，尤其是广州这边的哥们指点一下。🥰🥰</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T12:10:00Z</pubDate>
 <pubDate>2025-02-15T12:09:00Z</pubDate>
 </item>
 <item>
@@ -65,7 +376,6 @@
 <link>https://www.v2ex.com/t/1111682</link>
 <guid>https://www.v2ex.com/t/1111682</guid>
 <content:encoded><![CDATA[
-
 <p>晚上想带着孩子一起运动，外面太冷又在下雨，想带着孩子晚上玩一些体感游戏。目前在用《天天跳绳》 APP 里面的体感游戏，但是广告无处不在，多到令人发指的地步了。所以想换个 APP 试试看，所以来问问大家。</p>
 <p>诉求如下：</p>
 <p>1.游戏好玩</p>
@@ -73,7 +383,6 @@
 <p>3.动作识别准确</p>
 <p>有这方面经验的小伙伴，欢迎来分享一下经验！非常感谢！</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T11:54:50Z</pubDate>
 <pubDate>2025-02-15T11:51:50Z</pubDate>
 </item>
 <item>
@@ -81,11 +390,9 @@
 <link>https://www.v2ex.com/t/1111681</link>
 <guid>https://www.v2ex.com/t/1111681</guid>
 <content:encoded><![CDATA[
-
 <p>现在的中文 AppleIntelligence 还没上线，但是经常有照片消除的需求，而醒图、美图秀秀等软件又都需要会员。</p>
 <p>所以想问一下大家有没有推荐的照片消除工具呢？我可以接受买断制付费。</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T11:31:07Z</pubDate>
 <pubDate>2025-02-15T12:22:12Z</pubDate>
 </item>
 <item>
@@ -93,7 +400,6 @@
 <link>https://www.v2ex.com/t/1111680</link>
 <guid>https://www.v2ex.com/t/1111680</guid>
 <content:encoded><![CDATA[
-
 <p>之前一直在 mac 端使用 Raycast 这款启动器，觉得挺好用也挺好看的，特别是里面的快捷链接功能，非常的好用。</p>
 <p>后面每次用自己的 Windows 的时候，总是感觉少了点什么，于是开始在网上搜寻 Windows 端的启动器软件方案。</p>
 <p>大概都看了个遍，被 Raycast 的 UI 惯坏的我基本都觉得 UI 太丑了，utools 算是其中看得过去的一款，不过采用 Electron 开发的，感觉这种轻量化的软件用 Electron 太重了，而且界面也只是看得过去，并不是非常好看。</p>
@@ -109,7 +415,6 @@
 <li>反馈群：<a href="https://qm.qq.com/q/aCIapQmoLe" rel="nofollow">QQ 群</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-15T11:14:47Z</pubDate>
 <pubDate>2025-02-15T12:32:00Z</pubDate>
 </item>
 <item>
@@ -117,14 +422,12 @@
 <link>https://www.v2ex.com/t/1111678</link>
 <guid>https://www.v2ex.com/t/1111678</guid>
 <content:encoded><![CDATA[
-
 <p>用的是 orico-tb4 雷电四扩展坞，之所以怀疑是扩展坞的问题是因为我的两个 mac 使用这个扩展坞时都会有这个问题，问题表现如下：</p>
 <p>电脑睡眠后，会无规律地突然开始自动播放音乐，并且将音量开到最大；
 这时候如果解锁进入系统把音量调小，神秘的力量又会把音量拉满。。
 cmd+q 退出 music ，也会重新启动 music 并播放音乐。</p>
 <p>毫无头绪，求有过类似经历的大佬们给个排查思路</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T11:03:19Z</pubDate>
 <pubDate>2025-02-15T11:20:36Z</pubDate>
 </item>
 <item>
@@ -132,13 +435,11 @@ cmd+q 退出 music ，也会重新启动 music 并播放音乐。</p>
 <link>https://www.v2ex.com/t/1111677</link>
 <guid>https://www.v2ex.com/t/1111677</guid>
 <content:encoded><![CDATA[
-
 <p>分享一个写的网页 online 魔方。可以操作魔方</p>
 <p><a href="https://rustpoint.com/blog/cube" rel="nofollow">https://rustpoint.com/blog/cube</a></p>
 <p>还有博客新写的一篇交互式魔方复原博客。<a href="https://rustpoint.com/blog/read/%2F%E9%AD%94%E6%96%B9%E5%A4%8D%E5%8E%9F%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B%20-%20%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%85%A5%E9%97%A8.md" rel="nofollow">https://rustpoint.com/blog/read/%2F%E9%AD%94%E6%96%B9%E5%A4%8D%E5%8E%9F%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B%20-%20%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%85%A5%E9%97%A8.md</a></p>
 <p>主要是想吸引一波关注，交换下友链。</p>
 ]]></content:encoded>
-<pubDate>2025-02-15T10:54:40Z</pubDate>
 <pubDate>2025-02-15T10:53:40Z</pubDate>
 </item>
 <item>
@@ -146,13 +447,10 @@ cmd+q 退出 music ，也会重新启动 music 并播放音乐。</p>
 <link>https://www.v2ex.com/t/1110444</link>
 <guid>https://www.v2ex.com/t/1110444</guid>
 <content:encoded><![CDATA[
-
 如果真的能實現的話，那世界上可能就真的沒有盲人囉，不知道什麼時候能普及開來<br /><br /><div class="embedded_video_wrapper"></div>
 ]]></content:encoded>
-<pubDate>2025-02-10T12:25:39Z</pubDate>
 <pubDate>2025-02-11T12:19:54Z</pubDate>
 </item>
-
 <item>
 <title>[随想] 一线城市大部分打工人最终的归属就是回老家吗</title>
 <link>https://www.v2ex.com/t/1111676</link>
@@ -15567,164 +15865,6 @@ GitHub 地址: <a href="https://github.com/likaia/qwerty-learner" rel="nofollow"
 <p><strong>原文</strong>： <a href="https://mp.weixin.qq.com/s/GfRafrOoueQi7mfQGg6skg" rel="nofollow">https://mp.weixin.qq.com/s/GfRafrOoueQi7mfQGg6skg</a></p>
 ]]></content:encoded>
 <pubDate>2025-02-10T14:44:58Z</pubDate>
-</item>
-<item>
-<title>[生活] 头一次因为衣服尴尬了一天</title>
-<link>https://www.v2ex.com/t/1110465</link>
-<guid>https://www.v2ex.com/t/1110465</guid>
-<content:encoded><![CDATA[
-春节买了件破洞装卫衣，今天头一次穿着去上班，忘了穿打底衫。<br />上午同事夸我潮流，我还没反应过来。<br />下午开完会之后，我才注意到破洞装特么的露肉啊！肚子啊、背啊白花花的一堆肉漏着。。。<br />尴尬的我裹了一身羽绒服，直到晚上 9 点半下班，热的不行还不敢脱。。。
-]]></content:encoded>
-<pubDate>2025-02-10T16:04:16Z</pubDate>
-</item>
-<item>
-<title>[程序员] 求会 RSShub 定制路由的大佬帮帮忙</title>
-<link>https://www.v2ex.com/t/1110463</link>
-<guid>https://www.v2ex.com/t/1110463</guid>
-<content:encoded><![CDATA[
-<p>自己在 NAS 部署了 RSShub 服务，已经可以正常访问，但是自己需要的网站不提供 RSS 地址，RSShub 也不提供，自己研究了半天一头雾水，请教有没有大佬可以帮忙定制路由，可有偿，如果能指导编写就更好了（本人没得 JS 、TS 经验）。
-Docker-Compose 如下</p>
-<pre><code>services:
-  rsshub:
-    image: diygod/rsshub:chromium-bundled
-    restart: unless-stopped
-    ports:
-      - "1200:1200"
-    environment:
-      NODE_ENV: production
-      CACHE_TYPE: redis
-      REDIS_URL: "redis://redis:6379/"
-      PUPPETEER_WS_ENDPOINT: "ws://browserless:3000"
-    depends_on:
-      - redis
-      - browserless
-    volumes:
-      - ./rsshub/lib/routes:/app/lib/routes
-
-  browserless:
-    image: browserless/chrome
-    restart: unless-stopped
-
-  redis:
-    image: redis:alpine
-    restart: unless-stopped
-    volumes:
-      - ./redis/data:/data
-</code></pre>
-<p>暂时需要的网址如下列表：</p>
-<pre><code>政策文件库
-http://www.cq.gov.cn/zwgk/zfxxgkml/szfwj/
-
-区县动态
-http://www.cq.gov.cn/ywdt/zwhd/qxdt/
-
-部门动态
-http://www.cq.gov.cn/ywdt/zwhd/bmdt/
-
-今日重庆
-http://www.cq.gov.cn/ywdt/jrcq/
-
-回应关切
-http://www.cq.gov.cn/zwgk/zfxxgkml/hygq/
-
-部门解读
-http://www.cq.gov.cn/zwgk/zfxxgkml/zcjd_120614/bmjd/
-
-媒体视角
-http://www.cq.gov.cn/zwgk/zfxxgkml/zcjd_120614/mtsj/
-
-留言回复
-https://www.gov.cn/hudong/hygq/lyhf/
-
-地方动态
-https://www.gov.cn/lianbo/difang/
-
-部门动态
-https://www.gov.cn/lianbo/bumen/
-
-国务院工作进行时
-https://www.gov.cn/gzjxs/liebiao/
-
-决策部署
-https://www.gov.cn/gzjxs/toutiao/
-
-政策解读
-https://www.gov.cn/zhengce/jiedu/
-
-最新政策
-https://www.gov.cn/zhengce/zuixin/
-</code></pre>
-]]></content:encoded>
-<pubDate>2025-02-10T14:24:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有什么途径认识女大吗？</title>
-<link>https://www.v2ex.com/t/1110462</link>
-<guid>https://www.v2ex.com/t/1110462</guid>
-<content:encoded><![CDATA[
-<p>有哥们来聊聊吗</p>
-]]></content:encoded>
-<pubDate>2025-02-10T16:08:38Z</pubDate>
-</item>
-<item>
-<title>[VPS] 新手作品 : Typecho 免费插件 EasyWaf，一款简易的访问层拦截及验证插件</title>
-<link>https://www.v2ex.com/t/1110460</link>
-<guid>https://www.v2ex.com/t/1110460</guid>
-<content:encoded><![CDATA[
-<p>静态资源（如 HTML/CSS/JS/ 图片）被刷流量 / CC 攻击主要表现为带宽消耗，而非直接的服务崩溃；动态网站每个请求都需要服务器动态生成内容，涉及 PHP 执行、数据库查询等操作，高频 CC 攻击会导致 MySQL 连接数暴增、查询堆积，最终表现为 CPU 和负载飙升。前置验证机制（如 JS Challenge 、CAPTCHA ）可有效过滤自动化攻击流量，Cloudflare 的 "Under Attack Mode" 正是基于此原理。</p>
-<p>对于 Typecho 博客，其实生态圈还是比较差的，相关的安全插件少之又少（当然最好的防御是在 CDN 层或者服务器安全组进行拦截，在访问层进行拦截不是最好的选择，但是总比没有好），于是就模仿着一些 SCDN 或者宝塔的 Ngixn 防火墙（付费版）进行了插件的开发。希望可以帮助到有需要的博友。</p>
-<p>插件采用两种验证模式：滑动解锁验证 和 数学计算验证。你可以根据网站的需求和目标用户群体来选择最适合的验证方式。</p>
-<p>[小陶出品]  Typecho 免费插件 EasyWaf ，一款简易的访问层拦截及验证插件：
-<a href="https://www.52txr.cn/2025/EasyWaf.html" rel="nofollow">https://www.52txr.cn/2025/EasyWaf.html</a></p>
-<p>仅限个人研究，可能功能不咋滴，不喜勿喷，但是欢迎讨论和学习</p>
-]]></content:encoded>
-<pubDate>2025-02-10T14:04:34Z</pubDate>
-</item>
-<item>
-<title>[程序员] 如果电脑休眠了会影响网页轮询吗</title>
-<link>https://www.v2ex.com/t/1110459</link>
-<guid>https://www.v2ex.com/t/1110459</guid>
-<content:encoded><![CDATA[
-如果启动电脑，页面还会继续轮询吗
-]]></content:encoded>
-<pubDate>2025-02-10T14:12:03Z</pubDate>
-</item>
-<item>
-<title>[硬件] 发现有个 27 寸 4k 240hz ips 的面板，但还没有对应的产品</title>
-<link>https://www.v2ex.com/t/1110458</link>
-<guid>https://www.v2ex.com/t/1110458</guid>
-<content:encoded><![CDATA[
-<p>最近发现有个 27 寸 4k 240hz ips 的面板,量产是 24 年 Q3 ，但到现在都还没有对应的产品出来，有人了解过吗
-<a href="https://www.panelook.cn/ME270QUM-NF8_BOE_27.0_LCM_overview_cn_66986.html" rel="nofollow">https://www.panelook.cn/ME270QUM-NF8_BOE_27.0_LCM_overview_cn_66986.html</a></p>
-]]></content:encoded>
-<pubDate>2025-02-10T13:57:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 关于 follow 的订阅源开发求指导</title>
-<link>https://www.v2ex.com/t/1110457</link>
-<guid>https://www.v2ex.com/t/1110457</guid>
-<content:encoded><![CDATA[
-我记得之前搜索完有个指引 怎么开发订阅源的 <br /><br />怎么现在找不到了 有知道的大佬分享一下吗
-]]></content:encoded>
-<pubDate>2025-02-09T13:55:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] macos m1 芯片使用 memory analyzer 工具报错 应用程序无法打开</title>
-<link>https://www.v2ex.com/t/1110455</link>
-<guid>https://www.v2ex.com/t/1110455</guid>
-<content:encoded><![CDATA[
-macos m1 芯片使用 memory analyzer 工具报错 应用程序无法打开。<br /><br />有大佬知道怎么解决这个问题的吗？<br /><br />我使用的版本是最新的 memory analyzer 的 macos aarch64 版本的。<br /><br />第一次下载安装完成之后，先打开 mat 工具是闪退，然后根据网上的教程配置了 Info.plist 中的-vm 指定 java 的 bin 路径之后可以正常打开和使用了，然后电脑重启之后，再次打开 mat 工具就提示应用程序无法打开。<br /><br />卸载 mat 重装之后也还是报应用程序无法打开。<br /><br />后来我换前一个版本，进行相同的操作之后，也是第一次可以正常打开，后面电脑重启之后也是提示应用程序无法打开了。。。<br /><br />有大佬知道是怎么回事吗？<br /><br />我想看 mat 提示应用程序无法打开的报错详细日志，在网上百度了一下也没找到哪里可以看这个日志。
-]]></content:encoded>
-<pubDate>2025-02-10T13:30:06Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有了解翡翠玉的吗？</title>
-<link>https://www.v2ex.com/t/1110454</link>
-<guid>https://www.v2ex.com/t/1110454</guid>
-<content:encoded><![CDATA[
-<p>想买一个自己戴，价格 1000 左右，貔貅吊坠款式，不是很懂翡翠玉，有大佬指点下吗？谢谢</p>
-]]></content:encoded>
-<pubDate>2025-02-10T13:29:54Z</pubDate>
 </item>
 </channel>
 </rss>
