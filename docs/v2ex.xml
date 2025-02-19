@@ -5,11 +5,1061 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享发现] 我悟了！原来本地图片预览还能这样搞</title>
+<link>https://www.v2ex.com/t/1112687</link>
+<guid>https://www.v2ex.com/t/1112687</guid>
+<content:encoded><![CDATA[
+
+<ul>
+<li>Hey, 我是 Immerse</li>
+<li>本文首发于  [沉浸式趣谈] ，我的个人博客 <a href="https://yaolifeng.com" rel="nofollow">https://yaolifeng.com</a> 也同步更新。</li>
+<li>转载请在文章开头注明出处和版权信息。</li>
+<li>如果本文对您有所帮助，请点赞、评论、转发，支持一下，谢谢！</li>
+</ul>
+<hr />
+<h2>我悟了！原来本地图片预览还能这样搞</h2>
+<p>在网页开发中，经常会遇到需要让用户上传图片并在上传前进行预览的需求。这样做的好处显而易见：用户可以立即看到自己选择的图片是否正确，避免了不必要的上传和服务器资源浪费，提升了用户体验。</p>
+<p>今天，我们就来一起学习如何使用原生 JavaScript 实现本地图片上传预览功能。我们将使用两种常用的 API：<code>FileReader</code> 和 <code>createObjectURL</code>，并分别进行详细讲解和示例演示。</p>
+<h3>准备工作：HTML 结构</h3>
+<p>首先，我们需要在 HTML 中搭建一个简单的结构，用于文件上传和图片预览。主要包含两个元素：</p>
+<ol>
+<li><strong><code>&lt;input type="file"&gt;</code></strong>: 用于让用户选择本地文件。</li>
+<li><strong><code>&lt;img&gt;</code></strong>: 用于展示预览图片。</li>
+</ol>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;本地图片上传预览&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;本地图片上传预览&lt;/h1&gt;
+
+        &lt;input type="file" id="imageUpload" accept="image/*" /&gt; &lt;br /&gt;&lt;br /&gt;
+        &lt;img
+            id="imagePreview"
+            src="#"
+            alt="图片预览"
+            style="max-width: 300px; max-height: 300px; border:1px solid #ccc;"
+        /&gt;
+
+        &lt;script&gt;
+            // JavaScript 代码将在这里编写
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>在上面的 HTML 代码中：</p>
+<ul>
+<li><code>&lt;input type="file" id="imageUpload" accept="image/*"&gt;</code> 创建了一个文件上传控件，<code>id="imageUpload"</code> 方便我们之后用 JavaScript 获取到它。<code>accept="image/*"</code> 限制了用户只能选择图片类型的文件，<code>image/*</code> 表示接受任何类型的图片文件。</li>
+<li><code>&lt;img id="imagePreview" src="#" alt="图片预览" ...&gt;</code> 创建了一个 <code>&lt;img&gt;</code> 标签，<code>id="imagePreview"</code> 同样是为了方便 JavaScript 操作。<code>src="#"</code> 先设置一个默认的无效图片地址，<code>alt="图片预览"</code> 是当图片无法显示时的替代文字。<code>style="..."</code> 设置了图片预览区域的最大宽高和边框样式，您可以根据实际需求调整。</li>
+</ul>
+<h3>方法一：使用 FileReader API</h3>
+<p><code>FileReader</code> 是一个非常强大的 API ，它可以异步读取用户本地文件内容。对于图片预览来说，我们可以使用 <code>FileReader</code> 将图片文件读取为 <strong>Data URL</strong>，然后将其设置为 <code>&lt;img&gt;</code> 标签的 <code>src</code> 属性，从而实现预览。</p>
+<p><strong>步骤 1：获取元素</strong></p>
+<p>首先，在 <code>&lt;script&gt;</code> 标签中，我们需要获取到 HTML 中的 <code>input file</code> 和 <code>img</code> 元素：</p>
+<pre><code class="language-javascript">const imageUpload = document.getElementById('imageUpload');
+const imagePreview = document.getElementById('imagePreview');
+</code></pre>
+<p><strong>步骤 2：监听 <code>change</code> 事件</strong></p>
+<p>我们需要监听 <code>input file</code> 的 <code>change</code> 事件。当用户选择了文件后，这个事件会被触发。</p>
+<pre><code class="language-javascript">imageUpload.addEventListener('change', function () {
+    const file = imageUpload.files[0]; // 获取用户选择的文件
+    if (file) {
+        // 确保用户选择了文件
+        // ... (FileReader 的代码将在这里编写) ...
+    } else {
+        // 如果用户没有选择文件，可以重置预览图片
+        imagePreview.src = '#'; // 恢复默认的无效图片地址
+        imagePreview.alt = '图片预览';
+    }
+});
+</code></pre>
+<p><strong>步骤 3：创建 FileReader 对象并读取文件</strong></p>
+<p>在 <code>change</code> 事件处理函数中，我们需要创建 <code>FileReader</code> 对象，并使用 <code>readAsDataURL()</code> 方法来读取文件内容。<code>readAsDataURL()</code> 方法会将文件读取为 Data URL 格式的字符串。</p>
+<pre><code class="language-javascript">imageUpload.addEventListener('change', function () {
+    const file = imageUpload.files[0];
+    if (file) {
+        const reader = new FileReader(); // 创建 FileReader 对象
+
+        reader.onload = function (e) {
+            // 当文件读取完成后，会触发 onload 事件
+            imagePreview.src = e.target.result; // 将 Data URL 设置为 &lt;img&gt; 的 src 属性
+            imagePreview.alt = file.name; // 可以将文件名设置为 alt 属性，增强可访问性
+        };
+
+        reader.readAsDataURL(file); // 开始读取文件，读取完成后会触发 onload 事件
+    } else {
+        imagePreview.src = '#';
+        imagePreview.alt = '图片预览';
+    }
+});
+</code></pre>
+<p><strong>代码解释：</strong></p>
+<ul>
+<li><code>const reader = new FileReader();</code>： 创建一个新的 <code>FileReader</code> 对象。</li>
+<li>
+<code>reader.onload = function(e) { ... }</code>： 设置 <code>FileReader</code> 的 <code>onload</code> 事件处理函数。当文件读取成功后，这个函数会被调用。<ul>
+<li><code>e.target.result</code>： 在 <code>onload</code> 事件中，<code>e.target.result</code> 属性包含了读取到的文件内容，对于 <code>readAsDataURL()</code> 方法来说，这里就是 Data URL 字符串。</li>
+<li><code>imagePreview.src = e.target.result;</code>： 将 Data URL 字符串设置为 <code>imagePreview</code> (即 <code>&lt;img&gt;</code> 标签) 的 <code>src</code> 属性，浏览器会自动解析 Data URL 并显示图片。</li>
+<li><code>imagePreview.alt = <a href="http://file.name" rel="nofollow">file.name</a>;</code>： 可选操作，将上传的文件名设置为 <code>&lt;img&gt;</code> 标签的 <code>alt</code> 属性，这有助于提高页面的可访问性。</li>
+</ul>
+</li>
+<li><code>reader.readAsDataURL(file);</code>： 调用 <code>reader</code> 的 <code>readAsDataURL()</code> 方法开始异步读取文件。参数 <code>file</code> 就是用户选择的文件对象。</li>
+</ul>
+<p><strong>完整代码示例 (FileReader 方法):</strong></p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;本地图片上传预览 (FileReader)&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;本地图片上传预览 (FileReader)&lt;/h1&gt;
+
+        &lt;input type="file" id="imageUpload" accept="image/*" /&gt; &lt;br /&gt;&lt;br /&gt;
+        &lt;img
+            id="imagePreview"
+            src="#"
+            alt="图片预览"
+            style="max-width: 300px; max-height: 300px; border:1px solid #ccc;"
+        /&gt;
+
+        &lt;script&gt;
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+
+            imageUpload.addEventListener('change', function () {
+                const file = imageUpload.files[0];
+                if (file) {
+                    const reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.alt = file.name;
+                    };
+
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.src = '#';
+                    imagePreview.alt = '图片预览';
+                }
+            });
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>方法二：使用 createObjectURL API</h3>
+<p><code>createObjectURL</code> (或者更准确的说是 <code>URL.createObjectURL()</code>) 是另一个用于创建临时 URL 的 API 。与 <code>FileReader</code> 不同，<code>createObjectURL</code> <strong>直接为文件对象创建一个临时的 URL</strong>，这个 URL 可以直接设置为 <code>&lt;img&gt;</code> 的 <code>src</code> 属性，而无需读取文件内容。</p>
+<p><strong>步骤 1 &amp; 步骤 2： 获取元素和监听 <code>change</code> 事件 (与 FileReader 方法相同)</strong></p>
+<p>这部分代码和 FileReader 方法完全一样，您可以直接复制粘贴。</p>
+<pre><code class="language-javascript">const imageUpload = document.getElementById('imageUpload');
+const imagePreview = document.getElementById('imagePreview');
+
+imageUpload.addEventListener('change', function () {
+    const file = imageUpload.files[0];
+    if (file) {
+        // ... (createObjectURL 的代码将在这里编写) ...
+    } else {
+        imagePreview.src = '#';
+        imagePreview.alt = '图片预览';
+    }
+});
+</code></pre>
+<p><strong>步骤 3：使用 <code>createObjectURL</code> 创建临时 URL</strong></p>
+<p>在 <code>change</code> 事件处理函数中，使用 <code>URL.createObjectURL(file)</code> 方法为选择的文件对象创建一个临时 URL ，并将其设置为 <code>&lt;img&gt;</code> 的 <code>src</code> 属性。</p>
+<pre><code class="language-javascript">imageUpload.addEventListener('change', function () {
+    const file = imageUpload.files[0];
+    if (file) {
+        const imageUrl = URL.createObjectURL(file); // 创建临时 URL
+        imagePreview.src = imageUrl; // 将临时 URL 设置为 &lt;img&gt; 的 src 属性
+        imagePreview.alt = file.name;
+    } else {
+        imagePreview.src = '#';
+        imagePreview.alt = '图片预览';
+    }
+});
+</code></pre>
+<p><strong>代码解释：</strong></p>
+<ul>
+<li><code>const imageUrl = URL.createObjectURL(file);</code>： 调用 <code>URL.createObjectURL(file)</code> 方法，传入用户选择的文件对象 <code>file</code>，它会返回一个临时的 URL 字符串。这个 URL 代表了文件在内存中的位置。</li>
+<li><code>imagePreview.src = imageUrl;</code>： 将 <code>imageUrl</code> 设置为 <code>imagePreview</code> 的 <code>src</code> 属性，浏览器会根据这个临时 URL 加载并显示图片。</li>
+</ul>
+<p><strong>需要注意：</strong></p>
+<ul>
+<li><code>createObjectURL</code> 创建的 URL 是临时的，<strong>它指向的是浏览器内存中的文件数据</strong>。当页面关闭或文档卸载时，这些临时 URL 会被释放。</li>
+<li>如果您需要手动释放通过 <code>createObjectURL</code> 创建的 URL ，可以使用 <code>URL.revokeObjectURL(imageUrl)</code> 方法。虽然在简单的图片预览场景下，浏览器通常会自动管理这些临时 URL ，但在更复杂的应用中，手动释放可能是一个好习惯，尤其是在处理大量文件或需要长时间保持页面活跃的情况下。</li>
+</ul>
+<p><strong>完整代码示例 (createObjectURL 方法):</strong></p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;本地图片上传预览 (createObjectURL)&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;本地图片上传预览 (createObjectURL)&lt;/h1&gt;
+
+        &lt;input type="file" id="imageUpload" accept="image/*" /&gt; &lt;br /&gt;&lt;br /&gt;
+        &lt;img
+            id="imagePreview"
+            src="#"
+            alt="图片预览"
+            style="max-width: 300px; max-height: 300px; border:1px solid #ccc;"
+        /&gt;
+
+        &lt;script&gt;
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+
+            imageUpload.addEventListener('change', function () {
+                const file = imageUpload.files[0];
+                if (file) {
+                    const imageUrl = URL.createObjectURL(file);
+                    imagePreview.src = imageUrl;
+                    imagePreview.alt = file.name;
+                } else {
+                    imagePreview.src = '#';
+                    imagePreview.alt = '图片预览';
+                }
+            });
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>两种方法的比较</h3>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>FileReader</th>
+<th>createObjectURL (URL.createObjectURL)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>兼容性</strong></td>
+<td>较好，支持更老版本的浏览器</td>
+<td>相对较好，现代浏览器均支持，但老版本浏览器可能不支持</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>对于大文件，读取和编码为 Data URL 可能会较慢</td>
+<td>对于大文件，创建临时 URL 速度快，性能更优</td>
+</tr>
+<tr>
+<td><strong>数据处理</strong></td>
+<td>将文件读取为 Data URL (Base64 编码字符串)</td>
+<td>创建指向内存中文件数据的临时 URL</td>
+</tr>
+<tr>
+<td><strong>持久化</strong></td>
+<td>Data URL 可以被持久化保存 (例如，存储在数据库)</td>
+<td>临时 URL 无法持久化保存，页面关闭或卸载后失效</td>
+</tr>
+<tr>
+<td><strong>代码复杂度</strong></td>
+<td>代码稍复杂，需要处理 <code>onload</code> 事件等</td>
+<td>代码更简洁，直接创建 URL 即可</td>
+</tr>
+<tr>
+<td><strong>资源释放</strong></td>
+<td>不需要显式释放资源</td>
+<td>建议在复杂场景中手动释放 URL (<code>URL.revokeObjectURL</code>)，简单场景浏览器会自动管理</td>
+</tr>
+<tr>
+<td><strong>优点</strong></td>
+<td>兼容性好，Data URL 可持久化保存</td>
+<td>性能好，代码简洁，尤其处理大文件更高效</td>
+</tr>
+<tr>
+<td><strong>缺点</strong></td>
+<td>大文件处理性能相对较差，Data URL 字符串较长</td>
+<td>兼容性稍逊，临时 URL 不可持久化，需注意 URL 生命周期</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>- 需要兼容老版本浏览器时<br /> - 需要持久化保存图片数据时</td>
+<td>- 追求性能，尤其处理大文件时<br /> - 不需要持久化保存图片数据时</td>
+</tr>
+</tbody></table><p><strong>如何选择？</strong></p>
+<ul>
+<li><strong>如果注重兼容性，或者需要将图片数据持久化保存，可以选择 FileReader 。</strong></li>
+<li><strong>如果更注重性能，尤其是处理大文件，并且不需要持久化保存图片数据，可以选择 createObjectURL 。</strong> 对于大多数现代网页应用来说，<code>createObjectURL</code> 通常是一个更优的选择，因为它更简洁高效。</li>
+</ul>
+<h3>总结</h3>
+<p>好啦，简单总结一下 <code>FileReader</code> 和 <code>createObjectURL</code> 这俩兄弟。</p>
+<p><strong><code>FileReader</code> 就像个老实人:</strong></p>
+<ul>
+<li><strong>优点:</strong> 兼容性好，数据格式（ Data URL ）能存起来以后用。</li>
+<li><strong>缺点:</strong> 大文件处理慢一点点。</li>
+<li><strong>适合:</strong> 要兼容老浏览器，或者需要保存图片数据。</li>
+</ul>
+<p><strong><code>createObjectURL</code> 像个急性子:</strong></p>
+<ul>
+<li><strong>优点:</strong> 速度快，尤其大文件预览嗖嗖的。 代码简单。</li>
+<li><strong>缺点:</strong> 临时链接用完就没了，不方便存，兼容性稍逊一点点（但也够用啦）。</li>
+<li><strong>适合:</strong> 追求速度，预览完就完事儿，不用保存图片。</li>
+</ul>
+<p><strong>怎么选？</strong></p>
+<ul>
+<li><strong>要稳妥、要存图 -&gt; <code>FileReader</code></strong></li>
+<li><strong>要速度、图不存 -&gt; <code>createObjectURL</code></strong></li>
+</ul>
+<p>总之，根据你的实际情况选就行！</p>
+<p>希望这个简短总结能帮到你快速做决定。</p>
+<p>动手试试才是王道！ 加油！</p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:29:30Z</pubDate>
+<pubDate>2025-02-19T08:27:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么学校会给学生每 45 分钟放松 10 分钟的课间时间，而公司不会</title>
+<link>https://www.v2ex.com/t/1112686</link>
+<guid>https://www.v2ex.com/t/1112686</guid>
+<content:encoded><![CDATA[
+
+<p>如题，甚至还有 hr 掐表计时这种操作</p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:25:43Z</pubDate>
+<pubDate>2025-02-19T08:25:43Z</pubDate>
+</item>
+<item>
+<title>[程序员] 关于第三方 Android ROM 编译</title>
+<link>https://www.v2ex.com/t/1112685</link>
+<guid>https://www.v2ex.com/t/1112685</guid>
+<content:encoded><![CDATA[
+
+问下各位大佬，编译第三方 ROM 的 proprietary blobs 通常是通过哪些途径找的？ device tree 和 kernel 通常能在 github 搜索到。
+]]></content:encoded>
+<pubDate>2025-02-19T08:24:41Z</pubDate>
+<pubDate>2025-02-19T08:23:41Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 关于竹白的下线通知</title>
+<link>https://www.v2ex.com/t/1112684</link>
+<guid>https://www.v2ex.com/t/1112684</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/R7ggHm99.jpeg" /></p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:24:16Z</pubDate>
+<pubDate>2025-02-18T16:24:16Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 坐标杭州，目前用的电信宽带一个月 69，想咨询一下有什么能省钱的办法么？</title>
+<link>https://www.v2ex.com/t/1112683</link>
+<guid>https://www.v2ex.com/t/1112683</guid>
+<content:encoded><![CDATA[
+
+<p>目前在杭州，用的电信宽带 200M ，一个月 69 ，一年 828 ，给我办了一张电信的手机卡，但是手机卡完全用不到，只用到宽带；感觉价格有点贵了，想咨询一下大家有什么方法可以省点钱么？ </p>
+<p>在抖音上看到电信新办是 500M 一年 588 ， 但是我这种情况好像不能再重新办理电信宽带 </p>
+<p>是重新办理一个联通的   还是电信可以有什么方法更加省钱呢？</p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:23:21Z</pubDate>
+<pubDate>2025-02-19T08:26:26Z</pubDate>
+</item>
+<item>
+<title>[iOS] [送会员码] 助力 iOS APP 开发者提升订阅收入的工具</title>
+<link>https://www.v2ex.com/t/1112682</link>
+<guid>https://www.v2ex.com/t/1112682</guid>
+<content:encoded><![CDATA[
+
+<p>在 iOS 的 App 订阅模式为主流盈利方式的今天，竞争分析是提升订阅收入不可或缺的一环。了解竞品如何吸引用户、设计页面、定价策略以及推出促销活动，能够为自己的订阅策略提供方向和灵感。而订阅宝( <a href="https://www.dingyuebao.cn/)%E5%87%AD%E5%80%9F%E5%85%B6%E7%AB%9E%E5%93%81%E5%88%86%E6%9E%90%E5%8A%9F%E8%83%BD%EF%BC%8C%E8%AE%A9%E5%BC%80%E5%8F%91%E8%80%85%E8%83%BD%E5%A4%9F%E5%BF%AB%E9%80%9F%E8%80%8C%E5%85%A8%E9%9D%A2%E5%9C%B0%E4%BA%86%E8%A7%A3%E5%B8%82%E5%9C%BA%E5%8A%A8%E6%80%81%EF%BC%8C%E4%B8%BA%E5%86%B3%E7%AD%96%E6%8F%90%E4%BE%9B%E6%9C%89%E5%8A%9B%E6%94%AF%E6%8C%81%E3%80%82" rel="nofollow">https://www.dingyuebao.cn/)凭借其竞品分析功能，让开发者能够快速而全面地了解市场动态，为决策提供有力支持。</a></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://iqt4w8viqlt.feishu.cn/space/api/box/stream/download/asynccode/?code=OWJmZDI4OWRkMGU2M2NlZTJmOGExZTdiYWQ1NjNiODRfdjdtdmg5RmxEYVJOaEI4Zmc2Z3RHSUdOWGZmUDdMeVFfVG9rZW46TUxLSWJhUUhob1lFdmF4d01ON2N1Y0pUbndlXzE3Mzk5NTMzMTM6MTczOTk1NjkxM19WNA" /></p>
+<h4><strong>竞品分析的重要性</strong></h4>
+<p>在激烈的市场竞争中，缺乏对竞品的了解，无异于闭门造车。竞品分析的核心意义在于：</p>
+<ol>
+<li>
+<p><strong>规避弯路</strong>：通过观察竞争对手的成功经验和失败尝试，可以少走弯路，直接借鉴对方的有效做法。</p>
+</li>
+<li>
+<p><strong>发现机会</strong>：通过分析竞品的不足，找到可以差异化竞争的切入点，比如功能空白或用户体验优化空间。</p>
+</li>
+<li>
+<p><strong>验证市场需求</strong>：如果某类定价模式或页面设计在多个竞品中广泛使用，说明市场对这种方式已有较强接受度，可以作为设计参考。</p>
+</li>
+</ol>
+<h4><strong>订阅宝的竞品分析功能详解</strong></h4>
+<p>订阅宝在竞品分析方面的表现令人印象深刻。它不仅提供表面数据，还深入挖掘竞品背后的运营逻辑，帮助开发者从多个维度获得洞察：</p>
+<ol>
+<li>
+<p><strong>订阅页面可视化追踪</strong></p>
+<ul>
+<li>
+<p>通过订阅宝，开发者可以查看竞品的订阅页面布局、文案和视觉设计。</p>
+</li>
+<li>
+<p>例如，哪些配色或语言更容易促使用户点击“订阅”？哪些文案表述能够打消用户疑虑？这些细节都能从竞品中找到答案。</p>
+</li>
+</ul>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://iqt4w8viqlt.feishu.cn/space/api/box/stream/download/asynccode/?code=MTUwZTY5YjIzY2UyNDVkMzFhMDIwMjMwMmEyYTg1ZmRfemtiYzUxTzhmaVVxRkN1RXFhUFhYYXBpMW1HN25JOW9fVG9rZW46SWxUSWJtUllRb01tbTV4TGhKT2Nyb3NmbjdkXzE3Mzk5NTMzMTM6MTczOTk1NjkxM19WNA" /></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://iqt4w8viqlt.feishu.cn/space/api/box/stream/download/asynccode/?code=MGE4OWMwYTdjYTdlYWIyYjI1OTU2YzIzOTM5ZWFhODhfaVBMQ2tOSTFSRVpKNTJtdFZWMURZeGxNZ3h2bmdwNlpfVG9rZW46RUJRdGJSYTJXbzZnd0F4VXJtMWNrRW5TbnEzXzE3Mzk5NTMzMTM6MTczOTk1NjkxM19WNA" /></p>
+</li>
+<li>
+<p><strong>定价与促销策略洞察</strong></p>
+<ul>
+<li>
+<p>订阅宝能够实时捕捉竞品的定价变化和促销活动信息。</p>
+</li>
+<li>
+<p>通过对比历史价格变化，可以分析竞品的促销节奏。例如，某应用是否倾向于在年中大促或黑五期间提供折扣？这种促销行为的频率和力度是否影响了订阅转化？</p>
+</li>
+</ul>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://iqt4w8viqlt.feishu.cn/space/api/box/stream/download/asynccode/?code=M2ZkZmM5NzQ2MmY4ZGJjMDI5MjZhMGVmMWE4MWUwMDhfRGdqNXRXNzAxbFlCY1poNTlZS0RybnFMYkVWOUVDNGJfVG9rZW46TGpHVWJoNE5Xb0U3NXR4Vm1zY2N1RTNzbndlXzE3Mzk5NTMzMTM6MTczOTk1NjkxM19WNA" /></p>
+</li>
+<li>
+<p><strong>定位不同市场的差异化策略</strong></p>
+<ul>
+<li>针对全球市场的开发者，订阅宝还提供了针对各区域的竞品订阅页面和价格数据。例如，在欧美市场常见的年订阅模式，是否同样适用于东南亚或南美市场？订阅宝可以帮助开发者轻松回答这些问题。</li>
+</ul>
+</li>
+<li>
+<p><strong>用户评价反映真实痛点</strong></p>
+<ul>
+<li>除了价格和页面设计，订阅宝还整合了竞品在应用商店中的用户评价数据。这些评价直观地反映了用户对于订阅体验的满意度以及对改进的期望，为自己的优化方向提供了直接参考。</li>
+</ul>
+</li>
+</ol>
+<h4><strong>订阅宝竞品分析的实际应用场景</strong></h4>
+<p>订阅宝的竞品分析功能并非“锦上添花”，而是真正为开发者解决实际问题。例如：</p>
+<ul>
+<li>
+<p><strong>优化定价策略</strong>：某开发团队在分析竞品后发现，用户对“灵活订阅周期”的需求较高，于是增加了月订阅选项，显著提升了订阅转化率。</p>
+</li>
+<li>
+<p><strong>提升页面转化率</strong>：通过参考竞品设计简洁明了的订阅页面，一款教育类应用优化了自己的界面布局，用户反馈和数据表现都得到了明显改善。</p>
+</li>
+<li>
+<p><strong>找到差异化竞争点</strong>：一家冥想类应用通过订阅宝发现竞品在订阅说明中缺乏明确的功能对比，于是在自己的订阅页面上详细列出了不同套餐的具体内容，直接提高了高价套餐的选择比例。</p>
+</li>
+</ul>
+<h4><strong>订阅宝，为竞品分析赋能</strong></h4>
+<p>订阅宝的竞品分析功能，不仅让开发者站在巨人的肩膀上，更帮助他们精准把握市场需求和用户喜好。通过直观的数据和全面的洞察，订阅宝将复杂的竞品分析工作简单化，真正让开发者将精力集中在高效决策和执行上。</p>
+<p>如果你希望在竞争中快速脱颖而出，并最大化订阅收入，那么借助订阅宝的竞品分析功能，无疑是迈向成功的一步。</p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:22:06Z</pubDate>
+<pubDate>2025-02-19T08:28:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 2025 年啦, 求推荐 AI 中转站, Gui 应用</title>
+<link>https://www.v2ex.com/t/1112681</link>
+<guid>https://www.v2ex.com/t/1112681</guid>
+<content:encoded><![CDATA[
+
+<p>太长不看版: 如题, 求推荐稳定但不那么贵的转发, 和功能强大的 gui</p>
+<hr />
+<p><strong>我的场景</strong></p>
+<ul>
+<li>我只使用 gpt4-xxx 带有识图功能的模型.  至于其他模型, 多么牛逼, 我没那么强的需求, 精力有限, 我选 gpt.</li>
+<li>gui 用的<a href="https://github.com/ChatGPTNextWeb/NextChat" rel="nofollow">NextChat</a></li>
+</ul>
+<p><strong>目前在买这两家的 key</strong></p>
+<ul>
+<li><a href="https://aigptx.top/" rel="nofollow">ohmygpt.com</a> 价格为官网的 1.1 倍, 正经转发站. 太贵了, 尤其是把报错信息扔给它的时候</li>
+<li><a href="https://www.gptapi.us/" rel="nofollow">gptapi.us</a> V 站内有该站的提醒贴, 说的挺客观. 我用了一年多啦, 说一下感受, 只要用 5 折以下的模型用着不心疼, 便宜大碗. 缺点呢就是慢/不稳定, 不稳定/崩了/想快速得到答案时, 我一般会切换成 gpt-4-turbo. 心智负担重, 想换掉它</li>
+</ul>
+<h3>求推荐 key</h3>
+<p>只用 GPT, 能否推荐比 <a href="http://gptapi.us" rel="nofollow">gptapi.us</a> 贵一点/好一点的转发站?</p>
+<p>或者说不要用 GPT 了, 用 xxx 吧, 能满足质量高+快+便宜的需求</p>
+<h3>求推荐 gui</h3>
+<p>听说现在有很多新功能, 识别 pdf, 联网搜索等, but NextChat 并不支持这些功能.能否推荐个你在用的 GUI</p>
+]]></content:encoded>
+<pubDate>2025-02-19T08:20:38Z</pubDate>
+<pubDate>2025-02-19T08:20:38Z</pubDate>
+</item>
+<item>
+<title>[问与答] Cursor 已经付费，最近 Tab 智能提示无法使用，请问有人遇到同类问题吗？</title>
+<link>https://www.v2ex.com/t/1112680</link>
+<guid>https://www.v2ex.com/t/1112680</guid>
+<content:encoded><![CDATA[
+
+我一直都是付费用户，之前 tab 提示是可以用的，最近 2 周不能用了。<br /><br />这个 tab 智能提示功能，在一整天的时间里，可能会出现一两次（因此这个功能是打开的），平时基本上没有任何提示。<br /><br />Chat 和 Composer 功能可以正常使用，但经常出现网络连接不通，需要多次尝试才行。<br /><br />开的是全局代理。<br /><br />请问这种情况可能是什么原因呢？
+]]></content:encoded>
+<pubDate>2025-02-19T08:14:26Z</pubDate>
+<pubDate>2025-02-19T08:14:26Z</pubDate>
+</item>
+<item>
+<title>[程序员] 目前大家公司的内核版本是多少了？</title>
+<link>https://www.v2ex.com/t/1112678</link>
+<guid>https://www.v2ex.com/t/1112678</guid>
+<content:encoded><![CDATA[
+
+<p>1 、我在一个老牌的安全厂，做防火墙开发，用的是 4.19<br />
+2 、大家的生产环境内核版本到多少了？<br />
+3 、很多新版本的内核特性生产环境用上了吗？</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:58:59Z</pubDate>
+<pubDate>2025-02-19T08:26:08Z</pubDate>
+</item>
+<item>
+<title>[生活] 关于要不要在老家建房，麻烦各位给点建议</title>
+<link>https://www.v2ex.com/t/1112677</link>
+<guid>https://www.v2ex.com/t/1112677</guid>
+<content:encoded><![CDATA[
+
+<p>首先介绍下背景，我老家是在广东大概是四五线的城市，我上班这么多年都是在广东省内打工，基本上就过年和国庆回老家，我目前在纠结的点就是害怕自己失业，这两年基本是上一年班就换一家公司，加上年龄也快三十了，学历还是成人大专，去年年底找到工作又入职了某个小公司干码农，薪资不到 1w ，要是建的话基本把我和我父母的钱都用完了，手里存款大概 30 个 w ，再找我几个姐姐要点能到 40w ，现在家里人把要不要建房的主意给我到了我这边，让我做决定建还是不建...</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:57:26Z</pubDate>
+<pubDate>2025-02-19T08:24:40Z</pubDate>
+</item>
+<item>
+<title>[编程] 在程序开发中的垃圾时间，比如容器重建， SQL 执行，大家一般在做什么？</title>
+<link>https://www.v2ex.com/t/1112676</link>
+<guid>https://www.v2ex.com/t/1112676</guid>
+<content:encoded><![CDATA[
+
+<p>经常在写代码的中途，需要对容器进行重建，要等上约一分钟，或者是等待 SQL 执行，大家可能也会遇到类似的场景，这段时间一般在做什么呢？</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:49:41Z</pubDate>
+<pubDate>2025-02-19T08:19:58Z</pubDate>
+</item>
+<item>
+<title>[程序员] DeepSeek 满血版 671B 模型怎么下载？</title>
+<link>https://www.v2ex.com/t/1112675</link>
+<guid>https://www.v2ex.com/t/1112675</guid>
+<content:encoded><![CDATA[
+
+<p>用 ollama pull 下载太慢了，在想能不能通过迅雷去下载，但找不到下载链接！</p>
+<p>有大佬知道吗</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:49:25Z</pubDate>
+<pubDate>2025-02-18T14:51:13Z</pubDate>
+</item>
+<item>
+<title>[问与答] 一个新手，靠 AI 来做 APP 赚钱，多久能赚到 1000 块钱？</title>
+<link>https://www.v2ex.com/t/1112674</link>
+<guid>https://www.v2ex.com/t/1112674</guid>
+<content:encoded><![CDATA[
+
+以前是做知识付费等其他项目的，如果靠 AI 来进入做 app 的行业，多久能赚到钱呢？我觉得至少半年。。。
+]]></content:encoded>
+<pubDate>2025-02-19T07:49:13Z</pubDate>
+<pubDate>2025-02-19T07:48:13Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 拼多多 2025 届春招启动，欢迎投递</title>
+<link>https://www.v2ex.com/t/1112673</link>
+<guid>https://www.v2ex.com/t/1112673</guid>
+<content:encoded><![CDATA[
+
+<p>内推链接： <a href="https://careers.pddglobalhr.com/campus/grad/detail?t=nA89KwkFUJ" rel="nofollow">https://careers.pddglobalhr.com/campus/grad/detail?t=nA89KwkFUJ</a> ，内推码：nA89KwkFUJ 。</p>
+<p>欢迎私聊，全程跟进</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:44:02Z</pubDate>
+<pubDate>2025-02-19T07:43:02Z</pubDate>
+</item>
+<item>
+<title>[程序员] http 状态码都是 200，业务状态码写在响应体里的 API 接口，返回文件如何处理？</title>
+<link>https://www.v2ex.com/t/1112671</link>
+<guid>https://www.v2ex.com/t/1112671</guid>
+<content:encoded><![CDATA[
+
+<p>这边的 API 的 http code 都是 200 ，业务错误码都写在响应体里了，现在有个接口返回的是文件，就没办法判断错误码了，这也算这种模式的一个局限性了，只能考虑把文件 base64 放在响应体里吗？</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:39:47Z</pubDate>
+<pubDate>2025-02-19T07:56:49Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [拼多多集团-PDD 校园招聘]</title>
+<link>https://www.v2ex.com/t/1112670</link>
+<guid>https://www.v2ex.com/t/1112670</guid>
+<content:encoded><![CDATA[
+
+内推链接： <a href="https://careers.pddglobalhr.com/campus/grad?t=Y5p7cxvVyq" rel="nofollow noopener" target="_blank">https://careers.pddglobalhr.com/campus/grad?t=Y5p7cxvVyq</a> ，内推码：Y5p7cxvVyq 。期待你的加入！我们一起，无拼不青春！（通过此链接投递计入内推，内推简历优先筛选~）
+]]></content:encoded>
+<pubDate>2025-02-19T07:39:20Z</pubDate>
+<pubDate>2025-02-19T07:39:20Z</pubDate>
+</item>
+<item>
+<title>[Nintendo Switch] 求带上车 switch 会员</title>
+<link>https://www.v2ex.com/t/1112668</link>
+<guid>https://www.v2ex.com/t/1112668</guid>
+<content:encoded><![CDATA[
+
+<p>对象的 switch 想要联网玩游戏，想蹲一个车队</p>
+<p>不是破解机不是国行</p>
+<p>有意请加绿泡泡喊我    MTc3NzIxMjA4NjY=</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:38:41Z</pubDate>
+<pubDate>2025-02-19T07:52:48Z</pubDate>
+</item>
+<item>
+<title>[酷工作] Base 厦门 多个岗位招聘 Senior Backend Engineer、Senior Frontend Engineer 等岗位 弹性工作 / 英文工作环境 极具潜力的技术公司</title>
+<link>https://www.v2ex.com/t/1112667</link>
+<guid>https://www.v2ex.com/t/1112667</guid>
+<content:encoded><![CDATA[
+
+厦门畅拓科技有限公司成立于 2015 年 7 月以技术改变商业为使命，以技术为核心生产力，为海外电商提供技术方案及服务支持助力商业端取得持续的成功。凭借着多年丰富的海外电商行业技术经验，吸纳了来自海外知名电商平台 Quidsi Inc, Iguama Inc 、Yummybazaar Inc 的核心技术成员，建立了一支具有丰富开发经验、创新精神、专业高效的技术团队，为商业合作伙伴提供一站式数字化技术解决方案，致力于成为电商行业综合技术服务的领航者。<br /><br />投递邮箱： hr@chancetop.com<br /><br />招聘岗位：<br />1. 高级 UX/UI 设计师 11-20k<br />职位概述<br />作为我们的高级 UX/UI 设计师，您将负责设计专门针对餐饮行业定制的直观且引人入胜的数字体验。凭借 5+ 年的 UX 设计经验，您将与产品管理、工程、营销等跨职能团队密切合作，打造出简化复杂工作流程并解决餐厅运营独特挑战的产品。您的设计工作将直接影响餐厅经营者如何管理业务，从而提升产品的易用性和客户满意度。<br /><br />主要职责<br />1. 设计策略： 定义并阐述与整体产品策略和品牌形象相一致的设计指导原则、最佳实践和设计模式。<br />2. 以用户为中心的设计：<br />1) 主导从用户研究、创意构思、线框图设计到原型制作以及最终视觉设计的全流程工作。<br />2) 制定反映餐厅运营独特需求和挑战的用户流程、用户画像和用户旅程图。<br />3. 餐饮 SaaS 产品设计：<br />1) 设计并完善我们餐饮 SaaS 解决方案的各类产品界面，包括销售相关的产品、运营相关的产品等。<br />2) 确保设计既符合品牌要求，又对餐厅经营者、员工和顾客而言直观易用。<br />4. 协作与沟通：<br />1) 与产品经理、开发人员及各相关利益方紧密协作，将业务需求转化为有效的用户体验。<br />2) 向跨职能团队展示设计概念及迭代成果，并根据反馈不断优化产品。<br />5. 可用性与无障碍设计：<br />1) 进行可用性测试并收集用户反馈，以持续迭代优化设计并提升用户满意度。<br />2) 确保所有设计符合无障碍标准，为多元化用户群体提供包容性的体验。<br />6. 指导与领导：<br />1) 为初级 UX/UI 设计师提供指导和辅导，营造协作、创新的设计文化。<br />2) 紧跟行业趋势、工具和最佳实践，持续提升团队整体设计水平。<br /><br />资格要求<br />1. 经验：<br />1) 至少 5 年的专业 UX 设计经验，优先考虑具有电商或 SaaS 产品设计背景的候选人。<br />2) 有餐饮行业相关产品设计经验者更佳。<br />2. 技能与专长：<br />1) 具备战略思维，能在设计指导原则、最佳实践及设计模式上与整体产品策略和品牌形象保持一致。<br />2) 拥有丰富的端到端 UX 设计项目作品集，包含线框图、原型以及高保真设计示例。<br />3) 熟练使用 Sketch 、Figma 、Adobe XD 或其他同类设计及原型工具。<br />4) 出色的问题解决和分析能力，具备以用户为中心的设计思维。<br />5) 优秀的沟通能力，能够清晰地阐述设计概念，并与跨职能团队进行有效协作。<br />6) 流利的英文书面表达能力。<br /><br />加分项<br />有以下行业经验：餐饮·电子商务·新零售<br /><br />2.Senior Product Manager 15-30k<br />Company Overview<br /><br />We are a fast-growing technology company specializing in innovative SaaS solutions for the restaurant industry. Our platform empowers restaurants to expand sales to multiple channels, enhance customer experiences, optimize daily operations, and drive profitability through integrated features such as POS integration, in-store ordering, online ordering, store operations, and real-time analytics etc.<br /><br />Position Overview<br /><br />The Senior Product Manager will be responsible for shaping the vision, strategy, and execution of our Restaurant SaaS solution. This role is critical in ensuring that our products meet the unique needs of the restaurant industry and deliver exceptional user experiences. The ideal candidate will have 5-8 years of product management experience, a deep understanding of the restaurant ecosystem, and excellent oral and written English communication skills to effectively engage with our US-based stakeholders and customers.<br /><br />Key Responsibilities<br /><br />1. Product Strategy &amp; Roadmap:<br />1) Develop a comprehensive product roadmap that aligns with market trends, customer needs, and business objectives.<br />2) Prioritize features and initiatives based on customer feedback, competitive analysis, and business impact.<br />2. Cross-Functional Collaboration:<br />1) Work closely with engineering, design, marketing teams to translate requirements into actionable development plans.<br />2) Facilitate clear communication across teams to ensure that product goals are understood and met.<br />3. Product Lifecycle Management:<br />1) Oversee the entire product lifecycle—from ideation and requirements gathering through design, development, launch, and continuous improvement.<br />2) Utilize agile methodologies to manage iterative development, ensuring timely delivery of product updates and new features.<br />3) Monitor product performance through success metrics and user feedback, iterating and optimizing to enhance user experience and operational efficiency.<br />4. Market and Competitive Analysis:<br />1) Stay informed about industry trends, competitive products, and emerging technologies in the restaurant space.<br />2) Identify market opportunities and potential challenges, adjusting the product strategy accordingly.<br />5. Stakeholder Engagement:<br />1) Present product updates, performance metrics, and strategic initiatives to executive leadership and key stakeholders.<br />2) Build strong relationships with internal teams and external partners to drive product adoption and success.<br /><br />Qualifications<br />1. Experience:<br />1) 5-8 years of product management experience, preferably with e-commerce or SaaS products.<br />2) Demonstrated experience working with products in the restaurant industry is highly desirable.<br />2. Skills &amp; Expertise:<br />1) Strong strategic and analytical skills, with a proven track record of launching successful products.<br />2) Excellent communication skills in English (both oral and written) to effectively interact with US market stakeholders and customers.<br />3) Strong collaboration with cross-functional teams and drive product initiatives from concept to market.<br />4) Experience in agile product development and user-centered design methodologies.<br />5) Strong understanding and appreciation of user experience design principles.<br />6) Be data driven so as to make informed decisions.<br />7) Technical background or a solid understanding of technical concepts is a bonus.<br /><br />加分项<br />有以下行业经验：餐饮·电子商务·新零售<br /><br />3. 高级需求分析师 15-30k<br />Summary<br />1. Communicate with business partners to collect and clarify requirements; work out the requirement R &amp;D plans and work against it; understand the vision/actual needs/potential needs of the customer by developing and analyzing the requirements;<br />2. Provide solutions for the business needs<br />3. Documenting (PRD, Requirement Specifications, etc.) and prototyping;<br />4. Work with engineering team, ensuring requirements are implemented as scheduled and with acceptable quality.<br /><br />Skills<br />1. 3+ years’ experience in requirement research and analysis; experience in eCommerce is preferred; 2+ years’ experience in software development is preferred.<br />2. Good comprehension of software engineering theories, good command of skills and methods in collecting and analyzing requirement; strong sense of business model analysis and logical thinking;<br />3. Strong skills in product planning and product design; familiar with the product design life-cycle; be able to think as an end user, and have a good judgement on user needs;<br />4. Excellent documentation skills - Logical ，easy to understand, comprehensive, detailed, etc.<br />5. Good experience in requirement analysis tools, e.g. Figma, Visio, etc.<br />6. Excellent in verbal and written communication skills in English;<br />7. Responsible, proactive, team-working and strong ability to analyze and solve problems.<br /><br />加分项<br />有以下行业经验：新零售·电子商务·餐饮<br /><br />4. RN 开发工程师 15-30k<br /><br />任职资格：<br />- 熟悉 javascript 、ES6<br />- 熟悉 ReactJS,redux,redux-saga<br />- 熟练使用 react native<br />- 了解 iOS 、Android 原生开发原理<br /><br />岗位职责：<br />- 独立负责手机 app （ react native ）的开发工作<br />- 编写基于 react native 的组件<br />- 优化 react native 的性能问题<br />- 有 braze/mParticle 集成经验优先，有 stripe 等支付集成经验优先<br /><br />5. 高级前端工程师（ React ） 15-30k<br />岗位职责：<br />1. 负责 eCommerce back office/website/online store 系统的前端开发，包括需求分析，功能设计，前端开发，测试，上线等工作<br />2. 负责与 PM/TPM 和国外技术团队沟通，完成功能设计和分析<br />3. 独立完成第三方技术分析调研，并落实可行性方案<br />4. 独立负责系统维护，以及前端框架升级<br /><br />任职资格：<br />1. 5 年以上前端开发经验，精通 React ，熟悉 Next.js<br />2. 熟悉响应式网页设计和开发，有多端适配经验，熟悉包括 SEO 和 PageSpeed Insights 在内的网站优化的优先<br />3. 了解 Node.js 的基本语法和项目配置，熟悉前端工程化配置<br />4. 良好的沟通表达能力，基本的英文读写和交流能力<br />5. 积极乐观，责任心强，能承受一定的压力<br />6. 较好的学习能力：对新的事物，有持续的热情，调研分析能力强，强烈的探索、钻研精神，善于分析问题，解决实际业务问题<br /><br />6. 高级 java 开发(Tech Leader 方向)   15-30k<br />任职要求：<br />1. 精通 Java 语言；<br />2. 熟悉 HTTP 协议，REST API 标准<br />3. 熟悉 mysql 数据库，熟悉常用 NoSQL 数据库，<br />4. 熟悉 Redis ，Kafka, ELK 等常用中间件<br />5. 具有 5 年以上的设计和构建分布式高并发系统的经验<br />6. 熟悉微服务和分布式系统设计<br />7. 对系统设计，数据结构有较深的理解<br />8. 关注质量，并有交付高质量系统的实践经验<br />9. 丰富的项目经验，面对各种不同规模的项目，能够快速的判断范围和技术可行性<br />10. 具有技术管理经验者优先<br />11. 具有电商的领域知识者优先<br />12. Knowledge of professional software engineering and best practices for the SDLC, including coding standards, code reviews, source control management, build processes, testing, and operations<br />13.具备英文的读写能力<br /><br />职责：<br />- 架构，设计，开发和运维大型应用<br />- 参与跨团队项目协作<br />- 参与生产环境的维护和支持<br />- 在敏捷模式，跟商业团队，产品团队共同解决各种有挑战性的问题并交付有价值的软件<br /><br />7. 高级 SRE  15-30k<br />Description<br />The platform team is seeking an experienced Site Reliability Engineer (SRE) to meet rapid expansion of our business. You need to be highly sensitive to system reliability, and keen on identifying/resolving system risks to keep the system working well. In the platform team, you will be involved in provisioning, maintaining infrastructure, proposing solutions for the system, and working online with people from different countries.<br /><br />Responsibilities:<br />• Participate in on-call duty to respond/investigate/resolve system incidents or handle support tickets for application teams.<br />• Pay attention to alarms in the monitoring system, provide timely feedback, and solve problems.<br />• Design, implement, and govern infrastructure to achieve high availability &amp; scalability.<br />• Evaluate and research technical initiatives with complete plans including documentation, provisioning, testing, and monitoring.<br />• Construct service quality system, lead the team to complete indicator quantification.<br />Required Skills and Qualifications:<br />• Good English communication and writing skills, learning ability, and hands on skills.<br />• Proficiency with Azure (Azure resources, network models, and best practices).<br />• More than 2 years of experience in managing AKS/Kubernetes.<br />• Familiar with Infrastructure as Code, Terraform preferred.<br />• Familiar with CI/CD automation.<br />• Familiar with observability technologies, like Prometheus, and Grafana.<br />• Familiar with several of following middleware: Kafka, MySQL, Mongo, Elasticsearch, and Redis.<br /><br />Nice to Have:<br />• CKA, CKAD Certificate is a plus.<br />• Certificates related to Cloud Native/ Ops and Maintenance Qualifications is a plus.<br />• Familiar with Java or Go.<br /><br />8. 高级功能测试 10-15k<br />职责描述：<br />1. 负责产品的测试和质量保证;<br />2. 与开发团队紧密合作提交高质量的产品;<br />3. 根据项目计划编写测试计划，并按照测试计划完成测试工作;<br />4. 编写测试用例，准备测试数据，对已有或者新功能进行测试;<br />5. 收集、分析测试结果，并把问题回馈给开发团队，提出合理改进建议;<br />6. 整理测试规范，培养后备测试资源。<br /><br />岗位要求：<br />1.熟悉敏捷开发，有电商行业背景，有第三方集成项目经验；<br />2. 熟悉 web 和 mobile 应用测试;<br />3. 熟练使用工具对 web API 进行测试;<br />4.熟练编写测试用例，bug 描述文档;<br />5.能够细心认真完成测试工作;<br />6.英语基础好，能够阅读英文需求文档，编写测试用例。<br /><br /><br />投递邮箱： hr@chancetop.com<br /><br />[公司文化]<br /><br />拥有来自北美的顶级架构师、领先的分布式云计算工程师团队和资深全栈工程师，提供先进技术的学习交流平台，每位新人有相对应的入职培训。<br />英文工作环境，且不只限于英文文档、外籍员工，与美国同事进行工作沟通，安排不定期赴美交流。<br />多个小团队协作，以业务线为单位，每个人不在只是生产流水线上的一员，守着自己的三分地。在这里，只要你想，就能学到完整的技术链，从前端到后端，从开发到运维。<br />浓郁的工程师文化，厦门团队以 Engineer 、QA 、RA 、PM 为核心，安排定期的技术分享会。<br />扁平化管理，没有大公司病，轻松自由发表意见，好的意见会被及时吸纳，并迅速执行。希望你能成为我们重要的一员。 [福利待遇]<br />入职即交五险一金（公积金 12%超高比例~）<br />年底双薪，年中绩效奖金<br />股票期权<br />补充商业险<br />不提倡加班，双休，法定节假日，带薪年假<br />有零食休闲区，不定期下午茶，上线庆祝会<br />每周瑜伽课，室内羽毛球活动<br />每季度团建<br />年度体检<br />定期英语培训课<br />定期技术分享<br />赴美工作机会<br />落户厦门<br />员工旅游<br />期待你的加入！
+]]></content:encoded>
+<pubDate>2025-02-19T07:35:09Z</pubDate>
+<pubDate>2025-02-19T08:15:31Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么我的每一局 LOL 或早或晚，总是会有一次断线重连？</title>
+<link>https://www.v2ex.com/t/1112666</link>
+<guid>https://www.v2ex.com/t/1112666</guid>
+<content:encoded><![CDATA[
+
+懒得埋线路，在家用的 Wi-Fi 玩大乱斗，每开一局都必掉线一次，然后几秒钟后重连成功。这一局基本就不会再掉线了。有大佬遇到过类似的现象吗？
+]]></content:encoded>
+<pubDate>2025-02-19T07:33:40Z</pubDate>
+<pubDate>2025-02-19T07:58:18Z</pubDate>
+</item>
+<item>
+<title>[地理信息系统] Qgis 或 Arcmap 加载 mapbox 卫星影像空白</title>
+<link>https://www.v2ex.com/t/1112665</link>
+<guid>https://www.v2ex.com/t/1112665</guid>
+<content:encoded><![CDATA[
+
+<p>年前还正常, 今天试就不正常了, 加载后是空白的. 你们也是这种情况吗?
+按照官方指引来的, 浏览器访问正常
+<a href="https://docs.mapbox.com/help/tutorials/mapbox-arcgis-qgis/#add-mapbox-maps-in-arcmap" rel="nofollow">https://docs.mapbox.com/help/tutorials/mapbox-arcgis-qgis/#add-mapbox-maps-in-arcmap</a></p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:33:26Z</pubDate>
+<pubDate>2025-02-19T03:33:26Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 西安、洛阳，寻找 C++开发者</title>
+<link>https://www.v2ex.com/t/1112664</link>
+<guid>https://www.v2ex.com/t/1112664</guid>
+<content:encoded><![CDATA[
+
+<h2>福利</h2>
+<ul>
+<li>高薪面议</li>
+<li>双休、法定节假日、年假、全薪病假等</li>
+<li>弹性工作日（可以睡懒觉）</li>
+<li>餐补（随工资发）</li>
+<li>节假日福利（多种礼品方案自选）</li>
+<li>定期团建</li>
+<li>补充医疗（医保报销完，补充医疗还能继续报销）</li>
+<li>福利茶歇（写代码累了吃点零食歇歇）</li>
+<li>舒适的办公环境</li>
+</ul>
+<h2>岗位职责</h2>
+<ul>
+<li>负责项目功能代码编写、与同事高效合作，推进项目的顺利实施；</li>
+<li>参与产品需求分析、负责产品模块的设计和编写代码、自测调试、交付验收；</li>
+<li>开发中与需求、质量人员密切合作，以迭代方式交付高质量满足客户需求的软件功能；</li>
+<li>和团队一起技术方案评估、开发方案及项目实施计划制定；</li>
+<li>计算机软件需求分析和确认、架构设计、详细设计；</li>
+<li>产出必要的技术设计和开发文档。</li>
+</ul>
+<h2>任职要求</h2>
+<ul>
+<li>较丰富的 C++的开发经验,丰富图形系统相关开发经验，本科及以上学历；</li>
+<li>3 年以上复杂、大型软件的工业软件研发经验，熟悉常用的数据结构与算法；</li>
+<li>熟悉常用计算机几何及图形算法、基本数据结构等基本知识；</li>
+<li>熟悉和了解一定的软件编码规范，设计规范，对接口设计有一定的经验；</li>
+<li>具备良好的分析解决问题能力，能独立承担开发任务，较强的进度把控能力；</li>
+<li>良好的语言表达能力，积极主动，团队合作意识强；能承受一定的工作压力。</li>
+</ul>
+<h2>加分项</h2>
+<ul>
+<li>有 AtuoCAD 、Revit ，暖通、给排水、电气等土木类相关专业软件研发经验优先；</li>
+<li>具备 Linux 研发经验，熟悉 Linux 操作系统的开发环境和工具，能够在 Linux 平台上进行软件的开发和调试。</li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-02-19T07:31:41Z</pubDate>
+<pubDate>2025-02-19T08:02:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 新项目用的 hikari 连接池，为什么启动的时候获取不到信息？</title>
+<link>https://www.v2ex.com/t/1112662</link>
+<guid>https://www.v2ex.com/t/1112662</guid>
+<content:encoded><![CDATA[
+
+数据库连的我本地，可以正常操作，但是日志打印获取不到 hikari 相关配置信息<br />这是我的配置：<br />  datasource:<br />      url: jdbc:postgresql://localhost:5432/fast_platform?serverTimezone=GMT%2B8&amp;characterEncoding=utf-8&amp;useSSL=true&amp;allowMultiQueries=true&amp;rewriteBatchedStatements=true&amp;currentSchema=fp<br />      username: postgres<br />      password: postgrespwd<br />      driver-class-name: org.postgresql.Driver<br />      hikari:<br />        minimum-idle: 10<br />        maximum-pool-size: 15<br />        idle-timeout: 300000<br />        connection-timeout: 20000<br />        max-lifetime: 1200000<br />下面是启动日志:<br />2025-02-19T15:22:19.900+08:00  INFO 10668 --- [fast-platform-spring] [  restartedMain] org.hibernate.orm.connections.pooling  <br />  : HHH10001005: Database info:<br />        Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']<br />        Database driver: undefined/unknown<br />        Database version: 17.3<br />        Autocommit mode: undefined/unknown<br />        Isolation level: undefined/unknown<br />        Minimum pool size: undefined/unknown<br />        Maximum pool size: undefined/unknown
+]]></content:encoded>
+<pubDate>2025-02-19T07:24:28Z</pubDate>
+<pubDate>2025-02-19T07:24:28Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 🔔 美国 AI 社交平台，超精英团队招客户端工程师，📮坐标北京望京</title>
+<link>https://www.v2ex.com/t/1112661</link>
+<guid>https://www.v2ex.com/t/1112661</guid>
+<content:encoded><![CDATA[
+
+3 月刚完成新的一轮融资，累计融资千万美金。上一波岗位顺利完成，新一波广纳贤士贴更新，欢迎大家自荐 /推荐 :D<br />公司旗下多款美国 AI 产品，商业化做得不错（赚钱的公司），核心产品 D0 ROI ＞ 100%，健康稳步增长中，目前达到了 2 小时用户时长、很高的分裂系数和超低获客成本。📍坐标北京望京，也可远程，工作时间 9:30-19:00 ，双休，弹性上下班不打卡。<br /><br />很感恩 V2EX 招到了很不错的 4 位工程师已入职且 performance 都超级棒棒！一个是之前腾讯的优秀工程师从深圳搬到北京，已经入职快 2 年了，成为了团队的给力主力之一，近期开始常驻美国；一个是莫斯科国立大学的客户端同学，目前正在负责主产品 iOS 开发工作；之前刚入职的后端同学，在成都远程办公；还有一个普林斯顿读研的算法实习生之前远程实习参与 AIGC 部分也很有进展。<br /><a href="https://www.v2ex.com/i/oSN3R6X3.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 oSN3R6X3.png"><img class="embedded_image" src="https://i.v2ex.co/oSN3R6X3.png" /></a><br /><br />💼 我们是谁：<br />Presence 公司，创始团队来自字节、腾讯、Uber 、Airbnb 、完美、祖龙等全球头部互联网公司的连续创业者，毕业于耶鲁、清华、中科大等国内外顶尖院校，人才密度极高，已获得国际一线美元基金投资。有趣有爱，脚踏实地。氛围好，人很少，下班后愿意一起吃饭 /喝一杯 /打游戏的那种。<br />两位联合创始人从 0-1 打造过两家过亿美金的公司，做过数亿用户、过千万日活的 C 端产品，「福布斯」亚洲区、中国区 30 位 30 岁以下商业领袖。我们在组建超精英的创始团队，提供市场 90 分位的薪酬、充满活力的工作氛围、高度自由的创造力发展空间，共同驱动一起完成「 Defy Distance 打破时空限制」的使命。<br />是个上级给下属写周报的公司，每次周会都有点像学习分享会，CEO 会给大家分享新认知和公司最新进展、决策和背后的思考。信息流动速度快，创业 Day1 就全员用飞书，大家都第一时间知道彼此在做什么；重视知识沉淀，内部知识库里有大量创业、产研、业内先进生产力交流、行业调研和周会总结，绝对的宝藏武林秘籍。<br />这个介绍不仅包含我们的 JD ，还包括十年来对创业、行业和商业的思考，无论你是否看机会，看看（来都来了）一定不吃亏😜<a href="http://about.ARChat.us" rel="nofollow noopener" target="_blank">http://about.ARChat.us</a><br /><br />团队介绍<br />我们团队里有人完成铁人三项兼摄影高手，有人造过单片机电吉他，有人会讲流利六国语言，有三个人减过 50 斤并保持住，好几位都维护自己的英文 /技术博客，还有回答过百万访问的 stackoverflow 小哥哥，偶尔程序写累了会弹弹尤克里里；我们探讨世界上最前沿的技术论文，经常有自发的技术、产品、增长分享会，也交流对价值观、美学和人类文明的感悟。<br /><br />CEO Max Zhou<br /><a href="https://www.v2ex.com/i/3V1HL0HC.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 3V1HL0HC.jpeg"><img class="embedded_image" src="https://i.v2ex.co/3V1HL0HC.jpeg" /></a><br />- 曾任 MetaApp 联合创始人，负责战略 /产品 /增长 /移动端 /国际化、从 0-1 打造超过 2 亿用户、过千万日活产品，规模化盈利，估值近 10 亿美金<br />- 前摩拜单车移动端负责人，回国前在硅谷 LinkedIn 、Uber 总部增长团队做研发<br />- 14 岁参加高考，中科大少年班、耶鲁计算机系硕士<br /><br />联合创始人 陈桦 Grace<br /><a href="https://www.v2ex.com/i/3w3xu2SW.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 3w3xu2SW.jpeg"><img class="embedded_image" src="https://i.v2ex.co/3w3xu2SW.jpeg" /></a><br />- 10 多年连续创业者，冲顶大会、节操精选 CEO ，「冲顶大会」是国内独立产品最大的直播答题 App ，上线首月用户过 2000 万，日活过 300 万，估值近 10 亿<br />- 连续两年入选「福布斯」亚洲区、中国区 30 位 30 岁以下商业领袖<br />- 中国传媒大学数字媒体艺术专业第一名本科及研究生毕业<br /><br />如果你对团队感兴趣，一定不要错过几位超有趣有才的同事介绍 <a href="https://presence.feishu.cn/docx/QtEcd8S5vo71PwxOHRTcuC46nYc" rel="nofollow noopener" target="_blank">https://presence.feishu.cn/docx/QtEcd8S5vo71PwxOHRTcuC46nYc</a><br /><br />🎯 Presence 的产品：<br />我们的梦想是 [打破时空、解放灵魂] ，我们认为新技术与社会学、心理学结合，可以深刻改变人类社会。Presence 做美国市场的社交平台，用 LLM 注入灵魂，一直不变的初衷就是治愈人们的孤独，和对网线另一端的热烈灵魂相交汇的渴求。<br />我们的产品在美国社交榜上排名持续上升，目前达到了 2 小时用户时长、很高的分裂系数和超低获客成本，目前商业化效果不错，正在放量增长🛫。<br />由于互联网的竞争格局，在这个文档里不能透露产品名字，如果感兴趣我们可以通过初试后线下体验产品。<br /><br />🧲 为什么选择 Presence ？<br />- 上一代移动互联网没有机会了，理想主义的技术精英，如果想要改变世界，只能在下一代技术中做先驱<br />- 团队氛围，打造团队的思路，精干版字节模式<br />我们要解决什么问题？<br />- 不做娱乐，不做纯工具<br />- 上一代移动互联网公司解决了人们的生存生活所需，物质生活极大丰富了，精神生活看似丰富但是社交越来越窄和贫瘠，朋友越来越少<br />- 我们解决上三路（爱与归属、个人价值、自我实现）<br />- 当物质过剩，真正有价值的东西就在虚拟世界中了<br /><br />在 Presence 能得到什么？<br />- 标准的硅谷创业火箭船，参与到高速增长的崭新业务前沿<br />- 极大的自主性，context not control<br />- 聪明的精英同事<br />- 个人成长 财务回报（短期现金、长期股权） 精神追求<br />- 出差美国机会<br /><a href="https://www.v2ex.com/i/fRk2SS8F.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 fRk2SS8F.jpeg"><img class="embedded_image" src="https://i.v2ex.co/fRk2SS8F.jpeg" /></a><br /><br /><br />展开来说👇🏻<br />- 远超行业水平的精英优秀同事、顶级薪酬、有创造力的极大发展空间（没有烦人领导和变来变去没想清楚的需求）、超高速成长、扁平、氛围欢乐（ CEO 很积极容易开心哈哈）<br />- 创业老司机的无私分享，我们相信团队成长公司才能发展，所以我们这次创业对人的要求标准很高，而进来的每一个人我们都会认真培养，绝不会把你当做人形干电池。<br />- 我们非常乐意分享我们的创业方法论和业务思考，比如你是工程师，技术好很重要，但如果也有业务 sense ，那就能解决更高层次的开放性问题；我们最不希望看到的，就是在解决错的问题不是吗？ CEO 自己便是技术背景，从基层工程师一步步做到业务 leader 、近 10 亿美金公司联合创始人再到 CEO 的绝佳范例。和他一起工作，解决同样的问题，看他怎么思考的，是非常好的近距离的学习方式。<br />- 成长很大程度取决于假设检验的速度，我们绝不会像传统游戏公司半年 /一年搞个大版本，相反我们打造的是一个每双周发版、快速见用户反馈和数据的敏捷团队。你能很快看到进展和接近真相，而不是闭门憋个大招。<br /><br />Presence 的目标是什么？<br />- 第一次创业，目标是抓机会，抓住 P/MF 活下来，规模化盈利成为独角兽公司。这点我们过去做到了。<br />- 第二次创业，我的目标是建成一家“灯塔公司”：不仅生意模式好，高毛利高增长，而且这家公司还大量投入到计算机技术里、推动和定义虚拟世界的建设，真真正正的推动人类文明进步——是一个生意模式和使命愿景都很完美的灯塔，耸立于万千普通公司之上，为所有有志青年所向往。<br />- 产品上，第一次创业，我们做了几个优秀的小品级软件；第二次创业，我们要做一个殿堂级软件。从财务衡量的角度，第一次创业做了一家十亿美金级的公司，第二次创业目标是一家千亿美金的公司。<br /><br />为什么轮到我们来做？<br />- 想象力是天空，敏锐抓技术前沿来做下一代产品<br />- 非常会做流量，创始人操盘过日新增过百万 C 端产品<br />- 田间地头搞产研，10 年+研发背景的 Cofounders<br />- 融资能力强，创业老司机节奏感好<br /><br />我们在寻找优秀的客户端工程师加入我们:<br /><br />iOS 工程师<br />职位描述<br />1. 负责美国 AI 产品的 iOS 架构设计及开发；<br />2. 参与产品需求分析与评审，提出有建设性的技术解决方案；<br />3. 前沿技术研究，承担重点、难点的技术攻坚。<br />职位要求<br />1. 本科及以上学历，计算机、通信等相关专业；<br />2. 具有扎实的编程功底，良好的设计能力和编程习惯；<br />3. 熟练掌握 Swift ，熟悉 iOS 的主流框架、开源技术。<br /><br />Android 工程师<br />职位描述<br />1. 负责美国 AI 产品的 Android 架构设计及开发；<br />2. 参与产品需求分析与评审，提出有建设性的技术解决方案；<br />3. 前沿技术研究，承担重点、难点的技术攻坚。<br />职位要求<br />1. 本科及以上学历，计算机、通信等相关专业；<br />2. 具有扎实的编程功底，良好的设计能力和编程习惯；<br />3. 熟练掌握 Kotlin ，熟悉 Android 的主流框架、开源技术；<br /><br />更多岗位见： <a href="http://about.ARChat.us" rel="nofollow noopener" target="_blank">http://about.ARChat.us</a><br /><br />志在千亿美金公司，创造让自己骄傲的伟大产品和组织。我们坚信早期团队是组织的地基，所以刻意保持极高人才密度和文化浓度，奉行 S 级薪水配 S 级人才，高标准做事，高标准招人的原则。大家也都非常自驱，彼此欣赏，是个每天都很有活力激情、乐于分享、快速成长的团队。欢迎大家转发 /推荐，base 北京，推荐奖金 1-4 万🧧<br /><br />📍坐标北京望京, 楼下就是地铁站 15 号线望京东，部分 office 环境照片<br /><a href="https://www.v2ex.com/i/rk5J21Nv.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 rk5J21Nv.png"><img class="embedded_image" src="https://i.v2ex.co/rk5J21Nv.png" /></a><br /><br />工作时间 9:30-19：00 ，双休，弹性上下班不打卡<br /><br />有意向的可直接添加 HR 微信，或投简历至📮 fengyu@heyhru.com<br /><a href="https://www.v2ex.com/i/dydXJ0ec.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 dydXJ0ec.jpeg"><img class="embedded_image" src="https://i.v2ex.co/dydXJ0ec.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2025-02-19T07:21:52Z</pubDate>
+<pubDate>2025-02-19T07:47:05Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教大龄研究生怎么找实习</title>
+<link>https://www.v2ex.com/t/1112660</link>
+<guid>https://www.v2ex.com/t/1112660</guid>
+<content:encoded><![CDATA[
+
+科班出身，c++开发三年后辞职考研，本硕 211 ，目前研二<br /><br />感觉论文发不出来，想直接出去找实习<br /><br />海投了一波大厂都是已读不回或者直接拒绝，总感觉是年龄限制了<br /><br />现在一边改简历一边刷力扣，还在犹豫着要不要看论文做实验，又想着考个江浙沪国企或者事业编<br /><br />给自己整的比较焦虑，这是不是属于内耗了？<br /><br />想请教一下各位过来人怎么看
+]]></content:encoded>
+<pubDate>2025-02-19T07:19:41Z</pubDate>
+<pubDate>2025-02-19T07:44:17Z</pubDate>
+</item>
+<item>
+<title>[生活] 我现在选择的路没有把你规划进来</title>
+<link>https://www.v2ex.com/t/1112659</link>
+<guid>https://www.v2ex.com/t/1112659</guid>
+<content:encoded><![CDATA[
+
+<p>他是很典型的回避依恋，之前只是说分手没有删微信，他还想继续做朋友</p>
+<p>周一因为一些事情弄的很不愉快，我说他就是害怕亲密关系所以找借口逃避，</p>
+<p>他说他只是不想做的那么绝，让我有个缓冲的时间，不至于太伤心。</p>
+<p>我说，你一直不删我微信，我就觉得我们还有机会，然后大家都沉默了。</p>
+<p>今天微信突然弹出来一条消息</p>
+<p>“想了想，我现在选择的路没有把你规划进来，为了不给你希望，我还是把你删了吧。不好意思”</p>
+<p>然后就马上被删了，连回复的时间都没有留，加他也没通过。</p>
+<p>这下是真的完了，自欺欺人的其实是我自己，他是真的不喜欢我了。</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:19:07Z</pubDate>
+<pubDate>2025-02-19T08:12:04Z</pubDate>
+</item>
+<item>
+<title>[UNITY] Cursor 等一众 AI 编程工具目前和 Unity 游戏开发的结合怎么样了？ Unity 游戏开发想用 AI 提高生产率目前都有什么比较好的方案或者工具？</title>
+<link>https://www.v2ex.com/t/1112656</link>
+<guid>https://www.v2ex.com/t/1112656</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2025-02-19T07:14:41Z</pubDate>
+<pubDate>2025-02-19T07:13:41Z</pubDate>
+</item>
+<item>
+<title>[程序员] ubuntun 下 docker 拉取镜像失败，配置了镜像源，但是无效</title>
+<link>https://www.v2ex.com/t/1112655</link>
+<guid>https://www.v2ex.com/t/1112655</guid>
+<content:encoded><![CDATA[
+
+<p>已在 daemon.json 配置了多个镜像源：
+DaoCloud 镜像站： <a href="https://docker.m.daocloud.io" rel="nofollow">https://docker.m.daocloud.io</a>
+腾讯云公共镜像库： <a href="https://mirror.ccs.tencentyun.com" rel="nofollow">https://mirror.ccs.tencentyun.com</a>
+华为云镜像服务： <a href="https://developer.huaweicloud.com/dm/mirrors" rel="nofollow">https://developer.huaweicloud.com/dm/mirrors</a>
+1Panel 镜像源： <a href="https://docker.1panel.live" rel="nofollow">https://docker.1panel.live</a>
+Unsee 镜像源： <a href="https://docker-0.unsee.tech" rel="nofollow">https://docker-0.unsee.tech</a>
+1ms.run 镜像源： <a href="https://docker.1ms.run" rel="nofollow">https://docker.1ms.run</a>
+Azure 中国镜像： <a href="http://mirror.azure.cn" rel="nofollow">http://mirror.azure.cn</a>
+中国区官方镜像： <a href="https://registry.docker-cn.com" rel="nofollow">https://registry.docker-cn.com</a>
+清华源： <a href="https://docker.mirrors.ustc.edu.cn" rel="nofollow">https://docker.mirrors.ustc.edu.cn</a>
+阿里源： <a href="https://cr.console.aliyun.com" rel="nofollow">https://cr.console.aliyun.com</a>
+腾讯源： <a href="https://mirror.ccs.tencentyun.com" rel="nofollow">https://mirror.ccs.tencentyun.com</a>
+网易源： <a href="http://hub-mirror.c.163.com" rel="nofollow">http://hub-mirror.c.163.com</a>
+<a href="https://mirror.iscas.ac.cn/" rel="nofollow">https://mirror.iscas.ac.cn/</a>
+(部分镜像已失效)
+修改了 DNS 也不行，拉取 hello-world 、openweb-ui 时等其他项目时还是会走到 <a href="https://registry-1.docker.io/v2" rel="nofollow">https://registry-1.docker.io/v2</a> 这个请求，但是这个服务器上无法打开，一直无法拉取镜像。
+请问是什么问题，如何解决</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:11:20Z</pubDate>
+<pubDate>2025-02-19T08:04:06Z</pubDate>
+</item>
+<item>
+<title>[MacBook Pro] [求助] macbook pro 的 96w 充电头买哪个？</title>
+<link>https://www.v2ex.com/t/1112654</link>
+<guid>https://www.v2ex.com/t/1112654</guid>
+<content:encoded><![CDATA[
+
+<p>芯片 m4 pro</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:09:35Z</pubDate>
+<pubDate>2025-02-19T08:09:32Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 招全职远程 Go 后端开发</title>
+<link>https://www.v2ex.com/t/1112653</link>
+<guid>https://www.v2ex.com/t/1112653</guid>
+<content:encoded><![CDATA[
+
+岗位职责<br /><br />基于现有链和合约功能，开发区块链模块或智能合约。<br />使用 Go 语言或其他类似编程语言开发链下服务。<br />深入理解业务需求，进行前沿技术研究并实现工程化解决方案。<br />识别并修复代码中的未知缺陷和安全漏洞。<br />要求<br /><br />本科及以上学历，3 年以上相关工作经验。<br />精通区块链相关技术，熟练掌握 Go 、Solidity 、Rust 或 Python 进行开发，并熟悉 Linux 命令行和 Shell 脚本。<br />具备区块链开发经验或对区块链技术有深入理解者优先。<br />具备良好的英语听、说、读、写能力，能用英语进行工作交流。<br />具备优秀的团队协作能力、学习能力以及技术研究能力。<br />薪资与福利<br />具有竞争力的薪资体系：<br /><br />基础薪资 + Token 激励 + 季度/年度奖金<br />100% 远程工作，灵活办公<br />工作时间<br /><br />9:00 AM - 6:00 PM （灵活工作制）<br />主要与欧美时区同步，偶尔需要参加晚间会议<br />工作语言<br />工作语言为中文+英语，需具备良好的英文听、说、读、写能力<br /><br />如果您对该职位感兴趣，请将简历发送至邮箱 aGhkbm03NzE5QGdtYWlsLmNvbQ==
+]]></content:encoded>
+<pubDate>2025-02-19T07:09:06Z</pubDate>
+<pubDate>2025-02-19T07:14:52Z</pubDate>
+</item>
+<item>
+<title>[Local LLM] DIFY 这类产品会成为主流吗，交互逻辑咋这么复杂，感觉没自己写代码方便</title>
+<link>https://www.v2ex.com/t/1112651</link>
+<guid>https://www.v2ex.com/t/1112651</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2025-02-19T07:07:23Z</pubDate>
+<pubDate>2025-02-18T15:06:23Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 使用 Cloudflare Images + proxy-go 免费实现单域名多源自适应浏览器优化图片到 avif webp</title>
+<link>https://www.v2ex.com/t/1112649</link>
+<guid>https://www.v2ex.com/t/1112649</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>之前发在另一个论坛, 不过访问量一般, 这里发一下嘿嘿</p>
+</blockquote>
+<hr />
+<blockquote>
+<p>proxy-go 的作用是缩短链接, 完全隐藏原图 url, 并且可以再套国内 CDN or Cloudfront</p>
+<p>如果不需要上面三点, 直接用长链接也行</p>
+<p>不用 proxy-go, 使用 cloudflare worker 代理也行, 方法写评论里了</p>
+</blockquote>
+<h2>Cloudflare Images 设置</h2>
+<blockquote>
+<p>5000 次/月的免费转换
+<img alt="5000 次/月的免费转换|690x284" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/13d25641fe8535d3a8091f648229aabd6cfe7d40.png" /></p>
+</blockquote>
+<ol>
+<li>订阅: <a href="https://www.cloudflare.com/developer-platform/products/cloudflare-images/" rel="nofollow">https://www.cloudflare.com/developer-platform/products/cloudflare-images/</a> , 登录后左侧"Images-概述", 选择自存储
+<img alt="image|690x425" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/aebb2ee52849b93b1fe0053d04b183c77f12304f.png" /></li>
+<li>左侧"Images-转换"启用需要使用的域, 这里代表<strong>图片原域名</strong>和<strong>在线转换链接的根域名</strong>, 域名是需要托管在 cloudflare 上的
+<img alt="image|690x494" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/d45c6ebbde5ec12a371d44b4ead7760822243095.png" /></li>
+</ol>
+<p>这里就可以使用拼接链接进行图片优化了.</p>
+<h3>比如:</h3>
+<p>你的启用域名是 <code><a href="https://test.com" rel="nofollow">https://test.com</a></code>(需要启用了 cloudflare CDN, 如果根域名没有使用 Cloudflare 的 CDN, 用任意二级域名也可以, 比如<code><a href="https://anyone.test.com" rel="nofollow">https://anyone.test.com</a></code>) </p>
+<p>图片的访问域名是 <code><a href="https://s3.test.com/666.jpg" rel="nofollow">https://s3.test.com/666.jpg</a></code> </p>
+<p>那么可以通过以下链接访问优化后的图片</p>
+<p><code><a href="https://test.com/cdn-cgi/image/format=auto,metadata=none/https://s3.test.com/666.jpg" rel="nofollow">https://test.com/cdn-cgi/image/format=auto,metadata=none/https://s3.test.com/666.jpg</a></code></p>
+<h2>部署 proxy-go</h2>
+<blockquote>
+<p>如果只需要最简单代理, nginx 应该也可以, 需要注意透传<code>accept</code>并选择合适格式, 添加<code>CF-Image-Format: auto</code>头部和删除 CSP, 可以找 AI 写一下, 我没用就没研究了</p>
+<p>proxy-go 部署比较适合的是大陆路由直连的国外服务器, 这样速度好点. 阿里腾讯的日本香港也可以</p>
+</blockquote>
+<p>按这个教程 <a href="https://q58.club/t/topic/165" rel="nofollow">proxy-go 部署方法</a> 部署项目</p>
+<ol>
+<li>
+<p>一部分配置这样的: </p>
+<blockquote>
+<p>目标 URL: <code>https://cloudflare 代理了的 host/cdn-cgi/image/format=auto,metadata=none,onerror=redirect/https://存储桶访问 host</code>
+<img alt="这是一个关于 Proxy Go 配置的界面，显示了路由映射、压缩设置和静态路径等信息。 (由 AI 生成标题)|690x194" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/dc86a82f60d056d4c36780f5b5a2ff3f20221a00.png" /></p>
+</blockquote>
+</li>
+<li>
+<p>proxy-go 绑定 <code><a href="http://cdn.test.com" rel="nofollow">cdn.test.com</a></code> 域名</p>
+</li>
+</ol>
+<p>然后图片就可以这样访问: </p>
+<p><code><a href="https://cdn.test.com/s3/666.jpg" rel="nofollow">https://cdn.test.com/s3/666.jpg</a></code></p>
+<p><strong>会自动根据用户浏览环境, 还有压缩转换后图片大小, 来提供 avif, webp, jpeg 等</strong></p>
+<h2>效果</h2>
+<p>原图:
+<img alt="3.2M|690x34" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/0e9f87437109ac2a28949906bb0d86e194f48958.png" />
+<img alt="jpeg 格式|690x286" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/209b0954e7adf5ff3e593f0afd07b1b513a363ba.jpeg" /></p>
+<p>优化后:
+<img alt="538kb|690x39" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/3acb64f213b37b4ccfd510dac6c84b553974657d.png" />
+<img alt="webp|690x305" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/ca69117b60672d61c8393e8881eab3a4abedb841.jpeg" /></p>
+<h3>为什么不是 avif?</h3>
+<p>可以看到截图里有一句: "warning:cf-images 299 "image too large for AVIF"</p>
+<p>因为 avif 更大, 所以使用了最佳文件大小, 也就是 webp</p>
+<p>如果 avif 或者 webp 都比原图大, 那么会使用原图, 比如有些 jpeg 再转换反而文件变大了, 这时候就用原图</p>
+<p>如果 avif 更小, 那么会使用 avif, 比如: </p>
+<p><img alt="113k 变成 46.9k,jpeg 变 avif|690x370" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/2812af300b6777fc14c29ffa7234568789a14a21.jpeg" /></p>
+<p>并且, <strong>Cloudflare Images"的转换并发非常高</strong>, 同时转换几十上百张图片, 几乎没什么延迟, 就非常棒. 比我二次开发的<a href="https://q58.club/t/topic/134" rel="nofollow">webp-server-go</a> 好用多了, 而且也不占用服务器资源.</p>
+<p>唯一缺点:</p>
+<p>每个月免费 5000 次, 超过了需要付费. 个人或者小公司用, 应该不会超过. 因为<strong>单个图片独特转换成功后, 一个月内只算作一次</strong>, 也就是说, 5000 次就代表着 5000 张图片, 而不是访问 5000 次.</p>
+<p>超过的价格也是可以接受的:
+<img alt="Cloudflare Images 转换定价|690x390" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/b0b5c5c79866fc164a29ff5c1da010a73324cd80.png" /></p>
+<h2>Cloudflare 大善人</h2>
+]]></content:encoded>
+<pubDate>2025-02-19T07:04:01Z</pubDate>
+<pubDate>2025-02-19T07:02:01Z</pubDate>
+</item>
+<item>
+<title>[问与答] nostr 和 qtox 之类的东西真的有人坚持用么？</title>
+<link>https://www.v2ex.com/t/1112648</link>
+<guid>https://www.v2ex.com/t/1112648</guid>
+<content:encoded><![CDATA[
+
+<p>整理备份文件中有之前备份的鉴权私钥。。</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:03:32Z</pubDate>
+<pubDate>2025-02-19T07:03:32Z</pubDate>
+</item>
+<item>
+<title>[Apple] 可以对 HDR 照片进行编辑的第三方 App 有哪些？</title>
+<link>https://www.v2ex.com/t/1112647</link>
+<guid>https://www.v2ex.com/t/1112647</guid>
+<content:encoded><![CDATA[
+
+<p>当我使用醒图、Snapseed 、Google 相册、美图秀秀等 App 对 HDR 照片进行编辑后，照片全都会失去 HDR 效果。</p>
+<p>我想知道除了系统自带的照片 App ，还有哪些 App 可以对 HDR 照片进行编辑而不丢失 HDR 效果呢？</p>
+]]></content:encoded>
+<pubDate>2025-02-19T07:03:22Z</pubDate>
+<pubDate>2025-02-19T08:28:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 汽车车机（比亚迪）如何连接 nas 里的歌曲听歌？</title>
+<link>https://www.v2ex.com/t/1112645</link>
+<guid>https://www.v2ex.com/t/1112645</guid>
+<content:encoded><![CDATA[
+
+<p>qq 付费音乐包下架了，以后想听歌只能买会员，比付费音乐包权益差且贵，心一横不干了。弄了很多无损歌曲放在极空间 nas 里面，用极空间的极音乐功能可以解决手机电脑听歌问题，但是车机就没想到什么好办法了，求推荐解决方案</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:56:21Z</pubDate>
+<pubDate>2025-02-19T08:28:39Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 字节跳动内推：高级研发工程师-Dev AI 方向</title>
+<link>https://www.v2ex.com/t/1112644</link>
+<guid>https://www.v2ex.com/t/1112644</guid>
+<content:encoded><![CDATA[
+
+职位描述<br />1 、代码知识库及理解：结合代码数据，提供语义化代码检索能力、支持基于自然语言的 Q&amp;A 及示例代码生成；<br />2 、代码辅助生成及修复：结合 CI/Static Analysis 的结果、提供摘要性总结及修复建议；结合其他研发基础设施（如 IDE/Code Interpreter ）、实现 AI-Generated Code 具备生产级交付能力；<br />3 、探索并打造企业级 LLM 应用研发基础设施，建设 LLM 应用开发的接入平台及基础框架能力。<br />职位要求<br />1 、本科及以上学历，计算机相关专业，3 年及研发以上工作经验；<br />2 、具备扎实的软件开发基本功，熟练掌握 C ，C++，Golang ，Java ，Python 中至少一种编程语言；<br />3 、具备优秀的学习能力、能够快速探索并实践全新的领域技能；<br />4 、具备出色的架构设计及研发交付能力，能够设计并落地高可用的平台产品；<br />5 、对软件研发全生命周期的工具链有足够的理解及洞见，对打磨生产力工具有极致追求；<br />6 、对 LLM 应用研发技术栈有一定了解，对建设生产级 LLM-powered 应用有实战经历。<br /><br /><br /><br />团队氛围很好很好，老板真的特别好。现在正缺人。
+]]></content:encoded>
+<pubDate>2025-02-19T06:56:12Z</pubDate>
+<pubDate>2025-02-19T07:18:33Z</pubDate>
+</item>
+<item>
+<title>[问与答] 一套 2.1 和 2.0 音响 怎么接成 4.1 或 4.0 音响</title>
+<link>https://www.v2ex.com/t/1112643</link>
+<guid>https://www.v2ex.com/t/1112643</guid>
+<content:encoded><![CDATA[
+
+<p>手里一套 2.1 和 2.0 。<br />
+2.1 是漫步者 s201 ，输入直接进低音炮然后连线去卫星箱，准备拿来做前置和低音炮。<br />
+2.0 是漫步者 mr4 ，拿来做后环绕。<br />
+之前试了下声卡开 5.1 ，如果把低音炮和中置关了，那么这两个声道的声音会混合进前置那个 2.1 的音箱里吗？如果不行的话有没有什么办法，主要就是要个环绕效果。但是我看声卡驱动没有 4.0 这个选项，有没有什么软件能改成 4.0 的。不过 4.0 的话我 2.1 音响的低音炮不知道还会不会工作了。</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:55:17Z</pubDate>
+<pubDate>2025-02-19T07:59:37Z</pubDate>
+</item>
+<item>
+<title>[微信] 有没有小游戏类似微信小程序的开发者可以合作呢？</title>
+<link>https://www.v2ex.com/t/1112641</link>
+<guid>https://www.v2ex.com/t/1112641</guid>
+<content:encoded><![CDATA[
+
+<p>我给公司问的，我们是游戏加速平台，能够上一些游戏，老板说未来的游戏行业都会趋向于轻量级游戏，因为大游戏的成本浩大，小游戏能快速试错和起量，所以打算做这一块，问问小游戏的制作者都聚集在哪里呢？
+本来想直接上的，怕侵权问题
+有自己在做的也可以联系我 ater11c</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:50:20Z</pubDate>
+<pubDate>2025-02-19T06:50:20Z</pubDate>
+</item>
+<item>
+<title>[问与答] 每次重启电脑后 cursor 的第一次启动都很慢</title>
+<link>https://www.v2ex.com/t/1112640</link>
+<guid>https://www.v2ex.com/t/1112640</guid>
+<content:encoded><![CDATA[
+
+<p>这个情况有两个月了,之前启动都很流畅的.插件只启用了 5 个,插件显示启动时间也很短.</p>
+<p>v 友们也这样吗?</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:49:29Z</pubDate>
+<pubDate>2025-02-19T06:49:29Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [中国科学院软件研究所实习] 甲辰计划开源实习生联合招聘及培养</title>
+<link>https://www.v2ex.com/t/1112639</link>
+<guid>https://www.v2ex.com/t/1112639</guid>
+<content:encoded><![CDATA[
+
+<p><em>MoonBit 与 PLCT 实验室的实习机会</em>
+MoonBit 是国内开源的编程语言，专注于为 AI 和编译技术带来创新突破。它不仅在技术上不断进步，也为技术爱好者提供了与先进项目合作的机会。<a href="https://www.moonbitlang.cn/" rel="nofollow">https://www.moonbitlang.cn/</a></p>
+<p>PLCT 实验室（程序语言与编译技术实验室）隶属于中国科学院软件研究所，长期致力于开源编译技术的创新。实验室拥有深厚的技术积累和大量行业经验，培养了众多优秀的技术人才。<a href="https://github.com/plctlab/weloveinterns/blob/master/open-internships.md#j139-moonbit-%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E4%B9%A0%E7%94%9F20241104%E5%BC%80%E6%94%BE100%E5%90%8D" rel="nofollow">https://github.com/plctlab/weloveinterns/blob/master/open-internships.md#j139-moonbit-%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E4%B9%A0%E7%94%9F20241104%E5%BC%80%E6%94%BE100%E5%90%8D</a></p>
+<p>随着甲辰计划的启动，PLCT 实验室推出了开源实习生联合培养项目。自 2024 年起，甲辰计划每年提供 2000 多个实习名额，参与者将有机会在编译技术、AI 编程语言以及 RISC-V 生态等领域积累实践经验。</p>
+<p><strong>实习机会亮点</strong>
+自愿性质，灵活远程：这是一项自愿参与的实习计划，参与者可以灵活选择工作时间和地点，完全支持远程工作，适合各类学生和技术爱好者。
+带薪实习：尽管实习是自愿的，甲辰计划为参与者提供带薪实习机会，实习期间不仅能获取实际工作经验，还能获得相应的经济回报。
+技术认证：实习生完成项目后，将获得由 PLCT 实验室及甲辰计划颁发的官方认证，证明你在前沿技术领域的实践经验和贡献。
+深入学习与实践：参与者将直接参与编译技术、AI 编程语言的开发，深入了解 RISC-V 生态和开源工具链的前沿动态。
+与顶尖团队合作：通过这个项目，你将有机会与中国科学院等顶尖科研机构的专家团队直接合作，提升技术能力，拓展职业视野。</p>
+<p>🔗 <a href="https://github.com/moonbit-community/PLCT-J139-Tasks?tab=readme-ov-file" rel="nofollow">https://github.com/moonbit-community/PLCT-J139-Tasks?tab=readme-ov-file</a></p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:48:43Z</pubDate>
+<pubDate>2025-02-19T06:45:43Z</pubDate>
+</item>
+<item>
+<title>[创业组队] 寻找杭州前端合伙人</title>
+<link>https://www.v2ex.com/t/1112637</link>
+<guid>https://www.v2ex.com/t/1112637</guid>
+<content:encoded><![CDATA[
+
+<h1>创业！！！我的号：TG92ZS1DUjctTGFiYQ==</h1>
+<h2>重点</h2>
+<pre><code>1. 有创业意愿
+2. 杭州
+3. 前端 （ 3 年+，5 年+更优）
+4. 月薪 1.3W 左右
+</code></pre>
+<h2>本人介绍：</h2>
+<pre><code>本人从 24 年 9 月开始创业，已经有一个项目在运营，AI 电话机器人项目。
+24 年 11 月份和别人合伙，做了个社交项目，拿到了一些资金，准备用这部分资金做 AI 相关的项目。
+</code></pre>
+<h2>团队介绍：</h2>
+<pre><code>2 个后端，1 个前端（ 3 年下），本人（全栈）
+</code></pre>
+<h2>要求：</h2>
+<pre><code>前端大佬，最好有 TOC 的经验（ app&amp;微信小程序），会 Uniapp 。
+</code></pre>
+]]></content:encoded>
+<pubDate>2025-02-19T06:42:07Z</pubDate>
+<pubDate>2025-02-19T07:58:28Z</pubDate>
+</item>
+<item>
+<title>[程序员] 新手创业求助：如何创建一个优惠券及 Deals 网站？</title>
+<link>https://www.v2ex.com/t/1112636</link>
+<guid>https://www.v2ex.com/t/1112636</guid>
+<content:encoded><![CDATA[
+
+<p>大家好！</p>
+<p>我是一个刚刚踏上创业之路的新手，最近萌生了创建一个优惠券及 Deals 网站的想法，通过谷歌 SEO 优化获取流量。但在实际操作上遇到了一些困难，不知道该如何入手。因此，特来向各位有经验的朋友们寻求建议和帮助。</p>
+<p>具体来说，我有以下几个问题：</p>
+<ol>
+<li><strong>数据来源</strong>：优惠券和折扣信息应该从哪里获取？是否有推荐的 API 或者合作渠道？</li>
+<li><strong>盈利模式</strong>：这样的优惠券及 Deals 网站如何实现盈利？这个赛道竞争太激烈了，现在从头开始搞不知还有没机会？</li>
+<li><strong>谷歌 SEO 优化</strong>：谷歌新站的外链建设太难了，有什么低成本进行外链推广的渠道嘛？</li>
+</ol>
+<p>另外，我在网上收集的一些现有的网站，感觉都做的不错，但不少是老站，感觉很难超越：</p>
+<ul>
+<li><a href="https://www.retailmenot.com" rel="nofollow">RetailMeNot</a></li>
+<li><a href="https://www.joinhoney.com" rel="nofollow">Honey</a></li>
+<li><a href="https://www.groupon.com" rel="nofollow">Groupon</a></li>
+<li><a href="https://www.rakuten.com" rel="nofollow">Rakuten</a></li>
+<li><a href="https://www.slickdeals.net" rel="nofollow">Slickdeals</a></li>
+<li><a href="https://www.coupons.com" rel="nofollow">Coupons.com</a></li>
+<li><a href="https://www.nohighprice.com" rel="nofollow">NoHighPrice.com</a></li>
+<li><a href="https://www.dealnews.com" rel="nofollow">DealNews</a> 。</li>
+</ul>
+<p>希望各位大牛不吝赐教，分享一下自己的经验和建议。非常感谢大家的帮助！</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:40:28Z</pubDate>
+<pubDate>2025-02-19T06:42:50Z</pubDate>
+</item>
+<item>
+<title>[问与答] 目前在一些三线城市互联网国企上班，公司鼓励员工发挥主观能动性为集团创收，有什么好的路子吗</title>
+<link>https://www.v2ex.com/t/1112635</link>
+<guid>https://www.v2ex.com/t/1112635</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2025-02-19T06:38:30Z</pubDate>
+<pubDate>2025-02-19T07:55:50Z</pubDate>
+</item>
+<item>
+<title>[微信] 请教个人开发者外包微信小程序问题</title>
+<link>https://www.v2ex.com/t/1112634</link>
+<guid>https://www.v2ex.com/t/1112634</guid>
+<content:encoded><![CDATA[
+
+<p>如题，现在用的是 uniapp+tailwindcss 来开发前端页面，大部分都是参考相似小程序页面再自己徒手写 html 标签加上 tailwindcss 来仿样式，但是感觉太慢了，想问下大佬有没有什么快速的方法可以开发微信小程序页面</p>
+]]></content:encoded>
+<pubDate>2025-02-19T06:37:26Z</pubDate>
+<pubDate>2025-02-19T06:36:26Z</pubDate>
+</item>
+<item>
+<title>[问与答] 烦心事，关于停车位，请各位给点意见。</title>
+<link>https://www.v2ex.com/t/1112633</link>
+<guid>https://www.v2ex.com/t/1112633</guid>
+<content:encoded><![CDATA[
+
+坐标上海，小区有个地下人防车库，租了一个车位，之前按照正规流程装了充电桩，物业，供电局都盖章了，用了四五年，然后现在开发商说车位要改成长租，租期二十年这种，先不提涨价。地下车库上面是一排三层门面房，上面两层被用作公寓，开发商以充电不安全为理由，现在要求地下车库的业主自己拆除充电桩，不然不让续租。既然不让充电，地下车位我已经不打算续租了，现在的问题就是这个桩，当初安装桩➕延长电线花了三四千，让我们自己拆除，还不给补偿，当初也是一步一步按照流程申请下来的，现在和我们说物业没有经过开发商同意就盖了章，开发商想把责任推给物业，但这是他们之间的事，作为业主应该如何维权呢？
+]]></content:encoded>
+<pubDate>2025-02-19T06:35:05Z</pubDate>
+<pubDate>2025-02-19T08:27:41Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] 程序员电脑推荐</title>
 <link>https://www.v2ex.com/t/1112632</link>
 <guid>https://www.v2ex.com/t/1112632</guid>
 <content:encoded><![CDATA[
-
 <p>我看上了 3 款笔记本，编程开发用，大家帮忙分析一下。</p>
 <p>华硕无畏 14 2025 		ultra 5	225H	16G 	价格 4240</p>
 <p>联想小新 Pro14 2025 		ultra 5	220H    24G  	价格 4240</p>
@@ -17,7 +1067,6 @@
 <p>目前比较倾向于华硕的，因为外观好看。
 但是又感觉小新的性能比较强 emmm 。。。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:29:33Z</pubDate>
 <pubDate>2025-02-19T06:27:33Z</pubDate>
 </item>
 <item>
@@ -25,7 +1074,6 @@
 <link>https://www.v2ex.com/t/1112631</link>
 <guid>https://www.v2ex.com/t/1112631</guid>
 <content:encoded><![CDATA[
-
 <p>每天逛 x timeline 有可能会经常刷到一些技术帖子，突然某一天想起来时又找不到了怎么办？</p>
 <p>那么如果 x 上可以直接搜索🔍就好了，不管是帖子内容还是作者名字(有时想起来的 keywords)</p>
 <p>那么就有了 <a href="https://github.com/Tzyito/x-copilot" rel="nofollow">x-copilot</a>作为我的 x 小助手</p>
@@ -43,7 +1091,6 @@
 <p>有任何想法或者 bug 也可以提 issue 一起讨论！</p>
 <p><img alt="img" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/2wHcdye.png" /></p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:28:01Z</pubDate>
 <pubDate>2025-02-19T06:26:01Z</pubDate>
 </item>
 <item>
@@ -51,7 +1098,6 @@
 <link>https://www.v2ex.com/t/1112630</link>
 <guid>https://www.v2ex.com/t/1112630</guid>
 <content:encoded><![CDATA[
-
 <p>IPv6 断连和打洞失败问题折腾了三个多月, 终于确认原因, 分享给大家.</p>
 <h2>第一次发帖求助 IPv6 断连问题</h2>
 <p><a href="https://www.v2ex.com/t/1088217" rel="nofollow">https://www.v2ex.com/t/1088217</a></p>
@@ -103,7 +1149,6 @@
 <p>只有能连接到个人 DNS 服务器的人才能获取指定域名的自定义解析 IP.</p>
 <p>在这种方案下, 就可以使用常见的 DDns 域名, 但需要避免泄露自己的 DNS 服务地址.</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:26:59Z</pubDate>
 <pubDate>2025-02-19T06:25:59Z</pubDate>
 </item>
 <item>
@@ -111,10 +1156,8 @@
 <link>https://www.v2ex.com/t/1112629</link>
 <guid>https://www.v2ex.com/t/1112629</guid>
 <content:encoded><![CDATA[
-
 开车上下班单程 18 公里，期间路况有点复杂，有人员密集区、有施工路段、有堵车、有高架桥底、有高速、有小路岔路口<br /><br />-------<br />据我观察，小米汽车的用户可为两种<br />1.新手，北京限牌，大部分人之前有本没车开，小米又是新发布的，几乎没存量用户<br />但是这部分人习惯非常不好，龟速，几乎没人贴实习标，变道从不打灯，甚至有右转等红灯的<br /><br />2.野蛮车手，路上到处钻、无视实线、急刹车<br />这部分人也不少，比如今天早上高速下匝道，刚进匝道口，前面小米在匝道口压着导流线往右转，因为前面是护栏所以右转的速度非常慢，后车刚开始下高速，车速还很快，不注意非常容易撞上，这种行为是高速非常典型的作死行为。<br /><br />-------<br />不过小米汽车还是相当成功的，我本身也在小米工作过，未来随着车型增多和产量爬坡，用户应该会更加多元。
 ]]></content:encoded>
-<pubDate>2025-02-19T06:26:30Z</pubDate>
 <pubDate>2025-02-19T02:26:30Z</pubDate>
 </item>
 <item>
@@ -122,13 +1165,11 @@
 <link>https://www.v2ex.com/t/1112628</link>
 <guid>https://www.v2ex.com/t/1112628</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>目前用的是老爆手机壳，手感是针不戳，但是用了半年多了，感觉有点腻了，想换换其他风格。</li>
 <li>最好支持磁吸，手上有个磁吸充电宝。</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:24:37Z</pubDate>
 <pubDate>2025-02-19T06:25:11Z</pubDate>
 </item>
 <item>
@@ -136,7 +1177,6 @@
 <link>https://www.v2ex.com/t/1112627</link>
 <guid>https://www.v2ex.com/t/1112627</guid>
 <content:encoded><![CDATA[
-
 <p>DeepSeek 官网服务经常挂，网上各种教程教大家如何使用客户端接第三方 API ，但愿意研究折腾的毕竟是少数。</p>
 <p>但对于一个团队来说（公司、实验室、班级等），AI 能明显提升整个团队的效率和战斗力，有没一个可能，让其中 1 个人研究折腾配置好，其他人无痛使用就好。基于此想法，我写了 HiveChat 。</p>
 <p>管理员可以部署和配置各种大模型服务，可以手动添加账号，或开放注册权限，团队成员直接登录使用即可。</p>
@@ -150,14 +1190,12 @@
 <p>求 Star ，欢迎反馈建议和 bug 。</p>
 ]]></content:encoded>
 <pubDate>2025-02-19T06:24:22Z</pubDate>
-<pubDate>2025-02-19T06:24:22Z</pubDate>
 </item>
 <item>
 <title>[问与答] 滴滴等打车软件能否增加油车或电车优先功能</title>
 <link>https://www.v2ex.com/t/1112626</link>
 <guid>https://www.v2ex.com/t/1112626</guid>
 <content:encoded><![CDATA[
-
 <p>刚在 V 站看到一帖子，经常打车，但是电车晕车。
 我也特别晕电车，头晕眼花、恶心反胃...
 但是跑电车的太多了，十次可能遇到 1 次油车。
@@ -167,7 +1205,6 @@
 打车软件能不能满足这一需求呢，发布打车需求时选择油车优先，油车车主也能优先接到派单。
 甚至由于油车客运成本高，可以适当增加一点优先的费用。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:21:18Z</pubDate>
 <pubDate>2025-02-19T06:20:18Z</pubDate>
 </item>
 <item>
@@ -175,7 +1212,6 @@
 <link>https://www.v2ex.com/t/1112624</link>
 <guid>https://www.v2ex.com/t/1112624</guid>
 <content:encoded><![CDATA[
-
 <p><strong>本来用 Python 实现了一个类似功能，就想着用 Visual Studio C# 能不能实现个，纯属写着好玩。但一直提示这个错误，下断点，我看了值也没问题。故而求助下 V 友</strong></p>
 <p><strong>XAML</strong></p>
 <pre><code>&lt;Window x:Class="bitlockerpatch.MainWindow"
@@ -403,7 +1439,6 @@ namespace bitlockerpatch
 </code></pre>
 <p><strong>初学者，写得不好还请见谅</strong></p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:19:31Z</pubDate>
 <pubDate>2025-02-19T06:18:31Z</pubDate>
 </item>
 <item>
@@ -411,10 +1446,8 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112623</link>
 <guid>https://www.v2ex.com/t/1112623</guid>
 <content:encoded><![CDATA[
-
 <p>石头扫地机器人，用了好几年都正常好用。去年还是前年开始，清扫时在木地板上一切正常，到了瓷砖地面会出现原地打转的现象，感觉像是前进不了（动力不足？）以至于判断有障碍物导致原地转圈圈。问了客服，无非是清洁传感器和行走轮（试过了无效），要么寄回检修。不知各位有没有解决心得？谢谢。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:18:58Z</pubDate>
 <pubDate>2025-02-19T06:18:58Z</pubDate>
 </item>
 <item>
@@ -422,7 +1455,6 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112622</link>
 <guid>https://www.v2ex.com/t/1112622</guid>
 <content:encoded><![CDATA[
-
 <p>🔥拼多多集团-PDD ｜ 25 届春招「技术专场」启动啦</p>
 <p>💌6 大技术岗全覆盖，工作地点上海</p>
 <p>📮内推链接： <a href="https://careers.pddglobalhr.com/campus/grad?t=49z4Yrexb8" rel="nofollow">https://careers.pddglobalhr.com/campus/grad?t=49z4Yrexb8</a> ，内推码：49z4Yrexb8 。期待你的加入！我们一起，无拼不青春！（通过此链接投递计入内推，内推简历优先筛选~）</p>
@@ -432,7 +1464,6 @@ namespace bitlockerpatch
 <pre><code class="language-bash">echo YmVlYm94NQ== | base64 -d
 </code></pre>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:17:21Z</pubDate>
 <pubDate>2025-02-19T06:16:21Z</pubDate>
 </item>
 <item>
@@ -440,14 +1471,12 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112619</link>
 <guid>https://www.v2ex.com/t/1112619</guid>
 <content:encoded><![CDATA[
-
 <p>我们都知道，传统的切入方式有 CV 、NLP 等等，</p>
 <p>但近几年大模型多模态兴起后，这些传统的落地场景都不怎么提及了。</p>
 <p>作为 AI 的门外汉，除了对 gpt 之类的模型进行套壳外，</p>
 <p>还是想了解一下 AI 大模型领域具体发生了什么，</p>
 <p>想问一下 AI 从业领域的同学，有没有什么课程推荐呢？</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T06:12:22Z</pubDate>
 <pubDate>2025-02-19T06:31:01Z</pubDate>
 </item>
 <item>
@@ -455,12 +1484,10 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112615</link>
 <guid>https://www.v2ex.com/t/1112615</guid>
 <content:encoded><![CDATA[
-
 <p>我下了好几个第三方相机的 App ，但他们都是主打胶片和复古的功能。</p>
 <p>而我想要一个主打参数调节的 App ，例如自定义对焦、光圈、曝光、快门速度、ISO 、白平衡等等参数。</p>
 <p>想知道有这样的第三方相机 App 吗？最好的免费的，也可以接受买断制付费。不接受订阅制付费。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:58:49Z</pubDate>
 <pubDate>2025-02-19T06:16:28Z</pubDate>
 </item>
 <item>
@@ -468,11 +1495,9 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112614</link>
 <guid>https://www.v2ex.com/t/1112614</guid>
 <content:encoded><![CDATA[
-
 <p>纯 pc 玩家。京东 300 自营 xbox 基础版，但是已经上市很久了。网上查了下资料，碳性摇杆貌似寿命不长</p>
 <p>国产 100 以上基本都是双霍尔，想备选国产手柄。国产手柄听说挺卷的，有没有大佬推荐下 100-200 之间的国产呀，谢谢啦</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:57:33Z</pubDate>
 <pubDate>2025-02-19T06:27:49Z</pubDate>
 </item>
 <item>
@@ -480,7 +1505,6 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112612</link>
 <guid>https://www.v2ex.com/t/1112612</guid>
 <content:encoded><![CDATA[
-
 <p>家中用的是支持人脸识别的门锁，我站在门口就能解锁，但是门是不动的，需要上手拉一下才能开门。</p>
 <p>当时买这个锁是希望门锁解锁后，大门可以自己弹开一个缝隙，这样即使我挪不开手，也能用脚勾一下开门。（安装门锁的师傅说这个看门，有的门可以自己弹开，有的不可以）。</p>
 <p>自己想了一些方案，大概有：
@@ -491,7 +1515,6 @@ namespace bitlockerpatch
 <p>最后这项弹簧合页好像是最可行的方案了，网上可以轻松买到，自己动手换一下。
 想问下大家有没有更好的方案？这些弹簧合页的寿命怎么样？</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:56:12Z</pubDate>
 <pubDate>2025-02-19T06:14:01Z</pubDate>
 </item>
 <item>
@@ -499,10 +1522,8 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112611</link>
 <guid>https://www.v2ex.com/t/1112611</guid>
 <content:encoded><![CDATA[
-
 结合近年的工作经历，以及年后和客户的沟通，谈谈 DeepSeek 对中国政企市场（ ToB 、ToG ）的意义：<br /><br />1. 私有化部署<br />大客户从来不和你扯 SaaS ，很多政企都是全内网办公，真正与其核心产业挂钩的工具，私有化部署是必须的。DeepSeek 开源、可以私有化部署，让很多政府客户非常感兴趣。<br /><br />2. 国产<br />DeekSeep 是否满足信创要求我还没仔细研究，但国产的意义是很重大的，信创+政治因素+信息保密（参考第 1 点），让原来心水 ChatGPT 的客户看上了 DeepSeek 。<br /><br />3. 能用<br />这点大家可能会讶异，中国大模型发展了那么多年，互联网、运营商还有华为这些公司都有自研产品，怎么就不能用了呢？其实包括我司在内的多数大模型，可以说是垃圾都不如，和客户都没办法拿去介绍的那种，DeepSeek 在 ToC 方向，每一个用户都能感受到其强大、流畅、简洁，这个是其他公司无法比拟的。<br /><br />总结：私有化部署是必要条件，而国产和能用是杀手锏，大家可能觉得很荒谬，但对于多数政企市场客户来说，在这之前，中国根本没有真正可用的大模型出现（刷政绩的除外，比如华为和运营商的自研）。
 ]]></content:encoded>
-<pubDate>2025-02-19T05:52:30Z</pubDate>
 <pubDate>2025-02-17T05:52:30Z</pubDate>
 </item>
 <item>
@@ -510,11 +1531,9 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112610</link>
 <guid>https://www.v2ex.com/t/1112610</guid>
 <content:encoded><![CDATA[
-
 <p>大概有 200 多个百度地图的收藏定位，有没有办法批量弄成微信的发送位置？
 吐槽下微信 app 内置的发送位置，用搜索位置后不能再继续作细微调整。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:48:53Z</pubDate>
 <pubDate>2025-02-19T05:48:53Z</pubDate>
 </item>
 <item>
@@ -522,13 +1541,11 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112609</link>
 <guid>https://www.v2ex.com/t/1112609</guid>
 <content:encoded><![CDATA[
-
 <p>想学习一些量化的思路，但是找不到合适的群和论坛。
 网上搜的要么信息比较乱和滞后，要么就直接是卖课的还特别贵，查看里面的内容都查看不全。</p>
 <p>想问下各位有没有氛围相对好的量化论坛，最好是分享讨论代码和思路的。</p>
 <p>感谢！</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:47:09Z</pubDate>
 <pubDate>2025-02-19T05:47:09Z</pubDate>
 </item>
 <item>
@@ -536,12 +1553,10 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112608</link>
 <guid>https://www.v2ex.com/t/1112608</guid>
 <content:encoded><![CDATA[
-
 <p>年前买了 ipad 送了 3 个月免费 applt tV+的服务，然后我用美区账号，登录想注册的时候发现需要添加付款信息。之前都是用的充值卡，余额大概 5 美元，不够 9.99 然后 paypal 只有国内的也加不上。</p>
 <p>现在的问题是，是不是我再买点充值卡把余额顶到超过 9.99 美元就可以了。 还是说必须要添加一个支付方式。</p>
 <p>如果一定要添加支付方式，那种比较简单呢。 能不能注册一个港版账户，港版账户是不是能添加支付宝作为付款方式。 港版 ID 我看也是支持 apple TV+服务的吧。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:39:30Z</pubDate>
 <pubDate>2025-02-19T05:50:41Z</pubDate>
 </item>
 <item>
@@ -549,10 +1564,8 @@ namespace bitlockerpatch
 <link>https://www.v2ex.com/t/1112606</link>
 <guid>https://www.v2ex.com/t/1112606</guid>
 <content:encoded><![CDATA[
-
 iphone17 iar 外观和 google 原生机类似，我觉得还可以 V 友怎么看，就是只有单摄有点劝退<br /><br /><a href="https://img.ithome.com/newsuploadfiles/2025/2/4ee2dbc5-2e24-40aa-856c-4b3a2a480857.jpg?x-bce-process=image/format,f_avif" rel="nofollow noopener" target="_blank">https://img.ithome.com/newsuploadfiles/2025/2/4ee2dbc5-2e24-40aa-856c-4b3a2a480857.jpg?x-bce-process=image/format,f_avif</a>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:19:11Z</pubDate>
 <pubDate>2025-02-18T13:17:11Z</pubDate>
 </item>
 <item>
@@ -560,10 +1573,8 @@ iphone17 iar 外观和 google 原生机类似，我觉得还可以 V 友怎么�
 <link>https://www.v2ex.com/t/1112604</link>
 <guid>https://www.v2ex.com/t/1112604</guid>
 <content:encoded><![CDATA[
-
 全靠友商衬托
 ]]></content:encoded>
-<pubDate>2025-02-19T05:13:08Z</pubDate>
 <pubDate>2025-02-17T05:11:08Z</pubDate>
 </item>
 <item>
@@ -571,10 +1582,8 @@ iphone17 iar 外观和 google 原生机类似，我觉得还可以 V 友怎么�
 <link>https://www.v2ex.com/t/1112603</link>
 <guid>https://www.v2ex.com/t/1112603</guid>
 <content:encoded><![CDATA[
-
 <p>我想在心仪的小区租个房子，还有 25 天到期，提前多久看房比价合适？以及如何找打小区租房的均价？</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:11:47Z</pubDate>
 <pubDate>2025-02-19T05:19:11Z</pubDate>
 </item>
 <item>
@@ -582,7 +1591,6 @@ iphone17 iar 外观和 google 原生机类似，我觉得还可以 V 友怎么�
 <link>https://www.v2ex.com/t/1112602</link>
 <guid>https://www.v2ex.com/t/1112602</guid>
 <content:encoded><![CDATA[
-
 <p>网址: <a href="https://aimodels-prices.q58.club/" rel="nofollow">https://aimodels-prices.q58.club/</a><br />
 Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="nofollow">https://github.com/woodchen-ink/aimodels-prices</a><br />
 使用结构: Go+Sqlite+Vue3+ElementPlus  </p>
@@ -592,7 +1600,6 @@ Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="no
 <p><img alt="价格列表" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/c8571627aea3235db5c184a38dfd046bc3c37718.png" /></p>
 <p><img alt="模型厂家列表" class="embedded_image" rel="noreferrer" src="https://i-aws.czl.net/r2/original/1X/c1188047fb697e72382a5b438b776ac6a4581bdc.png" /></p>
 ]]></content:encoded>
-<pubDate>2025-02-19T05:08:13Z</pubDate>
 <pubDate>2025-02-19T06:24:31Z</pubDate>
 </item>
 <item>
@@ -600,14 +1607,12 @@ Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="no
 <link>https://www.v2ex.com/t/1112600</link>
 <guid>https://www.v2ex.com/t/1112600</guid>
 <content:encoded><![CDATA[
-
 <p>前端方向和 flutter 方向都需要</p>
 <p>要求是 26 年毕业的，base 广州。春招暑期实习（能提前来更欢迎</p>
 <p>具体技术要求不做限制，常见的前端技能都有掌握即可。重点是觉得自己优秀那就大胆来投。欢迎推荐转发</p>
 <p>邮箱：569105585 + qq</p>
 <p>注意：需要现在没有在其他部门的面试流程中，否则我这边无法发起面试。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T04:57:09Z</pubDate>
 <pubDate>2025-02-19T06:02:46Z</pubDate>
 </item>
 <item>
@@ -615,7 +1620,6 @@ Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="no
 <link>https://www.v2ex.com/t/1112598</link>
 <guid>https://www.v2ex.com/t/1112598</guid>
 <content:encoded><![CDATA[
-
 <h1>省流版</h1>
 <p><strong>现状</strong>: 目前可选的小区不多，主要考虑的是一个恒大小区。该小区因之前破产，由政府保交楼交付，质量存疑，物业也不太好。目前地下车库仍在施工，交付时间未定。隔壁是一个同期小区，正常交付，由万科物业管理。</p>
 <p><strong>小区对比</strong>:</p>
@@ -646,7 +1650,6 @@ Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="no
 <h2>之前的情况</h2>
 <p>曾提出分手，但她不愿意，并表示愿意降低要求，考虑购买靠近 B 市的 A 市房子。然而，我的亲戚长辈都反对这一决定。由于相亲一年来她是我遇到的条件较好的对象，目前不考虑分手。</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T04:53:15Z</pubDate>
 <pubDate>2025-02-19T06:29:54Z</pubDate>
 </item>
 <item>
@@ -654,7 +1657,6 @@ Github 链接: <a href="https://github.com/woodchen-ink/aimodels-prices" rel="no
 <link>https://www.v2ex.com/t/1112597</link>
 <guid>https://www.v2ex.com/t/1112597</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="logo" class="embedded_image" rel="noreferrer" src="https://linux.do/uploads/default/optimized/4X/3/1/4/3145a63e2b88066d3abf5fc02cf8a9096be03fc1_2_1380x776.jpeg" /></p>
 <h2>从 Left Join 说起</h2>
 <p>假设你有这样一个 n2n 的关系表，代表用户和角色之间的关系。</p>
@@ -837,7 +1839,6 @@ class UserRoleEntity {
 <li>脚手架主页： <a href="https://www.mjga.cc" rel="nofollow">https://www.mjga.cc</a></li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-19T04:47:42Z</pubDate>
 <pubDate>2025-02-18T07:51:49Z</pubDate>
 </item>
 <item>
@@ -845,10 +1846,8 @@ class UserRoleEntity {
 <link>https://www.v2ex.com/t/1112596</link>
 <guid>https://www.v2ex.com/t/1112596</guid>
 <content:encoded><![CDATA[
-
 昨天到货一部新手机， 现在的移动手机套餐不能开副卡，只能新开卡。现在好多流量卡流量太多，其实用不完的，月租 20-30 那样，而且好多不是永久套餐，所以想办张永久套餐的卡，月租便宜点，流量不用太多，或者有没有比较优惠的流量包那些，比如移动的 15¥潮玩包之类的。
 ]]></content:encoded>
-<pubDate>2025-02-19T04:46:31Z</pubDate>
 <pubDate>2025-02-19T06:15:35Z</pubDate>
 </item>
 <item>
@@ -856,15 +1855,12 @@ class UserRoleEntity {
 <link>https://www.v2ex.com/t/1112595</link>
 <guid>https://www.v2ex.com/t/1112595</guid>
 <content:encoded><![CDATA[
-
 <p>冲冲冲！ 给爷冲鸭！
 <a href="https://miaods.deno.dev/" rel="nofollow">https://miaods.deno.dev/</a></p>
 <p>访问密钥：miaoge</p>
 ]]></content:encoded>
-<pubDate>2025-02-19T04:41:33Z</pubDate>
 <pubDate>2025-02-18T04:38:33Z</pubDate>
 </item>
-
 <item>
 <title>[分享发现] 今天 Chrome 升级后开始禁用一些插件了</title>
 <link>https://www.v2ex.com/t/1112593</link>
@@ -17055,374 +18051,6 @@ MacOS 容量: 8085 mAh 93%</p>
 <p>最后: 仅供参考, 朋友的 M2 air 健康度还是 100%, 说明 macos 的充电优化还是有效果的</p>
 ]]></content:encoded>
 <pubDate>2025-02-14T03:36:06Z</pubDate>
-</item>
-<item>
-<title>[生活] 你们都是什么时候手里有 50 万和 100 万以上存款的</title>
-<link>https://www.v2ex.com/t/1111394</link>
-<guid>https://www.v2ex.com/t/1111394</guid>
-<content:encoded><![CDATA[
-<p>是不是当存款超过一定数字后
-会感觉思维方式发生变化</p>
-<p>身无分文的时候只会考虑去哪里上班可以活下去
-存款多了以后，才会考虑理财和投资</p>
-]]></content:encoded>
-<pubDate>2025-02-14T04:24:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 开发大佬能给科普下抖音和美拍这事吗？</title>
-<link>https://www.v2ex.com/t/1111393</link>
-<guid>https://www.v2ex.com/t/1111393</guid>
-<content:encoded><![CDATA[
-非技术人员，想问下都是都是拍摄类的功能，那代码不就是相似的吗？难道还是换着花样写？
-]]></content:encoded>
-<pubDate>2025-02-13T00:06:01Z</pubDate>
-</item>
-<item>
-<title>[Apple] 求： Apple Id 土区余额快速消费掉</title>
-<link>https://www.v2ex.com/t/1111392</link>
-<guid>https://www.v2ex.com/t/1111392</guid>
-<content:encoded><![CDATA[
-<p>之前土区的 iCloud 价格实惠的时候，充了几千土币进去。
-现在土区没有优势了，有什么土区可以值得购买的，可以消费掉这些土币，然后回到国区呢？</p>
-]]></content:encoded>
-<pubDate>2025-02-14T03:52:12Z</pubDate>
-</item>
-<item>
-<title>2025 年 pixel 安卓玩机方案？</title>
-<link>https://www.v2ex.com/t/1110110</link>
-<guid>https://www.v2ex.com/t/1110110</guid>
-<content:encoded><![CDATA[
-21 年卖掉一加 7Pro 之后再没玩过安卓刷机，<br />最近 iOS 越狱巨魔生态拉胯，常用的几个去广告插件基本都停更失效了<br />从二手网捡了一台日版 Pixel9Pro ，打算重归安卓阵营<br />想实现：<br />1 、尽可能隐藏 BL 和 root （ pixel9 开始如果解 BL 的话 AI 功能会失效，以及某银行 app 在 iOS 上除了装 roothide 版越狱之外完全无法隐藏越狱，不清楚安卓是不是这样）<br />2 、网飞能看 HDR10<br />3 、国内 APP 能压住不至于续航拉胯，同时尽可能保留通知推送<br />4 、能用 XP 框架<br />检索了信息之后发现目前有 magisk 、kernelSU 和 APatch 三种 root 方案，然后 lsposed 已经停更了<br />请教各位大佬，想实现以上目的应该怎么选 root 方案还有 XP 框架？
-]]></content:encoded>
-<pubDate>2025-02-12T20:26:14Z</pubDate>
-</item>
-<item>
-<title>[私活] 国外 NodeJS 项目</title>
-<link>https://www.v2ex.com/t/1111434</link>
-<guid>https://www.v2ex.com/t/1111434</guid>
-<content:encoded><![CDATA[
-<p>帮之前合作过的老板发个，要求</p>
-<ol>
-<li>熟悉 gcp aws terraform nodejs typescript</li>
-<li>英文能力：能看懂文档并做好文档输出</li>
-<li>每天稳定 2~3 小时</li>
-</ol>
-<p>详细可 wx 联系：Z29vZHdpbGxnb29kbWFu, 备注 NodeJS 。贴内回复不一定看见</p>
-]]></content:encoded>
-<pubDate>2025-02-14T04:25:03Z</pubDate>
-</item>
-<item>
-<title>外包一个阿里云函数计算实例，要求 Go 语言：将某个字符串存入阿里云 OSS 中，然后再读取出来</title>
-<link>https://www.v2ex.com/t/1111416</link>
-<guid>https://www.v2ex.com/t/1111416</guid>
-<content:encoded><![CDATA[
-<p>实在是搞不明白阿里云这一块内容都是什么东西，自己折腾了几下没整出来，所以上来外包了，谁弄得懂的帮忙做个 Go 语言的实例。</p>
-<h2>实例要求</h2>
-<p>Go 语言编写，要在 <a href="https://fcnext.console.aliyun.com/cn-hongkong/functions" rel="nofollow">https://fcnext.console.aliyun.com/cn-hongkong/functions</a> 的 GO1 环境部署和运行。</p>
-<p>功能要求是将某个字符串存入阿里云 OSS （或者其他不用钱又快速的阿里云的存储）中，然后再读取出来，这个字符串长度在 500 左右，然后这个字符串也会不定时更新，所以这个实例也要考虑这种情况。</p>
-<p>需要提供对应源码和层，以及针对源码的一些问题。</p>
-<h2>谁能接单</h2>
-<p>谁先回复确定能做优先接单哈。</p>
-<h2>金额</h2>
-<p>648 元人民币，如果大伙觉得金额实在太低，可以在底下回复，只要理由充分都好商量。</p>
-<h2>付款时间</h2>
-<p>先给代码，再转账。</p>
-<h2>付款方式</h2>
-<p>支付宝/微信转账</p>
-]]></content:encoded>
-<pubDate>2025-02-13T11:33:36Z</pubDate>
-</item>
-<item>
-<title>[问与答] 有支持米家的，实时上报温度数据的温度计吗</title>
-<link>https://www.v2ex.com/t/1111391</link>
-<guid>https://www.v2ex.com/t/1111391</guid>
-<content:encoded><![CDATA[
-淘宝上的都是延迟 10~30 分钟才上报到米家的。我是要实时调整空调温度的
-]]></content:encoded>
-<pubDate>2025-02-14T02:49:18Z</pubDate>
-</item>
-<item>
-<title>[北京] 贝壳找房可以更换他自带的密码锁吗？</title>
-<link>https://www.v2ex.com/t/1111390</link>
-<guid>https://www.v2ex.com/t/1111390</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>我问中介，中介说只能改密码不能换</li>
-<li>要是换的话他的 app 就会有警告之类的，会有别的部门不断的给他打电话询问情况啥的</li>
-<li>但是贝壳自己的密码锁很不好用，我想换成我自己的</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-13T10:48:38Z</pubDate>
-</item>
-<item>
-<title>[OpenWrt] 斐讯 K2T 升级完 OpenWrt 24.10 后 5G WiFi 丢了</title>
-<link>https://www.v2ex.com/t/1111389</link>
-<guid>https://www.v2ex.com/t/1111389</guid>
-<content:encoded><![CDATA[
-<p>昨天把斐讯 K2T 升级到了 OpenWrt 24.10 ，然后就发现了 5G WiFi 启动不起来，于是只好又退回 23 版本的。</p>
-<p>看好像很多人遇到了这个问题</p>
-<p>这个 issues 里面提到了从官方固件包中提取 board-2.bin ，可以绕过这个问题
-<a href="https://github.com/openwrt/openwrt/issues/14541" rel="nofollow">https://github.com/openwrt/openwrt/issues/14541</a></p>
-<p>这是什么原理啊。</p>
-<p>我看了下好像 K2T 没有人提取过的。</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:45:22Z</pubDate>
-</item>
-<item>
-<title>[生活] 房开装修想自己二改 ,怎么做比较好</title>
-<link>https://www.v2ex.com/t/1111388</link>
-<guid>https://www.v2ex.com/t/1111388</guid>
-<content:encoded><![CDATA[
-<p>1.全铝整装,靠谱吗 ,网上说的很便宜,还送家电什么的,感觉不是很靠谱。
-2.找本地装修公司
-3.找亲戚,家里现在住的房子装修的现代风挺好的,但是贵。当时全弄完是 40-50w</p>
-<p>需求是封窗,然后小改贴合一种设计模式,硬装预算大概在 10w 左右 ,98(套内好像 80)?</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:42:59Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 观最近"相亲彩礼"帖有感</title>
-<link>https://www.v2ex.com/t/1111386</link>
-<guid>https://www.v2ex.com/t/1111386</guid>
-<content:encoded><![CDATA[
-<p>结婚的时候谈好彩礼 16.66w,没想到去我老婆他们那边摆完酒后，老丈人退回了 16.66w,又给了张 6.66w 的银行卡。结婚摆酒之前说不退，后面说是考验一下，然后把钱让我老婆管理。</p>
-<p>最近看了 v2 上这么多关于彩礼的讨论，深感自己是多么的幸运，有点不理解那些高彩礼的女方父母，你们要那么高彩礼一分不返的，有想让那个小家过好吗？甚至还有的贷款、借钱交彩礼的，不理解这种做法。</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:47:34Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 估算反向链接数量，提升网站 SEO 排名：使用 Xcoff.ee 的 Backlinks 计算器</title>
-<link>https://www.v2ex.com/t/1111384</link>
-<guid>https://www.v2ex.com/t/1111384</guid>
-<content:encoded><![CDATA[
-估算反向链接数量，提升网站 SEO 排名：使用 <a href="http://Xcoff.ee" rel="nofollow noopener" target="_blank">Xcoff.ee</a> 的 Backlinks 计算器<br /><br /><a href="https://xcoff.ee/backlinks-calculator/" rel="nofollow noopener" target="_blank">https://xcoff.ee/backlinks-calculator/</a><br /><br /><br />在搜索引擎优化（ SEO ）过程中，反向链接（ Backlinks ）一直是一个至关重要的因素。高质量的反向链接不仅能提高网站的权威性，还能显著提升排名。然而，究竟需要多少反向链接才能在激烈的竞争中脱颖而出呢？<br /><br />Backlinks 计算器，正是为了解决这个问题而设计的。通过结合先进的算法和庞大的数据分析，Backlinks 计算器能够根据目标关键词的难度（ Keyword Difficulty, KD ），为您提供一个精准的反向链接需求估算。无论您是新站 SEO 优化的初学者，还是有经验的 SEO 专家，这个工具都能为您带来切实的帮助。<br /><br />如何使用 Backlinks 计算器<br />输入目标关键词：在计算器中输入您希望优化的关键词，系统会自动获取该关键词的相关数据。<br />查看关键词难度（ KD ）：系统将根据数据分析，给出该关键词的难度评分，帮助您评估需要付出的 SEO 努力。<br />估算所需的反向链接数：根据该关键词的 KD 评分，计算器将为您提供一个合理的反向链接数量估算。这一数据是通过大数据分析和科学算法得出的，精准度高，能有效避免资源浪费。<br />为何选择 <a href="http://Xcoff.ee" rel="nofollow noopener" target="_blank">Xcoff.ee</a> 的 Backlinks 计算器？<br />科学算法支持：<a href="http://Xcoff.ee" rel="nofollow noopener" target="_blank">Xcoff.ee</a> 的 Backlinks 计算器使用了领先的 SEO 算法，结合搜索引擎的排名规则，能为您提供可靠的数据支持，帮助您精准掌握 SEO 优化的关键。<br />数据分析全面：我们依托大量的 SEO 数据，全面评估关键词的竞争难度，精准预估反向链接的数量，使得您的 SEO 策略更具针对性。<br />节省时间和资源：通过这个工具，您不再需要花费大量时间和精力去猜测反向链接的需求量。精确的估算让您的 SEO 优化工作更高效。<br />易于使用：用户友好的界面设计，让每一个人都能轻松上手，即使您是 SEO 初学者，也能轻松计算并了解所需的反向链接数量。<br />总结<br />如果您希望在搜索引擎中获得更好的排名，反向链接是不可忽视的因素。而 <a href="http://Xcoff.ee" rel="nofollow noopener" target="_blank">Xcoff.ee</a> 的 Backlinks 计算器，凭借其精准的估算和强大的数据支持，能够帮助您制定更科学、更高效的 SEO 策略。无论您是新站建设，还是优化已有网站，它都是您不可或缺的工具。<br /><br />立即访问 Backlinks 计算器 ，开启您的精准 SEO 优化之旅吧！<br /><br /><a href="https://xcoff.ee/backlinks-calculator/" rel="nofollow noopener" target="_blank">https://xcoff.ee/backlinks-calculator/</a>
-]]></content:encoded>
-<pubDate>2025-02-14T02:33:03Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 关于裁员失业、远程居家办公、带娃、AI 编程、WLB</title>
-<link>https://www.v2ex.com/t/1111383</link>
-<guid>https://www.v2ex.com/t/1111383</guid>
-<content:encoded><![CDATA[
-<p>工作近 10 年的前端，一年前经历了公司裁员。</p>
-<p>中间产生了各种想法，思考是否转行，但是都不太现实。一个是年龄问题，一个是有了孩子。在没有资源的条件下转行风险太大。过了三个月为了兼顾照顾孩子，选择找了一份远程居家为主的编程工作。</p>
-<p>问题是：</p>
-<ol>
-<li>工作方式的转变：线下 -&gt; 线上，这个是最难适应的，一下子失去了工作氛围和熟悉的工作环境。在家里有孩子，也不能安心办公，同时也很难自律。</li>
-<li>再次降薪，虽然可以在小县城远程，但是心理落差太大。还是会时不时的考虑出去，可是又有需要照顾家庭的矛盾存在。</li>
-<li>团队项目历史遗留问题较多，时间跨度较大，技术栈也推崇用古早原始的，因为架构都是自己 YY 的。所以对新人很不友好。如果全盘理解比较有挑战，闷头搬砖又没啥意思。</li>
-</ol>
-<p>分享出来，希望看看有没有人遇到同样的情况，或者给些建议。</p>
-<p>程序员+远程+有孩子 这样的角色，现实中很难有能聊的来的朋友了，主要也没啥朋友。</p>
-<p>wx:emhhbmdsNjM5   </p>
-<p>考虑可以组建一个聊天群，关于标题的内容，也算是给孤独的生活一点慰藉，和社会保持一点联系。</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:50:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 观字节美摄案有感，入职新公司人肉记忆写前任代码是侵权行为吗？</title>
-<link>https://www.v2ex.com/t/1111382</link>
-<guid>https://www.v2ex.com/t/1111382</guid>
-<content:encoded><![CDATA[
-<p>早上看到字节美摄的案件，里面如是说：一名曾经在美摄工作过的工程师，离职两年半后加入了字节。在字节工作期间，写代码时重复使用了一部分他在美摄工作时写过的代码。</p>
-<p>我有点不解，抛开员工是否存在道德问题的可能性的讨论。我人肉重新写一次前任代码，也是侵权吗。</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:44:20Z</pubDate>
-</item>
-<item>
-<title>[汽车] SU7 Ultra 在上赛打破了保时捷的记录</title>
-<link>https://www.v2ex.com/t/1111381</link>
-<guid>https://www.v2ex.com/t/1111381</guid>
-<content:encoded><![CDATA[
-<p>想看看有没有富哥小定了的</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:22:15Z</pubDate>
-</item>
-<item>
-<title>[macOS] B 站美化插件 Bewlybewly 已经上到美区 Safari 付费插件榜 11 名了。</title>
-<link>https://www.v2ex.com/t/1111380</link>
-<guid>https://www.v2ex.com/t/1111380</guid>
-<content:encoded><![CDATA[
-不过是其他人上架的 Bewley ，打开还是显示 Bewlybewly 。<br /><br />事情大约是这样的，最早 Bewlybewly 上架了 Chrome 版本到商店，就有人希望 Bewlybewly 也可以支持 Safari ，并且也上架到商店。那时候作者觉得不赚钱，Apple 开发者注册一年要 99 美金，有点贵。后来有人愿意提供一部分 Donation 帮助作者上架。然后似乎作者注册没有通过，觉得 Apple 注册流程有点麻烦。然后又有人可以指导他注册，不过作者就是不愿意。后来有人希望可以代帮忙上架，再后来就能在 App Store 搜索到了。作者在 Safari 那个 issue 里最后一条回复是结束了，一切都结束了。这样做是否违反了 MIT 授权？管他呢，反正我是不用下载 Xcode 去转了。6 块钱就单劳务费我觉得挺划算的。
-]]></content:encoded>
-<pubDate>2025-02-13T10:21:39Z</pubDate>
-</item>
-<item>
-<title>[Mac mini] Mac mini M4 的扩容硬盘推荐</title>
-<link>https://www.v2ex.com/t/1111377</link>
-<guid>https://www.v2ex.com/t/1111377</guid>
-<content:encoded><![CDATA[
-<p>那么久了扩容硬盘也出来一些了，不知道买哪家的好</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:43:21Z</pubDate>
-</item>
-<item>
-<title>[问与答] 折叠屏 or iPad mini</title>
-<link>https://www.v2ex.com/t/1111376</link>
-<guid>https://www.v2ex.com/t/1111376</guid>
-<content:encoded><![CDATA[
-<p>各位好，我又来幻想需求了，我一直想每天晚上睡前躺在床上看点什么书，至于为什么一直没看，因为手上没有一个合适的设备。</p>
-<p>有一个 11 寸的安卓平板，但是拿在手上太累，不合适。
-有过一个 kindle ，尺寸是挺合适的，但是没有微信读书，而且不能看彩色的，弃。</p>
-<p>现在幻想有一个 7,8 寸的东西，我就会看书了，比如折叠屏或 ipad mini7 ，至于为什么不能几十元买本书看看，我也不知道，毕竟是幻想需求嘛</p>
-<p>折叠屏好处是便携性更强，毕竟是个手机，想看就看，缺点是耐用性。
-ipad mini7 优点是寿命有保障，用个 5,6 年都不成问题，缺点是不如手机便携，不想随身带两个设备。</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:49:19Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 苹果与谷歌恢复 TikTok 上架，是重新上架</title>
-<link>https://www.v2ex.com/t/1111375</link>
-<guid>https://www.v2ex.com/t/1111375</guid>
-<content:encoded><![CDATA[
-<p>需要重新在 app store “get”</p>
-]]></content:encoded>
-<pubDate>2025-02-13T22:14:50Z</pubDate>
-</item>
-<item>
-<title>[程序员] deepseek 应用：能否根据自动订阅的公众号、RSS，每天为我总结新闻或者关注的技术</title>
-<link>https://www.v2ex.com/t/1111374</link>
-<guid>https://www.v2ex.com/t/1111374</guid>
-<content:encoded><![CDATA[
-<p>目前看能让 deepseek 直接阅读单篇文章，但是好像没有应用能自动拉取新的文章，或者 Follow 的输出能用吗？有啥好的思路没呀</p>
-]]></content:encoded>
-<pubDate>2025-02-13T12:15:25Z</pubDate>
-</item>
-<item>
-<title>[问与答] 因为 Hector Martin 辞去 Asahi Linux 项目负责人职务，打算出掉不想继续用的苹果产品</title>
-<link>https://www.v2ex.com/t/1111373</link>
-<guid>https://www.v2ex.com/t/1111373</guid>
-<content:encoded><![CDATA[
-<p>自前几天 Hector Martin 辞去上游内核的 apple 驱动维护者职务的事发生后我一直都很担心 Asahi Linux 未来的发展，今天看到这个消息：</p>
-<p><a href="https://marcan.st/2025/02/resigning-as-asahi-linux-project-lead/" rel="nofollow">https://marcan.st/2025/02/resigning-as-asahi-linux-project-lead/</a></p>
-<p>让我对 Asahi Linux 未来的发展不再抱有期待，我因为 Asahi Linux 项目前前后后购买了 5 台苹果设备，现在考虑要把其中的 2 台出二手出掉了，我从来没出过二手，觉得咸鱼平台不靠谱，不知道有啥比较可靠的途径能把二手产品出掉。</p>
-<p>想出掉的设备是：</p>
-<p>m2 macbook air 16 + 256 银色（ 8 核 gpu ），去年 11 月购买自京东自营，外观完好</p>
-<p>m4 macmini 16 + 256 ，去年 11 月购买自苹果官网，外观完好 （本来期待今年 Asahi Linux 能适配的，想着这玩意一年时间应该也没有太多的掉价空间，就先买来玩玩，目前大多数时间在吃灰）</p>
-<p>顺便问一下现在出的话，价格多少合适？</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:44:26Z</pubDate>
-</item>
-<item>
-<title>[Apple] iPhone12PM，后盖碎了，电池也不行了，官方电池 729 有点儿贵啊，后盖碎了去官方能不能只换电池？还是需要先修好后盖？</title>
-<link>https://www.v2ex.com/t/1111371</link>
-<guid>https://www.v2ex.com/t/1111371</guid>
-<content:encoded><![CDATA[
-<h3>我看抖音说有小孔和大孔的后盖不一样。</h3>
-<h3>我问了我当地的修手机的，说换后盖 150 没说是小孔还是大孔，移植德赛电芯 120 块钱，换整块电池 180</h3>
-<h3>老哥们换什么电池靠谱点儿？还想再用几年</h3>
-]]></content:encoded>
-<pubDate>2025-02-13T10:06:09Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 8 年前端老鸟，面了 3 个月一个 offer，麻了</title>
-<link>https://www.v2ex.com/t/1111368</link>
-<guid>https://www.v2ex.com/t/1111368</guid>
-<content:encoded><![CDATA[
-<p>工作 8 年的老前端，面了三个月，已经差不多面了 20 家公司，身心疲惫，但也逐渐明确了职业的发展方向</p>
-<p><strong>背景</strong></p>
-<ol>
-<li>
-<p>实习转正进了大厂，一直🐶到 24 年底，在团队混的一般， 虽然和老板认识比较久，但是能力水平一般，为人处世也不够灵光，停在当前职级已经 5 年。</p>
-</li>
-<li>
-<p>去年底领了裁员大礼包跑路</p>
-</li>
-</ol>
-<p><strong>面试</strong></p>
-<ul>
-<li>12 月：慌里慌忙，没好刷题就开始找面试，整体面试表现一般（有些可以答对的没答好）</li>
-<li>1 月：刷题量上来，表现略有提升</li>
-<li>2 月：年后发现面试的人更多，僧多粥少，约面没有年前那么容易</li>
-</ul>
-<p><strong>当前的 offer</strong></p>
-<blockquote>
-<p>一个 offer （ AI 创业端侧小模型公司），不是特别想去</p>
-</blockquote>
-<ul>
-<li>钱少：月薪少、12 薪、还没期权</li>
-<li>难以建立信任：这个创业公司两波人，上海 + 美国，协作跨时区，部分人在线上远程</li>
-<li>
-感觉被轻视<ul>
-<li>解释了薪资低的原因，AI 可以替代很多前端编码工作</li>
-<li>就面了两轮，技术能力和过往项目的考察很弱</li>
-</ul>
-</li>
-</ul>
-<p><strong>回顾</strong>
-过程中，面了不同类型的岗位，算是积累不少面试的经验</p>
-<ul>
-<li>工作形式：远程工作岗、线下办公和两个能结合的</li>
-<li>公司类型：外企、国企、创业公司、金融行业等等</li>
-<li>工作职能：纯前端、全栈偏前端和 tech leader 都尝试了</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-14T02:50:37Z</pubDate>
-</item>
-<item>
-<title>[汽车] 关于车的发展</title>
-<link>https://www.v2ex.com/t/1111367</link>
-<guid>https://www.v2ex.com/t/1111367</guid>
-<content:encoded><![CDATA[
-<p>现在汽车行业正经历着类似当年手机产业的快速迭代期, 更新换代很快. 也间接的导致车不保值并且很容易被被刺.</p>
-<p>不过车毕竟是大宗货物, 动辄几十万的价格所以在购买的时候消费者要考虑的很多.</p>
-<p>我个人认为在选车时考虑的点: 价格、智驾、空间、外观、动力、维修成本等等.</p>
-<p>针对 15-25 万元这一主流价格区间的车型，我想请教各位：未来这一价位的车型可能会出现哪些重大技术革新或配置升级？或者说各位认为车上必须要有的功能及其对应的理由.</p>
-<p>因为这些潜在的变化可能会影响我们的购车决策, 如果知道的多一点可以减少购车后的遗憾.</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:25:32Z</pubDate>
-</item>
-<item>
-<title>[Mac mini] 换了 m4 mini 以后，外置硬盘温度降低</title>
-<link>https://www.v2ex.com/t/1111366</link>
-<guid>https://www.v2ex.com/t/1111366</guid>
-<content:encoded><![CDATA[
-<p>之前是 m2 mini ，一直得用风扇吹，不然就发热掉盘。
-现在换了 m4 ，风扇撤了，也不烫手了，还没掉过。</p>
-<p>硬盘盒： <a href="https://item.jd.com/100063014918.html" rel="nofollow">https://item.jd.com/100063014918.html</a></p>
-]]></content:encoded>
-<pubDate>2025-02-14T01:57:50Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [广州] 大数据开发工程师</title>
-<link>https://www.v2ex.com/t/1111365</link>
-<guid>https://www.v2ex.com/t/1111365</guid>
-<content:encoded><![CDATA[
-<p>岗位职责：</p>
-<ol>
-<li>负责大数据相关技术栈的部署与开发，包括 Kafka 、HDFS 、HBase 、Hive 、Spark/Flink 等。</li>
-<li>搭建并优化分布式数据存储与计算框架，设计高效的数据清洗与处理流程。</li>
-<li>实现实时数据流处理，支持时序特征计算及存储。</li>
-<li>持续优化数据处理性能，确保系统的高吞吐和低延迟。</li>
-</ol>
-<p>任职要求：</p>
-<ol>
-<li>熟悉 Kafka 集群部署与调优，能够设计高可用消息队列架构。</li>
-<li>精通 HDFS 、Hive 、HBase 等分布式存储技术，具备数据分层存储设计经验。</li>
-<li>掌握 Spark 或 Flink ，能够独立完成离线批处理和实时流处理任务。</li>
-<li>熟悉 Linux 环境，具备 Shell 脚本开发能力。</li>
-<li>有分布式系统的开发与优化经验，了解数据备份与容灾策略。</li>
-</ol>
-<p>加分项：</p>
-<ol>
-<li>有电力或物联网行业相关经验。</li>
-<li>熟悉 scala/go 开发语言。</li>
-<li>了解 Kafka Connect 或 Flink SQL 。</li>
-</ol>
-<p>公司地点在广州科学城，但是前期要派驻南方电网驻场办公。项目完成后，回公司工作，所以并非长期外包。</p>
-<p>待遇是 25k x 14 ，周末双休，五险一金。</p>
-<p>欢迎联系我们，简历请投送至： <a href="mailto:hi.computer431@aleeas.com">hi.computer431@aleeas.com</a></p>
-]]></content:encoded>
-<pubDate>2025-02-14T01:55:12Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 才知道光线传媒靠哪吒 2 在短短 10 天内股价翻了两倍</title>
-<link>https://www.v2ex.com/t/1111364</link>
-<guid>https://www.v2ex.com/t/1111364</guid>
-<content:encoded><![CDATA[
-<p>感觉对这种东西的敏感度太低了，抓不住机会</p>
-]]></content:encoded>
-<pubDate>2025-02-14T02:48:56Z</pubDate>
 </item>
 </channel>
 </rss>
