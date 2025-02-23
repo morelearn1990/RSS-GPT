@@ -5,16 +5,130 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[Java] 微服务中某个服务对外接口变化，那么调用这个接口的所有服务都需要更新，有没有什么好的方案？</title>
+<link>https://www.v2ex.com/t/1113681</link>
+<guid>https://www.v2ex.com/t/1113681</guid>
+<content:encoded><![CDATA[
+
+看到讨论微服务优劣的帖子，我有个疑问，如果微服务中的某个基础服务对外接口发生变化，假设有 10 个服务调用了此接口，那么所有接口都需要重新改动？甚至于有时不知道哪些服务会调用到这个变动的接口，这是个大问题，请问大家都用什么方案来解决以上问题？
+]]></content:encoded>
+<pubDate>2025-02-23T15:43:02Z</pubDate>
+<pubDate>2025-02-23T15:58:40Z</pubDate>
+</item>
+<item>
+<title>[程序员] [不知是否坐井观天]人类工程技术里，解决最优化问题的方法上限是动态规划，分解事物问题本质的方法上限是傅里叶变换。</title>
+<link>https://www.v2ex.com/t/1113680</link>
+<guid>https://www.v2ex.com/t/1113680</guid>
+<content:encoded><![CDATA[
+
+刚刚骑车休息无聊时想到，<br /><br />硕士控制工程的研究理论的本质是基于状态转移方程的动态规划；现在流行人工智能深度学习神经网络里模型训练的反向传播本质上还是动态规划。<br /><br />所以在几十年前中学生参加 noip 竞赛就掌握了的动态规划，居然是人类工程学里最优化方法的上限，无非是从一个数的优化变成了对多维矩阵的优化，无法是从时域问题分解后变成了傅里叶变换后的频域问题。<br /><br />不知是否坐井观天，人类工程技术里，解决最优化问题的方法上限只是 70 年前运筹学里的动态规划，分解事物问题本质的方法上限只是几百年前傅里叶变换及其几个变种变换。
+]]></content:encoded>
+<pubDate>2025-02-23T15:41:48Z</pubDate>
+<pubDate>2025-02-22T23:41:48Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有人了解日本高度人才签打分政策的？</title>
+<link>https://www.v2ex.com/t/1113678</link>
+<guid>https://www.v2ex.com/t/1113678</guid>
+<content:encoded><![CDATA[
+
+在网上搜到不同的答案不清楚哪个是真实的<br />答案一：---------------------------------<br />日本高度人才签证年龄和薪资的得分标准如下：<br /><br />• 年龄得分<br />• 29 岁及以下：15 分<br />• 30 至 34 岁：10 分<br />• 35 至 39 岁：5 分<br />• 薪资得分<br />• 3000 万日元及以上：50 分<br />• 2500 万至 3000 万日元：40 分<br />• 2000 万至 2500 万日元：30 分<br />• 1500 万至 2000 万日元：20 分<br />• 1000 万至 1500 万日元：10 分<br /><br />答案二：---------------------------------<br />工作 10 年以上加 20 分<br />年收入 1000w 日元以上得 40 分？<br /><br /><br /><br />答案二容易达标<br />答案一就很难达到要求
+]]></content:encoded>
+<pubDate>2025-02-23T15:38:24Z</pubDate>
+<pubDate>2025-02-23T15:55:51Z</pubDate>
+</item>
+<item>
+<title>[Linux] Linux 如何为在本机上创建的 nat 网络设置不同于系统的默认路由的默认路由？</title>
+<link>https://www.v2ex.com/t/1113675</link>
+<guid>https://www.v2ex.com/t/1113675</guid>
+<content:encoded><![CDATA[
+
+<p>这里说的 nat 网络是指类似于 docker 服务创建的 docker0 接口，lxc-net 服务创建的 lxcbr0 接口，virtnetworkd 服务创建的 virbr0 接口，这些本质都是用来给虚拟机或容器用的网桥，默认情况下虚拟机或容器会使用系统的默认路由来连接互联网，但是我的系统的默认路由是走主路由的，主路由没有科学上网功能，我想让虚拟机或容器走带有科学上网功能的旁路由，有什么办法实现吗？</p>
+<p>比如我的本机的 ip 是 192.168.1.2 ，主路由的 ip 是 192.168.1.1 ，科学上网旁路由的 ip 是 192.168.1.253 ，我可以用下面几条命令创建一个 nat 网络：</p>
+<pre><code>BRIDGE=nat-br
+NETWORK=192.168.53.0
+NETMASK=255.255.255.0
+GATEWAY=192.168.53.1
+DHCPRANGE=192.168.53.2,192.168.53.254
+
+echo 1 &gt; /proc/sys/net/ipv4/ip_forward
+
+if [ ! -e /sys/class/net/$BRIDGE/bridge ] ; then
+	ip link add name $BRIDGE type bridge
+	ip addr add $GATEWAY/$NETMASK dev $BRIDGE
+	ip link set $BRIDGE up
+	
+	iptables -t nat -I POSTROUTING -s $NETWORK/$NETMASK -j MASQUERADE
+	iptables -t nat -A PREROUTING -p udp -i $BRIDGE --dport 53 -j DNAT --to-destination 192.168.1.253:53
+	dnsmasq --interface=$BRIDGE --strict-order --except-interface=lo --listen-address=$GATEWAY --bind-interfaces --dhcp-range=$DHCPRANGE --dhcp-no-override
+fi
+
+</code></pre>
+<p>如果系统的默认路由现在是 192.168.1.253 ，那么使用 nat-br 这个网桥的虚拟机或容器是能直接访问谷歌的，但我不想把系统的默认路由设置成 192.168.1.253 ，想保持为 192.168.1.1 ，同时又能达到让虚拟机或容器科学上网的效果</p>
+]]></content:encoded>
+<pubDate>2025-02-23T15:21:41Z</pubDate>
+<pubDate>2025-02-23T16:08:55Z</pubDate>
+</item>
+<item>
+<title>[问与答] 覆盖还原 data 文件夹后， mysql 无法启动了</title>
+<link>https://www.v2ex.com/t/1113674</link>
+<guid>https://www.v2ex.com/t/1113674</guid>
+<content:encoded><![CDATA[
+
+我用 C:\ProgramData\MySQL\MySQL Server 8.0\Data\文件夹的备份覆盖了现在的 data 文件夹，<br />net start mysql80 提示<br />MySQL80 服务正在启动 .<br />MySQL80 服务无法启动。<br /><br />服务没有报告任何错误。<br /><br />请键入 NET HELPMSG 3534 以获得更多的帮助。<br />请问要怎么办？
+]]></content:encoded>
+<pubDate>2025-02-23T15:16:54Z</pubDate>
+<pubDate>2025-02-23T11:15:54Z</pubDate>
+</item>
+<item>
+<title>[Apple] 从国内买的国行版 mac mini m4 带到国外用会有 ai 吗？</title>
+<link>https://www.v2ex.com/t/1113671</link>
+<guid>https://www.v2ex.com/t/1113671</guid>
+<content:encoded><![CDATA[
+
+想从国内买台带出去用，用的国外的 apple id 能有 ai 吗？请教，谢谢！
+]]></content:encoded>
+<pubDate>2025-02-23T14:50:57Z</pubDate>
+<pubDate>2025-02-23T14:57:13Z</pubDate>
+</item>
+<item>
+<title>[程序员] Android 找工作有感</title>
+<link>https://www.v2ex.com/t/1113670</link>
+<guid>https://www.v2ex.com/t/1113670</guid>
+<content:encoded><![CDATA[
+
+1：感慨：年后开始找工作，发现纯 Android 原生的岗位真的太少了，大部分都需要跨端，而跨端技术栈大部分是 Flutter 。关于跨端，前几年我倾向于 Android 和 IOS 各自一套，现在我也认可需要跨端，毕竟每个端一套代码成本确实挺高，但我目前更倾向于 React native ，一方面我有些前端基础，另外一方面，这几年我的想法也发生了改变，我现在觉得所有 GUI 程序最终都应该使用 Javascript 来写（网上看到的比较认可的观点），所以对于 Flutter 我一直都没有去写项目，没有 Flutter 经验导致选择会少很多。<br /><br />2：展望：年纪也上来了，但是对于代码，虽然天赋不行，但还是挺喜欢写代码的，即使真的找不到工作也会继续学习写代码，因为有些前端基础，使用 React 写过一些 demo ，最近在跟着 The odin project 准备系统过一遍前端开发的知识，希望未来也可以熟练掌握前端开发。<br /><br />3：疑惑：如果单纯以收益来说，转后端还是前端收益高一些？可持续一些？后端似乎更吃项目经验，目前没法直接实战，使用 springboot 简单 crud 问题不大。
+]]></content:encoded>
+<pubDate>2025-02-23T14:46:11Z</pubDate>
+<pubDate>2025-02-23T15:21:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 过来人 V 友,是如何解决 [双职工家庭，接送娃] 问题的？</title>
+<link>https://www.v2ex.com/t/1113669</link>
+<guid>https://www.v2ex.com/t/1113669</guid>
+<content:encoded><![CDATA[
+
+<p>背景：幼儿园上学 8 点，放学一般下午 4 点 30 ；小学也差不多</p>
+<ul>
+<li>老人帮忙。 </li>
+<li>牺牲一人，当 [全职宝妈/宝爸] ，但其实问题多多</li>
+<li>晚托 / 钟点工，貌似最为均衡合理</li>
+<li>找一个能匹配下学时间的工作，极难</li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-02-23T14:30:06Z</pubDate>
+<pubDate>2025-02-23T11:30:06Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 同样的 AI 应用。火山引擎的 token。用的飞快。不知道怎么回事。</title>
 <link>https://www.v2ex.com/t/1113666</link>
 <guid>https://www.v2ex.com/t/1113666</guid>
 <content:encoded><![CDATA[
-
 <p>字节跳动火山引擎的 token 。参加那个协作奖励计划，每天赠送 500 万 token 。我使用 python 并发请求。10 个并发。基本 2 个小时就用了 1000 万。也就是倒欠了 500 万的 token 。大概欠 9 块钱。</p>
 <p>但是用阿里百炼平台。之前赠送了我 1000 万的 token 。同样的 python 项目请求。同样的并发数量。用了 4 到 5 个小时。也没欠费，可能用光就停止了。</p>
 <p>是啥原因？有其他人遇到过吗？难道是火山引擎的应答速度更快？我也没感觉和阿里云差别有多少啊。</p>
 ]]></content:encoded>
-<pubDate>2025-02-23T14:11:31Z</pubDate>
 <pubDate>2025-02-23T14:12:39Z</pubDate>
 </item>
 <item>
@@ -22,7 +136,6 @@
 <link>https://www.v2ex.com/t/1113665</link>
 <guid>https://www.v2ex.com/t/1113665</guid>
 <content:encoded><![CDATA[
-
 <p>比如说在 javascript 中，我有一些原始数据，用于构造一个最终对象，所以这个 data 一次性用完就没用了。</p>
 <pre><code class="language-js">const data = { ... }
 const targetObj = build(data)
@@ -33,7 +146,6 @@ const targetObj = build(data())
 </code></pre>
 <p>如果这些数据比较大，用了函数，是不是省了数据一份在内存中复制品？</p>
 ]]></content:encoded>
-<pubDate>2025-02-23T13:48:58Z</pubDate>
 <pubDate>2025-02-23T13:51:53Z</pubDate>
 </item>
 <item>
@@ -41,10 +153,8 @@ const targetObj = build(data())
 <link>https://www.v2ex.com/t/1113663</link>
 <guid>https://www.v2ex.com/t/1113663</guid>
 <content:encoded><![CDATA[
-
 <p>各位佬有没有见过什么嘴臭的要死，专门用来怼人的大模型啊。求推荐</p>
 ]]></content:encoded>
-<pubDate>2025-02-23T13:21:15Z</pubDate>
 <pubDate>2025-02-23T13:55:51Z</pubDate>
 </item>
 <item>
@@ -52,7 +162,6 @@ const targetObj = build(data())
 <link>https://www.v2ex.com/t/1113662</link>
 <guid>https://www.v2ex.com/t/1113662</guid>
 <content:encoded><![CDATA[
-
 <p>目前在用的是 LG 850w 显示器，显示效果可以接受，就是用得有些久了想换换口味。外加不喜欢这个弧形的底座，用久了发现很占空间，不实用。</p>
 <p>主要需求是适配 mbp ，色彩越接近越好，在家休息使用，不考虑打游戏场景，不需要高刷，但是希望质感好一些，色彩好一些。预算 3k-4k</p>
 <p>目前考虑:</p>
@@ -63,7 +172,6 @@ const targetObj = build(data())
 <p>所以，求推荐一些其他的选择，自己了解少，不清楚其他的选择。</p>
 <p>谢谢~</p>
 ]]></content:encoded>
-<pubDate>2025-02-23T13:15:51Z</pubDate>
 <pubDate>2025-02-23T14:07:47Z</pubDate>
 </item>
 <item>
@@ -71,10 +179,8 @@ const targetObj = build(data())
 <link>https://www.v2ex.com/t/1113660</link>
 <guid>https://www.v2ex.com/t/1113660</guid>
 <content:encoded><![CDATA[
-
 关于我们<br />Artisk 是一家创新的 AI 驱动设计平台，致力于将前沿科技与艺术创意相结合，帮助企业通过 AI 技术打造独特的品牌形象。如果你对 AIGC 充满热情，并渴望加入一个充满活力、创新的团队，Artisk 期待你的加入！<br /><br />创始人<br />Artisk 由 Chen 在硅谷创立，Chen 是一名连续创业者、福布斯北美华人精英，拥有丰富的设计与商业背景。曾在全球顶尖设计公司 Pentagram 和 Sagmeister 任职，并成功创立纽约时尚品牌 YEE SI ，服务过联合利华、百事可乐、匡威、施华洛世奇等国际一线品牌。<br /><br />职位概述<br />我们正在寻找一位充满激情且技术过硬的战友，加入我们高效、专业的团队。你将参与从前端到后端的开发与优化，致力于为用户打造流畅、智能的体验，并探索最前沿的技术。<br /><br />主要职责<br /><br />前端开发<br />•	精通 React 框架，构建交互式用户界面<br />•	熟练使用 Tailwind CSS ，设计美观、响应式界面<br />•	具备 Canvas 或类似库（如 Fabric.js ）绘图经验，实现图像处理和展示功能<br /><br />后端开发<br />•	精通 Node.js ，构建高性能后端服务，并具备良好的架构设计能力<br />•	熟悉 MongoDB ，设计和优化数据库结构，支持文生图应用的数据存储<br />•	熟悉 ChatGPT API 或其他文本生成模型，集成到应用中实现文本到图像的转换<br />•	精通消息队列（如 RabbitMQ 、Kafka ），提升系统性能与可扩展性<br /><br />DevOps<br />•	有 AWS 云平台使用经验，进行应用部署、监控和维护<br />•	熟悉 Amazon S3 ，进行图像存储和管理<br />•	具备容器化部署经验，熟悉 Docker 和 Kubernetes ，实现应用弹性扩展和高效运维<br /><br />加分项<br />•	有 MeteorJS 全栈框架经验<br />•	能基于 Fabric.js 封装定制的图像编辑器<br />•	熟悉 Heroku 云平台和 Stripe 支付系统<br />•	有文生图模型 API 使用经验<br />•	熟悉提示词工程及聊天机器人应用开发，了解 Coze 或 Dify 等 AI Agent 平台<br />•	熟悉 WebSocket 编程，能够实现实时通信<br /><br />我们期待你<br />•	对 AI 技术特别是生成式模型充满热情，愿意深入学习探索<br />•	具有良好的代码风格与文档规范，注重代码质量与可维护性<br />•	具备优秀的沟通能力与团队协作精神，能独立解决问题<br />•	有设计工具经验或英语流利者优先<br /><br />我们提供<br />•	与顶尖团队合作，参与前沿技术的研发<br />•	灵活的工作时间和远程工作选项<br />•	薪资待遇：¥20,000 - ¥40,000 + 期权<br />•	创新激励环境，提供个人技能提升和职业发展机会<br />•	广阔的职业发展空间，帮助你在 AI 和设计领域快速成长<br /><br />如何申请<br />如果你对 AI 技术充满热情，且希望成为前沿设计与技术的一部分，请将简历和作品集发送至 info@artisk.ai 。邮件标题请注明 “应聘 CTO/Tech Lead/全栈开发工程师”。<br /><br />加入我们，探索 AIGC 的无限可能！
 ]]></content:encoded>
-<pubDate>2025-02-23T12:57:01Z</pubDate>
 <pubDate>2025-02-23T12:54:01Z</pubDate>
 </item>
 <item>
@@ -82,10 +188,8 @@ const targetObj = build(data())
 <link>https://www.v2ex.com/t/1113659</link>
 <guid>https://www.v2ex.com/t/1113659</guid>
 <content:encoded><![CDATA[
-
 我手头有一块远古的 Wacom 数位板，驱动已经停止更新了。<br />在 Windows 11 24H2 上能正常使用，但我最近把日常使用的台式机换成了 M4 mac mini 。<br />因为 macOS 的向前兼容性不行，现在卡在驱动程序上了。<br /><br />有办法让它正常使用吗？<br />似乎有个叫 OpenTabletDriver 的驱动，有人用过吗？<br /><br />至于为什么不换成新的，因为新款的笔手感不一样……
 ]]></content:encoded>
-<pubDate>2025-02-23T12:51:04Z</pubDate>
 <pubDate>2025-02-23T12:51:04Z</pubDate>
 </item>
 <item>
@@ -93,16 +197,13 @@ const targetObj = build(data())
 <link>https://www.v2ex.com/t/1113661</link>
 <guid>https://www.v2ex.com/t/1113661</guid>
 <content:encoded><![CDATA[
-
 <pre><code class="language-js">atob("aHR0cHM6Ly9wbGF5Lmdvb2dsZS5jb20vc3RvcmUvYXBwcy9kZXRhaWxzP2lkPWNvbS5jb3VwYW5nLm1vYmlsZSZobD16aA==")
 </code></pre>
 <p>有意者发 v ，看到的都会加</p>
 <p>报价半个 w</p>
 ]]></content:encoded>
 <pubDate>2025-02-23T12:57:04Z</pubDate>
-<pubDate>2025-02-23T12:57:04Z</pubDate>
 </item>
-
 <item>
 <title>[硬件] 关于二手工作站 DELL T7920 价格请教</title>
 <link>https://www.v2ex.com/t/1113658</link>
@@ -17166,95 +17267,6 @@ AI 编辑器 Cursor/Windsurf/Vscode Copilot 都可以按照自然语言生成新
 <p>之前装了 Rime 一直在用，搜狗还留着。今天发现搜狗输入法居然新增了一个 PDF 工具，而且还塞到了右键菜单里面。我佛了。</p>
 ]]></content:encoded>
 <pubDate>2025-02-18T13:42:10Z</pubDate>
-</item>
-<item>
-<title>[求职] [北京]5 年 Python 后端 想找个工作,求大佬捞</title>
-<link>https://www.v2ex.com/t/1112436</link>
-<guid>https://www.v2ex.com/t/1112436</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>5 年 Python 后端开发经验</li>
-<li>之前主写 Django,数据库 mysql 和 pgsql 都有用</li>
-<li>写过 Golang</li>
-<li>熟悉前端,可以全栈开发</li>
-<li>应用 0-1 经验丰富,啥都能干那种</li>
-</ul>
-<p>之前做 AI 音乐相关的创业公司后端负责人,公司无了</p>
-<p>最近投简历全是外包回复,心态有点崩,找大佬捞捞
-有合适的机会可以留邮箱或者 V,直接加我 V 也可以:c3B5MDAxMQ==</p>
-]]></content:encoded>
-<pubDate>2025-02-18T13:15:59Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [招聘] nodejs 后端开发工程师</title>
-<link>https://www.v2ex.com/t/1112434</link>
-<guid>https://www.v2ex.com/t/1112434</guid>
-<content:encoded><![CDATA[
-<p>招聘 nodejs 后端工程师，工作方向主要为 vscode 插件开发，大模型业务相关。
-要求 1 到 5 年工作经验，本科及以上。有 vscode 插件开发经验为最佳。</p>
-<p>央国企，双休，不卷。
-地点武汉。</p>
-<p>欢迎各位大佬投递。</p>
-]]></content:encoded>
-<pubDate>2025-02-18T13:29:40Z</pubDate>
-</item>
-<item>
-<title>[硬件] anker 到底怎么样</title>
-<link>https://www.v2ex.com/t/1112433</link>
-<guid>https://www.v2ex.com/t/1112433</guid>
-<content:encoded><![CDATA[
-看 anker 的评论在 V 站有点两极分化。<br />自己入了一个，给 MacBook 充电居然需要协商一分钟之久。
-]]></content:encoded>
-<pubDate>2025-02-18T12:53:21Z</pubDate>
-</item>
-<item>
-<title>[Java] 有什么好用的可以生成测试用的复杂假数据的软件么？</title>
-<link>https://www.v2ex.com/t/1112432</link>
-<guid>https://www.v2ex.com/t/1112432</guid>
-<content:encoded><![CDATA[
-<p>接口功能需要假数据测试，但是那些假数据又有特殊规则，比如连表关系或者是特殊的字符串格式那些，用 AI 生成也可以，但是总归是太麻烦了，每次都得提好多次需求</p>
-<p>现在有没有什么现成的可以满足这些需求的软件？</p>
-]]></content:encoded>
-<pubDate>2025-02-18T13:00:02Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大家有在 macOS 上用过 loon 吗? 想请问一下体验如何</title>
-<link>https://www.v2ex.com/t/1112431</link>
-<guid>https://www.v2ex.com/t/1112431</guid>
-<content:encoded><![CDATA[
-<p>之前一直使用 clash verge-rev 但是用起来总感觉有点不舒服. </p>
-<p>调研了一圈 mac 上常见的代理工具 <strong>Surge, Quantumult X, loon, singbox, v2rayU</strong></p>
-<ol>
-<li>Surge 太贵(pass)</li>
-<li>singbox 上手难度有点高,同时界面 UI 不太喜欢.</li>
-<li>Quantumult X 颜值可以,同时有 mac 版的,但是普遍评价更新慢,支持的协议少</li>
-<li>loon 感觉都很喜欢,但是没有 mac 版本的,只能用 ipad 版本,不知道体验如何希望有用过的朋友分享一下.</li>
-<li>v2rayU 同样感觉 UI 不太喜欢</li>
-</ol>
-<p><strong>所以准备打算想买个 loon 作为 mac 上的主要代理软件了.</strong> 但是这两天看了好久发现网上关于 mac 上使用 loon 内容很少,想问问大伙值不值得?</p>
-]]></content:encoded>
-<pubDate>2025-02-18T12:31:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 还有哪些类似 open-webui 的产品？</title>
-<link>https://www.v2ex.com/t/1112430</link>
-<guid>https://www.v2ex.com/t/1112430</guid>
-<content:encoded><![CDATA[
-个人是比较喜欢简介的界面、轻量化的应用<br /><br />找到了很喜欢的 openwebui ，但是发现好像有很多厂商的大模型没办法原生接口支持，只支持 openai 格式的接口，或者配合 Pipeline 来使用。<br /><br />想看看大家都在用哪些类似的产品，以及你的使用技巧~
-]]></content:encoded>
-<pubDate>2025-02-10T12:25:48Z</pubDate>
-</item>
-<item>
-<title>[Linux] 请教一下 Linux 环境下如何将 word 高保真的转为 pdf</title>
-<link>https://www.v2ex.com/t/1112429</link>
-<guid>https://www.v2ex.com/t/1112429</guid>
-<content:encoded><![CDATA[
-<p>SpringBoot 项目，运行在 centos 服务器上。</p>
-<p>有个需求要把 Word 文件转为 Pdf 文件，尝试了 libreoffice(免费），Apose Words （收费），感觉效果都没有竞品的好，更比不上 wps 或者 word 程序直接转的。
-阿里云、腾讯云、WPS 都有转换的 API ，但是太贵了，转换一次要 1 毛左右了。</p>
-<p>有什么高保真无损转换的方案吗？</p>
-]]></content:encoded>
-<pubDate>2025-02-18T12:38:58Z</pubDate>
 </item>
 </channel>
 </rss>
