@@ -5,14 +5,419 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[iOS] LiveCommunicationKit 在外版设备可以自动 fallback 成 CallKit？</title>
+<link>https://www.v2ex.com/t/1114446</link>
+<guid>https://www.v2ex.com/t/1114446</guid>
+<content:encoded><![CDATA[
+
+发现自己的微信明明是国区，但依然是 CallKit 的样式，就怀疑自己的到底是 LiveCommunicationKit 还是 CallKit ，于是自己写了个 App 来调用 LiveCommunicationKit 测试。<br /><br />结果发现在我自己的港版 iPhone 上是 CallKit 的样式，朋友的国行 iPhone 调用就是标准的 LiveCommunicationKit 的样式。想知道 LiveCommunicationKit 是真的有这么一个自动选择机制吗？如果是真的，又有一个不选择国行的理由了。<br /><br />也欢迎大家把自己微信电话的样式和机型地区发出来做一下调查。
+]]></content:encoded>
+<pubDate>2025-02-26T12:34:22Z</pubDate>
+<pubDate>2025-02-26T12:33:22Z</pubDate>
+</item>
+<item>
+<title>[Linux] Linux 使用 systemd 作为软路由，以及 IPV6 DHCPv6-PD</title>
+<link>https://www.v2ex.com/t/1114445</link>
+<guid>https://www.v2ex.com/t/1114445</guid>
+<content:encoded><![CDATA[
+
+<p>移动宽度给 ipv6 ，但是现在光猫改桥接太难，加上现在大多数光猫其实下发了 ipv6-pd 。一般来说可以让光猫的下两级都获取 ipv6 。</p>
+<ul>
+<li>
+<p>ip link 命令查看有几个网络接口，及记录接口名称，自行判断哪个当 wan ，哪个(哪几个)当 lan 。</p>
+</li>
+<li>
+<p>在/etc/systemd/network/目录下，创建以.network 结尾的文件，例如 10-lan.network  20-wan.network 。前缀数字代表优先级，数字小，对应接口优先级高。</p>
+</li>
+<li>
+<p>wan 配置如下</p>
+</li>
+</ul>
+<pre><code>[Match]
+Name=接口名
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=yes
+IPv6PrivacyExtensions=yes
+
+[DHCPv6]
+UseDelegatedPrefix=true
+WithoutRA=solicit
+
+[IPv6AcceptRA]
+UseAutonomousPrefix=no
+</code></pre>
+<ul>
+<li>lan 配置如下</li>
+</ul>
+<pre><code>[Match]
+Name=接口名
+
+[Link]
+Multicast=yes
+
+[Network]
+DHCPServer=yes
+Address=10.0.0.1/16
+MulticastDNS=yes
+IPMasquerade=ipv4
+IPv6SendRA=yes
+DHCPPrefixDelegation=yes
+
+[DHCPServer]
+EmitDNS=yes
+DNS=_server_address
+
+[IPv6SendRA]
+EmitDNS=yes
+DNS=_link_local
+</code></pre>
+<ul>
+<li>关闭其他的网络管理服务，防止冲突</li>
+<li>启动 systemd-networkd</li>
+</ul>
+<pre><code>sudo systemctl enable --now systemd-networkd.service
+# 此时看看 linux 本机是否网络正常
+</code></pre>
+<ul>
+<li>dns 服务也可以用 systemd-resolved （记得关了其他 dns 服务,防止冲突）</li>
+</ul>
+<pre><code>sudo systemctl enable --now systemd-resolved.service
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+# 创建/etc/systemd/resolved.conf.d/ 目录，该目录下创建 .conf 结尾的配置文件，例如 mysetting.conf
+# 编辑.conf 文件，内容参考/etc/systemd/resolved.conf 中的内容，可以直接复制过来，
+# 像什么 dns over tls 什么的可以自己看文档去配，默认是所有内容都注释了
+# 唯一有用的修改内容是加一行下面的代码
+DNSStubListenerExtra=10.0.0.1
+# 10.0.0.1 是我上面配置的 lan 口的 ip ，按需修改，这一行配置功能是监听了 10.0.0.1 的 dns 请求
+</code></pre>
+]]></content:encoded>
+<pubDate>2025-02-26T12:33:57Z</pubDate>
+<pubDate>2025-02-26T12:32:57Z</pubDate>
+</item>
+<item>
+<title>[酷工作] V 站有字节 Flow AI 团队的同学吗？</title>
+<link>https://www.v2ex.com/t/1114444</link>
+<guid>https://www.v2ex.com/t/1114444</guid>
+<content:encoded><![CDATA[
+
+<p>V 站有字节 Flow AI 团队的同学吗？想了解一下下面这个岗位，求内推。</p>
+<p><a href="https://jobs.bytedance.com/experienced/position/7345680517277468966/detail" rel="nofollow">https://jobs.bytedance.com/experienced/position/7345680517277468966/detail</a></p>
+]]></content:encoded>
+<pubDate>2025-02-26T12:32:32Z</pubDate>
+<pubDate>2025-02-26T12:32:32Z</pubDate>
+</item>
+<item>
+<title>[程序员] Rustdesk 用户登录问题</title>
+<link>https://www.v2ex.com/t/1114443</link>
+<guid>https://www.v2ex.com/t/1114443</guid>
+<content:encoded><![CDATA[
+
+<p>各项设置没问题，机器什么的都能正常连上。就是应用内的用户登录没有反应（ rustdesk web 后台能看到用户登录了），大家有遇到过的么
+使用的是群晖套件版本</p>
+]]></content:encoded>
+<pubDate>2025-02-26T12:29:41Z</pubDate>
+<pubDate>2025-02-26T08:29:41Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 有一奇怪的网络超时问题</title>
+<link>https://www.v2ex.com/t/1114442</link>
+<guid>https://www.v2ex.com/t/1114442</guid>
+<content:encoded><![CDATA[
+
+公司有两条上网线路（联通和电信），在防火墙上配置动态负载均衡。访问绝大多数情况下网络访问都是正常的，但是访问极个别的 ip 时会出现超时的情况。这个超时的 ip 单用联通或者电信都是可以的。在浏览器里面会持续 pending ，用 curl 命令会有概率出现一个请求超过 10 秒钟，但是都能请求回来内容。<br />不知道该怎么排查这个问题了。。
+]]></content:encoded>
+<pubDate>2025-02-26T12:22:25Z</pubDate>
+<pubDate>2025-02-26T12:27:14Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 字节对标 cursor 的 IDE， trae 还不错</title>
+<link>https://www.v2ex.com/t/1114441</link>
+<guid>https://www.v2ex.com/t/1114441</guid>
+<content:encoded><![CDATA[
+
+<p><a href="http://trae.ai" rel="nofollow">trae.ai</a> 体验了一下，效果真不错，用了这么多 AI 编程工具下来，这个是唯一一个能按照项目风格生成代码的，而且目前免费使用 cluade3.5 和 gpt4o</p>
+]]></content:encoded>
+<pubDate>2025-02-26T12:22:21Z</pubDate>
+<pubDate>2025-02-26T12:22:21Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 用 Cursor 写个赛车游戏玩下</title>
+<link>https://www.v2ex.com/t/1114440</link>
+<guid>https://www.v2ex.com/t/1114440</guid>
+<content:encoded><![CDATA[
+
+<p>网址： <a href="https://car.lvwzhen.com" rel="nofollow">https://car.lvwzhen.com</a></p>
+<p><a href="https://car.lvwzhen.com" rel="nofollow"><img alt="WX20250226-184451-2x" class="embedded_image" rel="noreferrer" src="https://i.ibb.co/v4b1bFGY/WX20250226-184451-2x.png" /></a></p>
+]]></content:encoded>
+<pubDate>2025-02-26T12:07:10Z</pubDate>
+<pubDate>2025-02-26T10:07:10Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 湖南电信获取不到 IPV6 了</title>
+<link>https://www.v2ex.com/t/1114439</link>
+<guid>https://www.v2ex.com/t/1114439</guid>
+<content:encoded><![CDATA[
+
+<p>以前 IPV4 都是获取 175 开头的 IP ，近期获取的都是 124 开头的，发现 IPV6 获取不到了。不知道在整啥</p>
+]]></content:encoded>
+<pubDate>2025-02-26T12:04:11Z</pubDate>
+<pubDate>2025-02-26T12:04:11Z</pubDate>
+</item>
+<item>
+<title>[创业组队] 🚀 [招募技术合伙人] AI+社交 | 寻找全栈 / AI 工程师，共建社交新模式</title>
+<link>https://www.v2ex.com/t/1114437</link>
+<guid>https://www.v2ex.com/t/1114437</guid>
+<content:encoded><![CDATA[
+
+💡 关于项目<br />* 我正在打造一个 AI 驱动的社交软件，基于智能匹配算法，以男女社交作为冷启动策略，让用户能高效拓展社交圈层，并与更契合的人建立连接。<br /><br />* 在传统社交产品中（如 Soul / 探探 / Tinder / 微信），匹配逻辑仍然比较基础，很多高质量的社交连接难以实现。AI 时代，让匹配更精准、更有效，提升社交互动体验，是一个重要趋势。<br /><br />* 目前项目已经完成产品规划，有初步资金支持，目标 2 个月内上线 MVP ，正在寻找志同道合的技术合伙人。<br /><br />👤 关于我<br />* 互联网产品专家，创业 11 年，专注于产品 &amp; 运营增长<br />* 7 年互联网产品经验，深耕 B2B 平台 &amp; 用户增长；主导建设某 B2B 平台，细分行业流量第一<br />* 3 年 AI 领域深度玩家，擅长 AI 赋能商业应用<br />* 重度社交产品用户（ Soul / 探探 / Tinder / Clubhouse ），深度理解社交产品模式<br /><br />🎯 寻找的技术合伙人<br />🔹 全栈开发工程师（ 1-2 名）🎯 负责 Web MVP &amp; 技术架构<br />* Web 端 / App 端开发（ React / Vue / Node.js / FastAPI ）<br />* 搭建匹配系统 &amp; 数据存储架构<br />* 设计数据库 &amp; 服务器架构（ MongoDB / PostgreSQL / Redis ）<br /><br />🔹 AI 研发工程师（ 1-2 名） 🎯 负责 AI 匹配 &amp; 数据建模<br />* 解析用户社交行为数据，构建智能匹配算法<br />* 研究 NLP 、个性化推荐算法（ DeepSeek / OpenAI / BERT / RAG ）<br />* 让 AI 赋能社交，提升匹配精准度<br /><br />🔹 UI/UX 设计师（ 1 名）🎯 优化匹配体验 &amp; 界面设计<br />* 负责社交产品 UI 设计 &amp; 交互体验优化<br />* 让匹配体验更流畅，降低用户冷启动成本<br /><br />🤔 为什么加入？<br />✅ 社交赛道有巨大创新空间，AI 赋能社交是趋势<br />✅ 已有产品规划 &amp; 资金支持，目标 2 个月上线 MVP<br />✅ 早期核心成员，提供长期激励（期权 / 股权）<br />✅ 远程 / 灵活协作，不是纯打工，而是共创产品<br /><br />📩 如何联系<br />📩 V2EX 站内信 / 微信：18101847172<br /><br />我正在探索 AI 赋能的新方向，如果你对 AI+社交、智能匹配、社交数据优化感兴趣，欢迎一起共创！
+]]></content:encoded>
+<pubDate>2025-02-26T11:58:58Z</pubDate>
+<pubDate>2025-02-26T11:58:58Z</pubDate>
+</item>
+<item>
+<title>[问与答] nextjs 项目，想要优化国内访问速度，应该部署到阿里云还是腾讯云。</title>
+<link>https://www.v2ex.com/t/1114436</link>
+<guid>https://www.v2ex.com/t/1114436</guid>
+<content:encoded><![CDATA[
+
+<p>RT ，静态资源访问速度肯定是国内更快。但是还调用了 supabase ，但是如果部署到香港，是不是大多数情况下也 OK ？</p>
+]]></content:encoded>
+<pubDate>2025-02-26T11:57:36Z</pubDate>
+<pubDate>2025-02-26T12:01:13Z</pubDate>
+</item>
+<item>
+<title>[微信] iPhone 云测试微信小程序 有什么好推荐？</title>
+<link>https://www.v2ex.com/t/1114434</link>
+<guid>https://www.v2ex.com/t/1114434</guid>
+<content:encoded><![CDATA[
+
+rt<br />希望能按时间（分钟）收费，能白嫖最好
+]]></content:encoded>
+<pubDate>2025-02-26T11:51:31Z</pubDate>
+<pubDate>2025-02-26T11:51:31Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] deepseek 刚放开充值就降价</title>
+<link>https://www.v2ex.com/t/1114433</link>
+<guid>https://www.v2ex.com/t/1114433</guid>
+<content:encoded><![CDATA[
+
+[深度求索] 即日起，北京时间每日 00:30 至 08:30 的夜间空闲时段，DeepSeek 开放平台将推出错峰优惠活动。在此期间，API 调用价格大幅下调：DeepSeek-V3 降至原价的 50%，DeepSeek-R1 更是低至 25%。我们鼓励用户充分利用这一时段，享受更经济更流畅的服务体验。拒收请回复 R<br /><br /><br /><br /><br /><br />什么人类之光
+]]></content:encoded>
+<pubDate>2025-02-26T11:25:45Z</pubDate>
+<pubDate>2025-02-25T11:25:45Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 年初裁员，想要抱团取暖</title>
+<link>https://www.v2ex.com/t/1114432</link>
+<guid>https://www.v2ex.com/t/1114432</guid>
+<content:encoded><![CDATA[
+
+<p>俺 base 北京，是 golang 程序员</p>
+<p>想拉个群，离职和想要离职的小伙伴一起交流，刷题，面经，闲扯淡，idea ，都可以分享</p>
+<p>wx: S0ZDVjUwLVRPLU1F</p>
+]]></content:encoded>
+<pubDate>2025-02-26T11:14:42Z</pubDate>
+<pubDate>2025-02-26T11:14:42Z</pubDate>
+</item>
+<item>
+<title>[问与答] 为什么微信不推出聊天记录云存储功能？付费也行。</title>
+<link>https://www.v2ex.com/t/1114431</link>
+<guid>https://www.v2ex.com/t/1114431</guid>
+<content:encoded><![CDATA[
+
+<p>rt ，op 本人非常重视聊天记录这种东西。记得上小学的时候 qq 就有找个功能了，虽然后面要会员。
+现在微信实在是臃肿的不成样子，平时也有定时备份聊天记录到电脑的习惯，但还是太麻烦了。
+现在担心万一哪天手机坏了记录就没了。。。本人五年的微信聊天记录已经 60G 了</p>
+]]></content:encoded>
+<pubDate>2025-02-26T11:09:51Z</pubDate>
+<pubDate>2025-02-26T12:00:49Z</pubDate>
+</item>
+<item>
+<title>[职场话题] offer 方向二选一 求 v 友们指点迷津</title>
+<link>https://www.v2ex.com/t/1114430</link>
+<guid>https://www.v2ex.com/t/1114430</guid>
+<content:encoded><![CDATA[
+
+<p>小妹今年毕业，决赛圈圈中的两名选手已经去年十一月持续纠结至今，现在到了快作决定的死线，还是觉得难以定夺。</p>
+<hr />
+<p>Offer1: 沿海老家运营商省公司云方向开发
+定岗 7 岗，到手 N ，工作内容基本以当甲方为主，六点下班，工资水分较大，晋升空间目测有限。
+Offer2: 北京外企开发
+某大厂全栈，到手 N+20 ，据小部门内学长所说早 10 晚 6 ，可能有裁员风险。小道消息称之前部门内三个女性员工接连离职，可能不宜久留。</p>
+<hr />
+<p>小妹在北京求学 7 年，这些年间也去了一些大厂外企实习，喜欢外企更为简单直接的工作环境，但也深知北漂不易。工作选择上虽然将 WLB 至于首位，但还是想在职场上取得一帆高度，若真只能委顿于国企也不甘心。希望 V 站前辈们指点迷津，小妹感谢不尽。</p>
+]]></content:encoded>
+<pubDate>2025-02-26T11:04:46Z</pubDate>
+<pubDate>2025-02-26T11:18:48Z</pubDate>
+</item>
+<item>
+<title>[OpenAI] ChatGPT 的 deep research 开启后，使用的模型和你目前模型选择器的模型有关系吗</title>
+<link>https://www.v2ex.com/t/1114429</link>
+<guid>https://www.v2ex.com/t/1114429</guid>
+<content:encoded><![CDATA[
+
+
+]]></content:encoded>
+<pubDate>2025-02-26T10:52:15Z</pubDate>
+<pubDate>2025-02-26T10:50:15Z</pubDate>
+</item>
+<item>
+<title>[Windows] 为什么 win11 安装的时候就强制更新，能关吗</title>
+<link>https://www.v2ex.com/t/1114428</link>
+<guid>https://www.v2ex.com/t/1114428</guid>
+<content:encoded><![CDATA[
+
+<p><img alt="1.png" class="embedded_image" rel="noreferrer" src="https://cdn-fusion.imgcdn.store/i/2025/6bb06645842baded.png" /></p>
+<p>就一直在这个界面，有没有办法安装的时候就跳过这里</p>
+]]></content:encoded>
+<pubDate>2025-02-26T10:41:20Z</pubDate>
+<pubDate>2025-02-26T12:20:46Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 蒸汽机发明出来咱们小工人可咋办啊</title>
+<link>https://www.v2ex.com/t/1114427</link>
+<guid>https://www.v2ex.com/t/1114427</guid>
+<content:encoded><![CDATA[
+
+咋感觉现在论坛的人就像我标题所说的一样？
+]]></content:encoded>
+<pubDate>2025-02-26T10:36:55Z</pubDate>
+<pubDate>2025-02-26T12:30:30Z</pubDate>
+</item>
+<item>
+<title>写了一个可以记录那种运动的小工具</title>
+<link>https://www.v2ex.com/t/1113167</link>
+<guid>https://www.v2ex.com/t/1113167</guid>
+<content:encoded><![CDATA[
+
+<h1>🚀 自慰记录神器：科学管理你的手艺活！</h1>
+<h3>相信大家曾经都有过这样的困扰：</h3>
+<p><strong>缺乏记录</strong> | <strong>不够科学</strong> | <strong>过于频繁</strong> —— 这简直是三大<strong>核心痛点</strong>！</p>
+<p>每次"动手"前都会陷入哲学三问：</p>
+<p>🎯 <strong>时间困惑</strong> </p>
+<ul>
+<li>🤔 昨天才刚冲过，今天又想来一次，这样真的好吗？</li>
+<li>🗓️ 感觉好像很久没打了，再忍下去会不会亏待自己？</li>
+<li>⏱️ 每次都感觉草草了事，会不会变成传说中的 “闪电侠” 啊？</li>
+</ul>
+<p>📢 <strong>灵魂呐喊</strong> </p>
+<ul>
+<li>说好的戒色呢？怎么打着打着就放飞自我了？</li>
+</ul>
+<blockquote>
+<p>💬 子曰："七十而从心所欲不逾矩" —— 本工具助你提前几十年达成圣贤境界！</p>
+</blockquote>
+<hr />
+<h2>✨ 工具特性</h2>
+<p>🛡️ <strong>隐私至上</strong> </p>
+<ul>
+<li>纯前端应用，数据本地存储，谁也别想知道你的“小秘密”！</li>
+</ul>
+<p>📊 <strong>科学管理</strong> </p>
+<ul>
+<li>计时/记录/备注三件套，支持后悔药（删除记录），看到不错的想来“即兴一发”？加上备注，对着什么打了一清二楚。</li>
+</ul>
+<p>🔥 <strong>热力全开</strong> </p>
+<ul>
+<li>GitHub 同款活跃度热力图，成就党狂喜！</li>
+</ul>
+<p>🔄 <strong>数据自由</strong> </p>
+<ul>
+<li>一键导入导出，妈妈再也不用担心我的数据！</li>
+</ul>
+<p>📱 <strong>全端适配</strong> </p>
+<ul>
+<li>手机电脑自适应，厕所/卧室无缝切换</li>
+</ul>
+<hr />
+<h2>🚀 “上手”体验</h2>
+<p><strong>直接开冲</strong>：<a href="https://dick.juwo.my" rel="nofollow">在线 Demo</a>（基于 Vercel 部署）  </p>
+<p>⚠️ 重要提示：  </p>
+<ul>
+<li>该域名下数据会互相覆盖，建议自建 Vercel</li>
+<li>演示站随时可能 GG ，老司机请及时备份  </li>
+<li>推荐绑定个人域名食用更佳  </li>
+</ul>
+<hr />
+<h2>🛠️ 共建指南</h2>
+<p>🔧 <strong>Debug 情报局</strong><br />
+欢迎提交 issue：<a href="https://github.com/zzzdajb/DickHelper" rel="nofollow">项目 Github</a> </p>
+<p>🌟 <strong>Star 催更</strong><br />
+每一个 Star 都是开发者续命的动力！  </p>
+<p><img alt="项目截图" class="embedded_image" rel="noreferrer" src="https://s2.loli.net/2025/02/21/a1NeXqyuUCsIGvE.jpg" /></p>
+]]></content:encoded>
+<pubDate>2025-02-21T03:18:40Z</pubDate>
+<pubDate>2025-02-24T04:44:55Z</pubDate>
+</item>
+<item>
+<title>[送码] SlideBrowser - 一个轻量的滑动浏览器，给你不一样的交互体验</title>
+<link>https://www.v2ex.com/t/1113107</link>
+<guid>https://www.v2ex.com/t/1113107</guid>
+<content:encoded><![CDATA[
+
+<h2>产品介绍</h2>
+<p><a href="https://deepthinkapps.com/zh/apps/slide-browser/" rel="nofollow">SlideBrowser</a> 是一个滑动浏览器，当你鼠标移动到屏幕边缘，自动出现，当失焦时自动隐藏。</p>
+<h2>使用场景</h2>
+<p>总体来说这算是一个小众产品，主要是用场景有：</p>
+<ul>
+<li>在应用全屏模式下查询资料、问 GPT 等</li>
+<li>记录一些待办事项或者笔记</li>
+<li>查看股市、币市信息</li>
+<li>听歌</li>
+<li>看视频、看直播</li>
+<li>翻译</li>
+</ul>
+<p>以下是一些场景的 GIF 图：</p>
+<p><img alt="SlideBrowser 应用场景 - 全屏模式搜索信息" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/21/873e3d7a823e46a0683ba55c48f03016.gif" />
+<img alt="SlideBrowser 应用场景 - 听音乐" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/21/d9136c075e8fa72827897c64ce7a17ed.gif" />
+<img alt="SlideBrowser 应用场景 - 记录待办任务列表" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/21/163345ada4ebc5205fef73c0a30c512c.gif" /></p>
+<p>我自己平常主要有一下 2 点使用场景：</p>
+<ul>
+<li>翻译：我不是很喜欢那些有气泡的翻译软件，所以平时有什么翻译内容，所以我将 Google 翻译的页面一直放在那里，需要的时候就滑动一下；</li>
+<li>管理项目进度：虽然是独立开发，但也是会把任务梳理清楚，然后放到 Github Project 里面，并且在做的过程中遇到什么难点以及增加的任务都会快速记录，如果解决了就快速点击完成，感觉还是挺好的。</li>
+</ul>
+<h2>产品特性</h2>
+<ul>
+<li>滑动显示、隐藏</li>
+<li>可通过隐藏/显示侧边栏，让窗口更简洁（只保留页面）</li>
+<li>支持多个窗口</li>
+<li>支持自由拖拽模式（可以不用贴在屏幕边缘）</li>
+<li>支持 Mac 、Windows 、Linux</li>
+</ul>
+<p>Windows 因为没有钱进行软件签名（签名要 2000 块），所以在下载或者安装的时候 Windows Defender 防火墙会报不安全，但是实际并没有什么问题，如果认为本产品不错，但又比较担心，可以在对应的弹窗上留下邮箱，等赚钱了，就给 Windows 签名，到时候给你发个邮件。</p>
+<h2>优惠码</h2>
+<ul>
+<li>PXPIWFKV</li>
+<li>KOP0KWBN</li>
+<li>EEP75ENZ</li>
+<li>QUZ8WNGS</li>
+<li>8OCWTIYD</li>
+<li>6NFH2CFM</li>
+<li>EJ1NV4FX</li>
+<li>VBYM6AE5</li>
+<li>ABAPSAIJ</li>
+<li>WZSW4D4P</li>
+</ul>
+<blockquote>
+<p>注意：这些码并不是直接的激活码，而是支付的时候的优惠码，但是 100% 优惠，也就是免费</p>
+</blockquote>
+<p>如果有对这个产品有什么吐槽或者建议，可以在下面评论或者直接加我: ZHJlYW0xMG5pYW4=</p>
+<p>更多说明见官网：<a href="https://deepthinkapps.com/zh/apps/slide-browser/" rel="nofollow">https://deepthinkapps.com/zh/apps/slide-browser/</a></p>
+]]></content:encoded>
+<pubDate>2025-02-21T00:38:49Z</pubDate>
+<pubDate>2025-02-24T03:53:04Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 都说 AI 替代程序员什么的，我觉得过于焦虑了</title>
 <link>https://www.v2ex.com/t/1114425</link>
 <guid>https://www.v2ex.com/t/1114425</guid>
 <content:encoded><![CDATA[
-
 <p>从 chatgpt ，到 deepseek ，ai 确实能写代码，但是效果感人，而且还胡说，自己根本不校验的，和他说，你错了，他永远不会反驳，又给你出一版，最终哪个版本是对的也不知道。离正真的人类思考十万八千里了。</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T10:23:17Z</pubDate>
 <pubDate>2025-02-26T06:23:17Z</pubDate>
 </item>
 <item>
@@ -20,12 +425,10 @@
 <link>https://www.v2ex.com/t/1114424</link>
 <guid>https://www.v2ex.com/t/1114424</guid>
 <content:encoded><![CDATA[
-
 <p>有人试过了吗</p>
 <p>实际体验如何？</p>
 <p>在考虑要不要再买张卡部署这个玩</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T10:22:19Z</pubDate>
 <pubDate>2025-02-26T02:22:19Z</pubDate>
 </item>
 <item>
@@ -33,10 +436,8 @@
 <link>https://www.v2ex.com/t/1114422</link>
 <guid>https://www.v2ex.com/t/1114422</guid>
 <content:encoded><![CDATA[
-
 如题，年后提离职的，月中跑路，玩了两个周，闲着没事看看 boss ，前几天随便投了个，然后就约面试就拿了 offer ，对比我上家薪资（ 14k ）是涨了 15%，965 双休，社保公积金都是最低（上家是满额，算下来少了快 7 百）。<br /><br />我承认是有点运气成分，自己也没刷面试题，就去面试了，聊得还行，但跟我期望的 17k 差了点，至少说跳槽涨幅 20%我都能接受，明天就得答复了，有点犹豫呀。<br /><br />我也知道现在找工作不好找，我跳槽也是因为想换环境，适当涨薪资，总的来说结果是好的。但我两年半没跳槽了找工作了，目前杭州的前端行情也不太了解，也不知道我目前这个是不是差不多的市场价，有没有大佬说下。<br /><br />可能公司也是看我才 3.5 年，也按照 3 年他们的标准价位多给了点（招聘上是 3-5 年 15-20 ）。
 ]]></content:encoded>
-<pubDate>2025-02-26T10:17:51Z</pubDate>
 <pubDate>2025-02-26T10:16:51Z</pubDate>
 </item>
 <item>
@@ -44,10 +445,8 @@
 <link>https://www.v2ex.com/t/1114421</link>
 <guid>https://www.v2ex.com/t/1114421</guid>
 <content:encoded><![CDATA[
-
 之前 Claude3.5 使用过，觉得辅助编程还不错，但是其实没怎么慌，因为复杂一点的还是需要人来写，而且 AI 没法读懂整个工程，还是文件层面的。但是这次 Claude3.7 发布，一句话就可以生成很复杂的页面，就算是我自己来做，要费一顿功夫，而且做出来还没有 Claude 写的效果好。虽然现在大的代码工程还是有点难度，但是就现在这个迭代速度，感觉也快解决了，这次是真有点慌了。<br />下面这个就是使用提示词一次性生成的页面，效果还是动态的，有点强！<br /><a href="https://i.imgur.com/hRlo7qQ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/hRlo7qQ.png" /></a>
 ]]></content:encoded>
-<pubDate>2025-02-26T10:16:29Z</pubDate>
 <pubDate>2025-02-25T18:16:29Z</pubDate>
 </item>
 <item>
@@ -55,10 +454,8 @@
 <link>https://www.v2ex.com/t/1114419</link>
 <guid>https://www.v2ex.com/t/1114419</guid>
 <content:encoded><![CDATA[
-
 <p>港股暴涨，A 股很多板块暴涨，这是经济变好了吗，都说股市是经济的晴雨表，股市向好是经济好转的信号吗</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:55:17Z</pubDate>
 <pubDate>2025-02-26T10:20:06Z</pubDate>
 </item>
 <item>
@@ -66,10 +463,8 @@
 <link>https://www.v2ex.com/t/1114418</link>
 <guid>https://www.v2ex.com/t/1114418</guid>
 <content:encoded><![CDATA[
-
 打开 mac os 的 outlook 客户端发现一片空白，不论怎么同步，怎么设置代理都是一片空白，无法同步任何邮件与信息。点击左上角 outlook-切换到老板本似乎又能正常同步邮件了。<br /><br />不知道有没有朋友遇到一样的问题？有办法解决么。<br /><br /><br />我的 macos 版本 13.6.6  outlook 版本 16.94.1 <br /><br />顺便吐槽，微软现在是成阿三的僵尸公司了么，onederive 各设备的客户端也做的稀烂，怎么能这么烂啊.....该不会要倒闭了吧。<br /><br />ps.我不知道如何在 V2EX 的帖子内添加图片，求教！
 ]]></content:encoded>
-<pubDate>2025-02-26T09:51:38Z</pubDate>
 <pubDate>2025-02-26T09:50:38Z</pubDate>
 </item>
 <item>
@@ -77,7 +472,6 @@
 <link>https://www.v2ex.com/t/1114417</link>
 <guid>https://www.v2ex.com/t/1114417</guid>
 <content:encoded><![CDATA[
-
 <p>最近遇到一个比较烦心的问题，pgsql 使用物理部署，应用部署在容器内，应用通过 docker0 访问宿主机 pgsql ，每次连接的建立的时间都超过 10s,各位友友，有什么好的排查方法吗？</p>
 <ul>
 <li>
@@ -106,7 +500,6 @@
 </li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:47:05Z</pubDate>
 <pubDate>2025-02-26T09:46:05Z</pubDate>
 </item>
 <item>
@@ -114,7 +507,6 @@
 <link>https://www.v2ex.com/t/1114416</link>
 <guid>https://www.v2ex.com/t/1114416</guid>
 <content:encoded><![CDATA[
-
 <p>大家好我是 Pony ，是 <a href="https://zhuayuya.com" rel="nofollow">抓鱼鸭</a> 和 <a href="https://mychat.zhuayuya.com" rel="nofollow">摸鱼聊天室</a> 的开发者</p>
 <p>首先容我介绍一下摸鱼聊天室，这是一款由抓鱼鸭出品，专注于摸鱼的在线聊天娱乐工具。基于<code>Vue3</code>、<code>Vite 5</code>、<code>nodejs</code>、<code>koa2</code> 和 <code><a href="http://socket.io" rel="nofollow">socket.io</a></code> 构建的即时通讯系统</p>
 <p><code>2.0</code> 版本上线半个月，平均日活已经达到 <code>2000+</code>，平均每天最高同时在线<code>40+</code>，日平均聊天记录达到<code>7000+</code></p>
@@ -173,7 +565,6 @@
 <p>开源链接：<a href="https://github.com/ponysb/mychat" rel="nofollow">https://github.com/ponysb/mychat</a></p>
 <p>在线摸鱼：<a href="https://mychat.zhuayuya.com" rel="nofollow">https://mychat.zhuayuya.com</a></p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:38:25Z</pubDate>
 <pubDate>2025-02-26T10:05:20Z</pubDate>
 </item>
 <item>
@@ -181,13 +572,11 @@
 <link>https://www.v2ex.com/t/1114414</link>
 <guid>https://www.v2ex.com/t/1114414</guid>
 <content:encoded><![CDATA[
-
 <p>朋友的三星 A51 手机，这两天有点不正常，微信语音或视频通话，别人呼叫进来，以前一直是全屏弹出“接听”和“拒绝”按钮，手机有响铃提示。</p>
 <p>现在变成，别人呼叫进来，一开始响铃会马上将接听那个界面缩略，变成四个字“等待接听”，一旦界面缩略，会中断铃声，导致听不到系统呼叫铃声错过电话。</p>
 <p>我看了一下设置应该没有问题，允许弹出的选项都没有被禁用，该授权的都授权了，而且故意在“等待接听”那处点一下扩张回全屏的按钮，重新全屏后，下一次可恢复正常，不过再关屏幕又会复现问题。</p>
 <p>太难了，我说搞不定了，来请教 V 友大佬，求打救。(微信 app 内查询为最新版，这几天系统和微信都没主动更改设置，误触除外)</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:33:16Z</pubDate>
 <pubDate>2025-02-26T09:33:16Z</pubDate>
 </item>
 <item>
@@ -195,7 +584,6 @@
 <link>https://www.v2ex.com/t/1114413</link>
 <guid>https://www.v2ex.com/t/1114413</guid>
 <content:encoded><![CDATA[
-
 <h1>cloudflare connect 踩坑记录</h1>
 <h1>前言</h1>
 <p>身边有一台没有公网 ip 的 ubuntu 小主机，没办法接入 beszel ，没办法监控 cpu 和网络情况。</p>
@@ -226,7 +614,6 @@
 <p>顺带发下俺的博客，内容一样，涨下 pv
 <a href="https://blog.twelveeee.top/2025/Project/cloudflare-connect-dodge-a-bullet/" rel="nofollow">https://blog.twelveeee.top/2025/Project/cloudflare-connect-dodge-a-bullet/</a></p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:32:48Z</pubDate>
 <pubDate>2025-02-26T09:40:22Z</pubDate>
 </item>
 <item>
@@ -235,9 +622,7 @@
 <guid>https://www.v2ex.com/t/1114412</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-02-26T09:26:31Z</pubDate>
 <pubDate>2025-02-26T09:54:59Z</pubDate>
 </item>
 <item>
@@ -245,10 +630,8 @@
 <link>https://www.v2ex.com/t/1114411</link>
 <guid>https://www.v2ex.com/t/1114411</guid>
 <content:encoded><![CDATA[
-
 有内蒙古移动的友友嘛，有个移动号码要注销，有 48 块钱左右余额可转移，先到先得了。不想浪费了，免费送，就一个。
 ]]></content:encoded>
-<pubDate>2025-02-26T09:25:24Z</pubDate>
 <pubDate>2025-02-26T09:25:24Z</pubDate>
 </item>
 <item>
@@ -257,9 +640,7 @@
 <guid>https://www.v2ex.com/t/1114410</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-02-26T09:23:20Z</pubDate>
 <pubDate>2025-02-26T09:40:03Z</pubDate>
 </item>
 <item>
@@ -267,10 +648,8 @@
 <link>https://www.v2ex.com/t/1114409</link>
 <guid>https://www.v2ex.com/t/1114409</guid>
 <content:encoded><![CDATA[
-
 看了很多关于父母和家庭的帖子，发现基本都是比较负面的<br /><br />每个人都无可避免的会受到家庭环境影响，在成年以前父母也会对个人选择和方向做出很多干预<br /><br />那除了造成负面影响的情况之外，有多少人会感激父母对你的人生做出的干预和影响？
 ]]></content:encoded>
-<pubDate>2025-02-26T09:22:25Z</pubDate>
 <pubDate>2025-02-26T10:19:11Z</pubDate>
 </item>
 <item>
@@ -278,7 +657,6 @@
 <link>https://www.v2ex.com/t/1114408</link>
 <guid>https://www.v2ex.com/t/1114408</guid>
 <content:encoded><![CDATA[
-
 <p>寻一个耐心的人，可以加微信聊,因为我真的无基础，感恩...
 微信是 myfelix177</p>
 <p>目前卡在这一步（直接 ds 上复制黏贴了）：</p>
@@ -299,7 +677,6 @@ bash</li>
 <h1>安装基础工具</h1>
 <p>sudo apt install -y git python3-pip python3-venv nginx</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:16:34Z</pubDate>
 <pubDate>2025-02-26T09:40:35Z</pubDate>
 </item>
 <item>
@@ -307,10 +684,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114407</link>
 <guid>https://www.v2ex.com/t/1114407</guid>
 <content:encoded><![CDATA[
-
 <p>之前空窗期有点久，看到小红书上面说可以找一个倒闭的公司写上去，想试试</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T09:08:53Z</pubDate>
 <pubDate>2025-02-26T10:24:34Z</pubDate>
 </item>
 <item>
@@ -318,10 +693,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114406</link>
 <guid>https://www.v2ex.com/t/1114406</guid>
 <content:encoded><![CDATA[
-
 展开之后的屏幕面积翻倍，可以比不折叠的手表更加适用于一些简单的手机功能了。需要考虑的问题是电池，因此加厚一点不知道消费者的接受能力如何
 ]]></content:encoded>
-<pubDate>2025-02-26T09:05:05Z</pubDate>
 <pubDate>2025-02-26T09:58:45Z</pubDate>
 </item>
 <item>
@@ -329,10 +702,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114404</link>
 <guid>https://www.v2ex.com/t/1114404</guid>
 <content:encoded><![CDATA[
-
 各位 V2EXer 大家好，我们是 GiggleAcademy 团队，目前专注于为儿童提供免费优质的游戏化教学课程。如果是币圈的朋友可能听说过我们，我们是 CZ(赵长鹏:<a href="https://x.com/cz_binance)最新的创业项目。" rel="nofollow noopener" target="_blank">https://x.com/cz_binance)最新的创业项目。</a><br /><br />这里可以了解我们更多信息<br />- 官网： <a href="https://giggleacademy.com/" rel="nofollow noopener" target="_blank">https://giggleacademy.com/</a><br />我们最新的产品<br />- 儿童绘本创建工具： <a href="https://creator.giggleacademy.com/" rel="nofollow noopener" target="_blank">https://creator.giggleacademy.com/</a><br />- 儿童学习 App: <a href="https://apps.apple.com/us/app/giggle-academy-play-learn/id6739128662" rel="nofollow noopener" target="_blank">https://apps.apple.com/us/app/giggle-academy-play-learn/id6739128662</a><br /><br />我们正在招聘：<br /><br />Java 后端开发工程师：<br />- 负责 Giggle 后端工程的开发和维护<br />- 要求：<br />  - 全栈开发工程师优先<br />  - 丰富的 Java 开发和后端经验,熟悉/愿意使用 kotlin 优先<br /><br /><br />AI 应用开发工程师：<br />- 负责开发 AI tutor 产品(chatbot)<br />- 负责 AI 图片生成工具开发，文生图/图生图/AI 图片编辑/AI 视频生成等<br /><br />具体岗位 JD 可以查阅： <a href="https://www.giggleacademy.com/career" rel="nofollow noopener" target="_blank">https://www.giggleacademy.com/career</a><br /><br /><br />我们希望你：有责任心，工作认真积极。有产品思维，不仅仅把自己定位为一名开发工程师。对 AI 和教育抱有热情和兴趣。能够熟练的使用各种 AI 工具，比如 cursor,trae,bolt 等提升开发效率。<br /><br />我们提供：<br />- 远程工作,灵活的工作时间和地点<br />- 有竞争力的薪资待遇<br />- 扁平化和开放的工作氛围，日常会议可直接和 CZ 对话，反馈问题等<br /><br />简历投递：<br />jobs@giggleacademy.me<br />rico@giggleacademy.me
 ]]></content:encoded>
-<pubDate>2025-02-26T09:01:48Z</pubDate>
 <pubDate>2025-02-26T10:05:38Z</pubDate>
 </item>
 <item>
@@ -340,11 +711,9 @@ bash</li>
 <link>https://www.v2ex.com/t/1114403</link>
 <guid>https://www.v2ex.com/t/1114403</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://github.com/muzihuaner/WHMCS-ALIPAY" rel="nofollow">https://github.com/muzihuaner/WHMCS-ALIPAY</a></p>
 <p>支付测试没有问题，欢迎使用并反馈 BUG</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:55:59Z</pubDate>
 <pubDate>2025-02-25T16:55:59Z</pubDate>
 </item>
 <item>
@@ -352,10 +721,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114402</link>
 <guid>https://www.v2ex.com/t/1114402</guid>
 <content:encoded><![CDATA[
-
 很好奇，关于不同基础运营商线路使用其它运营商的 DNS 域名解析超时的原因？<br />如下图所示，211.138.164.6 和 221.176.88.95 是海南省海口市中国移动家宽 DNS 服务器，那么那么我在帝都联通的家庭宽带线路里边，使用 nslookup 进行域名解析，为何会显示 DNS request timed out （ DNS 请求超时），我测试了下全国其他联通和全国电信线路均无法使用上述 IP 地址做域名解析，仅有全国各地的移动线路是可以使用上述 DNS 做域名解析的，这里的原因是什么？<br /><br /><a href="https://www.v2ex.com/i/A2FS9s61l.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 A2FS9s61l.jpeg"><img class="embedded_image" src="https://i.v2ex.co/A2FS9s61l.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:51:17Z</pubDate>
 <pubDate>2025-02-26T09:16:32Z</pubDate>
 </item>
 <item>
@@ -363,7 +730,6 @@ bash</li>
 <link>https://www.v2ex.com/t/1114401</link>
 <guid>https://www.v2ex.com/t/1114401</guid>
 <content:encoded><![CDATA[
-
 <h1>职位要求</h1>
 <ol>
 <li>设计、开发和完善 Prompt 提示和 Flow ，精准服务于客服领域业务场景</li>
@@ -383,17 +749,14 @@ bash</li>
 <p>请将简历投递到 NDUyMTk2NDE0QHFxLmNvbQ==</p>
 ]]></content:encoded>
 <pubDate>2025-02-26T08:48:51Z</pubDate>
-<pubDate>2025-02-26T08:48:51Z</pubDate>
 </item>
 <item>
 <title>[问与答] aws 问题请教， aws-cognito aws-amplify 前端登录问题</title>
 <link>https://www.v2ex.com/t/1114400</link>
 <guid>https://www.v2ex.com/t/1114400</guid>
 <content:encoded><![CDATA[
-
 大佬们，小弟前端切图仔，遇到点问题，项目需要引入 aws-cognito 登录，我用了 aws-amplify 插件，使用 signInWithRedirect 方法，本地都调通了，发布到线上之后就卡住了。<br /><br />    本地：点击登录按钮调用 signInWithRedirect 跳转到 AWS Amplify 内置的登录页面，正常登录后跳转到 redirectSignIn 设置的 home 页面，交换 token ，api 请求数据等一切都正常<br /><br />    线上：前面一样，到了跳转到 redirectSignIn 设置的 home 页面，不知道为什么就是不执行交换 token 的步骤，很是苦恼。<br /><br />    fetchAuthSession() 方法为什么线上就不执行了呢。。。
 ]]></content:encoded>
-<pubDate>2025-02-26T08:45:43Z</pubDate>
 <pubDate>2025-02-26T08:45:43Z</pubDate>
 </item>
 <item>
@@ -401,7 +764,6 @@ bash</li>
 <link>https://www.v2ex.com/t/1114399</link>
 <guid>https://www.v2ex.com/t/1114399</guid>
 <content:encoded><![CDATA[
-
 <p>cursor + claude3.7 写代码嘎嘎快</p>
 <p>github： <a href="https://github.com/kun775/yonote" rel="nofollow">https://github.com/kun775/yonote</a></p>
 <p>在线体验： <a href="https://note.1v23.com" rel="nofollow">https://note.1v23.com</a></p>
@@ -432,7 +794,6 @@ bash</li>
 <li>私密：需要密码才能查看和编辑</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:45:18Z</pubDate>
 <pubDate>2025-02-26T09:32:31Z</pubDate>
 </item>
 <item>
@@ -440,10 +801,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114398</link>
 <guid>https://www.v2ex.com/t/1114398</guid>
 <content:encoded><![CDATA[
-
 <p>如题，Clarity 录制功能特别有利于分析用户事件，请问有哪些可以自部署的开源方案支持了屏幕录制呢？</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:43:47Z</pubDate>
 <pubDate>2025-02-26T08:43:47Z</pubDate>
 </item>
 <item>
@@ -451,10 +810,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114397</link>
 <guid>https://www.v2ex.com/t/1114397</guid>
 <content:encoded><![CDATA[
-
 我的大概情况：熟悉 Java 语言，可熟练运用 SpringBoot 、SpringMVC 、Spring 、MyBatis 等主流框架进行服务端发，常使用 MySQL 、Vuejs 、Python 、TypeScrip 。了解 Docker 、Redis.<br /><br />另外，一段小厂实习经历涉及到的主要技术包括：Spring MVC 以及 MyBatis ，日常 CRUD ，修 BUG ，二次开发，优化代码。<br /><br />期望工作地点：苏南地区，期望薪资 7-9K<br />其他待遇：双休、五险一金<br /><br />希望留下个邮件，简历发给您。
 ]]></content:encoded>
-<pubDate>2025-02-26T08:42:37Z</pubDate>
 <pubDate>2025-02-26T08:40:37Z</pubDate>
 </item>
 <item>
@@ -462,10 +819,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114396</link>
 <guid>https://www.v2ex.com/t/1114396</guid>
 <content:encoded><![CDATA[
-
 <p>Deepseek 的火爆一下子拉低的大模型部署的门槛。知乎网站的管理者将引以为豪的 8 亿多条问答作为最宝贵的资源，制作了“知乎直答”这样一个 Ai 问答引擎。v2ex 上也有很多高质量的问答帖，v2er 在上面热烈讨论，这些回答其实也构成了一个知识库。如果能接入大模型进行搜索和分析，无疑会方便大家获取知识的，提高效率。</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:39:58Z</pubDate>
 <pubDate>2025-02-26T09:21:09Z</pubDate>
 </item>
 <item>
@@ -473,7 +828,6 @@ bash</li>
 <link>https://www.v2ex.com/t/1114395</link>
 <guid>https://www.v2ex.com/t/1114395</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>姓名：刘超 /Leo</li>
 <li>性别：男</li>
@@ -499,20 +853,17 @@ bash</li>
 </ul>
 ]]></content:encoded>
 <pubDate>2025-02-26T08:36:54Z</pubDate>
-<pubDate>2025-02-26T08:36:54Z</pubDate>
 </item>
 <item>
 <title>[JavaScript] 有什么办法能实现 uniapp 上的离线人脸识别</title>
 <link>https://www.v2ex.com/t/1114394</link>
 <guid>https://www.v2ex.com/t/1114394</guid>
 <content:encoded><![CDATA[
-
 <p>就是包括检测授权也是离线的，最好是能批量下发授权那种。
 需要能提取人脸特征，这样实现 app 不用密码登录。
 好像这个框架能实现： <a href="https://github.com/justadudewhohacks/face-api.js" rel="nofollow">https://github.com/justadudewhohacks/face-api.js</a> 有没有用过这个的
 不需要很高的准确度，差不多就行了。</p>
 ]]></content:encoded>
-<pubDate>2025-02-26T08:36:45Z</pubDate>
 <pubDate>2025-02-26T10:05:17Z</pubDate>
 </item>
 <item>
@@ -520,10 +871,8 @@ bash</li>
 <link>https://www.v2ex.com/t/1114392</link>
 <guid>https://www.v2ex.com/t/1114392</guid>
 <content:encoded><![CDATA[
-
 公司的网络有行为审查软件，可以查看个人的网络行为（访问了什么网址之类，可能更甚），这种情况下，用公司的电脑+网络通过 RDP 连接家里的电脑，在家里电脑上的行为，会被公司的网络审查软件记录或识别到吗？
 ]]></content:encoded>
-<pubDate>2025-02-26T08:34:19Z</pubDate>
 <pubDate>2025-02-26T09:40:50Z</pubDate>
 </item>
 <item>
@@ -531,7 +880,6 @@ bash</li>
 <link>https://www.v2ex.com/t/1114391</link>
 <guid>https://www.v2ex.com/t/1114391</guid>
 <content:encoded><![CDATA[
-
 <p>[位置] 昌平区，清水园小区。距离地铁 5 号线立水桥站，自行车 10 分钟（推荐电动车，5 分钟）。门口就是东小口森林公园，环境倍儿好。小区不接近主干道，非常安静！（百度地图街景可以看小区环境）</p>
 <p>[房间] 一楼，带阳台，可以养花！ 2 室 1 厅 1 卫 1 厨，96 平米，有一个大客厅，特别敞亮，客厅还有一个大书柜，书桌啥的可以放客厅。卧室朝南，水电网燃气两人平摊，房东直租，没有其他费用。</p>
 <p>[现状] 房东首次出租，之前是他亲戚在住，有点乱，前几天我请了保洁搞了搞卫生间和厨房，其他部分正在逐步大扫除。</p>
@@ -541,17 +889,14 @@ bash</li>
 <p>wechat：ZHtVCtmR5w4sGnnR （请备注，谢谢）</p>
 ]]></content:encoded>
 <pubDate>2025-02-26T08:33:46Z</pubDate>
-<pubDate>2025-02-26T08:33:46Z</pubDate>
 </item>
 <item>
 <title>哪款安卓机，摄像头给力，同时可刷机。</title>
 <link>https://www.v2ex.com/t/1113116</link>
 <guid>https://www.v2ex.com/t/1113116</guid>
 <content:encoded><![CDATA[
-
 感觉买台只刷机给力的安卓机不符合 2025 年。<br />还是 pixel 刷其他 ROM 后，相机提升不少？
 ]]></content:encoded>
-<pubDate>2025-02-21T01:16:43Z</pubDate>
 <pubDate>2025-02-24T14:08:39Z</pubDate>
 </item>
 <item>
@@ -559,13 +904,10 @@ bash</li>
 <link>https://www.v2ex.com/t/1114393</link>
 <guid>https://www.v2ex.com/t/1114393</guid>
 <content:encoded><![CDATA[
-
 Base 成都，要求懂服务器主程序，精通 go 语言，做 slots ，api 做外放
 ]]></content:encoded>
 <pubDate>2025-02-26T08:35:37Z</pubDate>
-<pubDate>2025-02-26T08:35:37Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 咸鱼一直不发货，有没有坑？</title>
 <link>https://www.v2ex.com/t/1114389</link>
@@ -17049,826 +17391,6 @@ $0.00</p>
 因为太久没输入密码，今天关机重启后怎么都输不对了😭<br />设备倒是登录了 apple id 和查找设备<br />但搜了下官网和教程，都只能抹除然后重新设置了<br />怎么把我手机的数据保存下来？？搜了几个方法<br /><br />1.把 iPhone 连接受信任的电脑，自动备份 ✖️<br />因为之前都没用电脑备份过数据，所以这条不行 <br /><br />2.iCloud 锁屏下能自动备份吗？<br />之前 iCloud 只开了 5G ，早用满了<br />现在我去开通大容量，这台 iPhone 不解锁联网会自动备份吗？
 ]]></content:encoded>
 <pubDate>2025-02-21T06:21:23Z</pubDate>
-</item>
-<item>
-<title>[游戏] CSGO 太好玩了</title>
-<link>https://www.v2ex.com/t/1113217</link>
-<guid>https://www.v2ex.com/t/1113217</guid>
-<content:encoded><![CDATA[
-<p>最近入坑了 CS2 ，每天下班打到 12 点，有时候一两点，段位是完美 D+ 到 C ，偶尔游龙
-沙二 A 大有时候用 AK 碰运气颗秒平台大狙，感觉很爽</p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:20:58Z</pubDate>
-</item>
-<item>
-<title>[macOS] 边用 infuse 全屏看电影，边酒馆战棋，两边切着来。炉石总是隔几分钟就退出一次， battle 倒是不退</title>
-<link>https://www.v2ex.com/t/1113216</link>
-<guid>https://www.v2ex.com/t/1113216</guid>
-<content:encoded><![CDATA[
-<p>不知道有谁遇到这个罕见 bug ，有啥解决方案吗</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:33:29Z</pubDate>
-</item>
-<item>
-<title>[生活] 有人对早期癌症筛查了解的吗</title>
-<link>https://www.v2ex.com/t/1113215</link>
-<guid>https://www.v2ex.com/t/1113215</guid>
-<content:encoded><![CDATA[
-<p>如题，去医院挂什么号？费用大概多少？</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:48:12Z</pubDate>
-</item>
-<item>
-<title>[机器学习] 大语言模型与深度学习书籍推荐</title>
-<link>https://www.v2ex.com/t/1113214</link>
-<guid>https://www.v2ex.com/t/1113214</guid>
-<content:encoded><![CDATA[
-<h2>TLDR</h2>
-<p>LLM 相关</p>
-<ul>
-<li>Build a Large Language Model (From Scratch)</li>
-<li>Super Study Guide: Transformers &amp; Large Language Models</li>
-<li>Natural Language Processing with Transformers</li>
-</ul>
-<p>DL 相关</p>
-<ul>
-<li>Neural Networks and Deep Learning(NNDL)</li>
-<li>Neural Networks from Scratch in Python(NNFS)</li>
-<li>Dive into Deep Learning(D2L)</li>
-<li>Grokking Deep Learning(前 6 章)</li>
-</ul>
-<h2>详情</h2>
-<ul>
-<li><a href="https://datahonor.com/blog/2025/02/20/dl_book/" rel="nofollow">博客原文</a>: 有简单书评和推荐语</li>
-<li><a href="https://mp.weixin.qq.com/s/u58XQrNfscKDOa8KPFxW7w" rel="nofollow">公众号</a>：主要是方便大家收藏查阅(因为很多朋友其实不太习惯订阅博客)</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-21T05:26:30Z</pubDate>
-</item>
-<item>
-<title>[macOS] Mac 上 Spark 邮件客户端，每次退出会弹出「正在进行同步」</title>
-<link>https://www.v2ex.com/t/1113213</link>
-<guid>https://www.v2ex.com/t/1113213</guid>
-<content:encoded><![CDATA[
-我几年前开始使用 Spark ，到现在仍然出现如下图的情况，这问题一直没能解决，难道就没有办法了吗？<br /><a href="https://i.imgur.com/o0d4zeZ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/o0d4zeZ.png" /></a>
-]]></content:encoded>
-<pubDate>2025-02-21T06:30:23Z</pubDate>
-</item>
-<item>
-<title>[加密货币] 北京海淀回龙观有线下群吗？</title>
-<link>https://www.v2ex.com/t/1113212</link>
-<guid>https://www.v2ex.com/t/1113212</guid>
-<content:encoded><![CDATA[
-<p>有股票投资经验的码农想入圈，有线下亲友交流群的请拉我一下。主要需求线下互通。
-v：bmV2ZXJzbGlw<br />
-备注：B 圈</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:21:19Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 影石 Insta360 2025 春招内推 &amp; 社招内推</title>
-<link>https://www.v2ex.com/t/1113211</link>
-<guid>https://www.v2ex.com/t/1113211</guid>
-<content:encoded><![CDATA[
-内推码: KC9TXBG <br />校招投递链接: <a href="https://arashivision.jobs.feishu.cn/s/iP7y2pbB" rel="nofollow noopener" target="_blank">https://arashivision.jobs.feishu.cn/s/iP7y2pbB</a><br />社招投递链接: <a href="https://arashivision.jobs.feishu.cn/s/iP7Uo3xr" rel="nofollow noopener" target="_blank">https://arashivision.jobs.feishu.cn/s/iP7Uo3xr</a><br /><a href="https://mp.weixin.qq.com/s/HresKRIccQ7M-y3zQtKTcw" rel="nofollow noopener" target="_blank">https://mp.weixin.qq.com/s/HresKRIccQ7M-y3zQtKTcw</a><br /><br />欢迎投递👏👏👏
-]]></content:encoded>
-<pubDate>2025-02-21T05:23:42Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在还有购买盒装游戏的地方吗？</title>
-<link>https://www.v2ex.com/t/1113210</link>
-<guid>https://www.v2ex.com/t/1113210</guid>
-<content:encoded><![CDATA[
-不绑定任何平台，有盒子。
-]]></content:encoded>
-<pubDate>2025-02-21T06:26:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 网页端在 CN 到底是个什么需求和生态位呢?</title>
-<link>https://www.v2ex.com/t/1113209</link>
-<guid>https://www.v2ex.com/t/1113209</guid>
-<content:encoded><![CDATA[
-<p>本人和朋友合伙开了个桌游吧, 平常不管, 但是做些设计的工作, 同时开发了一个官网.</p>
-<p>发现, 实际上无论是小红书, 美团还是 tt 都不准在宣发里夹带网址...</p>
-<p>而且国内用户实际上阅读网页的习惯感觉基本是没有的, 百度等搜索也基本搜不到 (Google 能在前面, 但是谁看 Google 来决定自己去哪个桌游吧玩呢...</p>
-<p>为什么 cn 移动端对主页这么不友好, 网页到底有没有推广作用呢?</p>
-<p><a href="http://diceshock.com" rel="nofollow">diceshock.com</a></p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:13:14Z</pubDate>
-</item>
-<item>
-<title>[前端开发] autohue.js：让你的图片和背景融为一体，绝了！</title>
-<link>https://www.v2ex.com/t/1113208</link>
-<guid>https://www.v2ex.com/t/1113208</guid>
-<content:encoded><![CDATA[
-<h2>需求</h2>
-<p>先来看这样一个场景，拿一个网站举例</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/8d77846da42f4496b3fce343a1100180~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=SeFDJP9P27MxA%2Fk5bQty8GGsMwo%3D" />
-<p>这里有一个常见的网站 banner 图容器，大小为为 1910*560 ，看起来背景图完美的充满了宽度，但是图片原始大小时，却是：</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/9a7921b1792c470287a9d227155ca679~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=dTGo5%2FnTfZhgj8lp6mGIsN6Kf6M%3D" />
-<p>它的宽度只有 1440 ，且 background-size 设置的是 contain ，即等比例缩放，那么可以断定它两边的蓝色是依靠背景色填充的。</p>
-<p><strong>那么问题来了</strong>，这是一个 轮播 banner ，如果希望添加一张不是蓝色的图片呢？难道要给每张图片提前标注好背景颜色吗？这显然是非常死板的做法。</p>
-<p>所以需要从图片中提取到图片的主题色，当然这对于 js 来说，也不是什么难事，市面上已经有众多的开源库供我们使用。</p>
-<h2>探索</h2>
-<p>首先在网络上找到了以下几个库：</p>
-<ul>
-<li><a href="https://github.com/lokesh/color-thief" rel="nofollow" title="https://github.com/lokesh/color-thief">color-thief</a> 这是一款基于 JavaScript 和 Canvas 的工具，能够从图像中提取主要颜色或代表性的调色板</li>
-<li><a href="https://github.com/jariz/vibrant.js" rel="nofollow" title="https://github.com/jariz/vibrant.js">vibrant.js</a> 该插件是 Android 支持库中 Palette 类的 JavaScript 版本，可以从图像中提取突出的颜色</li>
-<li><a href="https://github.com/briangonzalez/rgbaster.js" rel="nofollow" title="https://github.com/briangonzalez/rgbaster.js">rgbaster.js</a> 这是一段小型脚本，可以获取图片的主色、次色等信息，方便实现一些精彩的 Web 交互效果</li>
-</ul>
-<p>我取最轻量化的 rgbaster.js （此库非常搞笑，用 TS 编写，npm 包却没有指定 types ） 来测试后发现，它给我在一个渐变色图片中，返回了七万多个色值，当然，它准确的提取出了面积最大的色值，但是这个色值不是图片边缘的颜色，导致设置为背景色后，并不能完美的融合。</p>
-<p>另外的插件各位可以参考这几篇文章：</p>
-<ul>
-<li>文章 1：<a href="https://blog.csdn.net/weixin_42998707/article/details/108011092" rel="nofollow" title="https://blog.csdn.net/weixin_42998707/article/details/108011092">blog.csdn.net/weixin_4299…</a></li>
-<li>文章 2：<a href="https://juejin.cn/post/6844903511956815885" rel="nofollow" title="https://juejin.cn/post/6844903511956815885">juejin.cn/post/684490…</a></li>
-<li>文章 3：<a href="https://www.zhangxinxu.com/wordpress/2014/08/image-dominant-color-get-rgbaster-js" rel="nofollow" title="https://www.zhangxinxu.com/wordpress/2014/08/image-dominant-color-get-rgbaster-js">www.zhangxinxu.com/wordpress/2…</a></li>
-</ul>
-<p>可以发现，这些插件主要功能就是取色，并没有考虑实际的应用场景，对于一个图片颜色分析工具来说，他们做的很到位，但是在大多数场景中，他们往往是不适用的。</p>
-<p>在文章 2 中，作者对比了三款插件对于图片容器背景色的应用，看起来还是 rgbaster 效果好一点，但是我们刚刚也拿他试了，它并不能适用于颜色复杂度高的、渐变色的图片。</p>
-<h2>思考</h2>
-<p>既然又又又没有人做这件事，正所谓我不入地狱谁入地狱，我手写一个</p>
-<p>整理一下需求，我发现我希望得到的是：</p>
-<ol>
-<li>图片的主题色（面积占比最大）</li>
-<li>次主题色（面积占比第二大）</li>
-<li>合适的背景色（即图片边缘颜色，渐变时，需要边缘颜色来设置背景色）</li>
-</ol>
-<p>这样一来，就已经可以覆盖大部分需求了，1+2 可以生成相关的 主题 TAG 、主题背景，3 可以使留白的图片容器完美融合。</p>
-<h2>开搞</h2>
-<p><strong>⚠⚠ 本小节内容非常硬核，如果不想深究原理可以直接<a href="https://www.v2ex.com/#heading-6" rel="nofollow" title="#heading-6">跳过</a>，文章末尾有用法和效果图 ⚠⚠</strong></p>
-<h3>思路</h3>
-<p>首先需要避免上面提到的插件的缺点，即对渐变图片要做好处理，不能取出成千上万的颜色，体验太差且实用性不强，对于渐变色还有一点，即在渐变路径上，每一点的颜色都是不一样的，所以需要将他们以一个阈值分类，挑选出一众相近色，并计算出一个平均色，这样就不会导致主题色太精准进而没有代表性。</p>
-<p>对于背景色，需要按情况分析，如果只是希望做一个协调的页面，那么大可以直接使用主题色做渐变过渡或蒙层，也就是类似于这种效果</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/13ad6e69b69b4e208bd0dd20c5089ad4~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=aOBwn9e8CqsU5wyFVa3UOg735G0%3D" />
-<p>但是如果希望背景与图片完美衔接，让人看不出图片边界的感觉，就需要单独对边缘颜色取色了。</p>
-<p>最后一个问题，如果图片分辨率过大，在遍历像素点时会非常消耗性能，所以需要降低采样率，虽然会导致一些精度上的丢失，但是调整为一个合适的值后应该基本可用。</p>
-<p>剩余的细节问题，我会在下面的代码中解释</p>
-<h3>使用 JaveScript 编码</h3>
-<p>接下来我将详细描述 autohue.js 的实现过程，由于本人对<code>色彩科学</code>不甚了解，如有解释不到位或错误，还请指出。</p>
-<p>首先编写一个入口主函数，我目前考虑到的参数应该有：</p>
-<pre><code class="language-ts">export default async function colorPicker(imageSource: HTMLImageElement | string, options?: autoColorPickerOptions)
-type thresholdObj = { primary?: number; left?: number; right?: number; top?: number; bottom?: number }
-interface autoColorPickerOptions {
-  /**
-   * - 降采样后的最大尺寸（默认 100px ）
-   * - 降采样后的图片尺寸不会超过该值，可根据需求调整
-   * - 降采样后的图片尺寸越小，处理速度越快，但可能会影响颜色提取的准确性
-   **/
-  maxSize?: number
-  /**
-   * - Lab 距离阈值（默认 10 ）
-   * - 低于此值的颜色归为同一簇，建议 8~12
-   * - 值越大，颜色越容易被合并，提取的颜色越少
-   * - 值越小，颜色越容易被区分，提取的颜色越多
-   **/
-  threshold?: number | thresholdObj
-}
-</code></pre>
-<blockquote>
-<p>概念解释 Lab ，全称：<code>CIE L*a*b</code> ，<code>CIE L*a*b*</code> 是<code>CIE XYZ</code>色彩模式的改进型。它的“L”（明亮度），“a”（绿色到红色）和“b”（蓝色到黄色）代表许多的值。与 XYZ 比较，<code>CIE L*a*b*</code>的色彩更适合于人眼感觉的色彩，正所谓<code>感知均匀</code></p>
-</blockquote>
-<p>然后需要实现一个正常的 loadImg 方法，使用 canvas 异步加载图片</p>
-<pre><code class="language-ts">function loadImage(imageSource: HTMLImageElement | string): Promise&lt;HTMLImageElement&gt; {
-  return new Promise((resolve, reject) =&gt; {
-    let img: HTMLImageElement
-    if (typeof imageSource === 'string') {
-      img = new Image()
-      img.crossOrigin = 'Anonymous'
-      img.src = imageSource
-    } else {
-      img = imageSource
-    }
-    if (img.complete) {
-      resolve(img)
-    } else {
-      img.onload = () =&gt; resolve(img)
-      img.onerror = (err) =&gt; reject(err)
-    }
-  })
-}
-</code></pre>
-<p>这样我们就获取到了图片对象。</p>
-<p>然后为了图片过大，我们需要进行降采样处理</p>
-<pre><code class="language-ts">// 利用 Canvas 对图片进行降采样，返回 ImageData 对象
-function getImageDataFromImage(img: HTMLImageElement, maxSize: number = 100): ImageData {
-  const canvas = document.createElement('canvas')
-  let width = img.naturalWidth
-  let height = img.naturalHeight
-  if (width &gt; maxSize || height &gt; maxSize) {
-    const scale = Math.min(maxSize / width, maxSize / height)
-    width = Math.floor(width * scale)
-    height = Math.floor(height * scale)
-  }
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) {
-    throw new Error('无法获取 Canvas 上下文')
-  }
-  ctx.drawImage(img, 0, 0, width, height)
-  return ctx.getImageData(0, 0, width, height)
-}
-
-</code></pre>
-<blockquote>
-<p>概念解释，降采样：降采样（ Downsampling ）是指在图像处理中，通过减少数据的采样率或分辨率来降低数据量的过程。具体来说，就是在保持原始信息大致特征的情况下，减少数据的复杂度和存储需求。这里简单理解为将图片强制压缩为 100*100 以内，也是 canvas 压缩图片的常见做法。</p>
-</blockquote>
-<p>得到图像信息后，就可以对图片进行像素遍历处理了，正如思考中提到的，我们需要对相近色提取并取平均色，并最终获取到主题色、次主题色。</p>
-<p>那么问题来了，什么才算相近色，对于这个问题，在 常规的 rgb 中直接计算是不行的，因为它涉及到一个感知均匀的问题</p>
-<blockquote>
-<p>概念解释，感知均匀：XYZ 系统和在它的色度图上表示的两种颜色之间的距离与颜色观察者感知的变化不一致，这个问题叫做感知均匀性(perceptual uniformity)问题，也就是颜色之间数字上的差别与视觉感知不一致。由于我们需要在颜色簇中计算出平均色，那么对于人眼来说哪些颜色是相近的？此时，我们需要把 sRGB 转化为 Lab 色彩空间（感知均匀的），再计算其欧氏距离，在某一阈值内的颜色，即可认为是相近色。</p>
-</blockquote>
-<p>所以我们首先需要将 rgb 转化为 Lab 色彩空间</p>
-<pre><code class="language-ts">// 将 sRGB 转换为 Lab 色彩空间
-function rgbToLab(r: number, g: number, b: number): [number, number, number] {
-  let R = r / 255,
-    G = g / 255,
-    B = b / 255
-  R = R &gt; 0.04045 ? Math.pow((R + 0.055) / 1.055, 2.4) : R / 12.92
-  G = G &gt; 0.04045 ? Math.pow((G + 0.055) / 1.055, 2.4) : G / 12.92
-  B = B &gt; 0.04045 ? Math.pow((B + 0.055) / 1.055, 2.4) : B / 12.92
-
-  let X = R * 0.4124 + G * 0.3576 + B * 0.1805
-  let Y = R * 0.2126 + G * 0.7152 + B * 0.0722
-  let Z = R * 0.0193 + G * 0.1192 + B * 0.9505
-
-  X = X / 0.95047
-  Y = Y / 1.0
-  Z = Z / 1.08883
-
-  const f = (t: number) =&gt; (t &gt; 0.008856 ? Math.pow(t, 1 / 3) : 7.787 * t + 16 / 116)
-  const fx = f(X)
-  const fy = f(Y)
-  const fz = f(Z)
-  const L = 116 * fy - 16
-  const a = 500 * (fx - fy)
-  const bVal = 200 * (fy - fz)
-  return [L, a, bVal]
-}
-</code></pre>
-<p>这个函数使用了看起来很复杂的算法，不必深究，这是它的大概解释：</p>
-<ol>
-<li>
-<p>获取到 rgb 参数</p>
-</li>
-<li>
-<p>转化为线性 rgb （移除 gamma 矫正），常量 <strong>0.04045</strong> 是 sRGB （标准 TGB ）颜色空间中的一个阈值，用于区分非线性和线性的 sRGB 值，具体来说，当 sRGB 颜色分量大于 0.04045 时，需要通过 gamma 校正（即采用 <code>((R + 0.055) / 1.055) ^ 2.4</code>）来得到线性 RGB ；如果小于等于 0.04045 ，则直接进行线性转换（即 <code>R / 12.92</code>）</p>
-</li>
-<li>
-<p>线性 RGB 到 XYZ 空间的转换，转换公式如下：</p>
-<ul>
-<li><code>X = R * 0.4124 + G * 0.3576 + B * 0.1805</code></li>
-<li><code>Y = R * 0.2126 + G * 0.7152 + B * 0.0722</code></li>
-<li><code>Z = R * 0.0193 + G * 0.1192 + B * 0.9505</code></li>
-</ul>
-</li>
-<li>
-<p>归一化 XYZ 值，为了参考白点（ D65 ），标准白点的 XYZ 值是 <code>(0.95047, 1.0, 1.08883)</code>。所以需要通过除以这些常数来进行归一化</p>
-</li>
-<li>
-<p>XYZ 到 Lab 的转换，公式函数：const f = (t: number) =&gt; (t &gt; 0.008856 ? Math.pow(t, 1 / 3) : 7.787 * t + 16 / 116)</p>
-</li>
-<li>
-<p>计算 L, a, b 分量</p>
-<p><strong>L</strong>：亮度分量（表示颜色的明暗程度）</p>
-<ul>
-<li><code>L = 116 * fy - 16</code></li>
-</ul>
-<p><strong>a</strong>：绿色到红色的色差分量</p>
-<ul>
-<li><code>a = 500 * (fx - fy)</code></li>
-</ul>
-<p><strong>b</strong>：蓝色到黄色的色差分量</p>
-<ul>
-<li><code>b = 200 * (fy - fz)</code></li>
-</ul>
-</li>
-</ol>
-<p>接下来实现聚类算法</p>
-<pre><code class="language-ts">/**
- * 对满足条件的像素进行聚类
- * @param imageData 图片像素数据
- * @param condition 判断像素是否属于指定区域的条件函数（参数 x, y ）
- * @param threshold Lab 距离阈值，低于此值的颜色归为同一簇，建议 8~12
- */
-function clusterPixelsByCondition(imageData: ImageData, condition: (x: number, y: number) =&gt; boolean, threshold: number = 10): Cluster[] {
-  const clusters: Cluster[] = []
-  const data = imageData.data
-  const width = imageData.width
-  const height = imageData.height
-  for (let y = 0; y &lt; height; y++) {
-    for (let x = 0; x &lt; width; x++) {
-      if (!condition(x, y)) continue
-      const index = (y * width + x) * 4
-      if (data[index + 3] === 0) continue // 忽略透明像素
-      const r = data[index]
-      const g = data[index + 1]
-      const b = data[index + 2]
-      const lab = rgbToLab(r, g, b)
-      let added = false
-      for (const cluster of clusters) {
-        const d = labDistance(lab, cluster.averageLab)
-        if (d &lt; threshold) {
-          cluster.count++
-          cluster.sumRgb[0] += r
-          cluster.sumRgb[1] += g
-          cluster.sumRgb[2] += b
-          cluster.sumLab[0] += lab[0]
-          cluster.sumLab[1] += lab[1]
-          cluster.sumLab[2] += lab[2]
-          cluster.averageRgb = [cluster.sumRgb[0] / cluster.count, cluster.sumRgb[1] / cluster.count, cluster.sumRgb[2] / cluster.count]
-          cluster.averageLab = [cluster.sumLab[0] / cluster.count, cluster.sumLab[1] / cluster.count, cluster.sumLab[2] / cluster.count]
-          added = true
-          break
-        }
-      }
-      if (!added) {
-        clusters.push({
-          count: 1,
-          sumRgb: [r, g, b],
-          sumLab: [lab[0], lab[1], lab[2]],
-          averageRgb: [r, g, b],
-          averageLab: [lab[0], lab[1], lab[2]]
-        })
-      }
-    }
-  }
-  return clusters
-}
-</code></pre>
-<p>函数内部有一个 labDistance 的调用，labDistance 是计算 Lab 颜色空间中的欧氏距离的</p>
-<pre><code class="language-ts">// 计算 Lab 空间的欧氏距离
-function labDistance(lab1: [number, number, number], lab2: [number, number, number]): number {
-  const dL = lab1[0] - lab2[0]
-  const da = lab1[1] - lab2[1]
-  const db = lab1[2] - lab2[2]
-  return Math.sqrt(dL * dL + da * da + db * db)
-}
-</code></pre>
-<blockquote>
-<p>概念解释，欧氏距离：Euclidean Distance ，是一种在多维空间中测量两个点之间“直线”距离的方法。这种距离的计算基于欧几里得几何中两点之间的距离公式，通过计算两点在各个维度上的差的平方和，然后取平方根得到。欧氏距离是指 n 维空间中两个点之间的真实距离，或者向量的自然长度（即该点到原点的距离）。</p>
-</blockquote>
-<p>总的来说，这个函数采用了类似 K-means 的聚类方式，将小于用户传入阈值的颜色归为一簇，并取平均色(使用 Lab 值)。</p>
-<blockquote>
-<p>概念解释，聚类算法：Clustering Algorithm 是一种无监督学习方法，其目的是将数据集中的元素分成不同的组（簇），使得同一组内的元素相似度较高，而不同组之间的元素相似度较低。这里是将相近色归为一簇。</p>
-</blockquote>
-<blockquote>
-<p>概念解释，颜色簇：簇是聚类算法中一个常见的概念，可以大致理解为 "一类"</p>
-</blockquote>
-<p>得到了颜色簇集合后，就可以按照 count 大小来判断哪个是主题色了</p>
-<pre><code class="language-ts">  // 对全图所有像素进行聚类
-  let clusters = clusterPixelsByCondition(imageData, () =&gt; true, threshold.primary)
-  clusters.sort((a, b) =&gt; b.count - a.count)
-  const primaryCluster = clusters[0]
-  const secondaryCluster = clusters.length &gt; 1 ? clusters[1] : clusters[0]
-  const primaryColor = rgbToHex(primaryCluster.averageRgb)
-  const secondaryColor = rgbToHex(secondaryCluster.averageRgb)
-</code></pre>
-<p>现在我们已经获取到了主题色、次主题色 🎉🎉🎉</p>
-<p>接下来，我们继续计算边缘颜色</p>
-<p>按照同样的方法，只是把阈值设小一点，我这里直接设置为 1 （ threshold.top 等都是 1 ）</p>
-<pre><code class="language-ts">  // 分别对上、右、下、左边缘进行聚类
-  const topClusters = clusterPixelsByCondition(imageData, (_x, y) =&gt; y &lt; margin, threshold.top)
-  topClusters.sort((a, b) =&gt; b.count - a.count)
-  const topColor = topClusters.length &gt; 0 ? rgbToHex(topClusters[0].averageRgb) : primaryColor
-
-  const bottomClusters = clusterPixelsByCondition(imageData, (_x, y) =&gt; y &gt;= height - margin, threshold.bottom)
-  bottomClusters.sort((a, b) =&gt; b.count - a.count)
-  const bottomColor = bottomClusters.length &gt; 0 ? rgbToHex(bottomClusters[0].averageRgb) : primaryColor
-
-  const leftClusters = clusterPixelsByCondition(imageData, (x, _y) =&gt; x &lt; margin, threshold.left)
-  leftClusters.sort((a, b) =&gt; b.count - a.count)
-  const leftColor = leftClusters.length &gt; 0 ? rgbToHex(leftClusters[0].averageRgb) : primaryColor
-
-  const rightClusters = clusterPixelsByCondition(imageData, (x, _y) =&gt; x &gt;= width - margin, threshold.right)
-  rightClusters.sort((a, b) =&gt; b.count - a.count)
-  const rightColor = rightClusters.length &gt; 0 ? rgbToHex(rightClusters[0].averageRgb) : primaryColor
-</code></pre>
-<p>这样我们就获取到了上下左右四条边的颜色 🎉🎉🎉</p>
-<p>这样大致的工作就完成了，最后我们将需要的属性导出给用户，我们的主函数最终长这样：</p>
-<pre><code class="language-ts">/**
- * 主函数：根据图片自动提取颜色
- * @param imageSource 图片 URL 或 HTMLImageElement
- * @returns 返回包含主要颜色、次要颜色和背景色对象（上、右、下、左）的结果
- */
-export default async function colorPicker(imageSource: HTMLImageElement | string, options?: autoColorPickerOptions): Promise&lt;AutoHueResult&gt; {
-  const { maxSize, threshold } = __handleAutoHueOptions(options)
-  const img = await loadImage(imageSource)
-  // 降采样（最大尺寸 100px ，可根据需求调整）
-  const imageData = getImageDataFromImage(img, maxSize)
-
-  // 对全图所有像素进行聚类
-  let clusters = clusterPixelsByCondition(imageData, () =&gt; true, threshold.primary)
-  clusters.sort((a, b) =&gt; b.count - a.count)
-  const primaryCluster = clusters[0]
-  const secondaryCluster = clusters.length &gt; 1 ? clusters[1] : clusters[0]
-  const primaryColor = rgbToHex(primaryCluster.averageRgb)
-  const secondaryColor = rgbToHex(secondaryCluster.averageRgb)
-
-  // 定义边缘宽度（单位像素）
-  const margin = 10
-  const width = imageData.width
-  const height = imageData.height
-
-  // 分别对上、右、下、左边缘进行聚类
-  const topClusters = clusterPixelsByCondition(imageData, (_x, y) =&gt; y &lt; margin, threshold.top)
-  topClusters.sort((a, b) =&gt; b.count - a.count)
-  const topColor = topClusters.length &gt; 0 ? rgbToHex(topClusters[0].averageRgb) : primaryColor
-
-  const bottomClusters = clusterPixelsByCondition(imageData, (_x, y) =&gt; y &gt;= height - margin, threshold.bottom)
-  bottomClusters.sort((a, b) =&gt; b.count - a.count)
-  const bottomColor = bottomClusters.length &gt; 0 ? rgbToHex(bottomClusters[0].averageRgb) : primaryColor
-
-  const leftClusters = clusterPixelsByCondition(imageData, (x, _y) =&gt; x &lt; margin, threshold.left)
-  leftClusters.sort((a, b) =&gt; b.count - a.count)
-  const leftColor = leftClusters.length &gt; 0 ? rgbToHex(leftClusters[0].averageRgb) : primaryColor
-
-  const rightClusters = clusterPixelsByCondition(imageData, (x, _y) =&gt; x &gt;= width - margin, threshold.right)
-  rightClusters.sort((a, b) =&gt; b.count - a.count)
-  const rightColor = rightClusters.length &gt; 0 ? rgbToHex(rightClusters[0].averageRgb) : primaryColor
-
-  return {
-    primaryColor,
-    secondaryColor,
-    backgroundColor: {
-      top: topColor,
-      right: rightColor,
-      bottom: bottomColor,
-      left: leftColor
-    }
-  }
-}
-
-</code></pre>
-<p>还记得本小节一开始提到的参数吗，你可以自定义 maxSize （压缩大小，用于降采样）、threshold （阈值，用于设置簇大小）</p>
-<p>为了用户友好，我还编写了 threshold 参数的可选类型：number | thresholdObj</p>
-<pre><code class="language-ts">type thresholdObj = { primary?: number; left?: number; right?: number; top?: number; bottom?: number }
-</code></pre>
-<p>可以单独设置主阈值、上下左右四边阈值，以适应更个性化的情况。</p>
-<h2>autohue.js 诞生了</h2>
-<p>名字的由来：秉承一贯命名习惯，auto 家族成员又多一个，与颜色有关的单词有好多个，我取了最短最好记的一个 hue(色相)，也比较契合插件用途。</p>
-<p>此插件已在 github 开源：**<a href="https://github.com/Auto-Plugin/autohue.js" rel="nofollow" title="https://github.com/Auto-Plugin/autohue.js">GitHub autohue.js</a>**</p>
-<p>npm 主页：**<a href="https://www.npmjs.com/package/autohue.js" rel="nofollow" title="https://www.npmjs.com/package/autohue.js">NPM autohue.js</a>**</p>
-<p>在线体验：<a href="https://auto-plugin.github.io/index/autohue.js/" rel="nofollow" title="https://auto-plugin.github.io/index/autohue.js/">autohue.js 官方首页</a></p>
-<h3>安装与使用</h3>
-<pre><code class="language-shell">pnpm i autohue.js
-</code></pre>
-<pre><code class="language-ts">import autohue from 'autohue.js'
-
-autohue(url, {
-  threshold: {
-    primary: 10,
-    left: 1,
-    bottom: 12
-  },
-  maxSize: 50
-})
-  .then((result) =&gt; {
-    // 使用 console.log 打印出色块元素 s
-    console.log(`%c${result.primaryColor}`, 'color: #fff; background: ' + result.primaryColor, 'main')
-    console.log(`%c${result.secondaryColor}`, 'color: #fff; background: ' + result.secondaryColor, 'sub')
-    console.log(`%c${result.backgroundColor.left}`, 'color: #fff; background: ' + result.backgroundColor.left, 'bg-left')
-    console.log(`%c${result.backgroundColor.right}`, 'color: #fff; background: ' + result.backgroundColor.right, 'bg-right')
-    console.log(`%clinear-gradient to right`, 'color: #fff; background: linear-gradient(to right, ' + result.backgroundColor.left + ', ' + result.backgroundColor.right + ')', 'bg')
-    bg.value = `linear-gradient(to right, ${result.backgroundColor.left}, ${result.backgroundColor.right})`
-  })
-  .catch((err) =&gt; console.error(err))
-
-</code></pre>
-<h2>最终效果</h2>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/f12b9b60723e4904a17b127267b2cc25~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=ks155oLNvAT1jQpLw1SMeG2bKqk%3D" />
-<p>复杂边缘效果</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/fa6c3317d84749718ad30ae88bb4bda5~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=B2EgDDoqazFdpB1Mqto52dzKOc0%3D" />
-<p>纵向渐变效果（这里使用的是 left 和 right 边的值，可能使用 top 和 bottom 效果更佳）</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/fe207c4dfc2a461e9f6a7dd04b0ea3a9~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=8J4w88RIlGwDCvoAHc74%2BAY7hQc%3D" />
-<p>纯色效果（因为单独对边缘采样，所以无论图片内容多复杂，纯色基本看不出边界）</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/0bddbdc43e244bb4b41e3676617b29e3~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=WqBxwWdA4A03id3rE4ntnFWCu3g%3D" />
-<p>突变边缘效果（此时用 css 做渐变蒙层应该效果会更好）</p>
-<img class="embedded_image" rel="noreferrer" src="https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/596fb4fc81454766abb44912ab12c020~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg5b636I6x5Y6E5pav:q75.awebp?rk3s=f64ab15b&amp;x-expires=1740554069&amp;x-signature=sb6PB5oqkEzss9LWxSeaAjWRtHo%3D" />
-<p>横向渐变效果（使用的是 left 和 right 的色值），基本看不出边界</p>
-<h2>参考资料</h2>
-<ul>
-<li><a href="https://zhuanlan.zhihu.com/p/370371059" rel="nofollow" title="https://zhuanlan.zhihu.com/p/370371059">zhuanlan.zhihu.com/p/370371059</a></li>
-<li><a href="https://baike.baidu.com/item/%E5%9B%BD%E9%99%85%E7%85%A7%E6%98%8E%E5%A7%94%E5%91%98%E4%BC%9A/10021151?fromtitle=CIE&amp;fromid=8649998" rel="nofollow" title="https://baike.baidu.com/item/%E5%9B%BD%E9%99%85%E7%85%A7%E6%98%8E%E5%A7%94%E5%91%98%E4%BC%9A/10021151?fromtitle=CIE&amp;fromid=8649998">baike.baidu.com/item/%E5%9B…</a></li>
-<li><a href="https://baike.baidu.com/item/%E6%A0%87%E5%87%86%E5%85%89%E6%BA%90D65/20792406" rel="nofollow" title="https://baike.baidu.com/item/%E6%A0%87%E5%87%86%E5%85%89%E6%BA%90D65/20792406">baike.baidu.com/item/%E6%A0…</a></li>
-<li><a href="https://zh.wikipedia.org/wiki/%E6%AC%A7%E5%87%A0%E9%87%8C%E5%BE%97%E8%B7%9D%E7%A6%BB" rel="nofollow" title="https://zh.wikipedia.org/wiki/%E6%AC%A7%E5%87%A0%E9%87%8C%E5%BE%97%E8%B7%9D%E7%A6%BB">zh.wikipedia.org/wiki/%E6%AC…</a></li>
-<li><a href="https://blog.csdn.net/weixin_42560067/article/details/116182991" rel="nofollow" title="https://blog.csdn.net/weixin_42560067/article/details/116182991">blog.csdn.net/weixin_4256…</a></li>
-<li><a href="https://zh.wikipedia.org/wiki/K-%E5%B9%B3%E5%9D%87%E7%AE%97%E6%B3%95" rel="nofollow" title="https://zh.wikipedia.org/wiki/K-%E5%B9%B3%E5%9D%87%E7%AE%97%E6%B3%95">zh.wikipedia.org/wiki/K-%E5%…</a></li>
-<li><a href="https://blog.csdn.net/weixin_42998707/article/details/108011092" rel="nofollow" title="https://blog.csdn.net/weixin_42998707/article/details/108011092">blog.csdn.net/weixin_4299…</a></li>
-<li><a href="https://juejin.cn/post/6844903511956815885" rel="nofollow" title="https://juejin.cn/post/6844903511956815885">juejin.cn/post/684490…</a></li>
-</ul>
-<h2>番外</h2>
-<p>Auto 家族的其他成员</p>
-<ul>
-<li><a href="https://github.com/Auto-Plugin" rel="nofollow" title="https://github.com/Auto-Plugin">Auto-Plugin</a>/<strong><a href="https://github.com/Auto-Plugin/autofit.js" rel="nofollow" title="https://github.com/Auto-Plugin/autofit.js">autofit.js</a></strong> autofit.js 迄今为止最易用的自适应工具</li>
-<li><a href="https://github.com/Auto-Plugin" rel="nofollow" title="https://github.com/Auto-Plugin">Auto-Plugin</a>/<strong><a href="https://github.com/Auto-Plugin/autolog.js" rel="nofollow" title="https://github.com/Auto-Plugin/autolog.js">autolog.js</a></strong> autolog.js 轻量化小弹窗</li>
-<li><a href="https://github.com/Auto-Plugin" rel="nofollow" title="https://github.com/Auto-Plugin">Auto-Plugin</a>/<strong><a href="https://github.com/Auto-Plugin/autouno" rel="nofollow" title="https://github.com/Auto-Plugin/autouno">autouno</a></strong> autouno 直觉的 UnoCSS 预设方案</li>
-<li><a href="https://github.com/Auto-Plugin" rel="nofollow" title="https://github.com/Auto-Plugin">Auto-Plugin</a>/<strong><a href="https://github.com/Auto-Plugin/autohue.js" rel="nofollow" title="https://github.com/Auto-Plugin/autohue.js">autohue.js</a></strong> 本品 一个自动提取图片主题色让图片和背景融为一体的工具</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-21T06:00:15Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 大家手里的光猫被悄悄升级阉割过吗？</title>
-<link>https://www.v2ex.com/t/1113207</link>
-<guid>https://www.v2ex.com/t/1113207</guid>
-<content:encoded><![CDATA[
-我本身对这款光猫颇有微词，<br />HG6045 ，D2 和 F3 两款型号都有，<br />Java 占用着 220 多 mb 的内存跑着移动的大插件，<br />我今天想改一下 sn ，<br />没想到什么都不允许改，改直接 fail 不生效，<br />连 tr09 都不让改了，<br />（以前都可以改，sn 有限制，开头限制了烽火型号），<br />排查发现出厂日期 2023-11 ，<br />编译日期 2023-12-某日，凌晨 2 点钟，<br />我恍然大悟，<br />运营商偷偷在凌晨给我烽火光猫升级了，<br />于是乎，这光猫什么都不能改，成为了废铁。<br /><br />1.大家经历过光猫被偷偷升级的事情吗？<br />2.有点恶性到了，想问问联通日租宽带怎么样，据说一元一天有套路吗？
-]]></content:encoded>
-<pubDate>2025-02-21T06:15:15Z</pubDate>
-</item>
-<item>
-<title>[计算机] 老哥们， 8000，台式整机。主要是建模和平时使用，存储大一些。有什么推荐嘛？</title>
-<link>https://www.v2ex.com/t/1113206</link>
-<guid>https://www.v2ex.com/t/1113206</guid>
-<content:encoded><![CDATA[
-<p>装机的话，也考虑过，但是什么都懂，也没有渠道，怕是被骗。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:07:02Z</pubDate>
-</item>
-<item>
-<title>[投资] 大家有没有觉得大 A 已经进入了牛市</title>
-<link>https://www.v2ex.com/t/1113205</link>
-<guid>https://www.v2ex.com/t/1113205</guid>
-<content:encoded><![CDATA[
-<p>年后几乎每天都是 4000 股左右上涨，很多指数特别是中小盘股指数，已经多次创出去年十月份新高了，权重比较拖后腿，但是从 924 之后，现在的位置经过快半年也没有真正意义跌下去过，回落一直在震荡。市场现在的赚钱效应确实很不错，成交额自从 924 之后也一直维持在 1.5 到 2w 亿左右，只有春节附近今天有所下滑，正常的，这是这样一直维持的成交活跃度以前几乎没有。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:24:30Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 土区 Microsoft 365 也涨价了</title>
-<link>https://www.v2ex.com/t/1113203</link>
-<guid>https://www.v2ex.com/t/1113203</guid>
-<content:encoded><![CDATA[
-<p>收到邮件，Microsoft 365 的价格 ₺15,99 per month to ₺229,99 per month 。</p>
-<p>目前土区的订阅就剩一个 1password 了。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:00:49Z</pubDate>
-</item>
-<item>
-<title>[生活] 现在有国家补贴，请问给位大佬们用的哪款吸尘器用的比较好，哪款不推荐。</title>
-<link>https://www.v2ex.com/t/1113202</link>
-<guid>https://www.v2ex.com/t/1113202</guid>
-<content:encoded><![CDATA[
-<p>家里太容易有灰尘了，想买个吸尘器，没事吸吸，床单上也好多毛絮。
-戴森、追觅、石头、小米，请问有啥推荐的，没有用过，所以求推荐。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:14:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 除了 grok3，现在还有那些大模型可以搞涩涩生成小黄文？</title>
-<link>https://www.v2ex.com/t/1113201</link>
-<guid>https://www.v2ex.com/t/1113201</guid>
-<content:encoded><![CDATA[
-<p>昨天试了下 grok3 ，涩涩效果还可以，就是不开会员每小时有次数限制。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T05:55:38Z</pubDate>
-</item>
-<item>
-<title>[Web Dev] API 请求体字段定义询问各位大佬。</title>
-<link>https://www.v2ex.com/t/1113200</link>
-<guid>https://www.v2ex.com/t/1113200</guid>
-<content:encoded><![CDATA[
-我们的场景是后端给前端暴露发布帖子的 api ，界面上是有明确的标题跟内容的 UI 区分的。<br /><br />公司里的实习生在给前端暴露 api 的时候，给前端暴露了下述的 api：<br />const response: AxiosResponse&lt;FeedFlow.PublishPostResponse&gt; = await <a href="http://this.apiClient.post" rel="nofollow noopener" target="_blank">this.apiClient.post</a>('/feed-flow/publish-post', {<br />  authorId: request.authorId,<br />  content: `${request.title}\n${request.content}`,<br />});<br /><br />后端同学的存储格式是把 title 跟 content 正文存储在一个一段里面，按行分割。前端同学觉得要在 api 的层面上把 title 跟 content 通过字符拼接再赋值给 content 字段很不自然。后端同学觉得没什么所谓，觉得数据库里面定的就是这个字段，直接给他拼好就行了。<br /><br />我的看法是，api 的提供需要是从代码层面上就有清晰语义的，这种字段的说明比较难以让人理解。<br /><br />想问问大佬们怎么看待这个问题，有什么理据能够支撑各自的观点？
-]]></content:encoded>
-<pubDate>2025-02-21T05:10:16Z</pubDate>
-</item>
-<item>
-<title>[macOS] 修改 Caplock 键功能后，能否将 Shift 按键改为中英切换，并实现 Caplock 键的中英切换动画？</title>
-<link>https://www.v2ex.com/t/1113199</link>
-<guid>https://www.v2ex.com/t/1113199</guid>
-<content:encoded><![CDATA[
-<p>看到 Raycast 出了一个功能，将 Caplock 键设为 HyerKey ，这样会多出重要的一组快捷键。修改试了下，觉得蛮顺手的。但也遇到一个问题：中英动画切换的提示没了，变成了大小写的。</p>
-<p>于是希望能将 Shift 按键改为中英切换，并实现 Caplock 键的中英切换动画。（还有 Fn 的切换动画，以及组合键的输入法切换动画，个人觉得不如 Caplock 的直观）</p>
-]]></content:encoded>
-<pubDate>2025-02-21T04:52:21Z</pubDate>
-</item>
-<item>
-<title>[程序员] 大模型现在能解析整个项目吗</title>
-<link>https://www.v2ex.com/t/1113198</link>
-<guid>https://www.v2ex.com/t/1113198</guid>
-<content:encoded><![CDATA[
-搞 C++还没招进来，只能我自己先看了
-]]></content:encoded>
-<pubDate>2025-02-21T06:15:49Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] 如何加速大陆访问 Vercel 站点？</title>
-<link>https://www.v2ex.com/t/1113197</link>
-<guid>https://www.v2ex.com/t/1113197</guid>
-<content:encoded><![CDATA[
-<p>可能要将 Next.js 站点部署到 Vercel ，但又特别想要拥有近似于腾讯云的快速访问体验，问下各位大佬应该怎么做？</p>
-<p>GitHub Pages 测出来是 100 ms ，Cloudflare Pages 是 180ms ，腾讯云 EdgeOne Pages 是 5 ms 。</p>
-<p>不知道 Vercel 如何</p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:04:25Z</pubDate>
-</item>
-<item>
-<title>[信息安全] 天塌了， NAS 被勒索了，如何数据恢复？</title>
-<link>https://www.v2ex.com/t/1113196</link>
-<guid>https://www.v2ex.com/t/1113196</guid>
-<content:encoded><![CDATA[
-被加密隐藏索要比特币。。。<br /><br />有没有成功案例可以恢复的？求助！<br /><br />推荐靠谱的恢复公司也行
-]]></content:encoded>
-<pubDate>2025-02-21T06:16:22Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 不考虑钱在大厂不如在初创公司做全栈有意思</title>
-<link>https://www.v2ex.com/t/1113195</link>
-<guid>https://www.v2ex.com/t/1113195</guid>
-<content:encoded><![CDATA[
-<p>不用面对屎山代码，自己想咋搞咋搞，成就感不是在大厂当螺丝钉能比的</p>
-]]></content:encoded>
-<pubDate>2025-02-21T06:26:47Z</pubDate>
-</item>
-<item>
-<title>一个基于大模型的问答库，大家觉得多少合适？</title>
-<link>https://www.v2ex.com/t/1113232</link>
-<guid>https://www.v2ex.com/t/1113232</guid>
-<content:encoded><![CDATA[
-接入微信，有用户提问时用大模型做前台对话，外挂一个企业的知识库，根据企业知识库回答用户。<br /><br />机器人无法回答的问题，转人工。<br /><br />记录所有的用户问题和人工回答，用这个来完善知识库。
-]]></content:encoded>
-<pubDate>2025-02-20T14:21:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求推荐 4000 内的安卓机，想弃果投卓了…</title>
-<link>https://www.v2ex.com/t/1113194</link>
-<guid>https://www.v2ex.com/t/1113194</guid>
-<content:encoded><![CDATA[
-本来打算换 iPhone16E 的，看了看果断放弃了，准备给苹果全家桶都出了，我就几个想法<br /><br />1.4000 以内<br />2.流畅用 4 年左右<br />3.拍照清晰好看些，不用绝对惊艳，中等偏上即可<br />4.游戏性能好，主要玩鸣潮<br />5.广告尽量都可以关掉<br />6.直屏<br />7.电池稍微耐用下（ iPhone12 我真忍无可忍）<br />8.可以 Google 全家桶
-]]></content:encoded>
-<pubDate>2025-02-21T04:25:43Z</pubDate>
-</item>
-<item>
-<title>[求职] [上海/杭州]4 年前端求内推，诚心找工作</title>
-<link>https://www.v2ex.com/t/1113193</link>
-<guid>https://www.v2ex.com/t/1113193</guid>
-<content:encoded><![CDATA[
-<p>ps:目前人在上海，如有面试可直接线下。</p>
-<p>联系方式：<br />
-wx：R2l0Qm95OTk4OA==<br />
-Email:THp5b282NjZAb3V0bG9vay5jb20=</p>
-<h2>求职意向</h2>
-<p>前端开发工程师、NodeJS 工程师</p>
-<h2>个人技能：</h2>
-<ol>
-<li><strong>Vue</strong>：熟练 Vue2 、3 生态以及相关工具、插件、依赖；简单理解 Vue 源码了解其运行机制。熟悉相关生态系统和工具链，擅长使用各种手段提升业务应用的性能和用户体验;</li>
-<li><strong>React</strong>：熟练 React 生态以及相关工具、插件、依赖；能够高效解决遇到的前端问题，并优化性能；熟练使用开发跨平台小程序。</li>
-<li><strong>小程序</strong>：熟练使用 Taro 、uni-app 开发跨平台小程序。</li>
-<li><strong>构建工具</strong>：熟练使用 webpack / vite 等构建工具的基本配置，搭建通用的开发环境</li>
-<li><strong>AI 技术</strong>：熟练运用 AI 技术（如 ChatGPT 的 GPT-4 、Claude ），善于引导 AI 在绝大部分领域给出高质量的回答辅助项目开发。</li>
-<li><strong>全栈开发能力</strong>：掌握全栈开发流程，能够熟练使用 NestJS 、Python 进行后端开发。有一定数据库方面知识，开发一些 RESTful API 服务。</li>
-<li><strong>多平台开发经验</strong>：了解 Web 、移动端（小程序）和桌面应用（ Electron 、Tauri ）的跨平台开发。</li>
-<li><strong>持续学习</strong>: 保持对新技术的学习热情，经常阅读技术博客和开源项目文档。能够快速掌握并在项目中应用新技术，持续提升技术水平。</li>
-</ol>
-<h2>简介</h2>
-<p>21 年专科院校毕业，软件技术专业。</p>
-<ol>
-<li>第一家基因检测公司任职前端开发，呆了将近 3 年，由于刚毕业，没有太清晰的个人规划，阴差阳错入职该公司时薪资偏低（初入职场，没有薪资概念，报价低了），我们部门是一个负责公司整体网络运维及开发，期间跟着 leader 学到了一些网络维护的知识，修公司所有人的电脑，打印机等设备。因为项目基本上都是内部系统的开发维护。</li>
-<li>第二家是在 V 站找的一个电池行业公司，呆了 6 个月，负责过大屏的开发，基本也是 toB 的系统，跟物联网打交道多一些，基本就是管理系统内做一些数据的展示，设备的操作下发等功能开发。</li>
-</ol>
-<h2>个人展望</h2>
-<ol>
-<li>希望能开拓一下新的方向，想接触下移动端，桌面端的开发。</li>
-<li>工作期间也有在自学了零零散散的语言和相关技术，所以后端方面也懂一些，如果有机会也想接触一些后端开发的工作。</li>
-<li>在校期间，没有数据结构课程，所以算法是我的薄弱项，希望可以抓起来。</li>
-</ol>
-<h2>结语</h2>
-<p>一直懵懵懂懂的遨游在编程世界中，热爱编程但总是缺少想法的小伙子，希望有朝一日能迈进真正的互联网大门。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T04:16:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 兄弟们， 为什么 Web3 公司一年 365 天都在招人？</title>
-<link>https://www.v2ex.com/t/1113190</link>
-<guid>https://www.v2ex.com/t/1113190</guid>
-<content:encoded><![CDATA[
-很奇怪， 随便问问
-]]></content:encoded>
-<pubDate>2025-02-21T04:28:40Z</pubDate>
-</item>
-<item>
-<title>[酷工作] Hot/New Jobs：
-Position 一： Golang、flutter app、测试，
-Position 二：产品、DevOps，</title>
-<link>https://www.v2ex.com/t/1113188</link>
-<guid>https://www.v2ex.com/t/1113188</guid>
-<content:encoded><![CDATA[
-Hot/New Jobs：<br /><br />Position 一：Golang 、flutter app 、测试，<br />Job Type：Full-Time, Remote <br />Industry: Web3/Exchange<br />PS：<br />1 、211 本科及以上计算机专业，2/5 年工作经验，<br />2 、是否有行业背景不限定，有知名行业任职背景，<br />3 、远程办公模式，多个招聘需求。<br /><br />Position 二：产品、DevOps ，<br />Job Type：Full-Time, Onsite-Singapore<br />Industry: Web3/Exchange<br />PS：<br />1 、211 本科及以上计算机专业，3/10 年工作经验，<br />2 、有 Web3/CEX/DEX 从业背景加分，但不限定。<br />3 、需要现场办公，多个招聘需求。<br /><br />TG：@jtx_2023
-]]></content:encoded>
-<pubDate>2025-02-21T04:05:04Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [北京/上海] 百亿量化公司 C++/ Python /算法/数据开发</title>
-<link>https://www.v2ex.com/t/1113187</link>
-<guid>https://www.v2ex.com/t/1113187</guid>
-<content:encoded><![CDATA[
-<p>Top 百亿+私募量化投资公司，地点：北京/上海。
-竞争力的薪资，精英团队。
-感兴趣邮件： <a href="mailto:jxiao@hiringby.com">jxiao@hiringby.com</a> 微信私聊：15210750729</p>
-<p>基本要求： 年轻高潜，聪明，代码能力强，学校 211 起，对金融领域感兴趣。 大厂或知名外企背景，量化从业者加分。</p>
-<p>核心系统开发工程师 C++
-主要工作职责：
-负责量化交易系统架构的设计和搭建；负责在不同编译器、操作系统和网络环境下的性能优化；学习和了解其他高科技行业的尖端技术，寻找技术突破的灵感。
-岗位要求 1 ）国内外知名院校的计算机科学本科及以上学历； 2 ）对技术革新和软件开发充满热情，对低延迟系统开发有一定经验； 3 ）精通数据结构和算法，具备扎实的 C++/C 语言编程能力； 4 ）掌握高级的 Linux 内核知识更佳； 5 ）具有优秀的书面表达与沟通协调能力； 6 ）永远追求最高效的解决方案。</p>
-<p>Python 高级开发工程师
-[岗位职责] 负责与策略研究人员沟通，协助策略研究工作，与策略研究人员紧密合作，解决技术难点，对策略依赖的算子、投研框架及工具进行开发和性能优化，并支持工程团队开发基于多机的低延迟计算平台，以应对各种频率的投研场景；完成其他交办的交易系统平台开发任务。
-[任职要求]
-3 年以上相关工作经验；
-优秀的软件设计能力，掌握基本的设计模式；
-良好的软件调试和性能优化能力；
-热爱 coding ，愿意主动花时间钻研技术；
-良好的编程习惯，高效的沟通能力和快速学习能力；
-熟练使用 Python ； [加分项] 1. 有 C++开发、性能调优经验； 2. 熟悉金融交易类业务、技术架构； 3. 了解业界常用的 pipeline 工具及并行开发框架；
-其他岗位：</p>
-<p>数据开发（数据仓库，数据平台，数据处理等）-211,3 年+;
-机器学习平台开发（机器学习平台、训练框架底层相关开发经验）-3 年+；
-运维开发 -3 年+，有 SRE ，DevOps ，后台开发经验，主要技术栈：Python ；
-全栈开发 -3-6 年，全栈开发经验（ react+python ）；
-前端开发 - 211 ，5-8 年，知名互联网经验；
-高性能计算工程师-985 ，3 年+；
-高性能系统优化-985 ，3 年+； <a href="http://8.ai" rel="nofollow">8.ai</a> 算法-985 ，大厂或量化公司，打比赛经历； 量化策略算法、大模型算法；</p>
-]]></content:encoded>
-<pubDate>2025-02-21T04:03:41Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2025 年有什么值得推荐的静电容键盘吗， mac 系统</title>
-<link>https://www.v2ex.com/t/1113186</link>
-<guid>https://www.v2ex.com/t/1113186</guid>
-<content:encoded><![CDATA[
-<p>hhkb 太贵了，不考虑，预算 1k 左右，超一点也行</p>
-]]></content:encoded>
-<pubDate>2025-02-21T04:03:16Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] ZeroTier 间歇性断连问题？有没有更好的替代？</title>
-<link>https://www.v2ex.com/t/1113181</link>
-<guid>https://www.v2ex.com/t/1113181</guid>
-<content:encoded><![CDATA[
-问题如题，表现是正常使用过程中突然 ping 不通目标机器（网络超时），大概 3~5 分钟后恢复。<br /><br />这个情况发生频率不定，白天偶尔有一两次，但网络高峰期（晚上）会频繁到一小时 2~3 次。经常传着文件或用着远程服务，就断了。一断就是几分钟。<br /><br />网络拓扑如下：<br /><br />家里内网 [电脑 -&gt; 路由器 NAT1 模式，UPnP 测试正常] -&gt; NAT1 -&gt; 公网 -&gt; NAT4 -&gt; 学校内网 [网关 -&gt; 机器]<br /><br />ZeroTier 没有自建节点，Planet 和 Moon 都是官方的（因为我有 NAT1 ，平时也可以稳定 P2P ），我也不好排查到底是哪边的问题。<br /><br />各位有遇到类似的吗？如何解决？
-]]></content:encoded>
-<pubDate>2025-02-21T03:51:25Z</pubDate>
-</item>
-<item>
-<title>[分享创造] Kie.ai：高性价比 DeepSeek R1 API，支持上下文感知响应，流式输出，强大推理能力，提供免费测试</title>
-<link>https://www.v2ex.com/t/1113179</link>
-<guid>https://www.v2ex.com/t/1113179</guid>
-<content:encoded><![CDATA[
-<p>新上线的 DeepSeek R1 API 接口站点，提供最新 DeepSeek R1 推理模型 API 调用，支持上下文感知响应，流式输出，目前提供免费调用测试，感兴趣的可以试试。</p>
-<h4>核心功能：</h4>
-<ul>
-<li><strong>DeepSeek R1 API 调用</strong>：支持思维链，流式输出，提供免费测试</li>
-<li><strong>数据安全</strong>：通过加密技术保障数据的隐私与安全</li>
-<li><strong>强大的推理能力</strong>：DeepSeek R1 能够快速高效地完成复杂推理任务，适用于各种高要求的推理场景</li>
-<li><strong>实时客服支持</strong>：及时的技术支持，确保在遇到问题时，能第一时间解决，保证 API 稳定运行</li>
-</ul>
-<h4>如何使用：</h4>
-<ol>
-<li>
-<p><strong>注册并获取 API Key</strong>：</p>
-<ul>
-<li>访问 [<a href="http://Kie.ai" rel="nofollow">Kie.ai</a> 官网]，注册并登录账户。</li>
-<li>获取 API Key 。</li>
-</ul>
-</li>
-<li>
-<p><strong>集成 API</strong>：</p>
-<ul>
-<li>在您的项目中集成 DeepSeek R1 API ，进行认证。</li>
-<li>
-使用如下方式进行请求：<pre><code>Authorization: Bearer YOUR_API_KEY
-</code></pre>
-</li>
-</ul>
-</li>
-<li>
-<p><strong>调用 API 完成推理任务</strong>：</p>
-<ul>
-<li>通过调用 DeepSeek R1 API 进行各种推理任务，API 支持实时对话接口、上下文感知响应和流式输出。</li>
-</ul>
-</li>
-<li>
-<p><strong>管理积分和使用情况</strong>：</p>
-<ul>
-<li><a href="http://Kie.ai" rel="nofollow">Kie.ai</a> 提供积分系统，帮助你监控和管理 API 调用的使用情况。查看剩余积分，跟踪使用记录，避免因积分不足导致中断。</li>
-</ul>
-</li>
-</ol>
-<p>目前提供免费调用测试，感兴趣的可以试试，欢迎大家反馈意见，共同改进工具的功能和体验。</p>
-<p><img alt="kie.aizh01.jpg" class="embedded_image" rel="noreferrer" src="https://r2.erweima.ai/aiManager/image/1740109229872ai4hjkiy.jpg" />
-<img alt="kie.aizh02.jpg" class="embedded_image" rel="noreferrer" src="https://r2.erweima.ai/aiManager/image/1740109229887iv9g1ue7.jpg" /></p>
-]]></content:encoded>
-<pubDate>2025-02-19T03:44:20Z</pubDate>
-</item>
-<item>
-<title>[问与答] 谷歌翻译质量下降，而且可能预计会被停用，有便宜好用的平替 api 吗</title>
-<link>https://www.v2ex.com/t/1113178</link>
-<guid>https://www.v2ex.com/t/1113178</guid>
-<content:encoded><![CDATA[
-<p><a href="https://www.reddit.com/r/SillyTavernAI/comments/1i9exxp/isnt_googles_translation_a_bit_strange/" rel="nofollow">https://www.reddit.com/r/SillyTavernAI/comments/1i9exxp/isnt_googles_translation_a_bit_strange/</a></p>
-<p>reddit 这个帖子讨论了相关问题，有人问了官方人员，好像是官方不想再开免费调用了。本地部署 7b 的 deepseek 翻译质量如何，或者有没有更好的 api 平替，用来给沉浸式翻译用。</p>
-]]></content:encoded>
-<pubDate>2025-02-21T04:27:45Z</pubDate>
 </item>
 </channel>
 </rss>
