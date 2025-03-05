@@ -5,14 +5,341 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 华为不是算车子的解决方案供应商嘛？为什么会让供应商开发布会啊？</title>
+<link>https://www.v2ex.com/t/1116169</link>
+<guid>https://www.v2ex.com/t/1116169</guid>
+<content:encoded><![CDATA[
+
+<p>有点搞乱了，那些什么什么界的车子到底是华为的，还是江淮奇瑞的？</p>
+<p>作为供应商就做好自己的对应产业链就行了，怎么那么喜欢替主子发言，出风头？</p>
+<p>好奇怪啊，搞不懂这家公司的逻辑</p>
+]]></content:encoded>
+<pubDate>2025-03-05T12:30:19Z</pubDate>
+<pubDate>2025-03-05T12:29:19Z</pubDate>
+</item>
+<item>
+<title>[问与答] clash meta for android 如何自动应用 Shadowrocket-ADBlock-Rules-Forever ?</title>
+<link>https://www.v2ex.com/t/1116167</link>
+<guid>https://www.v2ex.com/t/1116167</guid>
+<content:encoded><![CDATA[
+
+<a href="https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever" rel="nofollow noopener" target="_blank">https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever</a> 是个很不错的翻墙规则库, 之前用 iphone 上面的 shadowrocket 的时候, 直接在里面扫描 Shadowrocket-ADBlock-Rules-Forever  中的二维码就可以下载对应的规则, 然后应用上. clash meta for android 里面居然没有这个配置入口. 大家是怎么做 国内/外 IP 分流, 屏蔽 app 广告的, 难道是人肉编辑规则库?
+]]></content:encoded>
+<pubDate>2025-03-05T12:24:18Z</pubDate>
+<pubDate>2025-03-03T12:24:18Z</pubDate>
+</item>
+<item>
+<title>[OpenWrt] 分享我的一个 openclash 终极优化方案</title>
+<link>https://www.v2ex.com/t/1116166</link>
+<guid>https://www.v2ex.com/t/1116166</guid>
+<content:encoded><![CDATA[
+
+<p>首先说我的需求，第一当然是科学上网，第二是我的群晖需要用 ipv6 暴露在外网。所以我的网络需要开启 ipv6 ，包括 dns 也需要允许 ipv6.下面是我的优化方案：</p>
+<p>1 、基本的上网配置是 dnsmasq+openclash+smartdns, openclash 劫持 dnsmasq 的 53 端口，然后将 dns 转发到 smartdns 的 5335 端口，smartdns 国内域名向我的上游 dns 解析，国外域名通过 doh/dot 解析。类似于这样的配置：</p>
+<pre><code>domain-set -name chinalist -file /etc/smartdns/domain-set/accelerated-domains.china.domain.smartdns.conf
+domain-rules /domain-set:chinalist/  -nameserver domestic -speed-check-mode ping,tcp:80,tcp:443 -address #4,#6 -dualstack-ip-selection yes -response-mode first-ping
+domain-rules /./  -nameserver gw -speed-check-mode none -address -6 dualstack-ip-selection no -response-mode fastest-response
+</code></pre>
+<p>这里，国内域名可以解析 ipv4 和 ipv6 地址，国外域名就只解析 ipv4 地址。</p>
+<p>2 、openclash 使用 redir-host 模式，之所以不使用 fakeip ，是因为我来需要 ssh 连接外网，用 fakeip 会出各种奇怪的问题。然后选择“自定义上游 DNS 服务器”，所有上游服务器都设置成 smartdns 的 5335 端口。这样把 dns 交给 smartdns 分流，smartdns 如果使用 doh 查询 1.1.1.1 或者 google 的 dns ，又会转到 openclash 翻墙。 之所以不把 smartdns 放最前面，是因为 openclash 通过域名去分流更精准一些。</p>
+<p>3 、openclash 不做 ipv6 的代理，因为上面说了，国外域名只会解析 ipv4 地址。</p>
+<p>4 、在 openclash 开发者选项增加 iptables 规则，这样当国内域名解析 ipv4 后，直接就通过网络出去了，而不走 clash 代理，在插件设置--&gt;开发者选项里增加两行脚本：</p>
+<pre><code>
+LOG_OUT "Tip: Start Add Custom Firewall Rules..."
+iptables -t nat -I openclash -m set --match-set china_ip_route dst -j RETURN
+iptables -t mangle -I openclash_output -m set --match-set china_ip_route dst -j RETURN
+</code></pre>
+<p>利用 openclash 自己同步的 ipset 规则来讲解析到的国内 ip 地址直接跳转而不走 clash 代理通道。第一条是路由规则，第二条是本机规则。</p>
+<p>5 、使用 github cmliu 大神的 edgetunnel 项目，在 cf 上弄了个代理，然后又用 CF-Workers-SUB 项目，将我买的收费机场和 cf 的免费机场做了一个聚合。最后 fork cmliu 大神的 ACL4SSR 项目，定制了我的分流规则，使 openclash 自动订阅我的 <a href="https://fgfwsub.xxxx.site/" rel="nofollow">https://fgfwsub.xxxx.site/</a>&lt;uuid&gt;即可自动获取机场订阅信息。当我的机场发生改变的时候，只需要去这个网址上去修改机场聚合地址就可以了 。当我需要设置新的分流规则，只需要在我 fork 的 ACL4SSR 项目里，修改对应的分流规则即可。具体可以参照油罐该大神的视频。</p>
+<p>春节以来，零零碎碎折腾了好久，总算折腾得好用了。</p>
+]]></content:encoded>
+<pubDate>2025-03-05T12:20:15Z</pubDate>
+<pubDate>2025-03-05T12:20:15Z</pubDate>
+</item>
+<item>
+<title>[程序员] 请教后端面试官们, 现在面试还会对候选人深究八股文吗</title>
+<link>https://www.v2ex.com/t/1116165</link>
+<guid>https://www.v2ex.com/t/1116165</guid>
+<content:encoded><![CDATA[
+
+<p>突然翻到 5 年前的 golang 后端群，那时候群友们热衷于背诵：</p>
+<ul>
+<li>go runtime ，源码分析</li>
+<li>各种中间件的原理 </li>
+<li>各类数据库的内部数据结构、算法、高性能原理 </li>
+<li>raft, paxos, gossip, ... 各种分布式算法 </li>
+<li>网络/计组/... </li>
+</ul>
+<p>我记得当时 mysql 有一个幻读之类的问题，经常出现每个人背的版本不一样的问题。 面试官和候选人背的版本不一致、候选人和候选人背的版本不一致。</p>
+<p>请问各位后端面试官们，现在面试还问这些吗？ 现在很多问题工作上遇到了可以直接问 AI(虽然可能会有 ai 幻觉问题)。</p>
+]]></content:encoded>
+<pubDate>2025-03-05T12:14:04Z</pubDate>
+<pubDate>2025-03-05T12:45:02Z</pubDate>
+</item>
+<item>
+<title>[问与答] 从哪里开始着手学 AI 大模型呢？导师给了张下面这个图，然后自学。但没有头绪</title>
+<link>https://www.v2ex.com/t/1116164</link>
+<guid>https://www.v2ex.com/t/1116164</guid>
+<content:encoded><![CDATA[
+
+<p>是必须得报班呢？还是说网上已经有类似的系统性的学习资料了，自学即可，如果有的话麻烦指个路。谢谢各位
+线性代数和概率论学过，但忘得差不多了。c++有一定基础，但没系统性的学习过 python 。下面的就是白纸一张
+<img alt="e84d3118f28972c00b67b0c268384a36.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/03/05/e84d3118f28972c00b67b0c268384a36.png" /></p>
+]]></content:encoded>
+<pubDate>2025-03-05T12:10:10Z</pubDate>
+<pubDate>2025-03-05T12:34:52Z</pubDate>
+</item>
+<item>
+<title>[iPad] Apple 官网调整国行 iPad mini(A17 Pro)售价</title>
+<link>https://www.v2ex.com/t/1116163</link>
+<guid>https://www.v2ex.com/t/1116163</guid>
+<content:encoded><![CDATA[
+
+无线局域网版本（型号 A2993 ） 256G 和 512G 下调 300 元。<br />无线局域网+蜂窝网络机型（型号 A2996 ） 128G 上涨 300 元。<br />其他版本价格不变
+]]></content:encoded>
+<pubDate>2025-03-05T11:53:34Z</pubDate>
+<pubDate>2025-03-05T12:26:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 在线给狗子征集一个英文名，母的白色柴犬 名字叫蛋黄</title>
+<link>https://www.v2ex.com/t/1116162</link>
+<guid>https://www.v2ex.com/t/1116162</guid>
+<content:encoded><![CDATA[
+
+<p>中英没有宠物引渡条例，只能从法国转机 然后坐汽车来英国  狗生也算精彩了, 给他征集一个英文名
+北京=&gt;巴黎=&gt;英国，跨越万里终于和狗子团圆了
+新生活开始</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://pic1.zhimg.com/80/v2-d066a222537194480ec0c6a1dee75228_r.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic4.zhimg.com/80/v2-d16f66f46aa21520d6ac140239a7e52b_r.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic4.zhimg.com/80/v2-b37396c4b0cfc9785d5172d8e45b0a2d_r.jpg" />
+<img alt="" class="embedded_image" rel="noreferrer" src="https://pic1.zhimg.com/80/v2-36953cd905331eac954d7950e1bc2e74_r.jpg" /></p>
+]]></content:encoded>
+<pubDate>2025-03-05T11:51:11Z</pubDate>
+<pubDate>2025-03-05T03:51:11Z</pubDate>
+</item>
+<item>
+<title>[问与答] ⚫“模拟按住浏览器滚动条怎样实现？”⚫</title>
+<link>https://www.v2ex.com/t/1116161</link>
+<guid>https://www.v2ex.com/t/1116161</guid>
+<content:encoded><![CDATA[
+
+说的是在 macos 系统上，鼠标移动到 chrome 浏览器右侧的滚动条后，自动模拟鼠标左键按住滚动条不松开的这个功能可以设置实现吗，还是要花钱定制软件来实现？
+]]></content:encoded>
+<pubDate>2025-03-05T11:40:54Z</pubDate>
+<pubDate>2025-03-05T11:38:54Z</pubDate>
+</item>
+<item>
+<title>[Android] 已 100%切换到安卓，请教一些尚未实现的软件，以及推荐几个觉得好用的软件。</title>
+<link>https://www.v2ex.com/t/1116160</link>
+<guid>https://www.v2ex.com/t/1116160</guid>
+<content:encoded><![CDATA[
+
+<p>ACE5 已经用了 2 周多了，还是挺好用的，但仍然有一些没找到替代的软件，还有一些觉得不错的软件进行分享。</p>
+<ol>
+<li>bark ，仍然没找到合适的替代品，<strong>gofity</strong>没搞明白怎么用，还找到了一个叫做<strong>NotifyMe</strong>的软件，看介绍是可以达到相同功能，不过依然没搞明白怎么用。</li>
+<li>iCloud ，虽然手机切换到了 Android ，但是 iPad 和家人还是依赖 iCloud ，现在不知道怎么优雅的在 Android 上访问 iCloud ，以及 OneDrive 。</li>
+<li>希望推荐好用的第三方录音软件。</li>
+<li>希望推荐好用的第三方文件管理软件，最好能挂载 nas 访问及网盘的。</li>
+<li>除了 eBoox 和 ReadEra 外，还有没有其他推荐的阅读软件。</li>
+<li>有没有好用的 Pokemon 资料查询软件，iOS 上用的时 Prodex ，安卓这边没找到好用的支持中文的。</li>
+</ol>
+<p>说下切换过来体验不错的软件。</p>
+<ol>
+<li>自动记账软件，很多 Android 记账软件都支持自动记账，把联网权限一关，就放心用了。我用的是<strong>一木记账</strong>。</li>
+<li>跳广告软件/模块，用的<strong>GKD</strong>，有些规则存在误跳，需要设置一下，总体尚可。</li>
+<li><strong>视频下载器</strong>，挺好用的。</li>
+<li>最近在用<strong>Inoreader</strong>，挺好用，iOS 时没好好用，错付了。</li>
+<li><strong>酷安</strong>，社区氛围还挺好的，好久不用了，现在又用回来了。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2025-03-05T11:35:48Z</pubDate>
+<pubDate>2025-03-04T19:35:48Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 成都 - 前端开发工程师（会 3d 开发）薪资标准（14k-18k）</title>
+<link>https://www.v2ex.com/t/1116159</link>
+<guid>https://www.v2ex.com/t/1116159</guid>
+<content:encoded><![CDATA[
+
+<p>岗位要求
+2. 熟悉 Nextjs
+3. 熟练使用 React 、Typescript 、TailwindCSS
+5. 熟练掌握 Three.js 、Babylon.js 等 3D Web 开发框架，有 3D 可视化项目经验</p>
+<p>帮写一个招聘需求 工资是不咋样 介意就算了 然后工作不加班 8 点半到 6 点</p>
+<p>联系邮箱: wynemo at <a href="http://126.com" rel="nofollow">126.com</a></p>
+]]></content:encoded>
+<pubDate>2025-03-05T11:29:39Z</pubDate>
+<pubDate>2025-03-05T11:29:39Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 做了一个小众工具 Poker Chip Designer，欢迎大家体验</title>
+<link>https://www.v2ex.com/t/1116158</link>
+<guid>https://www.v2ex.com/t/1116158</guid>
+<content:encoded><![CDATA[
+
+体验地址： <a href="https://v0-poker-chip-design.vercel.app/" rel="nofollow noopener" target="_blank">https://v0-poker-chip-design.vercel.app/</a><br /><br />效果预览<br /><a href="https://i.imgur.com/VkunNvj.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/VkunNvj.jpeg" /></a><br /><br />整个页面都是使用 <a href="http://v0.dev" rel="nofollow noopener" target="_blank">v0.dev</a> 开发的，全称没有敲一行代码，昨天做了基本的框架，今天又完善了一些细节；<br />工具原型参考的是 <a href="http://www.pokerchipdesigntool.com/,在此基础上添加了字体样式设置，背景图设置以及样式优化。" rel="nofollow noopener" target="_blank">http://www.pokerchipdesigntool.com/,在此基础上添加了字体样式设置，背景图设置以及样式优化。</a><br /><br />下面是我使用这个工具做出来的效果图：<br /><a href="https://i.imgur.com/mXQJVg4.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/mXQJVg4.png" /></a><br /><a href="https://i.imgur.com/bk7AQoA.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/bk7AQoA.png" /></a><br /><a href="https://i.imgur.com/YQJI9gJ.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/YQJI9gJ.png" /></a>
+]]></content:encoded>
+<pubDate>2025-03-05T11:28:21Z</pubDate>
+<pubDate>2025-03-05T11:43:24Z</pubDate>
+</item>
+<item>
+<title>[酷工作] [深圳] 至简天成(高薪+原始股) 招聘资深前端开发工程师（AI 方向）2 人</title>
+<link>https://www.v2ex.com/t/1116157</link>
+<guid>https://www.v2ex.com/t/1116157</guid>
+<content:encoded><![CDATA[
+
+<h2>公司简介</h2>
+<p>深圳至简天成科技有限公司成立于 2019 年，是一家致力于用 AI 重塑软件开发范式的科技创新企业，先后获得红杉资本、高瓴创投、真格基金等顶级机构近亿元投资。</p>
+<p>公司旗下拥有两大核心产品：技术能力评估平台「 ShowMeBug 」和智能云开发环境「 Clacky 」。</p>
+<p>ShowMeBug 官网： <a href="https://www.showmebug.com" rel="nofollow">https://www.showmebug.com</a> ， 是全球仅有的两家支持真实编程环境在线评估的平台之一，通过自研 1024PaaS 引擎和技术能力图谱，为企业提供智能组卷、自动化评卷及在线实战编程环境；</p>
+<p>Clacky 官网： <a href="https://clacky.ai/" rel="nofollow">https://clacky.ai/</a> ， 作为全球领先的 L3 级智能云开发环境，通过突破性的"任务时光机"技术，实现了从自然语言需求转译到实时代码生成的全流程智能化，显著提升开发效率，正在重新定义开发者的工作方式。</p>
+<p>公司深耕技术创新领域，先后获得国家高新技术企业、专精特新中小企业等国家级权威认证，入选中国人力资源科技创新品牌 30 强、粤港澳大湾区企业未来创造之星。在技术创新方面，公司获得人工智能技术应用 HR 甄选供应商认证、信通院实用互动创新应用优秀案例等多项荣誉，并在创新创业领域斩获深圳创新创业大赛企业组三等奖、创业之星大赛行业赛成长企业组一等奖等重要奖项，展现了强劲的创新实力和发展潜力。</p>
+<h2>深耕技术创新 屡获行业认可</h2>
+<p><strong>国家级权威认证</strong></p>
+<ul>
+<li>国家高新技术企业</li>
+<li>专精特新中小企业</li>
+</ul>
+<p><strong>行业领军地位</strong></p>
+<ul>
+<li>中国人力资源科技创新品牌 30 强</li>
+<li>中国新锐技术先锋企业</li>
+<li>粤港澳大湾区企业未来创造之星</li>
+</ul>
+<p><strong>技术创新实力</strong></p>
+<ul>
+<li>人工智能技术应用 HR 甄选供应商</li>
+<li>信通院实用互动创新应用优秀案例</li>
+<li>开源 GitOps 产业联盟证书</li>
+<li>招聘技术创新 HR 甄选供应商</li>
+</ul>
+<p><strong>创新创业实力</strong></p>
+<ul>
+<li>第十三届中国深圳创新创业大赛企业组三等奖</li>
+<li>创业之星大赛行业赛成长企业组一等奖</li>
+<li>天使项目优秀企业</li>
+</ul>
+<p><strong>创始人荣誉</strong></p>
+<ul>
+<li>2021 年科创中国青年创业榜单 U30 人物</li>
+<li>2021 中国人力资源科技影响力 TOP 人物</li>
+<li>创新南山 2021“创业之星”大赛第一名</li>
+</ul>
+<h2>岗位职责</h2>
+<ul>
+<li>负责公司 Web 系统设计，核心代码开发，系统优化等工作；</li>
+<li>在复杂模块到子系统级别独当一面，高质量把控相关研发工作的全生命周期；</li>
+<li>参与并推动团队基础设施建设，逐步提升研发效率、研发质量，通过技术不断产出驱动业务的发展；</li>
+<li>关注前沿技术发展，能够将新知识传递给团队，并且转化到潜在项目中。</li>
+</ul>
+<h2>岗位要求</h2>
+<ul>
+<li>统招本科及以上学历，计算机 / 软件工程等相关专业；</li>
+<li>熟悉 Web 端开发，有良好的数据结构和算法基础，熟悉网络相关协议；</li>
+<li>熟练掌握 React / Next.js / TypeScript / TailwindCSS 等主流前端技术栈；</li>
+<li>熟悉 Node.js ，具备工具链以及工程化实践经验者更佳；</li>
+<li>熟悉主流单元测试和 e2e 测试方法、工具，如 Jest 、Cypress 等，并不断结合前沿技术提升整体测试效率和研发质量；</li>
+<li>主导或独立负责过一定规模产品前端，前端技术有专研领域；</li>
+<li>良好的团队沟通能力、协作能力、责任心、自驱力和学习能力；</li>
+<li>较好的产品意识，深入参与产品设计 / 讨论，善于规划执行、结果导向。</li>
+</ul>
+<h2>加分项</h2>
+<ul>
+<li>Cloud IDE / 实时协同 / SaaS / 互联网背景；</li>
+<li>有使用云原生技术 Docker 、Kubernetes 、Istio 等经验；</li>
+<li>有优质技术产品或开源贡献经验。</li>
+</ul>
+<h2>福利待遇</h2>
+<ul>
+<li>入职提供 Apple MacBook Pro 和大屏显示器，BYOD 发放每月补贴；</li>
+<li>公司为员工每年设有 2 次调薪机会；</li>
+<li>公司为员工提供公平而广阔的职业晋升通道；</li>
+<li>社会福利：公司为员工入职即购买五险一金（一档社保）；</li>
+<li>下午茶：每周多次下午茶供给零食、水果、面包、各种饮品等丰富多样的食材；</li>
+<li>团建津贴：为增强员工幸福感和团队凝聚力，公司为员工和团队每月设置专项团建经费，鼓励员工和团队开展各种形式的团建活动；</li>
+<li>各种奖励：公司会设有各种奖励机制，用以激励员工不断创新成就卓尔不凡的自己；</li>
+<li>年终奖。</li>
+</ul>
+<h2>公司信息</h2>
+<p>公司名称： 深圳至简天成科技有限公司</p>
+<p>公司地址： 深圳市南山区惠恒大楼一期 301</p>
+<p>公司主页： <a href="https://www.showmebug.com/" rel="nofollow">https://www.showmebug.com/</a></p>
+<p>联系邮箱： <a href="mailto:hr@dao42.com">hr@dao42.com</a> （简历注明来自 V2EX ）</p>
+]]></content:encoded>
+<pubDate>2025-03-05T11:16:36Z</pubDate>
+<pubDate>2025-03-05T11:28:45Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有无办法让安卓电视（长虹）支持 DLNA 媒体共享？</title>
+<link>https://www.v2ex.com/t/1116156</link>
+<guid>https://www.v2ex.com/t/1116156</guid>
+<content:encoded><![CDATA[
+
+<p>长虹安卓电视，型号 50U3C ，</p>
+<p>android 系统版本 5.0</p>
+<p>本机系统、局域网媒体共享只支持 SMB 和屏幕镜像。</p>
+<p>用了别家的一个海信电视，支持 DLNA ，手机上装一个 DLNA server ，就可以熄屏、在电视端直接浏览了，很方便。</p>
+<p>有没有办法让本无这的功能的电视也支持这功能？用什么 app 能够实现？</p>
+<p>谢谢。</p>
+]]></content:encoded>
+<pubDate>2025-03-05T11:11:30Z</pubDate>
+<pubDate>2025-03-05T11:11:30Z</pubDate>
+</item>
+<item>
+<title>[问与答] 在 Clash 中，如何让指定 URL 中的域名全部直连，而其他域名则全部代理？</title>
+<link>https://www.v2ex.com/t/1116155</link>
+<guid>https://www.v2ex.com/t/1116155</guid>
+<content:encoded><![CDATA[
+
+<p>在 Clash 中我想让“<a href="https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt" rel="nofollow">https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt</a>”这个 URL 的域名全部走直连，而其他域名则全部走代理，该如何实现呢？</p>
+<p>我的订阅需要经常更新，有时候一天需要更新两三次甚至更多，如果每次都手动去修改 yaml 文件那就太折磨了，我想知道有没有其他方法能实现“指定 URL 中的域名全部直连，而其他域名则全部代理”的这个需求。</p>
+]]></content:encoded>
+<pubDate>2025-03-05T10:49:09Z</pubDate>
+<pubDate>2025-03-05T11:09:49Z</pubDate>
+</item>
+<item>
+<title>[酷工作] 春招</title>
+<link>https://www.v2ex.com/t/1116154</link>
+<guid>https://www.v2ex.com/t/1116154</guid>
+<content:encoded><![CDATA[
+
+内推码：Gr40a7d<br /><a href="https://i.imgur.com/o1LvbUC.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/o1LvbUC.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2025-03-05T10:47:27Z</pubDate>
+<pubDate>2025-03-05T10:46:27Z</pubDate>
+</item>
+<item>
+<title>[程序员] 小技巧： MoonBit-Array pattern 中用字符串字面量和常量匹配子字符串</title>
+<link>https://www.v2ex.com/t/1116153</link>
+<guid>https://www.v2ex.com/t/1116153</guid>
+<content:encoded><![CDATA[
+
+<p>Array pattern 的小技巧，原来在匹配时，可以直接用字符串字面量和常量来匹配子字符串，而不用逐个字符进行匹配。MoonBit 最新的模式匹配的用法，发现可以这样处理不同协议的 URL 。例如，直接用 [..HTTP, ..path] 来匹配以 http:// 开头的字符串，或者用 [..HTTPS, ..path] 来匹配 https:// 开头的字符串。</p>
+<pre><code class="language-rust">const HTTP = "http://"
+const HTTPS = "https://"
+
+fn main {
+  let str = "https://try.moonbitlang.com"
+  match str {
+    [..HTTP, .. path] =&gt; println(path),
+    [..HTTPS, .. path] =&gt; println(path),
+    _ =&gt; println("unexpected protocol")
+  }
+}
+</code></pre>
+<p>以上来源为 MoonBit 公众号</p>
+]]></content:encoded>
+<pubDate>2025-03-05T10:45:51Z</pubDate>
+<pubDate>2025-03-05T10:42:51Z</pubDate>
+</item>
+
+<item>
 <title>[分享创造] 专为 Excel 工作者开发的 AI 公式生成器</title>
 <link>https://www.v2ex.com/t/1116151</link>
 <guid>https://www.v2ex.com/t/1116151</guid>
 <content:encoded><![CDATA[
-
 网址： <a href="https://formulas-ai.vercel.app/" rel="nofollow noopener" target="_blank">https://formulas-ai.vercel.app/</a><br /><br />需先申请一个 DeepSeek key
 ]]></content:encoded>
-<pubDate>2025-03-05T10:22:13Z</pubDate>
 <pubDate>2025-03-05T10:21:13Z</pubDate>
 </item>
 <item>
@@ -20,7 +347,6 @@
 <link>https://www.v2ex.com/t/1116150</link>
 <guid>https://www.v2ex.com/t/1116150</guid>
 <content:encoded><![CDATA[
-
 <p>最近在整理自己的生活工具，发现很多小工具真的能大大提升生活的便利性和幸福感。无论是学习、工作，还是日常琐事，合适的工具总能让事情变得轻松不少。
 于是，开一个帖子征集大家在生活中用到的那些超好用的工具（付费/免费都行）！
 我先抛砖引玉，分享几个我常用的：</p>
@@ -36,17 +362,14 @@
 干净的 mac 破解版软件下载</p>
 ]]></content:encoded>
 <pubDate>2025-03-05T10:21:07Z</pubDate>
-<pubDate>2025-03-05T10:21:07Z</pubDate>
 </item>
 <item>
 <title>[问与答] 键盘按键偶发出现重复或幽灵(比如没有按退格但是自动出个退格),是否有键盘检测程序可以确认是硬件还是软件问题?</title>
 <link>https://www.v2ex.com/t/1116149</link>
 <guid>https://www.v2ex.com/t/1116149</guid>
 <content:encoded><![CDATA[
-
 出现概率 5-10%,按键随机,不好重现
 ]]></content:encoded>
-<pubDate>2025-03-05T10:09:28Z</pubDate>
 <pubDate>2025-03-05T10:14:51Z</pubDate>
 </item>
 <item>
@@ -54,10 +377,8 @@
 <link>https://www.v2ex.com/t/1116148</link>
 <guid>https://www.v2ex.com/t/1116148</guid>
 <content:encoded><![CDATA[
-
 之前在论坛看到过，有一个可以复制网站的 AI 现在找不到了，有大佬给指条路吗？
 ]]></content:encoded>
-<pubDate>2025-03-05T10:07:50Z</pubDate>
 <pubDate>2025-03-05T10:06:50Z</pubDate>
 </item>
 <item>
@@ -65,10 +386,8 @@
 <link>https://www.v2ex.com/t/1116147</link>
 <guid>https://www.v2ex.com/t/1116147</guid>
 <content:encoded><![CDATA[
-
 买了个配件，二十多块钱，安装不上，是适配问题，<br />又没退货险，本来都不打算退了。<br />后来就跟客服说装不上，不适配。<br />客服还一直不承认，一会要我别拧紧，一会要我使劲压。<br />我问运费，客服说不包运费。<br />然后 pdd 就自己识别到了，提醒我“识别到是商家责任，运费无需承担”。<br />然后我就没花钱，退掉了。<br />这体验也太舒服了。
 ]]></content:encoded>
-<pubDate>2025-03-05T10:02:30Z</pubDate>
 <pubDate>2025-03-05T06:01:30Z</pubDate>
 </item>
 <item>
@@ -76,10 +395,8 @@
 <link>https://www.v2ex.com/t/1116146</link>
 <guid>https://www.v2ex.com/t/1116146</guid>
 <content:encoded><![CDATA[
-
 <p>阴差阳错多买了一个 N100 的小主机，8G DDR5 内存，128G 硬盘，两个网口，现在闲置了不知道做点什么，大家有什么好推荐？人在海外退货不方便……<br /><br />目前已经的设备和配置：<br /><br />六网口 N100 小主机，32G 内存，500G 硬盘，里面 PVE 装了爱快直通了两个网口，istoreos(主要用 pihole 和 serverchan)，飞牛，Ubuntu(CasaOS)，win11(从公司远程微信，WhatsApp ， 网页)。<br /><br />白群晖 218+<br /><br />还有个之前用的 R5S 硬装了 istoreOS<br /><br /><br /><br />是不是应该把路由器单独剥离出来？ 但是六网口机子不直通网口太浪费了，性能也够。<br /><br /><br />或者装个其他的 linux 系统来学习一下？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T10:02:14Z</pubDate>
 <pubDate>2025-03-05T10:17:37Z</pubDate>
 </item>
 <item>
@@ -87,7 +404,6 @@
 <link>https://www.v2ex.com/t/1116145</link>
 <guid>https://www.v2ex.com/t/1116145</guid>
 <content:encoded><![CDATA[
-
 <h1>Proxy-Sale - Professional Proxy Service Provider</h1>
 <p><a href="https://proxy-sale.io" rel="nofollow">Proxy-Sale</a> is a leading global provider of personal proxy solutions with a high-speed network spanning multiple countries, ensuring reliable connectivity with up to 1 Gbps channels for all your online activities.</p>
 <p><strong><a href="https://proxy-sale.io" rel="nofollow">Visit Proxy-Sale Official Website</a></strong></p>
@@ -131,7 +447,6 @@
 </ul>
 <p>凭借卓越的服务质量、具有竞争力的价格以及批量购买的大幅折扣，Proxy-Sale 提供可靠的代理解决方案，满足个人和企业的各种需求。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:55:07Z</pubDate>
 <pubDate>2025-03-05T09:53:07Z</pubDate>
 </item>
 <item>
@@ -139,7 +454,6 @@
 <link>https://www.v2ex.com/t/1116144</link>
 <guid>https://www.v2ex.com/t/1116144</guid>
 <content:encoded><![CDATA[
-
 <h1>技术栈：</h1>
 <p>java （ 5 年） golang(3 年) springboot 、mysql 、redis 、RocketMQ 、vue 、uniapp 、docker 、k8s 、ES 、linux</p>
 <h1>工作经历</h1>
@@ -150,17 +464,14 @@
 <p>如果有匹配的岗位，可以给我留邮箱我发送简历，或加我 V （ base64 ）：QTEwMjVCODI2TTYxMVMxMDE3 ，万分感谢。</p>
 ]]></content:encoded>
 <pubDate>2025-03-05T09:54:23Z</pubDate>
-<pubDate>2025-03-05T09:54:23Z</pubDate>
 </item>
 <item>
 <title>[Apple] MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？来自 2019 年的呼唤</title>
 <link>https://www.v2ex.com/t/1116143</link>
 <guid>https://www.v2ex.com/t/1116143</guid>
 <content:encoded><![CDATA[
-
 MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />---------------来自 2019 年的呼唤
 ]]></content:encoded>
-<pubDate>2025-03-05T09:48:11Z</pubDate>
 <pubDate>2025-03-05T09:52:03Z</pubDate>
 </item>
 <item>
@@ -168,12 +479,10 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116142</link>
 <guid>https://www.v2ex.com/t/1116142</guid>
 <content:encoded><![CDATA[
-
 <p>各位大佬，你们遇到过这种情况没，下列代码不执行</p>
 <div>document.addEventListener('visibilitychange', ()=&gt;{console.log('aa')})</div>
 <p>我去谷歌 bug 网站也看到有人提了几个了, 哪位大佬知道是啥情况不</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:45:41Z</pubDate>
 <pubDate>2025-03-05T09:43:41Z</pubDate>
 </item>
 <item>
@@ -181,11 +490,9 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116141</link>
 <guid>https://www.v2ex.com/t/1116141</guid>
 <content:encoded><![CDATA[
-
 <p>在 iOS 的 Shadowrocket 中我一直使用<a href="https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever" rel="nofollow">“Shadowrocket-ADBlock-Rules-Forever”</a>这个项目的<a href="https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever?tab=readme-ov-file#%E5%9B%BD%E5%86%85%E5%A4%96%E5%88%92%E5%88%86--%E5%B9%BF%E5%91%8A" rel="nofollow">“国内外划分 + 广告”</a>规则，这个规则每天更新，我可以实现国外网站走代理，国内网站走直连。比机场里面自带的规则要准确很多。</p>
 <p>但是在电脑端的 Clash Verge 中想要实现这个功能显得非常繁琐和困难，因此我只能被迫使用机场自带的规则。但机场自带的规则经常会错误判断直连和代理网站，使用体验很差。所以我想一下在电脑端中有没有类似 Shadowrocket 那样可以根据 URL 直接自定义规则的软件呢？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:45:26Z</pubDate>
 <pubDate>2025-03-05T10:08:28Z</pubDate>
 </item>
 <item>
@@ -193,10 +500,8 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116140</link>
 <guid>https://www.v2ex.com/t/1116140</guid>
 <content:encoded><![CDATA[
-
 最近按照板上网友帖子，在京东上入手一个 mac mini m4 ，16G 1T(512G 缺货)<br />找朋友弄的教育优惠加国补，原价 7500 到手接近 5300<br />本人需求是躺在沙发上怀里抱着键盘写代码，显示屏幕就像看电视一样<br />由于主要是写代码对显示质量要求不高，只要屏幕稍大即可，这样也能省点钱<br />在京东上找了一个 999 元的优派 23.8 英寸 4K 超清 IPS 微边 广色域 爱眼 硬件低蓝光 家用商用办公电脑显示器 24 VA2462-4K-HD ，不知道这个是否 跟 mac mini m4 匹配？<br />还有一个需求是想用无线键盘和鼠标，苹果原版的太贵，不知道山寨哪个牌子质量靠谱一点？<br />只要不是太影响写代码和鼠标使用就行<br />还有个特色需求是最好鼠标或者键盘能够唤醒主机和屏幕<br />在这里提前谢谢大家
 ]]></content:encoded>
-<pubDate>2025-03-05T09:43:48Z</pubDate>
 <pubDate>2025-03-05T10:04:55Z</pubDate>
 </item>
 <item>
@@ -204,10 +509,8 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116139</link>
 <guid>https://www.v2ex.com/t/1116139</guid>
 <content:encoded><![CDATA[
-
 内推码：Gr40a7d<br /><a href="https://i.imgur.com/a1L0tZ1.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/a1L0tZ1.jpeg" /></a>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:43:43Z</pubDate>
 <pubDate>2025-03-05T09:42:43Z</pubDate>
 </item>
 <item>
@@ -215,10 +518,8 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116138</link>
 <guid>https://www.v2ex.com/t/1116138</guid>
 <content:encoded><![CDATA[
-
 用了 Rectangle 好几年, 非常稳定好用, 但是今天忽然发现我把显示器竖着摆放的时候, 想要快速把一个窗口移动到显示器最下面的 1/3, Rectangle 居然没有这个快捷键, 而且也没有自定义的地方. 各位大佬, 有解吗?
 ]]></content:encoded>
-<pubDate>2025-03-05T09:41:31Z</pubDate>
 <pubDate>2025-03-03T09:41:31Z</pubDate>
 </item>
 <item>
@@ -226,14 +527,12 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116137</link>
 <guid>https://www.v2ex.com/t/1116137</guid>
 <content:encoded><![CDATA[
-
 <p>无论是家里还是公司</p>
 <p>手机连 wifi ，不确定是 dns 查询还是代理的分流得有问题，比如 app 内图片加载慢半拍
 或者一个页面要进两次才能刷出来，clashmeta 和 karing 都用过，都有这种问题</p>
 <p>同情况电脑就不会这样</p>
 <p>有人有一样的问题吗？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:38:40Z</pubDate>
 <pubDate>2025-03-05T10:22:01Z</pubDate>
 </item>
 <item>
@@ -242,9 +541,7 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <guid>https://www.v2ex.com/t/1116136</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-03-05T09:35:05Z</pubDate>
 <pubDate>2025-03-05T09:35:05Z</pubDate>
 </item>
 <item>
@@ -252,11 +549,9 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116134</link>
 <guid>https://www.v2ex.com/t/1116134</guid>
 <content:encoded><![CDATA[
-
 <p>那我想解决“传统算法工程师” 岗位名称应该叫啥</p>
 <p>比如 “动态规划” “排序” 这里的</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:28:04Z</pubDate>
 <pubDate>2025-03-05T09:57:15Z</pubDate>
 </item>
 <item>
@@ -264,7 +559,6 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116133</link>
 <guid>https://www.v2ex.com/t/1116133</guid>
 <content:encoded><![CDATA[
-
 <h1>关于 Android 原生开发的一些技术咨询</h1>
 <h2>最近遇到一些技术问题，始终难以解决，想咨询请教一下各位大佬；</h2>
 <p>  1 、Android app 中要采用什么技术才能实现在休眠状态下还能保持与服务器的网络连接，并能实时接收服务器发送的消息。类似于微信和 QQ 这样能够在休眠状态下接收消息。  </p>
@@ -273,7 +567,6 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <p>  为了确保应用服务不被系统杀死，我通常使用前台服务，这样会有一个令人厌烦的通知栏信息。想咨询一下如何实现一个后台常驻的服务，不会被系统回收，且用户无感。除了使用守护进程，相互拉。还有其他办法吗？类似于实现微信 QQ 这样的效果，后台服务一般不被系统回收。能够在后台保活。      </p>
 <p>本人技术一般，经验较少，请教一下各位大佬。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:21:35Z</pubDate>
 <pubDate>2025-03-05T09:48:57Z</pubDate>
 </item>
 <item>
@@ -281,11 +574,9 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116132</link>
 <guid>https://www.v2ex.com/t/1116132</guid>
 <content:encoded><![CDATA[
-
 <p>之前有健身习惯，一顿不吃碳水饿得慌。现在生娃导致没健身，最近发现少吃碳水状态也不错。</p>
 <p>有没有长期执行的 v 友说说这种做法有什么需要注意的？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:20:58Z</pubDate>
 <pubDate>2025-03-05T10:18:37Z</pubDate>
 </item>
 <item>
@@ -293,7 +584,6 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116130</link>
 <guid>https://www.v2ex.com/t/1116130</guid>
 <content:encoded><![CDATA[
-
 <p>我们目前贸易业务流程涉及多个环节，包括接收客户产品需求、在平台搜索并报价、记录订单到 Excel 、采购商品、验货、处理退货、整理库存并发货给客户。</p>
 <p>客户会持续订货，单一 Excel 文件管理容易导致混乱，无法清晰追踪缺货、已发货和剩余库存。</p>
 <p>比如今天有一个客户发来了 30 个产品，我们会帮客户去 1688 上去找，然后给客户报价，交流后，客户如果确认订货，我们会将客户定的产品型号尺码数量填到 excel 中。</p>
@@ -305,7 +595,6 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <p>求推荐一个进销存系统，可以灵活方便的管理这些商品和订单。</p>
 <p>开源或者付费的都可以。或者有什么其他的方案都可以提供一下。谢谢大家。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:13:48Z</pubDate>
 <pubDate>2025-03-05T10:16:37Z</pubDate>
 </item>
 <item>
@@ -313,7 +602,6 @@ MBP Intel 升级成 M 后，会有酣畅淋漓的感觉吗？<br /><br />-------
 <link>https://www.v2ex.com/t/1116129</link>
 <guid>https://www.v2ex.com/t/1116129</guid>
 <content:encoded><![CDATA[
-
 <p>老姨让帮表妹找对象。不知为啥，这年头大龄女生也很难找对象呀，总结来说，表妹 92 年，属猴，毕业后几年一直在北京当社畜 996 ，从事平面设计，公司基本也是女生较多，没机会发展另一半。她个人属于随遇而安的类型，性格很好。这几年总是过年在老家相亲，然后继续北京社畜，但是老家村里的相亲感觉她对相亲产生阴影了，其中还遇到过直男坐车上强行摸手的，导致后面有点恐惧。所以希望 V 友们手下留情，正规婚恋。好，下面是老姨发的详情。
 奔着结婚去 非诚勿扰：</p>
 <blockquote>
@@ -331,7 +619,6 @@ MTQ1NjU2NDIxM0BxcS5jb20=</p>
 <p>附个人照：
 aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIucG5n</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:13:08Z</pubDate>
 <pubDate>2025-03-05T10:20:28Z</pubDate>
 </item>
 <item>
@@ -339,10 +626,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116128</link>
 <guid>https://www.v2ex.com/t/1116128</guid>
 <content:encoded><![CDATA[
-
 之前 V2 老哥们推荐的 uBlock Origin 非常好用，现在用不了了难受，求推荐替代方案<br /><br /><br />![]( <a href="https://www.v2ex.com/i/9g4M0B17.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 9g4M0B17.jpeg"><img class="embedded_image" src="https://i.v2ex.co/9g4M0B17.jpeg" /></a>)
 ]]></content:encoded>
-<pubDate>2025-03-05T09:13:08Z</pubDate>
 <pubDate>2025-03-05T10:05:08Z</pubDate>
 </item>
 <item>
@@ -350,10 +635,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116126</link>
 <guid>https://www.v2ex.com/t/1116126</guid>
 <content:encoded><![CDATA[
-
 最近 deepseek 创作了一首音乐，我想问下和现在的流行音乐区别大不大呀？<br />音质不是很高，没上网易云，上了其他平台。<br />广大 v 友听了给个评论支持下，谢谢大家了！<br /><br />连接：<br /><a href="https://mp.tencentmusic.com/m/bktoolwithdraw/share.html?id=CoSkYlvZ3Vn" rel="nofollow noopener" target="_blank">https://mp.tencentmusic.com/m/bktoolwithdraw/share.html?id=CoSkYlvZ3Vn</a>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:09:15Z</pubDate>
 <pubDate>2025-03-03T21:06:15Z</pubDate>
 </item>
 <item>
@@ -361,13 +644,11 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116125</link>
 <guid>https://www.v2ex.com/t/1116125</guid>
 <content:encoded><![CDATA[
-
 <p>比如有一些数据需要物理保存。
 希望导入和导出能方便，能想到的就只有编码成二维码的形式再打印出来。
 但是单个二维码编码的数据最大也就 2950 字节，对于 50K 左右的数据来说需要分割成太多份，感觉也挺麻烦。</p>
 <p>不知道有没有更好的办法。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:06:25Z</pubDate>
 <pubDate>2025-03-05T09:41:57Z</pubDate>
 </item>
 <item>
@@ -375,10 +656,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116124</link>
 <guid>https://www.v2ex.com/t/1116124</guid>
 <content:encoded><![CDATA[
-
 请教～
 ]]></content:encoded>
-<pubDate>2025-03-05T09:02:38Z</pubDate>
 <pubDate>2025-03-05T09:34:56Z</pubDate>
 </item>
 <item>
@@ -386,7 +665,6 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116122</link>
 <guid>https://www.v2ex.com/t/1116122</guid>
 <content:encoded><![CDATA[
-
 <p>去年申领失业金，期间是人社部给交医保。上个月入职公司给我做社保增员，失业待遇自动终止，不过医保登记的时候提示已参保。12333 一直打不通，今天一大早打通了才问明白医保要等 15 号以后自动停或者每个月 1-6 号自己去街道办转出。做个记录也给有需要的人参考。</p>
 <h1>申领</h1>
 <p>怎么领网上教程很多，也不麻烦，需要公司减员<strong>不选</strong>本人意愿中断，其他的都可以。先失业登记，然后申请失业待遇。可以在各地的智慧人社 app 或者支付宝-市民中心-社保搜失业登记，然后同一个菜单申请失业待遇</p>
@@ -409,7 +687,6 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <h1>总结</h1>
 <p>领挺方便的，满足条件在手机上点点就行，不分地区，唯一难点就是减员的时候有没有给你选非自愿。主动停有点麻烦，南京要么等要么必须去线下。人社局和街道能办的业务不同，我问的 12333 失业医保停保去哪她说人社局，到人社局排到号了办事员说去街道办，还好两处离的不远。12333 难接通，有需要的早上九点前打。失业保险一个月只交几十（ 0.5%）领的时候两千多+医保还是很划算的。满十年领 24 个月利益最大化？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T09:00:50Z</pubDate>
 <pubDate>2025-03-05T09:23:59Z</pubDate>
 </item>
 <item>
@@ -417,10 +694,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116121</link>
 <guid>https://www.v2ex.com/t/1116121</guid>
 <content:encoded><![CDATA[
-
 如题，iOS 和 iPadOS 上的 <a href="http://Mail.app" rel="nofollow noopener" target="_blank">Mail.app</a> 反复弹窗 “Enter the password for the Outlook account "xxxxx@outlook.com"” ，出现频率在一天一次左右。但是同一个邮箱在 macOS 上的 <a href="http://mail.app" rel="nofollow noopener" target="_blank">mail.app</a> 则就没有要求过重新输入密码，没有异常。不知道有没有什么解决办法……<br /><br />（ macOS iOS iPadOS 都是最高版本的正式版）
 ]]></content:encoded>
-<pubDate>2025-03-05T09:00:20Z</pubDate>
 <pubDate>2025-03-05T09:48:02Z</pubDate>
 </item>
 <item>
@@ -428,14 +703,12 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116119</link>
 <guid>https://www.v2ex.com/t/1116119</guid>
 <content:encoded><![CDATA[
-
 <ul>
 <li>最近要做一个需求，输入 某 88 店铺地址 需要拿到店铺内所有商品详细信息</li>
 <li>现在使用的 playwright+camoufox 一直弹滑动验证还一直失败，虽然有时候能成功但效率非常低</li>
 <li>有无做过的大佬处理过这些吗</li>
 </ul>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:57:07Z</pubDate>
 <pubDate>2025-03-05T09:59:49Z</pubDate>
 </item>
 <item>
@@ -443,10 +716,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116118</link>
 <guid>https://www.v2ex.com/t/1116118</guid>
 <content:encoded><![CDATA[
-
 有出的小伙伴发闲鱼链接
 ]]></content:encoded>
-<pubDate>2025-03-05T08:56:08Z</pubDate>
 <pubDate>2025-03-05T10:20:21Z</pubDate>
 </item>
 <item>
@@ -454,12 +725,10 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116116</link>
 <guid>https://www.v2ex.com/t/1116116</guid>
 <content:encoded><![CDATA[
-
 <p>我个人特别喜欢播客，但在整个环境中不少人认为中文播客已死。</p>
 <p><a href="https://zfm.ai/channel" rel="nofollow">zfm.ai</a> 这个项目是很早前做的，就是多人 AI 播客生成。和之前的用不同音色 tts 生成不同，这个是端到端。所以两个人在对话中那种话态是十分自然，比如插话什么的，大家可以听听感受下，生成现在也是全免费的，可以自己试试，排队比较久，主要是 Deepseek 比较慢。。。</p>
 <p>本来不想着放出来的，但之前有个 V 友放了个开源的爬取 <a href="https://github.com/ccbikai/hacker-news" rel="nofollow">HackerNews 新闻生成播客</a>的项目，我觉得比较有意思，然后就自己也做了个 AI 频道，如果大家觉得有意思，我每天定期做一下，挑几个好的。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:46:03Z</pubDate>
 <pubDate>2025-03-05T09:51:18Z</pubDate>
 </item>
 <item>
@@ -467,10 +736,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116115</link>
 <guid>https://www.v2ex.com/t/1116115</guid>
 <content:encoded><![CDATA[
-
 <p>为啥会比自己充便宜那么多？会封号吗？</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:45:29Z</pubDate>
 <pubDate>2025-03-05T08:50:33Z</pubDate>
 </item>
 <item>
@@ -478,13 +745,11 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116114</link>
 <guid>https://www.v2ex.com/t/1116114</guid>
 <content:encoded><![CDATA[
-
 <p>本人一直有用 Windows 的手机连接功能，可以在电脑上不打开手机的情况下接收手机的通知，而且可以同步手机和电脑的剪切板信息，很方便。但是不知道从何时开始，就打不开界面了，因为这个问题重装系统都不下 5 次，搜索相关问题，发现一大堆出现的，官方的回复都是让点击修复，然后重置。但是一直不能解决。
 今天又不死心，想想或许英文网页能够有解决办法，果不其然，翻了七八页后，终于找到了原因。
 竟然是因为我自定义缩放的原因，默认是 125%的缩放，我为了让一些不兼容的程序能够更好的兼容，修改成了 124%.就因为这个问题，导致界面一闪而过打不开，搞笑啊。
 特此在这里面发帖，分享给同样问题的人。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:44:30Z</pubDate>
 <pubDate>2025-03-05T09:52:10Z</pubDate>
 </item>
 <item>
@@ -492,10 +757,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116113</link>
 <guid>https://www.v2ex.com/t/1116113</guid>
 <content:encoded><![CDATA[
-
 <p>javaer 请教一下这个问题该怎么回答？完全懵的，不知道该从何说起。</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:43:43Z</pubDate>
 <pubDate>2025-03-05T08:53:05Z</pubDate>
 </item>
 <item>
@@ -503,10 +766,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116112</link>
 <guid>https://www.v2ex.com/t/1116112</guid>
 <content:encoded><![CDATA[
-
 觉得眼睛很重要，买个贵点的也无所谓，但是就是不知道贵的贵在哪里，是买了贵的镜片带上之后他的各种参数比国产的更好吗。比如类似什么蔡司的镜片都说好，究竟好在哪里。
 ]]></content:encoded>
-<pubDate>2025-03-05T08:43:32Z</pubDate>
 <pubDate>2025-03-04T16:43:32Z</pubDate>
 </item>
 <item>
@@ -514,13 +775,11 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116111</link>
 <guid>https://www.v2ex.com/t/1116111</guid>
 <content:encoded><![CDATA[
-
 <p>事情原因: 老板拿来一个蓝牙测试板, 让前端搞一个小程序 demo 页面
 需求: 新建一个小程序页面创建, 三个操作. 发现蓝牙设备. 连接, 断开.</p>
 <p>本人项目经理兼开发, 还带着 3 个人, 这个前端是新招的.</p>
 <p>前端是个新手. 项目开发经验一年多左右. 搞了一下午还加班没弄出来.我前几天下载了 Windsurf 就拿出来试试. 然后不到几分钟就弄完了. 效果跟 ui 都比同事好. 而且同事还没弄完. 后面我给他看完, 转手发代码给他. 他说他下载了 Trea 没用. 比较笨. 不过我也没比较.应该都可以做到吧, 反正达到目的就行了. 老板也叫我催他. 结果我自己整完了. 跟老板说他弄的挺好的.后面就是前端说他有点压力, 哈哈一笑.</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:40:48Z</pubDate>
 <pubDate>2025-03-05T10:23:33Z</pubDate>
 </item>
 <item>
@@ -528,11 +787,9 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116109</link>
 <guid>https://www.v2ex.com/t/1116109</guid>
 <content:encoded><![CDATA[
-
 <p>想在微信群聊中使用 AI 功能，例如：创建个减肥的群聊，群内人员每天发布自己的体重和饮食情况，AI 每周六对数据进行分析汇总，给出对应的建议
 这个目前有啥技术可以实现吗</p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:34:43Z</pubDate>
 <pubDate>2025-03-05T09:47:44Z</pubDate>
 </item>
 <item>
@@ -540,10 +797,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116107</link>
 <guid>https://www.v2ex.com/t/1116107</guid>
 <content:encoded><![CDATA[
-
 重庆亿量科技有限公司，依托与国内权威银行的深度直连合作，我司打造了国内领先的“谷歌/苹果平台服务贸易真实性审核及结汇服务体系”，助力客户突破传统结汇限制，实现全球化收入的自由流通。<br />我们的优势在于：<br />1.权威直连，安全无忧<br />与银行共建审核及结算系统，杜绝第三方资金池风险，结汇链路全程受监管认可。<br />2.无限额自由结汇<br />彻底解决个人 5 万美元/年结汇额度不足、企业单据繁琐等问题，适配高频、大额收入场景。<br />3.极速到账，降本增效<br />自动化审核流程，最快 T+1 完成结汇，手续费低于传统跨境支付平台 30%以上,且汇率普遍高于中行五六十 bp 。<br />4.全流程服务支持<br />从材料申报、税务合规到资金结算，提供一对一专业指导，覆盖客户全生命周期需求。<br />有需要的客户可以联系我，VX:13548076549 QQ:3665384226
 ]]></content:encoded>
-<pubDate>2025-03-05T08:32:32Z</pubDate>
 <pubDate>2025-03-05T08:29:32Z</pubDate>
 </item>
 <item>
@@ -551,7 +806,6 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 <link>https://www.v2ex.com/t/1116120</link>
 <guid>https://www.v2ex.com/t/1116120</guid>
 <content:encoded><![CDATA[
-
 <p>在 V2 的外包板块，2025 年 2 月 19 日的时候接了个 4000 元的前端小活，<a href="https://www.v2ex.com/t/1112479#reply3" rel="nofollow">快速入口</a>，当天收了 1000 元预付款后开始干，期间开发+沟通+两次腾讯会议，因为不是正规项目，需求文档只是一个 Word 文档，所以沟通比较花时间，共计花费了一周的时间，现在已经开发完成并且部署到他的服务器上了，喜提跳单。发出来个兄弟们吃个瓜，了解下这个世界上的人类的多样性。</p>
 <p>跳单理由：‌<strong>兄弟，这个项目，前端我自己搞算了，本身整体预算也不是很多，然后后面还有很多需求要加，我思考再三还是打算自己弄算了，抱歉啊‌，你写的我估计也用不上了，我用 vue 重新写</strong></p>
 <p>大概过程可看聊天记录</p>
@@ -568,10 +822,8 @@ aHR0cHM6Ly9waG90by40NTkxMjIueHl6L2kvM2U5NDkxNTVhM2M4YThmZmQwMDcyOGE2YTM1ODU2NzIu
 9: <a href="https://mjj.today/i/94yYwV" rel="nofollow">https://mjj.today/i/94yYwV</a>
 10: <a href="https://mjj.today/i/94yWsG" rel="nofollow">https://mjj.today/i/94yWsG</a></p>
 ]]></content:encoded>
-<pubDate>2025-03-05T08:59:57Z</pubDate>
 <pubDate>2025-03-05T09:33:48Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 在 Clash Verge 中如何像 Shadowrocket 那样配置自己的代理规则呢？</title>
 <link>https://www.v2ex.com/t/1116106</link>
@@ -16523,510 +16775,6 @@ requestHeaders.set.x-from-where = "frp"
 <p>请问我应该怎么做，是等着就行还是要干点什么？</p>
 ]]></content:encoded>
 <pubDate>2025-02-28T09:46:50Z</pubDate>
-</item>
-<item>
-<title>[Docker] 搓了个 Docker 私服管理系统 - Pocker，另一种思路破 Docker 被 Ban 的问题，不用自建 cf 中转，不用来路不明的 VPS 小鸡中转，不用在服务器安装“梯子”。一键部署，让每个人都有自己的 Docker 私服（狗头）</title>
-<link>https://www.v2ex.com/t/1114926</link>
-<guid>https://www.v2ex.com/t/1114926</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>感谢 Cursor ，让我一个纯后端，第一次使用 next.js 就能做出，这样一个自我感觉完成度还可以的全栈项目。</li>
-<li>用时估计 50 个小时+，包括技术选型评估，MVP 验证，读官方文档，写自己项目文档，调教 AI 指令跟随等等等。</li>
-<li>AI 帮我写的项目介绍词：一个基于 Next.js 开发的全栈 Docker 镜像仓库管理系统，专为将 Docker Hub 镜像高效转存至腾讯云容器镜像服务（ TCR ）个人版而设计。支持一键部署，彻底解决镜像拉取缓慢问题，保障数据安全，让您完全掌控自己的 Docker 环境，我的 Docker 我做主。<strong>让每个人都有自己的 Docker 私服，Make Docker Great Again 。</strong>（狗头）</li>
-<li>
-痛点：众所周知的原因，使用 docker pull 的时候，总是各种问题，目前世面上大多都是用，另外配置镜像源的方式解决，个人感觉几个隐患：<ul>
-<li>1 是用 cf 中转的话，其实 cf 官方是不允许也不鼓励做流量转发的，可能随时会凉；</li>
-<li>2 是用其他别人分享的中转的话（几乎都是各种薅的小鸡），来路不明，不放心，还记得 NPM 都曾经被人混了木马；</li>
-<li>3 是配置镜像源是需要重启 docker 才能生效的，那意味着所有在运行中的，其他服务都会中断一段时间，你的 N 个 9 就要掉 9 了哦（狗头）。</li>
-</ul>
-</li>
-<li>解决思路：利用国内云厂商提供的免费容器镜像服务，GitHub 的免费 Action 服务，Vercel 的免费部署服务，3 个大善人结合起来，流程大概是：Docker Hub -&gt; GitHub Action -&gt; 云厂商，最后我们 docker pull 的实际地址其实就是云厂商的 ip 了，那速度就嘎嘎老快了。</li>
-<li>
-目前项目不足点：<ul>
-<li>1 因为用的都是免费服务共享服务，所以有时候人多了，资源不足，构建的时候会慢，但如果已经构建过的，那速度就老快了</li>
-<li>2 企鹅云的免费容器镜像服务，宽带有限，时快时慢，后续如果有人需要，再转遥遥领先云</li>
-<li>3 AI 生成了 95%以上的代码，没有全部审计，所以有可能有逻辑问题，如果遇到，请提 issue ，感谢反馈。</li>
-</ul>
-</li>
-<li>github 地址（求 star ）： <a href="https://github.com/scoful/pocker" rel="nofollow">https://github.com/scoful/pocker</a></li>
-<li>文档地址： <a href="https://pocker-doc.vercel.app/" rel="nofollow">https://pocker-doc.vercel.app/</a></li>
-<li>试用地址： <a href="https://pocker4u.vercel.app/" rel="nofollow">https://pocker4u.vercel.app/</a></li>
-<li>试用密码：pocker4u （注:本项目设计初衷是供个人部署使用,试用版仅作为演示用途。由于未针对高并发和多用户场景进行优化考虑,建议您部署自己的实例以获得最佳体验）</li>
-<li>如果这个项目对你有帮助，欢迎请作者喝杯瑞幸，一杯在手，幸运共有 ☕</li>
-<li>另，大龄码农求职，有坑位的老板请滴滴，base64：c2NvZnVs</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-28T09:29:06Z</pubDate>
-</item>
-<item>
-<title>[酷工作] 2 月最后一天，辞职了</title>
-<link>https://www.v2ex.com/t/1114925</link>
-<guid>https://www.v2ex.com/t/1114925</guid>
-<content:encoded><![CDATA[
-<p>现在单位待了 4 年，传统企业，每天数字化，降本增效，日报，厌倦了，走了，找点专注一点的事情做做吧；自从提交辞职申请后，每天心情都很好，准备退掉工牌，收拾下，回家，下周一新的起点。</p>
-]]></content:encoded>
-<pubDate>2025-02-28T09:42:29Z</pubDate>
-</item>
-<item>
-<title>[浏览器] 艹， V2EX 居然被举报了，然后 360 的浏览器居然就开始作妖给 V2EX 拦截了，真恶心！</title>
-<link>https://www.v2ex.com/t/1114924</link>
-<guid>https://www.v2ex.com/t/1114924</guid>
-<content:encoded><![CDATA[
-艹，谁那么手欠剁，V2EX 居然被举报了，然后 360 的浏览器居然就开始作妖给 V2EX 拦截了，谁给你的自信，真恶心！我目前使用的是 360 极速浏览器，我估计 360 安全浏览器可能也这样吧？<br /><br /><a href="https://www.v2ex.com/i/qvRo1O5kl.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 qvRo1O5kl.png"><img class="embedded_image" src="https://i.v2ex.co/qvRo1O5kl.png" /></a>
-]]></content:encoded>
-<pubDate>2025-02-28T10:17:51Z</pubDate>
-</item>
-<item>
-<title>[成都] 求一套大源套三的学区房</title>
-<link>https://www.v2ex.com/t/1114922</link>
-<guid>https://www.v2ex.com/t/1114922</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-02-28T08:55:58Z</pubDate>
-</item>
-<item>
-<title>[问与答] 遇到一个奇怪的问题： Chrome 在 Clash Tun 模式打开时只能访问未被墙的网页。</title>
-<link>https://www.v2ex.com/t/1114920</link>
-<guid>https://www.v2ex.com/t/1114920</guid>
-<content:encoded><![CDATA[
-<p>rt ，Chrome(macOS) 133.0.6943.142 最新版本，其实从上一个版本开始就有这个问题了。看 Clash 的日志一切正常，关闭 Tun 模式改成使用系统代理就不会有问题。有朋友遇到相同的问题吗？</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:53:29Z</pubDate>
-</item>
-<item>
-<title>[推广] 腾讯云 2025 春季活动上线：境外服务器 99 元 / 年不限新老用户，部分区域采用 CN2GIA 线路回程。</title>
-<link>https://www.v2ex.com/t/1114919</link>
-<guid>https://www.v2ex.com/t/1114919</guid>
-<content:encoded><![CDATA[
-#云计算 腾讯云 2025 春季活动上线：境外服务器 99 元 / 年不限新老用户，部分区域采用 CN2GIA 线路回程。<br /><br /><br /><br />这些特惠服务器还支持同价续费，也就是 188 元购买 2 年，避免后续到期续费价格高的问题。<br /><br /><a href="https://zhiurl.cn/IRwKz" rel="nofollow noopener" target="_blank">https://zhiurl.cn/IRwKz</a>
-]]></content:encoded>
-<pubDate>2025-02-27T16:52:05Z</pubDate>
-</item>
-<item>
-<title>[投资] 美股港股基金轮番毒打</title>
-<link>https://www.v2ex.com/t/1114918</link>
-<guid>https://www.v2ex.com/t/1114918</guid>
-<content:encoded><![CDATA[
-<p>美股接盘 bbai/nbis/tem ，割肉了亏 3w ，割完后面几天继续跌麻算是庆幸。
-后面转移资金到港股高位加仓小米小鹏，恒指连跌两天利润又摊了下去，也是服了自己的操作。
-基金今天也是一片暴跌几个月赚的还回去。</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:47:37Z</pubDate>
-</item>
-<item>
-<title>[Bitcoin] 没人聊聊币圈吗？比特币回到了 7 万多了！</title>
-<link>https://www.v2ex.com/t/1114916</link>
-<guid>https://www.v2ex.com/t/1114916</guid>
-<content:encoded><![CDATA[
-<p>是不是已经开启熊市了？</p>
-<p>这波能跌回 1 万多吗？</p>
-<p>是空仓好？还是低倍做空？</p>
-<p>定投，等待下一个牛？</p>
-<p>大家怎么看？</p>
-]]></content:encoded>
-<pubDate>2025-02-28T10:12:24Z</pubDate>
-</item>
-<item>
-<title>[Linux] 我被 sntp 的输出困惑了好久，原来这玩意不是时区</title>
-<link>https://www.v2ex.com/t/1114915</link>
-<guid>https://www.v2ex.com/t/1114915</guid>
-<content:encoded><![CDATA[
-<pre><code class="language-bash">$ sntp -c 192.168.0.10
-sntp 4.2.8p12@1.3728-o (1)
-Can't open KOD db file /var/lib/sntp/kod for writing: Permission denied
-2025-02-28 16:31:12.839708 (-0800) +0.0 +/- 0.014694 192.168.0.10 s1 no-leap
-
-
-</code></pre>
-<p>我就真的一直很困惑，为啥我的日期时间时区都是对的，给我的结果的时区显示的是-0800 呢？</p>
-<p>看了下文档：</p>
-<pre><code>The default is to write the estimated correct local date and time (i.e. not UTC) to the standard output in a format like: '1996-10-15 20:17:25.123 (+0800) +4.567 +/- 0.089 [host] IP sN' where the '(+0800)' means that to get to UTC from the reported local time one must add 8 hours and 0 minutes,
-</code></pre>
-<p>彳亍。</p>
-<p>+8000 是说你看到的时间再加上 8 个小时是 UTC （实际上是 UTC-8 的西八区）</p>
-<p>东八区当然显示-0800 了</p>
-<p>做个实验，带上其他 TZ 执行 sntp：</p>
-<pre><code>$ TZ=UTC sntp -c 192.168.0.10
-sntp 4.2.8p12@1.3728-o (1)
-Can't open KOD db file /var/lib/sntp/kod for writing: Permission denied
-2025-02-28 08:33:22.297831 (+0000) +0.0 +/- 0.011989 192.168.0.10 s1 no-leap
-
-</code></pre>
-<p>这就对了嘛</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:33:58Z</pubDate>
-</item>
-<item>
-<title>[宠物] 写了篇文章介绍养鸟+3D 打印+智能家居</title>
-<link>https://www.v2ex.com/t/1114914</link>
-<guid>https://www.v2ex.com/t/1114914</guid>
-<content:encoded><![CDATA[
-<p>算是科学养鸟经验哈，发在少数派了，欢迎跳转赏阅：</p>
-<p>《天降正义之初阶赛博养鸟手记》
-<a href="https://sspai.com/post/96841" rel="nofollow">https://sspai.com/post/96841</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/wwrF2RY.jpeg" /></p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:27:15Z</pubDate>
-</item>
-<item>
-<title>小爱音箱播放自定义音乐</title>
-<link>https://www.v2ex.com/t/982027</link>
-<guid>https://www.v2ex.com/t/982027</guid>
-<content:encoded><![CDATA[
-<a href="https://github.com/hanxi/xiaomusic" rel="nofollow noopener" target="_blank">https://github.com/hanxi/xiaomusic</a><br /><br />刚提交初版，勉强能用，很多接口是用的 xiaogpt 项目。<br /><br />根据提示语执行接口，播放音乐支持本地音乐，本地没找到就会搜索下载到本地再播放。
-]]></content:encoded>
-<pubDate>2025-02-28T09:14:26Z</pubDate>
-</item>
-<item>
-<title>北京还有不加班还稳定赚钱💰的公司么？</title>
-<link>https://www.v2ex.com/t/1112951</link>
-<guid>https://www.v2ex.com/t/1112951</guid>
-<content:encoded><![CDATA[
-有！就是我们！公司整体盈利中！📍坐标北京望京，也可远程，工作时间 9:30-19:00 ，高效工作不加班，双休弹性不打卡。<br /><br />上一波岗位顺利完成，新一波广纳贤士贴更新，欢迎大家自荐 /推荐 :D 推荐奖金产研岗位初级 5000 ，中高级 10000 ，Team Lead 20000🧧 <br />公司旗下多款美国市场的 AI 产品，商业化做得不错，核心产品 D0 ROI ＞ 100%，健康稳步增长中，累计融资千万美金，顺利完成 0-1 阶段，1-&gt;100 扩张中。<br /><br />很感恩 V2EX 招到了很不错的 4 位工程师已入职且 performance 都超级棒棒！莫斯科国立大学的客户端同学，目前正在负责主产品 iOS 开发工作；前腾讯的优秀工程师从深圳搬到北京，目前常驻美国；后端同学在成都远程办公；还有一个普林斯顿读研的算法实习生之前远程实习参与 AI 部分也很有进展。<br /><a href="https://www.v2ex.com/i/AD0wWO4O.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 AD0wWO4O.png"><img class="embedded_image" src="https://i.v2ex.co/AD0wWO4O.png" /></a><br /><br />💼 我们是谁：<br />Presence 公司，创始团队来自字节、腾讯、Uber 、Airbnb 、完美、祖龙等全球头部互联网公司的连续创业者，毕业于耶鲁、清华、中科大等国内外顶尖院校，人才密度极高，已获得国际一线美元基金投资。有趣有爱，脚踏实地。氛围好，人很少，下班后愿意一起吃饭 /喝一杯 /打游戏的那种。<br />两位联合创始人从 0-1 打造过两家过亿美金的公司，做过数亿用户、过千万日活的 C 端产品，「福布斯」亚洲区、中国区 30 位 30 岁以下商业领袖。我们在组建超精英的创始团队，提供市场 90 分位的薪酬、充满活力的工作氛围、高度自由的创造力发展空间，共同驱动一起完成「 Defy Distance 打破时空限制」的使命。<br />是个上级给下属写周报的公司，每次周会都有点像学习分享会，CEO 会给大家分享新认知和公司最新进展、决策和背后的思考。信息流动速度快，创业 Day1 就全员用飞书，大家都第一时间知道彼此在做什么；重视知识沉淀，内部知识库里有大量创业、产研、业内先进生产力交流、行业调研和周会总结，绝对的宝藏武林秘籍。<br />这个介绍不仅包含我们的 JD ，还包括十年来对创业、行业和商业的思考，无论你是否看机会，看看（来都来了）一定不吃亏😜 <a href="http://about.aifantasy.com" rel="nofollow noopener" target="_blank">about.aifantasy.com</a><br /><br />团队介绍<br />我们团队里有人完成铁人三项兼摄影高手，有人造过单片机电吉他，有人会讲流利六国语言，有三个人减过 50 斤并保持住，好几位都维护自己的英文 /技术博客，还有回答过百万访问的 stackoverflow 小哥哥，偶尔程序写累了会弹弹尤克里里；我们探讨世界上最前沿的技术论文，经常有自发的技术、产品、增长分享会，也交流对价值观、美学和人类文明的感悟。<br /><br />CEO Max Zhou<br /><a href="https://www.v2ex.com/i/gw2lai89.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 gw2lai89.jpeg"><img class="embedded_image" src="https://i.v2ex.co/gw2lai89.jpeg" /></a><br />- 曾任 MetaApp 联合创始人，负责战略 /产品 /增长 /移动端 /国际化、从 0-1 打造超过 2 亿用户、过千万日活产品，规模化盈利，估值近 10 亿美金<br />- 前摩拜单车移动端负责人，回国前在硅谷 LinkedIn 、Uber 总部增长团队做研发<br />- 14 岁参加高考，中科大少年班、耶鲁计算机系硕士<br /><br />联合创始人 陈桦 Grace<br /><a href="https://www.v2ex.com/i/428t3jhv.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 428t3jhv.jpeg"><img class="embedded_image" src="https://i.v2ex.co/428t3jhv.jpeg" /></a><br />- 10 多年连续创业者，冲顶大会、节操精选 CEO ，「冲顶大会」是国内独立产品最大的直播答题 App ，上线首月用户过 2000 万，日活过 300 万，估值近 10 亿<br />- 连续两年入选「福布斯」亚洲区、中国区 30 位 30 岁以下商业领袖<br />- 中国传媒大学数字媒体艺术专业第一名本科及研究生毕业<br /><br />如果你对团队感兴趣，一定不要错过几位超有趣有才的同事介绍 🔫<a href="https://presence.feishu.cn/docx/QtEcd8S5vo71PwxOHRTcuC46nYc" rel="nofollow noopener" target="_blank">https://presence.feishu.cn/docx/QtEcd8S5vo71PwxOHRTcuC46nYc</a><br /><br />🎯 Presence 的产品：<br />我们的梦想是 打破时空、解放灵魂]，我们认为新技术与社会学、心理学结合，可以深刻改变人类社会。Presence 做美国市场的社交平台，用 LLM 注入灵魂，一直不变的初衷就是治愈人们的孤独，和对网线另一端的热烈灵魂相交汇的渴求。<br />由于互联网的竞争格局，在这个文档里不能透露产品名字，如果感兴趣我们可以通过初试后线下体验产品。<br /><br />🧲 为什么选择 Presence ？<br />- 上一代移动互联网没有机会了，理想主义的技术精英，如果想要改变世界，只能在下一代技术中做先驱<br />- 团队氛围，打造团队的思路，精干版字节模式<br />我们要解决什么问题？<br />- 不做娱乐，不做纯工具<br />- 上一代移动互联网公司解决了人们的生存生活所需，物质生活极大丰富了，精神生活看似丰富但是社交越来越窄和贫瘠，朋友越来越少<br />- 我们解决上三路（爱与归属、个人价值、自我实现）<br />- 当物质过剩，真正有价值的东西就在虚拟世界中了<br /><br />在 Presence 能得到什么？<br />- 标准的硅谷创业火箭船，参与到高速增长的崭新业务前沿<br />- 极大的自主性，context not control<br />- 聪明的精英同事<br />- 个人成长 财务回报（短期现金、长期股权） 精神追求<br />- 出差美国机会<br /><a href="https://www.v2ex.com/i/C7SkEP1w.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 C7SkEP1w.jpeg"><img class="embedded_image" src="https://i.v2ex.co/C7SkEP1w.jpeg" /></a><br /><br />展开来说👇🏻<br />- 远超行业水平的精英优秀同事、顶级薪酬、有创造力的极大发展空间（没有烦人领导和变来变去没想清楚的需求）、超高速成长、扁平、氛围欢乐（ CEO 很积极容易开心哈哈）<br />- 创业老司机的无私分享，我们相信团队成长公司才能发展，所以我们这次创业对人的要求标准很高，而进来的每一个人我们都会认真培养，绝不会把你当做人形干电池。<br />- 我们非常乐意分享我们的创业方法论和业务思考，比如你是工程师，技术好很重要，但如果也有业务 sense ，那就能解决更高层次的开放性问题；我们最不希望看到的，就是在解决错的问题不是吗？ CEO 自己便是技术背景，从基层工程师一步步做到业务 leader 、近 10 亿美金公司联合创始人再到 CEO 的绝佳范例。和他一起工作，解决同样的问题，看他怎么思考的，是非常好的近距离的学习方式。<br />- 成长很大程度取决于假设检验的速度，我们绝不会像传统游戏公司半年 /一年搞个大版本，相反我们打造的是一个每双周发版、快速见用户反馈和数据的敏捷团队。你能很快看到进展和接近真相，而不是闭门憋个大招。<br /><br />Presence 的目标是什么？<br />- 第一次创业，目标是抓机会，抓住 P/MF 活下来，规模化盈利成为独角兽公司。这点我们过去做到了。<br />- 第二次创业，我的目标是建成一家“灯塔公司”：不仅生意模式好，高毛利高增长，而且这家公司还大量投入到计算机技术里、推动和定义虚拟世界的建设，真真正正的推动人类文明进步——是一个生意模式和使命愿景都很完美的灯塔，耸立于万千普通公司之上，为所有有志青年所向往。<br />- 产品上，第一次创业，我们做了几个优秀的小品级软件；第二次创业，我们要做一个殿堂级软件。从财务衡量的角度，第一次创业做了一家十亿美金级的公司，第二次创业目标是一家千亿美金的公司。<br /><br />为什么轮到我们来做？<br />- 想象力是天空，敏锐抓技术前沿来做下一代产品<br />- 非常会做流量，创始人操盘过日新增过百万 C 端产品<br />- 田间地头搞产研，10 年+研发背景的 Cofounders<br />- 融资能力强，创业老司机节奏感好<br /><br />我们在寻找优秀的客户端工程师加入我们！不限制过往用那种语言喔！<br /><br />iOS 工程师<br />职位描述<br />1. 负责美国 AI 产品的 iOS 架构设计及开发；<br />2. 参与产品需求分析与评审，提出有建设性的技术解决方案；<br />3. 前沿技术研究，承担重点、难点的技术攻坚。<br />职位要求<br />1. 本科及以上学历，计算机、通信等相关专业；<br />2. 具有扎实的编程功底，良好的设计能力和编程习惯；<br />3. 熟练掌握 Swift ，熟悉 iOS 的主流框架、开源技术。<br /><br />Android 工程师<br />职位描述<br />1. 负责美国 AI 产品的 Android 架构设计及开发；<br />2. 参与产品需求分析与评审，提出有建设性的技术解决方案；<br />3. 前沿技术研究，承担重点、难点的技术攻坚。<br />职位要求<br />1. 本科及以上学历，计算机、通信等相关专业；<br />2. 具有扎实的编程功底，良好的设计能力和编程习惯；<br />3. 熟练掌握 Kotlin ，熟悉 Android 的主流框架、开源技术；<br /><br />更多岗位见：<a href="http://about.aifantasy.com" rel="nofollow noopener" target="_blank">about.aifantasy.com</a><br /><br />志在千亿美金公司，创造让自己骄傲的伟大产品和组织。我们坚信早期团队是组织的地基，所以刻意保持极高人才密度和文化浓度，奉行 S 级薪水配 S 级人才，高标准做事，高标准招人的原则。大家也都非常自驱，彼此欣赏，是个每天都很有活力激情、乐于分享、快速成长的团队。欢迎大家转发 /推荐，推荐奖金 5000-20000🧧<br /><br />📍坐标北京望京金辉大厦，5A 级写字楼，楼下就是地铁站 15 号线望京东，交通和吃饭都很方便，免费现磨☕️不限量<br /><a href="https://www.v2ex.com/i/rk5J21Nv.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 rk5J21Nv.png"><img class="embedded_image" src="https://i.v2ex.co/rk5J21Nv.png" /></a><br /><br />工作时间 9:30-19：00 ，双休，高效工作不加班，弹性上下班不打卡<br /><br />有意向的可直接添加 HR 微信，或投简历至📮 fengyu@aifantasy.com<br /><a href="https://www.v2ex.com/i/892K4V7I.jpeg" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 892K4V7I.jpeg"><img class="embedded_image" src="https://i.v2ex.co/892K4V7I.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2025-02-28T10:22:30Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 感觉现在市场上面试基本上都是大量的横向对比了</title>
-<link>https://www.v2ex.com/t/1114913</link>
-<guid>https://www.v2ex.com/t/1114913</guid>
-<content:encoded><![CDATA[
-<p>base 杭州 最近在看机会 除了那种有硬性条件筛选的 能进面的话 技术面其实都还 OK 基本到最后 hr 面会明确告知你需要横向对比 就一直等待中了 哈哈</p>
-<p>ps.池子里有卷王应该就无了</p>
-]]></content:encoded>
-<pubDate>2025-02-28T06:28:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 在 mac 上下载种子时没速度，端口显示 Port is closed</title>
-<link>https://www.v2ex.com/t/1114912</link>
-<guid>https://www.v2ex.com/t/1114912</guid>
-<content:encoded><![CDATA[
-<p>这种情况如何配置呢，电脑开着小火箭，不知道对这个有没有影响。
-需要开放端口还是怎样呢？下载任何资源都没有速度
-<a href="https://imgse.com/i/pE8m0Hg" rel="nofollow"><img alt="pE8m0Hg.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/02/28/pE8m0Hg.png" /></a></p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:26:47Z</pubDate>
-</item>
-<item>
-<title>[推广] 回老家暂时没工作，弄了个 Teslamate 本地 服务器小盒子，用于记录特斯拉车辆各种数据，在这里推广一下～</title>
-<link>https://www.v2ex.com/t/1114911</link>
-<guid>https://www.v2ex.com/t/1114911</guid>
-<content:encoded><![CDATA[
-<h3>是什么</h3>
-<p>特斯拉车主可以继续看，其他的可以关掉了。基于 <a href="https://github.com/teslamate-org/teslamate" rel="nofollow">Teslamate</a> 用于特斯拉车辆各种数据（行车轨迹、充电记录、行车记录、电池健康、百公里费用、能耗等），车辆数据存在本地安全可靠的特斯拉盒子。</p>
-<h3>主要特点</h3>
-<ul>
-<li>帮你装好 Teslamate</li>
-<li>解决了定位、地图大陆无法显示的问题</li>
-<li>grafana （ Teslmate 数据展示平台） 全中文</li>
-<li>
-加了个新主页（因为 grafana 移动端不太友好）<ul>
-<li>备份数据</li>
-<li>看车辆状态</li>
-<li>看车辆数据（待更新）</li>
-</ul>
-</li>
-<li>可帮你内网穿透（ cloudflare tunnel ）</li>
-<li>持续更新</li>
-</ul>
-<p>预售模式，一周内发货 </p>
-<p><a href="https://www.xiaohongshu.com/goods-detail/67bb25f7f2389c00018f407f" rel="nofollow">商品详情</a></p>
-<ul>
-<li><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/evADukM.png" /> </li>
-<li><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/p40D899.jpeg" /></li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-02-28T08:27:41Z</pubDate>
-</item>
-<item>
-<title>[程序员] 请问有前端相关的刷题小程序吗?</title>
-<link>https://www.v2ex.com/t/1114910</link>
-<guid>https://www.v2ex.com/t/1114910</guid>
-<content:encoded><![CDATA[
-<p>以前收藏了几个, 现在都没人维护打不开了.</p>
-<p>直接在小程序里搜索出来的感觉质量太差, 似乎没人维护更新.</p>
-]]></content:encoded>
-<pubDate>2025-02-27T16:25:37Z</pubDate>
-</item>
-<item>
-<title>[Android] 现在分享到 QQ 后，点击分享卡片打开链接后，点击唤起 APP 有啥好的解决方案。</title>
-<link>https://www.v2ex.com/t/1114909</link>
-<guid>https://www.v2ex.com/t/1114909</guid>
-<content:encoded><![CDATA[
-<p>目前 QQ 内使用 scheme 和 App Links 都无法唤起。</p>
-<p>微信是通过 <a href="https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_H5_Launch_APP.html" rel="nofollow">https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_H5_Launch_APP.html</a> 官方提供的方式实现。</p>
-<p>QQ 官方文档里面没有找到类似的方式。倒是看到应用宝里面有个微下载可以实现在 QQ 里面唤起 APP ，但是这个得提审 APP, 大家有啥其他的解决方案吗？</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:26:23Z</pubDate>
-</item>
-<item>
-<title>[程序员] 兄弟们，我太想进步了，于是乎我又干起了 YouTuber</title>
-<link>https://www.v2ex.com/t/1114908</link>
-<guid>https://www.v2ex.com/t/1114908</guid>
-<content:encoded><![CDATA[
-<p>闲不住啊，兄弟们，我又干了个 YouTube 频道，专门制作 4K 的风景视频，并配了轻快放松的音乐。</p>
-<p>写代码的时候，或者吃饭的时候可以观看，非常放松。目前只更新了一个视频，希望大家可以关注一下我的频道</p>
-<p>频道直通车 : <a href="https://www.youtube.com/@4KNatureScenery" rel="nofollow">https://www.youtube.com/@4KNatureScenery</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/XyK6oAd.png" /></p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:24:10Z</pubDate>
-</item>
-<item>
-<title>[投资] A 股券商万一免 5，我也来拉点人头，</title>
-<link>https://www.v2ex.com/t/1114907</link>
-<guid>https://www.v2ex.com/t/1114907</guid>
-<content:encoded><![CDATA[
-A 股正经券商 万一免 5 ，我也用了很多年了，先说明下，我不是券商工作人员，我就建一个群，然后我会跟那边的券商经理沟通，之前聊过，我也没有什么邀请得钱，最多就送我个书包啥的，有需要的可以扫码进群<br /><br /><br /><br /><a href="https://i.imgur.com/bdNoAjT.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/bdNoAjT.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2025-02-28T08:06:52Z</pubDate>
-</item>
-<item>
-<title>[硬件] 组装电脑开机有问题，求推荐亮机卡帮助检测排查</title>
-<link>https://www.v2ex.com/t/1114906</link>
-<guid>https://www.v2ex.com/t/1114906</guid>
-<content:encoded><![CDATA[
-<p>去年老板拜托我帮他小孩装个电脑。他小孩想搞又能玩的又能拿来搞 ai 、服务器的，孩子自己研究了下，给了我清单，给他装了送过去，用着一时没问题。</p>
-<p>但是现在老板找我说最近小孩电脑开机不亮屏幕，正好小孩开学上学了，想我帮他看看。我排查了半天，感觉是显卡运行的问题，想拿个亮机卡接上看看行不行。</p>
-<p>但是我不是很了解亮机卡怎么选购，装机、检测也是边问边学的多，之前搞硬件搞得少。所以想求助 V 佬们推荐亮机卡。</p>
-<p>ps:老板是我老大哥，平时很关照手下，我和同事都很敬重。他的说法是，小孩自己装机，也是实践学习和放松，遇到问题也没事，积累经验就好，所以没有要我做太多限制和指导。请大家不用太关注配置搭配问题，只求各位推荐亮机卡。</p>
-<p>谢谢各位了！</p>
-<p>配置清单：</p>
-<ul>
-<li>梵隆 12 盘位 ATX 全高 NAS 机箱</li>
-<li>i7-12700KF</li>
-<li>利民 PA120 MINI</li>
-<li>铭瑄 W680 工作站主板</li>
-<li>服务器拆机 ECC DDR4 32GB*2</li>
-<li>七彩虹 iGame RTX 4090 D Neptune -体式水冷 360 水冷</li>
-<li>振华 LEADEX VII 1300W ATX 金牌全模组</li>
-<li>致钛 TiPro7000 M.2 2TB</li>
-<li>12025<em>3 9025</em>4 8025*2</li>
-<li>板载 2.5G 服务器拆机双口万兆光口网卡</li>
-<li>服务器拆机 3008 直通卡 支持 12 个 3.5'机械盘</li>
-<li>板载 4 个 M.2</li>
-<li>8643 线<em>2 高品质 SATA 线</em>4</li>
-</ul>
-<p>系统是 PVE8.2.4</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:28:42Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [上海][招聘] Java | .NET Software Engineer</title>
-<link>https://www.v2ex.com/t/1114905</link>
-<guid>https://www.v2ex.com/t/1114905</guid>
-<content:encoded><![CDATA[
-<ul>
-<li>
-<p>Salary: 15K~25K ¥/Month</p>
-</li>
-<li>
-<p>Based: Lujiazui, Shanghai</p>
-</li>
-</ul>
-<p>We are looking for a software engineer with 3-5 years of development experience who can independently take on development tasks.</p>
-<h2>Job Requirements:</h2>
-<ul>
-<li>
-<p>Proficient in at least one of Java or .NET, with solid programming skills and good coding habits.</p>
-</li>
-<li>
-<p>Bachelor’s degree or above in Computer Science, Software Engineering, or related fields.</p>
-</li>
-<li>
-<p>Strong communication and teamwork skills, capable of working in an English-speaking environment.</p>
-</li>
-<li>
-<p>Knowledge of Python is a plus.</p>
-</li>
-<li>
-<p>Experience with frontend development or databases is preferred.</p>
-</li>
-</ul>
-<h2>关于公司：</h2>
-<p>美企文化，工作强度不大，相对养老，团队有刚毕业的、也有入职 20 多年的。上海部门纯技术团队，虽小但稳定。注重 WLB ，没有加班，弹性工作时间；每月 4 小时团队游戏时间，一般会玩狼人杀、德州等，不强制参加，团建活动不占用员工休息时间；每年带薪病假 5 天，年假 10 天，5 年以上员工年假再加 5 天；春节国庆等长假一般会提前半天放假，每月可申请任意 2 天在家办公，春节一般会提前 2 周开始在家办公；加班 5 分钟即可计入调休时间。补充商业保险，补充公积金。</p>
-<h2>简历发到邮箱：</h2>
-<p><code>Z3VhbmdsaS53YW5nQG1zbi5jb20K</code></p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:27:33Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 小米东西还挺耐用的</title>
-<link>https://www.v2ex.com/t/1114903</link>
-<guid>https://www.v2ex.com/t/1114903</guid>
-<content:encoded><![CDATA[
-<p>毕业两年的时候，给家里买了台小米电视，用到了现在。
-我看网上都说小米东西不耐用，想想都用了 8 年半了。
-那个时候工资才 4000 块钱。
-这次国补准备给家里换台新的，65 寸，我发现新出的红米也才不到 3000 。
-价格没怎么变，配置变好很多啊</p>
-<img alt="图片 alt" class="embedded_image" rel="noreferrer" src="https://secure2.wostatic.cn/static/vznG4AAjbMhCgGhZ4zpsW1/image.png?auth_key=1740729182-iUFnrUKvCQs39VZsrbLXtr-0-1cccc12d15c650630f538d7688ada34c&amp;file_size=17316" title="图片 title" />
-]]></content:encoded>
-<pubDate>2025-02-28T08:19:17Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 最近看到很多动物尖叫的卡通头像，都是怎么生成的？</title>
-<link>https://www.v2ex.com/t/1114902</link>
-<guid>https://www.v2ex.com/t/1114902</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-02-28T05:43:49Z</pubDate>
-</item>
-<item>
-<title>[程序员] GPT4.5 就这？数数都数不清</title>
-<link>https://www.v2ex.com/t/1114901</link>
-<guid>https://www.v2ex.com/t/1114901</guid>
-<content:encoded><![CDATA[
-<p><a href="https://imgse.com/i/pE8ZDsS" rel="nofollow"><img alt="pE8ZDsS.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/02/28/pE8ZDsS.png" /></a></p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:28:43Z</pubDate>
-</item>
-<item>
-<title>[问与答] 推荐算法知识或书籍</title>
-<link>https://www.v2ex.com/t/1114900</link>
-<guid>https://www.v2ex.com/t/1114900</guid>
-<content:encoded><![CDATA[
-如果深入学习算法的话，有哪些需要学习的知识或推荐的书籍呢？！！<br /><br />请不吝赐教！！！
-]]></content:encoded>
-<pubDate>2025-02-28T07:55:00Z</pubDate>
-</item>
-<item>
-<title>[问与答] 移动注销宽带这么难？营业厅登记了十多天就是不给办？</title>
-<link>https://www.v2ex.com/t/1114899</link>
-<guid>https://www.v2ex.com/t/1114899</guid>
-<content:encoded><![CDATA[
-<p>我家里人的移动号码，在很多年前办理了一个融合宽带（起码 5,6 年了），合约期肯定已经过了。
-当地是一个小县城，我又不方便回去处理。</p>
-<p>在十多天前家里人已经去 当地营业厅登记了，按理说，7 天之后，拿着 设备应该就可以去营业厅取消宽带了。但是 7 天之后拿着设备过去，说什么这个业务还需要排队，反正不能马上取消。</p>
-<ul>
-<li><strong>已经去了好几趟了，今天是这个月的最后一天，去问了还是不能取消。又要多遭一个月话费。</strong></li>
-<li><strong>问下个月总可以取消了吧，回复说还是不一定。</strong></li>
-</ul>
-<p>我靠，从来没看到过 这么强买强卖的。</p>
-<p>求助各位大佬，怎么才能取消掉？我在淘宝搜到，有那种 “移动取消宽带”的服务，是不是这种就行。</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:09:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 我发现这社会中的无赖小人特别多，关键你还拿他没办法。</title>
-<link>https://www.v2ex.com/t/1114898</link>
-<guid>https://www.v2ex.com/t/1114898</guid>
-<content:encoded><![CDATA[
-<h2>从毕业到现在十年了，一直上班，和社会接触的少，一般也是花钱买服务，也没咋遇到无赖。口罩的时候租房子给二房东，租房的时候态度很好，合同也没细看，之后发现合同很多不公平条款。一直到现在四年有余，偶尔拖欠半个月房租，本着多一事不如少一事的原则，期间说降房租也答应了。</h2>
-<h2>这次又到了交房租的日期，又开始说降房租。寻思就不租了。说收回房租，对方也答应了。之后电话不接，短信回复开会。一直拖了小半个月。</h2>
-<h2>泥人也有三把火，你不强势点，对方就不拿你当回事，花钱也要解决事情，找律师，帮写催告函。发给对方五分钟后，回信息了。先缴纳一个月房租，之后搬走。</h2>
-<p>现在只想把房子收回来，租房子擦亮眼睛。签合同要看清楚，白字黑字的！！！</p>
-]]></content:encoded>
-<pubDate>2025-02-28T07:25:53Z</pubDate>
-</item>
-<item>
-<title>[问与答] 是否存在这样一款 macOS 应用：可以设置一些应用窗口在贴近屏幕边缘时，自动收起，鼠标移动到屏幕边缘又自动弹出？</title>
-<link>https://www.v2ex.com/t/1114897</link>
-<guid>https://www.v2ex.com/t/1114897</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-02-28T08:25:59Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 微信的礼物抽奖设计是不是有点问题啊</title>
-<link>https://www.v2ex.com/t/1114896</link>
-<guid>https://www.v2ex.com/t/1114896</guid>
-<content:encoded><![CDATA[
-<p>按照我自己的体验，抽奖发出来之后(7-8 个好朋友的小群)，参与抽奖的群成员只要点了，马上就知道结果，那不是惊喜感全无了吗？  </p>
-<p>更甚如果还有别的群成员没来得及点的，奖就抽出来了，连参与的份都没了。</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:09:32Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [TOP 券商] [社招] [深圳] 交易结算系统研发工程师</title>
-<link>https://www.v2ex.com/t/1114895</link>
-<guid>https://www.v2ex.com/t/1114895</guid>
-<content:encoded><![CDATA[
-TOP 券商，工作地深圳，提供有竞争力薪酬 <br />内部推荐，非猎头 欢迎投递简历： taoeaten@163.com<br /><br />要求：<br /><br />硕士以上学历<br />3 年以上工作经验<br />岗位职责：<br /><br />主要负责公司清算交收所涉及的基础系统，以及清算部财富管理业务、资管业务、投行业务等中后台运营系统的规划、建设与持续优化，推进清算运营数字化转型；<br />负责清算运营相关的自主研发工作，研发一体化业务运营系统，并为相关系统提供技术支持、运营监控、数据统计、技术咨询等运营保障<br />负责境外财富管理和资管清算运营系统的规划和建设，推动境外清算运营信息化升级<br />岗位要求：1 、具备较强的开发能力，熟练掌握 Java 等主流编程语言及开发框架，Java 技术栈优先；<br />2 、具备微服务化改造实践经验，拥有云原生领域的研发或架构经历者、熟悉 DevOps 研发流程者优先；<br />3 、熟练掌握 Oceanbase 、MySQL 、Oracle 等主流数据库应用，了解关系型数据库原理；熟悉 Redis,Elasticsearch 等非关系型数据库使用场景；<br />4. 具有良好的沟通能力、学习能力，分析判断能力；良好的职业素养与团队合作意识；掌握科学的工作方法；<br /><br />其他要求：<br /><br />计算机、软件工程、电子、信息、通信等工科专业优先； 2 、具备英文工作能力者优先<br />基金公司、券商、保险、银行、互联网等行业从业经历优先；
-]]></content:encoded>
-<pubDate>2025-02-28T07:42:31Z</pubDate>
-</item>
-<item>
-<title>[分享发现] 40 万粉，副业日入 2k+ 自媒体真的很可以，好羡慕</title>
-<link>https://www.v2ex.com/t/1114894</link>
-<guid>https://www.v2ex.com/t/1114894</guid>
-<content:encoded><![CDATA[
-<p>有老哥知道这是做什么的帐号吗？好羡慕</p>
-<p>河南的人才 博主帐号： <a href="https://x.com/woaiwr" rel="nofollow">https://x.com/woaiwr</a></p>
-<p><img alt="9feefc332274716de9c78f162ac01106.jpeg" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/28/9feefc332274716de9c78f162ac01106.jpeg" />
-<img alt="952f40c5e72c9646f8caf8d6cbe16d24.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/28/952f40c5e72c9646f8caf8d6cbe16d24.png" />
-<img alt="464cd37b8a9d3e0ab58b6c5b4ee17283.png" class="embedded_image" rel="noreferrer" src="https://i.miji.bid/2025/02/28/464cd37b8a9d3e0ab58b6c5b4ee17283.png" /></p>
-]]></content:encoded>
-<pubDate>2025-02-26T07:18:18Z</pubDate>
-</item>
-<item>
-<title>[问与答] 搜狗拼音有什么途径被悄悄安装上</title>
-<link>https://www.v2ex.com/t/1114893</link>
-<guid>https://www.v2ex.com/t/1114893</guid>
-<content:encoded><![CDATA[
-<p>刚刚发现电脑不知什么时候被安装上搜狗拼音
-系统是 w11 ，近期至少是今天没安装软件，也没运行来历不明的软件</p>
-<p>还发现控制面板里面无卸载项</p>
-<p>请问有什么可能被悄悄装上，怎么卸载掉？</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:04:03Z</pubDate>
-</item>
-<item>
-<title>[问与答] 幼儿园 38 妇女节活动，老师让写信给孩子妈妈，怎么整花活？</title>
-<link>https://www.v2ex.com/t/1114892</link>
-<guid>https://www.v2ex.com/t/1114892</guid>
-<content:encoded><![CDATA[
-幼儿园组织孩子妈妈去学校参加 38 妇女节活动，老师私发给爸爸（也就是我）以下消息：<br />xx 爸爸，我们关于三八节活动有个环节，需要爸爸们配合给妈妈准备个小惊喜<br />——给妈妈写封信，表达一下对宝贝妈妈的爱和感激之类的心里话。<br />用信的形式把爱“说”出来[微笑]，说说平时没说出口的心里话。周末可以准备一下，信封封起来，老师不会看的哟。写完“偷偷”放宝贝书包里，下周一老师拿到，到时候现场给妈妈一个惊喜。<br /><br />写信也不知道写啥，只写信好像也没啥意思。<br />有没有老铁出出主意，怎么能整花活？
-]]></content:encoded>
-<pubDate>2025-02-28T08:23:26Z</pubDate>
-</item>
-<item>
-<title>[问与答] cursor or vscode Java 开发推荐个亮色简单点的主题</title>
-<link>https://www.v2ex.com/t/1114891</link>
-<guid>https://www.v2ex.com/t/1114891</guid>
-<content:encoded><![CDATA[
-<p>目前的黑色也好，亮色也好，基本都花里胡哨，颜色太多了，看的真累人</p>
-<p>有没有色彩简单点的就行</p>
-]]></content:encoded>
-<pubDate>2025-02-28T08:26:33Z</pubDate>
-</item>
-<item>
-<title>[优惠信息] 电信全国领话费口令：草长莺飞</title>
-<link>https://www.v2ex.com/t/1114890</link>
-<guid>https://www.v2ex.com/t/1114890</guid>
-<content:encoded><![CDATA[
-电信全国领话费口令：草长莺飞<br /><br />电信手机营业厅&gt;&gt;我&gt;&gt;我的奖券&gt;&gt;口令兑换<br />(或者在首页搜索框搜索 我的奖券)<br /><br />领完记得点使用<br /><br />领了两个号 0.66 元话费
-]]></content:encoded>
-<pubDate>2025-02-28T08:19:56Z</pubDate>
-</item>
-<item>
-<title>[投资] 最近美股暴跌,btc 暴跌，黄金也在跌，今天 A 股也跌不少。那钱都跑哪里去了？</title>
-<link>https://www.v2ex.com/t/1114889</link>
-<guid>https://www.v2ex.com/t/1114889</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-02-27T15:08:56Z</pubDate>
-</item>
-<item>
-<title>[OpenAI] GPT-4.5 preview, 令人失望至极</title>
-<link>https://www.v2ex.com/t/1114888</link>
-<guid>https://www.v2ex.com/t/1114888</guid>
-<content:encoded><![CDATA[
-<p>API 价格$75/$150 ，据路边社消息这价格是因为 GPT-4.5 非常地大，有好几 T(GPT-4 Turbo 是 1.8T ），所以价格死贵的同时还特别慢。知识截止日期只到 2023 年 10 月，这意味着这个模型很可能已经训练了很久了，总消耗算力或许比 20 万张卡的 Grok 3 还多（毕竟 Grok 3 训练时间不会太长），然而实测效果却很差，很多问题甚至感觉还不如 GPT-4o 。官方的发布页上，AIME 24 正确率只有可怜的 36.7%，连非思考版本的 Grok 3 mini 都不如，而 OpenAI 自家的 o3-mini-high 有 87.3%。</p>
-]]></content:encoded>
-<pubDate>2025-02-28T07:10:31Z</pubDate>
-</item>
-<item>
-<title>[问与答] 手环的国补退货之后资格还会返还吗？</title>
-<link>https://www.v2ex.com/t/1114887</link>
-<guid>https://www.v2ex.com/t/1114887</guid>
-<content:encoded><![CDATA[
-<p>下单了一个小米手环 9 nfc ，本来是想给比亚迪车子添加一个手环钥匙的，没做好调研，到手才发现是 9pro 才支持，一看 300 多块还是算了没啥必要。退货时候京东小哥说手环的国补资格用了就没了，退货也不会返还资格，是这样吗？</p>
-]]></content:encoded>
-<pubDate>2025-02-28T07:39:20Z</pubDate>
 </item>
 </channel>
 </rss>
