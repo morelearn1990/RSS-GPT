@@ -5,14 +5,345 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] 自己的第一个开源项目 db2llm</title>
+<link>https://www.v2ex.com/t/1117108</link>
+<guid>https://www.v2ex.com/t/1117108</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p><a href="https://github.com/loocor/db2llm" rel="nofollow">https://github.com/loocor/db2llm</a> </p>
+</blockquote>
+<blockquote>
+<p>仅仅是个原型，用于验证传统系统的数据库与 LLM 互通的方式的 ...</p>
+</blockquote>
+<blockquote>
+<p>兄弟们帮我点点 star 我去换个 idea 的授权呢 🫣</p>
+</blockquote>
+<hr />
+<h1>DB2LLM 最小化原型</h1>
+<h2>概述</h2>
+<p>DB2LLM 是一个将 SQLite 数据库的元数据与 RESTful API 和大型语言模型（ LLM ）结合的最小化原型。它允许用户通过自然语言与数据库进行交互，无需编写 SQL 查询或了解数据库结构。当前为便于演示，使用 SQLite 数据库，实际使用时，请使用自己的数据库并更新相关的配置。</p>
+<h2>功能特点</h2>
+<ul>
+<li>提供用户对话窗口，支持配置 LLM 的 API 地址和授权密钥</li>
+<li>支持用户指定 SQLite 数据库文件</li>
+<li>
+自动分析数据库结构，提取元数据信息<ul>
+<li>表结构和字段信息</li>
+<li>字段枚举值映射（如性别：男/女、male/female 等）</li>
+<li>主键、外键和索引信息</li>
+</ul>
+</li>
+<li>动态生成 RESTful API ，用于数据库操作</li>
+<li>
+智能会话管理<ul>
+<li>支持上下文记忆，理解后续查询</li>
+<li>会话超时自动清理（ 30 分钟）</li>
+<li>结果摘要生成</li>
+</ul>
+</li>
+<li>将用户自然语言查询转换为 API 请求</li>
+<li>执行 API 请求并返回结果</li>
+<li>支持多步骤复杂查询</li>
+</ul>
+<h2>技术栈</h2>
+<ul>
+<li><strong>运行时</strong>: Bun</li>
+<li><strong>Web 框架</strong>: Hono</li>
+<li><strong>数据库</strong>: SQLite</li>
+<li><strong>ORM</strong>: TypeORM</li>
+<li><strong>LLM 集成</strong>: OpenAI API 及兼容接口</li>
+</ul>
+<h2>快速开始</h2>
+<h3>前提条件</h3>
+<ul>
+<li>安装 <a href="https://bun.sh/" rel="nofollow">Bun</a> 运行时</li>
+<li>准备一个 SQLite 数据库文件</li>
+<li>获取 OpenAI API 密钥或其他兼容的 LLM API 密钥</li>
+</ul>
+<h3>安装</h3>
+<ol>
+<li>克隆仓库</li>
+</ol>
+<pre><code class="language-bash">git clone https://github.com/loocor/db2llm.git
+cd db2llm
+</code></pre>
+<ol>
+<li>安装依赖</li>
+</ol>
+<pre><code class="language-bash">bun install
+</code></pre>
+<ol>
+<li>配置 LLM
+修改 <code>config/config.yaml</code> 文件：</li>
+</ol>
+<pre><code class="language-yaml">server:
+  port: 3000
+  host: "localhost"
+
+database:
+  tempDir: "db2llm"
+  defaultName: "db2llm.sqlite"
+  connection:
+    synchronize: false
+    logging: ["error", "warn"]
+
+llm:
+  provider: "deepseek"
+  openai:
+    model: "deepseek-chat"
+    temperature: 0.3
+    defaultApiUrl: "https://api.deepseek.com/v1"
+    apiKey: "sk-4c907ed3eed5468db793b6f431e9a28c"
+
+ui:
+  title: "DB2LLM - 数据库对话助手"
+  welcomeMessage: "欢迎使用 DB2LLM 数据库对话助手！请先连接数据库和配置 LLM API 。"
+  readyMessage: "我已准备好，跟我来聊吧！"
+</code></pre>
+<p>支持的 LLM 提供商：</p>
+<ul>
+<li>DeepSeek API （默认）</li>
+<li>OpenAI API</li>
+<li>Azure OpenAI</li>
+<li>Claude API</li>
+<li>其他兼容 OpenAI API 格式的服务</li>
+</ul>
+<h3>运行</h3>
+<pre><code class="language-bash">bun run dev
+</code></pre>
+<p>应用将在 http://localhost:3000 启动。</p>
+<h3>使用方法</h3>
+<ol>
+<li>打开浏览器访问 http://localhost:3000</li>
+<li>上传 SQLite 数据库文件</li>
+<li>输入 LLM API 密钥（和可选的 API 地址）</li>
+<li>点击"连接"按钮</li>
+<li>连接成功后，在对话框中输入自然语言查询</li>
+<li>系统将自动处理查询并返回结果</li>
+</ol>
+<h2>示例查询</h2>
+<ul>
+<li>"显示所有用户信息"</li>
+<li>"查找所有女性用户"</li>
+<li>"统计男性用户数量"</li>
+<li>"添加一个新用户，姓名为李四，性别男，年龄 30 岁"</li>
+<li>"更新 ID 为 5 的用户的电话号码为 13812345678"</li>
+<li>"删除 ID 为 10 的用户"</li>
+<li>"再找找看"（基于上下文的后续查询）</li>
+</ul>
+<h2>数据库支持</h2>
+<h3>字段类型</h3>
+<ul>
+<li>基本类型：INTEGER, TEXT, NUMBER 等</li>
+<li>
+支持自定义枚举值映射，如：<ul>
+<li>性别：['女', 'female', 'f', '2', '0'] -&gt; 女性</li>
+<li>状态：['active', '1', '启用'] -&gt; 启用</li>
+</ul>
+</li>
+</ul>
+<h3>元数据</h3>
+<ul>
+<li>表结构信息</li>
+<li>字段属性（主键、非空等）</li>
+<li>字段枚举值映射</li>
+<li>外键关系</li>
+<li>索引信息</li>
+</ul>
+<h2>注意事项</h2>
+<ul>
+<li>本项目是一个概念验证原型，不建议在生产环境中使用</li>
+<li>未实现用户认证和授权机制</li>
+<li>未优化大型数据库的性能</li>
+<li>API 密钥直接在前端输入，存在安全风险</li>
+<li>会话数据存储在内存中，服务重启后会丢失</li>
+</ul>
+<h2>许可证</h2>
+<p>MIT</p>
+]]></content:encoded>
+<pubDate>2025-03-09T16:13:30Z</pubDate>
+<pubDate>2025-03-09T16:13:30Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [旅行 APP 产品诞生日记] 12day/100days</title>
+<link>https://www.v2ex.com/t/1117107</link>
+<guid>https://www.v2ex.com/t/1117107</guid>
+<content:encoded><![CDATA[
+
+<p>Day1️⃣2️⃣</p>
+<p><img alt="Xnip2025-02-28_23-42-28.png" class="embedded_image" rel="noreferrer" src="https://www.ifuryst.com/assets/img/2025-02-28-iter-x-12-100/ItineraryDesign.2025-02-28_23-42-28.png" /></p>
+<p>今天把每日行程细化规整了一下，感觉整体还可以，还有几个小细节后续再补充，这块先按照这样走。明天回头把主行程搞定。今天还处理了一下后端的一些数据结构，小伙伴也把后端的一些登录相关的接口补齐了。</p>
+<p><img alt="Xnip2025-02-28_23-56-04.png" class="embedded_image" rel="noreferrer" src="https://www.ifuryst.com/assets/img/2025-02-28-iter-x-12-100/GitHistories.2025-02-28_23-56-04.png" /></p>
+<p>今天有位很棒的伙伴加入，会负责产品方向，本身也有 AI 和算法的经验，期待后续输出😎</p>
+<p>今天周五了，脑子放空停息了，明天睡到自然醒再继续干吧。果然创业 007 ，身心都在路上，一般承受能力的不适合走这条路。Have a great night🌚</p>
+<p>汇总目前情况：</p>
+<ol>
+<li>原型设计&amp;UI/UX 设计：11%</li>
+<li>后端（ Go ）开发：13%</li>
+<li>客户端（ flutter ）进度：3%</li>
+</ol>
+<p>如果你认为你符合以下条件，欢迎来聊：</p>
+<ol>
+<li>能坚持</li>
+<li>有梦想</li>
+<li>有兴趣</li>
+</ol>
+]]></content:encoded>
+<pubDate>2025-03-09T16:12:14Z</pubDate>
+<pubDate>2025-03-09T16:12:14Z</pubDate>
+</item>
+<item>
+<title>[C++] 使用 C++20 协程与 ASIO 库写了个 Socks5 Server 的跨平台 Demo 程序，几乎全功能，单文件源码少于一千行</title>
+<link>https://www.v2ex.com/t/1117106</link>
+<guid>https://www.v2ex.com/t/1117106</guid>
+<content:encoded><![CDATA[
+
+<p>源码已经发布在 Github：
+<a href="https://github.com/cnbatch/cpp20-socks5demo" rel="nofollow">https://github.com/cnbatch/cpp20-socks5demo</a></p>
+<p>RFC 1928 要求的功能几乎都实现了。</p>
+<h2>支持的功能：</h2>
+<ul>
+<li>IPv4</li>
+<li>IPv6</li>
+<li>‘No Auth’ 认证模式</li>
+<li>用户名 / 密码 认证模式</li>
+<li>TCP <code>Connect</code></li>
+<li>TCP <code>BIND</code></li>
+<li>UDP <code>Associate</code></li>
+</ul>
+<h2>未实现的功能：</h2>
+<ul>
+<li>GSSAPI 认证模式</li>
+</ul>
+<p>Socks5 标准 (RFC 1928) 写着必须实现这个功能，然而我做的只是个 Demo 程序，平时也用不到 GSSAPI ，为了简单起见就不实现了。</p>
+<h2>已在这些系统测试过：</h2>
+<ul>
+<li>Windows 11 + VS2022</li>
+<li>FreeBSD 13.4</li>
+<li>FreeBSD 14.2</li>
+<li>Debian 12</li>
+</ul>
+<hr />
+<h2>用协程写代码的体验</h2>
+<p>用了协程之后，思路清晰多了，不像 callback 时那么头大，相对而言轻松多了。</p>
+<h2>Github 就有一大堆 Socks5 Server 程序，为什么又造了个新的？</h2>
+<p>两大原因：</p>
+<ol>
+<li>
+<p>我自己是 Windows + FreeBSD 用户，正好需要这样的 socks5 server 程序——可以同时在 Windows 与 FreeBSD 运行，能够支持 TCP + UDP, IPv4 + IPv6 ，使用相同的运行配置方式。<br />虽然平时 socks5 server 主要在 FreeBSD 当中运行，但稳妥起见也要在 Windows 台式机运行同样的程序，用作 backup 方案。<br />最重要的一点，两个平台都要采用 Native 编译方式，而不是单纯的“妥协”编译方式。直白点说就是：</p>
+<ul>
+<li>Windows 可以用 MSVC 直接编译，不需要经过 Cygwin / MinGW 绕一层。</li>
+<li>FreeBSD 可以用内置编译器 + BSD Make 直接编译（即使是 cmake 生成的），不需要 GNU Make ，不需要额外再安装编译器。</li>
+</ul>
+</li>
+<li>
+<p>一直想试试 ASIO 库的协程模式，毕竟写起来流畅多了。我个人记忆力不太好，callback 数量一多就头大，实在记不过来。趁着有需求，正好拿来试一试。</p>
+</li>
+</ol>
+<h2>小提示</h2>
+<p>由于这个程序只是个 Demo ，<strong>用是能用</strong>。只不过暂时不支持侦听到具体的地址，不提供日志记录，连接超时的时间判断是硬编码的。如果要其他额外功能都实现的话，就不能单靠一个源文件了，只能另开新 repo 把各部份拆开来重新梳理一遍。以后再在新 repo 内慢慢拆、慢慢补。</p>
+]]></content:encoded>
+<pubDate>2025-03-09T15:51:59Z</pubDate>
+<pubDate>2025-03-09T15:50:59Z</pubDate>
+</item>
+<item>
+<title>[问与答] 33 岁失业设计师香氛创业 2 周年自我访谈分享</title>
+<link>https://www.v2ex.com/t/1117105</link>
+<guid>https://www.v2ex.com/t/1117105</guid>
+<content:encoded><![CDATA[
+
+<p>年初的时候在论坛写下今年的心愿：<strong>“多点松弛感”</strong>。
+趁着最近新品已经上架，可以松口气的间隙，想和 V 友分享一下创业这两年的心路历程，也有些问题想听听 V 友们的建议。
+2 年前我写的帖子： <a href="https://fast.v2ex.com/t/945814" rel="nofollow">https://fast.v2ex.com/t/945814</a> 现在看来有点天真。</p>
+<p><strong>问：作为一个创业 2 年，未来两年也将迈入 35 岁职业大关的人，你有什么想说的吗？</strong></p>
+<p><strong>答：</strong> 今年刚好也是我毕业的 10 周年。从刚毕业时的意气风发，认为今后大有作为，慢慢认识到自己的普通和局限性。从我自身来说，我是一个有点固执又一根筋的人。别人也许很快就放弃了，但是我总能再坚持一下。这一点在创业的时候算是个优点，但是在工作中这应该算是一个缺点，因为很多我的同学或者同事发现此路不通或者有更好的机会，可能早就换行业了。</p>
+<p>我一直坚持做了七八年的电商设计，当我 30 多岁时发现自己在这个行业可有可无，才有点恍然大悟。抛开创业这件事情不谈，做香薰让我找到了自己的爱好。我觉得做蜡烛、调香是一件很解压的事，做出来的香薰也能给人带来愉悦感，另外也不算彻底放弃做设计的这条路。虽然创业过程中遇到的困难比上班时多太多了，但是没了职场的压力却对我来说是件轻松的事情，另外感觉身心状态也比上班时要好了不少。</p>
+<p>我不会劝每个人都去创业。但是我想说，目前的就业环境对 30+的人真的不友好，加上 AI 的快速发展，很多低级的岗位终将被替代。如果你现在的工作是你喜欢从事的，可以继续努力做到行业的顶尖。如果你不喜欢自己的工作和职场氛围，可以尝试去找到自己喜欢做的事，不要让工作占据生活的全部。</p>
+<p><strong>问：创业以来你遇到最困难的事情是什么？</strong></p>
+<p><strong>答：</strong> 我不怕产品制作和研发过程中遇到的困难，这些都可以通过技术和经验的积累来攻克。其实最大的困难在于面对一些无能为力的事或者人。比如说我们目前所在的淘宝平台，对我们这些小商家有很多不公平和不合理的规则。遇到一些钻空子的客户以及毫无缘由的恶意差评。
+比如在和供应商敲定细节和发货时间的时候，对方满口答应，但是到了交付又各种推迟和货不对版。</p>
+<p>再比如一个客户购买了试香，闻过之后就退货，因为产品不包邮但有运费险，客户还要求我们退她购买时的运费，不然就去投诉举报我们。关键是淘宝自己制定的运费规则，还站在客户那边直接扣了我们保证金，客户收到钱后还对退回的商品进行了拦截，导致我们钱货两空。我们损失不大，但确实让人恶心。也是在那时候，我和搭档坚定了要开京东店铺的决心。</p>
+<p>还有一位令人印象深刻的客户，售前售后咨询都表现得很有礼貌。收货称我们商品无法安装申请退货。聊天中我们觉得这位客户比较友善，就先行做了退款，结果收到退货商品大跌眼镜。不仅没有商品包装，他还拿走了安装部件。后面我们再给他发消息就已读不回了。</p>
+<p><strong>问：这两年是什么让你能够坚持下去的呢？</strong></p>
+<p><strong>答：</strong> 首先我要感谢身边的朋友，很多人初期的支持很重要。还不得不感谢论坛的 V 友，当初在我们只有一款香薰蜡烛和一款车载香薰的时候下单支持我们，还帮忙推荐朋友来购买。销量的快速攀升也让淘宝注意到了我们，紧接着受邀对我进行了采访和邀请节目录制、以及线下的活动，各渠道的反馈以及消费者对我们香味和产品的认可，给我们增添了很大信心。紧接着我们又研发了好几款新产品，比如无火香薰、香氛喷雾、香薰礼盒、宠物喷雾等等，同时我们也在研发更多的新品以及完善现有产品。所以这两年对我们来说并没有很煎熬，而是觉得时间过得很快很多想做的事情都在等着我们。我们也会一直保持初心，认真做好自己的产品。</p>
+<p><strong>问：未来有什么计划吗？</strong></p>
+<p><strong>答：</strong>短期的计划吧，我们最近打算开京东店了，另外还想去参加集市和摆摊，多听听客户对我们产品的反馈，另外也会利用空档把我们产品细节继续打磨。
+未来我们有想要把<strong>“HUPPO 香氛”</strong>打造成一个小而美的品牌，在香薰这个领域有一定的知名度，服务于一些对品质香氛有要求的客户，把它当成人生的一份事业来做</p>
+<p>最近客户的回购以及对我们产品和服务的评价让我有一点信心想要开实体店了。<strong>不知道 v 友对开实体店以及京东店有什么想法或者是好的建议。</strong></p>
+<p><strong>另外对我们产品尤其是新品有兴趣的 v 友欢迎咨询我们客服，我们会长期为 v 友提供专属优惠，以感谢 v 友们一直以来的支持！</strong></p>
+]]></content:encoded>
+<pubDate>2025-03-09T15:48:20Z</pubDate>
+<pubDate>2025-03-09T15:56:58Z</pubDate>
+</item>
+<item>
+<title>[问与答] 自托管私有网络的 vaultwarden server, bitwarden 无法离线保存东西</title>
+<link>https://www.v2ex.com/t/1117104</link>
+<guid>https://www.v2ex.com/t/1117104</guid>
+<content:encoded><![CDATA[
+
+自托管私有网络的 vaultwarden server,  在 192.168.0.2 上, 带着手机上的 bitwarden 出门后, 就无法在手机上新建保存任何东西了.  原来的期望是 手机离线的时候也可以保存东西, 回到家里后跟 vaultwarden server 同步.
+]]></content:encoded>
+<pubDate>2025-03-09T15:35:16Z</pubDate>
+<pubDate>2025-03-07T15:35:16Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 发现一个可以直接生成 videoObject 的工具</title>
+<link>https://www.v2ex.com/t/1117102</link>
+<guid>https://www.v2ex.com/t/1117102</guid>
+<content:encoded><![CDATA[
+
+<p>如果网站有视频，希望谷歌也增加对该视频的索引，可以增加 videoObject 来加快收录，如果自己生成比较麻烦，偶然发现这个工具，<a href="https://cn.kingswayvideo.com/" rel="nofollow">https://cn.kingswayvideo.com/</a>
+上传视频后，获取嵌入视频的代码，添加到站点后，自动会增加 videoObject ，辅助视频 SEO ，使用非常简单！</p>
+]]></content:encoded>
+<pubDate>2025-03-09T15:28:27Z</pubDate>
+<pubDate>2025-03-09T15:26:27Z</pubDate>
+</item>
+<item>
+<title>[分享发现] 智能适配</title>
+<link>https://www.v2ex.com/t/1117100</link>
+<guid>https://www.v2ex.com/t/1117100</guid>
+<content:encoded><![CDATA[
+
+担心夜间模式不兼容？ AI Widget Text 支持深色/浅色模式自动适配！无论是白天还是夜晚，都能提供最佳的视觉体验。让你的桌面小组件在任何环境下都能清晰可见。让你的手机使用更舒适、更贴心！前往 App Store 搜索'AI Widget Text'下载体验吧！
+]]></content:encoded>
+<pubDate>2025-03-09T14:49:40Z</pubDate>
+<pubDate>2025-03-09T14:49:40Z</pubDate>
+</item>
+<item>
+<title>[问与答] 英文 pdf 翻译。</title>
+<link>https://www.v2ex.com/t/1117097</link>
+<guid>https://www.v2ex.com/t/1117097</guid>
+<content:encoded><![CDATA[
+
+最近看见一篇挺好的文章，是别人翻译过的，但是后续文章没有后续了。。。<br />各位大佬有什么好的工具可以翻译英文的 pdf 嘛
+]]></content:encoded>
+<pubDate>2025-03-09T14:46:37Z</pubDate>
+<pubDate>2025-03-09T15:10:01Z</pubDate>
+</item>
+<item>
+<title>[Apple] 求购 MACBook 想求购一台 16+512 的 19-20 年的</title>
+<link>https://www.v2ex.com/t/1117095</link>
+<guid>https://www.v2ex.com/t/1117095</guid>
+<content:encoded><![CDATA[
+
+<p>求购 MACBook
+想求购一台 8 或者 16+512 的
+19-20 年的
+13 寸到 15 的都可以
+第一次用 mac 有什么建议吗</p>
+]]></content:encoded>
+<pubDate>2025-03-09T14:37:29Z</pubDate>
+<pubDate>2025-03-09T15:33:40Z</pubDate>
+</item>
+
+<item>
 <title>[问与答] Orz ，求推荐 广佛地区的数字游民社区。打算临时住一周。</title>
 <link>https://www.v2ex.com/t/1117094</link>
 <guid>https://www.v2ex.com/t/1117094</guid>
 <content:encoded><![CDATA[
-
 （最好公共交通方便一点。能坐地铁直达）
 ]]></content:encoded>
-<pubDate>2025-03-09T14:12:58Z</pubDate>
 <pubDate>2025-03-09T14:11:58Z</pubDate>
 </item>
 <item>
@@ -20,10 +351,8 @@
 <link>https://www.v2ex.com/t/1117093</link>
 <guid>https://www.v2ex.com/t/1117093</guid>
 <content:encoded><![CDATA[
-
 付费应该正常？不然用于生产场合不是乖乖？<br />考虑付费自用（也不是生产场合，就搞些自动化），暂时效果能达到预期，我的预期比较低，没有很高期望
 ]]></content:encoded>
-<pubDate>2025-03-09T14:00:16Z</pubDate>
 <pubDate>2025-03-08T14:00:16Z</pubDate>
 </item>
 <item>
@@ -31,12 +360,10 @@
 <link>https://www.v2ex.com/t/1117092</link>
 <guid>https://www.v2ex.com/t/1117092</guid>
 <content:encoded><![CDATA[
-
 <p>不否认 CSDN 早期在简中互联网的地位。
 但这几年啊，纯个人主观感受，上面水文泛滥，一查一个生气，且体验有些跟不上时代——文字满屏、付费阅读的心思过于迫切、非登录状态下真有必要禁止复制么，等等。</p>
 <p>但网站的收入看起来还挺好。也许是我的理解有问题，所以求解惑：它到底哪儿好用？</p>
 ]]></content:encoded>
-<pubDate>2025-03-09T13:46:26Z</pubDate>
 <pubDate>2025-03-09T14:01:09Z</pubDate>
 </item>
 <item>
@@ -44,10 +371,8 @@
 <link>https://www.v2ex.com/t/1117091</link>
 <guid>https://www.v2ex.com/t/1117091</guid>
 <content:encoded><![CDATA[
-
 刚才试了，很奇怪，为什么会这样？按理来说不应该和 iPhone 那种一样吗<br />我刚才输了 33 次还没被锁定，可以用 touchID ，然后输对一次直接开了，连等待时间都没有<br /><br />macOS 版本：15.3.1 (24D70)
 ]]></content:encoded>
-<pubDate>2025-03-09T13:45:56Z</pubDate>
 <pubDate>2025-03-09T13:44:56Z</pubDate>
 </item>
 <item>
@@ -55,10 +380,8 @@
 <link>https://www.v2ex.com/t/1117090</link>
 <guid>https://www.v2ex.com/t/1117090</guid>
 <content:encoded><![CDATA[
-
 一个后端复制来复制去的，增强了，修复了，没把发快速同步 N 个项目<br /><br />有前端 monorepo 的概念吗哈哈
 ]]></content:encoded>
-<pubDate>2025-03-09T13:45:55Z</pubDate>
 <pubDate>2025-03-09T14:03:17Z</pubDate>
 </item>
 <item>
@@ -66,13 +389,11 @@
 <link>https://www.v2ex.com/t/1117089</link>
 <guid>https://www.v2ex.com/t/1117089</guid>
 <content:encoded><![CDATA[
-
 <p>白嫖 Cloudflare tunnel 好久了，就偶尔应急穿透连接家里服务的，但是最近怎么都连不上了，看了一下日志显示
 <img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/FaQMZcc.png" /> </p>
 <p>问了一下 Ai ，提示 DNS 服务器返回了数据，但是 Cloudflare Tunnel 无法正确解析（ unmarshal ）这个 DNS 消息。尝试 ping nslookup <a href="http://argotunnel.com" rel="nofollow">argotunnel.com</a> 这个域名也没有反应。</p>
 <p>你们都还能正常用吗？</p>
 ]]></content:encoded>
-<pubDate>2025-03-09T13:29:15Z</pubDate>
 <pubDate>2025-03-09T13:45:17Z</pubDate>
 </item>
 <item>
@@ -80,7 +401,6 @@
 <link>https://www.v2ex.com/t/1117088</link>
 <guid>https://www.v2ex.com/t/1117088</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_faq_list" rel="nofollow">这是官网的微信日志</a></p>
 <p>里面的内容只有一条</p>
 <blockquote>
@@ -89,14 +409,12 @@
 <p>现在我在用 xposed 的插件，对版本要求还挺严格的。看能不能找到一个地方可以很方便的看到每个版本的更新内容，让我考虑是否升级。</p>
 ]]></content:encoded>
 <pubDate>2025-03-09T13:26:46Z</pubDate>
-<pubDate>2025-03-09T13:26:46Z</pubDate>
 </item>
 <item>
 <title>[Android] B 站 neo10 pro 的屏幕评测是不是广？护眼层面对比 k80 如何？</title>
 <link>https://www.v2ex.com/t/1117087</link>
 <guid>https://www.v2ex.com/t/1117087</guid>
 <content:encoded><![CDATA[
-
 <p>手持红米 k50 ，已经开始卡了。一方面澎湃没啥新鲜感了，另外看到网上各种赞美桔子系统比澎湃稳定的。所以在考虑换个 neo10 pro 。但是现在平时要哄孩子睡觉，晚上会<strong>开夜灯玩一两个小时</strong>手机。之前看到很多说 iQOO 系列瞎眼屏的。就多搜了一下。</p>
 <p>现在自己看到的结果一方面大部分普通人都说红米 k80 屏幕护眼，另一方面又是很多 B 站博主说 iQOO Neo10 的屏幕是现在最护眼的 <a href="https://www.bilibili.com/video/BV1hTUXYfEhi/" rel="nofollow">连接 1</a> <a href="https://www.bilibili.com/video/BV1z3zzYjEm2" rel="nofollow">连接 2</a> 有点迷茫了。</p>
 <p>目前想请教各位大佬的是</p>
@@ -105,7 +423,6 @@
 <li>如果 neo10 pro 屏幕真的不太行。加价上 iQOO 13 会有提升吗？还是说完全没必要(不玩游戏)</li>
 </ol>
 ]]></content:encoded>
-<pubDate>2025-03-09T13:17:44Z</pubDate>
 <pubDate>2025-03-09T13:37:47Z</pubDate>
 </item>
 <item>
@@ -113,10 +430,8 @@
 <link>https://www.v2ex.com/t/1117086</link>
 <guid>https://www.v2ex.com/t/1117086</guid>
 <content:encoded><![CDATA[
-
 咋办？ 丈母娘干涉育儿教育“护犊子” 孩子调皮捣蛋打两下，丈母娘还哭了…
 ]]></content:encoded>
-<pubDate>2025-03-09T13:11:51Z</pubDate>
 <pubDate>2025-03-09T13:32:18Z</pubDate>
 </item>
 <item>
@@ -124,10 +439,8 @@
 <link>https://www.v2ex.com/t/1117084</link>
 <guid>https://www.v2ex.com/t/1117084</guid>
 <content:encoded><![CDATA[
-
 朋友接到个仿一个叫爱藏 app 的需求，需要个会苹果 app 开发的前端和他一起做，我稍微瞄了一眼 app,感觉应该不算太复杂那种，欢迎会苹果开发的前端去咨询，wx:Z3VpdGFyc2hvdw==
 ]]></content:encoded>
-<pubDate>2025-03-09T12:48:50Z</pubDate>
 <pubDate>2025-03-09T12:48:50Z</pubDate>
 </item>
 <item>
@@ -135,12 +448,10 @@
 <link>https://www.v2ex.com/t/1117083</link>
 <guid>https://www.v2ex.com/t/1117083</guid>
 <content:encoded><![CDATA[
-
 <p>一直用的 VSCode Copilot （公司给我们买了 License ），最近看到好多吹 Cursor 的，好像没感觉有特别大的差别？</p>
 <p>莫非就是 1.自动补全，2.通过 Chat 修改/生成代码，感觉都大同小异？还是我打开 Cursor 的方式不太对？有些功能我没摸索出来？</p>
 <p>哪位 Cursor 资深用户来指导一下？谢谢！</p>
 ]]></content:encoded>
-<pubDate>2025-03-09T12:40:49Z</pubDate>
 <pubDate>2025-03-09T10:40:49Z</pubDate>
 </item>
 <item>
@@ -148,15 +459,12 @@
 <link>https://www.v2ex.com/t/1117082</link>
 <guid>https://www.v2ex.com/t/1117082</guid>
 <content:encoded><![CDATA[
-
 <p>windows 10 ，主屏分辨率比较高，设置了 1.5 倍缩放，副屏标准像素。</p>
 <p>大多数窗口在主屏和副屏上显示正常，除了在两个屏幕间拖动的时候，有的显示放大。</p>
 <p>但是，为什么任务管理器就这么糊呢？？？</p>
 ]]></content:encoded>
 <pubDate>2025-03-09T12:35:19Z</pubDate>
-<pubDate>2025-03-09T12:35:19Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 执行力差怎么办？</title>
 <link>https://www.v2ex.com/t/1117081</link>
@@ -16060,161 +16368,6 @@ app.use(express.static(__dirname + "/public"));
 我现在是个人的，好贵，想拼个日区的车。
 ]]></content:encoded>
 <pubDate>2025-03-04T10:34:26Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] [成都] 移动能办理直播宽带吗？</title>
-<link>https://www.v2ex.com/t/1115871</link>
-<guid>https://www.v2ex.com/t/1115871</guid>
-<content:encoded><![CDATA[
-<p>家用宽带上行小还被限速，想花钱解决问题了</p>
-]]></content:encoded>
-<pubDate>2025-03-04T10:23:27Z</pubDate>
-</item>
-<item>
-<title>[路由器] 家里的路由器穿墙能力很差，有推荐的路由器吗？</title>
-<link>https://www.v2ex.com/t/1115870</link>
-<guid>https://www.v2ex.com/t/1115870</guid>
-<content:encoded><![CDATA[
-看了下，家里的路由器还是 18 年买的，Netgear 网件 R6220 ，200 块钱。<br /><br />随我搬了好几次家，现在还能满足基本需求，但是它的穿墙能力好差，放在客厅，卧室都没信号，明明距离也不远。<br /><br />V 友有推荐的差不多价位，穿墙能力强点的路由器吗，也没其他需求。
-]]></content:encoded>
-<pubDate>2025-03-04T10:22:14Z</pubDate>
-</item>
-<item>
-<title>[程序员] trae 不能登陆怎么办,提示本能链接本地服务器,求教!</title>
-<link>https://www.v2ex.com/t/1115869</link>
-<guid>https://www.v2ex.com/t/1115869</guid>
-<content:encoded><![CDATA[
-![]( <a href="https://www.v2ex.com/i/di5ul3Af.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 di5ul3Af.png"><img class="embedded_image" src="https://i.v2ex.co/di5ul3Af.png" /></a>)<br /><br />![]( <a href="https://www.v2ex.com/i/i0564p47.png" rel="nofollow noopener" target="_blank" title="在新窗口打开图片 i0564p47.png"><img class="embedded_image" src="https://i.v2ex.co/i0564p47.png" /></a>)
-]]></content:encoded>
-<pubDate>2025-03-04T06:17:22Z</pubDate>
-</item>
-<item>
-<title>[问与答] Azure 学生认证申请有问题，本人是真的大学生</title>
-<link>https://www.v2ex.com/t/1115868</link>
-<guid>https://www.v2ex.com/t/1115868</guid>
-<content:encoded><![CDATA[
-<p>RT ，想申请 Azure 的服务器来微调毕业论文，知道他有个学生认证的免费服务器，所以尝试搞了一下，页面的提示是：
-很抱歉，我们的系统检测到你的帐户出现问题，因而无法验证你的访问权限。
-实现说明，我是用的学校的 edu 邮箱去的，而且这个邮箱也是通过了 github 的学生认证的，所以不存在说学校不被认可的这种，我学校还算可以的。
-于是我去找客服，发了邮件，回了三四封，我大概说一下内容：
-第一次回信：
-感谢您联系微软订阅服务中心 APGC 支持, 我是 Ray,很高兴协助您。</p>
-<p>通过您的线上表单，我理解到您无法进行学生认证，如果我的理解有误，烦请您更正，谢谢。</p>
-<p>我们建议您再次访问此链接重新激活学生订阅，参考如下：</p>
-<ol>
-<li>清除浏览器的缓存以及历史记录</li>
-</ol>
-<p>2. 使用个人订阅账户访问 <a href="https://signup.azure.com/studentverification?offerType=1" rel="nofollow">https://signup.azure.com/studentverification?offerType=1</a> </p>
-<p>3. 使用学校邮箱作为验证</p>
-<p>4. 接着学校邮箱会收到验证邮件，烦请点开进行最后验证的操作。</p>
-<p>5. 完成验证后，使用个人账户访问 <a href="https://signup.azure.com/studentverification?offerType=1" rel="nofollow">https://signup.azure.com/studentverification?offerType=1</a> 使用订阊权益。</p>
-<p>若问题报错依然存在，请您提供以下信息以提交至后台进一步的协助您：</p>
-<p>登入邮箱：</p>
-<p>报错截图（全屏截图）：</p>
-<p>恳请您提供完整的 PSR 步骤记录截图，以供我们进一步确认情况：记录步骤以再现问题 (<a href="http://microsoft.com" rel="nofollow">microsoft.com</a>)（从开启无痕模式起记录至遇到问题报错页面）</p>
-<p>如果您有任何疑问或需要了解其它相关信息，请直接回复此邮件或者再次联系微软。</p>
-<p>然后按照要求做了，还是不行，接着搞了个 PSR 发给他，回信是：</p>
-<p>感谢您联系微软订阅服务中心 APGC 支持, 我是 Ray,很高兴协助您。</p>
-<p>感谢您提供的信息以及截图，若客户符合申请学生订阅的条件但遇到相关的信息提示，我们将会提交相关团队协助审查。</p>
-<p>因此，我已为您进行案件升级。</p>
-<p>相关的团队需要 1 至 2 个工作日处理。如有任何进展，我会第一时间通知您。</p>
-<p>温馨提醒，相关团队在查核的过程中可能会再次向您索取学生证等的信息（建议提供中以及英文的版本），因此敬请您留意相关部门的邮件。</p>
-<p>再然后过了大概一天，他回复了新的邮件：</p>
-<p>感谢您的耐心等待。</p>
-<p>相关团队正在处理您的案件，由於最近的业务量激增，烦请您耐心等候，对您可能造成的困扰，我们至上万分的歉意。</p>
-<p>我们会在 2-3 个工作日再与您报告案件进度。一旦收到相关团队的回复，我们会尽快以邮件的方式回复您。</p>
-<p>于是我等到这周周一，发现还没回复，就催了一下，他回复了：</p>
-<p>感谢您联系微软订阅服务中心 APGC 支持, 我是 Ray,很高兴协助您。</p>
-<p>感谢您的耐心等待。相关部门已经为您的账号并没有任何限制。</p>
-<p>我们已经替您将案件提交到后台进行处理。</p>
-<p>我们后台需要 2-3 个工作日的时间处理。一旦收到后台的回复，我们会尽快以邮件的方式回复您。</p>
-<p>由於最近的业务量激增，若我们未能在 2-3 个工作日内回复，还烦请您见谅。对您可能造成的困扰，我们至上万分的歉意。</p>
-<p>最关键的是这里：“感谢您的耐心等待。相关部门已经为您的账号并没有任何限制。”
-我完全搞不懂他在说什么，再次尝试认证，还是寄了。。。
-然后今天上午我再发邮件催他，他到现在还没回复。。。这是什么情况。。。</p>
-]]></content:encoded>
-<pubDate>2025-03-04T10:21:07Z</pubDate>
-</item>
-<item>
-<title>[问与答] 折腾！破烂蜗牛升级 n100，在闲鱼看到一块板子，现在脑袋很懵，问题有些多。</title>
-<link>https://www.v2ex.com/t/1115867</link>
-<guid>https://www.v2ex.com/t/1115867</guid>
-<content:encoded><![CDATA[
-1.商家说主板支持 4pin 供电，但是插口在哪儿呢？<br /> 2.蜗牛原来的开关机重启按钮的 pin 口搁哪儿插呢？<br /> 3.虽然主板供电支持 4 块硬盘，但总不太安全，直接从电源接过去独立供电，这样会不会存在主板关机了，硬盘还一直开机？<br /> 4.图中 stata 供电口，是不是意味着给硬盘供电也还算安全？<br /> 5.我想把系统和存储独立开，wifi 口能插一根 2230 的固态吗？<br /> 6.如果我想拓展一个网口出来，应该怎么个逻辑路线？<br /><br /><a href="https://i.imgur.com/WvNv0Uo.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/WvNv0Uo.png" /></a><br /> <a href="https://i.imgur.com/KDBFS6V.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/KDBFS6V.jpeg" /></a><br /> <a href="https://i.imgur.com/1iLekGa.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/1iLekGa.jpeg" /></a>
-]]></content:encoded>
-<pubDate>2025-03-04T10:22:44Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [深圳] 招技术主管&amp;后端开发</title>
-<link>https://www.v2ex.com/t/1115865</link>
-<guid>https://www.v2ex.com/t/1115865</guid>
-<content:encoded><![CDATA[
-技术主管<br /><br />一、职位描述<br />1 、负责国际化体育媒体业务系统开发；<br />2 、负责持续改善已有服务，优化系统薄弱点，提升系统性能和稳定性；<br />3 、深入发掘和分析业务需求，撰写技术方案和系统设计；<br />4 、完善基础组件支持，更好地支撑业务迭代，根据业务需求，为团队引入新技术和方案；<br />5 、负责技术团队搭建、人才培养和团队管理。<br />二、职位要求<br />1 、本科及以上学历，计算机、通信等相关专业，5 年及以上工作经验优先；<br />2 、扎实的计算机基础知识，较强的逻辑理解能力和学习能力；<br />3 、熟悉 Python 、PHP 、C++、Golang 中的至少一门语言；<br />4 、熟悉 MySQL 、Memcache 、Redis 、消息队列等常用服务组件，有定制化改进经验者优先；<br />5 、有较强软件架构设计能力，较强的代码优化能力；<br />6 、熟悉互联网架构体系，对微服务拆分、服务治理、负载均衡、流控等有较好的理解和实践；<br />7 、积极主动、自驱力强，深入了解业务并与业务中各角色建立沟通，能独立负责一块业务，迅速推进项目与问题的解决；<br />8 、2 年以上团队搭建和管理经验者优先；<br />9 、英语基础较好者优先，有海外电商从业经验者优先。<br />三、其他<br />1 、管理过十人以上的技术团队，三年以上管理经验<br />2 、时间观念强 能够严格按照项目排期交付项目<br />3 、精通 php&amp;移动端 app 技术栈<br />4 、时间观念强 能够严格按照项目排期交付项目<br />5 、责任心强 自驱力强 有成功的愿景心<br />6 、要求 C 端技术研发经验<br />加分项：有以下行业经验：一线互联网大厂经验<br />（能够独当一面，独立负责复杂系统的建设，必须至少 2 年以上的技术团队管理经验、具有丰富的 C 端产品研发经验，具有极强的工程质量交付意识）<br /><br />-----------------------------------------------------------------------------<br />高级后端开发<br /><br />职位描述<br />我们正在寻找一位具备 DevOps 思维的 PHP 开发工程师，加入我们的技术团队，负责开发和维护公司的 CMS 系统。该系统将用于管理公司网站内容、用户信息、媒体资源等，为公司的数字化运营提供支持。作为团队的核心成员，你将参与系统的需求分析、设计、开发、测试以及上线后的维护和优化工作，并推动 DevOps 实践在项目中的落地<br /><br />主要职责<br />系统开发：基于 Laravel 框架开发高效、稳定、可扩展的 CMS 系统，实现内容管理、用户权限管理、媒体资源管理等功能模块。<br />代码优化：编写高质量、可维护的 PHP 代码，遵循编码规范和最佳实践，确保代码的可读性和可扩展性。<br />功能实现：根据业务需求，实现前端页面的交互逻辑和后端数据处理逻辑，确保系统功能的完整性和稳定性。<br />性能优化：对系统进行性能分析和优化，提升系统的响应速度和并发处理能力。<br />DevOps 实践：负责系统从开发到部署的全流程管理，包括持续集成（ CI ）、持续交付（ CD ）的实施，确保代码能够快速、稳定地部署到生产环境。<br />自动化运维：设计和实现自动化脚本，用于系统部署、监控、备份和故障恢复，提升运维效率。<br />团队协作：与产品、设计、测试等团队成员紧密合作，推动 DevOps 理念在团队中的普及，打破开发与运维之间的壁垒。<br />四、任职要求<br />教育背景：<br />计算机科学或相关专业大专及以上学历。<br />工作经验：<br />3 年以上 PHP 开发经验，有 DevOps 相关实践经验，熟悉 CI/CD 流程和工具（如 Jenkins 、GitLab CI 等）。<br />技术技能：<br />熟练掌握 PHP 语言，具备扎实的编程基础和良好的代码风格。<br />熟悉 Laravel 框架的架构设计和开发流程，能够熟练使用 Laravel 的路由、控制器、模型、视图、中间件等组件。<br />熟悉 MySQL 数据库，具备数据库设计和优化能力，能够熟练编写 SQL 语句。<br />熟悉 Linux 操作系统，能够在 Linux 环境下进行开发和部署。<br />熟悉 Docker 容器技术及 Kubernetes 集群管理工具者优先<br />了解前端相关技术，如 HTML 、CSS 、JavaScript 等，能够实现简单的前端页面交互。<br /><br />加分项<br />项目经验：有成功开发大型 CMS （如 WordPress 、Joomla 、Drupal 等）系统或类似项目的经验。<br />技术认证：拥有相关技术认证（如 AWS Certified Solutions Architect 、CKA 等）。<br />开源贡献：在 GitHub 等开源平台上贡献过代码或参与过开源项目。<br />性能优化经验：具备丰富的系统性能优化经验，能够通过代码优化、数据库优化、缓存策略等手段提升系统性能。<br />敏捷开发经验：熟悉敏捷开发流程，能够适应快速迭代的开发模式。<br />讲人话是： 需要个懂 aws 运维的 php 开发<br /><br />siro@xushuotech.com
-]]></content:encoded>
-<pubDate>2025-03-04T10:24:19Z</pubDate>
-</item>
-<item>
-<title>[程序员] 把 SpringBoot 项目开发环境从 Windows 迁移到 macOS 遇到的文件保存路径问题</title>
-<link>https://www.v2ex.com/t/1115863</link>
-<guid>https://www.v2ex.com/t/1115863</guid>
-<content:encoded><![CDATA[
-之前开发一直使用的 Windows ，服务器使用的 Linux Docker Tomcat 容器 war 包部署。没有使用对象存储，代码中文件保存逻辑针对 Windows 和 Linux 系统进行判断写了两套逻辑。最近换了 macOS ，不想再写一套 macOS 的逻辑了，想直接让 SpingBoot 的项目在本地 Docker 容器运行调试，这种方法可行吗？麻烦万能的 v 友给一个思路。
-]]></content:encoded>
-<pubDate>2025-03-04T09:44:13Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] go mod vendor 正确使用姿势？</title>
-<link>https://www.v2ex.com/t/1115861</link>
-<guid>https://www.v2ex.com/t/1115861</guid>
-<content:encoded><![CDATA[
-<p>要下班了，摸一会儿鱼。</p>
-<p>想到一个问题就是如果把 vendor 目录纳入 git 管理，但是如果在 windows 下和 linux 下同时进行开发，用的 go sdk 都是不一样的，go mod vendor 好像就有问题。</p>
-<ol>
-<li>需要把 vendor 目录纳入 git 管理么？</li>
-<li>一般什么情况下使用 vendor?</li>
-</ol>
-]]></content:encoded>
-<pubDate>2025-03-04T10:07:29Z</pubDate>
-</item>
-<item>
-<title>[Android] 似乎 Android 比 IOS 更加容易导致谷歌帐号登陆设备被送中</title>
-<link>https://www.v2ex.com/t/1115860</link>
-<guid>https://www.v2ex.com/t/1115860</guid>
-<content:encoded><![CDATA[
-环境：<br /><br />出口 IP 一般干净，不公用，IP 没有被 Google 标记送中，平时也会经常关注 Google 账号的“安全”“登陆设备”列表，中观察有没有自己先前的登陆被标记成在 China 地区登陆，有就会尽快登出。<br />（这种情况以下简称“谷歌帐号登陆设备送中”）<br /><br />日常使用都是全局，专机专用，不和国内应用同机使用<br /><br />Android 设备系统 LineageOS + GMS<br /><br />Android 设备和 IOS 设备在系统设置全局上关闭定位功能<br /><br />账号和设备地区设置 US 、语言也是 EN<br /><br />发现：<br />Android 设备，如果插入了 China 地区的手机卡，那么很快就会出现“谷歌帐号登陆设备送中”<br /><br />Android 设备，如果不插手机卡，只用 Wi-Fi ，情况会稍微好一些，晚几天才会出现这种情况。也可能是不知道什么时候触发了什么条件。<br /><br />IOS 设备则不管插不插手机卡，使用同一个节点，都没有出现“谷歌帐号登陆设备送中”的情况。<br /><br />在 Android 设备上使用 Firefox 访问 <a href="https://browserleaks.com/webrtc" rel="nofollow noopener" target="_blank">https://browserleaks.com/webrtc</a> 的时候，发现可以被获取 Local IP Address ，即本地网卡上的 IP 地址，这就会导致内网 IPv4 和公网 IPv6 被泄漏吧？或者 Android 设备有更容易获取手机卡信息的方法？<br /><br />Android 设备一但出现“谷歌帐号登陆设备送中”的情况，某些软件，例如“Gemini”等就会显示该地区无法使用。即使拔掉手机卡登出 Google 账号，重新登陆，也无法解决，只能重置手机后再试解决。不过没有找到问题所在，所以很快又被送中。<br /><br />目前只好在 IOS 上使用，还比较稳定！<br /><br />就想问下，还有没有小伙伴有类似情况，如何解决？
-]]></content:encoded>
-<pubDate>2025-03-04T01:39:12Z</pubDate>
-</item>
-<item>
-<title>[问与答] 请问一下大伙，有根据原型图生成设计稿的 AI 工具不</title>
-<link>https://www.v2ex.com/t/1115859</link>
-<guid>https://www.v2ex.com/t/1115859</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-03-04T09:34:40Z</pubDate>
-</item>
-<item>
-<title>[Go 编程语言] 做了个 memcached 工具库，求个关注</title>
-<link>https://www.v2ex.com/t/1115858</link>
-<guid>https://www.v2ex.com/t/1115858</guid>
-<content:encoded><![CDATA[
-<p>memcached 已经用得很少了，突然用到发现 memcached 开发者自己开发的 go 客户端 <a href="https://github.com/bradfitz/gomemcache" rel="nofollow">https://github.com/bradfitz/gomemcache</a> 也已经很久没维护了。</p>
-<p>找了一圈也没有发现其他更合适的，索性自己写了一个：</p>
-<p><a href="https://github.com/yeqown/memcached" rel="nofollow">https://github.com/yeqown/memcached</a></p>
-<p>求个 star ⭐️ 和 使用反馈 🎉</p>
-<p>如果正好能帮上忙，那是极好的</p>
-]]></content:encoded>
-<pubDate>2025-03-04T09:36:13Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在的你还听歌吗？为什么听歌？</title>
-<link>https://www.v2ex.com/t/1115857</link>
-<guid>https://www.v2ex.com/t/1115857</guid>
-<content:encoded><![CDATA[
-我听歌都是因为学习或者工作时隔绝外面的噪声，保持专注，收藏的歌单也大部分都是非中文歌，因为中文能听懂会扰乱思绪。导致听歌会自带一个 DEBUFF 的状态，听到音乐就觉得累，没有快乐。
-]]></content:encoded>
-<pubDate>2025-02-24T09:34:46Z</pubDate>
 </item>
 </channel>
 </rss>
