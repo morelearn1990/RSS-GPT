@@ -5,11 +5,61 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] 3000 元以内最强半高刀卡显卡推荐？</title>
+<link>https://www.v2ex.com/t/1117994</link>
+<guid>https://www.v2ex.com/t/1117994</guid>
+<content:encoded><![CDATA[
+
+<p>二手的，跑本地 llm, 是不是只需要考虑显存大小而已？有推荐的吗？不晓得是否能跑 deepseek 14b</p>
+]]></content:encoded>
+<pubDate>2025-03-12T22:17:26Z</pubDate>
+<pubDate>2025-03-12T18:17:26Z</pubDate>
+</item>
+<item>
+<title>[Windows] 用一些奇怪的步骤让「不支持的硬件」Win11 收到 24H2 更新</title>
+<link>https://www.v2ex.com/t/1117993</link>
+<guid>https://www.v2ex.com/t/1117993</guid>
+<content:encoded><![CDATA[
+
+<p>我的机器是 7300HQ ，不在 Win11 的「支持处理器」列表中，现在 24H2 已经是全面推送了，但是 Windows Update 一直没收到，感觉应该是不会给所谓「不支持的处理器」推的，至少现在不会。我知道能用 ISO 直接升级，但是我就是想看看能不能通过 Windows Update 来升。</p>
+<p>网上看到之前没大规模推送的时候，有人通过组策略或者注册表设置，强行收到了 24H2 更新：</p>
+<p>设置组策略「计算机配置 -&gt; 管理模板 -&gt; Windows 组件 -&gt; 管理从 Windows 更新提供的更新 -&gt; 选择目标功能更新版本」中产品版本输入「 Windows 11 」，功能更新输入「 24H2 」</p>
+<p>如果 Home 版没有组策略或者懒得找组策略，可以直接复制下面到命令行里通过注册表设置</p>
+<pre><code>reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "ProductVersion" /t REG_SZ /d "Windows 11" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersionInfo" /t REG_SZ /d "24H2" /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersion" /t REG_DWORD /d 1 /f
+</code></pre>
+<p>另外还要绕过 CPU 检查</p>
+<pre><code>reg.exe add "HKLM\SYSTEM\Setup\MoSetup" /f /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1
+</code></pre>
+<p>重启之后如果运气好，点检查更新，应该能收到 24H2 更新了。我在虚拟机里测试成功了，立马能更新到 24H2 ，但是实体机还是不行，于是又折腾组策略，想看看加入预览版 Release Preview 能不能收到 24H2 的更新（加入 Beta 是肯定可以的，但是 Beta 差异太大，功能也不同，Release Preview 可以认为是和正式版一样，主要是会早点推给你，所以退出也方便）。</p>
+<p>在组策略中的「管理预览版」加入 Release Preview 以后，点检查更新，没有系统更新，<a href="http://只收到了个.NET" rel="nofollow">只收到了个.NET</a> 的预览更新，于是就在组策略那禁用「管理预览版」来退出预览版了（改成未配置还不行，一定要改成已禁用才能退）。</p>
+<p>退出预览之后，奇怪的事情发生了，检查更新收到了 23H2 的更新推送，我现在就是 23H2 ，怎么会又给我装一遍 23H2 ？<a href="http://盲猜是刚刚装了个.NET" rel="nofollow">盲猜是刚刚装了个.NET</a> 的预览更新，为了退出预览版（降级那些组件到 Release ？）所以要走一遍 23H2 的安装流程。而且不走还不行，一点检查更新就推 23H2 。</p>
+<p>「更新」完 23H2 之后，神奇的事情来了，立马收到了 24H2 更新。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/hlZmEA3.png" /></p>
+<p>可以看到先「更新」了一遍 23H2 ，然后再更新到 24H2 。不知道为啥 24H2 这里更新记录出现了两条，实际上只走了一遍。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/CUYKYCp.png" /></p>
+<p>然后一切正常</p>
+<p>最后把原先配置的组策略选择「目标功能更新版本」恢复为未配置，如果是用注册表形式的，则干掉之前配的注册表</p>
+<pre><code>reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "ProductVersion" /f
+reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersionInfo" /f
+reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersion" /f
+</code></pre>
+<p>附：这么操作还是要求有 TPM 才能成功更新，尽管上面配了「 AllowUpgradesWithUnsupportedTPMOrCPU 」那个注册表，字面意思似乎也会绕 TPM ，但是实际上不会，这条配置只能绕 CPU 检查，我在 VMware 里测试，更新的时候直接会弹出硬件不满足要求，未找到 TPM ，无法继续。</p>
+<p>有另一个绕 TPM 的注册表配置（看起来同时还能绕 SecureBoot 和内存大小检查）：</p>
+<pre><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk" /f /v HwReqChkVars /t REG_MULTI_SZ /d "SQ_SecureBootCapable=TRUE\0SQ_SecureBootEnabled=TRUE\0SQ_TpmVersion=2\0SQ_RamMB=8192" 
+</code></pre>
+<p>如果你的机器没有 TPM ，可以尽管试试这个。但是上述注册表，我在虚拟机里面试的时候，虽然不会弹找不到 TPM 那个错误（能过那一步了）但是最后会直接提示更新安装失败，不知道为什么，最后还是给 VMware 添加了个虚拟 TPM 才更新成功。我的物理机有 TPM ，所以在物理机上更新的时候没受这个影响。</p>
+]]></content:encoded>
+<pubDate>2025-03-12T21:46:14Z</pubDate>
+<pubDate>2025-03-12T17:46:14Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] 难道只有我中招了 cursor 的 2 刀一次的 GPT4.5 吗</title>
 <link>https://www.v2ex.com/t/1117992</link>
 <guid>https://www.v2ex.com/t/1117992</guid>
 <content:encoded><![CDATA[
-
 <p>1 gpt-4.5-preview request * 200 cents per such request</p>
 <p><a href="https://i.imgur.com/nSQHnBY.png" rel="nofollow">https://i.imgur.com/nSQHnBY.png</a></p>
 <p><a href="https://i.imgur.com/RvvDOjF.png" rel="nofollow">https://i.imgur.com/RvvDOjF.png</a></p>
@@ -18,9 +68,7 @@
 <p>以及 month limit 设置成 0$ 就是不限制...</p>
 ]]></content:encoded>
 <pubDate>2025-03-12T19:58:15Z</pubDate>
-<pubDate>2025-03-12T19:58:15Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 连续几天出去野钓 睡车里</title>
 <link>https://www.v2ex.com/t/1117990</link>
@@ -15763,17 +15811,6 @@ WebhookX is a modern webhooks gateway for message receiving, processing, and del
 <p>福利放这里啦： <a href="https://edgeone.ai/pages/templates/free-deep-research" rel="nofollow">https://edgeone.ai/pages/templates/free-deep-research</a></p>
 ]]></content:encoded>
 <pubDate>2025-03-06T16:09:28Z</pubDate>
-</item>
-<item>
-<title>[问与答] 保号手机遇到套餐外流量的问题.</title>
-<link>https://www.v2ex.com/t/1116734</link>
-<guid>https://www.v2ex.com/t/1116734</guid>
-<content:encoded><![CDATA[
-<p>我有个手机遇到套餐外流量的问题
-本来 8 元的保号套餐,上个月就是 18</p>
-<p>我已经把 移动网络-&gt;数据网络 里面的数据网络关闭了,现在还是有套餐外流量.怎么办?</p>
-]]></content:encoded>
-<pubDate>2025-03-07T10:17:47Z</pubDate>
 </item>
 </channel>
 </rss>
