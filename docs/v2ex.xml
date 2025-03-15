@@ -5,15 +5,498 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[分享创造] R！用 Rust 搓了一个表达式引擎</title>
+<link>https://www.v2ex.com/t/1118696</link>
+<guid>https://www.v2ex.com/t/1118696</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://docs.rs/value-expr/0.1.1/value_expr/" rel="nofollow">https://docs.rs/value-expr/0.1.1/value_expr/</a></p>
+<p><a href="https://github.com/ukuq/value-expr" rel="nofollow">https://github.com/ukuq/value-expr</a></p>
+<p>基于特定场景简化了，语法定义上很简单，条件、变量、循环都有了，还能结合 FuncLike 实现一些更复杂的场景</p>
+<pre><code>Value:
+    i32
+    | Unary
+    | Binary
+    | Assign
+    | Paren
+    | FuncLike
+    | Ident
+Unary:
+    - Value
+    | ! Value
+Binary:
+    Value + Value
+    | Value - Value
+    | Value * Value
+    | Value / Value
+    | Value % Value
+    | Value ^ Value
+    | Value &amp; Value
+    | Value | Value
+    | Value &lt;&lt; Value
+    | Value &gt;&gt; Value
+    | Value == Value
+    | Value != Value
+    | Value &gt; Value
+    | Value &lt; Value
+    | Value &gt;= Value
+    | Value &lt;= Value
+    | Value &amp;&amp; Value
+    | Value || Value
+Assign:
+    Ident = Value
+    | Ident += Value
+    | Ident -= Value
+    | Ident *= Value
+    | Ident /= Value
+    | Ident %= Value
+    | Ident ^= Value
+    | Ident &amp;= Value
+    | Ident |= Value
+    | Ident &lt;&lt;= Value
+    | Ident &gt;&gt;= Value
+Paren:
+    ( Values )
+FuncLike:
+    Ident ( Values )
+Values:
+    &lt;nothing&gt;
+    | ValuesNext
+ValuesNext:
+    Value
+    | Value , ValuesNext
+Ident:
+    &lt;the rust lang ident&gt;
+</code></pre>
+<p>样例也很简单</p>
+<pre><code class="language-rust">fn demo() {
+    let mut ctx = DemoContext::default();
+    //条件
+    ctx.exec(
+        "(
+            _assert(_if(1,2,3)==2),
+            _assert(_if(-1,2,3)==3),
+            )",
+    );
+    //函数
+    ctx.exec(
+        "(
+            _fn(add,a+b,a,b),
+            _assert(add(1)==1),
+            _assert(add(1,2)==3),
+            _assert(_call(add,1,2)==3)
+            )",
+    );
+    //循环
+    ctx.exec(
+        "_log(_while,
+            i=10,
+            _while(i&lt;100000,
+                _if(i%10000==0,_log(i_is,i)),
+                i+=1,
+                i
+            )
+            )",
+    );
+    //递归
+    ctx.exec(
+        "(
+            _fn(fib1,_if(n&lt;2,a2,fib1(n-1,a2,a1+a2)),n,a1,a2),
+            _fn(fib,fib1(n,1,1),n),
+            _log(fib,fib(0),fib(1),fib(2),fib(3),fib(10),fib(19)),
+            _assert(6765==fib(19))
+            )",
+    );
+    //作用域
+    ctx.exec(
+        "(
+            _scope(a=100,_assert(a==100)),
+            _scope(a=100,_scope(_assert(a==100))),
+            _scope(a=100,a=200,_assert(a==200)),
+            _scope(a=100,_scope(a=200),_assert(a==100)),
+            _fn(f1,_assert(a==0)),
+            _scope(a=100,_fn(f1,_assert(a==100))),
+            _scope(a=100,_fn(f1,(a=200,_assert(a==200))),_assert(a==100))
+            )",
+    );
+}
+</code></pre>
+]]></content:encoded>
+<pubDate>2025-03-15T12:38:57Z</pubDate>
+<pubDate>2025-03-15T12:37:57Z</pubDate>
+</item>
+<item>
+<title>[Apple] 苹果为什么管不住 app 在公共目录乱拉屎</title>
+<link>https://www.v2ex.com/t/1118694</link>
+<guid>https://www.v2ex.com/t/1118694</guid>
+<content:encoded><![CDATA[
+
+<p>[img]( <a href="https://img.picui.cn/free/2025/03/15/67d56e55bfa0b.png" rel="nofollow">https://img.picui.cn/free/2025/03/15/67d56e55bfa0b.png</a> ）</p>
+<p>如图所示，这不是公共目录吗？删了又创建，苹果管不住吗？不是说苹果的权限很严格吗？</p>
+<p>里面一堆各种 log ，怎么跟安卓一样想怎么拉就怎么拉？</p>
+]]></content:encoded>
+<pubDate>2025-03-15T12:21:18Z</pubDate>
+<pubDate>2025-03-14T18:24:57Z</pubDate>
+</item>
+<item>
+<title>[Apple] 老生常谈， iPhone 莫名跳出来要修改锁屏密码</title>
+<link>https://www.v2ex.com/t/1118693</link>
+<guid>https://www.v2ex.com/t/1118693</guid>
+<content:encoded><![CDATA[
+
+<p>媳妇的手机莫名跳出来要修改锁屏密码。 锁屏可以暂时屏蔽，但是过一会又跳出来。重启也是一样。</p>
+<p>第一次改了一样的密码，还是会跳出来。后来又改了一次换了最后一位，暂时没了。</p>
+<p>好像以前也出现过一次。</p>
+<p>不知道是什么原因会这样，我自己用 iPhone 这么多年了，从来没遇到过。</p>
+]]></content:encoded>
+<pubDate>2025-03-15T12:17:48Z</pubDate>
+<pubDate>2025-03-15T12:17:48Z</pubDate>
+</item>
+<item>
+<title>[Visual Studio Code] go to last edit location 只可以返回一次</title>
+<link>https://www.v2ex.com/t/1118692</link>
+<guid>https://www.v2ex.com/t/1118692</guid>
+<content:encoded><![CDATA[
+
+<p>vscode 的 go to last edit location 只可以返回一次，有没有办法或有什么插件类似 intellij idea 那样，可以返回之前多次编辑的位置</p>
+]]></content:encoded>
+<pubDate>2025-03-15T12:16:51Z</pubDate>
+<pubDate>2025-03-15T12:16:51Z</pubDate>
+</item>
+<item>
+<title>[问与答] 现在的 ChatGPT 怎么感觉有机器味没那么重了，甚至有些“野”，越来越像程序员说话了</title>
+<link>https://www.v2ex.com/t/1118691</link>
+<guid>https://www.v2ex.com/t/1118691</guid>
+<content:encoded><![CDATA[
+
+<p>现在的 ChatGPT 怎么感觉有机器味没那么重了，甚至有些“野”，越来越像程序员说话了，不过这现在 ChatGPT 我喜欢。</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://imgur.com/kc8Hk4J.jpg" /></p>
+<p><a href="https://imgur.com/a/kc8Hk4J.jpg" rel="nofollow">https://imgur.com/a/kc8Hk4J.jpg</a></p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://imgur.com/4gNMAkA.jpg" /></p>
+<p><a href="https://imgur.com/4gNMAkA.jpg" rel="nofollow">https://imgur.com/4gNMAkA.jpg</a></p>
+]]></content:encoded>
+<pubDate>2025-03-15T12:13:57Z</pubDate>
+<pubDate>2025-03-15T12:36:52Z</pubDate>
+</item>
+<item>
+<title>[问与答] 一个工具 同时调用 2 个 ai。</title>
+<link>https://www.v2ex.com/t/1118689</link>
+<guid>https://www.v2ex.com/t/1118689</guid>
+<content:encoded><![CDATA[
+
+现在用的 cherry studio + monia 都是一个个的。<br />想每次提问 直接 腾讯  豆包，都发出去，同时用好几个。
+]]></content:encoded>
+<pubDate>2025-03-15T11:52:30Z</pubDate>
+<pubDate>2025-03-11T11:52:30Z</pubDate>
+</item>
+<item>
+<title>[生活] 要给父母买百万医疗险吗？算了下俩人 20 年保费 13.2w，平均每年 6.6k</title>
+<link>https://www.v2ex.com/t/1118688</link>
+<guid>https://www.v2ex.com/t/1118688</guid>
+<content:encoded><![CDATA[
+
+那款医疗险保障范围还可以，除了手术住院费，各类常见的外购靶向药也都可以报，而且不限制药店和是否使用医保；父母俩人目前 55 岁，身体健康。我给自己买了蚂蚁上面的好医保长期医疗旗舰版，年轻保费很低，一年三百多。<br /><br /><br />你们是如何看待百万医疗险的？给自己和老人配置这类医疗险必要吗？
+]]></content:encoded>
+<pubDate>2025-03-15T11:31:28Z</pubDate>
+<pubDate>2025-03-15T12:01:44Z</pubDate>
+</item>
+<item>
+<title>[程序员] 有没有开源靠谱的青龙平替选择?</title>
+<link>https://www.v2ex.com/t/1118687</link>
+<guid>https://www.v2ex.com/t/1118687</guid>
+<content:encoded><![CDATA[
+
+<p>看 V2 帖子, 青龙有拿用户当肉鸡的嫌疑, 想找个开源的平替, 生态能好些最好, 拿来做一些网站的自动签到, 比如 HIFI 之类的. 比较多的应该是 js/python 脚本, 平台能方便插入自定义插件或功能就行.</p>
+]]></content:encoded>
+<pubDate>2025-03-15T11:30:37Z</pubDate>
+<pubDate>2025-03-15T11:31:54Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [开源] 闲鱼智能回复助手—Xianyu AutoAgent</title>
+<link>https://www.v2ex.com/t/1118686</link>
+<guid>https://www.v2ex.com/t/1118686</guid>
+<content:encoded><![CDATA[
+
+<h1>🚀 Xianyu AutoAgent</h1>
+<p>专为闲鱼平台打造的 AI 值守解决方案，实现闲鱼平台 7×24 小时自动化值守，支持多专家协同决策、智能议价和上下文感知对话。</p>
+<h2>🌟 核心特性</h2>
+<h3>智能对话引擎</h3>
+<table>
+<thead>
+<tr>
+<th>功能模块</th>
+<th>技术实现</th>
+<th>关键特性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上下文感知</td>
+<td>会话历史存储</td>
+<td>轻量级对话记忆管理，完整对话历史作为 LLM 上下文输入</td>
+</tr>
+<tr>
+<td>专家路由</td>
+<td>LLM prompt+规则路由</td>
+<td>基于提示工程的意图识别 → 专家 Agent 动态分发，支持议价/技术/客服多场景切换</td>
+</tr>
+</tbody></table><h3>业务功能矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>已实现</th>
+<th>规划中</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心引擎</td>
+<td>✅ LLM 自动回复<br />✅ 上下文管理</td>
+<td>🔄 情感分析增强</td>
+</tr>
+<tr>
+<td>议价系统</td>
+<td>✅ 阶梯降价策略</td>
+<td>🔄 市场比价功能</td>
+</tr>
+<tr>
+<td>技术支持</td>
+<td>✅ 网络搜索整合</td>
+<td>🔄 RAG 知识库增强</td>
+</tr>
+<tr>
+<td>运维监控</td>
+<td>✅ 基础日志</td>
+<td>🔄 钉钉集成<br />🔄  Web 管理界面</td>
+</tr>
+</tbody></table><h2>🎨效果图</h2>
+<p><a href="https://imgse.com/i/pEarA56" rel="nofollow"><img alt="pEarA56.md.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/03/15/pEarA56.md.png" /></a></p>
+<p><a href="https://imgse.com/i/pEare2D" rel="nofollow"><img alt="pEare2D.md.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/03/15/pEare2D.md.png" /></a></p>
+<h2>🚴项目地址</h2>
+<p><a href="https://github.com/shaxiu/XianyuAutoAgent" rel="nofollow">https://github.com/shaxiu/XianyuAutoAgent</a></p>
+<h2>🙏结语</h2>
+<p>如果大佬们觉得有意思欢迎 Star⭐</p>
+<p>在使用中遇到任何问题或者有任何建议都可以告诉我，十分感谢！</p>
+<h2>📮关于我</h2>
+<p>一个计算机专业的 26 届准毕业生</p>
+<p>正在寻找 AI 产品经理相关实习机会</p>
+<p>期待与各位前辈交流： <a href="mailto:coderxiu@qq.com">coderxiu@qq.com</a></p>
+]]></content:encoded>
+<pubDate>2025-03-15T11:18:37Z</pubDate>
+<pubDate>2025-03-15T11:15:37Z</pubDate>
+</item>
+<item>
+<title>[硬件] U2725 到了，分享下感受</title>
+<link>https://www.v2ex.com/t/1118685</link>
+<guid>https://www.v2ex.com/t/1118685</guid>
+<content:encoded><![CDATA[
+
+京东自营国补后 3994 元入手，之前用的是 U2723 ，这次新升级了 120Hz ，就换了。个人主要接 Mac 用来上网、看书、看视频，未来也打算组个游戏 PC 玩玩 3A 游戏。<br /><br />1. 120Hz 效果不错，我的外置妙控板也能以 120Hz 轮询率工作，非常丝滑。<br /><br />2. 感觉拖影是有点严重的。macOS 里 Launchpad 来回划，图标的拖影确实比较长，打开了 5ms 的快速响应模式感觉也没好多少，不过后来我用我的 MBA 内屏划了几下，内屏拖影也很严重，所以我选择自适应了。<br /><br />3. HDR 模式下，非 HDR 内容发灰。我打开了显示器设置里的 Display HDR 600 模式，看 YouTube 的 HDR 视频效果非常爽，但是非 HDR 内容完全不能看，灰的厉害，所以只能关掉 HDR 了。另外我还有台带 XDR 屏幕的 MBP ，非 HDR 和 HDR 内容都能正常显示，所以感觉是 macOS 对非 Apple 显示器的支持不好导致的<br /><br />还有什么想了解的欢迎留言
+]]></content:encoded>
+<pubDate>2025-03-15T11:11:14Z</pubDate>
+<pubDate>2025-03-15T12:28:35Z</pubDate>
+</item>
+<item>
+<title>[程序员] 把 ext4 / NTFS 这样的有日志 FS 放在无日志的 exFAT 里，有好处吗？</title>
+<link>https://www.v2ex.com/t/1118684</link>
+<guid>https://www.v2ex.com/t/1118684</guid>
+<content:encoded><![CDATA[
+
+<p>有一些虚拟文件系统比如 vhd 、vdi 、img 文件可以直接挂载成一个块设备，如果把这个块设备格式化为 ext 、btrfs 、NTFS 这样的有日志文件系统，在里面读写文件还能享受到日志的好处吗？</p>
+<p>手上有一些盘要长期给 Windows / Linux 用，不需要能够互相读取文件，但是希望 Windows / Linux 都可以直接用，不需要每次都格式化成 NTFS / btrfs 。如果用 exFAT 的话，总觉得长期使用并不安全。</p>
+<p>最简单的办法是直接给盘分两个区，一个 NTFS 一个 BTRFS ，但是这样分区容量就基本定死了，调整起来很不方便，要在一个系统里释放空间，在另一个系统里吃掉空间。</p>
+<p>于是想到了，如果把硬盘格式化成 exFAT ，然后创建两个 vhd ，一个格式化成 btrfs ，另一个格式化成 NTFS ，直接写到 fstab 里，进系统就能用了。</p>
+<p>但是好奇这样在 exFAT 里面放一个日志文件系统，真的比只有 exFAT 安全吗？</p>
+<p>（当然也可以挂 NAS 上全部走网络，只是租房子住，目前没条件组有线网络啊）</p>
+]]></content:encoded>
+<pubDate>2025-03-15T11:11:13Z</pubDate>
+<pubDate>2025-03-15T12:04:18Z</pubDate>
+</item>
+<item>
+<title>[程序员] 最经发现 AI 做后端技术方案也是大有可为，直接输入 PRD + 规范</title>
+<link>https://www.v2ex.com/t/1118683</link>
+<guid>https://www.v2ex.com/t/1118683</guid>
+<content:encoded><![CDATA[
+
+<p>设想的是方案中依赖的接口等信息，从 MCP 中获取，不过目前我是维护了一些常用依赖的文档。<br />
+一些需求，几轮迭代之后，方案也是基本可以落地了。<br />
+目前 AI 独立开发需求几乎不可能。<br />
+那么分成两阶段：</p>
+<ol>
+<li>生成方案，和人类对齐</li>
+<li>方案生成代码
+是一个更现实的流程。</li>
+</ol>
+]]></content:encoded>
+<pubDate>2025-03-15T11:10:53Z</pubDate>
+<pubDate>2025-03-15T11:10:53Z</pubDate>
+</item>
+<item>
+<title>[推广] 算法推理助手通杀标准加密库</title>
+<link>https://www.v2ex.com/t/1118680</link>
+<guid>https://www.v2ex.com/t/1118680</guid>
+<content:encoded><![CDATA[
+
+<blockquote>
+<p>大家都知道现在的网站、小程序、应用程序已经没办法通过简单抓包实现解密分析了，但是专业人士当我没说，但普通人要想解密加密后的数据，基本上是难上加难，今天给大家带来的算法助手可以轻松破解标准加密库！让大家可以轻松解密数据包！</p>
+</blockquote>
+<h3>支持算法列表</h3>
+<p>1.Hash 系列：MD5,MD5-Middle,SHA1,SHA256,SM3</p>
+<p>2.AES 系列：ECB/CBC/CFB-128/192/256 位</p>
+<p>3.DES 系列：ECB/CBC/CFB</p>
+<p>4.TripleDes 系列：ECB/CBC/CFB</p>
+<p>5.SM4 系列：ECB/CBC</p>
+<p>6.HMAC 系列：MD5,MD5-Middle,SHA1,SHA256,SHA512,SM3</p>
+<p>7.其他算法：RC4,RSA</p>
+<p>使用须知：HMAC 系列强烈建议填写已知字段!!!</p>
+<h3>工具地址</h3>
+<p><a href="https://lygzblog.cn/223.html" rel="nofollow">https://lygzblog.cn/223.html</a></p>
+]]></content:encoded>
+<pubDate>2025-03-15T10:59:31Z</pubDate>
+<pubDate>2025-03-15T11:45:12Z</pubDate>
+</item>
+<item>
+<title>[推广] 香港手机卡 ClubSIM， 0 月租</title>
+<link>https://www.v2ex.com/t/1118679</link>
+<guid>https://www.v2ex.com/t/1118679</guid>
+<content:encoded><![CDATA[
+
+<p>还有 6 张买多了，便宜出了。</p>
+<p>65/张 包邮</p>
+<p>联系电报： <a href="https://t.me/mark5868988" rel="nofollow">https://t.me/mark5868988</a></p>
+]]></content:encoded>
+<pubDate>2025-03-15T10:57:15Z</pubDate>
+<pubDate>2025-03-15T10:57:15Z</pubDate>
+</item>
+<item>
+<title>[问与答] 请教: 手机在网盘保存后如何"指示"网盘 PC 端下载</title>
+<link>https://www.v2ex.com/t/1118678</link>
+<guid>https://www.v2ex.com/t/1118678</guid>
+<content:encoded><![CDATA[
+
+<p>如题, 请教大家.<br />
+习惯在路上通过手机保存影视资源到网盘里, 同时家里有一台 24 小时开机的小主机.<br />
+想知道有什么<strong>方案</strong>或者<strong>设备</strong>可以实现以下任一目标, 在我手机端保存资源后:</p>
+<ul>
+<li>手动指示小主机上的 PC 端下载到固定文件夹.</li>
+<li>家里的小主机 PC 端自动下载到固定文件夹.</li>
+</ul>
+<p>目前的解决方案是手机通过 app 远程桌面电脑, 但是比较繁琐.所以请教一下大家.</p>
+<p>有点好奇, 网盘其实能检测到登录了几个客户端, 为啥没有办法<strong>指示</strong>某个设备执行下载呢?<br />
+是这个功能会违规呢 or 还是属于高危操作呢?</p>
+]]></content:encoded>
+<pubDate>2025-03-15T10:54:21Z</pubDate>
+<pubDate>2025-03-15T11:59:43Z</pubDate>
+</item>
+<item>
+<title>[分享创造] 分享一个小众的工具</title>
+<link>https://www.v2ex.com/t/1118677</link>
+<guid>https://www.v2ex.com/t/1118677</guid>
+<content:encoded><![CDATA[
+
+<h1>🛠️ HAR 文件在线轻编辑器</h1>
+<p><strong>特性速览</strong> </p>
+<ul>
+<li>🛡️ 纯前端解析（无服务端传输）  </li>
+<li>🔍 请求状态码，类型过滤，url 检索  </li>
+<li>✏️ 实时编辑并导出 HAR  </li>
+</ul>
+<p><strong>适用场景</strong><br />
+▸ 临时查看/快速编辑 HAR 文件<br />
+▸ 替代 Fiddler/Charles 的轻量级方案  </p>
+<p><strong>在线地址</strong><br />
+<a href="https://har.jxun.top" rel="nofollow">https://har.jxun.top</a><br />
+（零追踪/零广告/隐私友好型）  </p>
+<hr />
+<blockquote>
+<p>爬虫过程中开发的小工具，这个需求太小众了，代码也写的比较乱，就没贴地址，如果有需要的留言，我整理下发在评论区</p>
+</blockquote>
+]]></content:encoded>
+<pubDate>2025-03-15T10:53:10Z</pubDate>
+<pubDate>2025-03-15T02:53:10Z</pubDate>
+</item>
+<item>
+<title>[Telegram] 分享几个实用的 Telegram 频道，感兴趣的可以看看～</title>
+<link>https://www.v2ex.com/t/1118676</link>
+<guid>https://www.v2ex.com/t/1118676</guid>
+<content:encoded><![CDATA[
+
+大家好，我最近在 Telegram 上创建了几个有趣的频道，内容涵盖了影视、网赚项目、软件资源等，如果有需要的朋友可以加入一起交流。<br /><br />阿里云盘影视 - 分享阿里云盘上的高清影视资源，更新及时。<br />频道链接： <a href="https://t.me/alipan_movie" rel="nofollow noopener" target="_blank">https://t.me/alipan_movie</a><br /><br />夸克网盘影视 - 提供夸克网盘上的最新影视，种类多样，满足不同口味。<br />频道链接： <a href="https://t.me/kuake_movie" rel="nofollow noopener" target="_blank">https://t.me/kuake_movie</a><br /><br />网赚项目教程分享 - 分享各类网赚项目和教程，帮助大家提高收入。<br />频道链接： <a href="https://t.me/ai_zhi_xing" rel="nofollow noopener" target="_blank">https://t.me/ai_zhi_xing</a><br /><br />精品软件破解 - 提供精品软件破解资源，节省你购买正版的费用。<br />频道链接： <a href="https://t.me/jingpinsoftware" rel="nofollow noopener" target="_blank">https://t.me/jingpinsoftware</a><br /><br />如果感兴趣的话，欢迎加入一起交流讨论！😊
+]]></content:encoded>
+<pubDate>2025-03-15T10:48:22Z</pubDate>
+<pubDate>2025-03-15T10:49:56Z</pubDate>
+</item>
+<item>
+<title>[问与答] 微软公司突然自动帮订阅了 365Family 并自动扣费</title>
+<link>https://www.v2ex.com/t/1118675</link>
+<guid>https://www.v2ex.com/t/1118675</guid>
+<content:encoded><![CDATA[
+
+请大家注意看看自己的支付宝扣费，会自动订阅服务并扣费 HK1020.00 。个人没有主动发起订阅，但是被自动订阅并扣费了。<br /><br />提醒各位注意，今天可以取消订阅并退回费用。
+]]></content:encoded>
+<pubDate>2025-03-15T10:46:34Z</pubDate>
+<pubDate>2025-03-15T10:45:34Z</pubDate>
+</item>
+<item>
+<title>[电影] 豆瓣电影的选电影和选剧集功能被阉割了？</title>
+<link>https://www.v2ex.com/t/1118674</link>
+<guid>https://www.v2ex.com/t/1118674</guid>
+<content:encoded><![CDATA[
+
+以前有好多筛选项和各种榜单的，现在只剩这几个了，而且只有最近热门，想找点老片子感觉没法找了<br /><br /><a href="https://i.imgur.com/frfI97T.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/frfI97T.jpeg" /></a><br /><br /><a href="https://i.imgur.com/JHZi7Dl.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/JHZi7Dl.jpeg" /></a>
+]]></content:encoded>
+<pubDate>2025-03-15T10:42:36Z</pubDate>
+<pubDate>2025-03-15T11:00:44Z</pubDate>
+</item>
+<item>
+<title>[问与答] N100 小主机能剪的动低分辨率的视频么</title>
+<link>https://www.v2ex.com/t/1118673</link>
+<guid>https://www.v2ex.com/t/1118673</guid>
+<content:encoded><![CDATA[
+
+工作中偶尔需要剪辑一些视频，可能分辨率就 480p ，大概就是分离音轨或者简单的剪一下（课件素材用）。N100 小主机能带得动这个工作么？
+]]></content:encoded>
+<pubDate>2025-03-15T10:41:30Z</pubDate>
+<pubDate>2025-03-15T12:23:53Z</pubDate>
+</item>
+<item>
+<title>[加密货币] paws 币好像炸号了</title>
+<link>https://www.v2ex.com/t/1118672</link>
+<guid>https://www.v2ex.com/t/1118672</guid>
+<content:encoded><![CDATA[
+
+从 10 月到 3 月<br />哈哈哈哈
+]]></content:encoded>
+<pubDate>2025-03-15T10:29:40Z</pubDate>
+<pubDate>2025-03-15T10:29:40Z</pubDate>
+</item>
+<item>
+<title>项目需要熟悉大模型开发的兼职工程师</title>
+<link>https://www.v2ex.com/t/1118682</link>
+<guid>https://www.v2ex.com/t/1118682</guid>
+<content:encoded><![CDATA[
+
+<p>项目背景：细分行业的智能审批系统，行业 300 分左右文档每年会更新；行业分类 20 多个，开发基于大模型的智能审批系统。项目还需要 1-2 位兼职大模型开发工程师。</p>
+<p>技能要求：1 、计算机基础扎实，熟悉 Linux/Python/GO/数据库等；
+2 、熟悉基于大语言模型的开发，有大模型相关应用开发经验；
+3 、熟悉主流大模型工具链；
+4 、时间相对充裕；</p>
+<p>合作方式：能接受付费 1000 元，1-2 天开发一个 demo （ 30 份文档 embedding ，60 个审批要点，一个审核结果页面）。验收合适可以签合同长期合作。
+如果能接受请发介绍：Mzk3NTMyMjYxQHFxLmNvbQ==</p>
+]]></content:encoded>
+<pubDate>2025-03-15T11:09:42Z</pubDate>
+<pubDate>2025-03-15T11:09:42Z</pubDate>
+</item>
+
+<item>
 <title>[程序员] Windows 端求推荐文件格式转换的工具</title>
 <link>https://www.v2ex.com/t/1118671</link>
 <guid>https://www.v2ex.com/t/1118671</guid>
 <content:encoded><![CDATA[
-
 <p>之前一直在用 <a href="https://convertio.co/zh/" rel="nofollow"><code>Convertio</code></a> 但因为它是在线工具，所以每次都有一个 <strong>等待上传</strong> 和 <strong>等待下载</strong> 的过程，这个过程很浪费时间。而且单个文件不能超过 <code>100MB</code>，非常不方便。</p>
 <p>所以想问一下各位有推荐的文件格式转换工具吗？</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T10:16:23Z</pubDate>
 <pubDate>2025-03-15T10:14:23Z</pubDate>
 </item>
 <item>
@@ -21,10 +504,8 @@
 <link>https://www.v2ex.com/t/1118669</link>
 <guid>https://www.v2ex.com/t/1118669</guid>
 <content:encoded><![CDATA[
-
 如题，今天想打个电话问客服能不能开 80 端口，结果客服那边还要再问。<br />后来我问一下他们能不能再看一下我账号的公网 IP 状态，结果他们想看的时候发现他们的公网 IP 权限被取了！！<br />然后现在如果想再给客户开的话还要联系机房。这是不是和 PCDN 限制管控的相关政策有关啊
 ]]></content:encoded>
-<pubDate>2025-03-15T09:47:24Z</pubDate>
 <pubDate>2025-03-15T09:57:35Z</pubDate>
 </item>
 <item>
@@ -32,7 +513,6 @@
 <link>https://www.v2ex.com/t/1118668</link>
 <guid>https://www.v2ex.com/t/1118668</guid>
 <content:encoded><![CDATA[
-
 <p>大学时期加的一个数据标注的兼职群，最近发布了一项任务，任务内容是对短信进行过滤。见图片和文件。
 图片 1：
 <a href="https://drive.google.com/file/d/1Ry45jX8OeEDZAttjAJnBa1eTpiSfu1XM/view?usp=drive_link" rel="nofollow">https://drive.google.com/file/d/1Ry45jX8OeEDZAttjAJnBa1eTpiSfu1XM/view?usp=drive_link</a>
@@ -41,7 +521,6 @@
 pdf:
 <a href="https://drive.google.com/file/d/1jAYiUj3s9s2WRPsPuAolOnyYJyQtcFwa/view?usp=drive_link" rel="nofollow">https://drive.google.com/file/d/1jAYiUj3s9s2WRPsPuAolOnyYJyQtcFwa/view?usp=drive_link</a></p>
 ]]></content:encoded>
-<pubDate>2025-03-15T09:42:04Z</pubDate>
 <pubDate>2025-03-15T10:08:18Z</pubDate>
 </item>
 <item>
@@ -49,10 +528,8 @@ pdf:
 <link>https://www.v2ex.com/t/1118667</link>
 <guid>https://www.v2ex.com/t/1118667</guid>
 <content:encoded><![CDATA[
-
 <p>最近换了一个部门，新老板搞了一个专项，把我整过去负责其中一部分，一开始以为就是一个比较明确的落实实施，但是随着沟通，这个专项感觉只是一个老板的想法，他也没有深入思考过，现在做完调研感觉没什么能做的，或者说做也是能做，但是比较困难，而且成效很慢，没什么成绩的。现在就不知道如何是好，不知道大家有没有类似的经历是怎么解决的。</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T09:38:37Z</pubDate>
 <pubDate>2025-03-15T10:00:20Z</pubDate>
 </item>
 <item>
@@ -60,7 +537,6 @@ pdf:
 <link>https://www.v2ex.com/t/1118666</link>
 <guid>https://www.v2ex.com/t/1118666</guid>
 <content:encoded><![CDATA[
-
 <p>首页贴有感，点开看了下 techempower 跑分榜，虽然大家都说榜单比较娱乐，看了看自己熟悉的几个框架的代码，确实也挺娱乐的。这年头单机已经可以做到 130 万访问了，确实有点刷新我的认知。我的认知还是 nginx 单机多核心可以跑到几十万的时代，而且 nginx 应该是远快于业务框架的。</p>
 <p>所以怎么说呢，感觉从程序员和企业用脚投票结果来看，似乎目前还是大而全的框架更受欢迎，毛坯房似乎没那么好，而 echo 性能显然是没那么重要的。贵司多大规模需要支撑每秒 130 万点击呢，还是单机，天天双十一是吧。。</p>
 <p>个人感觉框架的功能实现分几个层次</p>
@@ -72,7 +548,6 @@ pdf:
 </ol>
 <p>不知道各位后端如果让上帝生成一个理想框架的话会许愿什么功能。</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T09:30:43Z</pubDate>
 <pubDate>2025-03-15T10:05:24Z</pubDate>
 </item>
 <item>
@@ -80,12 +555,10 @@ pdf:
 <link>https://www.v2ex.com/t/1118665</link>
 <guid>https://www.v2ex.com/t/1118665</guid>
 <content:encoded><![CDATA[
-
 <p>想试试, 找不到帖子了</p>
 <p>有人知道是什么软件吗</p>
 <p>我记得反正是自定义拼音指示条得</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T09:30:40Z</pubDate>
 <pubDate>2025-03-15T05:30:40Z</pubDate>
 </item>
 <item>
@@ -93,10 +566,8 @@ pdf:
 <link>https://www.v2ex.com/t/1118664</link>
 <guid>https://www.v2ex.com/t/1118664</guid>
 <content:encoded><![CDATA[
-
 家有老 Thinkpad T41 ，键盘手感甚是怀念，查了一点资料，只知道是 ps2 的信号，但找不到具体 pin 脚的定义。<br />哪位有改装过，给些资料，万分感激！
 ]]></content:encoded>
-<pubDate>2025-03-15T09:30:17Z</pubDate>
 <pubDate>2025-03-15T07:30:17Z</pubDate>
 </item>
 <item>
@@ -104,10 +575,8 @@ pdf:
 <link>https://www.v2ex.com/t/1118662</link>
 <guid>https://www.v2ex.com/t/1118662</guid>
 <content:encoded><![CDATA[
-
 我用 ai 进行脱敏了：<br /><br />工程师小明在 main 分支上进行了 A 、B 、C 、D 四次提交。<br /><br />工程师小红在 A 节点 fork 了项目，并在 sub 子分支上进行开发。<br /><br />现在小红想将 sub 子分支的代码合并到上游的 main 分支。<br /><br />她应该先合并到自己 fork 的 main 分支，<br /><br />还是可以直接将 sub 子分支合并到上游的 main 分支？
 ]]></content:encoded>
-<pubDate>2025-03-15T09:12:16Z</pubDate>
 <pubDate>2025-03-15T09:21:45Z</pubDate>
 </item>
 <item>
@@ -115,7 +584,6 @@ pdf:
 <link>https://www.v2ex.com/t/1118660</link>
 <guid>https://www.v2ex.com/t/1118660</guid>
 <content:encoded><![CDATA[
-
 <p>跟之前做的那个主题 (<a href="https://www.v2ex.com/t/1113819" rel="nofollow">/t/1113819</a>) 是一样的，只不过适配了新设备 TrimUI Brick （ CrossMix ），一脉相承。</p>
 <p>github: <a href="https://github.com/KyleBing/theme-cozy-brick-crossmix" rel="nofollow">https://github.com/KyleBing/theme-cozy-brick-crossmix</a></p>
 <p>这一年以来光买些这开源掌机弄主题了。</p>
@@ -134,7 +602,6 @@ pdf:
 <img alt="Screenshot 2025-03-15 at 16 44 07" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/fcf303ce-b668-4210-bdd2-9c2f21d58574" />
 <img alt="Screenshot 2025-03-15 at 16 43 45" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/e627a786-0216-477c-ad26-0d9a898d3226" />
 ]]></content:encoded>
-<pubDate>2025-03-15T08:59:08Z</pubDate>
 <pubDate>2025-03-15T08:58:08Z</pubDate>
 </item>
 <item>
@@ -142,7 +609,6 @@ pdf:
 <link>https://www.v2ex.com/t/1118658</link>
 <guid>https://www.v2ex.com/t/1118658</guid>
 <content:encoded><![CDATA[
-
 <p>题主在国外，因为最近国内买 3C 有国补，价格很心动；正好过一周就有朋友要来找我，于是托朋友在京东 Apple 自营下单了一台机器，来的时候正好带过来。</p>
 <p>下单第二天就到了，但是跟朋友打电话的时候才知道，到的时候快递已经完全被拆开了，盒子上的封条也没有了，只是不知道机器有没有打开过；快递员解释说是送错货了 —— 他把二单元当成了一单元，送到了隔壁楼住户的手里，<strong>对方将包装完全拆开后才返还回来</strong>。</p>
 <p>毕竟机器也不便宜，题主也不清楚机器是否被人动过，所以托朋友询问是否可以退换货。京东方面给了两个选择：</p>
@@ -153,7 +619,6 @@ pdf:
 <p>除此之外，没有给任何的解决方案。</p>
 <p>因为题主也没有办法直接联系京东客服，所以也只能在 V 站跟大家诉诉苦；但是京东现在这么恶心的吗？因为快递送错货导致的损失，为什么要用户自己承担？</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T08:34:54Z</pubDate>
 <pubDate>2025-03-15T08:52:55Z</pubDate>
 </item>
 <item>
@@ -161,7 +626,6 @@ pdf:
 <link>https://www.v2ex.com/t/1118657</link>
 <guid>https://www.v2ex.com/t/1118657</guid>
 <content:encoded><![CDATA[
-
 <p>仓库地址： <a href="https://github.com/xkeyC/fl_caption" rel="nofollow">https://github.com/xkeyC/fl_caption</a> </p>
 <p>下载地址： <a href="https://github.com/xkeyC/fl_caption/releases" rel="nofollow">https://github.com/xkeyC/fl_caption/releases</a></p>
 <p>使用 Flutter + Rust (candle 推理框架)</p>
@@ -170,7 +634,6 @@ pdf:
 实时字幕对延迟要求比较高，建议使用 ollama 、vllm 、llm studio 等本地 llm api ，云端若延迟比较低也可以考虑（比较费钱）。</p>
 <p>目前仅在 RTX4090 上测试 <code>large-v3_q4k</code> 模型，12 秒的语音数据 基本在 1 秒内处理完毕。配合 14b 模型，显存占用大约是 16.3 GB ，低于此显存的建议选择更小的 llm 模型。</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T08:32:07Z</pubDate>
 <pubDate>2025-03-15T08:31:07Z</pubDate>
 </item>
 <item>
@@ -178,7 +641,6 @@ pdf:
 <link>https://www.v2ex.com/t/1118656</link>
 <guid>https://www.v2ex.com/t/1118656</guid>
 <content:encoded><![CDATA[
-
 <p>Top 百亿+私募量化投资公司，地点：北京/上海。
 优势：头部量化公司，海量数据，精英团队，扁平高效，竞争力的薪资和福利。
 感兴趣邮件： <a href="mailto:jxiao@hiringby.com">jxiao@hiringby.com</a>
@@ -216,7 +678,6 @@ pdf:
 </ol>
 <p>10.效能研发专家：一些互联网大厂，工程效能方向的负责人， 级别 p7 及以上的， 最好是有从从 0 到 1 搭建经验</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T08:28:02Z</pubDate>
 <pubDate>2025-03-15T08:35:58Z</pubDate>
 </item>
 <item>
@@ -224,10 +685,8 @@ pdf:
 <link>https://www.v2ex.com/t/1118663</link>
 <guid>https://www.v2ex.com/t/1118663</guid>
 <content:encoded><![CDATA[
-
 <p>有没有对越狱检测熟悉的大佬，想做一款插件，绕过越狱检测，海外的。预算充足，骗子绕道哈别浪费时间！谢谢！</p>
 ]]></content:encoded>
-<pubDate>2025-03-15T09:18:32Z</pubDate>
 <pubDate>2025-03-15T09:15:32Z</pubDate>
 </item>
 <item>
@@ -235,13 +694,10 @@ pdf:
 <link>https://www.v2ex.com/t/1118659</link>
 <guid>https://www.v2ex.com/t/1118659</guid>
 <content:encoded><![CDATA[
-
 公司最好是位于广州的，方便项目的对接
 ]]></content:encoded>
 <pubDate>2025-03-15T08:37:43Z</pubDate>
-<pubDate>2025-03-15T08:37:43Z</pubDate>
 </item>
-
 <item>
 <title>[香港] 新手香港办储蓄卡之旅-（20250315）</title>
 <link>https://www.v2ex.com/t/1118655</link>
@@ -16316,220 +16772,6 @@ R1 思考太慢了,基本上耗时 1 分钟-5 分钟.不太能接受.
 <p>我不想再这样了，有治吗</p>
 ]]></content:encoded>
 <pubDate>2025-03-11T01:45:12Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [送兑换码] 一款 macOS 平台的一键 OCR 识别+翻译 软件, 无联网、大小仅 1M</title>
-<link>https://www.v2ex.com/t/1117414</link>
-<guid>https://www.v2ex.com/t/1117414</guid>
-<content:encoded><![CDATA[
-出于日常需求，加有空余时间和 AI 加持，写了这款软件。与之前的 <a href="https://www.v2ex.com/t/1112174" rel="nofollow noopener" target="_blank">/t/1112174</a> 简单快捷翻译 有所不同，这次更多的是偏重 OCR 识别，可以实现一键截屏并识别截屏内容+翻译。<br />当然，继续保持无联网权限及小巧(仅 600 多 KB)<br /><br /><br />下载： <a href="https://apps.apple.com/cn/app/id6742777183" rel="nofollow noopener" target="_blank">https://apps.apple.com/cn/app/id6742777183</a><br /><br />送上几十个 月度会员兑换码（免费用户限每天使用 10 次）。月度会员、年度会员及终身会员不限制。<br />兑换码使用姿势：Mac App Store：左下角我的昵称 -&gt; 右上角兑换充值卡<br /><br />FPXREP3KHTYK<br />9E7FWA7PF3WW<br />WKXR9LEM3PKR<br />P6YTH7KXNHLN<br />LLTFTJHMXMEN<br />WRPEJKP996XP<br />6N6FMMXAPAJT<br />NKAF46ALFPL9<br />FXTH944H6FKF<br />36R7PTP67K9T<br />3PK9A4KWT7MX<br />PTNEMNRHAWAJ<br />TTRJL3A4PEFE<br />R34K6999MWP7<br />3F6NYNMYEW6N<br />9HARMKTEAFLK<br />NJTMT9JL77XN<br />PWYM6T4P4HKJ<br />T6R3WLNTFPJ3<br />TPYHTMPKKN4L<br />P7YNKTLX6J4T<br />K3N9YTA3LAL3<br />X6KL364W6JAR<br />Y66TJFYKXNFX<br />4FKNWR6RYR6F<br />TN3AATE47WPE<br />46MRP676WFEN<br />X9H96T733T9A<br />HHHFN974HLRR<br />TNWMF44MT7XF
-]]></content:encoded>
-<pubDate>2025-03-11T01:42:05Z</pubDate>
-</item>
-<item>
-<title>[Telegram] telegram 的机器人疑似被攻击</title>
-<link>https://www.v2ex.com/t/1117413</link>
-<guid>https://www.v2ex.com/t/1117413</guid>
-<content:encoded><![CDATA[
-<p>凌晨三点多莫名其妙发消息，发了个这个
-𝕙𝕥tp𝔰://𝕥.𝕞e/𝕕qua𝕕l𝕖𝕘a𝕔𝕪𝕓io join 𝕗a𝓼t a𝕟𝕕 t𝕙i𝓼 𝕙𝕥tp𝔰://<a href="http://𝕥.me/F𝕪𝕟𝓼ta𝕥_𝔰l𝕖𝕫𝕙ka𝕓ot?𝓼𝕥ar𝕥=0101416𝕒17B401000000" rel="nofollow">𝕥.me/F𝕪𝕟𝓼ta𝕥_𝔰l𝕖𝕫𝕙ka𝕓ot?𝓼𝕥ar𝕥=0101416𝕒17B401000000</a>
-点进去啥也没有，这种是被攻击了吗，应该怎么做呢</p>
-]]></content:encoded>
-<pubDate>2025-03-11T01:11:42Z</pubDate>
-</item>
-<item>
-<title>[投资] 纳指又跌 4%</title>
-<link>https://www.v2ex.com/t/1117412</link>
-<guid>https://www.v2ex.com/t/1117412</guid>
-<content:encoded><![CDATA[
-<p>美股崩盘是不是才刚刚开始？</p>
-]]></content:encoded>
-<pubDate>2025-03-11T01:34:47Z</pubDate>
-</item>
-<item>
-<title>[酷工作] [外企招聘][成都] 自动化测试工程师 Automation Testing Engineer / contractor</title>
-<link>https://www.v2ex.com/t/1117411</link>
-<guid>https://www.v2ex.com/t/1117411</guid>
-<content:encoded><![CDATA[
-[注意] 此岗位为远程,工作时间与国内一致，无加班，如果 base 在成都可以偶尔来办公室有加分，contractor 合同工，签约至 25 年底，后续视项目情况决定是否续约。雇主为 500 强外企。<br />薪资 20k RMB 左右，优秀者可谈 ，与海外公司直接签约，需要自己缴纳保险。介意者请勿投递！！！<br /><br />Responsibilities:<br />• Work with Product Owner and scrum team members, come up with Test Plan and implement testing in an Agile iterative release cycle.<br />• Ensure the platform meets the highest standards of quality, preventing defects and performance issues that could impact customer satisfaction.<br />• contribute to on-time project delivery by identifying and resolving issues early in the development cycle.<br />• Develop and maintain automated test suites/scripts based on diverse requirements.<br />• Integrate automated testing into the software development process to enhance efficiency and reliability.<br />• Take ownership of in-sprint testing and regression testing, ensuring thorough coverage and timely delivery.<br />• help maintain our competitive edge by delivering a reliable, high-performance product to our customers.<br /><br />Educational Requirement:<br />• Undergraduate Diploma or higher in Computer Science, Engineering, or a related field.<br />Your Qualifications and Skills:<br />• Strong programming skills in Python.<br />• 4+ years of experience in quality assurance, with a focus on automation and performance testing.<br />• Proficiency in testing tools and frameworks (e.g., Selenium, pytest, JMeter).<br />• Experience with API testing and tools (e.g., Postman, REST Assured).<br />• Familiarity with relational databases (MySQL/Oracle).<br />• Strong problem-solving skills and attention to detail.<br />• Excellent communication and collaboration skills, with the ability to work in a fast-paced, agile environment.<br />• Strong interpersonal skills, openness to new technologies, and a proactive learning attitude.<br />• Good communication skill in English language<br /><br />Nice-to-have Skills:<br />• Experience with PostgreSQL.<br />• Knowledge of cloud platforms (e.g., AWS, Azure) and containerization (e.g., Docker, Kubernetes).<br />• Familiarity with CI/CD pipelines and tools (e.g., Jenkins, GitLab CI).<br />• Basic knowledge of Jenkins.<br />• Experience in cloud service operations and code testing.<br /><br />职责<br />- 与产品负责人和 Scrum 团队成员合作，制定测试计划，并在敏捷迭代发布周期内实施测试。<br />- 确保平台达到最高质量标准，防止出现可能影响客户满意度的缺陷和性能问题。<br />- 通过在开发周期早期发现并解决问题，促进项目按时交付。<br />- 根据不同需求开发并维护自动化测试套件/脚本。<br />- 将自动化测试整合到软件开发流程中，以提高效率和可靠性。<br />- 负责内部测试和回归测试，确保全面覆盖和及时交付。<br />- 通过向客户提供可靠、高性能的产品，帮助保持我们的竞争优势。<br /><br />教育要求：<br />- 计算机科学、工程或相关专业本科及以上学历。<br />您的资历和技能：<br />- 较强的 Python 编程技能。<br />- 4 年以上质量保证经验，侧重于自动化和性能测试。<br />- 熟练掌握测试工具和框架（如 Selenium 、pytest 、JMeter ）。<br />- 具有 API 测试和工具（如 Postman 、REST Assured ）方面的经验。<br />- 熟悉关系数据库（ MySQL/Oracle ）。<br />- 解决问题的能力强，注重细节。<br />- 出色的沟通和协作技能，能够在快节奏、敏捷的环境中工作。<br />- 较强的人际交往能力、对新技术的开放性以及积极主动的学习态度。<br />- 良好的英语沟通能力<br /><br />良好的技能：<br />- 具有使用 PostgreSQL 的经验。<br />- 熟悉云平台（如 AWS 、Azure ）和容器化（如 Docker 、Kubernetes ）。<br />- 熟悉 CI/CD 管道和工具（如 Jenkins 、GitLab CI ）。<br />- 掌握 Jenkins 的基本知识。<br />- 具有云服务运营和代码测试经验。<br /><br /><br />其他要求：<br />1. 满足上述技术条件，可以为此岗位全职工作<br />2. 英文可作为工作语言，请在邮件中详述自己的英语水平<br />A.可以看懂英文文档，英语听力，口语一般<br />B.可以看懂英文文档，英语听力可以听懂，口语一般<br />C.可以看懂和编写英文文档，英语听力，口语流利，可与母语英语者自由沟通<br />3. 此岗位远程办公，用工性质为 全职 contractor 合同工，签约至 25 年底，后续视项目情况决定是否续约。<br />薪资 20k RMB 左右，优秀者可谈 与海外公司直接签约，需要自己缴纳保险。介意者请勿投递！！！<br /><br />简历请投递至 eGlhb0BjaGluYWdyYXZ5LmNvbQ== 简历中请附上您的微信
-]]></content:encoded>
-<pubDate>2025-03-10T22:24:05Z</pubDate>
-</item>
-<item>
-<title>[VPS] 转让一个 DMIT.HKG.Pro.VICTORIA v2， 11 月底到期</title>
-<link>https://www.v2ex.com/t/1117410</link>
-<guid>https://www.v2ex.com/t/1117410</guid>
-<content:encoded><![CDATA[
-<p>HKG.Pro.VICTORIA v2</p>
-<p>Next Due Date:27th Nov 2025
-IP: 103.117.101.x</p>
-<p>剩余价值转让，海鲜市场交易</p>
-<p>VX:c3VubnlzdHlsZQ==</p>
-]]></content:encoded>
-<pubDate>2025-03-10T20:24:16Z</pubDate>
-</item>
-<item>
-<title>[Windows] 江湖救急，请各位大侠帮忙，关于 Win To Go</title>
-<link>https://www.v2ex.com/t/1117409</link>
-<guid>https://www.v2ex.com/t/1117409</guid>
-<content:encoded><![CDATA[
-<p>我把 Win11 ,制作成 Win To Go ，使用约一年多，在三台台式机，和一台笔记本上，辗转挪移，一直以来相当顺利。
-但近期出了一个意外，我感觉天塌了，恳请各位大侠相助。</p>
-<p>我把我女儿的笔记本，弄坏了。关键是，这笔记本里，是我女儿工作上的重要技术资料技术文件都在这里，以及一些行业应用软件。</p>
-<p>约一周前，在我女儿那边，我需要处理一些文件，看到女儿放在桌上的笔记本，我就懒得从包里拿出自己的笔记本，掏出口袋中的固态移动硬盘（ Win To Go ）,连接上女儿的笔记本，就开机了，一切正常。</p>
-<p>笔记本，是同方股份有限公司出品的 MECHREVO 机械革命， [产品型号] 深海泰坦 X3-S ， [型号版本]  i7 2060 豪华版，系统是 Win 10 。当初我花了约一万大洋给我女儿买的。</p>
-<p>在我处理我的文件期间，我顺手将笔记本设置成 Win To Go 工作区，同时，发现 Windows 有更新，就点开 [设置] 中的 [ Windows 更新] 界面，随手点了一下 [全部安装] （记得好像是这个意思），估计后边发生的严重问题，就与此有关，可能其中包含有某些硬件的固件升级。</p>
-<p>等我处理完我的文件，关机，拔下我的 Win To Go 移动硬盘，然后再启动笔记本，却发现电脑开机启动后，无法进入笔记本的 Win 10 系统了，然后进入了蓝色的 [自动修复] 界面，显示如下：
-“自动修复”无法修复你的电脑。
-按“高级选项”以尝试使用其它选项来修复你的电脑，或者按“关机”关闭你的电脑。
-日志文件：E:\Windows\System32\Logfiles\Srt\SrtTrail.txt</p>
-<p>这难道是系统盘（ C 盘）的盘符错乱了？</p>
-<p>然后，就是另外几个蓝色界面，进入 [高级选项] 怎么处理都没用。进入 [高级选项] 的 CMD 界面，可以明显地看到，Windows 10 系统，再 E 盘，而原本应该是 C 盘。</p>
-<p>在 CMD 界面，使用 Diskpart 命令，list volume ,可以看到,卷标为 Windows 的磁盘分区，它的盘符是 E 。我晕。</p>
-<p>关机，插 U 盘，进入 PE ，作了几次启动修复，均无法正常启动。这里，我犯了一个大错误，系统盘的盘符，还没有修正回来。这一通操作下来，蓝色界面又有了一些变化。这一周来，我脑子晕晕的。</p>
-<p>继续 PE ，进一步检查，进入 Regedit 注册表编辑器，选 [ HKEY_LOCAL_MACHINE ] 分支， [加载配置单元] ，将笔记本的本地注册表的 [ System ] 挂载进来，检查 [ MountedDevices ] 分支下的盘符数据，对照 PE 系统下注册表 [ MountedDevices ] 分支下的盘符数据，再加上查看各个硬盘分区的文件夹和文件，对照盘符，确认：原本固态硬盘上的 C 盘、D 盘，分别变成了 E 盘、F 盘，而原本的 E 盘、F 盘，则变成了 C 盘、D 盘。</p>
-<p>然后，将挂载进来的笔记本的注册表内的盘符，进行修改，我是用重命名的方式进行更改的，比如，先将 [\DosDevices\C:] 重命名为 [\DosDevices\P:] ，数据不改，腾出盘符 C ，然后再将 [\DosDevices\E:] 重命名为 [\DosDevices\C:] ,以此类推，最后，再将 P 、Q 等临时盘符，再改回 E 、F 。</p>
-<p>更改结束，上载退出。</p>
-<p>关机，拔出 U 盘 PE 系统，再开机，笔记本仍然无法正常引导，无法进入 Windows 10 系统。</p>
-<p>现在，我已经头晕一星期多了，折腾得快要崩溃了。我女儿等着这台笔记本要用，她工作要用的很多东西，很多软件，都在这里。</p>
-<p>恳请各位大佬支招。</p>
-<p>附注，当初，C 盘的系统还原（系统保护），没有设定，也还原不了。
-另，经过了我的一通瞎操作，现在，连 [按 F1 进入恢复环境] 的选项也没有了， [按 F8 以指定启动设置] 的选项还在， [按 Esc 以指定 UEFI 固件设置] 也在。</p>
-<p>我怀疑，是我 [ Windows 更新] 时，笔记本的某些固件也作了更新，而当时，是在我的 Win To Go 移动系统中，不是由笔记本的本地系统作的更新，所以，笔记本重新开机后，系统不认得这些硬件，导致错乱，导致无法开机。</p>
-<p>请论坛大佬们，帮忙指点迷津。
-本人不胜感谢 ！！！</p>
-<p>======
-补充：我的 Win To Go ，未屏蔽本地硬盘。</p>
-]]></content:encoded>
-<pubDate>2025-03-10T19:49:14Z</pubDate>
-</item>
-<item>
-<title>[问与答] 大麻抽起来怎么没味道？</title>
-<link>https://www.v2ex.com/t/1117406</link>
-<guid>https://www.v2ex.com/t/1117406</guid>
-<content:encoded><![CDATA[
-最近在荷兰溜达，搞了两根抽抽，感觉味道一般，比烟还难抽。
-]]></content:encoded>
-<pubDate>2025-03-10T18:30:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] Docker 容器访问 U 盘</title>
-<link>https://www.v2ex.com/t/1117405</link>
-<guid>https://www.v2ex.com/t/1117405</guid>
-<content:encoded><![CDATA[
-<p>使用<code>-v /run/media/$USER/:/run/media/$USER</code>参数可以挂载 u 盘,但是 u 盘一旦重新插入像需要重启容器才能访问,有点麻烦😵‍💫; v 友有没有优雅点的方法啊😖</p>
-]]></content:encoded>
-<pubDate>2025-03-10T17:42:03Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 推荐一个免费的在线工具： PDF 字数统计（WordCountPDF.online）</title>
-<link>https://www.v2ex.com/t/1117403</link>
-<guid>https://www.v2ex.com/t/1117403</guid>
-<content:encoded><![CDATA[
-<p>大家好！  </p>
-<p>最近我开发了一个小工具——<a href="https://www.wordcountpdf.online/" rel="nofollow">WordCountPDF.online</a>，专门用来快速统计 PDF 文件中的字数。如果你经常需要处理 PDF 文档（比如写论文、报告或翻译），这个工具可能会帮到你！  </p>
-<h2>工具特点：</h2>
-<p>✅ <strong>完全免费</strong>，无需注册，打开即用。<br />
-✅ 支持任何设备，电脑、手机、平板都能用。<br />
-✅ 快速且准确，轻松搞定 PDF 字数统计。  </p>
-<h2>使用场景：</h2>
-<ul>
-<li><strong>学生</strong>：统计论文或作业的字数。  </li>
-<li><strong>作家</strong>：检查稿件字数是否符合要求。  </li>
-<li><strong>翻译人员</strong>：快速了解文档内容量。  </li>
-</ul>
-<p>工具还在持续优化中，欢迎大家试用并提出宝贵意见！  </p>
-<p><a href="https://www.wordcountpdf.online/" rel="nofollow">点击这里试试看！</a></p>
-]]></content:encoded>
-<pubDate>2025-03-10T17:30:04Z</pubDate>
-</item>
-<item>
-<title>[问与答] 推特又崩了，第一次崩这么久还没回复</title>
-<link>https://www.v2ex.com/t/1117401</link>
-<guid>https://www.v2ex.com/t/1117401</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-03-10T16:36:59Z</pubDate>
-</item>
-<item>
-<title>[程序员] 深夜给前端气的不行.</title>
-<link>https://www.v2ex.com/t/1117400</link>
-<guid>https://www.v2ex.com/t/1117400</guid>
-<content:encoded><![CDATA[
-<p>背景: 微信公众号静默授权登录.</p>
-<p>事情经过:
-前端把跳转链接写死在代码上,而且链接地址是测试地址. 给我整的有点红温, 我平常交付的代码一般都是测试过. 虽然客户那边没造成问题. 万万这次没想到前端拼接跳转链接直接用写死的测试链接 作为 redirect_uri 的参数值. 结果一上线出问题.</p>
-<p>事后:
-问题暴露出来很明显,也知道什么问题.就是有点难绷.感觉这个错误犯的很低级.经常性不测试不审查自己的代码所带来的后果.</p>
-]]></content:encoded>
-<pubDate>2025-03-10T17:41:58Z</pubDate>
-</item>
-<item>
-<title>[微软] 微软的 onedrive 个人保管库的 bug</title>
-<link>https://www.v2ex.com/t/1117399</link>
-<guid>https://www.v2ex.com/t/1117399</guid>
-<content:encoded><![CDATA[
-<p>至今为止还没有修复无法关闭 onedrive 个人保管库这个 bug ，微软的工程师到底在干嘛还是底层架构有问题，求大神解惑
-<img alt="" class="embedded_image" rel="noreferrer" src="https://i.imgur.com/oJkpIU0.png" /></p>
-]]></content:encoded>
-<pubDate>2025-03-10T16:19:48Z</pubDate>
-</item>
-<item>
-<title>[程序员] 二本 3.5 年前端第一次社招有一些不懂，求前端 / HR 前辈指教，先谢谢各位了！</title>
-<link>https://www.v2ex.com/t/1117398</link>
-<guid>https://www.v2ex.com/t/1117398</guid>
-<content:encoded><![CDATA[
-<p>RT ，距离上次面试已经过去三年多了（时间过得好快），现在有好多东西不懂，希望各位前辈指教一二，提前谢谢大家！！！</p>
-<h3>背景：</h3>
-<ol>
-<li>学历：二本计科毕业</li>
-<li>工龄：3.5 年，21.07 入职</li>
-<li>工作地点：北京</li>
-<li>目前薪资 27k</li>
-</ol>
-<h3>期望：</h3>
-<ol>
-<li>薪资越高越好, hh</li>
-<li>尽量往大厂冲一冲，体验体验</li>
-</ol>
-<h3>面试内容相关：</h3>
-<ol>
-<li>对于我这个工龄阶段的，考察的侧重点是八股还是项目（我对八股的定义包含原理）</li>
-<li>目前使用的框架是 Vue3 ，但是 Boss 直聘扫了一圈，确实还是 React 的岗位多一些，是否有必要紧急恶补一下最新的生态，找个项目练练手，<strong>简历里是否需要将已有项目改写成 React 生态的项目（改写也倾向于改写后台项目）</strong></li>
-<li>面试中，算法考察到什么阶段，默写 leetcode hot 100 是否足够</li>
-<li>社招刷面试题应该去哪里刷呢？</li>
-</ol>
-<h3>薪资相关</h3>
-<ol>
-<li>是否真的有卡 30%的情况（我看有说 base 低的可以突破 30%限制，不知道我算高算低，所以在背景中描写了具体薪资）</li>
-<li>这个 30%的基准值是 base 还是总包</li>
-<li>当前单位当时给了股票，10w 分 4 年给，也就是 2.5w 一年，在谈薪的时候是否可以纳入总包中（但是股票已经腰斩了，还可以按 2.5w 要吗）</li>
-<li>对于我这个工龄的前端来说，中大厂普遍薪资 / 职级应该是多少（真的没有概念，脉脉里全是串子）</li>
-</ol>
-<p>辛苦各位阅读到这里。提前感谢大佬们的回答，从过年回来就打算准备，发现真的无所适从。<strong>面试内容相关中的二三条对我真的很重要，希望可以得到答案</strong></p>
-<p>PS：请不要说”先面上再说吧“，”还没面上就开始做梦了“之类的话，我认为做到心中有数是有利于调整心态的。再次感谢大家。</p>
-]]></content:encoded>
-<pubDate>2025-03-10T16:25:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 求助，第一次遇到家人去世</title>
-<link>https://www.v2ex.com/t/1117397</link>
-<guid>https://www.v2ex.com/t/1117397</guid>
-<content:encoded><![CDATA[
-<p>家里姐姐上吊自杀了，孩子小学三年级。<br />
-姐夫晚上 8 点多打电话通知的，说是接娃回家以后看到姐姐在家去世。<br />
-姐姐坐标广东某城市，头脑发懵，已经定了明早的飞机赶过去。<br />
-现在可疑点有很多：<br />
-1 姐夫打电话回来通知的时候，语气特别平静，没有情绪波动（给人一种不像是自己老婆去世的感觉）<br />
-2 姐夫说她抑郁、压力大，他俩的房子跌了很多还有很多房贷要还，其次她一直找不到工作（这俩问题全国人民都面临，感觉不是引发的点）<br />
-3 过年时候我们聚餐刚刚见过，那时候她很健谈，谈到自己家娃的时候也满脸微笑，不像是过了一个月人突然就没了的样子（没看出来有抑郁症的征兆）  </p>
-<p>求助的点：<br />
-1 如果姐夫这边有责任，我应该从那些维度去搜集证据<br />
-2 她家里还有父母双亲，以后两个老人的生活如果需要保障，可以向姐夫方面提出诉求吗？<br />
-3 现在尸体还在家里没动，阿 Sir 说要送到殡仪馆，她爸妈不同意，他们明天下午才能到，又听说姐夫家在阿 Sir 那边有不少关系（这种情况会有徇私枉法，或者包庇的情况吗），有什么坑需要避一避的？</p>
-]]></content:encoded>
-<pubDate>2025-03-10T16:13:24Z</pubDate>
 </item>
 </channel>
 </rss>
