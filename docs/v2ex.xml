@@ -5,14 +5,541 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[程序员] twillot，一个挺好用的 twitter 内容整理的插件</title>
+<link>https://www.v2ex.com/t/1119964</link>
+<guid>https://www.v2ex.com/t/1119964</guid>
+<content:encoded><![CDATA[
+
+能做 ai 整理，但需要付费，ai 时代，这种产品会不会层出不穷的出现，纠结要不要买
+]]></content:encoded>
+<pubDate>2025-03-20T12:30:29Z</pubDate>
+<pubDate>2025-03-20T12:30:29Z</pubDate>
+</item>
+<item>
+<title>[程序员] 现在有人用 TDD 测试驱动来配合 AI 开发吗</title>
+<link>https://www.v2ex.com/t/1119963</link>
+<guid>https://www.v2ex.com/t/1119963</guid>
+<content:encoded><![CDATA[
+
+<p>现在想起来</p>
+<p>测试驱动开发很符合 AI 开发流程阿</p>
+<p>AI 开发问题就是无法确保能完成设定目标</p>
+<p>只能自己一遍遍跑了, 有问题让 AI 改</p>
+<p>如果自己先写好测试用例, 然后让 AI 开发项目, 并跑测试用例
+有错,直接自己改, 知道全部跑通为止</p>
+]]></content:encoded>
+<pubDate>2025-03-20T12:26:10Z</pubDate>
+<pubDate>2025-03-20T08:26:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] 探索 MCP-我的学习与实践笔记</title>
+<link>https://www.v2ex.com/t/1119962</link>
+<guid>https://www.v2ex.com/t/1119962</guid>
+<content:encoded><![CDATA[
+
+<p>👋 今天我们要一起探索 Model Context Protocol (MCP)！你可能听说过各种 AI 大模型，比如 ChatGPT 、文心一言等等，它们能聊天、写代码、甚至画画，简直无所不能！</p>
+<p>🤔 但是，你有没有想过，这些 AI 大模型是怎么跟现实世界交互的呢？比如，你怎么让 AI 帮你查天气、订机票、控制家里的智能灯泡？这时候，MCP 就派上用场啦！</p>
+<p>🌟 MCP 就像一个“万能插座”，让 AI 大模型可以安全、方便地连接各种各样的“电器”（也就是我们说的工具，比如查天气的 API 、控制灯泡的程序等等）。有了 MCP ，你的 AI 就能真正地“动起来”，而不仅仅是“说起来”！</p>
+<p>🧐 你是否曾梦想过，你的 AI 助手不仅能和你聊天，还能帮你完成各种实际任务？比如，当你对 AI 说“帮我预订明天早上 8 点飞往北京的航班”时，它真的能帮你订好机票，而不是仅仅回复你“好的，正在为您搜索航班信息……”？</p>
+<p>本文将带你从零开始，用 Python 搭建一个简单的 MCP 应用，让你亲身体验 AI 调用工具的魅力！</p>
+<h2>💡 MCP 核心概念</h2>
+<p>在正式开始写代码之前，我们需要先了解几个 MCP 的核心概念：</p>
+<ul>
+<li><strong>MCP (Model Context Protocol):</strong> 模型上下文协议。它不是一个具体的软件，而是一套“规则”或者“约定”。这套规则定义了 AI 模型（比如大型语言模型 LLM ）如何与外部世界（各种工具、服务、数据）安全、高效地交互。你可以把它想象成一个“翻译官”，让 AI 听懂各种“方言”（不同的工具/服务的接口），也能让各种工具/服务听懂 AI 的“指令”。</li>
+<li><strong>核心思想:</strong> 将 AI 模型的功能和对接到 AI 模型的工具(tool),数据(resource),提示(prompt)分离开, 独立部署, 让 AI 可以随意连接各种工具,数据以及使用各种提示!</li>
+<li>
+<strong>MCP 主机 (MCP Host):</strong> 运行 AI 模型和 MCP 客户端的应用程序。常见的 MCP 主机有：<ul>
+<li><strong>Claude Desktop:</strong> Anthropic 公司的桌面客户端，内置了 MCP 支持。</li>
+<li><strong>IDE 集成:</strong> 像 VS Code 、Cursor 等 IDE 可以通过插件支持 MCP 。</li>
+<li><strong>自定义应用:</strong> 你自己开发的任何集成了 MCP 客户端的应用程序。</li>
+</ul>
+</li>
+<li>
+<strong>MCP 客户端 (MCP Client):</strong> 负责与 MCP 服务器通信的组件。它通常集成在 MCP 主机中。客户端的主要职责是：<ul>
+<li>发现和连接 MCP 服务器。</li>
+<li>向 MCP 服务器请求可用的工具、资源、提示等信息。</li>
+<li>根据 AI 模型的指令，调用 MCP 服务器提供的工具。</li>
+<li>将工具的执行结果返回给 AI 模型。</li>
+</ul>
+</li>
+<li>
+<strong>MCP 服务器 (MCP Server):</strong> 提供具体功能（工具）和数据（资源）的程序。你可以把它想象成一个“技能包”，AI 模型可以通过 MCP 客户端“调用”这些技能。MCP 服务器可以：<ul>
+<li>访问本地数据（文件、数据库等）。</li>
+<li>调用远程服务（ Web API 等）。</li>
+<li>执行自定义的逻辑。</li>
+</ul>
+</li>
+<li><strong>本地数据源 (Local Data Source):</strong> 位于 MCP 服务器本地的数据，如文件、数据库等。</li>
+<li><strong>远程服务 (Remote Service):</strong> MCP 服务器通过网络访问的服务，如各种 Web API 。</li>
+<li><strong>资源 (Resource):</strong>  服务端提供的数据，比如天气信息、歌曲列表等等。</li>
+<li><strong>工具 (Tool):</strong>  服务端提供的功能，比如查询天气、播放音乐等等。</li>
+<li><strong>Prompt:</strong> 预设的提示, 用于引导 AI 输出.</li>
+</ul>
+<p><img alt="image-20250320165955929" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img1/image-20250320165955929.png" /></p>
+<h2>🛠️ 准备工作</h2>
+<p>在开始之前，我们需要准备一些工具：</p>
+<ol>
+<li><strong>Python 环境:</strong> 确保你已经安装了 Python 3.10 或更高版本。</li>
+<li><strong>文本编辑器:</strong> 推荐使用 VS Code ，因为它有很多好用的插件，可以帮助我们更高效地编写代码。</li>
+<li><strong>终端:</strong> 在 Windows 上可以使用 PowerShell 或 CMD ，在 macOS 或 Linux 上可以使用 Terminal 。</li>
+<li><strong>一点点耐心和好奇心！</strong> 😉</li>
+</ol>
+<h2>🏗️ 搭建 MCP 服务端</h2>
+<p>我们的第一个任务是搭建一个 MCP 服务端。这个服务端会提供一个简单的“计算器”工具，让 AI 可以进行加法运算。下面以 windows 电脑为例,其他系统请参考: <a href="https://modelcontextprotocol.io/quickstart" rel="nofollow">https://modelcontextprotocol.io/quickstart</a></p>
+<ol>
+<li>
+<p><strong>创建项目目录:</strong></p>
+<p>在 powershell 中执行下面的命令</p>
+<pre><code class="language-bash">mkdir mcp-demo
+cd mcp-demo
+</code></pre>
+</li>
+<li>
+<p><strong>创建虚拟环境 (推荐):</strong></p>
+<p>用 uv 创建,更方便快捷! <strong>uv</strong> 通常指一个<strong>环境配置工具</strong>，用于简化开发环境的搭建流程。</p>
+<pre><code class="language-powershell">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+</code></pre>
+<p><img alt="image-20250320185339119" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201853428.png" /></p>
+<p>有的可能需要手动配置环境变量,可以参考控制台给出的提示进行配置!</p>
+<p><img alt="image-20250320185700725" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201857955.png" /></p>
+<p>下面为创建目录以及激活环境,安装依赖!</p>
+<pre><code class="language-powershell"># Create a new directory for our project
+uv init calculate
+cd calculate
+
+# Create virtual environment and activate it
+uv venv
+.venv\Scripts\activate
+
+# Install dependencies
+uv add mcp[cli] httpx
+
+# Create our server file
+new-item calculate.py
+</code></pre>
+</li>
+</ol>
+<p><img alt="image-20250320185810239" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201858517.png" /></p>
+<ol>
+<li>
+<p><strong>打开刚刚创建的目录，并编写以下代码：</strong></p>
+<p><img alt="image-20250320190113103" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201901191.png" /></p>
+<pre><code class="language-python">from mcp.server.fastmcp import FastMCP
+
+# 创建 FastMCP 服务端实例，命名为 "add-server"
+mcp = FastMCP("add-server")
+
+# 使用 @mcp.tool() 装饰器定义一个名为 "add" 的工具
+@mcp.tool()
+def add(a: int, b: int) -&gt; int:
+    """
+    计算两个整数的和。
+
+    Args:
+        a: 第一个整数。
+        b: 第二个整数。
+
+    Returns:
+        两个整数的和。
+    """
+    return a + b
+
+# 主程序入口
+if __name__ == "__main__":
+    # 启动服务端，使用 stdio 作为传输方式
+    mcp.run(transport='stdio')
+</code></pre>
+</li>
+<li>
+<p><strong>运行命令测试:</strong></p>
+<pre><code class="language-bash">mcp dev calculate.py
+</code></pre>
+<p>如果一切正常，你应该能在终端看到类似下面的输出：</p>
+<pre><code>Starting MCP inspector...
+Proxy server listening on port 3000
+
+🔍 MCP Inspector is up and running at http://localhost:5173 🚀
+</code></pre>
+<p>这表示你的 MCP 服务已经成功启动了！访问终端输出的地址,即可进行调试!</p>
+<p><img alt="image-20250320190729603" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201907740.png" /></p>
+</li>
+<li>
+<p><strong>客户端调用:</strong> </p>
+<p>我这里使用的是 cursor,更多支持的客户端可以查看 <a href="https://modelcontextprotocol.io/clients" rel="nofollow">https://modelcontextprotocol.io/clients</a></p>
+<p><img alt="image-20250320191812621" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201918729.png" /></p>
+<p><img alt="image-20250320191949133" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201919228.png" /></p>
+<p>这里的路径请调整为自己的路径,注意必须使用<strong>绝对路径</strong></p>
+<pre><code>{
+    "mcpServers": {
+      "add-server": {
+        "command": "E://mcp-demo//calculate//.venv//Scripts//python.exe",
+        "args": ["E://mcp-demo//calculate//calculate.py"]
+      }
+    }
+  }
+</code></pre>
+<p>配置之后,启用刚刚添加的 mcp server, 对话框中选择 agent,然后提问即可,<strong>注意,启用时会自动启动一个控制台,请不要关闭!</strong> 这个一旦关闭，Cursor 就检测不到你的 MCP 工具</p>
+<p><img alt="image-20250320192141894" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201921987.png" /></p>
+</li>
+</ol>
+<p><strong>Cherry Studio</strong> 中进行调用本地 mcp server,使用 uvx 始终不成功,最终使用下面方式实现! 有知道原因的可以留言指导我一下!! 参考文档:  <a href="https://vaayne.com/posts/2025/how-to-use-mcp-in-cherry-studio/" rel="nofollow">https://vaayne.com/posts/2025/how-to-use-mcp-in-cherry-studio/</a></p>
+<p><img alt="image-20250320192750523" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201927620.png" /></p>
+<h2>📱 搭建 MCP 客户端</h2>
+<p>接下来，我们要搭建一个 MCP 客户端，参考代码见下面这个地址中的 <a href="http://main.py" rel="nofollow">main.py</a>!</p>
+<p>代码地址:  <a href="https://github.com/modelcontextprotocol/python-sdk/tree/main/examples/clients/simple-chatbot/mcp_simple_chatbot" rel="nofollow">https://github.com/modelcontextprotocol/python-sdk/tree/main/examples/clients/simple-chatbot/mcp_simple_chatbot</a></p>
+<p>那么，这份代码是怎么把它们串起来，让 AI 帮你调用工具的呢？主要分三步：</p>
+<h3>1. 🎁 把工具清单告诉 AI</h3>
+<p>首先，我们要让 AI 知道 MCP Server 都有哪些工具可用。这一步就像是给 AI 一份“工具清单”。</p>
+<p>这份代码里，有一个 <code>Tool</code> 类，专门用来描述工具的信息，包括：</p>
+<ul>
+<li><strong>name</strong>（工具名称）：比如 "image_generator"（图片生成器）</li>
+<li><strong>description</strong>（工具描述）：告诉 AI 这个工具是干嘛的，比如“根据你的描述生成一张图片”</li>
+<li><strong>input_schema</strong>（输入格式）：告诉 AI 使用这个工具需要提供哪些信息，比如“图片的描述”</li>
+</ul>
+<p>然后，<code>format_for_llm()</code> 方法会把这些信息整理成一段通俗易懂的文字，就像这样：</p>
+<pre><code>Tool: image_generator
+Description: 根据你的描述生成一张图片
+Arguments:
+- description: 你想要生成的图片是什么样的？ (required)
+</code></pre>
+<p>看到了吧？这份“工具清单”是不是很清晰？ AI 一看就知 道有哪些工具可以用，以及每个工具怎么用。</p>
+<p>在 <code>ChatSession</code> 类的 <code>start</code> 方法中，程序会：</p>
+<ol>
+<li>从每个 MCP Server 获取工具列表。</li>
+<li>将所有工具的信息格式化成一段文字（<code>tools_description</code>）。</li>
+<li>把这段文字放到一个“系统提示”（<code>system_message</code>）里，告诉 AI：“你有这些工具可以用哦！”</li>
+</ol>
+<p><img alt="image-20250320194038055" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201940137.png" /></p>
+<h3>2. 🤔 AI 分析你的需求，决定用哪个工具</h3>
+<p>现在，AI 已经知道了有哪些工具可用。接下来，当你向 AI 提问时，它就会分析你的需求，看看需不需要调用工具。</p>
+<p>比如，你问：“帮我画一张日落时海滩的图片。”</p>
+<p>AI 会想：“嗯，这个需求跟‘图片生成器’工具很匹配，我应该调用它。”</p>
+<p>但是，AI 怎么告诉程序它要调用哪个工具呢？这里有一个关键的约定：</p>
+<p><strong>AI 必须按照特定的 JSON 格式回复！</strong></p>
+<p>代码里的 <code>system_message</code> 特别强调了这一点：</p>
+<blockquote>
+<p>IMPORTANT: When you need to use a tool, you must ONLY respond with the exact JSON object format below, nothing else:</p>
+<pre><code class="language-json">{
+"tool": "tool-name",
+"arguments": {
+  "argument-name": "value"
+}
+}
+</code></pre>
+</blockquote>
+<p>也就是说，如果 AI 想调用“图片生成器”工具，它必须回复一段类似这样的 JSON：</p>
+<pre><code class="language-json">{
+    "tool": "image_generator",
+    "arguments": {
+        "description": "日落时海滩的图片"
+    }
+}
+</code></pre>
+<p><code>ChatSession</code> 的 <code>process_llm_response</code>方法专门处理 AI 的 JSON 回复. 检查是否包含 "tool" 和 "arguments" 键。</p>
+<p><img alt="image-20250320194146542" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201941615.png" /></p>
+<h3>3. 🛠️ 执行工具调用，获取结果</h3>
+<p>最后一步，就是根据 AI 的指示，真正地去调用工具了。</p>
+<p><code>ChatSession</code> 类的 <code>process_llm_response</code> 方法会：</p>
+<ol>
+<li>接收到 AI 的回复。</li>
+<li>尝试把回复解析成 JSON 格式。</li>
+<li>
+如果解析成功，并且发现 AI 要调用工具：<ul>
+<li>找出是哪个 MCP Server 提供了这个工具。</li>
+<li>调用 <code>Server</code> 类的 <code>execute_tool</code> 方法，执行工具。</li>
+<li>把工具的执行结果返回给 AI 。</li>
+</ul>
+</li>
+</ol>
+<p><code>Server</code> 类的 <code>execute_tool</code> 方法负责与 MCP Server 通信，发送工具调用请求，并获取结果。它还有重试机制，确保工具调用更可靠。</p>
+<p>最后，AI 会根据工具的返回结果，用自然语言给你一个最终的答复。</p>
+<p><img alt="image-20250320194216632" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201942692.png" /></p>
+<p>整个过程就像这样：</p>
+<ol>
+<li>你向 AI 提问。</li>
+<li>AI 分析你的问题，看看需不需要调用工具。</li>
+<li>如果需要，AI 会按照约定的 JSON 格式回复，告诉程序要调用哪个工具，以及参数是什么。</li>
+<li>程序解析 AI 的回复，找到对应的 MCP Server ，执行工具调用。</li>
+<li>程序把工具的执行结果返回给 AI 。</li>
+<li>AI 根据工具的返回结果，给你一个最终的答复。</li>
+</ol>
+<p>是不是很简单？通过这种方式，AI 就可以借助 MCP Server 的各种工具，完成更复杂的任务，变得更加强大！</p>
+<h3>演示</h3>
+<p><img alt="image-20250320194958122" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201949221.png" /></p>
+<p><img alt="image-20250320194804597" class="embedded_image" rel="noreferrer" src="https://i0.wp.com/wangwangit001.cachefly.net/wangwangit/image/master/img/202503201948804.png" /></p>
+<p>启动代码通过对话就可以实现工具的调用了,然后可以自行调整上面的 API 调用地址和模型以及提示词进行测试,我个人测试可能还是 gemini 这个模型调用成功率高一些!</p>
+<h2>✨ 总结与展望</h2>
+<p>通过这个简单的例子，相信你已经对 MCP 有了一个初步的了解。MCP 的强大之处在于，它可以让 AI 大模型与各种各样的工具和服务连接起来，从而实现更加复杂和强大的功能。</p>
+<ul>
+<li><strong>跨平台</strong>: MCP 不仅仅支持 python, 还有 TS/JS, Java 等版本! 让你可以用自己最熟悉的语言进行开发!</li>
+<li><strong>安全性</strong>: MCP 服务器可以控制权限, 保证你的数据安全!</li>
+<li><strong>错误处理</strong>: 要记得在实际开发中, 对用户的输入,以及 AI 的返回做校验, 保证程序的稳定!</li>
+<li><strong>异步处理</strong>: MCP 支持异步操作,这对于处理耗时任务（如网络请求、数据库查询）非常重要。</li>
+</ul>
+<p>未来，你可以尝试：</p>
+<ul>
+<li><strong>添加更多工具:</strong>  比如查询天气、搜索新闻、控制智能家居等等。</li>
+<li><strong>使用不同的客户端:</strong>  比如将 MCP 集成到你的 Web 应用、手机 App 中。</li>
+<li><strong>探索更高级的 MCP 特性:</strong>  比如资源管理、Prompt 系统等等。</li>
+</ul>
+<p>MCP 的世界充满了无限可能，期待你用它创造出更多有趣、有用的 AI 应用！✨</p>
+<p>如果你在学习过程中遇到任何问题，或者有任何想法和建议，欢迎随时与我交流！😊</p>
+<h2>最后</h2>
+<p>给大家推荐一些关于 mcp server 好用的网站!</p>
+<p><strong>教程</strong></p>
+<ul>
+<li><a href="https://modelcontextprotocol.io/introduction" rel="nofollow">https://modelcontextprotocol.io/introduction</a></li>
+<li><a href="https://vaayne.com/posts/2025/how-to-use-mcp-in-cherry-studio/" rel="nofollow">https://vaayne.com/posts/2025/how-to-use-mcp-in-cherry-studio/</a></li>
+</ul>
+<p><strong>mcp server 资源站</strong></p>
+<ul>
+<li><a href="https://github.com/punkpeye/awesome-mcp-servers" rel="nofollow">https://github.com/punkpeye/awesome-mcp-servers</a></li>
+<li><a href="https://github.com/modelcontextprotocol/servers" rel="nofollow">https://github.com/modelcontextprotocol/servers</a></li>
+<li><a href="https://mcpservers.org/" rel="nofollow">https://mcpservers.org/</a></li>
+</ul>
+]]></content:encoded>
+<pubDate>2025-03-20T12:22:33Z</pubDate>
+<pubDate>2025-03-20T12:24:23Z</pubDate>
+</item>
+<item>
+<title>[程序员] 求助， docker inspect 命令查出的 Pid 不存在</title>
+<link>https://www.v2ex.com/t/1119961</link>
+<guid>https://www.v2ex.com/t/1119961</guid>
+<content:encoded><![CDATA[
+
+<p>[先说下我的环境] </p>
+<p>windows 11 家庭版</p>
+<p>装有一个 ubuntu 子系统（ WSL2 ）</p>
+<p>装有 docker desktop （开启了 WSL2 集成功能，以便在 ubuntu 中执行 docker 相关命令）</p>
+<p>[问题背景] </p>
+<p>我想在 ubuntu 中，使用 nsenter 命令进入容器的 namespace ，但需要先找出这个容器的 Pid 是多少</p>
+<p>于是在 ubuntu 中执行以下命令：
+<code>docker inspect --format '{{.State.Pid}}' &lt;容器 ID&gt;</code></p>
+<p>查询得到容器的 Pid 是 6366</p>
+<p>但奇怪的是这个 Pid 在 ubuntu 中并不存在，为什么会这样呢，返回的这个 Pid 是哪个系统的 Pid ？</p>
+]]></content:encoded>
+<pubDate>2025-03-20T11:59:49Z</pubDate>
+<pubDate>2025-03-20T09:59:49Z</pubDate>
+</item>
+<item>
+<title>[NAS] 飞牛 OS N150 虚拟化核显不工作</title>
+<link>https://www.v2ex.com/t/1119960</link>
+<guid>https://www.v2ex.com/t/1119960</guid>
+<content:encoded><![CDATA[
+
+<p>今天飞牛 OS 更新了内核到 6.6.38 ，说支持了 N150 核显转码，但是我通过 PVE sriov 虚拟化的核显在影视中依旧无法启用，安装了应用商店的 i915 驱动也无法工作，有大佬知道还要怎么操作吗？</p>
+<p>内核日志如下：</p>
+<pre><code>root@fnOS:/home/eldorado# dmesg | grep i915
+[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-6.6.38-trim root=UUID=3707cfdf-decd-4735-b8a2-b4f9583ca178 ro modprobe.blacklist=pcspkr quiet i915.force_probe=7d55
+[    0.018288] Kernel command line: BOOT_IMAGE=/boot/vmlinuz-6.6.38-trim root=UUID=3707cfdf-decd-4735-b8a2-b4f9583ca178 ro modprobe.blacklist=pcspkr quiet i915.force_probe=7d55
+[    5.583801] i915 0000:01:00.0: [drm] *ERROR* Device is non-operational; MMIO access returns 0xFFFFFFFF!
+[    5.722816] i915 0000:01:00.0: Device initialization failed (-5)
+[    5.722943] i915: probe of 0000:01:00.0 failed with error -5
+</code></pre>
+<p>intel_gpu_top 可以看到核显设备</p>
+<pre><code>root@fnOS:/home/eldorado# intel_gpu_top 可以看到核显设备 -L
+card0                    1af4:1050                         pci:vendor=1AF4,device=1050,card=0
+└─renderD128       
+</code></pre>
+]]></content:encoded>
+<pubDate>2025-03-20T11:50:52Z</pubDate>
+<pubDate>2025-03-20T12:24:55Z</pubDate>
+</item>
+<item>
+<title>[程序员] windsurf 买了 pro ,每天也有调用上限吗</title>
+<link>https://www.v2ex.com/t/1119959</link>
+<guid>https://www.v2ex.com/t/1119959</guid>
+<content:encoded><![CDATA[
+
+<p>我购买了 windsurf 为什么一天跑了 大概 10 几次对话 就会报错</p>
+<p>No credits consumed on this tool call.</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.picui.cn/free/2025/03/20/67dbff8a29e41.png" /></p>
+<p>剩余次数：</p>
+<p><img alt="" class="embedded_image" rel="noreferrer" src="https://img.picui.cn/free/2025/03/20/67dbfff1449d7.png" /></p>
+<p>有其他人遇到这个问题吗，发了邮箱给 windsurf 也没回复</p>
+]]></content:encoded>
+<pubDate>2025-03-20T11:47:26Z</pubDate>
+<pubDate>2025-03-20T12:23:50Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 6 年产品被裁两周拿到一家小公司 offer 要不要去？</title>
+<link>https://www.v2ex.com/t/1119957</link>
+<guid>https://www.v2ex.com/t/1119957</guid>
+<content:encoded><![CDATA[
+
+·背景：上海 6 年 C 端产品，两段大厂经历，最近被裁 2 周内拿到一家小体量公司 offer,总包涨薪 30%/月薪涨 20%还行，公司说出来都知道，成立久但是体量不到 400 人<br />·思考的点：<br />1 、风评不好，都说试用期裁人；<br />2 、业务认知在经验能力内，感觉没有突破，成长空间有限；<br />3 、考虑到长期发展，还是想去大点的公司，但是投递和面试都不是很顺利，会有拉长 GAP 的风险；<br />·问题：接 offe or 继续面试?
+]]></content:encoded>
+<pubDate>2025-03-20T11:39:39Z</pubDate>
+<pubDate>2025-03-20T12:44:31Z</pubDate>
+</item>
+<item>
+<title>[职场话题] 大哥们帮忙选一下 offer</title>
+<link>https://www.v2ex.com/t/1119956</link>
+<guid>https://www.v2ex.com/t/1119956</guid>
+<content:encoded><![CDATA[
+
+bg: 三本软件工程专业 21 毕业 java 开发  家在湖北<br />offer1：长沙 数字马力 内包 11k 年终 0-4 五险全额 公积金 8%<br />offer2: 武汉 中电金信 外包到东风  13k*12 五险最低标准 公积金 5%
+]]></content:encoded>
+<pubDate>2025-03-20T11:39:05Z</pubDate>
+<pubDate>2025-03-20T12:18:41Z</pubDate>
+</item>
+<item>
+<title>[Android] Android 应用使用情况 事件不完整了 我就说吧</title>
+<link>https://www.v2ex.com/t/1119955</link>
+<guid>https://www.v2ex.com/t/1119955</guid>
+<content:encoded><![CDATA[
+
+19:04:16.545  E  2025-03-20 18:57:38 tv.danmaku.bili 1 com.bilibili.bililive.room.ui.roomv3.LiveRoomTranslucentActivity<br />19:04:16.545  E  2025-03-20 18:57:38 com.sec.android.app.launcher 1 com.android.quickstep.RecentsActivity<br />19:04:16.545  E  2025-03-20 18:57:38 tv.danmaku.bili 23 com.bilibili.video.story.StoryVideoActivity<br />19:04:16.545  E  2025-03-20 18:57:39 tv.danmaku.bili 23 com.bilibili.bililive.room.ui.roomv3.LiveRoomTranslucentActivity<br /><br />我就说吧，这里我玩 B 站然后切换到了主屏幕，B 站的那个 Activity 没有调用 Pause ，直接就调用 Stop 了，都不知道 Pause 跑哪去了，直接就消失了，真的消失了。（然后各位想测试的话，这个是偶现，但比较高频，设备是三星 s22 ）<br /><br />关于这个日志：<br />那个包名后面的数字：1 是 activity#resumed ，23 是 activity#stopped ，2 是 activity#paused 。<br />这里我是用 UsageStatsManager.queryEvents 获取的应用使用记录打印出来的。<br /><br />主观上讲：我感觉之前 Android 想收回这个权限，这玩意儿就开始不靠谱了。
+]]></content:encoded>
+<pubDate>2025-03-20T11:25:49Z</pubDate>
+<pubDate>2025-03-20T11:25:49Z</pubDate>
+</item>
+<item>
+<title>[Firefox] firefox 136 不支持 WebCodecs API 中调用 265 相关的解码器吗？</title>
+<link>https://www.v2ex.com/t/1119954</link>
+<guid>https://www.v2ex.com/t/1119954</guid>
+<content:encoded><![CDATA[
+
+<pre><code>VideoDecoder.isConfigSupported({
+  codec: 'hev1.1.6.L93.B0',
+  codedWidth: 1920,
+  codedHeight: 1080,
+})
+</code></pre>
+<p>测试了一下，返回的 Promise 结果里面不支持的，对比 264 的 codec avc1.4D401F 是支持的</p>
+<p>从 134 开始 FF 已经添加了 HEVC(H265)的硬解能力
+<a href="https://www.mozilla.org/en-US/firefox/134.0/releasenotes/" rel="nofollow">https://www.mozilla.org/en-US/firefox/134.0/releasenotes/</a>
+播放本地的测试视频也试过了没问题</p>
+<p>所以是 Firefox 还没在 API 里添加相关的支持吗？</p>
+<p>==========================<br />
+EDIT:</p>
+<p>根据 <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1942400" rel="nofollow">bugzilla</a> 的链接来看 应该已经支持了才对？难道是 ff 不支持特定 Profile 的 H265 decoder?</p>
+]]></content:encoded>
+<pubDate>2025-03-20T11:22:45Z</pubDate>
+<pubDate>2025-03-20T11:55:20Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 想法被华为重新实现了一下，人生圆满了</title>
+<link>https://www.v2ex.com/t/1119953</link>
+<guid>https://www.v2ex.com/t/1119953</guid>
+<content:encoded><![CDATA[
+
+<p>春节前实现的一个通过面部表情控制手机滑动的功能，被华为余总当 PPT 宣传了，也难怪审核的时候，就华为审核不过去。</p>
+<p>之前觉得需要的权限太多了，体验很差，没有宣传过，既然和人创作相同了，那不如宣传一下自己吧</p>
+<p><a href="https://www.facemotionapp.cn" rel="nofollow">https://www.facemotionapp.cn</a></p>
+<p>意动，心随意动，可以通过眉毛上扬和长时间闭眼睛控制页面的上下滑动。</p>
+<p>项目已经不具备持续跟进的价值了，以后也不打算更新了，如果有 OS 厂商的朋友看到且有兴趣的，可以来聊聊。</p>
+<p>除了华为之外的 app 商店都可以找到。</p>
+]]></content:encoded>
+<pubDate>2025-03-20T11:16:47Z</pubDate>
+<pubDate>2025-03-20T12:07:31Z</pubDate>
+</item>
+<item>
+<title>[Apple] mini m4 + 外接硬盘 当 nas 用有什么方案</title>
+<link>https://www.v2ex.com/t/1119952</link>
+<guid>https://www.v2ex.com/t/1119952</guid>
+<content:encoded><![CDATA[
+
+mini m4 + 外接硬盘 当 nas 用有什么方案<br />局域网四台设备之间需要共享文件 正好有台 mini 是 24 小时开机的 买了个硬盘盒和 ssd<br />比如说有什么可以直接 docker 部署的 nas 系统吗<br />需要有网盘同步功能 怕数据丢失也方便远程访问到数据
+]]></content:encoded>
+<pubDate>2025-03-20T11:14:14Z</pubDate>
+<pubDate>2025-03-20T12:06:57Z</pubDate>
+</item>
+<item>
+<title>[云计算] Google 将新加坡出口 IP 识别为国内 IP</title>
+<link>https://www.v2ex.com/t/1119951</link>
+<guid>https://www.v2ex.com/t/1119951</guid>
+<content:encoded><![CDATA[
+
+<p>大佬们，请教个问题，我们走 SDWAN 从新加坡出口，Google 将新加坡的出口 IP 识别成国内 IP 了，这个是啥原因，换成原生 IP 能破吗</p>
+]]></content:encoded>
+<pubDate>2025-03-20T11:07:10Z</pubDate>
+<pubDate>2025-03-20T11:09:18Z</pubDate>
+</item>
+<item>
+<title>[VPS] Racknerd 几个大坑点请避雷</title>
+<link>https://www.v2ex.com/t/1119950</link>
+<guid>https://www.v2ex.com/t/1119950</guid>
+<content:encoded><![CDATA[
+
+<p>今天偶然看见广告 $11 可以买一年的 Racknerd vps ， 想的着钱也不多，所以顺手就买了一个。</p>
+<p>买完之后发现有几个需要注意的地方，给大家强调一下:</p>
+<ol>
+<li>流量是双向计费，用惯了单向会觉得跑的飞快</li>
+<li>不支持退款，任何理由都不行</li>
+<li>只有几个机房有 ipv6, 如果你需要 ipv6 而买错地方就会有点麻烦</li>
+</ol>
+]]></content:encoded>
+<pubDate>2025-03-20T10:56:37Z</pubDate>
+<pubDate>2025-03-20T12:06:17Z</pubDate>
+</item>
+<item>
+<title>[问与答] 你们坐的什么椅子啊?我现在坐的椅子都快变成✔,就没有不成✔的椅子吗?</title>
+<link>https://www.v2ex.com/t/1119949</link>
+<guid>https://www.v2ex.com/t/1119949</guid>
+<content:encoded><![CDATA[
+
+<p>我最近理了理,椅子的大致需求.</p>
+<ol>
+<li>
+<p>要有滑轮,不然从椅子上起身要推出来.</p>
+</li>
+<li>
+<p>要有升降扶手.</p>
+</li>
+<li>
+<p>要有升降功能,毕竟坐着,膝盖要成 90 度.</p>
+</li>
+</ol>
+<p>现在的问题,买来是直的,但是坐着就变成了✔,难道就我椅子是这样吗?</p>
+<p>我这椅子我还调的前倾模式啊,现在就这样了.</p>
+]]></content:encoded>
+<pubDate>2025-03-20T10:55:04Z</pubDate>
+<pubDate>2025-03-20T10:55:04Z</pubDate>
+</item>
+<item>
+<title>[程序员] 各位的 Cursor 在哪个渠道充值？</title>
+<link>https://www.v2ex.com/t/1119948</link>
+<guid>https://www.v2ex.com/t/1119948</guid>
+<content:encoded><![CDATA[
+
+<p>最近感觉 Cursor 真的是生产力工具，
+打算人生第一次为工具付费了。</p>
+<p>有没有靠谱且性价比高的渠道？</p>
+]]></content:encoded>
+<pubDate>2025-03-20T10:49:25Z</pubDate>
+<pubDate>2025-03-20T07:49:25Z</pubDate>
+</item>
+<item>
+<title>[问与答] 有没有什么浏览器插件可以快速提炼整个页面的大致内容</title>
+<link>https://www.v2ex.com/t/1119947</link>
+<guid>https://www.v2ex.com/t/1119947</guid>
+<content:encoded><![CDATA[
+
+<p>就比如刷浏览 V2EX 的时候，能够结合上下文大家的观点，提炼出大家讨论的主要内容。</p>
+]]></content:encoded>
+<pubDate>2025-03-20T10:41:33Z</pubDate>
+<pubDate>2025-03-20T10:44:29Z</pubDate>
+</item>
+<item>
+<title>[分享创造] [Travel Plug Advisor：全球旅行必备的插座适配指南]</title>
+<link>https://www.v2ex.com/t/1119946</link>
+<guid>https://www.v2ex.com/t/1119946</guid>
+<content:encoded><![CDATA[
+
+旅行前最容易被忽略的小细节——插座类型，却可能成为跨国出行的“大麻烦”！不同国家的插头规格、电压标准千差万别，一款错误的适配器可能让你的电子设备瞬间“罢工”。别让充电焦虑毁掉你的完美旅程！  <br /><br />推荐使用「 Travel Plug Advisor 」在线工具（链接： <a href="https://remit.ee/tools/check-plug-travel-adapter/" rel="nofollow noopener" target="_blank">https://remit.ee/tools/check-plug-travel-adapter/</a>      ），只需输入目的地国家，即可秒查当地插头类型、电压要求及适配器推荐。无论你是去欧洲的 Type C 、英国的 Type G ，还是澳洲的 Type I ，它都能提供精准适配方案，并支持全球 200+国家查询。工具界面简洁无广告，无需注册即可免费使用，更贴心附赠电压转换贴士，避免设备过载风险。  <br /><br />无论是商务出差还是自由行，提前用 30 秒查询适配器信息，就能为行李减负、为旅途省心！
+]]></content:encoded>
+<pubDate>2025-03-20T10:28:42Z</pubDate>
+<pubDate>2025-03-20T10:25:42Z</pubDate>
+</item>
+
+<item>
 <title>[Apple] 我以为低价的 mac mini m4 会提升国内 macOS 市场份额，但似乎并没有</title>
 <link>https://www.v2ex.com/t/1119945</link>
 <guid>https://www.v2ex.com/t/1119945</guid>
 <content:encoded><![CDATA[
-
 根据 statcounter 上的统计数据：<br /><a href="https://gs.statcounter.com/os-market-share/desktop/china" rel="nofollow noopener" target="_blank">https://gs.statcounter.com/os-market-share/desktop/china</a><br /><br />去年 2 月份的时候，国内市场份额有 8.87%。<br />今年 2 月份，国内市场份额为 8.79%，1 月份的市场份额也是 8.87%<br /><br />看各种论坛和 B 站上的讨论，总感觉 macOS 已经比以前更普及了。<br />结果发现是错觉……<br /><br /><a href="https://i.imgur.com/gTnQ6dd.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/gTnQ6dd.png" /></a>
 ]]></content:encoded>
-<pubDate>2025-03-20T10:19:39Z</pubDate>
 <pubDate>2025-03-20T10:21:44Z</pubDate>
 </item>
 <item>
@@ -20,7 +547,6 @@
 <link>https://www.v2ex.com/t/1119944</link>
 <guid>https://www.v2ex.com/t/1119944</guid>
 <content:encoded><![CDATA[
-
 <p>前几天跟朋友截图分享代码的时候，因为分享的代码行数较多，截图工具能截取的内容有限，就找到了一个名为 carbon 的网站，感觉是个很不错的工具，但是由于部署在境外，不挂梯子的话，访问较慢。</p>
 <p>看到他是开源的，于是我就自己部署了一个，方便自己使用。</p>
 <ul>
@@ -30,17 +556,14 @@
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://github.com/user-attachments/assets/e2c23fdd-3bd3-4fdb-945b-431ac8bdddaf" /></p>
 ]]></content:encoded>
 <pubDate>2025-03-20T10:18:18Z</pubDate>
-<pubDate>2025-03-20T10:18:18Z</pubDate>
 </item>
 <item>
 <title>[投资] 国家为什么长期保持银行的低利率？</title>
 <link>https://www.v2ex.com/t/1119943</link>
 <guid>https://www.v2ex.com/t/1119943</guid>
 <content:encoded><![CDATA[
-
 以前我记得 4%的存款利率，现在长期保持 1%的存款利率<br /><br />这是不是意味着会有长期的通货膨胀？
 ]]></content:encoded>
-<pubDate>2025-03-20T10:11:32Z</pubDate>
 <pubDate>2025-03-20T10:21:38Z</pubDate>
 </item>
 <item>
@@ -48,11 +571,9 @@
 <link>https://www.v2ex.com/t/1119942</link>
 <guid>https://www.v2ex.com/t/1119942</guid>
 <content:encoded><![CDATA[
-
 <p>我有一个应用客户要求端到端加密，应用数据是存储到数据库（一个非主流类 mongodb 数据库），假设我在桌面端生成一个密钥，将所有数据加密再存入数据库，我的其他设备比如手机端腰怎么安全的获取这个密钥来解密数据，并保证这个密钥不会丢失，并且在不存储在服务器呢。之前从来没做过端到端加密，想了解一下主流方案是什么。</p>
 <p>先谢谢各位🙇</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T10:01:48Z</pubDate>
 <pubDate>2025-03-20T08:00:48Z</pubDate>
 </item>
 <item>
@@ -60,10 +581,8 @@
 <link>https://www.v2ex.com/t/1119941</link>
 <guid>https://www.v2ex.com/t/1119941</guid>
 <content:encoded><![CDATA[
-
 不会前端，例如我看到有合适的页面，进行全屏截图，交给 AI 让它帮我完整的，或者高度相似的做成 HTML ，有合适的 AI 推荐吗？<br />或者需要怎么更专业的或详细的描述，才能让 AI 能更好的理解？<br /><br />现在用 gpt 和通义千问还有 deepseek 和 readdy 都试过，无一例外，都很差。
 ]]></content:encoded>
-<pubDate>2025-03-20T10:00:53Z</pubDate>
 <pubDate>2025-03-20T10:03:14Z</pubDate>
 </item>
 <item>
@@ -71,10 +590,8 @@
 <link>https://www.v2ex.com/t/1119939</link>
 <guid>https://www.v2ex.com/t/1119939</guid>
 <content:encoded><![CDATA[
-
 <p>工作的时候会打开很多个 IDEA 工程项目窗口，有没有什么方法，能够快速定位到想要的工程窗口。</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:58:12Z</pubDate>
 <pubDate>2025-03-20T10:05:16Z</pubDate>
 </item>
 <item>
@@ -82,7 +599,6 @@
 <link>https://www.v2ex.com/t/1119938</link>
 <guid>https://www.v2ex.com/t/1119938</guid>
 <content:encoded><![CDATA[
-
 <p>佣金： 可谈
 小区： 华一新城
 户型： 小一室，独立卫浴
@@ -91,7 +607,6 @@
 联系方式：MTc2MTEyMjg4MjM=</p>
 <p>位于闵行区，靠近虹梅路地铁站，旁边就是漕河泾印象城，交通便利。</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:49:40Z</pubDate>
 <pubDate>2025-03-20T10:00:40Z</pubDate>
 </item>
 <item>
@@ -99,10 +614,8 @@
 <link>https://www.v2ex.com/t/1119937</link>
 <guid>https://www.v2ex.com/t/1119937</guid>
 <content:encoded><![CDATA[
-
 新增一个远程岗前需求；<br />远程前端开发，中级+，底薪 15k-25k ，有独立架构开发经验，有多个 Vue2/Vue3 大型项目开发/维护经验，有流媒体相关项目经验优先， 负责 Web 端核心架构的搭建以及技术攻关，负责 Web 端性能问题定位与优化，负责日常项目需求梳理及功能开发<br /><br />联系 telegram:nini0804
 ]]></content:encoded>
-<pubDate>2025-03-20T09:49:36Z</pubDate>
 <pubDate>2025-03-20T10:11:29Z</pubDate>
 </item>
 <item>
@@ -110,14 +623,12 @@
 <link>https://www.v2ex.com/t/1119936</link>
 <guid>https://www.v2ex.com/t/1119936</guid>
 <content:encoded><![CDATA[
-
 <p>利用 lucky 在 openwrt 上，将 nas 和 emby 映射到公网，然后在 cf 上开了个服务接收端口变化，手机上看电影很爽。
 另外，将 qbittorrent 的端口也映射出去，pt 上传基本不会中断了。（其实没啥用，就是情绪价值）。</p>
 <p><a href="https://zhuanlan.zhihu.com/p/31262483305" rel="nofollow">https://zhuanlan.zhihu.com/p/31262483305</a></p>
 <p><a href="https://zhuanlan.zhihu.com/p/31609310559" rel="nofollow">https://zhuanlan.zhihu.com/p/31609310559</a></p>
 <p>不好贴图，在 zhihu 弄了文章。</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:46:30Z</pubDate>
 <pubDate>2025-03-20T10:14:55Z</pubDate>
 </item>
 <item>
@@ -125,12 +636,10 @@
 <link>https://www.v2ex.com/t/1119935</link>
 <guid>https://www.v2ex.com/t/1119935</guid>
 <content:encoded><![CDATA[
-
 <p>最近搬了新屋，卧室 15 平左右，
 想买个空调，2000 左右预算,1.5p
 看了几款，好像会有发臭或者异响的问题，如何选，麻烦大伙给推荐推荐</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:45:57Z</pubDate>
 <pubDate>2025-03-20T10:13:12Z</pubDate>
 </item>
 <item>
@@ -138,7 +647,6 @@
 <link>https://www.v2ex.com/t/1119933</link>
 <guid>https://www.v2ex.com/t/1119933</guid>
 <content:encoded><![CDATA[
-
 <h2>项目前情介绍</h2>
 <p>历史贴回归</p>
 <ul>
@@ -214,7 +722,6 @@
 <p><img alt="图 1" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/Cih1CH8Y.jpeg" /></p>
 <p><img alt="图 2" class="embedded_image" rel="noreferrer" src="https://i.v2ex.co/o3DFM9tJ.jpeg" /></p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:37:28Z</pubDate>
 <pubDate>2025-03-20T10:07:27Z</pubDate>
 </item>
 <item>
@@ -222,7 +729,6 @@
 <link>https://www.v2ex.com/t/1119930</link>
 <guid>https://www.v2ex.com/t/1119930</guid>
 <content:encoded><![CDATA[
-
 <p>Tailscale 客户端从 1.80 开始，Custom coordination server 会无视你的输入，在登录认证时强制尝试请求 https://server ，这个毛病导致纯 IP 的 HTTP 部署新用户已经无法通过 IP 完成注册，必须指定非 80 端口。</p>
 <p>并且加入了一个 noise auth 机制，在若干分钟内如果有失败的认证尝试，那么后续的 login 不仅强制走 HTTPS ，而且还会强制访问 443 端口，即使你指定了自己的非标端口也会无视</p>
 <p>现在还计划新部署 Headscale 的用户，还请遵守说明，在域名上做标准端口的 HTTPS 部署（可以非标端口启动，nginx 反代），如果机器在国内云厂趁早收拾收拾准备搞备案吧</p>
@@ -230,17 +736,14 @@
 <p><a href="https://github.com/ChowDPa02k/headscale-self-registration/tree/main" rel="nofollow">https://github.com/ChowDPa02k/headscale-self-registration/tree/main</a></p>
 ]]></content:encoded>
 <pubDate>2025-03-20T09:34:46Z</pubDate>
-<pubDate>2025-03-20T09:34:46Z</pubDate>
 </item>
 <item>
 <title>[程序员] AI 产出代码的可靠性与测试的讨论</title>
 <link>https://www.v2ex.com/t/1119929</link>
 <guid>https://www.v2ex.com/t/1119929</guid>
 <content:encoded><![CDATA[
-
 在不考虑可维护性/新项目创建的情况下，Cursor Agent 确实很快。但相对地，使用下来的感想是其对人为修改维护的操作是“闭合”的。<br /><br />即使是 Prompt 中直接要求可维护性乃至具体明确地要求其遵循特定的设计模式，在后续的“需求实现”的对话中也很容易破坏已有结构。Prompt 要求太多还容易过度抽象或产生幻觉，Code Review 起来非常累，反而感觉比自己实施消耗了更多的心力。<br /><br />上述也许可以归因为个人 Prompt 姿势不对，但之所以觉得其“闭合”，还有一个原因是大模型的上下文限制：对于一个解耦且不同人负责不同模块的项目，Cursor 无法很好将别人的变更同步到上下文中，在新代码里容易根据已有上下文在犄角旮旯里去用 @<a href="https://www.v2ex.com/member/deprecated" rel="nofollow noopener" target="_blank">deprecated</a> 的东西。（除非你把相关的 commit/文件都找出来显式地 @给它）<br /><br />总体而言还是所有修改都通过 Cursor ，让代码变更按顺序在同一个上下文中被 LLM 嵌入/索引，避免 LLM 上下文与实际变更情况有出入，能获得最好的体验，即人为直接修改的“闭合”。<br /><br />我想当前 AI 辅助编程的体感分化就是来自于此，非技术背景的人在放弃自己碰代码通过人肉 E2E 测试来追求 UX ，肯定比技术背景追求实施过程中更好的 DX ，体感好得多。然而用人肉 E2E 测试维护的项目，过于噩梦了...<br /><br />基于以上情况，是否参照训练模型思路，将项目管理的重心放在测试的可靠性维护上，对于项目代码本身则完全放弃对设计模式/可维护性/可靠性的要求。即测试对模型“闭合”的同时，放飞模型。（甚至 git 只 commit 测试）<br /><br />那么问题就在于“测试集”的构建和维护流程了。TDD 感觉其实并不适合 LLM ，TDD 其实要求测试设计比开发更加懂架构/设计模式，本质 Driven 的还是 develop ，而不是 generate 。<br /><br />我们需要的也许是某种倒置的 TDG 流程。测试管理的对象应该是 UX 层面的，Test 本身易构建易管理，而不是 generate 则是一个复杂度黑洞，generate 产物可以随时交给别的模型别的 Agent ，可以上下文无关(generate 产物本身就是上下文),只要能通过 Test 就行。
 ]]></content:encoded>
-<pubDate>2025-03-20T09:34:12Z</pubDate>
 <pubDate>2025-03-20T10:25:11Z</pubDate>
 </item>
 <item>
@@ -248,10 +751,8 @@
 <link>https://www.v2ex.com/t/1119928</link>
 <guid>https://www.v2ex.com/t/1119928</guid>
 <content:encoded><![CDATA[
-
 初中高中的时候，基本上隔几个星期就会做一次色色的梦<br /><br />到了大学，可能一个月都做不了一次<br /><br />现在工作了，做的大多是噩梦，一年都难做一次<br /><br />为了做色色的梦，我曾禁欲一个多星期（抱歉，坚持不了更久）<br /><br />各位 V 友有啥办法吗，我想做色色的梦！！！
 ]]></content:encoded>
-<pubDate>2025-03-20T09:34:08Z</pubDate>
 <pubDate>2025-03-16T09:32:08Z</pubDate>
 </item>
 <item>
@@ -260,9 +761,7 @@
 <guid>https://www.v2ex.com/t/1119927</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-03-20T09:33:19Z</pubDate>
 <pubDate>2025-03-20T10:10:25Z</pubDate>
 </item>
 <item>
@@ -270,13 +769,11 @@
 <link>https://www.v2ex.com/t/1119926</link>
 <guid>https://www.v2ex.com/t/1119926</guid>
 <content:encoded><![CDATA[
-
 <p>移动到企 商宽不给公网 ip
 装之前拍胸脯保证带公网，装好和家宽一摸一样，除了上行高点 0 区别，麻了
 新用户不如🐶
 固定 ip 套餐报价比地级市高几倍价格</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:33:12Z</pubDate>
 <pubDate>2025-03-20T09:33:12Z</pubDate>
 </item>
 <item>
@@ -284,10 +781,8 @@
 <link>https://www.v2ex.com/t/1119924</link>
 <guid>https://www.v2ex.com/t/1119924</guid>
 <content:encoded><![CDATA[
-
 <p>最近周围的几个同事都在抢那个三太子的电影票，他们都说特别难抢（周末场），我就挺好奇的，抢到的真是拼的手速吗？有没有懂门道的同学说一说这电影票是怎么一个抢法，让我也学习学习。</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:18:49Z</pubDate>
 <pubDate>2025-03-20T09:18:49Z</pubDate>
 </item>
 <item>
@@ -295,13 +790,11 @@
 <link>https://www.v2ex.com/t/1119923</link>
 <guid>https://www.v2ex.com/t/1119923</guid>
 <content:encoded><![CDATA[
-
 <p>今天看帖子时不时敏感，比如 op 回复了一下自我感受，然后就被定义为敏感。</p>
 <p>但是人与人看待事物本身就是不一样的，明明不舒服了，又被打上了敏感的标签。</p>
 <p>我认为是否敏感应该更多以当事人感受为主，如果当事人觉得不舒服了，直接不聊就行了，何必给人打上敏感标签。</p>
 <p>各位老哥怎么看？</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:14:44Z</pubDate>
 <pubDate>2025-03-20T09:52:25Z</pubDate>
 </item>
 <item>
@@ -309,13 +802,11 @@
 <link>https://www.v2ex.com/t/1119922</link>
 <guid>https://www.v2ex.com/t/1119922</guid>
 <content:encoded><![CDATA[
-
 <p>肉被铁撞了，即使铁有保险，赔偿多少钱都换不回肉身体上的受伤甚至死亡，而铁包肉的人身体不会受到任何伤害又不用负任何责任（只要不是故意的），直接保险报钱，自己躲起来不出面了。</p>
 <p>肉走在路上时刻都有受伤甚至死亡的风险</p>
 <p>还是全面禁止汽车吧，只保留公共交通</p>
 <p>意外事故中车祸一直是排名第一，占 90%以上，受害者多为肉包铁或者纯肉</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:14:02Z</pubDate>
 <pubDate>2025-03-20T10:09:42Z</pubDate>
 </item>
 <item>
@@ -323,13 +814,11 @@
 <link>https://www.v2ex.com/t/1119921</link>
 <guid>https://www.v2ex.com/t/1119921</guid>
 <content:encoded><![CDATA[
-
 <p>我的网络环境是普通路由器下面接了一台 win11 的台式机，装了 clash for verge 的 windows 客户端。</p>
 <p>因为玩游戏需要开启奇游加速器的同时，一并打开 discord 进行联机语音。</p>
 <p>目前无法做到同时开启。如果先打开奇游加速，再打开 clash ，ping 值会增加。如果用 netch ，sstap 等工具就会无法和机场节点建立连接；如果先打开机场节点，奇游加速器会提示检测到代理，要求关闭后再连接。</p>
 <p>请问如何解决？</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:08:41Z</pubDate>
 <pubDate>2025-03-20T09:36:45Z</pubDate>
 </item>
 <item>
@@ -337,10 +826,8 @@
 <link>https://www.v2ex.com/t/1119920</link>
 <guid>https://www.v2ex.com/t/1119920</guid>
 <content:encoded><![CDATA[
-
 我有 2 台互联网对讲机只支持 GSM 和 WCDMA 网络，一直是插着使用中国联通网络的物联网 SIM 卡在使用。我这边的联通 3G 信号是有的，几乎到哪儿都可以搜索到，但是对讲机按下 PTT 按钮后外发语音的延迟，今年开始明显上升，请问是联通对 3G 网络进行了什么劣化了吗？
 ]]></content:encoded>
-<pubDate>2025-03-20T09:08:07Z</pubDate>
 <pubDate>2025-03-20T09:11:50Z</pubDate>
 </item>
 <item>
@@ -348,12 +835,10 @@
 <link>https://www.v2ex.com/t/1119919</link>
 <guid>https://www.v2ex.com/t/1119919</guid>
 <content:encoded><![CDATA[
-
 <p>想找寻了解熟悉 shopify 的同学，我们遇到一个问题，可以付费请教；</p>
 <p>我们现在 shopify 的网站是外包给外部帮忙建站的，然后使用的是原生的登录注册的系统，现在想切换 identity provider ，发现光切到自定义的 identity provider 以后不能正常注册和登录了。</p>
 <p>看起来还是指向原生的 shopify 注册登录界面，外部同学也暂时联系不上，那么现在我们应该怎么办呢？</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T09:06:50Z</pubDate>
 <pubDate>2025-03-20T09:06:50Z</pubDate>
 </item>
 <item>
@@ -361,7 +846,6 @@
 <link>https://www.v2ex.com/t/1119918</link>
 <guid>https://www.v2ex.com/t/1119918</guid>
 <content:encoded><![CDATA[
-
 <p>在 macOS 上，Chrome 企业策略的配置方式与 Windows 和 Linux 略有不同。macOS 使用属性列表（ Property List ，简称 plist ）文件来管理企业策略。以下是如何在 macOS 上配置 Chrome 以继续支持 Manifest V2 的详细步骤：</p>
 <h3>​<strong>1. 创建或编辑策略文件</strong></h3>
 <p>Chrome 在 macOS 上查找企业策略的路径是 <code>/Library/Managed Preferences/</code> 或者针对当前用户的 <code>~/Library/Preferences/</code>。为了对所有用户生效，建议将策略文件放在 <code>/Library/Managed Preferences/</code> 目录下。</p>
@@ -477,14 +961,12 @@ sudo chmod 644 /Library/Managed\ Preferences/com.google.Keystone.agent.plist
 <p>deepseek 说的，我测试下来并没成功，希望有大神来一起研究！</p>
 ]]></content:encoded>
 <pubDate>2025-03-20T09:04:19Z</pubDate>
-<pubDate>2025-03-20T09:04:19Z</pubDate>
 </item>
 <item>
 <title>[React] 是不是都用 expo-image 了，分享下 react-native-turbo-image</title>
 <link>https://www.v2ex.com/t/1119917</link>
 <guid>https://www.v2ex.com/t/1119917</guid>
 <content:encoded><![CDATA[
-
 <p>大家好，想跟大家分享下 react-native-turbo-image.</p>
 <h2>为什么需要它？</h2>
 <p>在 React Native 开发中，图片加载和渲染性能一直是一个常见的痛点，尤其是在处理大量图片或需要高性能的场景时。react-native-fast-image 大概快三年没有维护了。react-native-turbo-image 就是为了解决这个问题而诞生的。</p>
@@ -496,14 +978,12 @@ sudo chmod 644 /Library/Managed\ Preferences/com.google.Keystone.agent.plist
 <p><a href="https://github.com/duguyihou/react-native-turbo-image" rel="nofollow">https://github.com/duguyihou/react-native-turbo-image</a></p>
 ]]></content:encoded>
 <pubDate>2025-03-20T09:03:22Z</pubDate>
-<pubDate>2025-03-20T09:03:22Z</pubDate>
 </item>
 <item>
 <title>[创造者] 程序员奶爸辞职去做独立开发， 1 年便赚了 100 万美金</title>
 <link>https://www.v2ex.com/t/1119916</link>
 <guid>https://www.v2ex.com/t/1119916</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="pic" class="embedded_image" rel="noreferrer" src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1f4cf1b-acf5-402d-b048-80e5b47b2d26_1200x628.png" /></p>
 <p>Damon Chen 曾在思科（ Cisco ）担任了八年的软件工程师，过着稳定的职业生活。然而，2020 年新冠疫情的到来改变了他的生活轨迹。当时，他与妻子和一岁的孩子在家隔离，这让他重新思考工作与生活的平衡。他希望有更多时间陪伴家人，于是向公司申请了六个月的无薪假期。在这段时间里，他开始尝试开发副业项目，寻找能够让自己独立创业的机会。
 在此之前，Damon 已经尝试了四个副业项目，但都以失败告终，没有带来任何收入。这些失败包括一个名为 IndieLog 的独立开发者视频日志社区等项目。尽管如此，他从这些经历中积累了经验，并没有放弃创业的念头。</p>
@@ -571,7 +1051,6 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <p>如今，<a href="http://Testimonial.to" rel="nofollow">Testimonial.to</a> 和 <a href="http://PDF.ai" rel="nofollow">PDF.ai</a> 的总 ARR 超过 100 万美元，Damon 从一名普通工程师转型为成功的独立创业者，他的故事激励着许多追求自由职业生涯的人。</p>
 <p><img alt="pic" class="embedded_image" rel="noreferrer" src="https://dtq4576j6fq7j.cloudfront.net/source.png" /></p>
 ]]></content:encoded>
-<pubDate>2025-03-20T08:56:22Z</pubDate>
 <pubDate>2025-03-20T09:59:27Z</pubDate>
 </item>
 <item>
@@ -579,7 +1058,6 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <link>https://www.v2ex.com/t/1119915</link>
 <guid>https://www.v2ex.com/t/1119915</guid>
 <content:encoded><![CDATA[
-
 <p>这不是鹅厂毕业了两三个月了嘛，前段时间相亲体验也很不好，都是些奇行种 QAQ...</p>
 <p>最近干脆就看起了项目，顺便也看看以前的离职或者毕业的老同事们都在干什么，也问了自己圈子里的各路神仙们都在忙啥，</p>
 <p>嘿，别说，聊着聊着有个哥们想做的这个东西似乎有那么些意思，</p>
@@ -590,7 +1068,6 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <p>大概意思就是，滴滴一下，就有人在医院等你，甚至到你家接你要去看病的人，因为有可能要去的人身体不便，或者像我母亲那种老年人不是很玩得懂现在的医院那些高科技，而且客观现实是，在成都的华西也好，其他的一些三甲医院也好，是 <strong>真的存在陪护/带诊员</strong>，感觉这是一个还不错的项目？只是我在想这里面得把链路尽可能拉深长度或者加深深度才行，比如医院的一些陪护资源，比如华西门口那些药店，比如车接车送，比如相对更加专业也更加贵一些的野生医护人员的服务 [就是那些做兼职的或者前护士前护工] ，整体想一想似乎还可以？</p>
 <p>说起来上回我遇到的那个带诊的小妹妹，长的还多乖的 [手动狗头] </p>
 ]]></content:encoded>
-<pubDate>2025-03-20T08:55:44Z</pubDate>
 <pubDate>2025-03-20T10:22:18Z</pubDate>
 </item>
 <item>
@@ -598,13 +1075,11 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <link>https://www.v2ex.com/t/1119914</link>
 <guid>https://www.v2ex.com/t/1119914</guid>
 <content:encoded><![CDATA[
-
 <p>我下载了 aosp14 源码，但是编译完成后执行 emulator 运行模拟器提示：Could not open '/home/android/aosp/out/target/product/generic_x86_64/userdata-qemu.img': No such file or directory
 我在 stackoverflow 找到类似问题，但是也没有解决，请大佬们一把
 <a href="https://stackoverflow.com/questions/77321810/android-14-build-completed-successfully-but-emulator-not-working" rel="nofollow">https://stackoverflow.com/questions/77321810/android-14-build-completed-successfully-but-emulator-not-working</a></p>
 <p>构建环境 ubuntu22.04, lunch aosp_x86_64-ap2a-eng</p>
 ]]></content:encoded>
-<pubDate>2025-03-20T08:51:36Z</pubDate>
 <pubDate>2025-03-20T08:50:36Z</pubDate>
 </item>
 <item>
@@ -612,10 +1087,8 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <link>https://www.v2ex.com/t/1119913</link>
 <guid>https://www.v2ex.com/t/1119913</guid>
 <content:encoded><![CDATA[
-
 工作职责<br /><br />负责电商产品的整体规划、设计和迭代优化<br />调研并分析用户、运营和供应商在业务中的痛点和需求<br />设计和优化客服工作流程及服务标准，提高服务质量和效率<br />协调技术、运营等跨部门资源，确保产品顺利落地<br />跟踪行业发展趋势，不断创新产品解决方案<br /><br />任职要求<br /><br />本科及以上学历，计算机、市场营销、电子商务等相关专业优先<br />3 年及以上产品经理工作经验<br />了解电商行业客服业务特点<br />具备良好的产品思维，能平衡用户体验与业务目标<br />了解大模型等 AI 技术在产品中的应用价值和实现原理<br />具备出色的沟通协调能力和项目管理能力<br />熟练使用原型设计工具，如 Axure 、Figma 等<br /><br />优先条件<br /><br />有客服产品相关工作经验者优先<br />熟悉电商平台履约流程、供应商管理体系和用户服务全流程<br />有 AI 产品相关项目经验<br />具备数据分析能力，能够基于数据做出产品决策<br />有 ToB 和 ToC 双端产品设计经验<br /><br />简历邮箱请投:tiankui@mgtv.com
 ]]></content:encoded>
-<pubDate>2025-03-20T08:47:05Z</pubDate>
 <pubDate>2025-03-20T08:55:11Z</pubDate>
 </item>
 <item>
@@ -624,9 +1097,7 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <guid>https://www.v2ex.com/t/1119912</guid>
 <content:encoded><![CDATA[
 
-
 ]]></content:encoded>
-<pubDate>2025-03-20T08:46:12Z</pubDate>
 <pubDate>2025-03-20T09:14:51Z</pubDate>
 </item>
 <item>
@@ -634,10 +1105,8 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <link>https://www.v2ex.com/t/1119909</link>
 <guid>https://www.v2ex.com/t/1119909</guid>
 <content:encoded><![CDATA[
-
 坐标：浙江省杭州市<br />先简单说明一下我家里的宽带情况：<br />宽带 1：电信 1000 兆家庭宽带（ 169 元/月）<br />宽带 2：电信 500 兆家庭宽带（ 109 元/月）<br />宽带 3：电信 300 兆家庭宽带（ 30 元/月）<br />宽带 4：移动 300 兆家庭宽带（ 10 元/月）<br />宽带 5：移动 500 兆家庭宽带（ 300 元/年）<br />宽带 6：华数 100 兆家庭宽带（免费送的）<br />整体下来，每年的上网费用并不低，合计 4116 元，应该超过大部分家庭用户了。<br /><br />首先说声抱歉，我曾经跑过 PCDN ，除了华数这条都跑过，但是听说最近杭州查得紧后已经全部下机了，已经几个月没有跑 PCDN ，应该算是认错态度良好了吧？<br /><br />但是 PCDN 是不跑了，这些宽带都有合约，无法立即拆机，我是不愿意让他们闲下来，于是重新拿这些宽带做了其他事情。<br /><br />我最近在用这些宽带做什么事情呢？ 我在做视频搬运，无非就是不断的下载再上传，搜寻一些国外视频到国内，供其他网友观赏，虽然没什么产出，但毕竟是有意义的事情。<br /><br />但是，最终我还是没能逃过运营商的制裁，以下这些事情都在最近一段时间发生。<br /><br />首先是两条移动宽带被上传限速到 10 兆，以至于我的宽带下行都无法正常拉满，且没有接到任何电话或者短信，总之就是默默把我宽带给限速了，以为便宜，我懒得和移动扯皮了，准备到期就注销。<br /><br />电信呢？我接到了当地电信局的电话，说我宽带使用异常需要上门查看，今天电信的师傅来上门了，在我房间了拍照拍了 10 分钟，把我所有的设备以及标签全部拍了照片，且让我签订了不用于跑 PCDN 的协议书。但是没有用了，电信认定我一直还在跑 PCDN ，因为我的电脑上外挂了很多移动硬盘（用来缓存视频的），但是这边的领导不懂，只觉得是我被他们抓到了，3 条电信宽带也马上要被限速。电信师傅和我关系比较好，只是跟我说没办法，我碍于情面也不准备投诉。农村是人情设备，把他们惹了，对我以后没什么好处。<br /><br />接下来我做了什么？我需要表达的是歉意，诚恳认错，我已经准备不再跑 PCDN 了，但是之前装的这些宽带确实都没法正常使用了，我原本网络需求就比较高，一天 24 小时，可能有 23 小时都在重度使用网络，这些宽带这样被限制肯定是不行的。<br /><br />我看到站里有温州的网友去安装了移动的 100 兆专线，所以我也去咨询了我这边的移动专线客户经理。经过了解，我这边也是可以安装移动的互联网专线的，100 兆对等带宽，合同 1 年一签，每年 1500 元，无需拉缆费用（电信专线是要的），接下来我会安装移动的这条专线，并慢慢把其他宽带全部拆掉。笑死我了，上网费用支出反而可以下降一大半。而且我用来上传视频的话，专线宽带是不会来管我这种使用方式的。<br /><br />一点点迷思：其实宽带几千兆下行是真的没什么用，根本没有那么多文件需要那么快被下载下来。在 WEB3 以及其他 P2P 技术盛行的下载，上行带宽和连接数才是最重要的。宽带还正常网友，启用且珍惜吧！
 ]]></content:encoded>
-<pubDate>2025-03-20T08:37:34Z</pubDate>
 <pubDate>2025-03-20T09:17:12Z</pubDate>
 </item>
 <item>
@@ -645,13 +1114,10 @@ Damon 在 Twitter （拥有 6 万多粉丝）和 LinkedIn （ 4000 多粉丝）�
 <link>https://www.v2ex.com/t/1119908</link>
 <guid>https://www.v2ex.com/t/1119908</guid>
 <content:encoded><![CDATA[
-
 最近跟朋友一起做 Temu ，前一个店做 JIT ，用 AI 生图、套图、自动上架还是比较顺利，但是每天单量比较少。<br /><br />现在搞一个新店，做实物饰品。<br /><br />供应链提供 1000 多款饰品，要把这些饰品按照 Temu 的规格拍摄，很麻烦很费劲。<br /><br />程序员思维就是用 AI 来处理，我考虑的思路：<br /><br />1 、通过拍摄商品各个角度的白色背景图片，生成这个产品的 3D 模型。<br /><br />2 、然后按照指令生成产品图，比如这个饰品的使用场景，套在耳钉上什么样，钥匙圈上什么用，这个用 ComfyUI 应该能实现。<br /><br />实际测试过程中，发现产品会变形，会重画，这个不行，会被 Temu 罚款。<br /><br />ComfyUI 刚接触，了解的不深。<br /><br />所以问问大家还有没有其他更好的思路。最终采纳会发红包感谢。<br /><br />省流：如何把实物产品快速生成电商产品图。
 ]]></content:encoded>
-<pubDate>2025-03-20T08:36:58Z</pubDate>
 <pubDate>2025-03-20T09:42:36Z</pubDate>
 </item>
-
 <item>
 <title>[问与答] 马上装修了，准备上米家接入 homekit，刷 Home Assistant 的话玩客云、树莓派 cm4、N1 盒子哪个好啊兄弟们？比较小白</title>
 <link>https://www.v2ex.com/t/1119907</link>
@@ -16083,616 +16549,6 @@ manufacturing automation systems.</li>
 <p>总感觉有的不是语法错误也被标成了语法错误，有的有问题的反而提示不明显。导致我现在都是 cursor 生成完去 goland 改，大伙都用了啥插件？</p>
 ]]></content:encoded>
 <pubDate>2025-03-15T14:08:11Z</pubDate>
-</item>
-<item>
-<title>[分享创造] TIM 的自定义表情分组经常炸，怒而写了一个导出工具</title>
-<link>https://www.v2ex.com/t/1118713</link>
-<guid>https://www.v2ex.com/t/1118713</guid>
-<content:encoded><![CDATA[
-<p>现在唯一还剩的让我继续使用 TIM 而不是新版 QQ 的原因，就是那个自定义表情分组功能了。<br />
-TIM 的同步 2 年聊天记录福利说没就没，表情分组导出的文件是损坏的，还偶尔会炸掉变成全空，导入回来会乱掉，TIM 本身也早就不维护了，步了 QQLite 的后尘。<br />
-最近表情分组又炸了一次，感觉是时候该换成 QQNT 了，然而 QQNT 不支持自定义表情分组，只有多设备自动同步分类的表情，为了拯救旧版 QQ 内的十年老坛表情包，于是写了这个工具。</p>
-<p>地址： <a href="https://qqemote.unlucky.ninja/" rel="nofollow">https://qqemote.unlucky.ninja/</a></p>
-<p>使用方法：找到 <code>tencent files</code> 目录下的 <code>CustomFace.db/FaceStore.db</code> 文件（推荐直接用 everything 等工具搜索），拖入即可，等待处理完成后保存。</p>
-<p>全程浏览器本地处理，注意会吃掉很多内存。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:52:05Z</pubDate>
-</item>
-<item>
-<title>[Android] 国产安卓平台有哪些支持 WebDAV 的播放器 APP？</title>
-<link>https://www.v2ex.com/t/1118712</link>
-<guid>https://www.v2ex.com/t/1118712</guid>
-<content:encoded><![CDATA[
-<p>本人安卓小白，帮朋友解决用国产安卓平板播放 NAS 视频的需求，发现问题挺多的</p>
-<p>首先是国产安卓平板没有 Google Play ，平板自带商店里找不到 nPlayer 等好用的播放器</p>
-<p>随便下了几个 APP 都不支持 WebDAV 协议，而且 UI 都不太友好，名字也很怪，感觉找不到一个能用的，哪怕是能应付一下的那种</p>
-<p>个人感觉，安卓的生态圈挺糟糕的，因为实在不熟，在此求教</p>
-]]></content:encoded>
-<pubDate>2025-03-15T14:20:49Z</pubDate>
-</item>
-<item>
-<title>[推广] A 股万 0.81 免五券商开户</title>
-<link>https://www.v2ex.com/t/1118711</link>
-<guid>https://www.v2ex.com/t/1118711</guid>
-<content:encoded><![CDATA[
-<p>A 股券商朋友给的一个 [开户限时福利] 头部券商（海通）
-✅ 股票佣金 万 0.81 免五
-✅ ETF 佣金 万 0.5 免五
-融资融券利率：起步 4.5% 正常 4.2%左右</p>
-<p>👉 联系 vx：THpoYW5nODM1MA==</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:45:46Z</pubDate>
-</item>
-<item>
-<title>[问与答] 315 成都公司有点多啊。。。</title>
-<link>https://www.v2ex.com/t/1118710</link>
-<guid>https://www.v2ex.com/t/1118710</guid>
-<content:encoded><![CDATA[
-看到现在，借款，个人信息，打电话这些都有成都公司啊。。。
-]]></content:encoded>
-<pubDate>2025-03-15T09:43:28Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有多少码农工作在今天 315 曝光的行业 回头是岸～</title>
-<link>https://www.v2ex.com/t/1118709</link>
-<guid>https://www.v2ex.com/t/1118709</guid>
-<content:encoded><![CDATA[
-<p>曝光的各种大数据系统 营销系统这个行当需要的开发人员可不少。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:54:21Z</pubDate>
-</item>
-<item>
-<title>[生活] 人生实苦，何以自渡？观几个帖子有感</title>
-<link>https://www.v2ex.com/t/1118708</link>
-<guid>https://www.v2ex.com/t/1118708</guid>
-<content:encoded><![CDATA[
-<p>发布于个人博客： <a href="https://wiki.eryajf.net/pages/247697/" rel="nofollow">https://wiki.eryajf.net/pages/247697/</a></p>
-<h2>人生实苦</h2>
-<p>最近浏览几个帖子，地址分别如下：</p>
-<ul>
-<li><a href="https://v2ex.com/t/1118412" rel="nofollow">https://v2ex.com/t/1118412</a></li>
-<li><a href="https://v2ex.com/t/1118410" rel="nofollow">https://v2ex.com/t/1118410</a></li>
-<li><a href="https://v2ex.com/t/1117783" rel="nofollow">https://v2ex.com/t/1117783</a></li>
-<li><a href="https://x.com/wangzhian8848/status/1899598682397528405" rel="nofollow">https://x.com/wangzhian8848/status/1899598682397528405</a></li>
-</ul>
-<p>看完这些帖子，我的内心久久无法平静，人生实苦这四个字一直萦绕脑海，仿佛人过中年，几乎注定没有安处，哪怕你在工作中是优秀的，哪怕你在家庭中是逢源的。</p>
-<h2><a href="https://v2ex.com/t/1118412" rel="nofollow">帖子其一</a></h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.eryajf.net/imgs/2025/03/1742000659186.webp" /></p>
-<p>男主打算结婚，但对自己当下的爱情，没有丝毫的把握，对于自己的恋人，没有丝毫的平等感。不知道他在七百多条评论当中，是否能找寻到一点生活的信心。当然，从他补充的信息来看，的确女生对她没有多少爱意，但身处其中的他，因为没有太多恋爱经验，且处在他自认为不算还早的年纪，于是面对来自女生的无理要求都是迁就与忍让。</p>
-<blockquote>
-<p>她信用卡不是还欠两三万块钱嘛，我昨天想问她具体还差多少钱，她说她的事情不用我管，就跟我吵了一下。“你问这个有什么用，你替我还吗，要是你真心有这个想法，不如先把钱放在台面上，我要看的是行动而不是光嘴上说说”<br />
-其实我的本意是咱两个人快结婚了，就对一下账，看看自己的存款和负债啥的，以后结婚了也好安排如何开支，结果她就说你管你的，不用管她，两个人的账户独立开</p>
-</blockquote>
-<p>我想，现代人都经受过基本的知识教育，仿佛都开始变得十分聪明起来了，这种聪明，表现于对错误认知的认同，对错误方向的追随，对错误言行的模仿。事实上，他发出女朋友这句话的时候，我就忍不住想要捏住鼻子，味儿实在太冲了。至于是什么味儿，我想每个对此对话场景设身处地，感同身受的人，都能闻得出来。这种一听就是那种无脑短视频风的文案，被她认同，被她学习，并转而将其应用在自己最亲爱的人身上，试问该女生，仅这一个时刻，在你的内心，你们的恋人关系，又算什么呢？</p>
-<p>话说回来，我想对这个女生说，假如你并不爱他，并看不上他，请别迁就，因为步入婚姻生活之后，将要面临的问题会更多，只会加重自己的反感，从而被婚姻反噬，而这个反噬的始作俑者，正是你自己，而非旁人。</p>
-<p>当下，我们活在一个嘈杂的世界中，无数的信息，无数的内容，牵引着我们的情绪，稀释着我们的精力，内心定力或者修为不够的人，缺乏独立思考的人，很容易就会被一些表面化的认知影响，从而做出错误的言行，伤害身边的亲人，也伤害自己。</p>
-<p>爱情是一个美好的东西，是一个神圣的东西，爱人是需要爱护的，爱她，你将义无反顾，爱她，你将毫不犹豫。我很难再拿一些古代美好的爱情故事来作比，因为他们所表演(我在看陈大惠讲到一些佛法方面的视频的时候，经常听到表演这个词儿，在这里并没有贬义，我个人理解，表演是呈现，示范的意思)出来的，已实难称得上是爱情，更莫提婚姻。</p>
-<p>要知道，婚姻本就是一场更大的修行，谈到修行二字，则往往代表着更多的苦难，然而很多现代人，一听到苦难二字，则大都避之唯恐不及。在清醒的计算中，在冷静的分析下，在超凡的聪明里，人们都摒弃掉被爱情冲昏头脑的非理性，取而代之的是斤斤计较，罔顾平等，损人利己的防御性婚姻。我想，不管手段是什么，幸福才最重要，然而被理性切分的爱情，幸福早已跑的无影无踪了。最后的结果就是，用为了自己的幸福的内心，换取来种种不幸。</p>
-<hr />
-<h2><a href="https://v2ex.com/t/1118410" rel="nofollow">帖子其二</a></h2>
-<p>一个悲剧，一声叹息，留下家人，痛苦万分。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.eryajf.net/imgs/2025/03/1742000591113.webp" /></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.eryajf.net/imgs/2025/03/1742000608818.webp" /></p>
-<p>我们是从什么时候，开始迷失自我的呢？</p>
-<p>他们夫妇二人，挣钱能力并不算出众，但仍旧买了超出承载能力之外房子，因此债台高筑，赶上经济下行的时候，拆东墙补西墙的游戏玩不下去的时候，最后也只能是自食其果。</p>
-<p>我发现，我们的上一代，在购买大件物品的时候，很不愿意用贷款的形式购买，哪怕是一辆车二三十万，也尽可能拼凑整齐了才去购买。遇上完全拼凑不出来的房子的价钱时，则完全不会动买房的这个念头。他们之所以紧咬着这一种行为方式，除了朴素的不愿意欠贷之外，还有一种原始的抵触超前消费的观念。而今天的人们，被消费浪潮裹挟，借贷购买属于常态，超前消费更被认为是一种聪明人的选择。看见别人光鲜地活着，自己也不甘落后，为了维持表面上的一些享受，不惜打肿脸充胖子，种下结出恶果的种子。</p>
-<p>也许你贷款买房，是为了家庭有一个更好的居住环境，但是在已经有不小的还贷压力的情况下，还 <code>出国浮潜，澳门旅游，各种自驾</code>，那就真的是没有任何自知之明了。人最怕的是不自知，把人生当游戏，晃晃悠悠，节奏失控，最终翻车。最苦的是尚未成年的孩子，不满十岁，遭此境遇，对他个人长远的人生造成不可泯灭的影响。</p>
-<p>另外也需要思考一下：当我们在埋怨消费主义坑害人的时候，是否自己也是消费主义的鼓吹者，是否自己也身陷消费主义之中。当我们评判或批评他人不自知斤两，超前消费的时候，是否自己也是焦虑制造者(比如写文章时用一些吸引眼球的标题来耸人听闻，比如卖课程用一些刻意的假象来营造虚假的繁荣)。也许他人的苦与我们每个人的直接关系不大，但是间接上，每个人都在为这苦添砖加瓦，同时，每个人也都无法免俗地，承受这苦。</p>
-<hr />
-<h2><a href="https://v2ex.com/t/1117783" rel="nofollow">帖子其三</a></h2>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.eryajf.net/imgs/2025/03/1742000439140.webp" /></p>
-<p>首先，我无法评判带娃的种种，因为我没有资格，虽已有俩娃，但大多数时间都是在外打工，与娃娃们相处的时间非常有限。但我能体会带娃的辛苦，正如我老婆告知给我的，有孩子，带在身边，陪伴着长大，很幸福，但不快乐。甚至多数时候都是崩溃的，想要逃离却又逃离不脱。</p>
-<p>再来聊聊，婆媳以及家庭方面的话题吧，这不是一个容易解决的问题，遇上什么样的问题，完全就像是开盲盒。我先把自己在帖子下的评论拿过来：</p>
-<blockquote>
-<p>最近，家里在装修，双方又因为一些观念上的差异，开始在想法上有偏差，虽然没有达到正面碰撞的程度，但各自内心其实都是痛苦的，认为对方不尊重自己的内心想法，因此都向我倾诉过辗转难眠。这个时候，说说我自己，说实话，我的确不够强硬，面对两边的倾诉，多数时候都是和稀泥。随后，媳妇会觉得自己没和她站在一起，爸妈会觉得这儿子太软弱，什么都听媳妇的。这个加在中间的滋味的确不好受，痛到极处时，我甚至也有点怀疑自己存在的意义是什么，从来不抽烟的自己，也买了两包烟抽一抽，不过这个时候仍旧需要冷静，不能冲动，说出或者做下不好挽回的事儿。</p>
-<p>处在事情旋涡中的时候，我写了如下一段话：</p>
-<p>对于家庭里的纷争，我向来易于陷入悲观。哪怕工作中能力极强，解决问题极有条理。我害怕承担家人情绪不好的风险，结果往往这个风险就转嫁到了自己身上。在这些纷争里，我变得无措，我变得懦弱，我变得开始怀疑自己存在的意义是什么，这种内耗，是我的宿命。</p>
-<p>现在这件事儿算是过去了，回头再看，实在算是小事儿一件，但家人出现情感对冲的时候，小事儿也会把人压得喘不过气。每个人内心的成见都是一座大山，想要荡平双方内心的大山，平顺通畅，实在是难。</p>
-<p>我似乎也向来崇尚把一切想好再去做的理论，但是对于生孩子这件事儿，这句话其实没什么实践价值，拿最近装修看了大量视频攻略举例子来讲：比如中央空调，前期你可以了解十个品牌，去了解他们的优缺点，然后仿佛通过了解自己就经验十足了一般，但实际远远不是如此。当你真的要装修，需要购买的时候，需要做决策的时候，心态就完全不一样了。生孩子也是一样的，没生之前，你很难用决策的眼光来考量各种问题，而只能隔岸观火般地想啊想，这种想啊想，永远不会到达一个想好了的境地。</p>
-<p>我之前在朋友圈写过一句话：</p>
-<p>以境转心者，境迁而心衰
-以心转境，境衰而心不迁</p>
-<p>谨以此句话，与君共勉，也再次发送给我自己。</p>
-</blockquote>
-<p>我也常常在思索，家人之间针对一个事情的观念出现偏差时，究竟应该如何处理？</p>
-<ul>
-<li>有人说：这事儿谁操心，谁做主。(这话似乎没错，但没操心的人，是否果真完全就没有话语权了)</li>
-<li>有人说：像美剧里那样，一家人开家庭会议，坐在一起开诚布公谈一谈，把问题说开，每个人的想法都表达出来，最终在会议上完成最终的决策。(我个人自认为在工作中算是一个擅长开会的，但说实在的，我从未经历或组织过所谓的家庭会议，不知道国内家庭中，开过家庭会议的多不多)</li>
-<li>有人说：就应该强硬一点，遇到爱插手小家庭事务的父母，趁早远离。(我个人做不到这种“洒脱”，说远离父母就果真与父母割裂。骨子里，我还是一个孝心比较重的人，并非不理会妻子的内心，而是抛却父母谈爱妻子，实在也很难说是合理。正如古人所言：不爱其亲而爱他人者，谓之悖德。)</li>
-</ul>
-<p>我想，无论怎么说，无论怎么想，家庭并不是一个旋涡，也不是一个陷阱。自己首先不要被家人的情绪所淹没，从而迷失在自己内心的痛楚当中。该做的沟通还是要做，该用的一些方法也应该用，如果工作能处理好，是因为同事之间为了工作做好，那么就把家人的亲情这一层在内心里淡化一些，然后用类似平等的同事关系来沟通以及处理问题，效果也许并不差。</p>
-<hr />
-<h2><a href="https://x.com/wangzhian8848/status/1899598682397528405" rel="nofollow">帖子其四</a></h2>
-<p>如王所处之困局，何以解之？</p>
-<p>我无意陷入男女对立的争斗中，更无意冒犯抑郁症患者群体，针对这样一个家庭内部私事儿，作为一个旁观者，着实没有多少可指摘的。</p>
-<p>只想聊聊，个人对这件事儿的一些感想。在我个人的内心当中，似乎极其缺乏一种，通过简单的了解与判断就评价别人是一个好人或者坏人的能力，但在诸多事件里的网友那里，总能很容易就把 xx 是个坏人，xx 是个好人这样的评论发布出去。更有甚者，还有人用更加极端的言语或者愤怒来对待舆论中的人，我想：</p>
-<blockquote>
-<p>我们对愤怒者愤怒，仿佛自己从来没有愤怒过一样
-我们对辱骂者辱骂，仿佛自己从来没有辱骂过一样
-我们评判愤怒者，辱骂者的方式，并没有脱离人本性自身的窠臼
-我们以为自己维护了正义，实际上却也首先破坏了正义
-我们以为自己批判了罪恶，实际上却也批判着自己</p>
-</blockquote>
-<p>在高中时，我写下的两百页的《存在感》这本小说中，着重分析探讨了人性，从古今中外各名家观点中，包括但不限于孟子性善论，荀子性恶论，告子性无善无不善，再到与李宗吾对谈(小说设定是可以与任何人对谈)的人性论述，我最终得出的个人对人性的理解是：人使之性者，性也。大致与告子比较接近，我不爱争论人性之善恶，也没有那么热衷于惩恶扬善，我只看当事人的言行，也主张一个人对自己的言行负责，因此，我不会在王爆发的这件事里认同什么，正如在过往看他节目是不会否定什么一样。他的很多节目，很多观察，很多论点，都拓宽了我的视野，对于看他视频的我来讲，获得的收获已经值回我所花费的时间，这就够了。我佩服他，但也并不会神话他，因为神话一个人，就等于害了这个人。</p>
-<p>现在回想起来，他在这些年里，背后经受那样的遭遇(指在困厄的家庭生活中，家庭中的每个人都是受害者)，还坚持做出这些节目，实属不易。但他也正陷入一种悖论之中，亦即：基于他所从事的工作的特殊性，他做的越出色，对于他家庭里的人，所面临的挑战与考验也就越大。你自己可能看破了，义无反顾讲评这世界上所有不平的事儿，然而被他讲评了的这些事儿里边的人，则绝不会君子般地只针对王一个人，相反，大多数时候，你的敌人都会拿你身边的人来威胁你，这也恰恰是最奏效的。然而他身边的人何其无辜耶！当身边的人理解时，尚可成为支持他的一份子，当身边的人不解时，众叛亲离似乎也是理所应当。</p>
-<p>但，人活一世，又有几个人，愿意面对众叛亲离的场景呢？</p>
-<p>王当然不是一个圣人，更不是一个十恶不赦的人，假如他私德有亏，你当然可以在内心里对他进行减分，但若是因噎废食，因人废言，那就是我们自己内心不够成熟的表现了。</p>
-<p>我作为一个后生，经历以及资历都非常浅薄，当然没有什么能嘱咐他的，但他所经历的事儿，却能给我们每个人以启示，没有人能用上帝视角活在这个世界，很多事儿我们逃避不掉，这正是我们需要经历的苦难。</p>
-<hr />
-<h2>何以自渡</h2>
-<p>最后，我想聊聊，在如此多现实生活的困境中，我们，一个普普通通的平凡人，究竟如何自渡？</p>
-<p>大多数个人的理解，在上边逐个聊的时候都已经表露，这里就再简单做一些归总。</p>
-<p>我个人觉得，首先要有端正的认知，上文用到了几个关于聪明的概述，但实则都是带双引号的聪明，我们很多时候，看似用自己的聪明经营着自己的生活，但往往都是在用非常浅显，不值一驳的伪道理来指导着自己的生活，看似耍了聪明，但实际是在伤害自己。</p>
-<p>其次还要有持续不断的内心修炼自觉，大多数人面对生活中的困苦或者苦难，首先冒出的表现就是深陷其中，痛苦不堪，而很少有人试图把自己的心从苦难的遭遇中抽离出来，将之视为一场修炼(虽然这可能有点站着说话不腰疼，但我认为这应该是一条正道)。关于自我修炼，我还想拿出这句话来共勉：</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://t.eryajf.net/imgs/2025/03/1742041191154.webp" /></p>
-<p>最后，愿你饱经沧桑，历尽苦难，仍旧保持中正，活好自己。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:41:44Z</pubDate>
-</item>
-<item>
-<title>[VPS] 国内 vps 如何安装 newrelic</title>
-<link>https://www.v2ex.com/t/1118707</link>
-<guid>https://www.v2ex.com/t/1118707</guid>
-<content:encoded><![CDATA[
-即使 export http_proxy 设置了代理，依然会安装失败
-]]></content:encoded>
-<pubDate>2025-03-15T13:37:09Z</pubDate>
-</item>
-<item>
-<title>[问与答] 看到好几个不同的 GPT 拼车服务，一般都用的啥实现的？</title>
-<link>https://www.v2ex.com/t/1118706</link>
-<guid>https://www.v2ex.com/t/1118706</guid>
-<content:encoded><![CDATA[
-<p>没注册账号进去看，有没有用过的老哥说一下，API ？还是请求中转之类的</p>
-]]></content:encoded>
-<pubDate>2025-03-15T14:09:53Z</pubDate>
-</item>
-<item>
-<title>[Linux] 通过 network namespace 的接口，可以访问宿主机的服务吗？</title>
-<link>https://www.v2ex.com/t/1118705</link>
-<guid>https://www.v2ex.com/t/1118705</guid>
-<content:encoded><![CDATA[
-<p>背景：我用以下的脚本在宿主机上，在 wg0-ns 上，开启了一个 wireguard 接口<br />
-在其他机器上可以正常 ping 通 wg0-ns 这个 namespace 上的 wg0<br />
-我想通过这个 wg0 ，在其他设备上访问到宿主机服务 比如 http ssh 等<br />
-问了 AI 还没有搞定        </p>
-<pre><code>#!/bin/bash
-ip netns exec wg0-ns ip link del dev $WG_INTERFACE
-ip netns del wg0-ns
-ip netns add wg0-ns
-ip link add dev $WG_INTERFACE type wireguard
-ip link set $WG_INTERFACE netns wg0-ns
-ip netns exec wg0-ns ip address add dev $WG_INTERFACE 192.168.11.8/24
-ip netns exec wg0-ns ip -6 address add dev $WG_INTERFACE 'fd08:6381:11::8/64'
-ip netns exec wg0-ns wg set $WG_INTERFACE private-key /etc/wg0/private.key
-ip link add veth-host type veth peer name veth-ns netns wg0-ns
-ip link set veth-host up
-ip addr add 192.168.222.1/24 dev veth-host
-ip netns exec wg0-ns ip link set veth-ns up
-ip netns exec wg0-ns ip addr add 192.168.222.2/24 dev veth-ns
-ip netns exec wg0-ns ip route add default via 192.168.222.1
-iptables -t nat -I POSTROUTING 1 -s 192.168.222.0/24 -j MASQUERADE
-ip netns exec wg0-ns sh -c "echo 'nameserver 114.114.114.114' &gt; /etc/resolv.conf"
-ip netns exec wg0-ns wg set $WG_INTERFACE peer $PEER_PUBKEY preshared-key /etc/wg0/preshared.key endpoint $PEER_ENDPOINT persistent-keepalive 60 allowed-ips 192.168.11.0/24,fd08:6381:11::/64
-ip netns exec wg0-ns ip link set up dev $WG_INTERFACE
-</code></pre>
-]]></content:encoded>
-<pubDate>2025-03-15T10:28:54Z</pubDate>
-</item>
-<item>
-<title>[宽带症候群] [求指导] 北京联通换光猫后配置 IPTV 连接无组播数据</title>
-<link>https://www.v2ex.com/t/1118704</link>
-<guid>https://www.v2ex.com/t/1118704</guid>
-<content:encoded><![CDATA[
-<p>如题，之前为了突破千兆换了 7615 光猫，配置里面没有 IPTV 3964 的连接，手动用管理员账号添加了下能获得 IP ，也配置了 3996/4000 的组播,插网线试了下没法打开 rtp://239.3.1.1:8000 ，网上没什么资料了，请各位不吝赐教。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:21:24Z</pubDate>
-</item>
-<item>
-<title>[京东] ===那些说京东购物体验好的再回来看看===</title>
-<link>https://www.v2ex.com/t/1118703</link>
-<guid>https://www.v2ex.com/t/1118703</guid>
-<content:encoded><![CDATA[
-<p>当时我买京东礼品卡时，使用规则可没有说不能在某个具体的店铺下单。我现在在京东自营店铺下单，却不让使用京东礼品卡。他们想违反礼品卡使用规则就违反了。</p>
-<p>我已经有二、三年没有在京东下一单了，再次证明不在京东购物是对的。这次因为礼品卡就要到期了。</p>
-<p>而且客服像个白痴一样，我说要以我当时下单礼品卡使的合同为准，当时并没有说不允许。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T11:08:25Z</pubDate>
-</item>
-<item>
-<title>[程序员] 为什么很多人喷 Java 开发者离了 spring 框架就不会写代码了</title>
-<link>https://www.v2ex.com/t/1118702</link>
-<guid>https://www.v2ex.com/t/1118702</guid>
-<content:encoded><![CDATA[
-<p>其他语言使用不也使用框架,而且封装的更方便, 还有很多语言的标准库就直接有类似 spring 的功能了</p>
-]]></content:encoded>
-<pubDate>2025-03-15T14:09:27Z</pubDate>
-</item>
-<item>
-<title>[程序员] 现在玩 neovim 最简单得方式是什么</title>
-<link>https://www.v2ex.com/t/1118701</link>
-<guid>https://www.v2ex.com/t/1118701</guid>
-<content:encoded><![CDATA[
-<p>很久没用了</p>
-<p>又想试一试</p>
-<p>现在用什么配置比较好, 实在太多</p>
-<p>想看看有什么简洁快速得方案, 我主要也就看看文件, 快速浏览文件, 不用来当 ide 开发, 不折腾配置
-最好零配置, 直接用, 稳定不经常升级得版本</p>
-]]></content:encoded>
-<pubDate>2025-03-15T14:17:37Z</pubDate>
-</item>
-<item>
-<title>[iOS] 如何在锁屏状态下启动某些快捷指令？</title>
-<link>https://www.v2ex.com/t/1118700</link>
-<guid>https://www.v2ex.com/t/1118700</guid>
-<content:encoded><![CDATA[
-RT ，发现使用自动化并不能在锁屏状态下自动启动某些指令，结果就是使用闹钟来执行，仍处于半自动的一种状态
-]]></content:encoded>
-<pubDate>2025-03-13T12:50:37Z</pubDate>
-</item>
-<item>
-<title>[问与答] 深度求索（DeepSeek）的吉祥物是一只名为“深度鸭”的鸭子？</title>
-<link>https://www.v2ex.com/t/1118699</link>
-<guid>https://www.v2ex.com/t/1118699</guid>
-<content:encoded><![CDATA[
-<a href="https://i.imgur.com/L1jw1Ah.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/L1jw1Ah.png" /></a><br />这是 deepseek 刚给我的回复<br /><br /><a href="https://i.imgur.com/Y9GV5Rd.jpeg" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/Y9GV5Rd.jpeg" /></a><br />这是 deepseek 以前的回复<br /><br /><a href="https://www.saraba1st.com/2b/thread-2244922-1-1.html" rel="nofollow noopener" target="_blank">https://www.saraba1st.com/2b/thread-2244922-1-1.html</a> 这里也有一些相关讨论<br /><br />所以 deepseek 说它的吉祥物是“深度鸭”是不是胡说八道呢？
-]]></content:encoded>
-<pubDate>2025-03-14T12:45:13Z</pubDate>
-</item>
-<item>
-<title>[VPS] 使用 cloudflare tunnel 的网站在安卓 opera 上不能显示 speeddial 怎么办，我有很多其他网站放在 vps 上的，都能显示</title>
-<link>https://www.v2ex.com/t/1118698</link>
-<guid>https://www.v2ex.com/t/1118698</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-03-15T08:44:59Z</pubDate>
-</item>
-<item>
-<title>[问与答] 在淘宝买的 ultra mobile paygo 激活后隔天就封了？ 什么原因呢</title>
-<link>https://www.v2ex.com/t/1118697</link>
-<guid>https://www.v2ex.com/t/1118697</guid>
-<content:encoded><![CDATA[
-<p>我去搜了小红书也有好几个这样的，不知道是风控加强了，还是淘宝那些卡来路有问题。。。。。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T13:58:21Z</pubDate>
-</item>
-<item>
-<title>[分享创造] R！用 Rust 搓了一个表达式引擎</title>
-<link>https://www.v2ex.com/t/1118696</link>
-<guid>https://www.v2ex.com/t/1118696</guid>
-<content:encoded><![CDATA[
-<p><a href="https://docs.rs/value-expr/0.1.1/value_expr/" rel="nofollow">https://docs.rs/value-expr/0.1.1/value_expr/</a></p>
-<p><a href="https://github.com/ukuq/value-expr" rel="nofollow">https://github.com/ukuq/value-expr</a></p>
-<p>基于特定场景简化了，语法定义上很简单，条件、变量、循环都有了，还能结合 FuncLike 实现一些更复杂的场景</p>
-<pre><code>Value:
-    i32
-    | Unary
-    | Binary
-    | Assign
-    | Paren
-    | FuncLike
-    | Ident
-Unary:
-    - Value
-    | ! Value
-Binary:
-    Value + Value
-    | Value - Value
-    | Value * Value
-    | Value / Value
-    | Value % Value
-    | Value ^ Value
-    | Value &amp; Value
-    | Value | Value
-    | Value &lt;&lt; Value
-    | Value &gt;&gt; Value
-    | Value == Value
-    | Value != Value
-    | Value &gt; Value
-    | Value &lt; Value
-    | Value &gt;= Value
-    | Value &lt;= Value
-    | Value &amp;&amp; Value
-    | Value || Value
-Assign:
-    Ident = Value
-    | Ident += Value
-    | Ident -= Value
-    | Ident *= Value
-    | Ident /= Value
-    | Ident %= Value
-    | Ident ^= Value
-    | Ident &amp;= Value
-    | Ident |= Value
-    | Ident &lt;&lt;= Value
-    | Ident &gt;&gt;= Value
-Paren:
-    ( Values )
-FuncLike:
-    Ident ( Values )
-Values:
-    &lt;nothing&gt;
-    | ValuesNext
-ValuesNext:
-    Value
-    | Value , ValuesNext
-Ident:
-    &lt;the rust lang ident&gt;
-</code></pre>
-<p>样例也很简单</p>
-<pre><code class="language-rust">fn demo() {
-    let mut ctx = DemoContext::default();
-    //条件
-    ctx.exec(
-        "(
-            _assert(_if(1,2,3)==2),
-            _assert(_if(-1,2,3)==3),
-            )",
-    );
-    //函数
-    ctx.exec(
-        "(
-            _fn(add,a+b,a,b),
-            _assert(add(1)==1),
-            _assert(add(1,2)==3),
-            _assert(_call(add,1,2)==3)
-            )",
-    );
-    //循环
-    ctx.exec(
-        "_log(_while,
-            i=10,
-            _while(i&lt;100000,
-                _if(i%10000==0,_log(i_is,i)),
-                i+=1,
-                i
-            )
-            )",
-    );
-    //递归
-    ctx.exec(
-        "(
-            _fn(fib1,_if(n&lt;2,a2,fib1(n-1,a2,a1+a2)),n,a1,a2),
-            _fn(fib,fib1(n,1,1),n),
-            _log(fib,fib(0),fib(1),fib(2),fib(3),fib(10),fib(19)),
-            _assert(6765==fib(19))
-            )",
-    );
-    //作用域
-    ctx.exec(
-        "(
-            _scope(a=100,_assert(a==100)),
-            _scope(a=100,_scope(_assert(a==100))),
-            _scope(a=100,a=200,_assert(a==200)),
-            _scope(a=100,_scope(a=200),_assert(a==100)),
-            _fn(f1,_assert(a==0)),
-            _scope(a=100,_fn(f1,_assert(a==100))),
-            _scope(a=100,_fn(f1,(a=200,_assert(a==200))),_assert(a==100))
-            )",
-    );
-}
-</code></pre>
-]]></content:encoded>
-<pubDate>2025-03-15T12:37:57Z</pubDate>
-</item>
-<item>
-<title>[Apple] 苹果为什么管不住 app 在公共目录乱拉屎</title>
-<link>https://www.v2ex.com/t/1118694</link>
-<guid>https://www.v2ex.com/t/1118694</guid>
-<content:encoded><![CDATA[
-<p>[img]( <a href="https://img.picui.cn/free/2025/03/15/67d56e55bfa0b.png" rel="nofollow">https://img.picui.cn/free/2025/03/15/67d56e55bfa0b.png</a> ）</p>
-<p>如图所示，这不是公共目录吗？删了又创建，苹果管不住吗？不是说苹果的权限很严格吗？</p>
-<p>里面一堆各种 log ，怎么跟安卓一样想怎么拉就怎么拉？</p>
-]]></content:encoded>
-<pubDate>2025-03-14T18:24:57Z</pubDate>
-</item>
-<item>
-<title>[Apple] 老生常谈， iPhone 莫名跳出来要修改锁屏密码</title>
-<link>https://www.v2ex.com/t/1118693</link>
-<guid>https://www.v2ex.com/t/1118693</guid>
-<content:encoded><![CDATA[
-<p>媳妇的手机莫名跳出来要修改锁屏密码。 锁屏可以暂时屏蔽，但是过一会又跳出来。重启也是一样。</p>
-<p>第一次改了一样的密码，还是会跳出来。后来又改了一次换了最后一位，暂时没了。</p>
-<p>好像以前也出现过一次。</p>
-<p>不知道是什么原因会这样，我自己用 iPhone 这么多年了，从来没遇到过。</p>
-]]></content:encoded>
-<pubDate>2025-03-15T12:17:48Z</pubDate>
-</item>
-<item>
-<title>[Visual Studio Code] go to last edit location 只可以返回一次</title>
-<link>https://www.v2ex.com/t/1118692</link>
-<guid>https://www.v2ex.com/t/1118692</guid>
-<content:encoded><![CDATA[
-<p>vscode 的 go to last edit location 只可以返回一次，有没有办法或有什么插件类似 intellij idea 那样，可以返回之前多次编辑的位置</p>
-]]></content:encoded>
-<pubDate>2025-03-15T12:16:51Z</pubDate>
-</item>
-<item>
-<title>[问与答] 现在的 ChatGPT 怎么感觉有机器味没那么重了，甚至有些“野”，越来越像程序员说话了</title>
-<link>https://www.v2ex.com/t/1118691</link>
-<guid>https://www.v2ex.com/t/1118691</guid>
-<content:encoded><![CDATA[
-<p>现在的 ChatGPT 怎么感觉有机器味没那么重了，甚至有些“野”，越来越像程序员说话了，不过这现在 ChatGPT 我喜欢。</p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://imgur.com/kc8Hk4J.jpg" /></p>
-<p><a href="https://imgur.com/a/kc8Hk4J.jpg" rel="nofollow">https://imgur.com/a/kc8Hk4J.jpg</a></p>
-<p><img alt="" class="embedded_image" rel="noreferrer" src="https://imgur.com/4gNMAkA.jpg" /></p>
-<p><a href="https://imgur.com/4gNMAkA.jpg" rel="nofollow">https://imgur.com/4gNMAkA.jpg</a></p>
-]]></content:encoded>
-<pubDate>2025-03-15T12:36:52Z</pubDate>
-</item>
-<item>
-<title>[问与答] 一个工具 同时调用 2 个 ai。</title>
-<link>https://www.v2ex.com/t/1118689</link>
-<guid>https://www.v2ex.com/t/1118689</guid>
-<content:encoded><![CDATA[
-现在用的 cherry studio + monia 都是一个个的。<br />想每次提问 直接 腾讯  豆包，都发出去，同时用好几个。
-]]></content:encoded>
-<pubDate>2025-03-11T11:52:30Z</pubDate>
-</item>
-<item>
-<title>[生活] 要给父母买百万医疗险吗？算了下俩人 20 年保费 13.2w，平均每年 6.6k</title>
-<link>https://www.v2ex.com/t/1118688</link>
-<guid>https://www.v2ex.com/t/1118688</guid>
-<content:encoded><![CDATA[
-那款医疗险保障范围还可以，除了手术住院费，各类常见的外购靶向药也都可以报，而且不限制药店和是否使用医保；父母俩人目前 55 岁，身体健康。我给自己买了蚂蚁上面的好医保长期医疗旗舰版，年轻保费很低，一年三百多。<br /><br /><br />你们是如何看待百万医疗险的？给自己和老人配置这类医疗险必要吗？
-]]></content:encoded>
-<pubDate>2025-03-15T12:01:44Z</pubDate>
-</item>
-<item>
-<title>[程序员] 有没有开源靠谱的青龙平替选择?</title>
-<link>https://www.v2ex.com/t/1118687</link>
-<guid>https://www.v2ex.com/t/1118687</guid>
-<content:encoded><![CDATA[
-<p>看 V2 帖子, 青龙有拿用户当肉鸡的嫌疑, 想找个开源的平替, 生态能好些最好, 拿来做一些网站的自动签到, 比如 HIFI 之类的. 比较多的应该是 js/python 脚本, 平台能方便插入自定义插件或功能就行.</p>
-]]></content:encoded>
-<pubDate>2025-03-15T11:31:54Z</pubDate>
-</item>
-<item>
-<title>[分享创造] [开源] 闲鱼智能回复助手—Xianyu AutoAgent</title>
-<link>https://www.v2ex.com/t/1118686</link>
-<guid>https://www.v2ex.com/t/1118686</guid>
-<content:encoded><![CDATA[
-<h1>🚀 Xianyu AutoAgent</h1>
-<p>专为闲鱼平台打造的 AI 值守解决方案，实现闲鱼平台 7×24 小时自动化值守，支持多专家协同决策、智能议价和上下文感知对话。</p>
-<h2>🌟 核心特性</h2>
-<h3>智能对话引擎</h3>
-<table>
-<thead>
-<tr>
-<th>功能模块</th>
-<th>技术实现</th>
-<th>关键特性</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>上下文感知</td>
-<td>会话历史存储</td>
-<td>轻量级对话记忆管理，完整对话历史作为 LLM 上下文输入</td>
-</tr>
-<tr>
-<td>专家路由</td>
-<td>LLM prompt+规则路由</td>
-<td>基于提示工程的意图识别 → 专家 Agent 动态分发，支持议价/技术/客服多场景切换</td>
-</tr>
-</tbody></table><h3>业务功能矩阵</h3>
-<table>
-<thead>
-<tr>
-<th>模块</th>
-<th>已实现</th>
-<th>规划中</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>核心引擎</td>
-<td>✅ LLM 自动回复<br />✅ 上下文管理</td>
-<td>🔄 情感分析增强</td>
-</tr>
-<tr>
-<td>议价系统</td>
-<td>✅ 阶梯降价策略</td>
-<td>🔄 市场比价功能</td>
-</tr>
-<tr>
-<td>技术支持</td>
-<td>✅ 网络搜索整合</td>
-<td>🔄 RAG 知识库增强</td>
-</tr>
-<tr>
-<td>运维监控</td>
-<td>✅ 基础日志</td>
-<td>🔄 钉钉集成<br />🔄  Web 管理界面</td>
-</tr>
-</tbody></table><h2>🎨效果图</h2>
-<p><a href="https://imgse.com/i/pEarA56" rel="nofollow"><img alt="pEarA56.md.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/03/15/pEarA56.md.png" /></a></p>
-<p><a href="https://imgse.com/i/pEare2D" rel="nofollow"><img alt="pEare2D.md.png" class="embedded_image" rel="noreferrer" src="https://s21.ax1x.com/2025/03/15/pEare2D.md.png" /></a></p>
-<h2>🚴项目地址</h2>
-<p><a href="https://github.com/shaxiu/XianyuAutoAgent" rel="nofollow">https://github.com/shaxiu/XianyuAutoAgent</a></p>
-<h2>🙏结语</h2>
-<p>如果大佬们觉得有意思欢迎 Star⭐</p>
-<p>在使用中遇到任何问题或者有任何建议都可以告诉我，十分感谢！</p>
-<h2>📮关于我</h2>
-<p>一个计算机专业的 26 届准毕业生</p>
-<p>正在寻找 AI 产品经理相关实习机会</p>
-<p>期待与各位前辈交流： <a href="mailto:coderxiu@qq.com">coderxiu@qq.com</a></p>
-]]></content:encoded>
-<pubDate>2025-03-15T11:15:37Z</pubDate>
-</item>
-<item>
-<title>[硬件] U2725 到了，分享下感受</title>
-<link>https://www.v2ex.com/t/1118685</link>
-<guid>https://www.v2ex.com/t/1118685</guid>
-<content:encoded><![CDATA[
-京东自营国补后 3994 元入手，之前用的是 U2723 ，这次新升级了 120Hz ，就换了。个人主要接 Mac 用来上网、看书、看视频，未来也打算组个游戏 PC 玩玩 3A 游戏。<br /><br />1. 120Hz 效果不错，我的外置妙控板也能以 120Hz 轮询率工作，非常丝滑。<br /><br />2. 感觉拖影是有点严重的。macOS 里 Launchpad 来回划，图标的拖影确实比较长，打开了 5ms 的快速响应模式感觉也没好多少，不过后来我用我的 MBA 内屏划了几下，内屏拖影也很严重，所以我选择自适应了。<br /><br />3. HDR 模式下，非 HDR 内容发灰。我打开了显示器设置里的 Display HDR 600 模式，看 YouTube 的 HDR 视频效果非常爽，但是非 HDR 内容完全不能看，灰的厉害，所以只能关掉 HDR 了。另外我还有台带 XDR 屏幕的 MBP ，非 HDR 和 HDR 内容都能正常显示，所以感觉是 macOS 对非 Apple 显示器的支持不好导致的<br /><br />还有什么想了解的欢迎留言
-]]></content:encoded>
-<pubDate>2025-03-15T12:28:35Z</pubDate>
-</item>
-<item>
-<title>[程序员] 把 ext4 / NTFS 这样的有日志 FS 放在无日志的 exFAT 里，有好处吗？</title>
-<link>https://www.v2ex.com/t/1118684</link>
-<guid>https://www.v2ex.com/t/1118684</guid>
-<content:encoded><![CDATA[
-<p>有一些虚拟文件系统比如 vhd 、vdi 、img 文件可以直接挂载成一个块设备，如果把这个块设备格式化为 ext 、btrfs 、NTFS 这样的有日志文件系统，在里面读写文件还能享受到日志的好处吗？</p>
-<p>手上有一些盘要长期给 Windows / Linux 用，不需要能够互相读取文件，但是希望 Windows / Linux 都可以直接用，不需要每次都格式化成 NTFS / btrfs 。如果用 exFAT 的话，总觉得长期使用并不安全。</p>
-<p>最简单的办法是直接给盘分两个区，一个 NTFS 一个 BTRFS ，但是这样分区容量就基本定死了，调整起来很不方便，要在一个系统里释放空间，在另一个系统里吃掉空间。</p>
-<p>于是想到了，如果把硬盘格式化成 exFAT ，然后创建两个 vhd ，一个格式化成 btrfs ，另一个格式化成 NTFS ，直接写到 fstab 里，进系统就能用了。</p>
-<p>但是好奇这样在 exFAT 里面放一个日志文件系统，真的比只有 exFAT 安全吗？</p>
-<p>（当然也可以挂 NAS 上全部走网络，只是租房子住，目前没条件组有线网络啊）</p>
-]]></content:encoded>
-<pubDate>2025-03-15T12:04:18Z</pubDate>
-</item>
-<item>
-<title>[程序员] 最经发现 AI 做后端技术方案也是大有可为，直接输入 PRD + 规范</title>
-<link>https://www.v2ex.com/t/1118683</link>
-<guid>https://www.v2ex.com/t/1118683</guid>
-<content:encoded><![CDATA[
-<p>设想的是方案中依赖的接口等信息，从 MCP 中获取，不过目前我是维护了一些常用依赖的文档。<br />
-一些需求，几轮迭代之后，方案也是基本可以落地了。<br />
-目前 AI 独立开发需求几乎不可能。<br />
-那么分成两阶段：</p>
-<ol>
-<li>生成方案，和人类对齐</li>
-<li>方案生成代码
-是一个更现实的流程。</li>
-</ol>
-]]></content:encoded>
-<pubDate>2025-03-15T11:10:53Z</pubDate>
-</item>
-<item>
-<title>[推广] 算法推理助手通杀标准加密库</title>
-<link>https://www.v2ex.com/t/1118680</link>
-<guid>https://www.v2ex.com/t/1118680</guid>
-<content:encoded><![CDATA[
-<blockquote>
-<p>大家都知道现在的网站、小程序、应用程序已经没办法通过简单抓包实现解密分析了，但是专业人士当我没说，但普通人要想解密加密后的数据，基本上是难上加难，今天给大家带来的算法助手可以轻松破解标准加密库！让大家可以轻松解密数据包！</p>
-</blockquote>
-<h3>支持算法列表</h3>
-<p>1.Hash 系列：MD5,MD5-Middle,SHA1,SHA256,SM3</p>
-<p>2.AES 系列：ECB/CBC/CFB-128/192/256 位</p>
-<p>3.DES 系列：ECB/CBC/CFB</p>
-<p>4.TripleDes 系列：ECB/CBC/CFB</p>
-<p>5.SM4 系列：ECB/CBC</p>
-<p>6.HMAC 系列：MD5,MD5-Middle,SHA1,SHA256,SHA512,SM3</p>
-<p>7.其他算法：RC4,RSA</p>
-<p>使用须知：HMAC 系列强烈建议填写已知字段!!!</p>
-<h3>工具地址</h3>
-<p><a href="https://lygzblog.cn/223.html" rel="nofollow">https://lygzblog.cn/223.html</a></p>
-]]></content:encoded>
-<pubDate>2025-03-15T11:45:12Z</pubDate>
-</item>
-<item>
-<title>[推广] 香港手机卡 ClubSIM， 0 月租</title>
-<link>https://www.v2ex.com/t/1118679</link>
-<guid>https://www.v2ex.com/t/1118679</guid>
-<content:encoded><![CDATA[
-<p>还有 6 张买多了，便宜出了。</p>
-<p>65/张 包邮</p>
-<p>联系电报： <a href="https://t.me/mark5868988" rel="nofollow">https://t.me/mark5868988</a></p>
-]]></content:encoded>
-<pubDate>2025-03-15T10:57:15Z</pubDate>
 </item>
 </channel>
 </rss>
