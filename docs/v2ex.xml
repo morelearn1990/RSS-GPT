@@ -5,14 +5,127 @@
 <link>https://www.v2ex.com/</link>
 
 <item>
+<title>[问与答] [广州][外资银行]Head, Cloud Delivery</title>
+<link>https://www.v2ex.com/t/1120375</link>
+<guid>https://www.v2ex.com/t/1120375</guid>
+<content:encoded><![CDATA[
+
+tldr;<br /><br />职位<br />公有云扛把子（字面意思）<br /><br />要求<br />. 由于这个职位很高，经验要求就不在这里量化了，简单来说就是一个能写代码的高层，具体要做的事情看下面。<br />. 能写代码 （很重要）<br />. 负责银行公有云(aws,azure)的设计，落地，维护，优化，安全。<br />. 管理整个中国公有云团队，包括人员和技术两块。<br />. 收入可观（是真的可观）<br />. 有证书优先：AWS, AZURE, TOGAF, CCSP, CKA/CKAD <br />. 英语工作语言，要和全球大佬对接，要求比较高。<br /><br />福利<br />. 总包私聊<br />. 20+ 天带薪年假<br />. 远程工作 人在广州 弹性时间<br /><br />联系<br />电报：@elaijuh
+]]></content:encoded>
+<pubDate>2025-03-22T16:26:31Z</pubDate>
+<pubDate>2025-03-22T16:26:31Z</pubDate>
+</item>
+<item>
+<title>[Next.js] Next.js 零日漏洞 CVE-2025-29927 一个请求头直接绕过中间件</title>
+<link>https://www.v2ex.com/t/1120374</link>
+<guid>https://www.v2ex.com/t/1120374</guid>
+<content:encoded><![CDATA[
+
+<p><a href="https://github.com/advisories/GHSA-f82v-jwr5-mffw" rel="nofollow">https://github.com/advisories/GHSA-f82v-jwr5-mffw</a></p>
+<p>尽快升级到最新版本。</p>
+<p>如果无法短期内升级，拦截一切 HTTP Header 包含 <code>x-middleware-subrequest</code> 的请求。</p>
+<p>受影响的版本：</p>
+<pre><code>&gt;= 11.1.4, &lt;= 13.5.6
+&gt;= 14.0, &lt; 14.2.25
+&gt;= 15.0, &lt; 15.2.3
+</code></pre>
+<p>官方 Patch 安全版本：</p>
+<pre><code>14.2.25
+15.2.3
+</code></pre>
+<p>扫了一眼解决方案，这个给中间件的白名单请求头现在改成了一个随机的 8 字节 ID ，标识中间件子请求的来源，被添加到请求头 x-middleware-subrequest-id 。如果请求头中的 x-middleware-subrequest-id 与全局存储的 ID 不匹配，则删除 x-middleware-subrequest 请求头。此更改确保了只有来自相同会话的子请求才会被视为中间件子请求。
+<a href="https://github.com/vercel/next.js/commit/52a078da3884efe6501613c7834a3d02a91676d2" rel="nofollow">https://github.com/vercel/next.js/commit/52a078da3884efe6501613c7834a3d02a91676d2</a></p>
+]]></content:encoded>
+<pubDate>2025-03-22T16:21:57Z</pubDate>
+<pubDate>2025-03-22T12:21:57Z</pubDate>
+</item>
+<item>
+<title>[宽带症候群] 小天才手表默认广播 ipv6 路由网关,导致整个家庭 v6 网络瘫痪</title>
+<link>https://www.v2ex.com/t/1120373</link>
+<guid>https://www.v2ex.com/t/1120373</guid>
+<content:encoded><![CDATA[
+
+<p>最近家庭网络很奇怪,经常出现断断续续的问题. 具体症状就是有些 v6 的 ip, 有时候可以访问,有时候不行.
+我登录家庭的一台 Ubuntu 服务器, 查看 ipv6 地址, 发现是正常的.但是就是 ping 不通任何的 v6 网站. 但是 windows 的电脑,可以访问 v6 网站.
+开始一步步排查.</p>
+<h3>1. 查看 Ubuntu 的 ip6 路由表, 发现一个很奇怪的路由.</h3>
+<pre><code class="language-shell">root@home-x79:/data/conf# ip -6 route
+::1 dev lo proto kernel metric 256 pref medium
+2409:1234:c16:e290::/64 dev br0 proto ra metric 100 expires 86198sec pref medium
+fe80::/64 dev br0 proto kernel metric 256 pref medium
+default proto ra metric 100 expires 8798sec mtu 1500 pref low
+        nexthop via fe80::1 dev br0 weight 1
+        nexthop via fe80::7a2e:3ff:fe76:b14b dev br0 weight 1
+
+</code></pre>
+<p>重点来了, 发现多了一个路由. nexthop via fe80::7a2e:3ff:fe76:b14b dev br0 weight 1</p>
+<h3>2. 查询为啥多了这个 v6 的网关.  使用命令</h3>
+<pre><code>ip -6 neigh show dev br0
+</code></pre>
+<p>查到了网关 mac 地址   </p>
+<pre><code>fe80::7a2e:3ff:fe76:b14b lladdr 78:2e:03:00:00:00 router STALE
+</code></pre>
+<h3>3. 很神奇, 为啥会有这个设备, 主动发送 v6 路由的广播. 根据 mac 地址, 去 mac 地址库查询, 发现是小天才公司的电话手表.</h3>
+<h3>4. 登录路由器, 查询 dhcp 分配的 ip, 果然是小天才手表的 mac.</h3>
+<h3>5. 找到原因了,断开小天才手表的网络, 刷新 Ubuntu 的 v6 路由表, 网络恢复正常.</h3>
+<p>我目前的疑问是. 为何小天才手表连接到家庭 WiFi 后,会发送 ipv6 的路由广播, 让整个局域网的 v6 路由,从小天才手表通过. 莫非是为了有啥特别的用途? 还是程序有 bug.</p>
+]]></content:encoded>
+<pubDate>2025-03-22T15:47:54Z</pubDate>
+<pubDate>2025-03-22T16:24:29Z</pubDate>
+</item>
+<item>
+<title>[问与答] 清明去大阪京都看樱花，四天三晚，有什么建议吗</title>
+<link>https://www.v2ex.com/t/1120372</link>
+<guid>https://www.v2ex.com/t/1120372</guid>
+<content:encoded><![CDATA[
+
+说是四天三夜，其实第一天到大阪了也已经晚上了  打算看看心斋桥什么的夜市  第一天就过去了<br /><br /><br />酒店特别贵 所以提前订了 第一二晚在大阪，第三晚在京都<br /><br />1 打算最后两天都在京都玩 清水寺 伏见稻荷大社 花见小路这些肯定要去 然后看樱花打算去小红书推荐的背割堤<br /><br />求问 1：京都的路线需不需要优化，看樱花还有推荐的地方吗<br /><br />2 第二天空出来一天 据说大阪没什么意思（不打算去环球影城），有人推荐神户，或者奈良<br />求问 2  哪个更推荐？<br /><br />求问 3 大阪和京都有什么好吃的饭店推荐<br /><br />谢谢！
+]]></content:encoded>
+<pubDate>2025-03-22T15:42:10Z</pubDate>
+<pubDate>2025-03-22T15:42:10Z</pubDate>
+</item>
+<item>
+<title>[程序员] 支付宝小程序如何跳转到 h5 页面？</title>
+<link>https://www.v2ex.com/t/1120371</link>
+<guid>https://www.v2ex.com/t/1120371</guid>
+<content:encoded><![CDATA[
+
+<p>支付宝小程序如何跳转到 h5 页面， 不通过 白名单，和 openUrl 。 这个确实能实现，但是对方不愿告诉我方法， 友友没知道吗？</p>
+]]></content:encoded>
+<pubDate>2025-03-22T15:36:14Z</pubDate>
+<pubDate>2025-03-22T15:36:14Z</pubDate>
+</item>
+<item>
+<title>[奇思妙想] 好奇 90 后当年用的哪些非主流头像是哪里来的</title>
+<link>https://www.v2ex.com/t/1120370</link>
+<guid>https://www.v2ex.com/t/1120370</guid>
+<content:encoded><![CDATA[
+
+<p>当年老喜欢这些照片了，我觉得那些非主流照片上的人简直和我是两个世界的人，要是能认识他们就好了。可惜到现在我也没有认识到这些人。</p>
+<p>我很好奇这些照片是哪里来的，当时我找这些照片的时候就是百度搜索 QQ 头像，然后在各个网站翻着看。有当年做这些网站的站长吗？ 你们当年的素材来自哪里呢？</p>
+]]></content:encoded>
+<pubDate>2025-03-22T15:08:50Z</pubDate>
+<pubDate>2025-03-22T15:49:23Z</pubDate>
+</item>
+<item>
+<title>[问与答] 如果你用 ai 编程却不让 ai 写测试用例，那你就不是 ai 的主人，而是 ai 的奴隶。你只是 ai 的测试员。</title>
+<link>https://www.v2ex.com/t/1120368</link>
+<guid>https://www.v2ex.com/t/1120368</guid>
+<content:encoded><![CDATA[
+
+这样的理解，对不对？
+]]></content:encoded>
+<pubDate>2025-03-22T14:38:09Z</pubDate>
+<pubDate>2025-03-22T15:43:41Z</pubDate>
+</item>
+
+<item>
 <title>[生活] 有人跟我一样觉得京东做外卖应该单独一个 App 的吗</title>
 <link>https://www.v2ex.com/t/1120366</link>
 <guid>https://www.v2ex.com/t/1120366</guid>
 <content:encoded><![CDATA[
-
 <p>因为最近补贴力度大，所以也开始用京东点外卖。但非常烦外卖订单也会出现在订单和购物车里面，所以送到后都会主动去把订单和购物车里面的外卖商品删了；另外，只要点过外卖，在首页信息流里面也会推荐外卖，谁会在不准备点外卖的时候浏览外卖商品？</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T14:09:36Z</pubDate>
 <pubDate>2025-03-22T14:09:36Z</pubDate>
 </item>
 <item>
@@ -20,7 +133,6 @@
 <link>https://www.v2ex.com/t/1120365</link>
 <guid>https://www.v2ex.com/t/1120365</guid>
 <content:encoded><![CDATA[
-
 <p>写了个 SSH 服务器管理 TUI 工具，支持搜索</p>
 <p><img alt="Lazyssh" class="embedded_image" rel="noreferrer" src="https://github.com/KURANADO2/lazyssh/blob/main/demo.gif?raw=true" /></p>
 <p>起因是上周五晚上公司运维和我说 Xshell 登录的服务器，用 btop 这种命令会导致图形字符位置错乱，我让他换 tabby 就可以了</p>
@@ -29,17 +141,14 @@
 <p>项目地址：<a href="https://github.com/KURANADO2/lazyssh" rel="nofollow">https://github.com/KURANADO2/lazyssh</a></p>
 ]]></content:encoded>
 <pubDate>2025-03-22T13:55:31Z</pubDate>
-<pubDate>2025-03-22T13:55:31Z</pubDate>
 </item>
 <item>
 <title>[问与答] OpenWebUI 限制提问次数问题</title>
 <link>https://www.v2ex.com/t/1120364</link>
 <guid>https://www.v2ex.com/t/1120364</guid>
 <content:encoded><![CDATA[
-
 在使用 openwebui 的时候想请问一下各位佬，如何现在一个用户在固定时间内的提问次数。
 ]]></content:encoded>
-<pubDate>2025-03-22T13:52:21Z</pubDate>
 <pubDate>2025-03-22T13:58:55Z</pubDate>
 </item>
 <item>
@@ -47,7 +156,6 @@
 <link>https://www.v2ex.com/t/1120363</link>
 <guid>https://www.v2ex.com/t/1120363</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.v2ex.com/#in-2025-the-greatest-opportunities-lie-in-the-AI-sector" rel="nofollow">2025 年，还是要干 AI</a></p>
 <p><a href="https://www.v2ex.com/#cost-cost-cost" rel="nofollow">1. 成本、成本、还是成本</a></p>
 <ul>
@@ -217,7 +325,6 @@
 <p>希望对你有帮助。</p>
 <p><a href="https://otranslator.com/zh/blog/building-AI-applications-in-2025-what-you-need-to-know-first" rel="nofollow">原文地址</a></p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:52:15Z</pubDate>
 <pubDate>2025-03-22T13:51:15Z</pubDate>
 </item>
 <item>
@@ -225,10 +332,8 @@
 <link>https://www.v2ex.com/t/1120362</link>
 <guid>https://www.v2ex.com/t/1120362</guid>
 <content:encoded><![CDATA[
-
 环境：<br />一台 win11 电脑，装了 clash for verge 客户端。<br /><br /><br />现在的情况是，无论我使用哪个地区的节点，都只能得到新加坡地区的域名，我只能用新加坡地区的节点，才可以打开 discord 桌面程序。这是为什么？如何解决？<br /><br /><br /><br /><br /><br /><a href="https://imgur.com/a/Ydvlzvk" rel="nofollow noopener" target="_blank">https://imgur.com/a/Ydvlzvk</a>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:39:06Z</pubDate>
 <pubDate>2025-03-22T13:39:06Z</pubDate>
 </item>
 <item>
@@ -236,11 +341,9 @@
 <link>https://www.v2ex.com/t/1120361</link>
 <guid>https://www.v2ex.com/t/1120361</guid>
 <content:encoded><![CDATA[
-
 <p>有没有 V 友推荐的，靠谱的？</p>
 <p>因为这插件几乎要走所有浏览器的请求，所以想求个的安全靠谱的</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:30:05Z</pubDate>
 <pubDate>2025-03-22T13:52:48Z</pubDate>
 </item>
 <item>
@@ -248,10 +351,8 @@
 <link>https://www.v2ex.com/t/1120360</link>
 <guid>https://www.v2ex.com/t/1120360</guid>
 <content:encoded><![CDATA[
-
 <p>chrome 也不兼容，只能用国产 qq 浏览器之类的了吗</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:30:00Z</pubDate>
 <pubDate>2025-03-22T13:45:59Z</pubDate>
 </item>
 <item>
@@ -259,10 +360,8 @@
 <link>https://www.v2ex.com/t/1120359</link>
 <guid>https://www.v2ex.com/t/1120359</guid>
 <content:encoded><![CDATA[
-
 <p>最好是免费软件</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:26:03Z</pubDate>
 <pubDate>2025-03-22T14:06:50Z</pubDate>
 </item>
 <item>
@@ -270,13 +369,11 @@
 <link>https://www.v2ex.com/t/1120358</link>
 <guid>https://www.v2ex.com/t/1120358</guid>
 <content:encoded><![CDATA[
-
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://s3.bmp.ovh/imgs/2025/03/22/d53921031e6f48ef.png" /></p>
 <p>大概是 2 年前，这个笔记本就只能 插电使用，一拔掉电源就关机。</p>
 <p>笔记本是 联想拯救者 Y7000P ，今天清灰了，看了电池排线是插着好好的呢。</p>
 <p>右上角那部分（凸出来那部分），摸着是有一点点鼓鼓的，难道是电池鼓包了？</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:24:26Z</pubDate>
 <pubDate>2025-03-22T13:37:37Z</pubDate>
 </item>
 <item>
@@ -284,7 +381,6 @@
 <link>https://www.v2ex.com/t/1120357</link>
 <guid>https://www.v2ex.com/t/1120357</guid>
 <content:encoded><![CDATA[
-
 <p><a href="https://www.marketvaluation.xyz" rel="nofollow">https://www.marketvaluation.xyz</a></p>
 <p><img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GmjAkUSaEAAhHvE?format=jpg&amp;name=4096x4096" />
 <img alt="" class="embedded_image" rel="noreferrer" src="https://pbs.twimg.com/media/GmjAmqsaQAAjpXt?format=jpg&amp;name=4096x4096" /></p>
@@ -303,7 +399,6 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <p>零代码成本，只需要写 prompt ，AI 直接给结果</p>
 <p>适合静态内容，如果是 API 驱动的动态网站，可能还是要手写部分逻辑</p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:22:10Z</pubDate>
 <pubDate>2025-03-20T13:22:10Z</pubDate>
 </item>
 <item>
@@ -311,13 +406,11 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <link>https://www.v2ex.com/t/1120356</link>
 <guid>https://www.v2ex.com/t/1120356</guid>
 <content:encoded><![CDATA[
-
 <p>[第一部分]黄仁勋 3 月 19 日英伟达 GTC 演讲</p>
 <p><a href="https://mp.weixin.qq.com/s/yV9QpPveeGopJtcwadBLLA" rel="nofollow">https://mp.weixin.qq.com/s/yV9QpPveeGopJtcwadBLLA</a></p>
 <p>[第二部分]黄仁勋 3 月 19 日英伟达 GTC 演讲
 <a href="https://mp.weixin.qq.com/s/Q7vz9MxYqCFqBgdiuiFrdA" rel="nofollow">https://mp.weixin.qq.com/s/Q7vz9MxYqCFqBgdiuiFrdA</a></p>
 ]]></content:encoded>
-<pubDate>2025-03-22T13:19:51Z</pubDate>
 <pubDate>2025-03-22T13:18:51Z</pubDate>
 </item>
 <item>
@@ -325,10 +418,8 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <link>https://www.v2ex.com/t/1120355</link>
 <guid>https://www.v2ex.com/t/1120355</guid>
 <content:encoded><![CDATA[
-
 预算 1000 左右，如果有值得的理由可以往上浮动到 1500 左右🤣。然后本人度数 600-700 度。以前一直都是线下门店验光配镜，配了几次都是一千往上。想试一下，线上配镜的话会不会踩坑。来这里听听各位佬的建议。
 ]]></content:encoded>
-<pubDate>2025-03-22T13:15:46Z</pubDate>
 <pubDate>2025-03-22T14:17:40Z</pubDate>
 </item>
 <item>
@@ -336,7 +427,6 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <link>https://www.v2ex.com/t/1120353</link>
 <guid>https://www.v2ex.com/t/1120353</guid>
 <content:encoded><![CDATA[
-
 <p>系统版本 Sequoia 15.3.2
 硬件 Mac mini m4
 目前发现两个 bug</p>
@@ -348,7 +438,6 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <pre><code>点进设置的隐私与安全性-本地网络，开关任意程序的权限，才能恢复正常，每次升级系统后的几次开关机必现，重启多次后偶尔会正常
 </code></pre>
 ]]></content:encoded>
-<pubDate>2025-03-22T12:50:27Z</pubDate>
 <pubDate>2025-03-22T12:48:27Z</pubDate>
 </item>
 <item>
@@ -356,7 +445,6 @@ MarketValuation.xyz 主要用于 自动评估市场估值 &amp; 宏观经济指�
 <link>https://www.v2ex.com/t/1120352</link>
 <guid>https://www.v2ex.com/t/1120352</guid>
 <content:encoded><![CDATA[
-
 <p>使用 Windhawk 对系统样式进行了一些微调，启动英雄联盟后会提示 <code>the system environment has been detected as abnormal</code> 环境异常的错误。</p>
 <p>在 <code>Advanced settings / More advanced settings / Process exclusion list</code> 中将 WeGame 和英雄联盟客户端相关路径加入，然后再进游戏就不会再报错啦。</p>
 <p>例如我的：</p>
@@ -366,9 +454,7 @@ D:\WeGame\*
 </code></pre>
 ]]></content:encoded>
 <pubDate>2025-03-22T12:44:13Z</pubDate>
-<pubDate>2025-03-22T12:44:13Z</pubDate>
 </item>
-
 <item>
 <title>[前端开发] 我转行两年了</title>
 <link>https://www.v2ex.com/t/1120351</link>
@@ -16757,209 +16843,6 @@ Hot/New Jobs：<br /><br />Position 一：高级 Java 技术专家<br />Job Type
 把 14 寸丐版的 Pro 16+512 出了，换成 13 寸 24+512 的 M4 Air<br />现在马上要收货了，看一些对比和测评，感觉换的太脑热了<br /><br /><br />性能上，M1pro ≈ M4 ，图形处理能力上好像还更强于 Air<br />屏幕上，肯定 MiniLed &gt; LCD ，Air 尺寸也变小了<br />拓展上，自己用不到那么多，Pro 最实用的就是高清投屏<br /><br />除了更轻便点，电池更耐用点，还有什么理由平复下心情？<br /><br />·M1 Pro 还没用到瓶颈<br />·平时外出开会需求有，1-2/周<br />·长期周末移动办公，<br />·没有外接显示器需求
 ]]></content:encoded>
 <pubDate>2025-03-16T16:52:36Z</pubDate>
-</item>
-<item>
-<title>[Apple] 建议各位 Mac 用户在买显示器时考虑高刷屏</title>
-<link>https://www.v2ex.com/t/1119147</link>
-<guid>https://www.v2ex.com/t/1119147</guid>
-<content:encoded><![CDATA[
-上次发帖讲了一下换 M4 Pro 的感受，感觉反响不错，这次再来发表个观点：<br /><br />2025 年了，请大家给 Mac 配显示器时尽量考虑高刷屏。不要一上来就红米 4K……<br /><br />（我知道有很多 60Hz 够用论者，但我相信更多数人是能感到高刷的好处的）<br /><br />其实应该说给任何电脑配显示器都是如此，Mac 均价高一些，更应该这样。理由如下：<br /><br />1. 现在的 27 寸 4k 高刷屏价格已经很好，2000 甚至 1500 以下都能挑到不错的。相比 Mac 本身的价格，并不是一个很贵的附件。<br /><br />2. 很多人觉得高刷的作用只是游戏或者滚屏时看起来更流畅，其实不只是这样，高刷让你每次操作呈现到屏幕上的时间都更短了（这里先忽略显示器输入延迟等问题）。比如移动鼠标、打字、移动窗口这种操作都会觉得更跟手一些。总体上就会觉得电脑更流畅了。这变化绝对比 M1 换 M2 ，M3 换 M4 感知明显，更比把 M4 Pro 从 12 核升级到 14 核明显（这要加 1500rmb 呢）。<br /><br />3. 如果是 MBP 用户，高刷屏能让你内外屏的刷新率体验是一致的。<br /><br />4. 个人觉得刷新率高了眼睛更不容易累。<br /><br />个人不太推荐考虑的特性是 HDR ，这方面能做好的显示器价格都起飞。低价显示器的 HDR 硬件和调教都不行，既不能日常开，哪怕是看视频时开也总感觉色彩不对劲。尤其是 MBP 用户，使用低价 HDR 显示器只会感受到和内屏的巨大落差感。<br /><br />其实从产品因素我想不到高刷有什么坏处，毕竟现在办公设计屏都开始做高刷了。只是在考虑价格时要取舍一下。<br /><br />叠甲，本帖面对大众用户。对显示器某方面性能有明确要求或者电脑纯当计算农场的用户请忽略。楼主也不做显示器推荐。
-]]></content:encoded>
-<pubDate>2025-03-17T08:47:16Z</pubDate>
-</item>
-<item>
-<title>[问与答] 2025 年了,flutter 还是 react</title>
-<link>https://www.v2ex.com/t/1119146</link>
-<guid>https://www.v2ex.com/t/1119146</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-03-17T12:45:38Z</pubDate>
-</item>
-<item>
-<title>[电影] 有看过《万能钥匙》的么</title>
-<link>https://www.v2ex.com/t/1119145</link>
-<guid>https://www.v2ex.com/t/1119145</guid>
-<content:encoded><![CDATA[
-<p>这个电影很多年前看了，看完后久久不能平复，抑郁了半个多月，现在想起来依然觉得愤然难平，也不敢看第二遍。
-千万不要被片名给误导，一定要看到最后。</p>
-]]></content:encoded>
-<pubDate>2025-03-17T08:33:50Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国内有哪些做代理 ip 比较稳定价格实惠的？看到一家厉害的 oxylabs 有点贵</title>
-<link>https://www.v2ex.com/t/1119143</link>
-<guid>https://www.v2ex.com/t/1119143</guid>
-<content:encoded><![CDATA[
-
-]]></content:encoded>
-<pubDate>2025-03-17T12:26:05Z</pubDate>
-</item>
-<item>
-<title>[微软] Office 365 账号求助。</title>
-<link>https://www.v2ex.com/t/1119142</link>
-<guid>https://www.v2ex.com/t/1119142</guid>
-<content:encoded><![CDATA[
-<p>本人多年前，在 V 站得遇好心人发送了一个 office 365 账号，一直用到现在。</p>
-<p>但是意外的是，因为之前绑定了 authenticator 应用，但是更换手机的时候，没有及时手动操作切换（从 13 pro 换为 15 Pro Max ），现在即使从 iCloud 恢复，也需要联系管理者提供验证，无奈的是🤷🏻‍♀️，我似乎无法联系到 之前给我发送账号的好心人。</p>
-<p>目前的状况是，mac 上已经在 mail 登录的账户依然可以收到邮件，但是在其他设备上均无法薪登录。鉴于保存了资料在上面，还是希望能够通过发布新帖子看有没有希望找回。（查过历史记录，原先的帖子似乎已经不在了）。</p>
-<p>好心人发送给我的组织 前缀是  wikiw*****.onmicrosoft.com . 我个人的用户名和 V 站用户名一致（ YoYoLikecici ），碰碰运气，希望能联系到原来的组织管理者以重新验证账号吧。</p>
-]]></content:encoded>
-<pubDate>2025-03-17T12:13:20Z</pubDate>
-</item>
-<item>
-<title>[职场话题] 复试说是部门负责人，等了好几天，结果进来一个产品交叉面试说是</title>
-<link>https://www.v2ex.com/t/1119140</link>
-<guid>https://www.v2ex.com/t/1119140</guid>
-<content:encoded><![CDATA[
-<ol>
-<li>首面结束时说领导不在让我先回去，隔天 boss 职位没了，默认 gg</li>
-<li>两天后又说面试通过，让复试，但是很奇怪约在了下周</li>
-<li>周末又说部门负责人有事，在延迟一天。</li>
-<li>面试当天进来一个产品，说交叉面试，当场我就想直接走了，后面应付了下草草结束，部门负责人一直没出现。</li>
-</ol>
-<ul>
-<li><strong>前后一共耗时 2 周，感觉心力憔悴。要不是现在行情差，搁在以前早就不鸟他了。</strong></li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-03-17T07:55:39Z</pubDate>
-</item>
-<item>
-<title>[Apple] AppleCare+ 的一点误解</title>
-<link>https://www.v2ex.com/t/1119139</link>
-<guid>https://www.v2ex.com/t/1119139</guid>
-<content:encoded><![CDATA[
-<p>去年狗东买了个 15 Pro 和一个 AC+。这个月，手上买了两年的 14 和 15 Pro 同时提示我 AC+ 到期，可续。</p>
-<p>还以为京东买的 AC+ 出啥问题了，怎么也不能一年就到期啊。查了订单，付了 729 ，写的是官方 AC+，一年。</p>
-<p>正好昨天序列号查保修的服务在维护，本来还以为是什么系统出 bug 了。今天直接打苹果客服，也称 15 Pro 的确实到期了。才知道之前在官网或者店里买 AC+ 默认是两年，不知道什么时候开始可以一年一年买了。去年买的狗东一年 AC+ 就是从购买之日起算一年，今年到期。</p>
-<p>今天从手机上再续一年，价格 899... 早知道还不如去年直接买两年的 AC+.</p>
-<p>另外就是有些经销商在宣传 AC+ 的时候会说，不买的话，是保修一年，买的话是延保一年，共计两年。实际上并不是这样，比如我在京东只买一年 AC+，那今年就是一起双双到期。这也是我今天打电话和苹果客服确认的内容之一，苹果官方是不认可这种说法的，他们的说法就是 AC+ 额外保意外，但是可以拆开一年年买，也可以一次买两年。</p>
-<p>总结：</p>
-<h2>AC+ 购买选项的变化</h2>
-<ul>
-<li>过去 AC+ 只提供两年期选项</li>
-<li>现在可以选择一年一年购买或一次性购买两年，到期后还可以继续购买。</li>
-</ul>
-<h2>价格差异</h2>
-<ul>
-<li>京东购买一年期 AC+：729 元</li>
-<li>续保第二年价格：899 元</li>
-<li>直接购买两年期更划算</li>
-</ul>
-<h2>保修期说明</h2>
-<p>关于一些经销商的错误宣传：</p>
-<ul>
-<li>❌ 错误说法：不买 AC+ 保修一年，买了延保一年变成两年</li>
-<li>✓ 正确说法：AC+ 主要是为了保意外损坏，可以选择购买一年或两年</li>
-<li>一年期 AC+ 到期后，保修和 AC+ 会同时结束</li>
-<li>建议购买 iPhone 时直接选择两年期 AC+，这样更经济实惠。</li>
-</ul>
-]]></content:encoded>
-<pubDate>2025-03-17T11:54:45Z</pubDate>
-</item>
-<item>
-<title>[问与答] 国内科技大厂的综合实力和美国同行比到底是强还弱？</title>
-<link>https://www.v2ex.com/t/1119138</link>
-<guid>https://www.v2ex.com/t/1119138</guid>
-<content:encoded><![CDATA[
-<p>说他们强，他们经常整出一些迷幻操作；说他们菜，他们的用户体量、业务规模和获利能力又很大。</p>
-]]></content:encoded>
-<pubDate>2025-03-17T12:16:22Z</pubDate>
-</item>
-<item>
-<title>[Apple] 有什么方法能过 Apple Music 学生认证？</title>
-<link>https://www.v2ex.com/t/1119137</link>
-<guid>https://www.v2ex.com/t/1119137</guid>
-<content:encoded><![CDATA[
-海鲜上看了都是代验证，必须给帐户密码等资料，风险太高<br />有什么方法能通过这个苹果的 Sheer ID 认证吗？
-]]></content:encoded>
-<pubDate>2025-03-17T12:33:12Z</pubDate>
-</item>
-<item>
-<title>[macOS] AirPods 降噪 快捷指令无法在 sequoia 系统上运行</title>
-<link>https://www.v2ex.com/t/1119136</link>
-<guid>https://www.v2ex.com/t/1119136</guid>
-<content:encoded><![CDATA[
-系统版本：sequoia 15.3 (24D60)<br /><br />无法正常执行<br /><br /><a href="https://i.imgur.com/OWPEYCs.png" rel="nofollow noopener" target="_blank"><img class="embedded_image" rel="noreferrer" src="https://i.imgur.com/OWPEYCs.png" /></a>
-]]></content:encoded>
-<pubDate>2025-03-17T11:36:35Z</pubDate>
-</item>
-<item>
-<title>[求职] 8 年经验 PHP 求个远程岗位</title>
-<link>https://www.v2ex.com/t/1119135</link>
-<guid>https://www.v2ex.com/t/1119135</guid>
-<content:encoded><![CDATA[
-<h4>求职意向</h4>
-<p>偏向于远程，如果是长沙/深圳 onsite ，特别合适的话，也可以详细了解一下。</p>
-<h4>技术栈</h4>
-<ol>
-<li>8 年 Laravel 使用经验，有较深的理解</li>
-<li>Composer 模块化开发经验</li>
-<li>Mysql</li>
-<li>前端方面原生 js 和浏览器端的组件用的比较多，可以实现各种复杂交互需求</li>
-<li>深度代码洁癖，致力于写出面向对象的易拓展、易维护、基于 SOLID 原则的代码。日常使用 phpcs 以及 phpdoc 来保证代码质量</li>
-<li>Chatgpt/Gemeni 的 API 调用调试，RAG 模块开发经验</li>
-<li>无障碍英文读写，简单的英语口语，可参与技术类型的英文会议</li>
-<li>做过多个从 0 到 1 项目的主程，有项目管理经验，有远程经验</li>
-</ol>
-<h4>还有一些经验较少但能快速上手的：</h4>
-<ol>
-<li>php 的其他主流框架：yii/ci/thinkphp/hyperf</li>
-<li>基于 swoole 的异步开发</li>
-<li>基于 Node.js 的 web 后端</li>
-<li>Vue</li>
-<li>乐意接触新的技术栈（公司给机会的话）</li>
-</ol>
-<h4>其他的</h4>
-<p>看了一圈求职帖子，不是大厂出来的，就是很厉害的应届</p>
-<p>今年就要 30 了，也没啥大厂经验，PHP 感觉也渐显颓势了，再加上现在的环境，压力真的好大啊</p>
-<p>希望有大佬能捞一捞吧，感恩！</p>
-<h4>联系方式</h4>
-<p>wxBase64:ZG1wdHk=</p>
-<p>EmailBase64:ZG1wdHl5QGdtYWlsLmNvbQ==</p>
-<p>麻烦备注 v2ex</p>
-]]></content:encoded>
-<pubDate>2025-03-17T11:35:59Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 完全免费的 AI 生成图片网站，蹲一个蹲</title>
-<link>https://www.v2ex.com/t/1119134</link>
-<guid>https://www.v2ex.com/t/1119134</guid>
-<content:encoded><![CDATA[
-<p>AI 图片生成网站，调用的图片生成 api 使用的是 flux 的服务，生成的图片效果还可以</p>
-<p>网站目前所有的工具全部免费使用，欢迎大家反馈提出改进意见</p>
-<p>网站已经做好了多语言，移动手机端的适配还需要优化。</p>
-<p>AI 生图用英文提示词效果会非常不错，后续准备做这方面的优化。</p>
-<p>Ai Image BG： <a href="https://aiimagebg.com/" rel="nofollow">https://aiimagebg.com/</a></p>
-<p><img alt="1" class="embedded_image" rel="noreferrer" src="https://imgs.aiimagebg.com/image/image-1.png" /></p>
-<p><img alt="2" class="embedded_image" rel="noreferrer" src="https://imgs.aiimagebg.com/image/image12.png" /></p>
-<p><img alt="3" class="embedded_image" rel="noreferrer" src="https://imgs.aiimagebg.com/image/image15.png" /></p>
-]]></content:encoded>
-<pubDate>2025-03-17T07:28:44Z</pubDate>
-</item>
-<item>
-<title>[香港] 人在香港开户,有邀请的发过来...</title>
-<link>https://www.v2ex.com/t/1119133</link>
-<guid>https://www.v2ex.com/t/1119133</guid>
-<content:encoded><![CDATA[
-<p>人在香港开户,</p>
-<p>有邀请的发过来...</p>
-<p>需要对半分奖励...</p>
-<p>打算把能开的卡和券商都开掉去...</p>
-]]></content:encoded>
-<pubDate>2025-03-17T08:24:32Z</pubDate>
-</item>
-<item>
-<title>[分享创造] 独立开发的免费 AI 图片处理网站，求吐槽</title>
-<link>https://www.v2ex.com/t/1119132</link>
-<guid>https://www.v2ex.com/t/1119132</guid>
-<content:encoded><![CDATA[
-<p>刚刚上线，功能还不多，可以免费使用。
-目前主要有以下 AI 功能，移除背景，移除物体，黑白照片上色，智能图像放大，还有一些批量图片处理功能，批量 resize ，批量裁剪，批量转换图像格式。</p>
-<p>访问地址： <a href="https://www.imggood.com" rel="nofollow">https://www.imggood.com</a></p>
-<p>欢迎大家提建议和反馈 BUG ，后续还会陆续添加其他的 AI 图像功能。</p>
-]]></content:encoded>
-<pubDate>2025-03-17T11:10:51Z</pubDate>
 </item>
 </channel>
 </rss>
